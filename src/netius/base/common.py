@@ -130,9 +130,7 @@ create an integer to string resolution mechanism """
 # the base files configuration in the complete service infra
 # structure, these should include the ssl based files
 BASE_PATH = os.path.dirname(__file__)
-ROOT_PATH = os.path.join(BASE_PATH, "..")
-ROOT_PATH = os.path.normpath(ROOT_PATH)
-EXTRAS_PATH = os.path.join(ROOT_PATH, "extras")
+EXTRAS_PATH = os.path.join(BASE_PATH, "extras")
 SSL_KEY_PATH = os.path.join(EXTRAS_PATH, "net.key")
 SSL_CER_PATH = os.path.join(EXTRAS_PATH, "net.cer")
 

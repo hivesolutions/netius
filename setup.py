@@ -43,7 +43,7 @@ import setuptools
 
 setuptools.setup(
     name = "netius",
-    version = "0.1.0",
+    version = "0.1.1",
     author = "Hive Solutions Lda.",
     author_email = "development@hive.pt",
     description = "Netius System",
@@ -62,11 +62,11 @@ setuptools.setup(
     },
     data_files = (
         (
-            "src/netius/extra",
+            "src/netius/base/extras",
             (
-                "src/netius/extra/net.cer",
-                "src/netius/extra/net.csr",
-                "src/netius/extra/net.key"
+                "src/netius/base/extras/net.cer",
+                "src/netius/base/extras/net.csr",
+                "src/netius/base/extras/net.key"
             )
         ),
     ),
