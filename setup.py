@@ -50,9 +50,26 @@ setuptools.setup(
     license = "GNU General Public License (GPL), Version 3",
     keywords = "netius net infrastructure",
     url = "http://netius.com",
+    zip_safe = False,
     packages = [
-        "netius"
+        "netius",
+        "netius.base",
+        "netius.clients",
+        "netius.servers"
     ],
+    package_dir = {
+        "" : os.path.normpath("src")
+    },
+    data_files = (
+        (
+            "src/netius/extra",
+            (
+                "src/netius/extra/net.cer",
+                "src/netius/extra/net.csr",
+                "src/netius/extra/net.key"
+            )
+        ),
+    ),
     classifiers = [
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",
