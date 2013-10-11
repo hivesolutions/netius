@@ -1,23 +1,23 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Hive Netium System
+# Hive Netius System
 # Copyright (C) 2008-2012 Hive Solutions Lda.
 #
-# This file is part of Hive Netium System.
+# This file is part of Hive Netius System.
 #
-# Hive Netium System is free software: you can redistribute it and/or modify
+# Hive Netius System is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# Hive Netium System is distributed in the hope that it will be useful,
+# Hive Netius System is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Hive Netium System. If not, see <http://www.gnu.org/licenses/>.
+# along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
@@ -42,16 +42,16 @@ import glob
 import setuptools
 
 setuptools.setup(
-    name = "netium",
+    name = "netius",
     version = "0.1.0",
     author = "Hive Solutions Lda.",
     author_email = "development@hive.pt",
-    description = "Netium System",
+    description = "Netius System",
     license = "GNU General Public License (GPL), Version 3",
-    keywords = "netium net infrastructure",
-    url = "http://netium.com",
+    keywords = "netius net infrastructure",
+    url = "http://netius.com",
     packages = [
-        "netium"
+        "netius"
     ],
     classifiers = [
         "Development Status :: 3 - Alpha",
