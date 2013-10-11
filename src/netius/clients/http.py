@@ -117,3 +117,8 @@ class HttpClient(netius.Client):
 
     def on_data_http(self, headers, message):
         print message
+
+if __name__ == "__main__":
+    http_client = HttpClient()
+    http_client.get("https://localhost:9090/")
+    http_client.start()
