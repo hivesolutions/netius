@@ -184,7 +184,7 @@ class Base(observer.Observable):
         # enters the main loop operation printing a message
         # to the logger indicating this start, this stage
         # should block the thread until a stop call is made
-        self.info("Starting the service's \"loop\" stage")
+        self.info("Starting the '%s' service main loop" % self.name)
         try: self.loop()
         except BaseException, exception:
             self.error(exception)
@@ -195,7 +195,7 @@ class Base(observer.Observable):
             lines = traceback.format_exc().splitlines()
             for line in lines: self.error(line)
         finally:
-            self.info("Stopping the service's \"loop\" stage")
+            self.info("Stopping the service's main loop")
             self.set_state(STATE_STOP)
 
     def stop(self):
