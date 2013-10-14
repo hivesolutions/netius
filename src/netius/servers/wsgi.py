@@ -37,33 +37,36 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import netius.common
+import http
 
-class HTTPConnection(netius.Connection):
+class WSGIServer(http.HTTPServer):
 
-    def __init__(self, owner, socket, address, ssl = False):
-        netius.Connection.__init__(self, owner, socket, address, ssl = ssl)
-        self.parser = netius.common.HTTPParser(type = netius.common.REQUEST)
-
-        self.parser.bind("on_data", self.on_data)
-
-    def parse(self, data):
-        return self.parser.parse(data)
-
-    def on_data(self):
-        self.owner.on_data_http(self, self.parser)
-
-class HTTPServer(netius.Server):
-
-    def on_connection_c(self, connection):
-        netius.Server.on_connection_c(self, connection)
-
-    def on_data(self, connection, data):
-        netius.Server.on_data(self, connection, data)
-        connection.parse(data)
-
-    def new_connection(self, socket, address, ssl = False):
-        return HTTPConnection(self, socket, address, ssl = ssl)
+    def __init__(self, app, name = None, handler = None, *args, **kwargs):
+        http.HTTPServer.__init__(
+            self,
+            name = name,
+            handler = handler,
+            *args,
+            **kwargs
+        )
+        self.app = app
 
     def on_data_http(self, connection, parser):
+        http.HTTPServer.on_data_http(self, parser)
+
+        def start_response(status, headers):
+            return self._start_response(connection, status, headers)
+
+        environ = dict(
+
+        )
+
+        sequence = self.app(environ, start_response)
+        for value in sequence: connection.send(value)
+
+    def _start_response(self, connection, status, headers):
         pass
+
+def application(environ, start_response):
+    start_response('200 OK', [('Content-Type', 'text/plain')])
+    yield 'Hello World\n'

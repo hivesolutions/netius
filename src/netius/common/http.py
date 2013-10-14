@@ -48,6 +48,18 @@ RESPONSE = 2
 used to identify chunks of data that represent an
 http based response """
 
+HTTP_09 = 1
+
+HTTP_10 = 2
+
+HTTP_11 = 3
+
+VERSIONS_MAP = {
+    "HTTP/0.9" : HTTP_09,
+    "HTTP/1.0" : HTTP_10,
+    "HTTP/1.1" : HTTP_11
+}
+
 class HTTPParser(netius.Observable):
     """
     Parser object for the http format, should be able to
@@ -87,6 +99,9 @@ class HTTPParser(netius.Observable):
         self.buffer = []
         self.headers = {}
         self.message = []
+        self.method = None
+        self.version = None
+        self.code = None
         self.line_s = None
         self.headers_s = None
         self.method_s = None
@@ -180,8 +195,12 @@ class HTTPParser(netius.Observable):
 
         if self.type == REQUEST:
             self.method_s, self.path_s, self.version_s = values
+            self.method = self.method_s.lower()
+            self.version = VERSIONS_MAP.get(self.version_s, HTTP_10)
         elif self.type == RESPONSE:
             self.version_s, self.code_s, self.status_s = values
+            self.version = VERSIONS_MAP.get(self.version_s, HTTP_10)
+            self.status = int(self.code_s)
 
         # updates the current state of parsing to the message state
         # as that the status line are the headers
@@ -221,14 +240,20 @@ class HTTPParser(netius.Observable):
         self.content_l = self.headers.get("content-length")
         self.content_l = self.content_l and int(self.content_l)
 
+        # verifies if the current message has finished, for those
+        # situations an extra state change will be issued
+        has_finished = self.method == "get" or self.content_l == 0
+
         # updates the current state of parsing to the message state
         # as that the headers are followed by the message
-        self.state = HTTPParser.MESSAGE_STATE
+        if has_finished: self.state = HTTPParser.FINISH_STATE
+        else: self.state = HTTPParser.MESSAGE_STATE
 
         # triggers the on headers event so that the listener object
         # is notified about the parsing of the headers and than returns
         # the parsed amount of information (bytes) to the caller
         self.trigger("on_headers")
+        if has_finished: self.trigger("on_data")
         return index + 4
 
     def _parse_message(self, data):
