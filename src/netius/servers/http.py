@@ -19,6 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
 
+__author__ = "João Magalhães joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,6 +37,25 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import http
+import netius
 
-from http import *
+class HTTPConnection(netius.Connection):
+
+    def __init__(self, owner, socket, address, ssl = False):
+        netius.Connection.__init__(self, owner, socket, address, ssl = ssl)
+
+class HTTPServer(netius.Server):
+
+    def on_connection_c(self, connection):
+        netius.Server.on_connection_c(self, connection)
+
+    def on_data(self, connection, data):
+        netius.Server.on_data(self, connection, data)
+        print data
+
+    def new_connection(self, socket, address, ssl = False):
+        return HTTPConnection(self, socket, address, ssl = ssl)
+
+if __name__ == "__main__":
+    server = HTTPServer()
+    server.serve()

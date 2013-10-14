@@ -48,7 +48,7 @@ RESPONSE = 2
 used to identify chunks of data that represent an
 http based response """
 
-class HttpParser(netius.Observable):
+class HTTPParser(netius.Observable):
     """
     Parser object for the http format, should be able to
     parse both request and response messages.
@@ -63,12 +63,12 @@ class HttpParser(netius.Observable):
     HEADERS_STATE = 2
 
     MESSAGE_STATE = 3
-    
+
     FINISH_STATE = 4
 
     def __init__(self, type = REQUEST):
         netius.Observable.__init__(self)
-        
+
         self.reset(type = type)
 
     def reset(self, type = REQUEST):
@@ -83,7 +83,7 @@ class HttpParser(netius.Observable):
         """
 
         self.type = type
-        self.state = HttpParser.LINE_STATE
+        self.state = HTTPParser.LINE_STATE
         self.buffer = []
         self.headers = {}
         self.message = []
@@ -123,7 +123,7 @@ class HttpParser(netius.Observable):
         # data that has been sent for processing
         while size > 0:
 
-            if self.state == HttpParser.LINE_STATE:
+            if self.state == HTTPParser.LINE_STATE:
                 count = self._parse_line(data)
                 if count == 0: break
 
@@ -132,7 +132,7 @@ class HttpParser(netius.Observable):
 
                 continue
 
-            elif self.state == HttpParser.HEADERS_STATE:
+            elif self.state == HTTPParser.HEADERS_STATE:
                 count = self._parse_headers(data)
                 if count == 0: break
 
@@ -141,20 +141,20 @@ class HttpParser(netius.Observable):
 
                 continue
 
-            elif self.state == HttpParser.MESSAGE_STATE:
+            elif self.state == HTTPParser.MESSAGE_STATE:
                 count = self._parse_message(data)
                 if count == 0: break
 
                 size -= count
                 data = data[count:]
-                self.state = HttpParser.MESSAGE_STATE
+                self.state = HTTPParser.MESSAGE_STATE
 
                 continue
 
-            elif self.state == HttpParser.FINISH_STATE:
+            elif self.state == HTTPParser.FINISH_STATE:
                 break
-            
-            else: 
+
+            else:
                 raise RuntimeError("invalid state '%d'" % self.state)
 
         # in case not all of the data has been processed
@@ -185,7 +185,7 @@ class HttpParser(netius.Observable):
 
         # updates the current state of parsing to the message state
         # as that the status line are the headers
-        self.state = HttpParser.HEADERS_STATE
+        self.state = HTTPParser.HEADERS_STATE
 
         # triggers the on line event so that the listeners are notified
         # about the end of the parsing of the status line and then
@@ -223,7 +223,7 @@ class HttpParser(netius.Observable):
 
         # updates the current state of parsing to the message state
         # as that the headers are followed by the message
-        self.state = HttpParser.MESSAGE_STATE
+        self.state = HTTPParser.MESSAGE_STATE
 
         # triggers the on headers event so that the listener object
         # is notified about the parsing of the headers and than returns
@@ -235,13 +235,13 @@ class HttpParser(netius.Observable):
         data_l = len(data)
         self.message.append(data)
         self.message_l += data_l
-        
+
         has_finished = not self.content_l == -1 and\
             self.message_l == self.content_l
-        
+
         if not has_finished: return data_l
 
-        self.state = HttpParser.FINISH_STATE
+        self.state = HTTPParser.FINISH_STATE
 
         self.trigger("on_data")
         return data_l

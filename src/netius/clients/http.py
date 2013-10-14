@@ -41,11 +41,11 @@ import urlparse
 
 import netius.common
 
-class HttpConnection(netius.Connection):
+class HTTPConnection(netius.Connection):
 
     def __init__(self, owner, socket, address, ssl = False):
         netius.Connection.__init__(self, owner, socket, address, ssl = ssl)
-        self.parser = netius.common.HttpParser(type = netius.common.RESPONSE)
+        self.parser = netius.common.HTTPParser(type = netius.common.RESPONSE)
         self.version = "HTTP/1.0"
         self.method = "GET"
         self.url = None
@@ -53,7 +53,7 @@ class HttpConnection(netius.Connection):
         self.host = None
         self.port = None
         self.path = None
-        
+
         self.parser.bind("on_data", self.on_data)
 
     def set_http(
@@ -76,13 +76,14 @@ class HttpConnection(netius.Connection):
 
     def parse(self, data):
         return self.parser.parse(data)
-    
+
     def on_data(self):
         self.owner.on_data_http(self.parser)
 
-class HttpClient(netius.Client):
+class HTTPClient(netius.Client):
     """
-    Simple test of an http client
+    Simple test of an http client, supports a series of basic
+    operations and makes use of the http parser from netius.
     """
 
     def get(self, url):
@@ -120,12 +121,12 @@ class HttpClient(netius.Client):
         netius.Client.on_connection_d(self, connection)
 
     def new_connection(self, socket, address, ssl = False):
-        return HttpConnection(self, socket, address, ssl = ssl)
+        return HTTPConnection(self, socket, address, ssl = ssl)
 
     def on_data_http(self, parser):
         print parser.get_message()
 
 if __name__ == "__main__":
-    http_client = HttpClient()
+    http_client = HTTPClient()
     http_client.get("https://localhost:9090/")
     http_client.start()
