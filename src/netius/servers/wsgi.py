@@ -52,21 +52,40 @@ class WSGIServer(http.HTTPServer):
         self.app = app
 
     def on_data_http(self, connection, parser):
-        http.HTTPServer.on_data_http(self, parser)
+        http.HTTPServer.on_data_http(self, connection, parser)
 
         def start_response(status, headers):
             return self._start_response(connection, status, headers)
 
         environ = dict(
-
+            REQUEST_METHOD = parser.method.upper(),
+            SCRIPT_NAME = "",
+            PATH_INFO = parser.path_s,
+            QUERY_STRING = "",
+            CONTENT_TYPE = parser.headers.get("content-type", None),
+            CONTENT_LENGTH =  None if parser.content_l == -1 else parser.content_l,
         )
+        for key, value in parser.headers.items():
+            key = "HTTP_" + key.upper()
+            environ[key] = value
 
         sequence = self.app(environ, start_response)
         for value in sequence: connection.send(value)
 
     def _start_response(self, connection, status, headers):
-        pass
+        connection.send("HTTP/1.1 %s\r\n" % status)
+        for key, value in headers:
+            connection.send("%s: %s\r\n" % (key, value))
+        connection.send("\r\n")
 
 def application(environ, start_response):
-    start_response('200 OK', [('Content-Type', 'text/plain')])
-    yield 'Hello World\n'
+    headers = [
+        ("Content-Type", "text/plain"),
+        ("Content-Length", "12")
+    ]
+    start_response("200 OK", headers)
+    yield "Hello World\n"
+
+if __name__ == "__main__":
+    server = WSGIServer(application)
+    server.serve()
