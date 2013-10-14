@@ -19,9 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = "João Magalhães joamag@hive.pt>"
-""" The author(s) of the module """
-
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -37,29 +34,6 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-class Observable(object):
-    """
-    The base class that implements the observable
-    patter allowing the object to handle a series of
-    event in a dynamic fashion.
+import http
 
-    This class should be friendly to multiple inheritance
-    and should avoid variable naming collision.
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.events = {}
-
-    def bind(self, name, method):
-        methods = self.events.get(name, [])
-        methods.append(method)
-        self.events[name] = methods
-
-    def unbind(self, name, method = None):
-        methods = self.events.get(name, [])
-        if method: methods.remove(method)
-        else: methods[:] = []
-
-    def trigger(self, name, *args, **kwargs):
-        methods = self.events.get(name, [])
-        for method in methods: method(*args, **kwargs)
+from http import *

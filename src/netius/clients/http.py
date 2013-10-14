@@ -39,12 +39,13 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import urlparse
 
-import netius
+import netius.common
 
 class HttpConnection(netius.Connection):
 
     def __init__(self, owner, socket, address, ssl = False):
         netius.Connection.__init__(self, owner, socket, address, ssl = ssl)
+        self.parser = netius.common.HttpParser(type = netius.common.RESPONSE)
         self.version = "HTTP/1.0"
         self.method = "GET"
         self.url = None
@@ -52,6 +53,8 @@ class HttpConnection(netius.Connection):
         self.host = None
         self.port = None
         self.path = None
+        
+        self.parser.bind("on_data", self.on_data)
 
     def set_http(
         self,
@@ -70,6 +73,12 @@ class HttpConnection(netius.Connection):
         self.port = port
         self.path = path
         self.ssl = ssl
+
+    def parse(self, data):
+        return self.parser.parse(data)
+    
+    def on_data(self):
+        self.owner.on_data_http(self.parser)
 
 class HttpClient(netius.Client):
     """
@@ -105,9 +114,7 @@ class HttpClient(netius.Client):
 
     def on_data(self, connection, data):
         netius.Client.on_data(self, connection, data)
-
-        headers, message = data.split("\r\n\r\n", 1)
-        self.on_data_http(headers, message)
+        connection.parse(data)
 
     def on_connection_d(self, connection):
         netius.Client.on_connection_d(self, connection)
@@ -115,8 +122,8 @@ class HttpClient(netius.Client):
     def new_connection(self, socket, address, ssl = False):
         return HttpConnection(self, socket, address, ssl = ssl)
 
-    def on_data_http(self, headers, message):
-        print message
+    def on_data_http(self, parser):
+        print parser.get_message()
 
 if __name__ == "__main__":
     http_client = HttpClient()
