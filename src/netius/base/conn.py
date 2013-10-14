@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import types
 import threading
 
 OPEN = 1
@@ -156,10 +157,14 @@ class Connection(object):
         if not self.socket in self.owner.write_l: return
         self.owner.write_l.remove(self.socket)
 
-    def send(self, data):
+    def send(self, data, callback = None):
         """
         The main send call to be used by a proxy connection and
         from different threads.
+
+        An optional callback attribute may be sent and so that
+        when the send is complete it's called with a reference
+        to the data object.
 
         Calling this method should be done with care as this can
         create dead lock or socket corruption situations.
@@ -167,8 +172,12 @@ class Connection(object):
         @type data: String
         @param data: The buffer containing the data to be sent
         through this connection to the other endpoint.
+        @type callback: Function
+        @param callback: Function to be called when the data set
+        to be send is completely sent to the socket.
         """
 
+        if callback: data = (data, callback)
         self.ensure_write()
         self.pending_lock.acquire()
         try: self.pending.insert(0, data)
@@ -189,8 +198,13 @@ class Connection(object):
             while True:
                 if not self.pending: break
                 data = self.pending.pop()
+                data_o = data
+                callback = None
+                if type(data) == types.TupleType:
+                    data, callback = data
                 try: self.socket.send(data)
-                except: self.pending.append(data)
+                except: self.pending.append(data_o)
+                else: callback and callback(data)
         finally:
             self.pending_lock.release()
 
