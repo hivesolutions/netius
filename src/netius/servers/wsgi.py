@@ -73,7 +73,9 @@ class WSGIServer(http.HTTPServer):
         for value in sequence: connection.send(value)
 
     def _start_response(self, connection, status, headers):
-        connection.send("HTTP/1.1 %s\r\n" % status)
+        parser = connection.parser
+        version_s = parser.version_s
+        connection.send("%s %s\r\n" % (version_s, status))
         for key, value in headers:
             connection.send("%s: %s\r\n" % (key, value))
         connection.send("\r\n")
