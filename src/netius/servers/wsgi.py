@@ -60,6 +60,9 @@ class WSGIServer(http.HTTPServer):
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
 
+        def close(data):
+            self.on_connection_d(connection)
+
         def start_response(status, headers):
             return self._start_response(connection, status, headers)
 
@@ -78,6 +81,9 @@ class WSGIServer(http.HTTPServer):
         sequence = self.app(environ, start_response)
         for value in sequence: connection.send(value)
         
+        # @todo isto so pode ser fechado quando for necessarion
+        connection.send("", callback = close)
+
     def _apply_base(self, headers):
         for key, value in BASE_HEADERS.items():
             if key in headers: continue
@@ -87,11 +93,16 @@ class WSGIServer(http.HTTPServer):
         parser = connection.parser
         version_s = parser.version_s
         headers = dict(headers)
-        self._apply_base(headers)        
-        connection.send("%s %s\r\n" % (version_s, status))
+        self._apply_base(headers)
+
+        buffer = []
+        buffer.append("%s %s\r\n" % (version_s, status))
         for key, value in headers.items():
-            connection.send("%s: %s\r\n" % (key, value))
-        connection.send("\r\n")
+            buffer.append("%s: %s\r\n" % (key, value))
+        buffer.append("\r\n")
+
+        data = "".join(buffer)
+        connection.send(data)
 
 def application(environ, start_response):
     headers = [
