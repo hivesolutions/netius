@@ -39,6 +39,12 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import http
 
+BASE_HEADERS = dict(
+    Server = "netium-wsgi/0.0.1"
+)
+""" The map containing the complete set of headers
+that are meant to be applied to all the responses """
+
 class WSGIServer(http.HTTPServer):
 
     def __init__(self, app, name = None, handler = None, *args, **kwargs):
@@ -63,7 +69,7 @@ class WSGIServer(http.HTTPServer):
             PATH_INFO = parser.path_s,
             QUERY_STRING = "",
             CONTENT_TYPE = parser.headers.get("content-type", None),
-            CONTENT_LENGTH =  None if parser.content_l == -1 else parser.content_l,
+            CONTENT_LENGTH = None if parser.content_l == -1 else parser.content_l,
         )
         for key, value in parser.headers.items():
             key = "HTTP_" + key.upper()
@@ -71,22 +77,29 @@ class WSGIServer(http.HTTPServer):
 
         sequence = self.app(environ, start_response)
         for value in sequence: connection.send(value)
+        
+    def _apply_base(self, headers):
+        for key, value in BASE_HEADERS.items():
+            if key in headers: continue
+            headers[key] = value
 
     def _start_response(self, connection, status, headers):
         parser = connection.parser
         version_s = parser.version_s
+        headers = dict(headers)
+        self._apply_base(headers)        
         connection.send("%s %s\r\n" % (version_s, status))
-        for key, value in headers:
+        for key, value in headers.items():
             connection.send("%s: %s\r\n" % (key, value))
         connection.send("\r\n")
 
 def application(environ, start_response):
     headers = [
         ("Content-Type", "text/plain"),
-        ("Content-Length", "12")
+        ("Content-Length", "11")
     ]
     start_response("200 OK", headers)
-    yield "Hello World\n"
+    yield "Hello World"
 
 if __name__ == "__main__":
     server = WSGIServer(application)
