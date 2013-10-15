@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import cStringIO
+
 import netius
 
 REQUEST = 1
@@ -78,7 +80,6 @@ class HTTPParser(netius.Observable):
     parsing. But the object itself is not thread safe.
     """
 
-
     def __init__(self, type = REQUEST):
         netius.Observable.__init__(self)
 
@@ -119,6 +120,12 @@ class HTTPParser(netius.Observable):
     def get_message(self):
         if not self.message_s: self.message_s = "".join(self.message)
         return self.message_s
+
+    def get_message_b(self):
+        buffer = cStringIO.StringIO()
+        for value in self.message: buffer.write(value)
+        buffer.seek(0)
+        return buffer
 
     def parse(self, data):
         """

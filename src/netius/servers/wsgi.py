@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import sys
+
 import http
 
 class WSGIServer(http.HTTPServer):
@@ -68,6 +70,19 @@ class WSGIServer(http.HTTPServer):
             CONTENT_TYPE = parser.headers.get("content-type", None),
             CONTENT_LENGTH = None if parser.content_l == -1 else parser.content_l,
         )
+
+        environ["wsgi.version"] = (1, 0)
+        environ["wsgi.url_scheme"] = "http"
+        environ["wsgi.input"] = parser.get_message_b()
+        environ["wsgi.errors"] = sys.stderr
+        environ["wsgi.multithread"] = True
+        environ["wsgi.multiprocess"] = True
+        environ["wsgi.run_once"] = True
+
+        # iterates over all the header values that have been received
+        # to set them in the environment map to be used by the wsig
+        # infra-structure, not that their name is capitalized as defined
+        # in the standard specification
         for key, value in parser.headers.items():
             key = "HTTP_" + key.upper()
             environ[key] = value
