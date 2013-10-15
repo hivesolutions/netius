@@ -107,7 +107,7 @@ class WSGIServer(http.HTTPServer):
         environ["wsgi.run_once"] = True
 
         # iterates over all the header values that have been received
-        # to set them in the environment map to be used by the wsig
+        # to set them in the environment map to be used by the wsgi
         # infra-structure, not that their name is capitalized as defined
         # in the standard specification
         for key, value in parser.headers.items():
@@ -126,18 +126,38 @@ class WSGIServer(http.HTTPServer):
         if not parser.keep_alive: connection.send("", callback = close)
 
     def _start_response(self, connection, status, headers):
+        # retrieves the parser object from the connection and uses
+        # it to retrieve the string version of the http version
         parser = connection.parser
         version_s = parser.version_s
+
+        # converts the provided list of header tuples into a key
+        # values based map so that it may be used more easily
         headers = dict(headers)
 
+        # checks if the provided headers map contains the definition
+        # of the content length in case it does not unsets the keep
+        # alive setting in the parser because the keep alive setting
+        # requires the content length to be defined
+        has_length = "Content-Length" in headers
+        if not has_length: parser.keep_alive = False
+
+        # applies the base (static) headers to the headers map and then
+        # applies the parser based values to the headers map, these
+        # values should be dynamic and based in the current state
         self._apply_base(headers)
         self._apply_parser(parser, headers)
 
+        # creates the list that will hold the various header string and
+        # that is going to be used as buffer and then generates the various
+        # lines for the headers and sets them in the buffer list
         buffer = []
         buffer.append("%s %s\r\n" % (version_s, status))
         for key, value in headers.items():
             buffer.append("%s: %s\r\n" % (key, value))
         buffer.append("\r\n")
 
+        # joins the header strings list as the data string that contains
+        # the headers and then sends the value through the connection
         data = "".join(buffer)
         connection.send(data)

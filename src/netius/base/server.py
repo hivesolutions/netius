@@ -157,10 +157,10 @@ class Server(Base):
             lines = traceback.format_exc().splitlines()
             for line in lines: self.debug(line)
 
-    def on_write_s(self, socket):
+    def on_write_s(self, _socket):
         pass
 
-    def on_error_s(self, socket):
+    def on_error_s(self, _socket):
         pass
 
     def on_read(self, _socket):
@@ -229,8 +229,8 @@ class Server(Base):
             for line in lines: self.debug(line)
             self.on_connection_d(connection)
 
-    def on_error(self, socket):
-        connection = self.connections_m.get(socket, None)
+    def on_error(self, _socket):
+        connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
 

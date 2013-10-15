@@ -164,8 +164,8 @@ class Client(Base):
             for line in lines: self.debug(line)
             self.on_connection_d(connection)
 
-    def on_error(self, socket):
-        connection = self.connections_m.get(socket, None)
+    def on_error(self, _socket):
+        connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
 

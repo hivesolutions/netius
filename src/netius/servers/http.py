@@ -39,7 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import netius.common
 
-SERVER_NAME = "netium"
+SERVER_NAME = "netius"
 """ The name of the server to be used in all of the
 identification string about it """
 
@@ -93,4 +93,5 @@ class HTTPServer(netius.Server):
             headers[key] = value
 
     def _apply_parser(self, parser, headers):
-        if parser.keep_alive: headers["Connection"] = "Keep-Alive"
+        if parser.keep_alive: headers["Connection"] = "keep-alive"
+        else: headers["Connection"] = "close"
