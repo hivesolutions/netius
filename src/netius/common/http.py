@@ -117,6 +117,15 @@ class HTTPParser(netius.Observable):
         self.content_l = -1
         self.message_l = 0
 
+    def get_path(self):
+        split = self.path_s.split("?", 1)
+        return split[0]
+
+    def get_query(self):
+        split = self.path_s.split("?", 1)
+        if len(split) == 1: return ""
+        else: return split[1]
+
     def get_message(self):
         if not self.message_s: self.message_s = "".join(self.message)
         return self.message_s
