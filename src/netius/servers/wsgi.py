@@ -65,7 +65,7 @@ class WSGIServer(http.HTTPServer):
 
         # clojure method to be used to close the current connection in
         # case that's required by the current connection headers
-        def close(data):
+        def close(connection):
             self.on_connection_d(connection)
 
         # method created as a clojure that handles the starting of

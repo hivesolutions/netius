@@ -202,9 +202,33 @@ class Connection(object):
                 callback = None
                 if type(data) == types.TupleType:
                     data, callback = data
-                try: self.socket.send(data)
-                except: self.pending.append(data_o); raise
-                else: callback and callback(data)
+                data_l = len(data)
+
+                try:
+                    # tries to send the data through the socket and
+                    # retrieves the number of bytes that were correctly
+                    # sent through the socket, this number may not be
+                    # the same as the size of the data in case only
+                    # part of the data has been sent
+                    count = self.socket.send(data)
+                except:
+                    # in case there's an exception must add the data
+                    # object to the list of pending data because the data
+                    # has not been correctly sent
+                    self.pending.append(data_o)
+                    raise
+                else:
+                    # verifies if the data has been correctly sent through
+                    # the socket and for suck situations calls the callback
+                    # object, otherwise creates a new data object with only
+                    # the remaining (partial data) and the callback to be
+                    # sent latter (only then the callback is called)
+                    is_valid = count == data_l
+                    if is_valid:
+                        callback and callback(self)
+                    else:
+                        data_o = (data[count:], callback)
+                        self.pending.append(data_o)
         finally:
             self.pending_lock.release()
 
