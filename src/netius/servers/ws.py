@@ -213,7 +213,7 @@ class WSServer(netius.Server):
             while data:
                 buffer = connection.get_buffer()
                 try: decoded, data = connection._decode(buffer + data)
-                except netius.DataError: connection.add_buffer(data); break
+                except: connection.add_buffer(data); break
                 self.on_data_ws(connection, decoded)
 
         else:
