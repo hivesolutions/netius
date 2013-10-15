@@ -103,6 +103,7 @@ class HTTPParser(netius.Observable):
         self.method = None
         self.version = None
         self.code = None
+        self.keep_alive = False
         self.line_s = None
         self.headers_s = None
         self.method_s = None
@@ -110,6 +111,7 @@ class HTTPParser(netius.Observable):
         self.version_s = None
         self.code_s = None
         self.status_s = None
+        self.connection_s = None
         self.message_s = None
         self.content_l = -1
         self.message_l = 0
@@ -245,8 +247,15 @@ class HTTPParser(netius.Observable):
         # retrieves the size of the contents from the populated
         # headers, this is not required by the specification and
         # the parser should be usable even without it
-        self.content_l = self.headers.get("content-length")
+        self.content_l = self.headers.get("content-length", None)
         self.content_l = self.content_l and int(self.content_l)
+
+        # verifies if the connection is meant to be kept alive by
+        # verifying the current value of the connection header against
+        # the expected keep alive string value
+        self.connection_s = self.headers.get("connection", None)
+        self.connection_s = self.connection_s and self.connection_s.lower()
+        self.keep_alive = self.connection_s == "keep-alive"
 
         # verifies if the current message has finished, for those
         # situations an extra state change will be issued

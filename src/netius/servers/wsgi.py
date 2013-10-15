@@ -80,20 +80,27 @@ class WSGIServer(http.HTTPServer):
 
         sequence = self.app(environ, start_response)
         for value in sequence: connection.send(value)
-        
-        # @todo isto so pode ser fechado quando for necessarion
-        connection.send("", callback = close)
+
+        # in case the connection is not meant to be kept alive must
+        # send an empty string with the callback for the closing of
+        # the connection (connection close handle)
+        if not parser.keep_alive: connection.send("", callback = close)
 
     def _apply_base(self, headers):
         for key, value in BASE_HEADERS.items():
             if key in headers: continue
             headers[key] = value
 
+    def _apply_parser(self, parser, headers):
+        if parser.keep_alive: headers["Connection"] = "Keep-Alive"
+
     def _start_response(self, connection, status, headers):
         parser = connection.parser
         version_s = parser.version_s
         headers = dict(headers)
+
         self._apply_base(headers)
+        self._apply_parser(parser, headers)
 
         buffer = []
         buffer.append("%s %s\r\n" % (version_s, status))
