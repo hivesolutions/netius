@@ -115,6 +115,12 @@ class Server(Base):
         self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        hasattr(socket, "TCP_KEEPIDLE") and\
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.TCP_KEEPIDLE, 180) #@UndefinedVariable
+        hasattr(socket, "TCP_KEEPINTVL") and\
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.TCP_KEEPINTVL, 18) #@UndefinedVariable
+        hasattr(socket, "TCP_KEEPCNT") and\
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.TCP_KEEPCNT, 3) #@UndefinedVariable
         hasattr(socket, "SO_REUSEPORT") and\
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1) #@UndefinedVariable
 
@@ -245,6 +251,15 @@ class Server(Base):
         socket_c.setblocking(0)
         socket_c.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+
+        print socket_c.getsockopt(socket.SOL_SOCKET, socket.TCP_KEEPIDLE)
+
+        #hasattr(socket, "TCP_KEEPIDLE") and\
+        #    socket_c.setsockopt(socket.SOL_SOCKET, socket.TCP_KEEPIDLE, 180) #@UndefinedVariable
+        #hasattr(socket, "TCP_KEEPINTVL") and\
+        #    socket_c.setsockopt(socket.SOL_SOCKET, socket.TCP_KEEPINTVL, 18) #@UndefinedVariable
+        #hasattr(socket, "TCP_KEEPCNT") and\
+        #    socket_c.setsockopt(socket.SOL_SOCKET, socket.TCP_KEEPCNT, 3) #@UndefinedVariable
 
         if self.ssl: self._ssl_handshake(socket_c)
 

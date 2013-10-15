@@ -84,6 +84,12 @@ class Client(Base):
         _socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        hasattr(socket, "TCP_KEEPIDLE") and\
+            _socket.setsockopt(socket.SOL_SOCKET, socket.TCP_KEEPIDLE, 180) #@UndefinedVariable
+        hasattr(socket, "TCP_KEEPINTVL") and\
+            _socket.setsockopt(socket.SOL_SOCKET, socket.TCP_KEEPINTVL, 18) #@UndefinedVariable
+        hasattr(socket, "TCP_KEEPCNT") and\
+            _socket.setsockopt(socket.SOL_SOCKET, socket.TCP_KEEPCNT, 3) #@UndefinedVariable
         hasattr(socket, "SO_REUSEPORT") and\
             _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1) #@UndefinedVariable
 
