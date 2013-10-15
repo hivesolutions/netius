@@ -35,7 +35,11 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import echo
+import http
 import ws
+import wsgi
 
 from echo import *
+from http import *
 from ws import *
+from wsgi import *
