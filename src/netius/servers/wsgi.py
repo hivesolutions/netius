@@ -112,12 +112,14 @@ class WSGIServer(http.HTTPServer):
         connection.send(data)
 
 def application(environ, start_response):
+    message = "Hello World"
+    message_l = len(message)
     headers = [
         ("Content-Type", "text/plain"),
-        ("Content-Length", "11")
+        ("Content-Length", str(message_l))
     ]
     start_response("200 OK", headers)
-    yield "Hello World"
+    yield message
 
 if __name__ == "__main__":
     server = WSGIServer(application)
