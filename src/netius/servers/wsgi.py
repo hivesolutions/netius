@@ -39,12 +39,6 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import http
 
-BASE_HEADERS = dict(
-    Server = "netium-wsgi/0.0.1"
-)
-""" The map containing the complete set of headers
-that are meant to be applied to all the responses """
-
 class WSGIServer(http.HTTPServer):
 
     def __init__(self, app, name = None, handler = None, *args, **kwargs):
@@ -85,14 +79,6 @@ class WSGIServer(http.HTTPServer):
         # send an empty string with the callback for the closing of
         # the connection (connection close handle)
         if not parser.keep_alive: connection.send("", callback = close)
-
-    def _apply_base(self, headers):
-        for key, value in BASE_HEADERS.items():
-            if key in headers: continue
-            headers[key] = value
-
-    def _apply_parser(self, parser, headers):
-        if parser.keep_alive: headers["Connection"] = "Keep-Alive"
 
     def _start_response(self, connection, status, headers):
         parser = connection.parser

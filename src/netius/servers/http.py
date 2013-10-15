@@ -39,6 +39,20 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import netius.common
 
+SERVER_NAME = "netium"
+""" The name of the server to be used in all of the
+identification string about it """
+
+SERVER_VERSION = "0.0.1"
+""" The version string to be used for the identification
+of the current release of the server """
+
+BASE_HEADERS = dict(
+    Server = "%s/%s" % (SERVER_NAME, SERVER_VERSION)
+)
+""" The map containing the complete set of headers
+that are meant to be applied to all the responses """
+
 class HTTPConnection(netius.Connection):
 
     def __init__(self, owner, socket, address, ssl = False):
@@ -54,6 +68,11 @@ class HTTPConnection(netius.Connection):
         self.owner.on_data_http(self, self.parser)
 
 class HTTPServer(netius.Server):
+    """
+    Base class for serving of the http protocol, should contain
+    the basic utilities for handling an http request including
+    headers and read of data.
+    """
 
     def on_connection_c(self, connection):
         netius.Server.on_connection_c(self, connection)
@@ -67,3 +86,11 @@ class HTTPServer(netius.Server):
 
     def on_data_http(self, connection, parser):
         pass
+
+    def _apply_base(self, headers):
+        for key, value in BASE_HEADERS.items():
+            if key in headers: continue
+            headers[key] = value
+
+    def _apply_parser(self, parser, headers):
+        if parser.keep_alive: headers["Connection"] = "Keep-Alive"
