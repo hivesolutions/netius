@@ -203,7 +203,7 @@ class Connection(object):
                 if type(data) == types.TupleType:
                     data, callback = data
                 try: self.socket.send(data)
-                except: self.pending.append(data_o)
+                except: self.pending.append(data_o); raise
                 else: callback and callback(data)
         finally:
             self.pending_lock.release()
