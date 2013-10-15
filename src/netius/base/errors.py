@@ -19,6 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
 
+__author__ = "João Magalhães joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,16 +37,25 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import client
-import common
-import conn
-import errors
-import observer
-import server
+class NetiusError(RuntimeError):
+    """
+    The top level base error to be used in the
+    netius infra-structure.
 
-from client import *
-from common import *
-from conn import *
-from errors import *
-from observer import *
-from server import *
+    Note that this class inherits from the runtime
+    error meaning that all the errors are runtime.
+    """
+
+    pass
+
+class DataError(NetiusError):
+    """
+    Error to be used for situations where the
+    data that has been received/sent is invalid.
+
+    This error may be used for situations where
+    the data in the buffer is not sufficient for
+    parsing the values.
+    """
+
+    pass

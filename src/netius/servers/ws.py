@@ -42,12 +42,6 @@ import hashlib
 
 import netius
 
-class WSError(RuntimeError):
-    pass
-
-class HandshakeError(WSError):
-    pass
-
 class WSConnection(netius.Connection):
 
     def __init__(self, owner, socket, address, ssl = False):
@@ -77,7 +71,7 @@ class WSConnection(netius.Connection):
 
         buffer = "".join(self.buffer_l)
         if not buffer[-4:] == "\r\n\r\n":
-            raise HandshakeError("Missing data for handshake")
+            raise netius.DataError("Missing data for handshake")
 
         lines = buffer.split("\r\n")
         for line in lines[1:]:
@@ -172,7 +166,7 @@ class WSConnection(netius.Connection):
         # the decoding of the data (should be re-trying again latter)
         raw_size = len(data) - index_mask_f - 4
         if raw_size < length:
-            raise RuntimeError("Not enough data available for parsing")
+            raise netius.DataError("Not enough data available for parsing")
 
         # retrieves the masks part of the data that are going to be
         # used in the decoding part of the process
@@ -219,7 +213,7 @@ class WSServer(netius.Server):
             while data:
                 buffer = connection.get_buffer()
                 try: decoded, data = connection._decode(buffer + data)
-                except: connection.add_buffer(data); break
+                except netius.DataError: connection.add_buffer(data); break
                 self.on_data_ws(connection, decoded)
 
         else:
@@ -232,7 +226,7 @@ class WSServer(netius.Server):
             # handshake error must delay the execution to the
             # next iteration (not enough data)
             try: connection.do_handshake()
-            except HandshakeError: return
+            except netius.DataError: return
 
             # retrieves (and computes) the accept key value for
             # the current request and sends it as the handshake
