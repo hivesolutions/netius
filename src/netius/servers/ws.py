@@ -42,6 +42,12 @@ import hashlib
 
 import netius
 
+class WSError(RuntimeError):
+    pass
+
+class HandshakeError(WSError):
+    pass
+
 class WSConnection(netius.Connection):
 
     def __init__(self, owner, socket, address, ssl = False):
@@ -71,7 +77,7 @@ class WSConnection(netius.Connection):
 
         buffer = "".join(self.buffer_l)
         if not buffer[-4:] == "\r\n\r\n":
-            raise RuntimeError("Missing data for handshake")
+            raise HandshakeError("Missing data for handshake")
 
         lines = buffer.split("\r\n")
         for line in lines[1:]:
@@ -217,11 +223,26 @@ class WSServer(netius.Server):
                 self.on_data_ws(connection, decoded)
 
         else:
+            # adds the current data to the internal connection
+            # buffer to be processed latter, by the handshake
             connection.add_buffer(data)
-            connection.do_handshake()
+
+            # tries to run the handshake operation for the
+            # current connection in case it fails due to an
+            # handshake error must delay the execution to the
+            # next iteration (not enough data)
+            try: connection.do_handshake()
+            except HandshakeError: return
+
+            # retrieves (and computes) the accept key value for
+            # the current request and sends it as the handshake
+            # response to the client side
             accept_key = connection.accept_key()
             response = self._handshake_response(accept_key)
             connection.send(response)
+
+            # calls the on handshake event handler for the current
+            # connection to notify the current object
             self.on_handshake(connection)
 
     def new_connection(self, socket, address, ssl = False):
