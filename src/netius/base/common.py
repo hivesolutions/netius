@@ -171,6 +171,9 @@ class Base(observer.Observable):
         self._loaded = False
         self.set_state(STATE_STOP);
 
+    def __del__(self):
+        self.close()
+
     def load(self):
         if self._loaded: return
 
@@ -214,6 +217,9 @@ class Base(observer.Observable):
 
     def stop(self):
         self._running = False
+
+    def close(self):
+        self.stop()
 
     def is_empty(self):
         return not self.read_l and not self.write_l and not self.error_l

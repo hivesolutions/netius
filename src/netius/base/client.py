@@ -43,10 +43,12 @@ from common import * #@UnusedWildImport
 
 class Client(Base):
 
-    def __init__(self, name = None, handler = None, *args, **kwargs):
+    def __init__(self, name = None, handler = None, thread = True, *args, **kwargs):
         Base.__init__(self, name = name, hadler = handler, *args, **kwargs)
         self.pendings = []
         self._pending_lock = threading.RLock()
+
+        if thread: threading.Thread(target = self.start).start()
 
     def ticks(self):
         self.set_state(STATE_TICK)

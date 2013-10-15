@@ -124,9 +124,13 @@ class HTTPClient(netius.Client):
         return HTTPConnection(self, socket, address, ssl = ssl)
 
     def on_data_http(self, parser):
-        print parser.get_message()
+        message = parser.get_message()
+        self.trigger("message", self, message)
 
 if __name__ == "__main__":
+    def on_message(client, message):
+        print message; client.close()
+
     http_client = HTTPClient()
     http_client.get("https://localhost:9090/")
-    http_client.start()
+    http_client.bind("message", on_message)
