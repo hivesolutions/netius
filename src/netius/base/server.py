@@ -136,9 +136,22 @@ class Server(Base):
 
     def on_read_s(self, _socket):
         try:
-            socket_c, address = _socket.accept()
-            try: self.on_socket_c(socket_c, address)
-            except: socket_c.close(); raise
+            while True:
+                socket_c, address = _socket.accept()
+                try: self.on_socket_c(socket_c, address)
+                except: socket_c.close(); raise
+        except ssl.SSLError, error:
+            error_v = error.args[0]
+            if not error_v in SSL_VALID_ERRORS:
+                self.info(error)
+                lines = traceback.format_exc().splitlines()
+                for line in lines: self.debug(line)
+        except socket.error, error:
+            error_v = error.args[0]
+            if not error_v in VALID_ERRORS:
+                self.info(error)
+                lines = traceback.format_exc().splitlines()
+                for line in lines: self.debug(line)
         except BaseException, exception:
             self.info(exception)
             lines = traceback.format_exc().splitlines()
