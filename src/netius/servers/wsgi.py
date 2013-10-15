@@ -42,6 +42,11 @@ import sys
 import http
 
 class WSGIServer(http.HTTPServer):
+    """
+    Base class for the creation of a wsgi compliant server
+    the server should be initialized with the "target" app
+    object as reference and a mount point.
+    """
 
     def __init__(self, app, mount = "", name = None, handler = None, *args, **kwargs):
         http.HTTPServer.__init__(
@@ -136,26 +141,3 @@ class WSGIServer(http.HTTPServer):
 
         data = "".join(buffer)
         connection.send(data)
-
-def application(environ, start_response):
-    message = "Hello World"
-    message_l = len(message)
-    headers = [
-        ("Content-Type", "text/plain"),
-        ("Content-Length", str(message_l))
-    ]
-    start_response("200 OK", headers)
-    yield message
-
-
-from flask import Flask
-app = Flask(__name__)
-
-@app.route("/")
-@app.route("/index")
-def hello():
-    return "Hello World!"
-
-if __name__ == "__main__":
-    server = WSGIServer(app, mount = "/hello")
-    server.serve(host = "0.0.0.0")
