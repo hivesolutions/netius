@@ -125,6 +125,21 @@ STATE_STRINGS = (
 the various states for the base service, this may be used to
 create an integer to string resolution mechanism """
 
+KEEPALIVE_TIMEOUT = 300
+""" The amount of time in seconds that a connection is set as
+idle until a new refresh token is sent to it to make sure that
+it's still online and not disconnected, make sure that this
+value is high enough that it does not consume to much bandwidth """
+
+KEEPALIVE_COUNT = 3
+""" The amount of times the "ping" packet is re-sent until the
+connection is considered to be offline and is dropped """
+
+KEEPALIVE_INTERVAL = int(KEEPALIVE_TIMEOUT / 10)
+""" The time between the retrying of "ping" packets, this value
+does not need to be too large and should not be considered too
+important (may be calculated automatically) """
+
 # initializes the various paths that are going to be used for
 # the base files configuration in the complete service infra
 # structure, these should include the ssl based files
