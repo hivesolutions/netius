@@ -51,24 +51,45 @@ used to identify chunks of data that represent an
 http based response """
 
 LINE_STATE = 1
+""" The initial state where the status line is meant
+to be read as expected by the http specification """
 
 HEADERS_STATE = 2
+""" State here the headers are waiting to be read this
+state exits when the end of headers sequence is found
+and the headers are parsed """
 
 MESSAGE_STATE = 3
+""" The message state for the situations where the message
+is waiting to be processed (read) this state may persist
+for some time if the message is big enough """
 
 FINISH_STATE = 4
+""" The final state set when the complete http request or
+response has been processed, if a parse operation starts
+with this state the parsed is reseted """
 
 HTTP_09 = 1
+""" The enumeration value for the temporary and beta http
+version 0.9 version (very rare) """
 
 HTTP_10 = 2
+""" Value for the first version of the http specification,
+connection running under this version should be closed right
+away as defined in the specification """
 
 HTTP_11 = 3
+""" Current version of the http specification should be the
+most commonly used nowadays, connection running under this
+version of the protocol should keep connections open """
 
 VERSIONS_MAP = {
     "HTTP/0.9" : HTTP_09,
     "HTTP/1.0" : HTTP_10,
     "HTTP/1.1" : HTTP_11
 }
+""" Maps associating the standard http version string with the
+corresponding enumeration based values for each of them """
 
 class HTTPParser(netius.Observable):
     """
@@ -188,7 +209,6 @@ class HTTPParser(netius.Observable):
 
                 size -= count
                 data = data[count:]
-                self.state = MESSAGE_STATE
 
                 continue
 
@@ -263,7 +283,7 @@ class HTTPParser(netius.Observable):
         # retrieves the size of the contents from the populated
         # headers, this is not required by the specification and
         # the parser should be usable even without it
-        self.content_l = self.headers.get("content-length", None)
+        self.content_l = self.headers.get("content-length", -1)
         self.content_l = self.content_l and int(self.content_l)
 
         # verifies if the connection is meant to be kept alive by
