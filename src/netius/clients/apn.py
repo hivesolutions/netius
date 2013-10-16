@@ -37,6 +37,10 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import json
+import struct
+import binascii
+
 import netius
 
 HOST = "gateway.push.apple.com"
@@ -96,7 +100,7 @@ class APNConnection(netius.Connection):
 
 class APNClient(netius.Client):
 
-    def send_message(self, token = TOKEN, *args, **kwargs):
+    def message(self, token = TOKEN, *args, **kwargs):
         # unpacks the various keyword based arguments fro the
         # provided map of arguments defaulting to a series of
         # pre-defined values in case the arguments have not
@@ -116,6 +120,9 @@ class APNClient(netius.Client):
         host = SANDBOX_HOST if sandbox else HOST
         port = SANDBOX_PORT if sandbox else PORT
 
+        # establishes the connection to the target host and port
+        # and using the provided key and certificate files an then
+        # sets the apn information in the current connection
         connection = self.connect(
             host,
             port,
@@ -137,11 +144,50 @@ class APNClient(netius.Client):
     def on_connect(self, connection):
         netius.Client.on_connect(self, connection)
 
-        method = connection.method
-        path = connection.path
-        version = connection.version
+        # unpacks the various elements that are going to be
+        # used in the sending of the message
+        token = connection.token
+        message = connection.message
+        sound = connection.sound
+        badge = connection.badge
 
-        connection.send("%s %s %s\r\n\r\n" % (method, path, version))
+        # converts the current token (in hexadecimal) to a
+        # string of binary data for the message
+        token = binascii.unhexlify(token)
+
+        # creates the message structure using with the
+        # message (string) as the alert and then converts
+        # it into a json format (payload)
+        message_s = {
+           "aps" : {
+                "alert" : message,
+                "sound" : sound,
+                "badge" : badge
+            }
+        }
+        payload = json.dumps(message_s)
+
+        # sets the command with the zero value (simplified)
+        # then calculates the token and payload lengths
+        command = 0
+        token_length = len(token)
+        payload_length = len(payload)
+
+        # creates the initial template for message creation by
+        # using the token and the payload length for it, then
+        # applies the various components of the message and packs
+        # them according to the generated template
+        template = "!BH%dsH%ds" % (token_length, payload_length)
+        message = struct.pack(template, command, token_length, token, payload_length, payload)
+        connection.send(message)
+
+    def on_data(self, connection, data):
+        netius.Client.on_data(self, connection, data)
+        print data
 
     def new_connection(self, socket, address, ssl = False):
         return APNConnection(self, socket, address, ssl = ssl)
+
+if __name__ == "__main__":
+    apn_client = APNClient()
+    apn_client.message(token = token)
