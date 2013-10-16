@@ -50,6 +50,18 @@ class Server(Base):
         self.port = None
         self.ssl = False
 
+    def cleanup(self):
+        Base.cleanup(self)
+
+        # tries to close the service socket, as this is the one that
+        # has no connection associated and is independent
+        try: self.socket.close()
+        except: pass
+
+        # unsets the socket attribute as the socket should now be closed
+        # and not able to be used for any kind of communication
+        self.socket = None
+
     def reads(self, reads):
         self.set_state(STATE_READ)
         for read in reads:

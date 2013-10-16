@@ -99,8 +99,10 @@ class APNClient(netius.Client):
         sandbox = kwargs.get("sandbox", True)
         wait = kwargs.get("wait", False)
 
-
-
+        # retrieves the values that are going to be used for
+        # both the host and the port, taking into account if
+        # the current message is meant to be send using the
+        # sandbox environment (for testing purposes)
         host = SANDBOX_HOST if sandbox else HOST
         port = SANDBOX_PORT if sandbox else PORT
 

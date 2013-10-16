@@ -213,6 +213,7 @@ class Base(observer.Observable):
             for line in lines: self.error(line)
         finally:
             self.info("Stopping the service's main loop")
+            self.cleanup()
             self.set_state(STATE_STOP)
 
     def stop(self):
@@ -223,6 +224,12 @@ class Base(observer.Observable):
 
     def is_empty(self):
         return not self.read_l and not self.write_l and not self.error_l
+
+    def cleanup(self):
+        # iterates over the complete set of connections currently
+        # registered in the base structure and closes them so that
+        # can no longer be used and are gracefully disconnected
+        for connection in self.connections: connection.close()
 
     def loop(self):
         # iterates continuously while the running flag
