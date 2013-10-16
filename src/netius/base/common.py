@@ -39,6 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import os
 import ssl
+import copy
 import time
 import errno
 import select
@@ -226,10 +227,20 @@ class Base(observer.Observable):
         return not self.read_l and not self.write_l and not self.error_l
 
     def cleanup(self):
+        # creates a copy of the connections list because this structure
+        # is going to be changed in the closing of the connection object
+        connections = copy.copy(self.connections)
+
         # iterates over the complete set of connections currently
         # registered in the base structure and closes them so that
         # can no longer be used and are gracefully disconnected
-        for connection in self.connections: connection.close()
+        for connection in connections: connection.close()
+
+        # removes the contents of all of the loop related structures
+        # so that no extra selection operations are issued
+        del self.read_l[:]
+        del self.write_l[:]
+        del self.error_l[:]
 
     def loop(self):
         # iterates continuously while the running flag
