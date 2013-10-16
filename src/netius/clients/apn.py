@@ -53,13 +53,11 @@ in sandbox mode """
 
 SANDBOX_HOST = "gateway.sandbox.push.apple.com"
 """ The host of the apn service to be used when
-in sandbox mode """
+in sandbox mode (for testing purposes) """
 
 SANDBOX_PORT = 2195
 """ The port of the apn service to be used when
-in sandbox mode """
-
-TOKEN = "asdads"
+in sandbox mode (for testing purposes) """
 
 class APNConnection(netius.Connection):
 
@@ -100,7 +98,7 @@ class APNConnection(netius.Connection):
 
 class APNClient(netius.Client):
 
-    def message(self, token = TOKEN, *args, **kwargs):
+    def message(self, token, *args, **kwargs):
         # unpacks the various keyword based arguments fro the
         # provided map of arguments defaulting to a series of
         # pre-defined values in case the arguments have not
@@ -190,4 +188,11 @@ class APNClient(netius.Client):
 
 if __name__ == "__main__":
     apn_client = APNClient()
-    apn_client.message(token = token)
+    token = "asdasd"
+    apn_client.message(
+        token,
+        message = "Hello",
+        sandboc = True,
+        key_file = "C:/Users/joamag/Desktop/apn_omni_board/server.key",
+        cer_file = "C:/Users/joamag/Desktop/apn_omni_board/aps_development.cer"
+    )
