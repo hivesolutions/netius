@@ -68,7 +68,7 @@ class APNConnection(netius.Connection):
         self.sound = None
         self.badge = 0
         self.sandbox = True
-        self.wait = False
+        self._close = True
 
     def set_apn(
         self,
@@ -77,24 +77,18 @@ class APNConnection(netius.Connection):
         sound = "default",
         badge = 0,
         sandbox = True,
-        wait = False,
         key_file = None,
-        cer_file = None
+        cer_file = None,
+        _close = True
     ):
         self.token = token
         self.message = message
         self.sound = sound
         self.badge = badge
         self.sandbox = sandbox
-        self.wait = wait
         self.key_file = key_file
         self.cer_file = cer_file
-
-    def parse(self, data):
-        return self.parser.parse(data)
-
-    def on_data(self):
-        self.owner.on_data_http(self.parser)
+        self._close = _close
 
 class APNClient(netius.Client):
 
@@ -107,9 +101,9 @@ class APNClient(netius.Client):
         sound = kwargs.get("sound", "default")
         badge = kwargs.get("badge", 0)
         sandbox = kwargs.get("sandbox", True)
-        wait = kwargs.get("wait", False)
         key_file = kwargs.get("key_file", None)
         cer_file = kwargs.get("cer_file", None)
+        _close = kwargs.get("close", True)
 
         # retrieves the values that are going to be used for
         # both the host and the port, taking into account if
@@ -134,13 +128,17 @@ class APNClient(netius.Client):
             sound = sound,
             badge = badge,
             sandbox = sandbox,
-            wait = wait,
             key_file = key_file,
-            cer_file = cer_file
+            cer_file = cer_file,
+            _close = _close
         )
 
     def on_connect(self, connection):
         netius.Client.on_connect(self, connection)
+
+        # creates the callback handler that closes the current
+        # client infra-structure after sending
+        def callback(connection): self.close()
 
         # unpacks the various elements that are going to be
         # used in the sending of the message
@@ -148,6 +146,7 @@ class APNClient(netius.Client):
         message = connection.message
         sound = connection.sound
         badge = connection.badge
+        close = connection._close
 
         # converts the current token (in hexadecimal) to a
         # string of binary data for the message
@@ -177,22 +176,8 @@ class APNClient(netius.Client):
         # them according to the generated template
         template = "!BH%dsH%ds" % (token_length, payload_length)
         message = struct.pack(template, command, token_length, token, payload_length, payload)
-        connection.send(message)
-
-    def on_data(self, connection, data):
-        netius.Client.on_data(self, connection, data)
-        print data
+        callback = callback if close else None
+        connection.send(message, callback = callback)
 
     def new_connection(self, socket, address, ssl = False):
         return APNConnection(self, socket, address, ssl = ssl)
-
-if __name__ == "__main__":
-    apn_client = APNClient()
-    token = "asdasd"
-    apn_client.message(
-        token,
-        message = "Hello",
-        sandboc = True,
-        key_file = "C:/Users/joamag/Desktop/apn_omni_board/server.key",
-        cer_file = "C:/Users/joamag/Desktop/apn_omni_board/aps_development.cer"
-    )
