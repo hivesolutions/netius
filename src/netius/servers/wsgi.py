@@ -88,8 +88,8 @@ class WSGIServer(http.HTTPServer):
             SCRIPT_NAME = self.mount,
             PATH_INFO = path_info,
             QUERY_STRING = query,
-            CONTENT_TYPE = parser.headers.get("content-type", None),
-            CONTENT_LENGTH = None if parser.content_l == -1 else parser.content_l,
+            CONTENT_TYPE = parser.headers.get("content-type", ""),
+            CONTENT_LENGTH = "" if parser.content_l == -1 else parser.content_l,
             SERVER_NAME = http.SERVER_NAME,
             SERVER_PORT = self.port,
             SERVER_PROTOCOL = parser.version_s
@@ -111,7 +111,7 @@ class WSGIServer(http.HTTPServer):
         # infra-structure, not that their name is capitalized as defined
         # in the standard specification
         for key, value in parser.headers.items():
-            key = "HTTP_" + key.upper()
+            key = "HTTP_" + key.replace("-", "_").upper()
             environ[key] = value
 
         # runs the app logic with the provided environment map and start
