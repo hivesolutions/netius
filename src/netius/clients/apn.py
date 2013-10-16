@@ -75,7 +75,9 @@ class APNConnection(netius.Connection):
         sound = "default",
         badge = 0,
         sandbox = True,
-        wait = False
+        wait = False,
+        key_file = None,
+        cer_file = None
     ):
         self.token = token
         self.message = message
@@ -83,6 +85,8 @@ class APNConnection(netius.Connection):
         self.badge = badge
         self.sandbox = sandbox
         self.wait = wait
+        self.key_file = key_file
+        self.cer_file = cer_file
 
     def parse(self, data):
         return self.parser.parse(data)
@@ -93,11 +97,17 @@ class APNConnection(netius.Connection):
 class APNClient(netius.Client):
 
     def send_message(self, token = TOKEN, *args, **kwargs):
+        # unpacks the various keyword based arguments fro the
+        # provided map of arguments defaulting to a series of
+        # pre-defined values in case the arguments have not
+        # been correctly provided
         message = kwargs.get("message", "Hello World")
         sound = kwargs.get("sound", "default")
         badge = kwargs.get("badge", 0)
         sandbox = kwargs.get("sandbox", True)
         wait = kwargs.get("wait", False)
+        key_file = kwargs.get("key_file", None)
+        cer_file = kwargs.get("cer_file", None)
 
         # retrieves the values that are going to be used for
         # both the host and the port, taking into account if
@@ -106,21 +116,22 @@ class APNClient(netius.Client):
         host = SANDBOX_HOST if sandbox else HOST
         port = SANDBOX_PORT if sandbox else PORT
 
-
-        #### VER ISTO MUITO IMPORTANTE key_file = None, cer_file = None
-
-        ### tenho de ver bem o house keeping depois do fecho do loop
-        # tenho de fechar todas as conexoes !!!!
-
-
-        connection = self.connect(host, port, ssl = True)
+        connection = self.connect(
+            host,
+            port,
+            ssl = True,
+            key_file = key_file,
+            cer_file = cer_file
+        )
         connection.set_apn(
             token,
             message,
             sound = sound,
             badge = badge,
             sandbox = sandbox,
-            wait = wait
+            wait = wait,
+            key_file = key_file,
+            cer_file = cer_file
         )
 
     def on_connect(self, connection):
