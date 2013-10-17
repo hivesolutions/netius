@@ -414,8 +414,9 @@ class Base(observer.Observable):
             keyfile = key_file,
             certfile = cer_file,
             server_side = server,
-            ssl_version = ssl.PROTOCOL_TLSv1,
-            do_handshake_on_connect = False
+            ssl_version = ssl.PROTOCOL_SSLv23,
+            do_handshake_on_connect = False,
+            ciphers = "ALL"
         )
         return socket_ssl
 
