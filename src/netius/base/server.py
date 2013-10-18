@@ -172,7 +172,7 @@ class Server(Base):
         # is using a secure channel (ssl) and then prints an info message about
         # the service that is going to be started
         ssl_s = ssl and " using ssl" or ""
-        self.info("Serving the '%s' under %s port %d%s" % (self.name, host, port, ssl_s))
+        self.info("Serving '%s' service on %s port %d%s" % (self.name, host, port, ssl_s))
 
         # starts the base system so that the event loop gets started and the
         # the servers gets ready to accept new connections (starts service)

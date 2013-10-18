@@ -202,7 +202,7 @@ class Base(observer.Observable):
         # enters the main loop operation printing a message
         # to the logger indicating this start, this stage
         # should block the thread until a stop call is made
-        self.info("Starting the '%s' service main loop" % self.name)
+        self.info("Starting '%s' service main loop" % self.name)
         try: self.loop()
         except BaseException, exception:
             self.error(exception)
