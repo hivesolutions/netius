@@ -164,6 +164,16 @@ class Server(Base):
         self.socket.bind((host, port))
         self.socket.listen(5)
 
+        # start the loading process of the base system so that the system should
+        # be able to log some information that is going to be output
+        self.load()
+
+        # creates the string that identifies it the current service connection
+        # is using a secure channel (ssl) and then prints an info message about
+        # the service that is going to be started
+        ssl_s = ssl and " using ssl" or ""
+        self.info("Serving the '%s' under %s port %d%s" % (self.name, host, port, ssl_s))
+
         # starts the base system so that the event loop gets started and the
         # the servers gets ready to accept new connections (starts service)
         self.start()
