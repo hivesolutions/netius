@@ -19,6 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
 
+__author__ = "João Magalhães joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,10 +37,18 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import apn
-import http
-import raw
+import netius
 
-from apn import *
-from http import *
-from raw import *
+class RawClient(netius.Client):
+
+    def on_connect(self, connection):
+        netius.Client.on_connect(self, connection)
+        self.trigger("connect", self, connection)
+
+    def on_data(self, connection, data):
+        netius.Client.on_data(self, connection, data)
+        self.trigger("data", self, connection, data)
+
+    def on_connection_d(self, connection):
+        netius.Client.on_connection_d(self, connection)
+        self.trigger("close", self, connection)
