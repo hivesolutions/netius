@@ -35,5 +35,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import http
+import util
 
 from http import *
+from util import *
