@@ -45,6 +45,8 @@ class Client(Base):
 
     def __init__(self, name = None, handler = None, thread = True, *args, **kwargs):
         Base.__init__(self, name = name, hadler = handler, *args, **kwargs)
+        self.conn_map = {}
+        self.free_map = {}
         self.pendings = []
         self._pending_lock = threading.RLock()
 
@@ -68,6 +70,27 @@ class Client(Base):
         self.set_state(STATE_ERRROR)
         for error in errors:
             self.on_error(error)
+
+    def acquire_c(self, host, port, ssl = False, key_file = None, cer_file = None, callback = None):
+        connection_t = (host, port, ssl, key_file, cer_file)
+        connection = self.connect(
+            host,
+            port,
+            ssl = ssl,
+            key_file = key_file,
+            cer_file = cer_file
+        )
+        connection.tuple = connection_t
+        connection_l = self.conn_map.get(connection_t, [])
+        connection_l.append(connection_t)
+        self.conn_map[connection_t] = connection_l
+        return connection
+
+    def release_c(self, connection):
+        connection_t = connection.tuple
+        connection_l = self.free_map.get(connection_t, [])
+        connection_l.append(connection_t)
+        self.free_map[connection_t] = connection_l
 
     def connect(self, host, port, ssl = False, key_file = None, cer_file = None):
         key_file = key_file or SSL_KEY_PATH
