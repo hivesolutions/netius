@@ -87,6 +87,9 @@ class ProxyServer(http.HTTPServer):
             chunk = header + data_s + "\r\n"
             connection.send(chunk)
 
+        def on_closed(client):
+            connection.close()
+
         method = parser.method.upper()
         path = parser.path_s
 
@@ -95,6 +98,7 @@ class ProxyServer(http.HTTPServer):
         http_client.bind("headers", on_headers)
         http_client.bind("message", on_message)
         http_client.bind("chunk", on_chunk)
+        http_client.bind("close", on_closed)
 
 if __name__ == "__main__":
     server = ProxyServer()
