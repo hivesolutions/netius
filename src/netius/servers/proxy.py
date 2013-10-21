@@ -87,9 +87,11 @@ class ProxyServer(http.HTTPServer):
             connection.send(data)
 
         def on_message(client, parser, message):
+            def close(connection):
+                client.close()
+
             is_chunked = parser.chunked
-            if not is_chunked: connection.send(message)
-            client.close()
+            if not is_chunked: connection.send(message, callback = close)
 
         def on_chunk(client, parser, range):
             start, end = range
@@ -101,7 +103,8 @@ class ProxyServer(http.HTTPServer):
             connection.send(chunk)
 
         def on_close(client, _connection):
-            connection.close()
+            pass
+            #connection.close()
 
         def on_stop(client):
             if client in self.clients: self.clients.remove(client)
@@ -109,8 +112,6 @@ class ProxyServer(http.HTTPServer):
         method = parser.method.upper()
         path = parser.path_s
         version_s = parser.version_s
-
-        print self.clients
 
         if method == "CONNECT":
             def on_connect(client, _connection):
@@ -121,7 +122,8 @@ class ProxyServer(http.HTTPServer):
                 connection.send(data)
 
             def on_close(client, _connection):
-                connection.close()
+                pass
+                #connection.close()
 
             host, port = path.split(":")
 
