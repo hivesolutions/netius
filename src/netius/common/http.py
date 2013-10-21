@@ -105,9 +105,10 @@ class HTTPParser(netius.Observable):
     parsing. But the object itself is not thread safe.
     """
 
-    def __init__(self, type = REQUEST):
+    def __init__(self, owner, type = REQUEST):
         netius.Observable.__init__(self)
 
+        self.owner = owner
         self.reset(type = type)
 
     def reset(self, type = REQUEST):
@@ -347,25 +348,34 @@ class HTTPParser(netius.Observable):
         return data_l
 
     def _parse_chunked(self, data):
-        data_l = len(data)
+        count = 0
 
         is_end = self.chunk_l == 2
         if is_end:
             self.chunk_e = len(self.message)
             self.trigger("on_chunk", (self.chunk_s, self.chunk_e))
             self.chunk_l = 0
-            return 2
+            count += 2
+            return count
 
         is_start = self.chunk_l == 0
         if is_start:
-            header, data = data.split("\r\n", 1)
-            self.chunk_l = int(header.strip(), base = 16) + 2
+            try: header, data = data.split("\r\n", 1)
+            except: return count
+            header_s = header.split(";", 1)
+            size = header_s[0]
+            self.chunk_l = int(size.strip(), base = 16) + 2
             self.chunk_s = len(self.message)
+
+            count += len(header) + 2
 
         is_final = self.chunk_l == 2
         if is_final:
             self.trigger("on_data")
-            return data_l
+            index = data.find("\r\n")
+            if index == -1: return count
+            self.chunk_l = 0
+            return count + 2
 
         data = data[:self.chunk_l - 2]
         data_s = len(data)
@@ -375,5 +385,6 @@ class HTTPParser(netius.Observable):
 
         self.trigger("on_partial", data)
 
-        if is_start: return data_l
-        else: return data_s
+        count += data_s
+
+        return count
