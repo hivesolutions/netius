@@ -296,6 +296,12 @@ class Base(observer.Observable):
     def errors(self, errors):
         self.set_state(STATE_ERRROR)
 
+    def on_connection_c(self, connection):
+        pass
+
+    def on_connection_d(self, connection):
+        pass
+
     def info_dict(self):
         info = dict()
         info["loaded"] = self._loaded
