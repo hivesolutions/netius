@@ -54,7 +54,7 @@ class ProxyServer(http.HTTPServer):
         )
         self.rules = rules
         self.clients = []
-        
+
     def on_data(self, connection, data):
         netius.Server.on_data(self, connection, data)
 
@@ -101,7 +101,7 @@ class ProxyServer(http.HTTPServer):
             connection.send(chunk)
 
         def on_close(client, _connection):
-            self.on_connection_d(connection)
+            connection.close()
 
         def on_stop(client):
             if client in self.clients: self.clients.remove(client)
@@ -109,7 +109,7 @@ class ProxyServer(http.HTTPServer):
         method = parser.method.upper()
         path = parser.path_s
         version_s = parser.version_s
-        
+
         print self.clients
 
         if method == "CONNECT":
@@ -121,7 +121,7 @@ class ProxyServer(http.HTTPServer):
                 connection.send(data)
 
             def on_close(client, _connection):
-                self.on_connection_d(connection)
+                connection.close()
 
             host, port = path.split(":")
 
