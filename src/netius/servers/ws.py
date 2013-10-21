@@ -203,9 +203,6 @@ class WSServer(netius.Server):
     """ The magic value used by the websocket protocol as part
     of the key generation process in the handshake """
 
-    def on_connection_c(self, connection):
-        netius.Server.on_connection_c(self, connection)
-
     def on_data(self, connection, data):
         netius.Server.on_data(self, connection, data)
 
