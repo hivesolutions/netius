@@ -297,10 +297,16 @@ class Base(observer.Observable):
         self.set_state(STATE_ERRROR)
 
     def on_connection_c(self, connection):
-        self.debug("Connection '%s' from '%s' created ..." % (connection.id, connection.owner.name))
+        self.debug(
+            "Connection '%s' from '%s' created ..." %\
+            (connection.id, connection.owner.name)
+        )
 
     def on_connection_d(self, connection):
-        self.debug("Connection '%s' from '%s' deleted" % (connection.id, connection.owner.name))
+        self.debug(
+            "Connection '%s' from '%s' deleted" %\
+            (connection.id, connection.owner.name)
+        )
 
     def info_dict(self):
         info = dict()
