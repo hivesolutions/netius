@@ -74,9 +74,6 @@ class HTTPServer(netius.Server):
     headers and read of data.
     """
 
-    def on_connection_c(self, connection):
-        netius.Server.on_connection_c(self, connection)
-
     def on_data(self, connection, data):
         netius.Server.on_data(self, connection, data)
         connection.parse(data)
