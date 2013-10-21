@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import uuid
 import types
 import threading
 
@@ -66,6 +67,7 @@ class Connection(object):
 
     def __init__(self, owner, socket, address, ssl = False):
         self.status = CLOSED
+        self.id = str(uuid.uuid4())
         self.connecting = False
         self.owner = owner
         self.socket = socket

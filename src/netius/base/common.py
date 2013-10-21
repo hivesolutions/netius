@@ -215,7 +215,7 @@ class Base(observer.Observable):
             for line in lines: self.error(line)
         finally:
             self.trigger("stop", self)
-            self.debug("Finished the service's main loop")
+            self.debug("Finished '%s' service main loop" % self.name)
             self.cleanup()
             self.set_state(STATE_STOP)
 
@@ -297,10 +297,10 @@ class Base(observer.Observable):
         self.set_state(STATE_ERRROR)
 
     def on_connection_c(self, connection):
-        pass
+        self.debug("Connection '%s' from '%s' created ..." % (connection.id, connection.owner.name))
 
     def on_connection_d(self, connection):
-        pass
+        self.debug("Connection '%s' from '%s' deleted" % (connection.id, connection.owner.name))
 
     def info_dict(self):
         info = dict()
