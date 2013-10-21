@@ -91,6 +91,10 @@ VERSIONS_MAP = {
 """ Maps associating the standard http version string with the
 corresponding enumeration based values for each of them """
 
+EMPTY_METHODS = ("get", "connect")
+""" Set of http methods that are considered to have no payload
+and so no content length is required for any of these methods """
+
 class HTTPParser(netius.Observable):
     """
     Parser object for the http format, should be able to
@@ -291,15 +295,12 @@ class HTTPParser(netius.Observable):
         self.content_l = self.headers.get("content-length", -1)
         self.content_l = self.content_l and int(self.content_l)
 
-
-
+        # retrieves the type of transfer encoding that is going to be
+        # used in the processing of this request in case it's of type
+        # chunked sets the current chunked flag indicating that the
+        # request is meant to be processed as so
         self.transfer_e = self.headers.get("transfer-encoding", None)
         self.chunked = self.transfer_e == "chunked"
-
-        if self.chunked:
-            print "ChuNKED!!!!!!!!!!!!!!"
-            print "!!!!!!!!!!!!!!!!!"
-
 
         # verifies if the connection is meant to be kept alive by
         # verifying the current value of the connection header against
@@ -310,7 +311,7 @@ class HTTPParser(netius.Observable):
 
         # verifies if the current message has finished, for those
         # situations an extra state change will be issued
-        has_finished = self.method == "get" or self.content_l == 0
+        has_finished = self.method in EMPTY_METHODS or self.content_l == 0
 
         # updates the current state of parsing to the message state
         # as that the headers are followed by the message
