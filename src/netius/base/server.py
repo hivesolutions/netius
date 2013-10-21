@@ -225,26 +225,26 @@ class Server(Base):
             while True:
                 data = _socket.recv(CHUNK_SIZE)
                 if data: self.on_data(connection, data)
-                else: self.on_connection_d(connection); break
+                else: connection.close(); break
         except ssl.SSLError, error:
             error_v = error.args[0]
             if not error_v in SSL_VALID_ERRORS:
                 self.info(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.debug(line)
-                self.on_connection_d(connection)
+                connection.close()
         except socket.error, error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
                 self.info(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.debug(line)
-                self.on_connection_d(connection)
+                connection.close()
         except BaseException, exception:
             self.info(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.debug(line)
-            self.on_connection_d(connection)
+            connection.close()
 
     def on_write(self, _socket):
         connection = self.connections_m.get(_socket, None)
@@ -259,26 +259,26 @@ class Server(Base):
                 self.info(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.debug(line)
-                self.on_connection_d(connection)
+                connection.close()
         except socket.error, error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
                 self.info(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.debug(line)
-                self.on_connection_d(connection)
+                connection.close()
         except BaseException, exception:
             self.info(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.debug(line)
-            self.on_connection_d(connection)
+            connection.close()
 
     def on_error(self, _socket):
         connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
 
-        self.on_connection_d(connection)
+        connection.close()
 
     def on_data(self, connection, data):
         pass
@@ -293,14 +293,8 @@ class Server(Base):
         if self.ssl: self._ssl_handshake(socket_c)
 
         connection = self.new_connection(socket_c, address, ssl = self.ssl)
-        self.on_connection_c(connection)
+        connection.open()
 
     def on_socket_d(self, socket_c):
         connection = self.connections_m.get(socket_c, None)
         if not connection: return
-
-    def on_connection_c(self, connection):
-        connection.open()
-
-    def on_connection_d(self, connection):
-        connection.close()
