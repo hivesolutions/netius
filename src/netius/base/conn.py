@@ -106,6 +106,10 @@ class Connection(object):
         # steps are still required to complete the connection
         if connect: self.set_connecting()
 
+        # calls the top level on connection creation handler so that the owner
+        # object gets notified about the creation of the connection (open)
+        owner.on_connection_c(self)
+
     def close(self):
         # in case the current status of the connection is not open
         # doen't make sense to close as it's already closed
@@ -135,9 +139,13 @@ class Connection(object):
 
         # closes the socket, using the proper gracefully way so that
         # operations are no longer allowed in the socket, in case there's
-        # an error in the operation fails silently (un purpose)
+        # an error in the operation fails silently (on purpose)
         try: self.socket.close()
         except: pass
+
+        # calls the top level on connection delete handler so that the owner
+        # object gets notified about the deletion of the connection (closed)
+        owner.on_connection_d(self)
 
     def set_connecting(self):
         self.connecting = True
