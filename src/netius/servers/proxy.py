@@ -53,7 +53,8 @@ class ProxyServer(http.HTTPServer):
             **kwargs
         )
         self.rules = rules
-
+        self.clients = []
+        
     def on_data(self, connection, data):
         netius.Server.on_data(self, connection, data)
 
@@ -61,6 +62,10 @@ class ProxyServer(http.HTTPServer):
             connection.tunnel_c.send(data)
         else:
             connection.parse(data)
+
+    def on_connection_d(self, connection):
+        netius.Server.on_connection_d(self, connection)
+        if hasattr(connection, "tunnel"): connection.tunnel.close()
 
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
@@ -95,12 +100,17 @@ class ProxyServer(http.HTTPServer):
             chunk = header + data_s + "\r\n"
             connection.send(chunk)
 
-        def on_closed(client):
+        def on_close(client, _connection):
             self.on_connection_d(connection)
+
+        def on_stop(client):
+            if client in self.clients: self.clients.remove(client)
 
         method = parser.method.upper()
         path = parser.path_s
         version_s = parser.version_s
+        
+        print self.clients
 
         if method == "CONNECT":
             def on_connect(client, _connection):
@@ -114,20 +124,31 @@ class ProxyServer(http.HTTPServer):
                 self.on_connection_d(connection)
 
             host, port = path.split(":")
-            port = int(port)
-            client = netius.clients.RawClient()
-            client.connect(host, port)
-            client.bind("connect", on_connect)
-            client.bind("data", on_data)
-            client.bind("close", on_close)
-            connection.tunnel = client
+
+            import re
+            rule = re.compile(".*facebook.com$")
+
+            if rule.match(host):
+                connection.send("%s 403 Forbidden\r\n\r\n" % version_s)
+            else:
+                port = int(port)
+                client = netius.clients.RawClient()
+                client.connect(host, port)
+                client.bind("connect", on_connect)
+                client.bind("data", on_data)
+                client.bind("close", on_close)
+                client.bind("stop", on_stop)
+                connection.tunnel = client
+                self.clients.append(client)
         else:
             http_client = netius.clients.HTTPClient()
             http_client.method(method, path, headers = parser.headers)
             http_client.bind("headers", on_headers)
             http_client.bind("message", on_message)
             http_client.bind("chunk", on_chunk)
-            http_client.bind("close", on_closed)
+            http_client.bind("close", on_close)
+            http_client.bind("stop", on_stop)
+            self.clients.append(http_client)
 
 if __name__ == "__main__":
     server = ProxyServer()
