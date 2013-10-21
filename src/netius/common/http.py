@@ -137,6 +137,9 @@ class HTTPParser(netius.Observable):
         self.message_s = None
         self.content_l = -1
         self.message_l = 0
+        self.transfer_e = None
+        self.chunked = False
+        self.chunk_l = 0
 
     def get_path(self):
         split = self.path_s.split("?", 1)
@@ -286,6 +289,16 @@ class HTTPParser(netius.Observable):
         self.content_l = self.headers.get("content-length", -1)
         self.content_l = self.content_l and int(self.content_l)
 
+
+
+        self.transfer_e = self.headers.get("transfer-encoding", None)
+        self.chunked = self.transfer_e == "chunked"
+
+        if self.chunked:
+            print "ChuNKED!!!!!!!!!!!!!!"
+            print "!!!!!!!!!!!!!!!!!"
+
+
         # verifies if the connection is meant to be kept alive by
         # verifying the current value of the connection header against
         # the expected keep alive string value
@@ -310,6 +323,10 @@ class HTTPParser(netius.Observable):
         return index + 4
 
     def _parse_message(self, data):
+        if self.chunked: return self._parse_chunked(data)
+        else: return self._parse_normal(data)
+
+    def _parse_normal(self, data):
         data_l = len(data)
         self.message.append(data)
         self.message_l += data_l
@@ -322,4 +339,23 @@ class HTTPParser(netius.Observable):
         self.state = FINISH_STATE
 
         self.trigger("on_data")
+        return data_l
+
+    def _parse_chunked(self, data):
+        data_l = len(data)
+
+        if self.chunk_l == 0:
+            header, data = data.split("\r\n", 1)
+            self.chunk_l = int(header.strip(), base = 16) + 2
+
+        if self.chunk_l == 0:
+            self.trigger("on_data")
+            return data_l
+
+        data = data[:self.chunk_l]
+        data_s = len(data)
+
+        self.message.append(data)
+        self.chunk_l -= data_s
+
         return data_l
