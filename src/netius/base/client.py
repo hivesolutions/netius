@@ -136,26 +136,26 @@ class Client(Base):
             while True:
                 data = _socket.recv(CHUNK_SIZE)
                 if data: self.on_data(connection, data)
-                else: self.on_connection_d(connection); break
+                else: connection.close(); break
         except ssl.SSLError, error:
             error_v = error.args[0]
             if not error_v in SSL_VALID_ERRORS:
                 self.info(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.debug(line)
-                self.on_connection_d(connection)
+                connection.close()
         except socket.error, error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
                 self.info(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.debug(line)
-                self.on_connection_d(connection)
+                connection.close()
         except BaseException, exception:
             self.info(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.debug(line)
-            self.on_connection_d(connection)
+            connection.close()
 
     def on_write(self, _socket):
         connection = self.connections_m.get(_socket, None)
@@ -174,38 +174,32 @@ class Client(Base):
                 self.info(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.debug(line)
-                self.on_connection_d(connection)
+                connection.close()
         except socket.error, error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
                 self.info(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.debug(line)
-                self.on_connection_d(connection)
+                connection.close()
         except BaseException, exception:
             self.info(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.debug(line)
-            self.on_connection_d(connection)
+            connection.close()
 
     def on_error(self, _socket):
         connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
 
-        self.on_connection_d(connection)
+        connection.close()
 
     def on_connect(self, connection):
         connection.set_connected()
 
     def on_data(self, connection, data):
         pass
-
-    def on_connection_c(self, connection):
-        connection.open(connect = True)
-
-    def on_connection_d(self, connection):
-        connection.close()
 
     def _connects(self):
         self._pending_lock.acquire()
@@ -218,10 +212,10 @@ class Client(Base):
 
     def _connect(self, connection):
         # retrieves the socket associated with the connection
-        # and call the on connection created handler to set the
-        # connection ready for the connect operation
+        # and calls the open method of the connection to proceed
+        # with the correct operations for the connection
         _socket = connection.socket
-        self.on_connection_c(connection)
+        connection.open(connect = True)
 
         # tries to run the non blocking connection it should
         # fail and the connection should only be considered as
