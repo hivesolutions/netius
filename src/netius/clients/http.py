@@ -128,22 +128,8 @@ class HTTPClient(netius.Client):
     def on_connect(self, connection):
         netius.Client.on_connect(self, connection)
 
-        method = connection.method
-        path = connection.path
-        version = connection.version
-        headers = connection.headers
-        data = connection.data
-
-        buffer = []
-        buffer.append("%s %s %s\r\n" % (method, path, version))
-        for key, value in headers.items():
-            key = netius.common.header_up(key)
-            buffer.append("%s: %s\r\n" % (key, value))
-        buffer.append("\r\n")
-        buffer_data = "".join(buffer)
-
-        connection.send(buffer_data)
-        data and connection.send(data)
+        self.trigger("connected", self)
+        self._send_request(connection)
 
     def on_data(self, connection, data):
         netius.Client.on_data(self, connection, data)
@@ -166,6 +152,24 @@ class HTTPClient(netius.Client):
 
     def on_chunk_http(self, parser, range):
         self.trigger("chunk", self, parser, range)
+
+    def _send_request(self, connection):
+        method = connection.method
+        path = connection.path
+        version = connection.version
+        headers = connection.headers
+        data = connection.data
+
+        buffer = []
+        buffer.append("%s %s %s\r\n" % (method, path, version))
+        for key, value in headers.items():
+            key = netius.common.header_up(key)
+            buffer.append("%s: %s\r\n" % (key, value))
+        buffer.append("\r\n")
+        buffer_data = "".join(buffer)
+
+        connection.send(buffer_data)
+        data and connection.send(data)
 
 if __name__ == "__main__":
     def on_message(client, parser, message):
