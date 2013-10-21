@@ -57,6 +57,8 @@ class HTTPConnection(netius.Connection):
         self.data = None
 
         self.parser.bind("on_data", self.on_data)
+        self.parser.bind("on_headers", self.on_headers)
+        self.parser.bind("on_chunk", self.on_chunk)
 
     def set_http(
         self,
@@ -87,6 +89,12 @@ class HTTPConnection(netius.Connection):
 
     def on_data(self):
         self.owner.on_data_http(self.parser)
+
+    def on_headers(self):
+        self.owner.on_headers_http(self.parser)
+
+    def on_chunk(self, range):
+        self.owner.on_chunk_http(self.parser, range)
 
 class HTTPClient(netius.Client):
     """
@@ -150,6 +158,13 @@ class HTTPClient(netius.Client):
     def on_data_http(self, parser):
         message = parser.get_message()
         self.trigger("message", self, parser, message)
+
+    def on_headers_http(self, parser):
+        headers = parser.headers
+        self.trigger("headers", self, parser, headers)
+
+    def on_chunk_http(self, parser, range):
+        self.trigger("chunk", self, parser, range)
 
 if __name__ == "__main__":
     def on_message(client, parser, message):

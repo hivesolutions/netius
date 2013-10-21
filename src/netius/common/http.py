@@ -140,6 +140,8 @@ class HTTPParser(netius.Observable):
         self.transfer_e = None
         self.chunked = False
         self.chunk_l = 0
+        self.chunk_s = 0
+        self.chunk_e = 0
 
     def get_path(self):
         split = self.path_s.split("?", 1)
@@ -334,6 +336,8 @@ class HTTPParser(netius.Observable):
         has_finished = not self.content_l == -1 and\
             self.message_l == self.content_l
 
+        self.trigger("on_partial", data)
+
         if not has_finished: return data_l
 
         self.state = FINISH_STATE
@@ -344,18 +348,31 @@ class HTTPParser(netius.Observable):
     def _parse_chunked(self, data):
         data_l = len(data)
 
-        if self.chunk_l == 0:
+        is_end = self.chunk_l == 2
+        if is_end:
+            self.chunk_e = len(self.message)
+            self.trigger("on_chunk", (self.chunk_s, self.chunk_e))
+            self.chunk_l = 0
+            return 2
+
+        is_start = self.chunk_l == 0
+        if is_start:
             header, data = data.split("\r\n", 1)
             self.chunk_l = int(header.strip(), base = 16) + 2
+            self.chunk_s = len(self.message)
 
-        if self.chunk_l == 0:
+        is_final = self.chunk_l == 2
+        if is_final:
             self.trigger("on_data")
             return data_l
 
-        data = data[:self.chunk_l]
+        data = data[:self.chunk_l - 2]
         data_s = len(data)
 
         self.message.append(data)
         self.chunk_l -= data_s
 
-        return data_l
+        self.trigger("on_partial", data)
+
+        if is_start: return data_l
+        else: return data_s

@@ -39,6 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import http
 
+import netius.common
 import netius.clients
 
 class ProxyServer(http.HTTPServer):
@@ -56,18 +57,14 @@ class ProxyServer(http.HTTPServer):
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
 
-        def on_message(client, parser, message):
+        def on_headers(client, parser, headers):
             status = parser.status
             version_s = parser.version_s
-            headers = parser.headers
-
-            print "on message"
-
-            if "connection" in headers: del headers["connection"]
 
             buffer = []
             buffer.append("%s %s\r\n" % (version_s, status))
             for key, value in headers.items():
+                key = netius.common.header_up(key)
                 buffer.append("%s: %s\r\n" % (key, value))
             buffer.append("\r\n")
 
@@ -76,16 +73,28 @@ class ProxyServer(http.HTTPServer):
             data = "".join(buffer)
             connection.send(data)
 
-            connection.send(message)
-
+        def on_message(client, parser, message):
+            is_chunked = parser.chunked
+            if not is_chunked: connection.send(message)
             client.close()
 
-        method = parser.method.upper()  #@todo por equanto esta a ser ignorado
+        def on_chunk(client, parser, range):
+            start, end = range
+            data = parser.message[start:end]
+            data_s = "".join(data)
+            data_l = len(data_s)
+            header = "%x\r\n" % data_l
+            chunk = header + data_s + "\r\n"
+            connection.send(chunk)
+
+        method = parser.method.upper()
         path = parser.path_s
 
         http_client = netius.clients.HTTPClient()
         http_client.method(method, path, headers = parser.headers)
+        http_client.bind("headers", on_headers)
         http_client.bind("message", on_message)
+        http_client.bind("chunk", on_chunk)
 
 if __name__ == "__main__":
     server = ProxyServer()
