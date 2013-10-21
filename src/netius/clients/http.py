@@ -53,6 +53,8 @@ class HTTPConnection(netius.Connection):
         self.host = None
         self.port = None
         self.path = None
+        self.headers = {}
+        self.data = None
 
         self.parser.bind("on_data", self.on_data)
 
@@ -74,6 +76,12 @@ class HTTPConnection(netius.Connection):
         self.path = path
         self.ssl = ssl
 
+    def set_headers(self, headers):
+        self.headers = headers
+
+    def set_data(self, data):
+        self.data = data
+
     def parse(self, data):
         return self.parser.parse(data)
 
@@ -86,7 +94,10 @@ class HTTPClient(netius.Client):
     operations and makes use of the http parser from netius.
     """
 
-    def get(self, url):
+    def get(self, url, headers = {}):
+        return self.method("GET", url, headers = headers)
+
+    def method(self, method, url, headers = {}, data = None, version = "HTTP/1.1"):
         parsed = urlparse.urlparse(url)
         ssl = parsed.scheme == "https"
         host = parsed.hostname
@@ -95,14 +106,16 @@ class HTTPClient(netius.Client):
 
         connection = self.connect(host, port, ssl = ssl)
         connection.set_http(
-            version = "HTTP/1.0",
-            method = "GET",
+            version = version,
+            method = method,
             url = url,
             host = host,
             port = port,
             path = path,
             ssl = ssl
         )
+        connection.set_headers(headers)
+        connection.set_data(data)
 
     def on_connect(self, connection):
         netius.Client.on_connect(self, connection)
@@ -110,8 +123,18 @@ class HTTPClient(netius.Client):
         method = connection.method
         path = connection.path
         version = connection.version
+        headers = connection.headers
+        data = connection.data
 
-        connection.send("%s %s %s\r\n\r\n" % (method, path, version))
+        buffer = []
+        buffer.append("%s %s %s\r\n" % (method, path, version))
+        for key, value in headers.items():
+            buffer.append("%s: %s\r\n" % (key, value))
+        buffer.append("\r\n")
+        buffer_data = "".join(buffer)
+
+        connection.send(buffer_data)
+        data and connection.send(data)
 
     def on_data(self, connection, data):
         netius.Client.on_data(self, connection, data)
@@ -125,10 +148,10 @@ class HTTPClient(netius.Client):
 
     def on_data_http(self, parser):
         message = parser.get_message()
-        self.trigger("message", self, message)
+        self.trigger("message", self, parser, message)
 
 if __name__ == "__main__":
-    def on_message(client, message):
+    def on_message(client, parser, message):
         print message; client.close()
 
     http_client = HTTPClient()
