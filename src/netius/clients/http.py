@@ -128,7 +128,7 @@ class HTTPClient(netius.Client):
     def on_connect(self, connection):
         netius.Client.on_connect(self, connection)
 
-        self.trigger("connected", self)
+        self.trigger("connect", self)
         self._send_request(connection)
 
     def on_data(self, connection, data):
@@ -137,7 +137,7 @@ class HTTPClient(netius.Client):
 
     def on_connection_d(self, connection):
         netius.Client.on_connection_d(self, connection)
-        self.trigger("closed", self)
+        self.trigger("close", self)
 
     def new_connection(self, socket, address, ssl = False):
         return HTTPConnection(self, socket, address, ssl = ssl)

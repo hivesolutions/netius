@@ -54,6 +54,14 @@ class ProxyServer(http.HTTPServer):
         )
         self.rules = rules
 
+    def on_data(self, connection, data):
+        netius.Server.on_data(self, connection, data)
+
+        if hasattr(connection, "tunnel"):
+            connection.tunnel_c.send(data)
+        else:
+            connection.parse(data)
+
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
 
@@ -88,17 +96,38 @@ class ProxyServer(http.HTTPServer):
             connection.send(chunk)
 
         def on_closed(client):
-            connection.close()
+            self.on_connection_d(connection)
 
         method = parser.method.upper()
         path = parser.path_s
+        version_s = parser.version_s
 
-        http_client = netius.clients.HTTPClient()
-        http_client.method(method, path, headers = parser.headers)
-        http_client.bind("headers", on_headers)
-        http_client.bind("message", on_message)
-        http_client.bind("chunk", on_chunk)
-        http_client.bind("close", on_closed)
+        if method == "CONNECT":
+            def on_connect(client, _connection):
+                connection.tunnel_c = _connection
+                connection.send("%s 200 Connection established\r\n\r\n" % version_s)
+
+            def on_data(client, _connection, data):
+                connection.send(data)
+
+            def on_close(client, _connection):
+                self.on_connection_d(connection)
+
+            host, port = path.split(":")
+            port = int(port)
+            client = netius.clients.RawClient()
+            client.connect(host, port)
+            client.bind("connect", on_connect)
+            client.bind("data", on_data)
+            client.bind("close", on_close)
+            connection.tunnel = client
+        else:
+            http_client = netius.clients.HTTPClient()
+            http_client.method(method, path, headers = parser.headers)
+            http_client.bind("headers", on_headers)
+            http_client.bind("message", on_message)
+            http_client.bind("chunk", on_chunk)
+            http_client.bind("close", on_closed)
 
 if __name__ == "__main__":
     server = ProxyServer()
