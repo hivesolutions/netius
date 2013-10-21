@@ -45,7 +45,7 @@ class HTTPConnection(netius.Connection):
 
     def __init__(self, owner, socket, address, ssl = False):
         netius.Connection.__init__(self, owner, socket, address, ssl = ssl)
-        self.parser = netius.common.HTTPParser(type = netius.common.RESPONSE)
+        self.parser = netius.common.HTTPParser(self, type = netius.common.RESPONSE)
         self.version = "HTTP/1.1"
         self.method = "GET"
         self.url = None
@@ -68,7 +68,8 @@ class HTTPConnection(netius.Connection):
         host = None,
         port = None,
         path = None,
-        ssl = False
+        ssl = False,
+        parsed = None
     ):
         self.method = method.upper()
         self.version = version
@@ -77,6 +78,7 @@ class HTTPConnection(netius.Connection):
         self.port = port
         self.path = path
         self.ssl = ssl
+        self.parsed = parsed
 
     def set_headers(self, headers):
         self.headers = headers
@@ -120,10 +122,12 @@ class HTTPClient(netius.Client):
             host = host,
             port = port,
             path = path,
-            ssl = ssl
+            ssl = ssl,
+            parsed = parsed
         )
         connection.set_headers(headers)
         connection.set_data(data)
+        return connection
 
     def on_connect(self, connection):
         netius.Client.on_connect(self, connection)
@@ -159,6 +163,9 @@ class HTTPClient(netius.Client):
         version = connection.version
         headers = connection.headers
         data = connection.data
+        parsed = connection.parsed
+
+        if parsed.query: path += "?" + parsed.query
 
         buffer = []
         buffer.append("%s %s %s\r\n" % (method, path, version))
