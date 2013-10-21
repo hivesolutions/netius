@@ -54,6 +54,13 @@ class ProxyServer(http.HTTPServer):
         )
         self.rules = rules
         self.clients = []
+        self.conn_map = {}
+
+        self.http_client = netius.clients.HTTPClient()
+        self.http_client.bind("headers", self._on_prx_headers)
+        self.http_client.bind("message", self._on_prx_message)
+        self.http_client.bind("chunk", self._on_prx_chunk)
+        self.http_client.bind("close", self._on_prx_close)
 
     def on_data(self, connection, data):
         netius.Server.on_data(self, connection, data)
@@ -70,48 +77,20 @@ class ProxyServer(http.HTTPServer):
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
 
-        def on_headers(client, parser, headers):
-            status = parser.status
-            version_s = parser.version_s
-
-            buffer = []
-            buffer.append("%s %s\r\n" % (version_s, status))
-            for key, value in headers.items():
-                key = netius.common.header_up(key)
-                buffer.append("%s: %s\r\n" % (key, value))
-            buffer.append("\r\n")
-
-            # joins the header strings list as the data string that contains
-            # the headers and then sends the value through the connection
-            data = "".join(buffer)
-            connection.send(data)
-
-        def on_message(client, parser, message):
-            def close(connection):
-                client.close()
-
-            is_chunked = parser.chunked
-            if not is_chunked: connection.send(message, callback = close)
-
-        def on_chunk(client, parser, range):
-            start, end = range
-            data = parser.message[start:end]
-            data_s = "".join(data)
-            data_l = len(data_s)
-            header = "%x\r\n" % data_l
-            chunk = header + data_s + "\r\n"
-            connection.send(chunk)
-
-        def on_close(client, _connection):
-            pass
-            #connection.close()
-
-        def on_stop(client):
-            if client in self.clients: self.clients.remove(client)
-
         method = parser.method.upper()
         path = parser.path_s
         version_s = parser.version_s
+
+        import re
+        rule = re.compile(".*facebook.com.*")
+        rejected = rule.match(path)
+
+        if rejected:
+            connection.send(
+                "%s 403 Forbidden\r\n\r\nThis connection is not allowed" % version_s,
+                callback = self._prx_close
+            )
+            return
 
         if method == "CONNECT":
             def on_connect(client, _connection):
@@ -122,35 +101,71 @@ class ProxyServer(http.HTTPServer):
                 connection.send(data)
 
             def on_close(client, _connection):
-                pass
-                #connection.close()
+                connection.close()
+
+            def on_stop(client):
+                if client in self.clients: self.clients.remove(client)
 
             host, port = path.split(":")
-
-            import re
-            rule = re.compile(".*facebook.com$")
-
-            if rule.match(host):
-                connection.send("%s 403 Forbidden\r\n\r\n" % version_s)
-            else:
-                port = int(port)
-                client = netius.clients.RawClient()
-                client.connect(host, port)
-                client.bind("connect", on_connect)
-                client.bind("data", on_data)
-                client.bind("close", on_close)
-                client.bind("stop", on_stop)
-                connection.tunnel = client
-                self.clients.append(client)
+            port = int(port)
+            client = netius.clients.RawClient()
+            client.connect(host, port)
+            client.bind("connect", on_connect)
+            client.bind("data", on_data)
+            client.bind("close", on_close)
+            client.bind("stop", on_stop)
+            connection.tunnel = client
+            self.clients.append(client)
         else:
-            http_client = netius.clients.HTTPClient()
-            http_client.method(method, path, headers = parser.headers)
-            http_client.bind("headers", on_headers)
-            http_client.bind("message", on_message)
-            http_client.bind("chunk", on_chunk)
-            http_client.bind("close", on_close)
-            http_client.bind("stop", on_stop)
-            self.clients.append(http_client)
+            _connection = self.http_client.method(method, path, headers = parser.headers)
+            self.conn_map[_connection] = connection
+
+    def _prx_close(self, connection):
+        connection.close()
+
+    def _on_prx_headers(self, client, parser, headers):
+        _connection = parser.owner
+        status = parser.status
+        version_s = parser.version_s
+
+        connection = self.conn_map[_connection]
+
+        buffer = []
+        buffer.append("%s %s\r\n" % (version_s, status))
+        for key, value in headers.items():
+            key = netius.common.header_up(key)
+            buffer.append("%s: %s\r\n" % (key, value))
+        buffer.append("\r\n")
+
+        # joins the header strings list as the data string that contains
+        # the headers and then sends the value through the connection
+        data = "".join(buffer)
+        connection.send(data)
+
+    def _on_prx_message(self, client, parser, message):
+        _connection = parser.owner
+        is_chunked = parser.chunked
+
+        connection = self.conn_map[_connection]
+
+        if is_chunked: connection.send("0\r\n\r\n", callback = self._prx_close)
+        else: connection.send(message, callback = self._prx_close)
+
+    def _on_prx_chunk(self, client, parser, range):
+        _connection = parser.owner
+        connection = self.conn_map[_connection]
+
+        start, end = range
+        data = parser.message[start:end]
+        data_s = "".join(data)
+        data_l = len(data_s)
+        header = "%x\r\n" % data_l
+        chunk = header + data_s + "\r\n"
+        connection.send(chunk)
+
+    def _on_prx_close(self, client, _connection):
+        connection = self.conn_map[_connection]
+        connection.close()
 
 if __name__ == "__main__":
     server = ProxyServer()
