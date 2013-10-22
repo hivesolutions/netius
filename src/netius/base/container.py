@@ -49,6 +49,10 @@ class Container(Base):
         base.poll = self.poll
         self.bases.append(base)
 
+    def ticks(self):
+        self.set_state(STATE_TICK)
+        for base in self.bases: base.ticks()
+
     def loop(self):
         # iterates continuously while the running flag
         # is set, once it becomes unset the loop breaks
