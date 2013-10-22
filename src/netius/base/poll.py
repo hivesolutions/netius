@@ -38,10 +38,10 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 class Poll(object):
-    
+
     def poll(self):
         return []
-    
+
     def sub_all(self, socket, owner = None):
         self.sub_read(socket, owner = owner)
         self.sub_write(socket, owner = owner)
@@ -71,7 +71,7 @@ class Poll(object):
         pass
 
 class SelectPoll(Poll):
-    
+
     def __init__(self, *args, **kwargs):
         Poll.__init__(self, *args, **kwargs)
         self.read_l = []

@@ -172,6 +172,7 @@ class Base(observer.Observable):
         observer.Observable.__init__(self, *args, **kwargs)
         self.name = name or self.__class__.__name__
         self.handler = handler
+        self.level = kwargs.get("level", logging.DEBUG)
         self.logger = None
         self.read_l = []
         self.write_l = []
@@ -192,7 +193,7 @@ class Base(observer.Observable):
     def load(self):
         if self._loaded: return
 
-        self.load_logging();
+        self.load_logging(self.level);
         self._loaded = True
 
     def load_logging(self, level = logging.DEBUG):
