@@ -43,11 +43,9 @@ class Container(Base):
 
     def __init__(self, name = None, handler = None, thread = True, *args, **kwargs):
         Base.__init__(self, name = name, hadler = handler, *args, **kwargs)
-        self.free_map = {}
-        self.pendings = []
-        self._pending_lock = threading.RLock()
+        self.bases = []
 
         if thread: BaseThread(self).start()
 
     def add_base(self, base):
-        pass
+        base.poll = self.poll

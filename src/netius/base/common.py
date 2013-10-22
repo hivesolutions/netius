@@ -40,15 +40,14 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import os
 import ssl
 import copy
-import time
 import errno
-import select
 import logging
 import traceback
 
 import observer
 
 from conn import * #@UnusedWildImport
+from poll import * #@UnusedWildImport
 
 NAME = "netius"
 """ The global infra-structure name to be used in the
@@ -176,9 +175,7 @@ class Base(observer.Observable):
         self.level = kwargs.get("level", logging.DEBUG)
         self.tid = None
         self.logger = None
-        self.read_l = []
-        self.write_l = []
-        self.error_l = []
+        self.poll = SelectPoll()
         self.connections = []
         self.connections_m = {}
         self._running = False
@@ -213,6 +210,11 @@ class Base(observer.Observable):
         # the base structure in case the loading has already
         # been done nothing is done (avoids duplicated load)
         self.load()
+
+        # opens the polling mechanism so that its internal structures
+        # become ready for the polling cycle, the inverse operation
+        # (close) should be performed as part of the cleanup
+        self.poll.open()
 
         # sets the running flag that controls the running of the
         # main loop and then changes the current state to start
@@ -249,7 +251,31 @@ class Base(observer.Observable):
         self.stop()
 
     def is_empty(self):
-        return not self.read_l and not self.write_l and not self.error_l
+        return self.poll.is_empty()
+
+    def sub_all(self, socket):
+        return self.poll.sub_all(socket, owner = self)
+
+    def unsub_all(self, socket):
+        return self.poll.unsub_all(socket, owner = self)
+
+    def sub_read(self, socket):
+        return self.poll.sub_read(socket, owner = self)
+
+    def sub_write(self, socket):
+        return self.poll.sub_write(socket, owner = self)
+
+    def sub_error(self, socket):
+        return self.poll.sub_error(socket, owner = self)
+
+    def unsub_read(self, socket):
+        return self.poll.unsub_read(socket, owner = self)
+
+    def unsub_write(self, socket):
+        return self.poll.unsub_write(socket, owner = self)
+
+    def unsub_error(self, socket):
+        return self.poll.unsub_error(socket, owner = self)
 
     def cleanup(self):
         # creates a copy of the connections list because this structure
@@ -261,11 +287,9 @@ class Base(observer.Observable):
         # can no longer be used and are gracefully disconnected
         for connection in connections: connection.close()
 
-        # removes the contents of all of the loop related structures
-        # so that no extra selection operations are issued
-        del self.read_l[:]
-        del self.write_l[:]
-        del self.error_l[:]
+        # closes the current poll mechanism so that no more issues arise
+        # from an open poll system (memory leaks, etc.)
+        self.poll.close()
 
     def loop(self):
         # iterates continuously while the running flag
@@ -282,21 +306,10 @@ class Base(observer.Observable):
             # that the base service is selecting the connections
             self.set_state(STATE_SELECT)
 
-            # verifies if the current selection list is empty
-            # in case it's sleeps for a while and then continues
-            # the loop (this avoids error in empty selection)
-            is_empty = self.is_empty()
-            if is_empty: time.sleep(0.25); continue
-
             # runs the main selection operation on the current set
             # of connection for each of the three operations returning
             # the resulting active sets for the callbacks
-            reads, writes, errors = select.select(
-                self.read_l,
-                self.write_l,
-                self.error_l,
-                0.0005
-            )
+            reads, writes, errors = self.poll.poll()
 
             # calls the various callbacks with the selections lists,
             # these are the main entry points for the logic to be executed

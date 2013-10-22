@@ -90,8 +90,8 @@ class Connection(object):
 
         # registers the socket for the proper reading mechanisms
         # in the polling infra-structure of the owner
-        owner.read_l.append(self.socket)
-        owner.error_l.append(self.socket)
+        owner.sub_read(self.socket)
+        owner.sub_error(self.socket)
 
         # adds the current connection object to the list of
         # connections in the owner and the registers it in
@@ -135,9 +135,7 @@ class Connection(object):
 
         # removes the socket from all the polling mechanisms so that
         # interaction with it is no longer part of the selecting mechanism
-        if self.socket in owner.read_l: owner.read_l.remove(self.socket)
-        if self.socket in owner.write_l: owner.write_l.remove(self.socket)
-        if self.socket in owner.error_l: owner.error_l.remove(self.socket)
+        self.owner.unsub_all(self.socket)
 
         # removes the current connection from the list of connection in the
         # owner and also from the map that associates the socket with the
@@ -181,21 +179,18 @@ class Connection(object):
         if not is_safe: self.owner.delay(self.ensure_write)
 
         # verifies if the status of the connection is open and
-        # in case it's not or in case it's already present int
-        # the list of writes returns immediately (no need to
-        # process any more ensure operations)
+        # in case it's not returns immediately as there's no reason
+        # to so it for writing
         if not self.status == OPEN: return
-        if self.socket in self.owner.write_l: return
 
         # adds the current socket to the list of write operations
         # so that it's going to be available for writing as soon
         # as possible from the poll mechanism
-        self.owner.write_l.append(self.socket)
+        self.owner.sub_write(self.socket)
 
     def remove_write(self):
         if not self.status == OPEN: return
-        if not self.socket in self.owner.write_l: return
-        self.owner.write_l.remove(self.socket)
+        self.owner.unsub_write(self.socket)
 
     def send(self, data, callback = None):
         """

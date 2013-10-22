@@ -37,10 +37,22 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import time
+import select
+
 class Poll(object):
+
+    def open(self):
+        pass
+
+    def close(self):
+        pass
 
     def poll(self):
         return []
+
+    def is_empty(self):
+        return False
 
     def sub_all(self, socket, owner = None):
         self.sub_read(socket, owner = owner)
@@ -74,9 +86,37 @@ class SelectPoll(Poll):
 
     def __init__(self, *args, **kwargs):
         Poll.__init__(self, *args, **kwargs)
+        self._open = False
+
+    def open(self):
+        if self._open: return
+        self._open = True
+
         self.read_l = []
         self.write_l = []
         self.error_l = []
+
+    def close(self):
+        if not self._open: return
+        self._open = False
+
+        # removes the contents of all of the loop related structures
+        # so that no extra selection operations are issued
+        del self.read_l[:]
+        del self.write_l[:]
+        del self.error_l[:]
+
+    def poll(self):
+        # verifies if the current selection list is empty
+        # in case it's sleeps for a while and then continues
+        # the loop (this avoids error in empty selection)
+        is_empty = self.is_empty()
+        if is_empty: time.sleep(0.25); return ([], [], [])
+
+        return select.select(self.read_l, self.write_l, self.error_l, 0.0005)
+
+    def is_empty(self):
+        return not self.read_l and not self.write_l and not self.error_l
 
     def sub_read(self, socket, owner = None):
         self.read_l.append(socket)
@@ -89,12 +129,12 @@ class SelectPoll(Poll):
 
     def unsub_read(self, socket, owner = None):
         if not socket in self.read_l: return
-        self.read_l.append(socket)
+        self.read_l.remove(socket)
 
     def unsub_write(self, socket, owner = None):
         if not socket in self.write_l: return
-        self.write_l.append(socket)
+        self.write_l.remove(socket)
 
     def unsub_error(self, socket, owner = None):
         if not socket in self.error_l: return
-        self.error_l.append(socket)
+        self.error_l.remove(socket)

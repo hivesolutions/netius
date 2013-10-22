@@ -53,6 +53,10 @@ class Server(Base):
     def cleanup(self):
         Base.cleanup(self)
 
+        # unsubscribes the current socket from all the position in
+        # the current polling mechanism, required for coherence
+        self.unsub_all(self.socket)
+
         # tries to close the service socket, as this is the one that
         # has no connection associated and is independent
         try: self.socket.close()
@@ -152,12 +156,14 @@ class Server(Base):
                 1
             ) #@UndefinedVariable
 
+        # ensures that the current polling mechanism is correctly open as the
+        # service socket is going to be added to it next
+        self.poll.open()
+
         # adds the socket to all of the pool lists so that it's ready to read
         # write and handle error, this is the expected behavior of a service
         # socket so that it can handle all of the expected operations
-        self.read_l.append(self.socket)
-        self.write_l.append(self.socket)
-        self.error_l.append(self.socket)
+        self.sub_all(self.socket)
 
         # binds the socket to the provided host and port and then start the
         # listening in the socket with the maximum backlog as possible
