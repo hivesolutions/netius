@@ -55,7 +55,7 @@ class ProxyServer(http.HTTPServer):
         self.rules = rules
         self.conn_map = {}
 
-        self.http_client = netius.clients.HTTPClient()
+        self.http_client = netius.clients.HTTPClient(level = self.level)
         self.http_client.bind("headers", self._on_prx_headers)
         self.http_client.bind("message", self._on_prx_message)
         self.http_client.bind("partial", self._on_prx_partial)
@@ -64,7 +64,7 @@ class ProxyServer(http.HTTPServer):
         self.http_client.bind("close", self._on_prx_close)
         self.http_client.bind("error", self._on_prx_error)
 
-        self.raw_client = netius.clients.RawClient()
+        self.raw_client = netius.clients.RawClient(level = self.level)
         self.raw_client.bind("connect", self._on_raw_connect)
         self.raw_client.bind("data", self._on_raw_data)
         self.raw_client.bind("close", self._on_raw_close)
@@ -77,7 +77,7 @@ class ProxyServer(http.HTTPServer):
 
     def on_connection_d(self, connection):
         netius.Server.on_connection_d(self, connection)
-        if hasattr(connection, "tunnel_c"): connection.tunnel_c.close()
+        if hasattr(connection, "tunnel_c"): connection.tunnel_c.close(flush = True)
 
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
@@ -209,9 +209,10 @@ class ProxyServer(http.HTTPServer):
 
     def _on_raw_close(self, client, _connection):
         connection = self.conn_map[_connection]
-        connection.close()
+        connection.close(flush = True)
         del self.conn_map[_connection]
 
 if __name__ == "__main__":
-    server = ProxyServer()
+    import logging
+    server = ProxyServer(level = logging.INFO)
     server.serve(host = "0.0.0.0", port = 8080)
