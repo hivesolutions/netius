@@ -96,6 +96,10 @@ class SelectPoll(Poll):
         self.write_l = []
         self.error_l = []
 
+        self.read_o = {}
+        self.write_o = {}
+        self.error_o = {}
+
     def close(self):
         if not self._open: return
         self._open = False
@@ -106,6 +110,12 @@ class SelectPoll(Poll):
         del self.write_l[:]
         del self.error_l[:]
 
+        # removes the complete set of elements from the map that associated
+        # a socket with the proper owner
+        self.read_o.clear()
+        self.write_o.clear()
+        self.error_o.clear()
+
     def poll(self):
         # verifies if the current selection list is empty
         # in case it's sleeps for a while and then continues
@@ -115,26 +125,63 @@ class SelectPoll(Poll):
 
         return select.select(self.read_l, self.write_l, self.error_l, 0.0005)
 
+    def poll_owner(self):
+        reads, writes, errors = self.poll()
+
+        result = dict()
+
+        for read in reads:
+            base = self.read_o[read]
+            value = result.get(base, None)
+            if not value:
+                value = ([], [], [])
+                result[base] = value
+            value[0].append(read)
+
+        for write in writes:
+            base = self.write_o[read]
+            value = result.get(base, None)
+            if not value:
+                value = ([], [], [])
+                result[base] = value
+            value[1].append(write)
+
+        for error in errors:
+            base = self.error_o[read]
+            value = result.get(base, None)
+            if not value:
+                value = ([], [], [])
+                result[base] = value
+            value[2].append(error)
+
+        return result
+
     def is_empty(self):
         return not self.read_l and not self.write_l and not self.error_l
 
     def sub_read(self, socket, owner = None):
         self.read_l.append(socket)
+        self.read_o[socket] = owner
 
     def sub_write(self, socket, owner = None):
         self.write_l.append(socket)
+        self.write_o[socket] = owner
 
     def sub_error(self, socket, owner = None):
         self.error_l.append(socket)
+        self.error_o[socket] = owner
 
     def unsub_read(self, socket, owner = None):
-        if not socket in self.read_l: return
+        if not socket in self.read_o: return
         self.read_l.remove(socket)
+        del self.read_o[socket]
 
     def unsub_write(self, socket, owner = None):
-        if not socket in self.write_l: return
+        if not socket in self.write_o: return
         self.write_l.remove(socket)
+        del self.write_o[socket]
 
     def unsub_error(self, socket, owner = None):
-        if not socket in self.error_l: return
+        if not socket in self.error_o: return
         self.error_l.remove(socket)
+        del self.error_o[socket]
