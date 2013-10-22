@@ -114,14 +114,14 @@ class Connection(object):
         owner.on_connection_c(self)
 
     def close(self, flush = False):
+        # in case the current status of the connection is not open
+        # doen't make sense to close as it's already closed
+        if not self.status == OPEN: return
+
         # in case the flush flag is set a different approach is taken
         # where all the pending data is flushed (as possible) before
         # the connection is effectively closed
         if flush: return self.close_flush()
-
-        # in case the current status of the connection is not open
-        # doen't make sense to close as it's already closed
-        if not self.status == OPEN: return
 
         # immediately sets the status of the connection as closed
         # so that no one else changed the current connection status
