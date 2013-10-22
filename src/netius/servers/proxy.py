@@ -53,24 +53,30 @@ class ProxyServer(http.HTTPServer):
             **kwargs
         )
         self.rules = rules
-        self.clients = []
         self.conn_map = {}
 
         self.http_client = netius.clients.HTTPClient()
         self.http_client.bind("headers", self._on_prx_headers)
         self.http_client.bind("message", self._on_prx_message)
+        self.http_client.bind("partial", self._on_prx_partial)
         self.http_client.bind("chunk", self._on_prx_chunk)
         self.http_client.bind("close", self._on_prx_close)
+        self.http_client.bind("error", self._on_prx_error)
+
+        self.raw_client = netius.clients.RawClient()
+        self.raw_client.bind("connect", self._on_raw_connect)
+        self.raw_client.bind("data", self._on_raw_data)
+        self.raw_client.bind("close", self._on_raw_close)
 
     def on_data(self, connection, data):
         netius.Server.on_data(self, connection, data)
 
-        if hasattr(connection, "tunnel"): connection.tunnel_c.send(data)
+        if hasattr(connection, "tunnel_c"): connection.tunnel_c.send(data)
         else: connection.parse(data)
 
     def on_connection_d(self, connection):
         netius.Server.on_connection_d(self, connection)
-        if hasattr(connection, "tunnel"): connection.tunnel.close()
+        if hasattr(connection, "tunnel_c"): connection.tunnel_c.close()
 
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
@@ -91,29 +97,11 @@ class ProxyServer(http.HTTPServer):
             return
 
         if method == "CONNECT":
-            def on_connect(client, _connection):
-                connection.tunnel_c = _connection
-                connection.send("%s 200 Connection established\r\n\r\n" % version_s)
-
-            def on_data(client, _connection, data):
-                connection.send(data)
-
-            def on_close(client, _connection):
-                connection.close()
-
-            def on_stop(client):
-                if client in self.clients: self.clients.remove(client)
-
             host, port = path.split(":")
             port = int(port)
-            client = netius.clients.RawClient()
-            client.connect(host, port)
-            client.bind("connect", on_connect)
-            client.bind("data", on_data)
-            client.bind("close", on_close)
-            client.bind("stop", on_stop)
-            connection.tunnel = client
-            self.clients.append(client)
+            _connection = self.raw_client.connect(host, port)
+            self.conn_map[_connection] = connection
+            connection.tunnel_c = _connection
         else:
             _connection = self.http_client.method(method, path, headers = parser.headers)
             self.conn_map[_connection] = connection
@@ -148,10 +136,19 @@ class ProxyServer(http.HTTPServer):
         _connection = parser.owner
         is_chunked = parser.chunked
 
-        connection = self.conn_map[_connection]
+        if not is_chunked: return
 
-        if is_chunked: connection.send("0\r\n\r\n", callback = self._prx_keep)
-        else: connection.send(message, callback = self._prx_keep)
+        connection = self.conn_map[_connection]
+        connection.send("0\r\n\r\n", callback = self._prx_keep)
+
+    def _on_prx_partial(self, client, parser, data):
+        _connection = parser.owner
+        is_chunked = parser.chunked
+
+        if is_chunked: return
+
+        connection = self.conn_map[_connection]
+        connection.send(data)
 
     def _on_prx_chunk(self, client, parser, range):
         _connection = parser.owner
@@ -166,9 +163,33 @@ class ProxyServer(http.HTTPServer):
         connection.send(chunk)
 
     def _on_prx_close(self, client, _connection):
-        pass
-        #connection = self.conn_map[_connection]
-        #connection.close()
+        del self.conn_map[_connection]
+
+    def _on_prx_error(self, client, _connection, error):
+        error_m = str(error) or "Unknown proxy relay error"
+        connection = self.conn_map[_connection]
+        connection.send_response(
+            data = error_m,
+            code = 500,
+            code_s = "Internal Error",
+            callback = self._prx_close
+        )
+
+    def _on_raw_connect(self, client, _connection):
+        connection = self.conn_map[_connection]
+        connection.send_response(
+            code = 200,
+            code_s = "Connection established"
+        )
+
+    def _on_raw_data(self, client, _connection, data):
+        connection = self.conn_map[_connection]
+        connection.send(data)
+
+    def _on_raw_close(self, client, _connection):
+        connection = self.conn_map[_connection]
+        connection.close()
+        del self.conn_map[_connection]
 
 if __name__ == "__main__":
     server = ProxyServer()
