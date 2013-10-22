@@ -123,7 +123,7 @@ class SelectPoll(Poll):
         is_empty = self.is_empty()
         if is_empty: time.sleep(0.25); return ([], [], [])
 
-        return select.select(self.read_l, self.write_l, self.error_l, 0.0005)
+        return select.select(self.read_l, self.write_l, self.error_l, 5)
 
     def poll_owner(self):
         reads, writes, errors = self.poll()

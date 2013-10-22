@@ -82,7 +82,7 @@ class ProxyServer(http.HTTPServer):
 
     def start(self):
         self.container.start()
-        
+
     def stop(self):
         self.container.stop()
 
