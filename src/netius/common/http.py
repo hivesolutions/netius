@@ -247,7 +247,7 @@ class HTTPParser(netius.Observable):
 
         values = self.line_s.split(" ", 2)
         if not len(values) == 3:
-            raise RuntimeError("invalid status line")
+            raise RuntimeError("invalid status line '%s'" % self.line_s)
 
         if self.type == REQUEST:
             self.method_s, self.path_s, self.version_s = values
