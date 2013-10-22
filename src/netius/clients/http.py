@@ -41,6 +41,12 @@ import urlparse
 
 import netius.common
 
+BASE_HEADERS = {
+    "User-Agent" : "%s/%s" % (netius.NAME, netius.VERSION)
+}
+""" The map containing the complete set of headers
+that are meant to be applied to all the requests """
+
 class HTTPConnection(netius.Connection):
 
     def __init__(self, owner, socket, address, ssl = False):
@@ -90,13 +96,13 @@ class HTTPConnection(netius.Connection):
         return self.parser.parse(data)
 
     def on_data(self):
-        self.owner.on_data_http(self.parser)
+        self.owner.on_data_http(self, self.parser)
 
     def on_headers(self):
-        self.owner.on_headers_http(self.parser)
+        self.owner.on_headers_http(self, self.parser)
 
     def on_chunk(self, range):
-        self.owner.on_chunk_http(self.parser, range)
+        self.owner.on_chunk_http(self, self.parser, range)
 
 class HTTPClient(netius.Client):
     """
@@ -114,7 +120,7 @@ class HTTPClient(netius.Client):
         port = parsed.port or (ssl and 443 or 80)
         path = parsed.path
 
-        connection = self.connect(host, port, ssl = ssl)
+        connection = self.acquire_c(host, port, ssl = ssl)
         connection.set_http(
             version = version,
             method = method,
@@ -131,8 +137,11 @@ class HTTPClient(netius.Client):
 
     def on_connect(self, connection):
         netius.Client.on_connect(self, connection)
+        self.trigger("connect", self, connection)
 
-        self.trigger("connect", self)
+    def on_acquire(self, connection):
+        netius.Client.on_acquire(self, connection)
+        self.trigger("acquire", self, connection)
         self._send_request(connection)
 
     def on_data(self, connection, data):
@@ -146,15 +155,16 @@ class HTTPClient(netius.Client):
     def new_connection(self, socket, address, ssl = False):
         return HTTPConnection(self, socket, address, ssl = ssl)
 
-    def on_data_http(self, parser):
+    def on_data_http(self, connection, parser):
         message = parser.get_message()
         self.trigger("message", self, parser, message)
+        self.release_c(connection)
 
-    def on_headers_http(self, parser):
+    def on_headers_http(self, connection, parser):
         headers = parser.headers
         self.trigger("headers", self, parser, headers)
 
-    def on_chunk_http(self, parser, range):
+    def on_chunk_http(self, connection, parser, range):
         self.trigger("chunk", self, parser, range)
 
     def _send_request(self, connection):
@@ -167,6 +177,9 @@ class HTTPClient(netius.Client):
 
         if parsed.query: path += "?" + parsed.query
 
+        self._apply_base(headers)
+        self._apply_dynamic(headers, data)
+
         buffer = []
         buffer.append("%s %s %s\r\n" % (method, path, version))
         for key, value in headers.items():
@@ -177,6 +190,17 @@ class HTTPClient(netius.Client):
 
         connection.send(buffer_data)
         data and connection.send(data)
+
+    def _apply_base(self, headers):
+        for key, value in BASE_HEADERS.items():
+            if key in headers: continue
+            headers[key] = value
+
+    def _apply_dynamic(self, headers, data):
+        if not "Connection" in headers:
+            headers["Connection"] = "keep-alive"
+        if not "Content-Length" in headers:
+            headers["Content-Length"] = len(data) if data else 0
 
 if __name__ == "__main__":
     def on_message(client, parser, message):
