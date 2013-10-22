@@ -227,7 +227,7 @@ class Base(observer.Observable):
         self.trigger("start", self)
         try: self.loop()
         except (KeyboardInterrupt, SystemExit):
-            pass
+            self.info("Finishing '%s' service on user request ..." % self.name)
         except BaseException, exception:
             self.error(exception)
             lines = traceback.format_exc().splitlines()
