@@ -93,6 +93,7 @@ class Client(Base):
         return connection
 
     def release_c(self, connection):
+        if not hasattr(connection, "tuple"): return
         connection_t = connection.tuple
         connection_l = self.free_map.get(connection_t, [])
         connection_l.append(connection)
