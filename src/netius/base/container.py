@@ -36,3 +36,21 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
+
+import socket
+
+from common import * #@UnusedWildImport
+
+class Container(Base):
+
+    def __init__(self, name = None, handler = None, thread = True, *args, **kwargs):
+        Base.__init__(self, name = name, hadler = handler, *args, **kwargs)
+        self.free_map = {}
+        self.pendings = []
+        self._pending_lock = threading.RLock()
+
+        if thread: BaseThread(self).start()
+
+    def add_base(self, base):
+        #@todo tenho de alterar o base para ser compativel !!!
+        pass
