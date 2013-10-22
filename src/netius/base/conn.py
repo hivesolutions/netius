@@ -112,7 +112,12 @@ class Connection(object):
         # object gets notified about the creation of the connection (open)
         owner.on_connection_c(self)
 
-    def close(self):
+    def close(self, flush = False):
+        # in case the flush flag is set a different approach is taken
+        # where all the pending data is flushed (as possible) before
+        # the connection is effectively closed
+        if flush: return self.close_flush()
+
         # in case the current status of the connection is not open
         # doen't make sense to close as it's already closed
         if not self.status == OPEN: return
@@ -148,6 +153,9 @@ class Connection(object):
         # calls the top level on connection delete handler so that the owner
         # object gets notified about the deletion of the connection (closed)
         owner.on_connection_d(self)
+
+    def close_flush(self):
+        self.send("", callback = self._close_callback)
 
     def set_connecting(self):
         self.connecting = True
@@ -246,3 +254,6 @@ class Connection(object):
 
     def _recv(self, size):
         return self.socket.recv(size)
+
+    def _close_callback(self, connection):
+        connection.close()

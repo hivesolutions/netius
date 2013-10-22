@@ -60,6 +60,7 @@ class ProxyServer(http.HTTPServer):
         self.http_client.bind("message", self._on_prx_message)
         self.http_client.bind("partial", self._on_prx_partial)
         self.http_client.bind("chunk", self._on_prx_chunk)
+        self.http_client.bind("acquire", self._on_prx_acquire)
         self.http_client.bind("close", self._on_prx_close)
         self.http_client.bind("error", self._on_prx_error)
 
@@ -103,7 +104,12 @@ class ProxyServer(http.HTTPServer):
             self.conn_map[_connection] = connection
             connection.tunnel_c = _connection
         else:
-            _connection = self.http_client.method(method, path, headers = parser.headers)
+            _connection = self.http_client.method(
+                method,
+                path,
+                headers = parser.headers
+            )
+            _connection.used = False
             self.conn_map[_connection] = connection
 
     def _prx_close(self, connection):
@@ -113,13 +119,21 @@ class ProxyServer(http.HTTPServer):
         pass
 
     def _on_prx_headers(self, client, parser, headers):
+        # retrieves the owner of the parser as the client connection
+        # and then retrieves all the other http specific values
         _connection = parser.owner
         code_s = parser.code_s
         status_s = parser.status_s
         version_s = parser.version_s
 
+        # resolves the client connection into the proper proxy connection
+        # to be used to send the headers (and status line) to the client
         connection = self.conn_map[_connection]
 
+        # creates a buffer list that will hold the complete set of
+        # lines that compose both the status lines and the headers
+        # then appends the start line and the various header lines
+        # to it so that it contains all of them
         buffer = []
         buffer.append("%s %s %s\r\n" % (version_s, code_s, status_s))
         for key, value in headers.items():
@@ -135,6 +149,8 @@ class ProxyServer(http.HTTPServer):
     def _on_prx_message(self, client, parser, message):
         _connection = parser.owner
         is_chunked = parser.chunked
+
+        _connection.used = False
 
         if not is_chunked: return
 
@@ -162,7 +178,12 @@ class ProxyServer(http.HTTPServer):
         chunk = header + data_s + "\r\n"
         connection.send(chunk)
 
+    def _on_prx_acquire(self, client, _connection):
+        _connection.used = True
+
     def _on_prx_close(self, client, _connection):
+        connection = self.conn_map[_connection]
+        if _connection.used: connection.close(flush = True)
         del self.conn_map[_connection]
 
     def _on_prx_error(self, client, _connection, error):
