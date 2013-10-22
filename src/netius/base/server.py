@@ -91,7 +91,7 @@ class Server(Base):
         info["ssl"] = self.ssl
         return info
 
-    def serve(self, host = "127.0.0.1", port = 9090, ssl = False, key_file = None, cer_file = None):
+    def serve(self, host = "127.0.0.1", port = 9090, ssl = False, key_file = None, cer_file = None, start = True):
         # updates the current service status to the configuration
         # stage as the next steps is to configure the service socket
         self.set_state(STATE_CONFIG)
@@ -182,7 +182,7 @@ class Server(Base):
 
         # starts the base system so that the event loop gets started and the
         # the servers gets ready to accept new connections (starts service)
-        self.start()
+        if start: self.start()
 
     def on_read_s(self, _socket):
         try:
