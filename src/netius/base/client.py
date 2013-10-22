@@ -55,6 +55,7 @@ class Client(Base):
         self.set_state(STATE_TICK)
         if self.pendings: self._connects()
         for method in self._delayed: method()
+        del self._delayed[:]
 
     def reads(self, reads):
         self.set_state(STATE_READ)

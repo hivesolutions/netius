@@ -301,6 +301,7 @@ class Base(observer.Observable):
     def ticks(self):
         self.set_state(STATE_TICK)
         for method in self._delayed: method()
+        del self._delayed[:]
 
     def reads(self, reads):
         self.set_state(STATE_READ)
