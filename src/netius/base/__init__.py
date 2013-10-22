@@ -39,6 +39,7 @@ import common
 import conn
 import errors
 import observer
+import poll
 import server
 
 from client import *
@@ -46,4 +47,5 @@ from common import *
 from conn import *
 from errors import *
 from observer import *
+from poll import *
 from server import *
