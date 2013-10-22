@@ -173,6 +173,7 @@ class Base(observer.Observable):
         self.name = name or self.__class__.__name__
         self.handler = handler
         self.level = kwargs.get("level", logging.DEBUG)
+        self.tid = None
         self.logger = None
         self.read_l = []
         self.write_l = []
@@ -203,6 +204,10 @@ class Base(observer.Observable):
         self.handler and self.logger.addHandler(self.handler)
 
     def start(self):
+        # retrieves the current thread identifier as the current
+        # "tid" value to be used for thread control mechanisms
+        self.tid = thread.get_ident()
+
         # triggers the loading of the internal structures of
         # the base structure in case the loading has already
         # been done nothing is done (avoids duplicated load)

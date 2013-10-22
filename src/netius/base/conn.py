@@ -39,6 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import uuid
 import types
+import thread
 import threading
 
 OPEN = 1
@@ -168,7 +169,19 @@ class Connection(object):
     def ensure_write(self):
         if not self.status == OPEN: return
         if self.socket in self.owner.write_l: return
-        self.owner.write_l.append(self.socket)
+
+        # retrieves the identifier of the current thread and
+        # checks if it's the same as the one defined in the
+        # owner in case it's not then the operation is not
+        # considered to be safe and must be delayed
+        tid = thread.get_ident()
+        is_safe = tid == self.owner.tid
+
+        # in case the operation is safe proceeds with it otherwise
+        # delays to the next tick so that it's considered safe to
+        # be run as it's going to be ran in the same thread
+        if is_safe: self.owner.write_l.append(self.socket)
+        else: self.owner.delay(self.ensure_write)
 
     def remove_write(self):
         if not self.status == OPEN: return
@@ -196,7 +209,7 @@ class Connection(object):
         """
 
         if callback: data = (data, callback)
-        self.owner.delay(self.ensure_write)
+        self.ensure_write()
         self.pending_lock.acquire()
         try: self.pending.insert(0, data)
         finally: self.pending_lock.release()
