@@ -272,6 +272,7 @@ class Client(Base):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.debug(line)
                 self.trigger("error", self, connection, error)
+                connection.close()
         except socket.error, error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
@@ -279,8 +280,13 @@ class Client(Base):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.debug(line)
                 self.trigger("error", self, connection, error)
+                connection.close()
         except BaseException, exception:
+            self.info(exception)
+            lines = traceback.format_exc().splitlines()
+            for line in lines: self.debug(line)
             self.trigger("error", self, connection, exception)
+            connection.close()
             raise
 
         # in case the connection is not of type ssl the method
