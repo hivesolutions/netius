@@ -39,6 +39,8 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import sys
 
+import netius
+
 import http
 
 class WSGIServer(http.HTTPServer):
@@ -90,7 +92,7 @@ class WSGIServer(http.HTTPServer):
             QUERY_STRING = query,
             CONTENT_TYPE = parser.headers.get("content-type", ""),
             CONTENT_LENGTH = "" if parser.content_l == -1 else parser.content_l,
-            SERVER_NAME = http.SERVER_NAME,
+            SERVER_NAME = netius.NAME,
             SERVER_PORT = self.port,
             SERVER_PROTOCOL = parser.version_s
         )
