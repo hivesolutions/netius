@@ -167,9 +167,6 @@ class Connection(object):
         self.connecting = False
 
     def ensure_write(self):
-        if not self.status == OPEN: return
-        if self.socket in self.owner.write_l: return
-
         # retrieves the identifier of the current thread and
         # checks if it's the same as the one defined in the
         # owner in case it's not then the operation is not
@@ -177,11 +174,23 @@ class Connection(object):
         tid = thread.get_ident()
         is_safe = tid == self.owner.tid
 
-        # in case the operation is safe proceeds with it otherwise
-        # delays to the next tick so that it's considered safe to
-        # be run as it's going to be ran in the same thread
-        if is_safe: self.owner.write_l.append(self.socket)
-        else: self.owner.delay(self.ensure_write)
+        # in case the thread where this code is being executed
+        # is not the same the operation is considered to be not
+        # safe and so it must be delayed to be executed in the
+        # next loop of the thread cycle
+        if not is_safe: self.owner.delay(self.ensure_write)
+
+        # verifies if the status of the connection is open and
+        # in case it's not or in case it's already present int
+        # the list of writes returns immediately (no need to
+        # process any more ensure operations)
+        if not self.status == OPEN: return
+        if self.socket in self.owner.write_l: return
+
+        # adds the current socket to the list of write operations
+        # so that it's going to be available for writing as soon
+        # as possible from the poll mechanism
+        self.owner.write_l.append(self.socket)
 
     def remove_write(self):
         if not self.status == OPEN: return
