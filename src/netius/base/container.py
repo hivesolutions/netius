@@ -45,9 +45,7 @@ class Container(Base):
         Base.__init__(self, name = name, hadler = handler, *args, **kwargs)
         self.bases = []
 
-    def add_base(self, base):
-        base.poll = self.poll
-        self.bases.append(base)
+        self.bind("start", self.on_start)
 
     def ticks(self):
         self.set_state(STATE_TICK)
@@ -77,3 +75,17 @@ class Container(Base):
                 base.reads(reads)
                 base.writes(writes)
                 base.errors(errors)
+
+    def on_start(self, service):
+        self.apply_all()
+
+    def add_base(self, base):
+        self.apply_base(base)
+        self.bases.append(base)
+
+    def apply_all(self):
+        for base in self.bases: self.apply_base(base)
+
+    def apply_base(self, base):
+        base.tid = self.tid
+        base.poll = self.poll
