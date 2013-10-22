@@ -37,6 +37,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import client
 import common
 import conn
+import container
 import errors
 import observer
 import poll
@@ -45,6 +46,7 @@ import server
 from client import *
 from common import *
 from conn import *
+from container import *
 from errors import *
 from observer import *
 from poll import *

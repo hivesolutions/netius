@@ -41,11 +41,35 @@ from common import * #@UnusedWildImport
 
 class Container(Base):
 
-    def __init__(self, name = None, handler = None, thread = True, *args, **kwargs):
+    def __init__(self, name = None, handler = None, *args, **kwargs):
         Base.__init__(self, name = name, hadler = handler, *args, **kwargs)
         self.bases = []
 
-        if thread: BaseThread(self).start()
-
     def add_base(self, base):
         base.poll = self.poll
+        self.bases.append(base)
+
+    def loop(self):
+        # iterates continuously while the running flag
+        # is set, once it becomes unset the loop breaks
+        # at the next execution cycle
+        while self._running:
+            # calls the base tick int handler indicating that a new
+            # tick loop iteration is going to be started, all the
+            # "in between loop" operation should be performed in this
+            # callback as this is the "space" they have for execution
+            self.ticks()
+
+            # updates the current state to select to indicate
+            # that the base service is selecting the connections
+            self.set_state(STATE_SELECT)
+
+
+            result = self.poll.poll_owner()
+
+            for base, values in result.items():
+                reads, writes, errors = values
+
+                base.reads(reads)
+                base.writes(writes)
+                base.errors(errors)
