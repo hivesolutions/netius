@@ -65,10 +65,8 @@ class ProxyServer(http.HTTPServer):
     def on_data(self, connection, data):
         netius.Server.on_data(self, connection, data)
 
-        if hasattr(connection, "tunnel"):
-            connection.tunnel_c.send(data)
-        else:
-            connection.parse(data)
+        if hasattr(connection, "tunnel"): connection.tunnel_c.send(data)
+        else: connection.parse(data)
 
     def on_connection_d(self, connection):
         netius.Server.on_connection_d(self, connection)
@@ -123,15 +121,19 @@ class ProxyServer(http.HTTPServer):
     def _prx_close(self, connection):
         connection.close()
 
+    def _prx_keep(self, connection):
+        pass
+
     def _on_prx_headers(self, client, parser, headers):
         _connection = parser.owner
-        status = parser.status
+        code_s = parser.code_s
+        status_s = parser.status_s
         version_s = parser.version_s
 
         connection = self.conn_map[_connection]
 
         buffer = []
-        buffer.append("%s %s\r\n" % (version_s, status))
+        buffer.append("%s %s %s\r\n" % (version_s, code_s, status_s))
         for key, value in headers.items():
             key = netius.common.header_up(key)
             buffer.append("%s: %s\r\n" % (key, value))
@@ -148,8 +150,8 @@ class ProxyServer(http.HTTPServer):
 
         connection = self.conn_map[_connection]
 
-        if is_chunked: connection.send("0\r\n\r\n", callback = self._prx_close)
-        else: connection.send(message, callback = self._prx_close)
+        if is_chunked: connection.send("0\r\n\r\n", callback = self._prx_keep)
+        else: connection.send(message, callback = self._prx_keep)
 
     def _on_prx_chunk(self, client, parser, range):
         _connection = parser.owner
@@ -164,8 +166,9 @@ class ProxyServer(http.HTTPServer):
         connection.send(chunk)
 
     def _on_prx_close(self, client, _connection):
-        connection = self.conn_map[_connection]
-        connection.close()
+        pass
+        #connection = self.conn_map[_connection]
+        #connection.close()
 
 if __name__ == "__main__":
     server = ProxyServer()
