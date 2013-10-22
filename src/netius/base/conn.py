@@ -196,7 +196,7 @@ class Connection(object):
         """
 
         if callback: data = (data, callback)
-        self.ensure_write()
+        self.owner.delay(self.ensure_write)
         self.pending_lock.acquire()
         try: self.pending.insert(0, data)
         finally: self.pending_lock.release()
