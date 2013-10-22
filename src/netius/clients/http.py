@@ -221,11 +221,18 @@ class HTTPClient(netius.Client):
         self.trigger("chunk", self, parser, range)
 
 if __name__ == "__main__":
-    def on_message(client, parser, message):
-        message = message or "[empty message]"
+    def on_headers(client, parser, headers):
         print parser.code_s + " " + parser.status_s
-        print message; client.close()
+
+    def on_partial(client, parser, data):
+        data = data or "[empty message]"
+        print data
+
+    def on_message(client, parser, message):
+        client.close()
 
     http_client = HTTPClient()
     http_client.get("http://www.flickr.com/")
+    http_client.bind("headers", on_headers)
+    http_client.bind("partial", on_partial)
     http_client.bind("message", on_message)
