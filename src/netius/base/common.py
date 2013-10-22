@@ -309,8 +309,7 @@ class Base(observer.Observable):
 
     def ticks(self):
         self.set_state(STATE_TICK)
-        for method in self._delayed: method()
-        del self._delayed[:]
+        self._delays()
 
     def reads(self, reads):
         self.set_state(STATE_READ)
@@ -438,6 +437,20 @@ class Base(observer.Observable):
         _socket._pending(_socket)
         is_pending = not _socket._pending == None
         return is_pending
+
+    def _delays(self):
+        """
+        Calls the complete set of elements that are considered to
+        be part of the delayed set of methods to be called.
+
+        These methods are expected to be run before a poll call so
+        that they are run outside the handling.
+        """
+
+        if not self._delayed: return
+        _delayed = copy.copy(self._delayed)
+        del self._delayed[:]
+        for method in _delayed: method()
 
     def _ssl_wrap(self, _socket, key_file = None, cer_file = None, server = True):
         dir_path = os.path.dirname(__file__)

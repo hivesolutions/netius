@@ -54,8 +54,7 @@ class Client(Base):
     def ticks(self):
         self.set_state(STATE_TICK)
         if self.pendings: self._connects()
-        for method in self._delayed: method()
-        del self._delayed[:]
+        self._delays()
 
     def reads(self, reads):
         self.set_state(STATE_READ)
@@ -150,7 +149,10 @@ class Client(Base):
         address = (host, port)
 
         connection = self.new_connection(_socket, address, ssl = ssl)
-        self.pendings.append(connection)
+
+        self._pending_lock.acquire()
+        try: self.pendings.append(connection)
+        finally: self._pending_lock.release()
 
         return connection
 
