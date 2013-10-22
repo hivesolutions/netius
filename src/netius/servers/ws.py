@@ -67,7 +67,7 @@ class WSConnection(netius.Connection):
 
     def do_handshake(self):
         if self.handshake:
-            raise RuntimeError("Handshake already done")
+            raise netius.NetiusError("Handshake already done")
 
         buffer = "".join(self.buffer_l)
         if not buffer[-4:] == "\r\n\r\n":
@@ -93,7 +93,7 @@ class WSConnection(netius.Connection):
     def accept_key(self):
         socket_key = self.headers.get("Sec-WebSocket-Key", None)
         if not socket_key:
-            raise RuntimeError("No socket key found in headers")
+            raise netius.NetiusError("No socket key found in headers")
 
         hash = hashlib.sha1(socket_key + WSServer.MAGIC_VALUE)
         hash_digest = hash.digest()
