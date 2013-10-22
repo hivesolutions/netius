@@ -55,7 +55,10 @@ class ProxyServer(http.HTTPServer):
         self.rules = rules
         self.conn_map = {}
 
-        self.http_client = netius.clients.HTTPClient(level = self.level)
+        self.http_client = netius.clients.HTTPClient(
+            level = self.level,
+            thread = False
+        )
         self.http_client.bind("headers", self._on_prx_headers)
         self.http_client.bind("message", self._on_prx_message)
         self.http_client.bind("partial", self._on_prx_partial)
@@ -64,10 +67,31 @@ class ProxyServer(http.HTTPServer):
         self.http_client.bind("close", self._on_prx_close)
         self.http_client.bind("error", self._on_prx_error)
 
-        self.raw_client = netius.clients.RawClient(level = self.level)
+        self.raw_client = netius.clients.RawClient(
+            level = self.level,
+            thread = False
+        )
         self.raw_client.bind("connect", self._on_raw_connect)
         self.raw_client.bind("data", self._on_raw_data)
         self.raw_client.bind("close", self._on_raw_close)
+
+        self.container = netius.Container()
+        self.container.add_base(self)
+        self.container.add_base(self.http_client)
+        self.container.add_base(self.raw_client)
+
+    def serve(self, host = "127.0.0.1", port = 9090, ssl = False, key_file = None, cer_file = None, start = True):
+        http.HTTPServer.serve(
+            self,
+            host = host,
+            port = port,
+            ssl = ssl,
+            key_file = key_file,
+            cer_file = cer_file,
+            start = False
+        )
+
+        self.container.start()
 
     def cleanup(self):
         http.HTTPServer.cleanup(self)
@@ -219,5 +243,5 @@ class ProxyServer(http.HTTPServer):
 
 if __name__ == "__main__":
     import logging
-    server = ProxyServer(level = logging.INFO)
+    server = ProxyServer(level = logging.DEBUG)
     server.serve(host = "0.0.0.0", port = 8080)
