@@ -50,6 +50,16 @@ import observer
 
 from conn import * #@UnusedWildImport
 
+NAME = "netius"
+""" The global infra-structure name to be used in the
+identification of both the clients and the services this
+value may be prefixed or suffixed """
+
+VERSION = "0.2.0"
+""" The version value that identifies the version of the
+current infra-structure, all of the services and clients
+may share this value """
+
 WSAEWOULDBLOCK = 10035
 """ The wsa would block error code meant to be used on
 windows environments as a replacement for the would block
