@@ -71,6 +71,7 @@ VALID_ERRORS = (
     errno.EAGAIN,
     errno.EPERM,
     errno.ENOENT,
+    errno.EINPROGRESS,
     WSAEWOULDBLOCK
 )
 """ List containing the complete set of error that represent
@@ -292,7 +293,7 @@ class Base(observer.Observable):
                 self.read_l,
                 self.write_l,
                 self.error_l,
-                0.25
+                0.0005
             )
 
             # calls the various callbacks with the selections lists,
