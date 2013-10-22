@@ -42,7 +42,7 @@ import urlparse
 import netius.common
 
 BASE_HEADERS = {
-    "User-Agent" : "%s/%s" % (netius.NAME, netius.VERSION)
+    "user-agent" : "%s/%s" % (netius.NAME, netius.VERSION)
 }
 """ The map containing the complete set of headers
 that are meant to be applied to all the requests """
@@ -151,6 +151,7 @@ class HTTPClient(netius.Client):
     def on_connection_d(self, connection):
         netius.Client.on_connection_d(self, connection)
         self.trigger("close", self, connection)
+        self.remove_c(connection)
 
     def new_connection(self, socket, address, ssl = False):
         return HTTPConnection(self, socket, address, ssl = ssl)
@@ -178,7 +179,7 @@ class HTTPClient(netius.Client):
         if parsed.query: path += "?" + parsed.query
 
         self._apply_base(headers)
-        self._apply_dynamic(headers, data)
+        self._apply_dynamic(headers, connection)
 
         buffer = []
         buffer.append("%s %s %s\r\n" % (method, path, version))
@@ -196,16 +197,27 @@ class HTTPClient(netius.Client):
             if key in headers: continue
             headers[key] = value
 
-    def _apply_dynamic(self, headers, data):
-        if not "Connection" in headers:
-            headers["Connection"] = "keep-alive"
-        if not "Content-Length" in headers:
-            headers["Content-Length"] = len(data) if data else 0
+    def _apply_dynamic(self, headers, connection):
+        host = connection.host
+        port = connection.port
+        data = connection.data
+
+        if port == 80: host_s = host
+        else: host_s = "%s:%d" % (host, port)
+
+        if not "connection" in headers:
+            headers["connection"] = "keep-alive"
+        if not "content-length" in headers:
+            headers["content-length"] = len(data) if data else 0
+        if not "host" in headers:
+            headers["host"] = host_s
 
 if __name__ == "__main__":
     def on_message(client, parser, message):
+        message = message or "[empty message]"
+        print parser.code_s + " " + parser.status_s
         print message; client.close()
 
     http_client = HTTPClient()
-    http_client.get("https://localhost:9090/")
+    http_client.get("http://www.flickr.com/")
     http_client.bind("message", on_message)
