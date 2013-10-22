@@ -74,7 +74,7 @@ class Client(Base):
     def acquire_c(self, host, port, ssl = False, key_file = None, cer_file = None, callback = None):
         connection_t = (host, port, ssl, key_file, cer_file)
         connection_l = self.free_map.get(connection_t, None)
-        
+
         if connection_l:
             acquire = lambda: self.on_acquire(connection)
             connection = connection_l.pop()
@@ -94,7 +94,7 @@ class Client(Base):
     def release_c(self, connection):
         connection_t = connection.tuple
         connection_l = self.free_map.get(connection_t, [])
-        connection_l.append(connection_t)
+        connection_l.append(connection)
         self.free_map[connection_t] = connection_l
 
     def connect(self, host, port, ssl = False, key_file = None, cer_file = None):
