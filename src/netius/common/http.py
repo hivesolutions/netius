@@ -371,6 +371,7 @@ class HTTPParser(netius.Observable):
 
         is_final = self.chunk_l == 2
         if is_final:
+            self.state = FINISH_STATE
             self.trigger("on_data")
             index = data.find("\r\n")
             if index == -1: return count
