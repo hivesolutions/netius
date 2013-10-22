@@ -39,17 +39,9 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import netius.common
 
-SERVER_NAME = "netius"
-""" The name of the server to be used in all of the
-identification string about it """
-
-SERVER_VERSION = "0.0.1"
-""" The version string to be used for the identification
-of the current release of the server """
-
-BASE_HEADERS = dict(
-    Server = "%s/%s" % (SERVER_NAME, SERVER_VERSION)
-)
+BASE_HEADERS = {
+    "Server" : "%s/%s" % (netius.NAME, netius.VERSION)
+}
 """ The map containing the complete set of headers
 that are meant to be applied to all the responses """
 
