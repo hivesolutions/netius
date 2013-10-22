@@ -187,19 +187,19 @@ class Server(Base):
         except ssl.SSLError, error:
             error_v = error.args[0]
             if not error_v in SSL_VALID_ERRORS:
-                self.info(error)
+                self.warning(error)
                 lines = traceback.format_exc().splitlines()
-                for line in lines: self.debug(line)
+                for line in lines: self.info(line)
         except socket.error, error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
-                self.info(error)
+                self.warning(error)
                 lines = traceback.format_exc().splitlines()
-                for line in lines: self.debug(line)
+                for line in lines: self.info(line)
         except BaseException, exception:
-            self.info(exception)
+            self.warning(exception)
             lines = traceback.format_exc().splitlines()
-            for line in lines: self.debug(line)
+            for line in lines: self.info(line)
 
     def on_write_s(self, _socket):
         pass
@@ -229,21 +229,21 @@ class Server(Base):
         except ssl.SSLError, error:
             error_v = error.args[0]
             if not error_v in SSL_VALID_ERRORS:
-                self.info(error)
+                self.warning(error)
                 lines = traceback.format_exc().splitlines()
-                for line in lines: self.debug(line)
+                for line in lines: self.info(line)
                 connection.close()
         except socket.error, error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
-                self.info(error)
+                self.warning(error)
                 lines = traceback.format_exc().splitlines()
-                for line in lines: self.debug(line)
+                for line in lines: self.info(line)
                 connection.close()
         except BaseException, exception:
-            self.info(exception)
+            self.warning(exception)
             lines = traceback.format_exc().splitlines()
-            for line in lines: self.debug(line)
+            for line in lines: self.info(line)
             connection.close()
 
     def on_write(self, _socket):
@@ -256,21 +256,21 @@ class Server(Base):
         except ssl.SSLError, error:
             error_v = error.args[0]
             if not error_v in SSL_VALID_ERRORS:
-                self.info(error)
+                self.warning(error)
                 lines = traceback.format_exc().splitlines()
-                for line in lines: self.debug(line)
+                for line in lines: self.info(line)
                 connection.close()
         except socket.error, error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
-                self.info(error)
+                self.warning(error)
                 lines = traceback.format_exc().splitlines()
-                for line in lines: self.debug(line)
+                for line in lines: self.info(line)
                 connection.close()
         except BaseException, exception:
-            self.info(exception)
+            self.warning(exception)
             lines = traceback.format_exc().splitlines()
-            for line in lines: self.debug(line)
+            for line in lines: self.info(line)
             connection.close()
 
     def on_error(self, _socket):
