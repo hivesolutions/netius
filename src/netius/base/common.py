@@ -170,10 +170,14 @@ class Base(observer.Observable):
         self.connections_m = {}
         self._running = False
         self._loaded = False
+        self._delayed = []
         self.set_state(STATE_STOP);
 
     def __del__(self):
         self.close()
+
+    def delay(self, callable):
+        self._delayed.append(callable)
 
     def load(self):
         if self._loaded: return
@@ -286,6 +290,7 @@ class Base(observer.Observable):
 
     def ticks(self):
         self.set_state(STATE_TICK)
+        for method in self._delayed: method()
 
     def reads(self, reads):
         self.set_state(STATE_READ)
@@ -444,3 +449,18 @@ class Base(observer.Observable):
             if error_v in SSL_VALID_ERRORS:
                 _socket._pending = self._ssl_handshake
             else: raise
+
+class BaseThread(threading.Thread):
+    """
+    The top level thread class that is meant to encapsulate
+    a running base object and run it in a new context.
+    """
+
+    def __init__(self, owner, daemon = False, *args, **kwargs):
+        threading.Thread.__init__(self, *args, **kwargs)
+        self.owner = owner
+        self.daemon = daemon
+
+    def run(self):
+        threading.Thread.run(self)
+        self.owner.start()
