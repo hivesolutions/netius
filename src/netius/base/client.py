@@ -176,21 +176,21 @@ class Client(Base):
         except ssl.SSLError, error:
             error_v = error.args[0]
             if not error_v in SSL_VALID_ERRORS:
-                self.info(error)
+                self.warning(error)
                 lines = traceback.format_exc().splitlines()
-                for line in lines: self.debug(line)
+                for line in lines: self.info(line)
                 connection.close()
         except socket.error, error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
-                self.info(error)
+                self.warning(error)
                 lines = traceback.format_exc().splitlines()
-                for line in lines: self.debug(line)
+                for line in lines: self.info(line)
                 connection.close()
         except BaseException, exception:
-            self.info(exception)
+            self.warning(exception)
             lines = traceback.format_exc().splitlines()
-            for line in lines: self.debug(line)
+            for line in lines: self.info(line)
             connection.close()
 
     def on_write(self, _socket):
@@ -207,21 +207,21 @@ class Client(Base):
         except ssl.SSLError, error:
             error_v = error.args[0]
             if not error_v in SSL_VALID_ERRORS:
-                self.info(error)
+                self.warning(error)
                 lines = traceback.format_exc().splitlines()
-                for line in lines: self.debug(line)
+                for line in lines: self.info(line)
                 connection.close()
         except socket.error, error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
-                self.info(error)
+                self.warning(error)
                 lines = traceback.format_exc().splitlines()
-                for line in lines: self.debug(line)
+                for line in lines: self.info(line)
                 connection.close()
         except BaseException, exception:
-            self.info(exception)
+            self.warning(exception)
             lines = traceback.format_exc().splitlines()
-            for line in lines: self.debug(line)
+            for line in lines: self.info(line)
             connection.close()
 
     def on_error(self, _socket):
@@ -268,23 +268,23 @@ class Client(Base):
         except ssl.SSLError, error:
             error_v = error.args[0]
             if not error_v in SSL_VALID_ERRORS:
-                self.info(error)
+                self.warning(error)
                 lines = traceback.format_exc().splitlines()
-                for line in lines: self.debug(line)
+                for line in lines: self.info(line)
                 self.trigger("error", self, connection, error)
                 connection.close()
         except socket.error, error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
-                self.info(error)
+                self.warning(error)
                 lines = traceback.format_exc().splitlines()
-                for line in lines: self.debug(line)
+                for line in lines: self.info(line)
                 self.trigger("error", self, connection, error)
                 connection.close()
         except BaseException, exception:
-            self.info(exception)
+            self.warning(exception)
             lines = traceback.format_exc().splitlines()
-            for line in lines: self.debug(line)
+            for line in lines: self.info(line)
             self.trigger("error", self, connection, exception)
             connection.close()
             raise
