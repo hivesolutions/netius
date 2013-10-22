@@ -111,7 +111,7 @@ class HTTPParser(netius.Observable):
         self.owner = owner
         self.reset(type = type)
 
-    def reset(self, type = REQUEST):
+    def reset(self, type = REQUEST, store = False):
         """
         Initializes the state of the parser setting the values
         for the various internal structures to the original value.
@@ -120,9 +120,14 @@ class HTTPParser(netius.Observable):
         @type type: int
         @param type: The type of http message that is going to be
         parsed using the current parser.
+        @type store: bool
+        @param store: If the complete message body should be stored
+        in memory as the message gets loaded, this option may create
+        some serious performance issues.
         """
 
         self.type = type
+        self.store = store
         self.state = LINE_STATE
         self.buffer = []
         self.headers = {}
@@ -332,7 +337,7 @@ class HTTPParser(netius.Observable):
 
     def _parse_normal(self, data):
         data_l = len(data)
-        self.message.append(data)
+        if self.store: self.message.append(data)
         self.message_l += data_l
 
         has_finished = not self.content_l == -1 and\
@@ -354,6 +359,7 @@ class HTTPParser(netius.Observable):
         if is_end:
             self.chunk_e = len(self.message)
             self.trigger("on_chunk", (self.chunk_s, self.chunk_e))
+            if not self.store: del self.message[:]
             self.chunk_l = 0
             count += 2
             return count
