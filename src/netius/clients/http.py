@@ -63,6 +63,7 @@ class HTTPConnection(netius.Connection):
         self.data = None
 
         self.parser.bind("on_data", self.on_data)
+        self.parser.bind("on_partial", self.on_partial)
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_chunk", self.on_chunk)
 
@@ -86,6 +87,30 @@ class HTTPConnection(netius.Connection):
         self.ssl = ssl
         self.parsed = parsed
 
+    def send_request(self):
+        method = self.method
+        path = self.path
+        version = self.version
+        headers = self.headers
+        data = self.data
+        parsed = self.parsed
+
+        if parsed.query: path += "?" + parsed.query
+
+        self._apply_base(headers)
+        self._apply_dynamic(headers)
+
+        buffer = []
+        buffer.append("%s %s %s\r\n" % (method, path, version))
+        for key, value in headers.items():
+            key = netius.common.header_up(key)
+            buffer.append("%s: %s\r\n" % (key, value))
+        buffer.append("\r\n")
+        buffer_data = "".join(buffer)
+
+        self.send(buffer_data)
+        data and self.send(data)
+
     def set_headers(self, headers):
         self.headers = headers
 
@@ -98,11 +123,34 @@ class HTTPConnection(netius.Connection):
     def on_data(self):
         self.owner.on_data_http(self, self.parser)
 
+    def on_partial(self, data):
+        self.owner.on_partial_http(self, self.parser, data)
+
     def on_headers(self):
         self.owner.on_headers_http(self, self.parser)
 
     def on_chunk(self, range):
         self.owner.on_chunk_http(self, self.parser, range)
+
+    def _apply_base(self, headers):
+        for key, value in BASE_HEADERS.items():
+            if key in headers: continue
+            headers[key] = value
+
+    def _apply_dynamic(self, headers):
+        host = self.host
+        port = self.port
+        data = self.data
+
+        if port == 80: host_s = host
+        else: host_s = "%s:%d" % (host, port)
+
+        if not "connection" in headers:
+            headers["connection"] = "keep-alive"
+        if not "content-length" in headers:
+            headers["content-length"] = len(data) if data else 0
+        if not "host" in headers:
+            headers["host"] = host_s
 
 class HTTPClient(netius.Client):
     """
@@ -142,7 +190,7 @@ class HTTPClient(netius.Client):
     def on_acquire(self, connection):
         netius.Client.on_acquire(self, connection)
         self.trigger("acquire", self, connection)
-        self._send_request(connection)
+        connection.send_request()
 
     def on_data(self, connection, data):
         netius.Client.on_data(self, connection, data)
@@ -161,56 +209,15 @@ class HTTPClient(netius.Client):
         self.trigger("message", self, parser, message)
         self.release_c(connection)
 
+    def on_partial_http(self, connection, parser, data):
+        self.trigger("partial", self, parser, data)
+
     def on_headers_http(self, connection, parser):
         headers = parser.headers
         self.trigger("headers", self, parser, headers)
 
     def on_chunk_http(self, connection, parser, range):
         self.trigger("chunk", self, parser, range)
-
-    def _send_request(self, connection):
-        method = connection.method
-        path = connection.path
-        version = connection.version
-        headers = connection.headers
-        data = connection.data
-        parsed = connection.parsed
-
-        if parsed.query: path += "?" + parsed.query
-
-        self._apply_base(headers)
-        self._apply_dynamic(headers, connection)
-
-        buffer = []
-        buffer.append("%s %s %s\r\n" % (method, path, version))
-        for key, value in headers.items():
-            key = netius.common.header_up(key)
-            buffer.append("%s: %s\r\n" % (key, value))
-        buffer.append("\r\n")
-        buffer_data = "".join(buffer)
-
-        connection.send(buffer_data)
-        data and connection.send(data)
-
-    def _apply_base(self, headers):
-        for key, value in BASE_HEADERS.items():
-            if key in headers: continue
-            headers[key] = value
-
-    def _apply_dynamic(self, headers, connection):
-        host = connection.host
-        port = connection.port
-        data = connection.data
-
-        if port == 80: host_s = host
-        else: host_s = "%s:%d" % (host, port)
-
-        if not "connection" in headers:
-            headers["connection"] = "keep-alive"
-        if not "content-length" in headers:
-            headers["content-length"] = len(data) if data else 0
-        if not "host" in headers:
-            headers["host"] = host_s
 
 if __name__ == "__main__":
     def on_message(client, parser, message):
