@@ -253,11 +253,20 @@ class Base(observer.Observable):
     def is_empty(self):
         return self.poll.is_empty()
 
+    def is_sub_read(self, socket):
+        return self.poll.is_sub_read(socket)
+
+    def is_sub_write(self, socket):
+        return self.poll.is_sub_write(socket)
+
+    def is_sub_error(self, socket):
+        return self.poll.is_sub_error(socket)
+
     def sub_all(self, socket):
         return self.poll.sub_all(socket, owner = self)
 
     def unsub_all(self, socket):
-        return self.poll.unsub_all(socket, owner = self)
+        return self.poll.unsub_all(socket)
 
     def sub_read(self, socket):
         return self.poll.sub_read(socket, owner = self)
@@ -269,13 +278,13 @@ class Base(observer.Observable):
         return self.poll.sub_error(socket, owner = self)
 
     def unsub_read(self, socket):
-        return self.poll.unsub_read(socket, owner = self)
+        return self.poll.unsub_read(socket)
 
     def unsub_write(self, socket):
-        return self.poll.unsub_write(socket, owner = self)
+        return self.poll.unsub_write(socket)
 
     def unsub_error(self, socket):
-        return self.poll.unsub_error(socket, owner = self)
+        return self.poll.unsub_error(socket)
 
     def cleanup(self):
         # creates a copy of the connections list because this structure

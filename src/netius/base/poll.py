@@ -59,10 +59,10 @@ class Poll(object):
         self.sub_write(socket, owner = owner)
         self.sub_error(socket, owner = owner)
 
-    def unsub_all(self, socket, owner = None):
-        self.unsub_read(socket, owner = owner)
-        self.unsub_write(socket, owner = owner)
-        self.unsub_error(socket, owner = owner)
+    def unsub_all(self, socket):
+        self.unsub_read(socket)
+        self.unsub_write(socket)
+        self.unsub_error(socket)
 
     def sub_read(self, socket, owner = None):
         pass
@@ -159,29 +159,41 @@ class SelectPoll(Poll):
     def is_empty(self):
         return not self.read_l and not self.write_l and not self.error_l
 
+    def is_sub_read(self, socket):
+        return socket in self.read_o
+
+    def is_sub_write(self, socket):
+        return socket in self.write_o
+
+    def is_sub_error(self, socket):
+        return socket in self.error_o
+
     def sub_read(self, socket, owner = None):
+        if socket in self.read_o: return
         self.read_l.append(socket)
         self.read_o[socket] = owner
 
     def sub_write(self, socket, owner = None):
+        if socket in self.write_o: return
         self.write_l.append(socket)
         self.write_o[socket] = owner
 
     def sub_error(self, socket, owner = None):
+        if socket in self.error_o: return
         self.error_l.append(socket)
         self.error_o[socket] = owner
 
-    def unsub_read(self, socket, owner = None):
+    def unsub_read(self, socket):
         if not socket in self.read_o: return
         self.read_l.remove(socket)
         del self.read_o[socket]
 
-    def unsub_write(self, socket, owner = None):
+    def unsub_write(self, socket):
         if not socket in self.write_o: return
         self.write_l.remove(socket)
         del self.write_o[socket]
 
-    def unsub_error(self, socket, owner = None):
+    def unsub_error(self, socket):
         if not socket in self.error_o: return
         self.error_l.remove(socket)
         del self.error_o[socket]
