@@ -49,7 +49,11 @@ class HTTPConnection(netius.Connection):
 
     def __init__(self, owner, socket, address, ssl = False):
         netius.Connection.__init__(self, owner, socket, address, ssl = ssl)
-        self.parser = netius.common.HTTPParser(self, type = netius.common.REQUEST)
+        self.parser = netius.common.HTTPParser(
+            self,
+            type = netius.common.REQUEST,
+            store = True
+        )
 
         self.parser.bind("on_data", self.on_data)
 

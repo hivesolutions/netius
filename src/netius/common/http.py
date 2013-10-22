@@ -105,11 +105,11 @@ class HTTPParser(netius.Observable):
     parsing. But the object itself is not thread safe.
     """
 
-    def __init__(self, owner, type = REQUEST):
+    def __init__(self, owner, type = REQUEST, store = False):
         netius.Observable.__init__(self)
 
         self.owner = owner
-        self.reset(type = type)
+        self.reset(type = type, store = False)
 
     def reset(self, type = REQUEST, store = False):
         """
@@ -189,7 +189,10 @@ class HTTPParser(netius.Observable):
         # in case the current state of the parser is finished, must
         # reset the state to the start position as the parser is
         # re-starting (probably a new data sequence)
-        if self.state == FINISH_STATE: self.reset(type = self.type)
+        if self.state == FINISH_STATE: self.reset(
+            type = self.type,
+            store = self.store
+        )
 
         # retrieves the size of the data that has been sent for parsing
         # and saves it under the size original variable

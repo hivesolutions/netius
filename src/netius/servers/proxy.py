@@ -75,23 +75,16 @@ class ProxyServer(http.HTTPServer):
         self.raw_client.bind("data", self._on_raw_data)
         self.raw_client.bind("close", self._on_raw_close)
 
-        self.container = netius.Container()
+        self.container = netius.Container(level = self.level,)
         self.container.add_base(self)
         self.container.add_base(self.http_client)
         self.container.add_base(self.raw_client)
 
-    def serve(self, host = "127.0.0.1", port = 9090, ssl = False, key_file = None, cer_file = None, start = True):
-        http.HTTPServer.serve(
-            self,
-            host = host,
-            port = port,
-            ssl = ssl,
-            key_file = key_file,
-            cer_file = cer_file,
-            start = False
-        )
-
+    def start(self):
         self.container.start()
+        
+    def stop(self):
+        self.container.stop()
 
     def cleanup(self):
         http.HTTPServer.cleanup(self)
