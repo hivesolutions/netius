@@ -139,7 +139,7 @@ class SelectPoll(Poll):
             value[0].append(read)
 
         for write in writes:
-            base = self.write_o[read]
+            base = self.write_o[write]
             value = result.get(base, None)
             if not value:
                 value = ([], [], [])
@@ -147,7 +147,7 @@ class SelectPoll(Poll):
             value[1].append(write)
 
         for error in errors:
-            base = self.error_o[read]
+            base = self.error_o[error]
             value = result.get(base, None)
             if not value:
                 value = ([], [], [])
