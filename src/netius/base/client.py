@@ -98,6 +98,12 @@ class Client(Base):
         connection_l.append(connection)
         self.free_map[connection_t] = connection_l
 
+    def remove_c(self, connection):
+        if not hasattr(connection, "tuple"): return
+        connection_t = connection.tuple
+        connection_l = self.free_map.get(connection_t, [])
+        if connection in connection_l: connection_l.remove (connection)
+
     def connect(self, host, port, ssl = False, key_file = None, cer_file = None):
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
