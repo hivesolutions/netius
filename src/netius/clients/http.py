@@ -122,6 +122,7 @@ class HTTPConnection(netius.Connection):
 
     def on_data(self):
         self.owner.on_data_http(self, self.parser)
+        self.parser.reset(type = netius.common.RESPONSE)
 
     def on_partial(self, data):
         self.owner.on_partial_http(self, self.parser, data)
