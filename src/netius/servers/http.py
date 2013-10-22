@@ -53,6 +53,32 @@ class HTTPConnection(netius.Connection):
 
         self.parser.bind("on_data", self.on_data)
 
+    def send_response(
+        self,
+        data = None,
+        headers = None,
+        version = "HTTP/1.1",
+        code = 200,
+        code_s = None,
+        callback = None
+    ):
+        headers = headers or {}
+        data_l = len(data) if data else 0
+
+        if not "content-length" in headers:
+            headers["content-length"] = data_l
+
+        buffer = []
+        buffer.append("%s %d %s\r\n" % (version, code, code_s))
+        for key, value in headers.items():
+            key = netius.common.header_up(key)
+            buffer.append("%s: %s\r\n" % (key, value))
+        buffer.append("\r\n")
+        buffer_data = "".join(buffer)
+
+        self.send(buffer_data)
+        data and self.send(data, callback = callback)
+
     def parse(self, data):
         return self.parser.parse(data)
 
