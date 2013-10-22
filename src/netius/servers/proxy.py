@@ -69,6 +69,11 @@ class ProxyServer(http.HTTPServer):
         self.raw_client.bind("data", self._on_raw_data)
         self.raw_client.bind("close", self._on_raw_close)
 
+    def cleanup(self):
+        http.HTTPServer.cleanup(self)
+        self.http_client.close()
+        self.raw_client.close()
+
     def on_data(self, connection, data):
         netius.Server.on_data(self, connection, data)
 

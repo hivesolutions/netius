@@ -226,6 +226,8 @@ class Base(observer.Observable):
         self.debug("Starting '%s' service main loop ..." % self.name)
         self.trigger("start", self)
         try: self.loop()
+        except (KeyboardInterrupt, SystemExit):
+            pass
         except BaseException, exception:
             self.error(exception)
             lines = traceback.format_exc().splitlines()
