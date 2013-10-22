@@ -37,8 +37,6 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import socket
-
 from common import * #@UnusedWildImport
 
 class Container(Base):
@@ -52,5 +50,4 @@ class Container(Base):
         if thread: BaseThread(self).start()
 
     def add_base(self, base):
-        #@todo tenho de alterar o base para ser compativel !!!
         pass
