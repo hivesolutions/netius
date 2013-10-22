@@ -226,7 +226,7 @@ class HTTPParser(netius.Observable):
                 break
 
             else:
-                raise RuntimeError("invalid state '%d'" % self.state)
+                raise netius.ParserError("Invalid state '%d'" % self.state)
 
         # in case not all of the data has been processed
         # must add it to the buffer so that it may be used
@@ -247,7 +247,7 @@ class HTTPParser(netius.Observable):
 
         values = self.line_s.split(" ", 2)
         if not len(values) == 3:
-            raise RuntimeError("invalid status line '%s'" % self.line_s)
+            raise netius.ParserError("Invalid status line '%s'" % self.line_s)
 
         if self.type == REQUEST:
             self.method_s, self.path_s, self.version_s = values
@@ -283,7 +283,7 @@ class HTTPParser(netius.Observable):
         for line in lines:
             values = line.split(":", 1)
             if not len(values) == 2:
-                raise RuntimeError("invalid header line")
+                raise netius.ParserError("Invalid header line")
 
             key, value = values
             key = key.strip().lower()

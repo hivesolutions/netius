@@ -59,3 +59,14 @@ class DataError(NetiusError):
     """
 
     pass
+
+class ParserError(NetiusError):
+    """
+    Error caused by a malformed data that invalidated
+    the possibility to parse it.
+    
+    This error should only be used under a parser infra-
+    structure and never outside it.
+    """
+
+    pass
