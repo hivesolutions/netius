@@ -207,7 +207,7 @@ class KqueuePoll(Poll):
         event = select.kevent(
             socket_fd, 
             filter = select.KQ_FILTER_READ,
-            flags = select.KQ_EV_ADD | select.KQ_EV_CLEAR,
+            flags = select.KQ_EV_ADD,
             udata = socket_fd
         )
         self.kqueue.control([event], 1, 0)
@@ -220,7 +220,7 @@ class KqueuePoll(Poll):
         event = select.kevent(
             socket_fd, 
             filter = select.KQ_FILTER_WRITE,
-            flags = select.KQ_EV_ADD | select.KQ_EV_CLEAR,
+            flags = select.KQ_EV_ADD,
             udata = socket_fd
         )
         self.kqueue.control([event], 1, 0)
