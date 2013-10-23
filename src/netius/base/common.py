@@ -44,6 +44,7 @@ import errno
 import logging
 import traceback
 
+import errors
 import observer
 
 from conn import * #@UnusedWildImport
@@ -64,6 +65,16 @@ WSAEWOULDBLOCK = 10035
 windows environments as a replacement for the would block
 error code that indicates the failure to operate on a non
 blocking connection """
+
+POLL_ORDER = (
+    KqueuePoll,
+    PollPoll,
+    SelectPoll
+)
+""" The order from which the poll methods are going to be
+selected from the fastest to the slowest, in case no explicit
+poll method is defined for a base service they are selected
+based on this list testing them for acceptence first """
 
 VALID_ERRORS = (
     errno.EWOULDBLOCK,
@@ -170,13 +181,13 @@ class Base(observer.Observable):
 
     def __init__(self, name = None, handler = None, *args, **kwargs):
         observer.Observable.__init__(self, *args, **kwargs)
+        poll = Base.test_poll()
         self.name = name or self.__class__.__name__
         self.handler = handler
         self.level = kwargs.get("level", logging.DEBUG)
         self.tid = None
         self.logger = None
-        #self.poll = kwargs.get("poll", SelectPoll)()
-        self.poll = kwargs.get("poll", KqueuePoll)()
+        self.poll = kwargs.get("poll", poll)()
         self.connections = []
         self.connections_m = {}
         self._running = False
@@ -186,6 +197,14 @@ class Base(observer.Observable):
 
     def __del__(self):
         self.close()
+
+    @classmethod
+    def test_poll(cls):
+        for poll in POLL_ORDER:
+            if not poll.test(): continue
+            return poll
+
+        raise errors.NetiusError("No valid poll mechanism available")
 
     def delay(self, callable):
         self._delayed.append(callable)

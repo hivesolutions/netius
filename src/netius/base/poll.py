@@ -155,9 +155,6 @@ class Poll(object):
         if not socket in self.error_o: return
         del self.error_o[socket]
 
-class PollPoll(Poll):
-    pass
-
 class KqueuePoll(Poll):
 
     def __init__(self, *args, **kwargs):
@@ -266,6 +263,12 @@ class KqueuePoll(Poll):
     def unsub_error(self, socket):
         if not socket in self.error_o: return
         del self.error_o[socket]
+
+class PollPoll(Poll):
+    
+    @classmethod
+    def test(cls):
+        return False
 
 class SelectPoll(Poll):
 
