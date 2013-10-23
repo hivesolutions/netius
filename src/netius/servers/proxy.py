@@ -96,7 +96,9 @@ class ProxyServer(http.HTTPServer):
 
     def on_connection_d(self, connection):
         netius.Server.on_connection_d(self, connection)
-        if hasattr(connection, "tunnel_c"): connection.tunnel_c.close(flush = True)
+
+        if hasattr(connection, "tunnel_c"): connection.tunnel_c.close()
+        if hasattr(connection, "proxy_c"): connection.proxy_c.close()
 
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
@@ -120,8 +122,8 @@ class ProxyServer(http.HTTPServer):
             host, port = path.split(":")
             port = int(port)
             _connection = self.raw_client.connect(host, port)
-            self.conn_map[_connection] = connection
             connection.tunnel_c = _connection
+            self.conn_map[_connection] = connection
         else:
             _connection = self.http_client.method(
                 method,
@@ -129,6 +131,7 @@ class ProxyServer(http.HTTPServer):
                 headers = parser.headers
             )
             _connection.used = False
+            connection.proxy_c = _connection
             self.conn_map[_connection] = connection
 
     def _prx_close(self, connection):

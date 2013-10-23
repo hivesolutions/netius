@@ -97,6 +97,7 @@ class Client(Base):
         connection_l = self.free_map.get(connection_t, [])
         connection_l.append(connection)
         self.free_map[connection_t] = connection_l
+        self.on_release(connection)
 
     def remove_c(self, connection):
         if not hasattr(connection, "tuple"): return

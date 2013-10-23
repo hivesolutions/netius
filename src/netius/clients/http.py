@@ -122,7 +122,7 @@ class HTTPConnection(netius.Connection):
 
     def on_data(self):
         self.owner.on_data_http(self, self.parser)
-        self.parser.reset(type = netius.common.RESPONSE)
+        self.parser.clear()
 
     def on_partial(self, data):
         self.owner.on_partial_http(self, self.parser, data)
@@ -192,6 +192,11 @@ class HTTPClient(netius.Client):
         netius.Client.on_acquire(self, connection)
         self.trigger("acquire", self, connection)
         connection.send_request()
+
+    def on_release(self, connection):
+        netius.Client.on_release(self, connection)
+        self.trigger("release", self, connection)
+        connection.parser.clear()
 
     def on_data(self, connection, data):
         netius.Client.on_data(self, connection, data)

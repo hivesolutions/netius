@@ -109,7 +109,7 @@ class HTTPParser(netius.Observable):
         netius.Observable.__init__(self)
 
         self.owner = owner
-        self.reset(type = type, store = False)
+        self.reset(type = type, store = store)
 
     def reset(self, type = REQUEST, store = False):
         """
@@ -153,6 +153,10 @@ class HTTPParser(netius.Observable):
         self.chunk_s = 0
         self.chunk_e = 0
 
+    def clear(self, force = False):
+        if not force and self.state == LINE_STATE: return
+        self.reset(self.type, self.store)
+
     def get_path(self):
         split = self.path_s.split("?", 1)
         return split[0]
@@ -189,10 +193,7 @@ class HTTPParser(netius.Observable):
         # in case the current state of the parser is finished, must
         # reset the state to the start position as the parser is
         # re-starting (probably a new data sequence)
-        if self.state == FINISH_STATE: self.reset(
-            type = self.type,
-            store = self.store
-        )
+        if self.state == FINISH_STATE: self.clear()
 
         # retrieves the size of the data that has been sent for parsing
         # and saves it under the size original variable
