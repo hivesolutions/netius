@@ -364,9 +364,101 @@ class KqueuePoll(Poll):
 
 class PollPoll(Poll):
 
+    def __init__(self, *args, **kwargs):
+        Poll.__init__(self, *args, **kwargs)
+        self._open = False
+
     @classmethod
     def test(cls):
-        return False
+        return hasattr(select, "poll")
+
+    def open(self):
+        if self._open: return
+        self._open = True
+
+        self.poll = select.poll() #@UndefinedVariable
+
+        self.read_fd = {}
+        self.write_fd = {}
+
+        self.read_o = {}
+        self.write_o = {}
+        self.error_o = {}
+
+    def close(self):
+        if not self._open: return
+        self._open = False
+
+        for fd in self.read_fd: self.poll.unregister(fd)
+        self.poll = None
+
+        self.read_fd.clear()
+        self.write_fd.clear()
+
+        self.read_o.clear()
+        self.write_o.clear()
+        self.error_o.clear()
+
+    def poll(self):
+        result = ([], [], [])
+
+        events = self.poll.poll(POLL_TIMEOUT)
+        for fd, event in events:
+            if event & select.POLLIN: #@UndefinedVariable
+                socket = self.read_fd[fd]
+                result[0].append(socket)
+            elif event & select.POLLOUT: #@UndefinedVariable
+                socket = self.write_fd[fd]
+                result[1].append(socket)
+
+        return result
+
+    def sub_read(self, socket, owner = None):
+        if socket in self.read_o: return
+        socket_fd = socket.fileno()
+        self.poll.register( #@UndefinedVariable
+            socket_fd,
+            select.POLLIN #@UndefinedVariable
+        )
+        self.read_fd[socket_fd] = socket
+        self.read_o[socket] = owner
+
+    def sub_write(self, socket, owner = None):
+        if socket in self.write_o: return
+        socket_fd = socket.fileno()
+        self.poll.modify( #@UndefinedVariable
+            socket_fd,
+            select.POLLIN | select.POLLOUT #@UndefinedVariable
+        )
+        self.write_fd[socket_fd] = socket
+        self.write_o[socket] = owner
+
+    def sub_error(self, socket, owner = None):
+        if socket in self.error_o: return
+        self.error_o[socket] = owner
+
+    def unsub_read(self, socket):
+        if not socket in self.read_o: return
+        socket_fd = socket.fileno()
+        self.poll.unregister( #@UndefinedVariable
+            socket_fd
+        )
+        del self.read_fd[socket_fd]
+        del self.read_o[socket]
+
+    def unsub_write(self, socket):
+        if not socket in self.write_o: return
+        socket_fd = socket.fileno()
+        self.poll.modify( #@UndefinedVariable
+            socket_fd,
+            select.POLLIN #@UndefinedVariable
+        )
+        del self.write_fd[socket_fd]
+        del self.write_o[socket]
+
+    def unsub_error(self, socket):
+        if not socket in self.error_o: return
+        del self.error_o[socket]
 
 class SelectPoll(Poll):
 
