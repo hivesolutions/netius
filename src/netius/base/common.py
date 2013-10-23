@@ -67,6 +67,7 @@ error code that indicates the failure to operate on a non
 blocking connection """
 
 POLL_ORDER = (
+    EpollPoll,
     KqueuePoll,
     PollPoll,
     SelectPoll
