@@ -56,8 +56,9 @@ class ProxyServer(http.HTTPServer):
         self.conn_map = {}
 
         self.http_client = netius.clients.HTTPClient(
-            level = self.level,
-            thread = False
+            thread = False,
+            *args,
+            **kwargs
         )
         self.http_client.bind("headers", self._on_prx_headers)
         self.http_client.bind("message", self._on_prx_message)
@@ -68,14 +69,15 @@ class ProxyServer(http.HTTPServer):
         self.http_client.bind("error", self._on_prx_error)
 
         self.raw_client = netius.clients.RawClient(
-            level = self.level,
-            thread = False
+            thread = False,
+            *args,
+            **kwargs
         )
         self.raw_client.bind("connect", self._on_raw_connect)
         self.raw_client.bind("data", self._on_raw_data)
         self.raw_client.bind("close", self._on_raw_close)
 
-        self.container = netius.Container(level = self.level)
+        self.container = netius.Container(*args, **kwargs)
         self.container.add_base(self)
         self.container.add_base(self.http_client)
         self.container.add_base(self.raw_client)
