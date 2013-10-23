@@ -236,5 +236,5 @@ class ProxyServer(http.HTTPServer):
 
 if __name__ == "__main__":
     import logging
-    server = ProxyServer(level = logging.DEBUG)
+    server = ProxyServer(level = logging.DEBUG, poll = netius.PollPoll)
     server.serve(host = "0.0.0.0", port = 8080)
