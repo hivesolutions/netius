@@ -37,11 +37,35 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import http
-
 import netius.clients
 
-class SocksServer(netius.Server):
+class SOCKSConnection(netius.Connection):
+
+    def __init__(self, owner, socket, address, ssl = False):
+        netius.Connection.__init__(self, owner, socket, address, ssl = ssl)
+        self.parser = netius.common.SOCKSParser(self)
+
+        self.parser.bind("on_data", self.on_data)
+
+    def send_response(
+        self,
+        data = None,
+        headers = None,
+        version = "HTTP/1.1",
+        code = 200,
+        code_s = None,
+        callback = None
+    ):
+        @TODO implement the send response
+        pass
+
+    def parse(self, data):
+        return self.parser.parse(data)
+
+    def on_data(self):
+        self.owner.on_data_socks(self, self.parser)
+
+class SOCKSServer(netius.Server):
 
     def __init__(self, rules = {}, name = None, handler = None, *args, **kwargs):
         netius.Server.__init__(
@@ -78,11 +102,15 @@ class SocksServer(netius.Server):
         netius.Server.on_data(self, connection, data)
 
         if hasattr(connection, "tunnel_c"): connection.tunnel_c.send(data)
+        else: connection.parse(data)
 
     def on_connection_d(self, connection):
         netius.Server.on_connection_d(self, connection)
 
         if hasattr(connection, "tunnel_c"): connection.tunnel_c.close()
+
+    def new_connection(self, socket, address, ssl = False):
+        return SOCKSConnection(self, socket, address, ssl = ssl)
 
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
@@ -102,5 +130,5 @@ class SocksServer(netius.Server):
 
 if __name__ == "__main__":
     import logging
-    server = SocksServer(level = logging.INFO)
+    server = SOCKSServer(level = logging.INFO)
     server.serve(host = "0.0.0.0", port = 8080)
