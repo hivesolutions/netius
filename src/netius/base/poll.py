@@ -40,6 +40,11 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import time
 import select
 
+SELECT_TIMEOUT = 0.25
+""" The timeout to be used under the select poll method
+this should be considered the maximum amount of time a
+thread waits for a poll request """
+
 class Poll(object):
 
     def open(self):
@@ -121,9 +126,14 @@ class SelectPoll(Poll):
         # in case it's sleeps for a while and then continues
         # the loop (this avoids error in empty selection)
         is_empty = self.is_empty()
-        if is_empty: time.sleep(0.25); return ([], [], [])
+        if is_empty: time.sleep(SELECT_TIMEOUT); return ([], [], [])
 
-        return select.select(self.read_l, self.write_l, self.error_l, 5)
+        return select.select(
+            self.read_l,
+            self.write_l,
+            self.error_l,
+            SELECT_TIMEOUT
+        )
 
     def poll_owner(self):
         reads, writes, errors = self.poll()
