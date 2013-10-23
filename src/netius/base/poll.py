@@ -376,7 +376,7 @@ class PollPoll(Poll):
         if self._open: return
         self._open = True
 
-        self.poll = select.poll() #@UndefinedVariable
+        self._poll = select.poll() #@UndefinedVariable
 
         self.read_fd = {}
         self.write_fd = {}
@@ -389,8 +389,8 @@ class PollPoll(Poll):
         if not self._open: return
         self._open = False
 
-        for fd in self.read_fd: self.poll.unregister(fd)
-        self.poll = None
+        for fd in self.read_fd: self._poll.unregister(fd)
+        self._poll = None
 
         self.read_fd.clear()
         self.write_fd.clear()
@@ -402,7 +402,7 @@ class PollPoll(Poll):
     def poll(self):
         result = ([], [], [])
 
-        events = self.poll.poll(POLL_TIMEOUT)
+        events = self._poll.poll(POLL_TIMEOUT)
         for fd, event in events:
             if event & select.POLLIN: #@UndefinedVariable
                 socket = self.read_fd[fd]
@@ -416,7 +416,7 @@ class PollPoll(Poll):
     def sub_read(self, socket, owner = None):
         if socket in self.read_o: return
         socket_fd = socket.fileno()
-        self.poll.register( #@UndefinedVariable
+        self._poll.register( #@UndefinedVariable
             socket_fd,
             select.POLLIN #@UndefinedVariable
         )
@@ -426,7 +426,7 @@ class PollPoll(Poll):
     def sub_write(self, socket, owner = None):
         if socket in self.write_o: return
         socket_fd = socket.fileno()
-        self.poll.modify( #@UndefinedVariable
+        self._poll.modify( #@UndefinedVariable
             socket_fd,
             select.POLLIN | select.POLLOUT #@UndefinedVariable
         )
@@ -440,7 +440,7 @@ class PollPoll(Poll):
     def unsub_read(self, socket):
         if not socket in self.read_o: return
         socket_fd = socket.fileno()
-        self.poll.unregister( #@UndefinedVariable
+        self._poll.unregister( #@UndefinedVariable
             socket_fd
         )
         del self.read_fd[socket_fd]
@@ -449,7 +449,7 @@ class PollPoll(Poll):
     def unsub_write(self, socket):
         if not socket in self.write_o: return
         socket_fd = socket.fileno()
-        self.poll.modify( #@UndefinedVariable
+        self._poll.modify( #@UndefinedVariable
             socket_fd,
             select.POLLIN #@UndefinedVariable
         )
