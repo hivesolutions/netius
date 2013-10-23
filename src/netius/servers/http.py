@@ -74,7 +74,7 @@ class HTTPConnection(netius.Connection):
 
         buffer = []
         buffer.append("%s %d %s\r\n" % (version, code, code_s))
-        for key, value in headers.items():
+        for key, value in headers.iteritems():
             key = netius.common.header_up(key)
             buffer.append("%s: %s\r\n" % (key, value))
         buffer.append("\r\n")
@@ -107,7 +107,7 @@ class HTTPServer(netius.Server):
         pass
 
     def _apply_base(self, headers):
-        for key, value in BASE_HEADERS.items():
+        for key, value in BASE_HEADERS.iteritems():
             if key in headers: continue
             headers[key] = value
 
