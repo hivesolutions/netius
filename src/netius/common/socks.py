@@ -39,5 +39,11 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import struct
 
-class SOCKSParser(object):
-    pass
+import netius
+
+class SOCKSParser(netius.Observable):
+
+    def __init__(self, owner):
+        netius.Observable.__init__(self)
+
+        self.owner = owner
