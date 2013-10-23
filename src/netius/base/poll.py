@@ -128,6 +128,9 @@ class SelectPoll(Poll):
         is_empty = self.is_empty()
         if is_empty: time.sleep(SELECT_TIMEOUT); return ([], [], [])
 
+        # runs the proper select statement waiting for the desired
+        # amount of time as timeout at the end a tuple with three
+        # list for the different operations should be returned
         return select.select(
             self.read_l,
             self.write_l,
