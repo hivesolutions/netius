@@ -118,9 +118,9 @@ class Poll(object):
         self.sub_error(socket, owner = owner)
 
     def unsub_all(self, socket):
-        self.unsub_read(socket)
-        self.unsub_write(socket)
         self.unsub_error(socket)
+        self.unsub_write(socket)
+        self.unsub_read(socket)
 
     def is_sub_read(self, socket):
         return socket in self.read_o
@@ -219,9 +219,9 @@ class EpollPoll(Poll):
     def sub_write(self, socket, owner = None):
         if socket in self.write_o: return
         socket_fd = socket.fileno()
-        self.epoll.register( #@UndefinedVariable
+        self.epoll.modify( #@UndefinedVariable
             socket_fd,
-            select.EPOLLOUT | select.EPOLLET #@UndefinedVariable
+            select.EPOLLIN | select.EPOLLOUT | select.EPOLLET #@UndefinedVariable
         )
         self.write_fd[socket_fd] = socket
         self.write_o[socket] = owner
@@ -233,9 +233,8 @@ class EpollPoll(Poll):
     def unsub_read(self, socket):
         if not socket in self.read_o: return
         socket_fd = socket.fileno()
-        self.epoll.register( #@UndefinedVariable
-            socket_fd,
-            select.EPOLLIN | select.EPOLLET #@UndefinedVariable
+        self.epoll.unregister( #@UndefinedVariable
+            socket_fd
         )
         del self.read_fd[socket_fd]
         del self.read_o[socket]
@@ -243,9 +242,9 @@ class EpollPoll(Poll):
     def unsub_write(self, socket):
         if not socket in self.write_o: return
         socket_fd = socket.fileno()
-        self.epoll.register( #@UndefinedVariable
+        self.epoll.modify( #@UndefinedVariable
             socket_fd,
-            select.EPOLLOUT | select.EPOLLET #@UndefinedVariable
+            select.EPOLLIN | select.EPOLLET #@UndefinedVariable
         )
         del self.write_fd[socket_fd]
         del self.write_o[socket]
