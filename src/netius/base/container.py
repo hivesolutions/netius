@@ -47,9 +47,9 @@ class Container(Base):
 
         self.bind("start", self.on_start)
 
-    def ticks(self):
-        self.set_state(STATE_TICK)
-        for base in self.bases: base.ticks()
+    def cleanup(self):
+        Base.cleanup(self)
+        for base in self.bases: base.cleanup()
 
     def loop(self):
         # iterates continuously while the running flag
@@ -75,6 +75,10 @@ class Container(Base):
                 base.reads(reads)
                 base.writes(writes)
                 base.errors(errors)
+
+    def ticks(self):
+        self.set_state(STATE_TICK)
+        for base in self.bases: base.ticks()
 
     def on_start(self, service):
         self.apply_all()

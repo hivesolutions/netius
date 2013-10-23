@@ -88,11 +88,6 @@ class ProxyServer(http.HTTPServer):
     def stop(self):
         self.container.stop()
 
-    def cleanup(self):
-        http.HTTPServer.cleanup(self)
-        self.http_client.close()
-        self.raw_client.close()
-
     def on_data(self, connection, data):
         netius.Server.on_data(self, connection, data)
 
