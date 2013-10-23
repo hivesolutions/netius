@@ -182,8 +182,8 @@ class EpollPoll(Poll):
         if not self._open: return
         self._open = False
 
-        self.kqueue.close()
-        self.kqueue = None
+        for fd in self.read_fd: self.epoll.unregister(fd)
+        self.epoll = None
 
         self.read_fd.clear()
         self.write_fd.clear()
