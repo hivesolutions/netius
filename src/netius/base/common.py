@@ -175,7 +175,8 @@ class Base(observer.Observable):
         self.level = kwargs.get("level", logging.DEBUG)
         self.tid = None
         self.logger = None
-        self.poll = SelectPoll()
+        #self.poll = kwargs.get("poll", SelectPoll)()
+        self.poll = kwargs.get("poll", KqueuePoll)()
         self.connections = []
         self.connections_m = {}
         self._running = False
@@ -202,6 +203,11 @@ class Base(observer.Observable):
         self.handler and self.logger.addHandler(self.handler)
 
     def start(self):
+        # retrieves the name of the polling mechanism that is
+        # going to be used in the main loop of the current
+        # base service, this is going to be used for diagnostics
+        poll_name = self.get_poll_name()
+        
         # retrieves the current thread identifier as the current
         # "tid" value to be used for thread control mechanisms
         self.tid = thread.get_ident()
@@ -226,6 +232,7 @@ class Base(observer.Observable):
         # to the logger indicating this start, this stage
         # should block the thread until a stop call is made
         self.debug("Starting '%s' service main loop ..." % self.name)
+        self.debug("Using '%s' as select mechanism" % poll_name)
         self.trigger("start", self)
         try: self.loop()
         except (KeyboardInterrupt, SystemExit):
@@ -403,6 +410,14 @@ class Base(observer.Observable):
         message = unicode(object) if not object_t in types.StringTypes else object
         if not self.logger: return
         self.logger.log(level, message)
+        
+    def get_poll(self):
+        return self.poll
+    
+    def get_poll_name(self):
+        poll = self.get_poll()
+        name = poll.__class__.__name__
+        return name
 
     def set_state(self, state):
         self._state = state
