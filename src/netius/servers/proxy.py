@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import re
+
 import http
 
 import netius.common
@@ -82,6 +84,8 @@ class ProxyServer(http.HTTPServer):
         self.container.add_base(self.http_client)
         self.container.add_base(self.raw_client)
 
+        self.compile()
+
     def start(self):
         self.http_client.load()
         self.raw_client.load()
@@ -89,6 +93,10 @@ class ProxyServer(http.HTTPServer):
 
     def stop(self):
         self.container.stop()
+
+    def compile(self):
+        for key, rule in self.rules.iteritems():
+            self.rules[key] = re.compile(rule)
 
     def on_data(self, connection, data):
         netius.Server.on_data(self, connection, data)
@@ -109,13 +117,17 @@ class ProxyServer(http.HTTPServer):
         path = parser.path_s
         version_s = parser.version_s
 
-        import re
-        rule = re.compile(".*facebook.com.*")
-        rejected = rule.match(path)
+        rejected = False
+        for rule in self.rules.itervalues():
+            rejected = rule.match(path)
+            if rejected: break
 
         if rejected:
-            connection.send(
-                "%s 403 Forbidden\r\n\r\nThis connection is not allowed" % version_s,
+            connection.send_response(
+                data = "This connection is not allowed",
+                version = version_s,
+                code = 403,
+                code_s = "Forbidden",
                 callback = self._prx_close
             )
             return
@@ -238,5 +250,8 @@ class ProxyServer(http.HTTPServer):
 
 if __name__ == "__main__":
     import logging
-    server = ProxyServer(level = logging.INFO)
+    rules = dict(
+        facebook = ".*facebook.com.*"
+    )
+    server = ProxyServer(rules = rules, level = logging.INFO)
     server.serve(host = "0.0.0.0", port = 8080)

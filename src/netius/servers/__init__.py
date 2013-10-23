@@ -37,9 +37,13 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import echo
 import http
 import ws
+import proxy
+import socks
 import wsgi
 
 from echo import *
 from http import *
+from proxy import *
+from socks import *
 from ws import *
 from wsgi import *
