@@ -200,7 +200,7 @@ class EpollPoll(Poll):
             if event & select.EPOLLIN: #@UndefinedVariable
                 socket = self.read_fd[fd]
                 result[0].append(socket)
-            elif event.filter == select.EPOLLOUT: #@UndefinedVariable
+            elif event & select.EPOLLOUT: #@UndefinedVariable
                 socket = self.write_fd[event.udata]
                 result[1].append(socket)
 
