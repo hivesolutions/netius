@@ -201,7 +201,7 @@ class EpollPoll(Poll):
                 socket = self.read_fd[fd]
                 result[0].append(socket)
             elif event & select.EPOLLOUT: #@UndefinedVariable
-                socket = self.write_fd[event.udata]
+                socket = self.write_fd[fd]
                 result[1].append(socket)
 
         return result
