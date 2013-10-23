@@ -51,14 +51,14 @@ class Poll(object):
     should be used for inheritance and reference on the
     various methods that are part of the api.
     """
-    
+
     def __init__(self):
         self._open = False
 
     def open(self):
         if self._open: return
         self._open = True
-        
+
         self.read_o = {}
         self.write_o = {}
         self.error_o = {}
@@ -66,7 +66,7 @@ class Poll(object):
     def close(self):
         if not self._open: return
         self._open = False
-        
+
         self.read_o.clear()
         self.write_o.clear()
         self.error_o.clear()
@@ -155,7 +155,7 @@ class PollPoll(Poll):
     pass
 
 class KqueuePoll(Poll):
-    
+
     def __init__(self, *args, **kwargs):
         Poll.__init__(self, *args, **kwargs)
         self._open = False
@@ -163,7 +163,7 @@ class KqueuePoll(Poll):
     def open(self):
         if self._open: return
         self._open = True
-        
+
         self.kqueue = select.kqueue()
 
         self.read_fd = {}
@@ -179,17 +179,17 @@ class KqueuePoll(Poll):
 
         self.kqueue.close()
         self.kqueue = None
-        
+
         self.read_fd.clear()
         self.write_fd.clear()
 
         self.read_o.clear()
         self.write_o.clear()
         self.error_o.clear()
-        
+
     def poll(self):
         result = ([], [], [])
-                          
+
         events = self.kqueue.control(None, 32, POLL_TIMEOUT)
         for event in events:
             if event.filter == select.KQ_FILTER_READ:
@@ -205,7 +205,7 @@ class KqueuePoll(Poll):
         if socket in self.read_o: return
         socket_fd = socket.fileno()
         event = select.kevent(
-            socket_fd, 
+            socket_fd,
             filter = select.KQ_FILTER_READ,
             flags = select.KQ_EV_ADD,
             udata = socket_fd
@@ -218,7 +218,7 @@ class KqueuePoll(Poll):
         if socket in self.write_o: return
         socket_fd = socket.fileno()
         event = select.kevent(
-            socket_fd, 
+            socket_fd,
             filter = select.KQ_FILTER_WRITE,
             flags = select.KQ_EV_ADD,
             udata = socket_fd
@@ -235,7 +235,7 @@ class KqueuePoll(Poll):
         if not socket in self.read_o: return
         socket_fd = socket.fileno()
         event = select.kevent(
-            socket_fd, 
+            socket_fd,
             filter = select.KQ_FILTER_READ,
             flags = select.KQ_EV_DELETE
         )
@@ -247,7 +247,7 @@ class KqueuePoll(Poll):
         if not socket in self.write_o: return
         socket_fd = socket.fileno()
         event = select.kevent(
-            socket_fd, 
+            socket_fd,
             filter = select.KQ_FILTER_WRITE,
             flags = select.KQ_EV_DELETE
         )

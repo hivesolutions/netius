@@ -207,7 +207,7 @@ class Base(observer.Observable):
         # going to be used in the main loop of the current
         # base service, this is going to be used for diagnostics
         poll_name = self.get_poll_name()
-        
+
         # retrieves the current thread identifier as the current
         # "tid" value to be used for thread control mechanisms
         self.tid = thread.get_ident()
@@ -410,10 +410,10 @@ class Base(observer.Observable):
         message = unicode(object) if not object_t in types.StringTypes else object
         if not self.logger: return
         self.logger.log(level, message)
-        
+
     def get_poll(self):
         return self.poll
-    
+
     def get_poll_name(self):
         poll = self.get_poll()
         name = poll.__class__.__name__
