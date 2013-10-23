@@ -162,6 +162,15 @@ class HTTPClient(netius.Client):
     def get(self, url, headers = {}):
         return self.method("GET", url, headers = headers)
 
+    def post(self, url, headers = {}, data = None):
+        return self.method("POST", url, headers = headers, data = data)
+
+    def put(self, url, headers = {}, data = None):
+        return self.method("PUT", url, headers = headers, data = data)
+
+    def delete(self, url, headers = {}):
+        return self.method("DELETE", url, headers = headers)
+
     def method(self, method, url, headers = {}, data = None, version = "HTTP/1.1"):
         parsed = urlparse.urlparse(url)
         ssl = parsed.scheme == "https"
