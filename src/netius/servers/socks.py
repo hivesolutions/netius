@@ -84,40 +84,6 @@ class SocksServer(netius.Server):
 
         if hasattr(connection, "tunnel_c"): connection.tunnel_c.close()
 
-    def on_data_http(self, connection, parser):
-        http.HTTPServer.on_data_http(self, connection, parser)
-
-        method = parser.method.upper()
-        path = parser.path_s
-        version_s = parser.version_s
-
-        import re
-        rule = re.compile(".*facebook.com.*")
-        rejected = rule.match(path)
-
-        if rejected:
-            connection.send(
-                "%s 403 Forbidden\r\n\r\nThis connection is not allowed" % version_s,
-                callback = self._prx_close
-            )
-            return
-
-        if method == "CONNECT":
-            host, port = path.split(":")
-            port = int(port)
-            _connection = self.raw_client.connect(host, port)
-            connection.tunnel_c = _connection
-            self.conn_map[_connection] = connection
-        else:
-            _connection = self.http_client.method(
-                method,
-                path,
-                headers = parser.headers
-            )
-            _connection.used = False
-            connection.proxy_c = _connection
-            self.conn_map[_connection] = connection
-
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
         connection.send_response(
