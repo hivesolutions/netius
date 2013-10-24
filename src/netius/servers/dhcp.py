@@ -42,10 +42,41 @@ import cStringIO
 
 import netius.common
 
+
+SUBNET_OPTION = 1
+ROUTER_OPTION = 2
+DNS_OPTION = 3
+NAME_OPTION = 4
+REQUESTED_OPTION = 5
+LEASE_OPTION = 6
+OFFER_OPTION = 6
+END_OPTION = 6
+
 class DHCPRequest(object):
+
+    options_m = None
+    options_l = None
 
     def __init__(self, data):
         self.data = data
+
+        cls = self.__class__
+        cls.generate()
+
+    @classmethod
+    def generate(cls):
+        if cls.options_m: return
+        cls.options_m = (
+            cls._option_subnet,
+            cls._option_router,
+            cls._option_dns,
+            cls._option_name,
+            cls._option_requested,
+            cls._option_lease,
+            cls._option_offer,
+            cls._option_end
+        )
+        cls.options_l = len(cls.options_m)
 
     def get_info(self):
         buffer = cStringIO.StringIO()
@@ -100,9 +131,12 @@ class DHCPRequest(object):
         self.siaddr_s = netius.common.addr_to_ip4(self.siaddr)
         self.giaddr_s = netius.common.addr_to_ip4(self.giaddr)
 
-    def response(self):
+    def response(self, options = {}):
+        cls = self.__class__
+
         format = "!BBBBIHHIIII2Q64s128sI"
         result = []
+        buffer = []
 
         op = 0x02
         htype = 0x01
@@ -119,13 +153,7 @@ class DHCPRequest(object):
         sname = ""
         file = ""
         magic = 0x63825363
-        offer = self._option_offer()
-        lease_t = self._option_lease_t()
-        subnet_t = self._option_subnet()
-        dns_t = self._option_dns()
-        name_t = self._option_name()
-        requested_t = self._option_requested()
-        router = self._option_router()
+
         end = self._option_end()
 
         result.append(op)
@@ -146,23 +174,27 @@ class DHCPRequest(object):
         result.append(magic)
 
         data = struct.pack(format, *result)
-        data += offer
-        data += lease_t
-        data += subnet_t
-        data += dns_t
-        data += name_t
-        data += requested_t
-        data += router
-        data += end
+        buffer.append(data)
+
+        for option, values in options.iteritems():
+            method = cls.options_m[option - 1]
+            if values: option_s = method(**values)
+            else: option_s = method()
+            buffer.append(option_s)
+
+        buffer.append(end)
+        data = "".join(buffer)
 
         return data
 
-    def _str(self, data):
+    @classmethod
+    def _str(cls, data):
         data_l = len(data)
         size_s = struct.pack("!B", data_l)
         return size_s + data
 
-    def _pack_m(self, sequence, format):
+    @classmethod
+    def _pack_m(cls, sequence, format):
         result = []
         for value in sequence:
             value_s = struct.pack(format, value)
@@ -170,43 +202,51 @@ class DHCPRequest(object):
 
         return "".join(result)
 
-    def _option_subnet(self, subnet = "255.255.255.0"):
+    @classmethod
+    def _option_subnet(cls, subnet = "255.255.255.0"):
         subnet_a = netius.common.ip4_to_addr(subnet)
         subnet_s = struct.pack("!I", subnet_a)
-        payload = self._str(subnet_s)
+        payload = cls._str(subnet_s)
         return "\x01" + payload
 
-    def _option_router(self, routers = ["192.168.0.1"]):
+    @classmethod
+    def _option_router(cls, routers = ["192.168.0.1"]):
         routers_a = [netius.common.ip4_to_addr(router) for router in routers]
-        routers_s = self._pack_m(routers_a, "!I")
-        payload = self._str(routers_s)
+        routers_s = cls._pack_m(routers_a, "!I")
+        payload = cls._str(routers_s)
         return "\x03" + payload
 
-    def _option_dns(self, servers = ["192.168.0.1", "192.168.0.2"]):
+    @classmethod
+    def _option_dns(cls, servers = ["192.168.0.1", "192.168.0.2"]):
         servers_a = [netius.common.ip4_to_addr(server) for server in servers]
-        servers_s = self._pack_m(servers_a, "!I")
-        payload = self._str(servers_s)
+        servers_s = cls._pack_m(servers_a, "!I")
+        payload = cls._str(servers_s)
         return "\x06" + payload
 
-    def _option_name(self, name = "server.com"):
-        payload = self._str(name)
+    @classmethod
+    def _option_name(cls, name = "server.com"):
+        payload = cls._str(name)
         return "\x0f" + payload
 
-    def _option_requested(self, ip = "192.168.0.11"):
+    @classmethod
+    def _option_requested(cls, ip = "192.168.0.11"):
         ip_a = netius.common.ip4_to_addr(ip)
         ip_s = struct.pack("!I", ip_a)
-        payload = self._str(ip_s)
+        payload = cls._str(ip_s)
         return "\x32" + payload
 
-    def _option_lease_t(self, time = 3600):
+    @classmethod
+    def _option_lease(cls, time = 3600):
         time_s = struct.pack("!I", time)
-        payload = self._str(time_s)
+        payload = cls._str(time_s)
         return "\x33" + payload
 
-    def _option_offer(self):
+    @classmethod
+    def _option_offer(cls):
         return "\x35\x01\x02"
 
-    def _option_end(self):
+    @classmethod
+    def _option_end(cls):
         return "\xff"
 
 class DHCPServer(netius.DatagramServer):
@@ -231,7 +271,12 @@ class DHCPServer(netius.DatagramServer):
         request.parse()
         request.print_info()
 
-        response = request.response()
+        options = {
+            DNS_OPTION : None,
+            NAME_OPTION : dict(name = "tobias.com")
+        }
+
+        response = request.response(options)
         self.socket.sendto(response, address)
 
     def on_connection_d(self, connection):
