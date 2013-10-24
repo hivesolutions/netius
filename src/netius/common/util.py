@@ -53,3 +53,11 @@ def addr_to_ip4(number):
     third = int(number / 256) % 256
     fourth = int(number) % 256
     return "%s.%s.%s.%s" % (first, second, third, fourth)
+
+def ip4_to_addr(value):
+    first, second, third, fourth = value.split(".", 3)
+    first_a = int(first) * 16777216
+    second_a = int(second) * 65536
+    third_a = int(third) * 256
+    fourth_a = int(fourth)
+    return first_a + second_a + third_a + fourth_a
