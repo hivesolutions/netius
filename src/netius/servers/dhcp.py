@@ -123,6 +123,7 @@ class DHCPRequest(object):
         lease_t = self._option_lease_t()
         subnet_t = self._option_subnet()
         dns_t = self._option_dns()
+        name_t = self._option_name()
         requested_t = self._option_requested()
         router = self._option_router()
         end = self._option_end()
@@ -149,6 +150,7 @@ class DHCPRequest(object):
         data += lease_t
         data += subnet_t
         data += dns_t
+        data += name_t
         data += requested_t
         data += router
         data += end
@@ -185,6 +187,10 @@ class DHCPRequest(object):
         servers_s = self._pack_m(servers_a, "!I")
         payload = self._str(servers_s)
         return "\x06" + payload
+
+    def _option_name(self, name = "server.com"):
+        payload = self._str(name)
+        return "\x0f" + payload
 
     def _option_requested(self, ip = "192.168.0.11"):
         ip_a = netius.common.ip4_to_addr(ip)
