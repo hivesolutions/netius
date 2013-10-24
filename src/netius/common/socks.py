@@ -299,6 +299,7 @@ class SOCKSParser(netius.Observable):
             self.address_s = netius.common.number_to_ip4(self.address)
         elif self.type == IPV6:
             self.address = struct.unpack("!QQ", data)
+            self.address_s = self.address
         else:
             self.address = data
             self.address_s = data
