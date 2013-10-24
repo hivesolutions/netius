@@ -191,7 +191,7 @@ class WSConnection(netius.Connection):
         decoded = str(decoded_a)
         return decoded, data[i:]
 
-class WSServer(netius.Server):
+class WSServer(netius.StreamServer):
     """
     Base class for the creation of websocket server, should
     handle both the upgrading/handshaking of the connection
@@ -204,7 +204,7 @@ class WSServer(netius.Server):
     of the key generation process in the handshake """
 
     def on_data(self, connection, data):
-        netius.Server.on_data(self, connection, data)
+        netius.StreamServer.on_data(self, connection, data)
 
         if connection.handshake:
             while data:

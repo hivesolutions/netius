@@ -99,13 +99,13 @@ class ProxyServer(http.HTTPServer):
             self.rules[key] = re.compile(rule)
 
     def on_data(self, connection, data):
-        netius.Server.on_data(self, connection, data)
+        netius.StreamServer.on_data(self, connection, data)
 
         if hasattr(connection, "tunnel_c"): connection.tunnel_c.send(data)
         else: connection.parse(data)
 
     def on_connection_d(self, connection):
-        netius.Server.on_connection_d(self, connection)
+        http.HTTPServer.on_connection_d(self, connection)
 
         if hasattr(connection, "tunnel_c"): connection.tunnel_c.close()
         if hasattr(connection, "proxy_c"): connection.proxy_c.close()

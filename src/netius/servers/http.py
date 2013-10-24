@@ -89,7 +89,7 @@ class HTTPConnection(netius.Connection):
     def on_data(self):
         self.owner.on_data_http(self, self.parser)
 
-class HTTPServer(netius.Server):
+class HTTPServer(netius.StreamServer):
     """
     Base class for serving of the http protocol, should contain
     the basic utilities for handling an http request including
@@ -97,7 +97,7 @@ class HTTPServer(netius.Server):
     """
 
     def on_data(self, connection, data):
-        netius.Server.on_data(self, connection, data)
+        netius.StreamServer.on_data(self, connection, data)
         connection.parse(data)
 
     def new_connection(self, socket, address, ssl = False):

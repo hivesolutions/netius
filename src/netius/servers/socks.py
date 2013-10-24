@@ -88,10 +88,10 @@ class SOCKSConnection(netius.Connection):
     def on_auth(self):
         self.owner.on_auth_socks(self, self.parser)
 
-class SOCKSServer(netius.Server):
+class SOCKSServer(netius.StreamServer):
 
     def __init__(self, rules = {}, name = None, handler = None, *args, **kwargs):
-        netius.Server.__init__(
+        netius.StreamServer.__init__(
             self,
             name = name,
             handler = handler,
@@ -122,7 +122,7 @@ class SOCKSServer(netius.Server):
         self.container.stop()
 
     def on_data(self, connection, data):
-        netius.Server.on_data(self, connection, data)
+        netius.StreamServer.on_data(self, connection, data)
 
         if hasattr(connection, "tunnel_c"): connection.tunnel_c.send(data)
         else: connection.parse(data)
@@ -144,7 +144,7 @@ class SOCKSServer(netius.Server):
         connection.send_auth(method = 0)
 
     def on_connection_d(self, connection):
-        netius.Server.on_connection_d(self, connection)
+        netius.StreamServer.on_connection_d(self, connection)
 
         if hasattr(connection, "tunnel_c"): connection.tunnel_c.close()
 
