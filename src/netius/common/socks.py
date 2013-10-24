@@ -41,9 +41,135 @@ import struct
 
 import netius
 
+REQUEST_STATE = 1
+
+USER_ID_STATE = 2
+
+DOMAIN_STATE = 3
+
+FINISH_STATE = 4
+
 class SOCKSParser(netius.Observable):
 
     def __init__(self, owner):
         netius.Observable.__init__(self)
 
         self.owner = owner
+        self.reset()
+
+    def reset(self):
+        self.state = REQUEST_STATE
+        self.buffer = []
+        self.version = None
+        self.command = None
+        self.port = None
+        self.address = None
+        self.address_s = None
+        self.user_id = None
+
+    def clear(self, force = False):
+        if not force and self.state == REQUEST_STATE: return
+        self.reset(self.type, self.store)
+
+    def parse(self, data):
+        """
+        Parses the provided data chunk, changing the current
+        state of the parser accordingly and returning the
+        number of processed bytes from it.
+
+        @type data: String
+        @param data: The string containing the data to be parsed
+        in the current parse operation.
+        @rtype: int
+        @return: The amount of bytes of the data string that have
+        been "parsed" in the current parse operation.
+        """
+
+        # in case the current state of the parser is finished, must
+        # reset the state to the start position as the parser is
+        # re-starting (probably a new data sequence)
+        if self.state == FINISH_STATE: self.clear()
+
+        # retrieves the size of the data that has been sent for parsing
+        # and saves it under the size original variable
+        size = len(data)
+        size_o = size
+
+        # iterates continuously to try to process all that
+        # data that has been sent for processing
+        while size > 0:
+
+            if self.state == REQUEST_STATE:
+                count = self._parse_request(data)
+                if count == 0: break
+
+                size -= count
+                data = data[count:]
+
+                continue
+
+            elif self.state == USER_ID_STATE:
+                count = self._parse_user_id(data)
+                if count == 0: break
+
+                size -= count
+                data = data[count:]
+
+                continue
+
+            elif self.state == DOMAIN_STATE:
+                count = self._parse_domain(data)
+                if count == 0: break
+
+                size -= count
+                data = data[count:]
+
+                continue
+
+            elif self.state == FINISH_STATE:
+                break
+
+            else:
+                raise netius.ParserError("Invalid state '%d'" % self.state)
+
+        # in case not all of the data has been processed
+        # must add it to the buffer so that it may be used
+        # latter in the next parsing of the message
+        if size > 0: self.buffer.append(data)
+
+        # returns the number of read (processed) bytes of the
+        # data that has been sent to the parser
+        return size_o - size
+
+    def _ip_from_number(self, number):
+        first = int(number / 16777216) % 256
+        second = int(number / 65536) % 256
+        third = int(number / 256) % 256
+        fourth = int(number) % 256
+        return "%s.%s.%s.%s" % (first, second, third, fourth)
+
+    def _parse_request(self, data):
+        if len(data) < 8:
+            raise netius.ParserError("Invalid request (too short)")
+
+        request = data[:8]
+        self.version, self.command, self.port, self.address =\
+            struct.unpack("!BBHI", request)
+        self.address_s = self._ip_from_number(self.address)
+
+        self.state = USER_ID_STATE
+
+        return 8
+
+    def _parse_user_id(self, data):
+        index = data.find("\0")
+        if index == -1: return 0
+
+        self.buffer.append(data[:index])
+        self.user_id = "".join(self.buffer)
+        del self.buffer[:]
+
+        self.state = FINISH_STATE
+
+        self.trigger("on_data")
+        return index + 1
