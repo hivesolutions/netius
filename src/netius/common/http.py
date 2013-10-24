@@ -109,6 +109,7 @@ class HTTPParser(netius.Observable):
         netius.Observable.__init__(self)
 
         self.owner = owner
+        self.build()
         self.reset(type = type, store = store)
 
     def build(self):
