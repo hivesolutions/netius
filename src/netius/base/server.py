@@ -65,28 +65,11 @@ class Server(Base):
         # and not able to be used for any kind of communication
         self.socket = None
 
-    def reads(self, reads):
-        self.set_state(STATE_READ)
-        for read in reads:
-            if read == self.socket: self.on_read_s(read)
-            else: self.on_read(read)
-
-    def writes(self, writes):
-        self.set_state(STATE_WRITE)
-        for write in writes:
-            if write == self.socket: self.on_write_s(write)
-            else: self.on_write(write)
-
-    def errors(self, errors):
-        self.set_state(STATE_ERRROR)
-        for error in errors:
-            if error == self.socket: self.on_error_s(error)
-            else: self.on_error(error)
-
     def info_dict(self):
         info = Base.info_dict(self)
         info["host"] = self.host
         info["port"] = self.port
+        info["type"] = self.type
         info["ssl"] = self.ssl
         return info
 
@@ -185,6 +168,117 @@ class Server(Base):
         # returns the created udp socket to the calling method so that it
         # may be used from this point on
         return _socket
+
+class DatagramServer(Server):
+
+    def reads(self, reads):
+        self.set_state(STATE_READ)
+        for read in reads:
+            self.on_read(read)
+
+    def writes(self, writes):
+        self.set_state(STATE_WRITE)
+        for write in writes:
+            self.on_write(write)
+
+    def errors(self, errors):
+        self.set_state(STATE_ERRROR)
+        for error in errors:
+            self.on_error(error)
+
+    def serve(self, type = TCP_TYPE, *args, **kwargs):
+        Server.serve(self, type = type, *args, **kwargs)
+
+    def on_read(self, _socket):
+        try:
+            # verifies if there's any pending operations in the
+            # socket (eg: ssl handshaking) and performs them trying
+            # to finish them, in they are still pending at the current
+            # state returns immediately (waits for next loop)
+            #### if self._pending(_socket): return @TODO tenho de ver se isto eNECESSARIO
+
+            # iterates continuously trying to read as much data as possible
+            # when there's a failure to read more data it should raise an
+            # exception that should be handled properly
+            while True:
+                data, address = _socket.recvfrom(CHUNK_SIZE)
+                self.on_data(address, data)
+        except ssl.SSLError, error:
+            error_v = error.args[0]
+            if not error_v in SSL_VALID_ERRORS:
+                self.warning(error)
+                lines = traceback.format_exc().splitlines()
+                for line in lines: self.info(line)
+        except socket.error, error:
+            error_v = error.args[0]
+            if not error_v in VALID_ERRORS:
+                self.warning(error)
+                lines = traceback.format_exc().splitlines()
+                for line in lines: self.info(line)
+        except BaseException, exception:
+            self.warning(exception)
+            lines = traceback.format_exc().splitlines()
+            for line in lines: self.info(line)
+
+    def on_write(self, _socket):
+        connection = self.connections_m.get(_socket, None)
+        if not connection: return
+        if not connection.status == OPEN: return
+
+        try:
+            connection._send()
+        except ssl.SSLError, error:
+            error_v = error.args[0]
+            if not error_v in SSL_VALID_ERRORS:
+                self.warning(error)
+                lines = traceback.format_exc().splitlines()
+                for line in lines: self.info(line)
+                connection.close()
+        except socket.error, error:
+            error_v = error.args[0]
+            if not error_v in VALID_ERRORS:
+                self.warning(error)
+                lines = traceback.format_exc().splitlines()
+                for line in lines: self.info(line)
+                connection.close()
+        except BaseException, exception:
+            self.warning(exception)
+            lines = traceback.format_exc().splitlines()
+            for line in lines: self.info(line)
+            connection.close()
+
+    def on_error(self, _socket):
+        connection = self.connections_m.get(_socket, None)
+        if not connection: return
+        if not connection.status == OPEN: return
+
+        connection.close()
+
+    def on_data(self, connection, data):
+        pass
+
+class StreamServer(Server):
+
+    def reads(self, reads):
+        self.set_state(STATE_READ)
+        for read in reads:
+            if read == self.socket: self.on_read_s(read)
+            else: self.on_read(read)
+
+    def writes(self, writes):
+        self.set_state(STATE_WRITE)
+        for write in writes:
+            if write == self.socket: self.on_write_s(write)
+            else: self.on_write(write)
+
+    def errors(self, errors):
+        self.set_state(STATE_ERRROR)
+        for error in errors:
+            if error == self.socket: self.on_error_s(error)
+            else: self.on_error(error)
+
+    def serve(self, type = TCP_TYPE, *args, **kwargs):
+        Server.serve(self, type = type, *args, **kwargs)
 
     def on_read_s(self, _socket):
         try:
