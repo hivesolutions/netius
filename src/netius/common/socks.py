@@ -41,6 +41,12 @@ import struct
 
 import netius.common
 
+IPV4 = 0x01
+
+IPV6 = 0x04
+
+DOMAIN = 0x03
+
 VERSION_STATE = 1
 
 HEADER_STATE = 2
@@ -49,7 +55,19 @@ USER_ID_STATE = 3
 
 DOMAIN_STATE = 4
 
-FINISH_STATE = 5
+AUTH_COUNT_STATE = 5
+
+AUTH_METHODS_STATE = 6
+
+HEADER_EXTRA_STATE = 7
+
+SIZE_STATE = 8
+
+ADDRESS_STATE = 9
+
+PORT_STATE = 10
+
+FINISH_STATE = 11
 
 class SOCKSParser(netius.Observable):
 
@@ -65,7 +83,13 @@ class SOCKSParser(netius.Observable):
             self._parse_version,
             self._parse_header,
             self._parse_user_id,
-            self._parse_domain
+            self._parse_domain,
+            self._parse_auth_count,
+            self._parse_auth_methods,
+            self._parse_header_extra,
+            self._parse_size,
+            self._parse_address,
+            self._parse_port
         )
         self.state_l = len(self.states)
 
@@ -79,7 +103,11 @@ class SOCKSParser(netius.Observable):
         self.address_s = None
         self.user_id = None
         self.domain = None
+        self.type = None
+        self.size = 0
         self.is_extended = False
+        self.auth_count = 0
+        self.auth_methods = None
 
     def clear(self, force = False):
         if not force and self.state == VERSION_STATE: return
@@ -141,6 +169,15 @@ class SOCKSParser(netius.Observable):
     def get_host(self):
         return self.domain or self.address_s
 
+    def get_address(self):
+        if self.type == None: return None
+
+        if self.type == IPV4: address = struct.pack("!I", self.address)
+        elif self.type == IPV6: address = struct.pack("!QQ", self.address)
+        else: address = struct.pack("!Bs", self.size, self.address)
+
+        return address
+
     def _parse_version(self, data):
         if len(data) < 1:
             raise netius.ParserError("Invalid request (too short)")
@@ -149,13 +186,12 @@ class SOCKSParser(netius.Observable):
         self.version, = struct.unpack("!B", request)
 
         if self.version == 4: self.state = HEADER_STATE
-        elif self.version == 5: print "versao 5"
+        elif self.version == 5: self.state = AUTH_COUNT_STATE
         else: raise netius.ParserError("Invalid version '%d'" % self.version)
 
         return 1
 
     def _parse_header(self, data):
-        print repr(data)
         if len(data) < 7:
             raise netius.ParserError("Invalid request (too short)")
 
@@ -195,3 +231,89 @@ class SOCKSParser(netius.Observable):
 
         self.trigger("on_data")
         return index + 1
+
+    def _parse_auth_count(self, data):
+        if len(data) < 1:
+            raise netius.ParserError("Invalid request (too short)")
+
+        request = data[:1]
+        self.auth_count, = struct.unpack("!B", request)
+
+        self.state = AUTH_METHODS_STATE
+
+        return 1
+
+    def _parse_auth_methods(self, data):
+        is_ready = len(data) + len(self.buffer) >= self.auth_count
+        if not is_ready: return 0
+
+        remaining = self.auth_count - len(self.buffer)
+        self.buffer.append(data[:remaining])
+        data = "".join(self.buffer)
+
+        format = "!%dB" % self.auth_count
+        self.auth_methods = struct.unpack(format, data)
+        del self.buffer[:]
+
+        self.state = HEADER_EXTRA_STATE
+
+        self.trigger("on_auth")
+        return remaining
+
+    def _parse_header_extra(self, data):
+        if len(data) < 4:
+            raise netius.ParserError("Invalid request (too short)")
+
+        request = data[:4]
+        self.version, self.command, _reserved, self.type =\
+            struct.unpack("!BBBB", request)
+
+        if self.type == IPV4: self.size = 4
+        elif self.type == IPV6: self.size = 16
+
+        if self.type == DOMAIN: self.state = SIZE_STATE
+        else: self.state = ADDRESS_STATE
+
+        return 4
+
+    def _parse_size(self, data):
+        if len(data) < 1:
+            raise netius.ParserError("Invalid request (too short)")
+
+        self.size = struct.unpack("!B", data)
+
+        self.state = ADDRESS_STATE
+
+        return 1
+
+    def _parse_address(self, data):
+        is_ready = len(data) + len(self.buffer) >= self.size
+        if not is_ready: return 0
+
+        remaining = self.size - len(self.buffer)
+        self.buffer.append(data[:remaining])
+        data = "".join(self.buffer)
+
+        if self.type == IPV4:
+            self.address, = struct.unpack("!I", data)
+            self.address_s = netius.common.number_to_ip4(self.address)
+        elif self.type == IPV6:
+            self.address = struct.unpack("!QQ", data)
+        else:
+            self.address = data
+            self.address_s = data
+
+        self.state = PORT_STATE
+
+        return remaining
+
+    def _parse_port(self, data):
+        if len(data) < 2:
+            raise netius.ParserError("Invalid request (too short)")
+
+        self.port, = struct.unpack("!H", data)
+
+        self.state = FINISH_STATE
+
+        self.trigger("on_data")
+        return 2

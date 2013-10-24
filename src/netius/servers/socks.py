@@ -39,12 +39,15 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import struct
 
+import netius.common
 import netius.clients
 
 GRANTED = 0x5a
 REJECTED = 0x5b
 FAILED_CLIENT = 0x5c
 FAILED_AUTH = 0x5d
+
+GRANTED_EXTRA = 0x00
 
 class SOCKSConnection(netius.Connection):
 
@@ -53,16 +56,37 @@ class SOCKSConnection(netius.Connection):
         self.parser = netius.common.SOCKSParser(self)
 
         self.parser.bind("on_data", self.on_data)
+        self.parser.bind("on_auth", self.on_auth)
 
     def send_response(self, status = GRANTED):
         data = struct.pack("!BBHI", 0, status, 0, 0)
         self.send(data)
+
+    def send_response_extra(self, status = GRANTED_EXTRA):
+        version = self.parser.version
+        type = self.parser.type
+        port = self.parser.port
+        address = self.parser.get_address()
+        format = "!BBBB%dsH" % len(address)
+        data = struct.pack(format, version, status, 0, type, address, port)
+        self.send(data)
+
+    def send_auth(self, version = None, method = 0x00):
+        version = version or self.parser.version
+        data = struct.pack("!BB", version, method)
+        self.send(data)
+
+    def get_version(self):
+        return self.parser.version
 
     def parse(self, data):
         return self.parser.parse(data)
 
     def on_data(self):
         self.owner.on_data_socks(self, self.parser)
+
+    def on_auth(self):
+        self.owner.on_auth_socks(self, self.parser)
 
 class SOCKSServer(netius.Server):
 
@@ -111,6 +135,14 @@ class SOCKSServer(netius.Server):
         connection.tunnel_c = _connection
         self.conn_map[_connection] = connection
 
+    def on_auth_socks(self, connection, parser):
+        auth_methods = parser.auth_methods
+
+        if not 0 in auth_methods:
+            raise netius.ParserError("Authentication is not supported")
+
+        connection.send_auth(method = 0)
+
     def on_connection_d(self, connection):
         netius.Server.on_connection_d(self, connection)
 
@@ -121,7 +153,9 @@ class SOCKSServer(netius.Server):
 
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
-        connection.send_response(status = GRANTED)
+        version = connection.get_version()
+        if version == 0x04: connection.send_response(status = GRANTED)
+        elif version == 0x05: connection.send_response_extra(status = GRANTED_EXTRA)
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
