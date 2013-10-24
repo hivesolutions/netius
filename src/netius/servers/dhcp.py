@@ -42,7 +42,6 @@ import cStringIO
 
 import netius.common
 
-
 SUBNET_OPTION = 1
 ROUTER_OPTION = 2
 DNS_OPTION = 3
