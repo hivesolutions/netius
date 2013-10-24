@@ -198,11 +198,11 @@ class EpollPoll(Poll):
         events = self.epoll.poll(POLL_TIMEOUT)
         for fd, event in events:
             if event & select.EPOLLIN: #@UndefinedVariable
-                socket = self.read_fd[fd]
-                result[0].append(socket)
+                socket = self.read_fd.get(fd, None)
+                socket and result[0].append(socket)
             elif event & select.EPOLLOUT: #@UndefinedVariable
-                socket = self.write_fd[fd]
-                result[1].append(socket)
+                socket = self.write_fd.get(fd, None)
+                socket and result[1].append(socket)
 
         return result
 
@@ -296,11 +296,11 @@ class KqueuePoll(Poll):
         events = self.kqueue.control(None, 32, POLL_TIMEOUT)
         for event in events:
             if event.filter == select.KQ_FILTER_READ: #@UndefinedVariable
-                socket = self.read_fd[event.udata]
-                result[0].append(socket)
+                socket = self.read_fd.get(event.udata, None)
+                socket and result[0].append(socket)
             elif event.filter == select.KQ_FILTER_WRITE: #@UndefinedVariable
-                socket = self.write_fd[event.udata]
-                result[1].append(socket)
+                socket = self.write_fd.get(event.udata, None)
+                socket and result[1].append(socket)
 
         return result
 
@@ -405,11 +405,11 @@ class PollPoll(Poll):
         events = self._poll.poll(POLL_TIMEOUT)
         for fd, event in events:
             if event & select.POLLIN: #@UndefinedVariable
-                socket = self.read_fd[fd]
-                result[0].append(socket)
+                socket = self.read_fd.get(fd, None)
+                socket and result[0].append(socket)
             elif event & select.POLLOUT: #@UndefinedVariable
-                socket = self.write_fd[fd]
-                result[1].append(socket)
+                socket = self.write_fd.get(fd, None)
+                socket and result[1].append(socket)
 
         return result
 
