@@ -37,12 +37,17 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+def cstring(value):
+    index = value.index("\0")
+    if index == -1: return value
+    return value[:index]
+
 def header_up(name):
     values = name.split("-")
     values = [value.title() for value in values]
     return "-".join(values)
 
-def number_to_ip4(number):
+def addr_to_ip4(number):
     first = int(number / 16777216) % 256
     second = int(number / 65536) % 256
     third = int(number / 256) % 256

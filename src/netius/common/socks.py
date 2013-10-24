@@ -197,7 +197,7 @@ class SOCKSParser(netius.Observable):
 
         request = data[:7]
         self.command, self.port, self.address = struct.unpack("!BHI", request)
-        self.address_s = netius.common.number_to_ip4(self.address)
+        self.address_s = netius.common.addr_to_ip4(self.address)
 
         self.is_extended = self.address_s.startswith("0.0.0.")
 
@@ -296,7 +296,7 @@ class SOCKSParser(netius.Observable):
 
         if self.type == IPV4:
             self.address, = struct.unpack("!I", data)
-            self.address_s = netius.common.number_to_ip4(self.address)
+            self.address_s = netius.common.addr_to_ip4(self.address)
         elif self.type == IPV6:
             self.address = struct.unpack("!QQ", data)
             self.address_s = self.address

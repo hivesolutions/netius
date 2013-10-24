@@ -34,6 +34,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import dhcp
 import echo
 import http
 import ws
@@ -41,6 +42,7 @@ import proxy
 import socks
 import wsgi
 
+from dhcp import *
 from echo import *
 from http import *
 from proxy import *
