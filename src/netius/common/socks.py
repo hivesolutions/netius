@@ -41,13 +41,15 @@ import struct
 
 import netius.common
 
-REQUEST_STATE = 1
+VERSION_STATE = 1
 
-USER_ID_STATE = 2
+HEADER_STATE = 2
 
-DOMAIN_STATE = 3
+USER_ID_STATE = 3
 
-FINISH_STATE = 4
+DOMAIN_STATE = 4
+
+FINISH_STATE = 5
 
 class SOCKSParser(netius.Observable):
 
@@ -55,10 +57,20 @@ class SOCKSParser(netius.Observable):
         netius.Observable.__init__(self)
 
         self.owner = owner
+        self.build()
         self.reset()
 
+    def build(self):
+        self.states = (
+            self._parse_version,
+            self._parse_header,
+            self._parse_user_id,
+            self._parse_domain
+        )
+        self.state_l = len(self.states)
+
     def reset(self):
-        self.state = REQUEST_STATE
+        self.state = VERSION_STATE
         self.buffer = []
         self.version = None
         self.command = None
@@ -70,7 +82,7 @@ class SOCKSParser(netius.Observable):
         self.is_extended = False
 
     def clear(self, force = False):
-        if not force and self.state == REQUEST_STATE: return
+        if not force and self.state == VERSION_STATE: return
         self.reset(self.type, self.store)
 
     def parse(self, data):
@@ -101,26 +113,9 @@ class SOCKSParser(netius.Observable):
         # data that has been sent for processing
         while size > 0:
 
-            if self.state == REQUEST_STATE:
-                count = self._parse_request(data)
-                if count == 0: break
-
-                size -= count
-                data = data[count:]
-
-                continue
-
-            elif self.state == USER_ID_STATE:
-                count = self._parse_user_id(data)
-                if count == 0: break
-
-                size -= count
-                data = data[count:]
-
-                continue
-
-            elif self.state == DOMAIN_STATE:
-                count = self._parse_domain(data)
+            if self.state <= self.state_l:
+                method = self.states[self.state - 1]
+                count = method(data)
                 if count == 0: break
 
                 size -= count
@@ -146,21 +141,33 @@ class SOCKSParser(netius.Observable):
     def get_host(self):
         return self.domain or self.address_s
 
-    def _parse_request(self, data):
-        print repr(data)
-        if len(data) < 8:
+    def _parse_version(self, data):
+        if len(data) < 1:
             raise netius.ParserError("Invalid request (too short)")
 
-        request = data[:8]
-        self.version, self.command, self.port, self.address =\
-            struct.unpack("!BBHI", request)
+        request = data[:1]
+        self.version, = struct.unpack("!B", request)
+
+        if self.version == 4: self.state = HEADER_STATE
+        elif self.version == 5: print "versao 5"
+        else: raise netius.ParserError("Invalid version '%d'" % self.version)
+
+        return 1
+
+    def _parse_header(self, data):
+        print repr(data)
+        if len(data) < 7:
+            raise netius.ParserError("Invalid request (too short)")
+
+        request = data[:7]
+        self.command, self.port, self.address = struct.unpack("!BHI", request)
         self.address_s = netius.common.number_to_ip4(self.address)
 
         self.is_extended = self.address_s.startswith("0.0.0.")
 
         self.state = USER_ID_STATE
 
-        return 8
+        return 7
 
     def _parse_user_id(self, data):
         index = data.find("\0")

@@ -111,6 +111,20 @@ class HTTPParser(netius.Observable):
         self.owner = owner
         self.reset(type = type, store = store)
 
+    def build(self):
+        """
+        Builds the initial set of states ordered according to
+        their internal integer definitions, this method provides
+        a fast and scalable way of parsing data.
+        """
+
+        self.states = (
+            self._parse_line,
+            self._parse_headers,
+            self._parse_message
+        )
+        self.state_l = len(self.states)
+
     def reset(self, type = REQUEST, store = False):
         """
         Initializes the state of the parser setting the values
@@ -204,26 +218,9 @@ class HTTPParser(netius.Observable):
         # data that has been sent for processing
         while size > 0:
 
-            if self.state == LINE_STATE:
-                count = self._parse_line(data)
-                if count == 0: break
-
-                size -= count
-                data = data[count:]
-
-                continue
-
-            elif self.state == HEADERS_STATE:
-                count = self._parse_headers(data)
-                if count == 0: break
-
-                size -= count
-                data = data[count:]
-
-                continue
-
-            elif self.state == MESSAGE_STATE:
-                count = self._parse_message(data)
+            if self.state <= self.state_l:
+                method = self.states[self.state - 1]
+                count = method(data)
                 if count == 0: break
 
                 size -= count
