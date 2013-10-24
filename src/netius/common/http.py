@@ -267,8 +267,8 @@ class HTTPParser(netius.Observable):
             self.version = VERSIONS_MAP.get(self.version_s, HTTP_10)
             self.status = int(self.code_s)
 
-        # updates the current state of parsing to the message state
-        # as that the status line are the headers
+        # updates the current state of parsing to the header state
+        # so that the headers are the next item to be processed
         self.state = HEADERS_STATE
 
         # triggers the on line event so that the listeners are notified
