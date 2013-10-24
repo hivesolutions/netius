@@ -60,9 +60,9 @@ class DHCPRequest(object):
         buffer.write("yiaddr  := %s\n" % self.yiaddr_s)
         buffer.write("siaddr  := %s\n" % self.siaddr_s)
         buffer.write("giaddr  := %s\n" % self.giaddr_s)
+        buffer.write("chaddr  := %x\n" % self.chaddr[0])
+        buffer.write("chaddr  := %x\n" % self.chaddr[1])
         buffer.write("sname   := %s\n" % self.sname)
-        for addr in self.chaddr_s:
-            buffer.write("chaddr  := %s\n" % addr)
         buffer.write("file    := %s\n" % self.file)
         buffer.write("options := %s" % self.options)
         buffer.seek(0)
@@ -75,7 +75,7 @@ class DHCPRequest(object):
         print "------------ // ------------"
 
     def parse(self):
-        format = "!BBBBIHHIIII4I64s128s"
+        format = "!BBBBIHHIIII2Q64s128s"
 
         self.header = self.data[:236]
         self.options = self.data[236:]
@@ -91,21 +91,117 @@ class DHCPRequest(object):
         self.yiaddr = result[8]
         self.siaddr = result[9]
         self.giaddr = result[10]
-        self.chaddr = result[11:15]
-        self.sname = result[15]
-        self.file = result[16]
-
-        self.sname = netius.common.cstring(self.sname)
-        self.file = netius.common.cstring(self.file)
+        self.chaddr = result[11:13]
+        self.sname = result[13]
+        self.file = result[14]
 
         self.ciaddr_s = netius.common.addr_to_ip4(self.ciaddr)
         self.yiaddr_s = netius.common.addr_to_ip4(self.yiaddr)
         self.siaddr_s = netius.common.addr_to_ip4(self.siaddr)
         self.giaddr_s = netius.common.addr_to_ip4(self.giaddr)
-        self.chaddr_s = [netius.common.addr_to_ip4(addr) for addr in self.chaddr]
 
     def response(self):
-        pass
+        format = "!BBBBIHHIIII2Q64s128sI"
+        result = []
+
+        op = 0x02
+        htype = 0x01
+        hlen = 0x06
+        hops = 0x00
+        xid = self.xid
+        secs = 0x0000
+        flags = self.flags
+        ciaddr = self.ciaddr
+        yiaddr = netius.common.ip4_to_addr("172.16.0.99")
+        siaddr = netius.common.ip4_to_addr("172.16.0.25") # tenho de o conseguir sacar de algum lado (o meu ip)
+        giaddr = self.siaddr
+        chaddr = self.chaddr
+        sname = ""
+        file = ""
+        magic = 0x63825363
+        offer = self._option_offer()
+        lease_t = self._option_lease_t()
+        subnet_t = self._option_subnet()
+        dns_t = self._option_dns()
+        requested_t = self._option_requested()
+        router = self._option_router()
+        end = self._option_end()
+
+        result.append(op)
+        result.append(htype)
+        result.append(hlen)
+        result.append(hops)
+        result.append(xid)
+        result.append(secs)
+        result.append(flags)
+        result.append(ciaddr)
+        result.append(yiaddr)
+        result.append(siaddr)
+        result.append(giaddr)
+        result.append(chaddr[0])
+        result.append(chaddr[1])
+        result.append(sname)
+        result.append(file)
+        result.append(magic)
+
+        data = struct.pack(format, *result)
+        data += offer
+        data += lease_t
+        data += subnet_t
+        data += dns_t
+        data += requested_t
+        data += router
+        data += end
+
+        return data
+
+    def _str(self, data):
+        data_l = len(data)
+        size_s = struct.pack("!B", data_l)
+        return size_s + data
+
+    def _pack_m(self, sequence, format):
+        result = []
+        for value in sequence:
+            value_s = struct.pack(format, value)
+            result.append(value_s)
+
+        return "".join(result)
+
+    def _option_subnet(self, subnet = "255.255.255.0"):
+        subnet_a = netius.common.ip4_to_addr(subnet)
+        subnet_s = struct.pack("!I", subnet_a)
+        payload = self._str(subnet_s)
+        return "\x01" + payload
+
+    def _option_router(self, routers = ["192.168.0.1"]):
+        routers_a = [netius.common.ip4_to_addr(router) for router in routers]
+        routers_s = self._pack_m(routers_a, "!I")
+        payload = self._str(routers_s)
+        return "\x03" + payload
+
+    def _option_dns(self, servers = ["192.168.0.1", "192.168.0.2"]):
+        servers_a = [netius.common.ip4_to_addr(server) for server in servers]
+        servers_s = self._pack_m(servers_a, "!I")
+        payload = self._str(servers_s)
+        return "\x06" + payload
+
+    def _option_requested(self, ip = "192.168.0.11"):
+        ip_a = netius.common.ip4_to_addr(ip)
+        ip_s = struct.pack("!I", ip_a)
+        payload = self._str(ip_s)
+        return "\x32" + payload
+
+    def _option_lease_t(self, time = 3600):
+        time_s = struct.pack("!I", time)
+        payload = self._str(time_s)
+        return "\x33" + payload
+
+    def _option_offer(self):
+        return "\x35\x01\x02"
+
+    def _option_end(self):
+        return "\xff"
 
 class DHCPServer(netius.DatagramServer):
 
@@ -129,7 +225,8 @@ class DHCPServer(netius.DatagramServer):
         request.parse()
         request.print_info()
 
-        #self.socket.sendto(, address)
+        response = request.response()
+        self.socket.sendto(response, address)
 
     def on_connection_d(self, connection):
         netius.DatagramServer.on_connection_d(self, connection)
