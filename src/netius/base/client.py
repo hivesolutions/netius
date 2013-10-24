@@ -37,8 +37,6 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import socket
-
 from common import * #@UnusedWildImport
 
 class Client(Base):
@@ -122,30 +120,7 @@ class Client(Base):
         _socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        hasattr(socket, "TCP_KEEPIDLE") and\
-            _socket.setsockopt(
-                socket.IPPROTO_TCP,
-                socket.TCP_KEEPIDLE,
-                KEEPALIVE_TIMEOUT
-            ) #@UndefinedVariable
-        hasattr(socket, "TCP_KEEPINTVL") and\
-            _socket.setsockopt(
-                socket.IPPROTO_TCP,
-                socket.TCP_KEEPINTVL,
-                KEEPALIVE_INTERVAL
-            ) #@UndefinedVariable
-        hasattr(socket, "TCP_KEEPCNT") and\
-            _socket.setsockopt(
-                socket.IPPROTO_TCP,
-                socket.TCP_KEEPCNT,
-                KEEPALIVE_COUNT
-            ) #@UndefinedVariable
-        hasattr(socket, "SO_REUSEPORT") and\
-            _socket.setsockopt(
-                socket.SOL_SOCKET,
-                socket.SO_REUSEPORT,
-                1
-            ) #@UndefinedVariable
+        self._socket_keepalive(_socket)
 
         address = (host, port)
 

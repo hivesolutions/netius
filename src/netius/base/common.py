@@ -41,6 +41,7 @@ import os
 import ssl
 import copy
 import errno
+import socket
 import logging
 import traceback
 
@@ -94,6 +95,15 @@ SSL_VALID_ERRORS = (
 )
 """ The list containing the valid error in the handshake
 operation of the ssl connection establishment """
+
+TCP_TYPE = 1
+""" The type enumeration value that represents the tcp (stream)
+based communication protocol, for various usages in the base
+netius communication infra-structure """
+
+UDP_TYPE = 2
+""" The datagram based udp protocol enumeration value to be used
+in static references to this kind of socket usage """
 
 STATE_STOP = 1
 """ The stop state value, this value is set when the service
@@ -508,6 +518,32 @@ class Base(observer.Observable):
         _delayed = copy.copy(self._delayed)
         del self._delayed[:]
         for method in _delayed: method()
+
+    def _socket_keepalive(self, _socket):
+        hasattr(_socket, "TCP_KEEPIDLE") and\
+            self.socket.setsockopt(
+                socket.IPPROTO_TCP,
+                socket.TCP_KEEPIDLE, #@UndefinedVariable
+                KEEPALIVE_TIMEOUT
+            )
+        hasattr(_socket, "TCP_KEEPINTVL") and\
+            self.socket.setsockopt(
+                socket.IPPROTO_TCP,
+                socket.TCP_KEEPINTVL, #@UndefinedVariable
+                KEEPALIVE_INTERVAL
+            )
+        hasattr(_socket, "TCP_KEEPCNT") and\
+            self.socket.setsockopt(
+                socket.IPPROTO_TCP,
+                socket.TCP_KEEPCNT, #@UndefinedVariable
+                KEEPALIVE_COUNT
+            )
+        hasattr(_socket, "SO_REUSEPORT") and\
+            self.socket.setsockopt(
+                socket.SOL_SOCKET,
+                socket.SO_REUSEPORT, #@UndefinedVariable
+                1
+            )
 
     def _ssl_wrap(self, _socket, key_file = None, cer_file = None, server = True):
         dir_path = os.path.dirname(__file__)
