@@ -37,7 +37,14 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import struct
+
 import netius.clients
+
+GRANTED = 0x5a
+REJECTED = 0x5b
+FAILED_CLIENT = 0x5c
+FAILED_AUTH = 0x5d
 
 class SOCKSConnection(netius.Connection):
 
@@ -47,17 +54,9 @@ class SOCKSConnection(netius.Connection):
 
         self.parser.bind("on_data", self.on_data)
 
-    def send_response(
-        self,
-        data = None,
-        headers = None,
-        version = "HTTP/1.1",
-        code = 200,
-        code_s = None,
-        callback = None
-    ):
-        @TODO implement the send response
-        pass
+    def send_response(self, status = GRANTED):
+        data = struct.pack("!BBHI", 0, status, 0, 0)
+        self.send(data)
 
     def parse(self, data):
         return self.parser.parse(data)
@@ -104,6 +103,14 @@ class SOCKSServer(netius.Server):
         if hasattr(connection, "tunnel_c"): connection.tunnel_c.send(data)
         else: connection.parse(data)
 
+    def on_data_socks(self, connection, parser):
+        host = parser.address_s
+        port = parser.port
+
+        _connection = self.raw_client.connect(host, port)
+        connection.tunnel_c = _connection
+        self.conn_map[_connection] = connection
+
     def on_connection_d(self, connection):
         netius.Server.on_connection_d(self, connection)
 
@@ -114,10 +121,7 @@ class SOCKSServer(netius.Server):
 
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
-        connection.send_response(
-            code = 200,
-            code_s = "Connection established"
-        )
+        connection.send_response(status = GRANTED)
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
