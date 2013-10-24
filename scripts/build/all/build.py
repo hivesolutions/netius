@@ -26,7 +26,6 @@ def build(file = None):
     result_f = atm.path("result")
     tmp_f = atm.path("tmp")
     dist_f = atm.path("dist")
-    build_f = atm.path("build")
 
     # clones the current repository using the git command and then
     # copies the resulting directory to the result and temporary
