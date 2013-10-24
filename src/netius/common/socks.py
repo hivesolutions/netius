@@ -39,7 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import struct
 
-import netius
+import netius.common
 
 REQUEST_STATE = 1
 
@@ -66,6 +66,8 @@ class SOCKSParser(netius.Observable):
         self.address = None
         self.address_s = None
         self.user_id = None
+        self.domain = None
+        self.is_extended = False
 
     def clear(self, force = False):
         if not force and self.state == REQUEST_STATE: return
@@ -141,21 +143,20 @@ class SOCKSParser(netius.Observable):
         # data that has been sent to the parser
         return size_o - size
 
-    def _ip_from_number(self, number):
-        first = int(number / 16777216) % 256
-        second = int(number / 65536) % 256
-        third = int(number / 256) % 256
-        fourth = int(number) % 256
-        return "%s.%s.%s.%s" % (first, second, third, fourth)
+    def get_host(self):
+        return self.domain or self.address_s
 
     def _parse_request(self, data):
+        print repr(data)
         if len(data) < 8:
             raise netius.ParserError("Invalid request (too short)")
 
         request = data[:8]
         self.version, self.command, self.port, self.address =\
             struct.unpack("!BBHI", request)
-        self.address_s = self._ip_from_number(self.address)
+        self.address_s = netius.common.number_to_ip4(self.address)
+
+        self.is_extended = self.address_s.startswith("0.0.0.")
 
         self.state = USER_ID_STATE
 
@@ -167,6 +168,20 @@ class SOCKSParser(netius.Observable):
 
         self.buffer.append(data[:index])
         self.user_id = "".join(self.buffer)
+        del self.buffer[:]
+
+        if self.is_extended: self.state = DOMAIN_STATE
+        else: self.state = FINISH_STATE
+
+        if not self.is_extended: self.trigger("on_data")
+        return index + 1
+
+    def _parse_domain(self, data):
+        index = data.find("\0")
+        if index == -1: return 0
+
+        self.buffer.append(data[:index])
+        self.domain = "".join(self.buffer)
         del self.buffer[:]
 
         self.state = FINISH_STATE

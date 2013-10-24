@@ -41,3 +41,10 @@ def header_up(name):
     values = name.split("-")
     values = [value.title() for value in values]
     return "-".join(values)
+
+def number_to_ip4(number):
+    first = int(number / 16777216) % 256
+    second = int(number / 65536) % 256
+    third = int(number / 256) % 256
+    fourth = int(number) % 256
+    return "%s.%s.%s.%s" % (first, second, third, fourth)

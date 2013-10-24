@@ -104,7 +104,7 @@ class SOCKSServer(netius.Server):
         else: connection.parse(data)
 
     def on_data_socks(self, connection, parser):
-        host = parser.address_s
+        host = parser.get_host()
         port = parser.port
 
         _connection = self.raw_client.connect(host, port)
