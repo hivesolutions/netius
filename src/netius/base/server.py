@@ -37,8 +37,6 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import socket
-
 from common import * #@UnusedWildImport
 
 class Server(Base):
@@ -48,6 +46,7 @@ class Server(Base):
         self.socket = None
         self.host = None
         self.port = None
+        self.type = None
         self.ssl = False
 
     def cleanup(self):
@@ -91,7 +90,7 @@ class Server(Base):
         info["ssl"] = self.ssl
         return info
 
-    def serve(self, host = "127.0.0.1", port = 9090, ssl = False, key_file = None, cer_file = None, start = True):
+    def serve(self, host = "127.0.0.1", port = 9090, type = TCP_TYPE, ssl = False, key_file = None, cer_file = None, start = True):
         # updates the current service status to the configuration
         # stage as the next steps is to configure the service socket
         self.set_state(STATE_CONFIG)
@@ -101,6 +100,7 @@ class Server(Base):
         # used latter for reference operations
         self.host = host
         self.port = port
+        self.type = type
         self.ssl = ssl
 
         # defaults the provided ssl key and certificate paths to the
@@ -109,52 +109,11 @@ class Server(Base):
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
 
-        # creates the socket that it's going to be used for the listening
-        # of new connections (server socket) and sets it as non blocking
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setblocking(0)
-
-        # in case the server is meant to be used as ssl wraps the socket
-        # in suck fashion so that it becomes "secured"
-        if ssl: self.socket = self._ssl_wrap(
-            self.socket,
-            key_file = key_file,
-            cer_file = cer_file,
-            server = True
-        )
-
-        # sets the various options in the service socket so that it becomes
-        # ready for the operation with the highest possible performance, these
-        # options include the reuse address to be able to re-bind to the port
-        # and address and the keep alive that drops connections after some time
-        # avoiding the leak of connections (operative system managed)
-        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        hasattr(socket, "TCP_KEEPIDLE") and\
-            self.socket.setsockopt(
-                socket.IPPROTO_TCP,
-                socket.TCP_KEEPIDLE,
-                KEEPALIVE_TIMEOUT
-            ) #@UndefinedVariable
-        hasattr(socket, "TCP_KEEPINTVL") and\
-            self.socket.setsockopt(
-                socket.IPPROTO_TCP,
-                socket.TCP_KEEPINTVL,
-                KEEPALIVE_INTERVAL
-            ) #@UndefinedVariable
-        hasattr(socket, "TCP_KEEPCNT") and\
-            self.socket.setsockopt(
-                socket.IPPROTO_TCP,
-                socket.TCP_KEEPCNT,
-                KEEPALIVE_COUNT
-            ) #@UndefinedVariable
-        hasattr(socket, "SO_REUSEPORT") and\
-            self.socket.setsockopt(
-                socket.SOL_SOCKET,
-                socket.SO_REUSEPORT,
-                1
-            ) #@UndefinedVariable
+        # checks the type of service that is meant to be created and
+        # creates a service socket according to the defined service
+        if type == TCP_TYPE: self.socket = self.socket_tcp(ssl, key_file, cer_file)
+        elif type == UDP_TYPE: self.socket = self.socket_udp()
+        else: raise errors.NetiusError("Invalid server type provided '%d'" % type)
 
         # ensures that the current polling mechanism is correctly open as the
         # service socket is going to be added to it next
@@ -168,7 +127,7 @@ class Server(Base):
         # binds the socket to the provided host and port and then start the
         # listening in the socket with the maximum backlog as possible
         self.socket.bind((host, port))
-        self.socket.listen(5)
+        if type == TCP_TYPE: self.socket.listen(5)
 
         # start the loading process of the base system so that the system should
         # be able to log some information that is going to be output
@@ -183,6 +142,49 @@ class Server(Base):
         # starts the base system so that the event loop gets started and the
         # the servers gets ready to accept new connections (starts service)
         if start: self.start()
+
+    def socket_tcp(self, ssl, key_file, cer_file):
+        # creates the socket that it's going to be used for the listening
+        # of new connections (server socket) and sets it as non blocking
+        _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        _socket.setblocking(0)
+
+        # in case the server is meant to be used as ssl wraps the socket
+        # in suck fashion so that it becomes "secured"
+        if ssl: _socket = self._ssl_wrap(
+            _socket,
+            key_file = key_file,
+            cer_file = cer_file,
+            server = True
+        )
+
+        # sets the various options in the service socket so that it becomes
+        # ready for the operation with the highest possible performance, these
+        # options include the reuse address to be able to re-bind to the port
+        # and address and the keep alive that drops connections after some time
+        # avoiding the leak of connections (operative system managed)
+        _socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        self._socket_keepalive(_socket)
+
+        # returns the created tcp socket to the calling method so that it
+        # may be used from this point on
+        return _socket
+
+    def socket_udp(self):
+        # creates the socket that it's going to be used for the listening
+        # of new connections (server socket) and sets it as non blocking
+        _socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        _socket.setblocking(0)
+
+        # sets the various options in the service socket so that it becomes
+        # ready for the operation with the highest possible performance
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        # returns the created udp socket to the calling method so that it
+        # may be used from this point on
+        return _socket
 
     def on_read_s(self, _socket):
         try:
