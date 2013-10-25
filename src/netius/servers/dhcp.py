@@ -94,7 +94,7 @@ class DHCPRequest(object):
         buffer.write("chaddr  := %x\n" % self.chaddr[1])
         buffer.write("sname   := %s\n" % self.sname)
         buffer.write("file    := %s\n" % self.file)
-        buffer.write("options := %s" % self.options)
+        buffer.write("options := %s" % repr(self.options))
         buffer.seek(0)
         return buffer
 
@@ -276,7 +276,7 @@ class DHCPServer(netius.DatagramServer):
         }
 
         response = request.response(options)
-        self.socket.sendto(response, address)
+        self.socket.sendto(response, address)  #### @TODO ISTO AINDA NAO ESTA A LIDAR COM OS PROBLEMAS NAS FALHAS DOS WRITES !!!!
 
     def on_connection_d(self, connection):
         netius.DatagramServer.on_connection_d(self, connection)
