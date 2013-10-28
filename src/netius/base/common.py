@@ -76,7 +76,7 @@ POLL_ORDER = (
 """ The order from which the poll methods are going to be
 selected from the fastest to the slowest, in case no explicit
 poll method is defined for a base service they are selected
-based on this list testing them for acceptence first """
+based on this list testing them for acceptance first """
 
 VALID_ERRORS = (
     errno.EWOULDBLOCK,
