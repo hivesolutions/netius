@@ -175,8 +175,9 @@ class Connection(object):
         # in case the thread where this code is being executed
         # is not the same the operation is considered to be not
         # safe and so it must be delayed to be executed in the
-        # next loop of the thread cycle
-        if not is_safe: self.owner.delay(self.ensure_write)
+        # next loop of the thread cycle, must return immediately
+        # to avoid extra subscription operations
+        if not is_safe: self.owner.delay(self.ensure_write); return
 
         # verifies if the status of the connection is open and
         # in case it's not returns immediately as there's no reason
