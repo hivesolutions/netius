@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import urllib
 import urlparse
 
 import netius.common
@@ -159,19 +160,44 @@ class HTTPClient(netius.Client):
     operations and makes use of the http parser from netius.
     """
 
-    def get(self, url, headers = {}):
-        return self.method("GET", url, headers = headers)
+    def get(self, url, params = {}, headers = {}):
+        return self.method(
+            "GET",
+            url,
+            params = params,
+            headers = headers
+        )
 
-    def post(self, url, headers = {}, data = None):
-        return self.method("POST", url, headers = headers, data = data)
+    def post(self, url, params = {}, headers = {}, data = None):
+        return self.method(
+            "POST",
+            url,
+            params = params,
+            headers = headers,
+            data = data
+        )
 
-    def put(self, url, headers = {}, data = None):
-        return self.method("PUT", url, headers = headers, data = data)
+    def put(self, url, params = {}, headers = {}, data = None):
+        return self.method(
+            "PUT",
+            url,
+            params = params,
+            headers = headers,
+            data = data
+        )
 
-    def delete(self, url, headers = {}):
-        return self.method("DELETE", url, headers = headers)
+    def delete(self, url, params = {}, headers = {}):
+        return self.method(
+            "DELETE",
+            url,
+            params = params,
+            headers = headers
+        )
 
-    def method(self, method, url, headers = {}, data = None, version = "HTTP/1.1"):
+    def method(self, method, url, params = {}, headers = {}, data = None, version = "HTTP/1.1"):
+        query = urllib.urlencode(params)
+        if query: url = url + "?" + query
+
         parsed = urlparse.urlparse(url)
         ssl = parsed.scheme == "https"
         host = parsed.hostname
