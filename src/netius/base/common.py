@@ -285,7 +285,6 @@ class Base(observer.Observable):
         self._running = False
 
     def close(self):
-        self.trigger("close", self)
         self.stop()
 
     def is_empty(self):
