@@ -220,7 +220,7 @@ class Base(observer.Observable):
     def delay(self, callable, timeout = None):
         target = time.time()
         if timeout: target = target + timeout
-        callable_t = (callable, target)
+        callable_t = (target, callable)
         self._delayed.append(callable_t)
 
     def load(self):
@@ -522,9 +522,8 @@ class Base(observer.Observable):
         del self._delayed[:]
 
         current = time.time()
-
         for callable_t in _delayed:
-            method, target = callable_t
+            target, method = callable_t
             is_valid = current >= target
             if is_valid: method()
             else: self._delayed.append(callable_t)
