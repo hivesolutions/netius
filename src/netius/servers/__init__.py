@@ -37,6 +37,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import dhcp
 import echo
 import http
+import mjpg
 import ws
 import proxy
 import socks
@@ -45,6 +46,7 @@ import wsgi
 from dhcp import *
 from echo import *
 from http import *
+from mjpg import *
 from proxy import *
 from socks import *
 from ws import *
