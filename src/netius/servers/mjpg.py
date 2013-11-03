@@ -51,7 +51,7 @@ class MJPGServer(http.HTTPServer):
     This class should only be seen as a foundation and
     proper implementation should be made from this.
     """
-    
+
     def __init__(self, boundary = BOUNDARY, name = None, handler = None, *args, **kwargs):
         http.HTTPServer.__init__(
             self,
@@ -64,27 +64,38 @@ class MJPGServer(http.HTTPServer):
 
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
-        
+
         status = "200 OK"
-        response_headers = [
+        headers = [
             ("Content-type", "multipart/x-mixed-replace; boundary=%s" % self.boundary),
             ("Cache-Control", "no-cache"),
             ("Connection", "close"),
             ("Pragma", "no-cache")
         ]
-        start_response(status, response_headers)
-        
-        for i in range(60):
-            index = (i % 2) + 1
-            
-            name = "C:/tobias/%d.jpg" % index
-            
+
+        version_s = parser.version_s
+        headers = dict(headers)
+
+        buffer = []
+        buffer.append("%s %s\r\n" % (version_s, status))
+        for key, value in headers.iteritems():
+            buffer.append("%s: %s\r\n" % (key, value))
+        buffer.append("\r\n")
+
+        data = "".join(buffer)
+        connection.send(data)
+
+        def send(connection, index = 0):
+            target = (index % 2) + 1
+
+            name = "C:/tobias/%d.jpg" % target
+
             file = open(name, "rb")
             try: data = file.read()
             finally: file.close()
-            
+
             data_l = len(data)
-            
+
             buffer = []
             buffer.append("--%s\r\n" % self.boundary)
             buffer.append("Content-Type: image/jpeg\r\n")
@@ -92,15 +103,18 @@ class MJPGServer(http.HTTPServer):
             buffer.append("\r\n")
             buffer.append(data)
             buffer.append("\r\n")
-            
+
             buffer_d = "".join(buffer)
-            
-            yield buffer_d
-            
-            import time
-            time.sleep(5000)
+
+            def next(connection):
+                def callable():
+                    send(connection, index + 1)
+                self.delay(callable, 1)
+
+            connection.send(buffer_d, callback = next)
+
+        send(connection)
 
 if __name__ == "__main__":
     server = MJPGServer()
     server.serve()
-    
