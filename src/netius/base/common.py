@@ -399,6 +399,7 @@ class Base(observer.Observable):
         info["loaded"] = self._loaded
         info["connections"] = len(self.connections)
         info["state"] = self.get_state_s()
+        info["poll"] = self.get_poll_name()
         return info
 
     def new_connection(self, socket, address, ssl = False):
