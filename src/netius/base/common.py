@@ -217,8 +217,11 @@ class Base(observer.Observable):
 
         raise errors.NetiusError("No valid poll mechanism available")
 
-    def delay(self, callable):
-        self._delayed.append(callable)
+    def delay(self, callable, timeout = None):
+        target = time.time()
+        if timeout: target = target + timeout
+        callable_t = (callable, target)
+        self._delayed.append(callable_t)
 
     def load(self):
         if self._loaded: return
@@ -517,7 +520,14 @@ class Base(observer.Observable):
         if not self._delayed: return
         _delayed = copy.copy(self._delayed)
         del self._delayed[:]
-        for method in _delayed: method()
+
+        current = time.time()
+
+        for callable_t in _delayed:
+            method, target = callable_t
+            is_valid = current >= target
+            if is_valid: method()
+            else: self._delayed.append(callable_t)
 
     def _socket_keepalive(self, _socket):
         hasattr(_socket, "TCP_KEEPIDLE") and\
