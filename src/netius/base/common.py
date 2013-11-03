@@ -451,6 +451,9 @@ class Base(observer.Observable):
     def get_poll_name(self):
         poll = self.get_poll()
         name = poll.__class__.__name__
+        name_s = name.split("Poll", 1)
+        name = name_s[0]
+        name = name.lower()
         return name
 
     def set_state(self, state):
