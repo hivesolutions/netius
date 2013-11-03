@@ -119,8 +119,8 @@ STATE_CONFIG = 3
 preparing to become started and the configuration attributes
 are being set according to pre-determined indications """
 
-STATE_SELECT = 4
-""" State to be used when the service is in the select part
+STATE_POLL = 4
+""" State to be used when the service is in the polling part
 of the loop, this is the most frequent state in an idle service
 as the service "spends" most of its time in it """
 
@@ -148,7 +148,7 @@ STATE_STRINGS = (
     "STOP",
     "START",
     "CONFIG",
-    "SELECT",
+    "POLL",
     "TICK",
     "READ",
     "WRITE",
@@ -351,9 +351,9 @@ class Base(observer.Observable):
             # callback as this is the "space" they have for execution
             self.ticks()
 
-            # updates the current state to select to indicate
+            # updates the current state to poll to indicate
             # that the base service is selecting the connections
-            self.set_state(STATE_SELECT)
+            self.set_state(STATE_POLL)
 
             # runs the main selection operation on the current set
             # of connection for each of the three operations returning
