@@ -265,7 +265,7 @@ class Base(observer.Observable):
         # to the logger indicating this start, this stage
         # should block the thread until a stop call is made
         self.debug("Starting '%s' service main loop ..." % self.name)
-        self.debug("Using '%s' as select mechanism" % poll_name)
+        self.debug("Using '%s' as polling mechanism" % poll_name)
         self.trigger("start", self)
         try: self.loop()
         except (KeyboardInterrupt, SystemExit):
