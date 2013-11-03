@@ -62,9 +62,9 @@ class Container(Base):
             # callback as this is the "space" they have for execution
             self.ticks()
 
-            # updates the current state to select to indicate
+            # updates the current state to poll to indicate
             # that the base service is selecting the connections
-            self.set_state(STATE_SELECT)
+            self.set_state(STATE_POLL)
 
             # runs the "owner" based version of the poll operation
             # so that the poll results are indexed by their owner
