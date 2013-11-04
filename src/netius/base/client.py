@@ -51,6 +51,7 @@ class Client(Base):
 
     def ticks(self):
         self.set_state(STATE_TICK)
+        self._lid = (self._lid + 1) % 2147483647
         if self.pendings: self._connects()
         self._delays()
 

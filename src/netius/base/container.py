@@ -78,6 +78,7 @@ class Container(Base):
 
     def ticks(self):
         self.set_state(STATE_TICK)
+        self._lid = (self._lid + 1) % 2147483647
         for base in self.bases: base.ticks()
 
     def on_start(self, service):

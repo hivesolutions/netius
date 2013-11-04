@@ -347,11 +347,6 @@ class Base(observer.Observable):
         # is set, once it becomes unset the loop breaks
         # at the next execution cycle
         while self._running:
-            # "calculates" the new loop id by incrementing one value
-            # to the previous one, note that the value is calculated
-            # in a modulus way so that no overflow occurs
-            self._lid = (self._lid + 1) % 2147483647
-
             # calls the base tick int handler indicating that a new
             # tick loop iteration is going to be started, all the
             # "in between loop" operation should be performed in this
@@ -377,7 +372,17 @@ class Base(observer.Observable):
             self.errors(errors)
 
     def ticks(self):
+        # updates the current state value to the tick state indicating
+        # that the current process is updating a new tick in loop
         self.set_state(STATE_TICK)
+
+        # "calculates" the new loop id by incrementing one value
+        # to the previous one, note that the value is calculated
+        # in a modulus way so that no overflow occurs
+        self._lid = (self._lid + 1) % 2147483647
+
+        # runs the processing of the delayed calls so that the pending
+        # calls are called if the correct time has been reached
         self._delays()
 
     def reads(self, reads):
@@ -574,6 +579,11 @@ class Base(observer.Observable):
             # is only required for target zero calls referring the delayed
             # calls to be executed immediately (on next loop)
             if target == 0 and self._lid == lid:
+                print "coiso"
+                print self
+                print self._lid
+                print lid
+                print target
                 pendings.append(callable_t)
                 continue
 
@@ -584,7 +594,9 @@ class Base(observer.Observable):
         # iterates over all the pending callable tuple values and adds
         # them back to the delayed heap list so that they are called
         # latter on (not ready to be called now)
-        for pending in pendings: heapq.heappush(self._delayed, pending)
+        for pending in pendings:
+            print pending
+            heapq.heappush(self._delayed, pending)
 
     def _socket_keepalive(self, _socket):
         hasattr(_socket, "TCP_KEEPIDLE") and\
