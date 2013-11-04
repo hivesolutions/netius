@@ -579,11 +579,6 @@ class Base(observer.Observable):
             # is only required for target zero calls referring the delayed
             # calls to be executed immediately (on next loop)
             if target == 0 and self._lid == lid:
-                print "coiso"
-                print self
-                print self._lid
-                print lid
-                print target
                 pendings.append(callable_t)
                 continue
 
@@ -595,7 +590,6 @@ class Base(observer.Observable):
         # them back to the delayed heap list so that they are called
         # latter on (not ready to be called now)
         for pending in pendings:
-            print pending
             heapq.heappush(self._delayed, pending)
 
     def _socket_keepalive(self, _socket):
