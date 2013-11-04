@@ -85,14 +85,9 @@ class MJPGServer(http.HTTPServer):
         data = "".join(buffer)
         connection.send(data)
 
-        def send(connection, index = 0):
-            target = (index % 2) + 1
-
-            name = "C:/tobias/%d.jpg" % target
-
-            file = open(name, "rb")
-            try: data = file.read()
-            finally: file.close()
+        def send(connection):
+            delay = self.get_delay(connection)
+            data = self.get_image(connection)
 
             data_l = len(data)
 
@@ -108,12 +103,28 @@ class MJPGServer(http.HTTPServer):
 
             def next(connection):
                 def callable():
-                    send(connection, index + 1)
-                self.delay(callable, 1)
+                    send(connection)
+                self.delay(callable, delay)
 
             connection.send(buffer_d, callback = next)
 
         send(connection)
+
+    def get_delay(self, connection):
+        return 1
+
+    def get_image(self, connection):
+        has_index = hasattr(connection, "index")
+        if not has_index: connection.index = 0
+        target = connection.index % 2 + 1
+        connection.index += 1
+
+        file_name = "C:/tobias/%d.jpg" % target
+        file = open(file_name, "rb")
+        try: data = file.read()
+        finally: file.close()
+
+        return data
 
 if __name__ == "__main__":
     server = MJPGServer()
