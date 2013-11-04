@@ -207,6 +207,7 @@ class Base(observer.Observable):
         self.poll = kwargs.get("poll", poll)()
         self.connections = []
         self.connections_m = {}
+        self._lid = 0
         self._running = False
         self._loaded = False
         self._delayed = []
@@ -224,9 +225,9 @@ class Base(observer.Observable):
         raise errors.NetiusError("No valid poll mechanism available")
 
     def delay(self, callable, timeout = None):
-        target = time.time() + MINIMUM_DELTA
-        if timeout: target = target + timeout
-        callable_t = (target, callable)
+        target = 0
+        if timeout: target = time.time() + timeout
+        callable_t = (target, self._lid, callable)
         heapq.heappush(self._delayed, callable_t)
 
     def load(self):
@@ -351,6 +352,11 @@ class Base(observer.Observable):
         # is set, once it becomes unset the loop breaks
         # at the next execution cycle
         while self._running:
+            # "calculates" the new loop id by incrementing one value
+            # to the previous one, note that the value is calculated
+            # in a modulus way so that no overflow occurs
+            self._lid = (self._lid + 1) % 2147483647
+
             # calls the base tick int handler indicating that a new
             # tick loop iteration is going to be started, all the
             # "in between loop" operation should be performed in this
@@ -536,6 +542,11 @@ class Base(observer.Observable):
         # comparisons against the target timestamps of the callables
         current = time.time()
 
+        # creates the list that will hold all the values that are not
+        # yet ready to be called in this iteration, the value in this
+        # list will be added back to the heap at the end of the iteration
+        pendings = []
+
         # iterates over all the delayed callable tuples to try to find
         # (and call) the ones that are meant to be executed in the past
         # (have a target timestamp with a value less than the current)
@@ -547,19 +558,32 @@ class Base(observer.Observable):
             # unpacks the current callable tuple in iteration into a
             # target (timestamp value) and a method to be called in
             # case the target timestamp is valid (in the past)
-            target, method = callable_t
+            target, lid, method = callable_t
 
             # tests if the current target is valid (less than or
             # equals to the current time value) and in case it's
             # not restores the value to the heap and breaks the loop
             is_valid = target <= current
             if not is_valid:
-                heapq.heappush(self._delayed, callable_t)
+                pendings.append(callable_t)
                 break
+
+            # in case the loop id present in the delayed call tuple is
+            # the same as the current iteration identifier then the
+            # call must be done in the next iteration cycle, this
+            # verification avoids loops in calls
+            if self._lid == lid:
+                pendings.append(callable_t)
+                continue
 
             # calls the callback method as the delayed operation is
             # now meant to be run
             method()
+
+        # iterates over all the pending callable tuple values and adds
+        # them back to the delayed heap list so that they are called
+        # latter on (not ready to be called now)
+        for pending in pendings: heapq.heappush(self._delayed, pending)
 
     def _socket_keepalive(self, _socket):
         hasattr(_socket, "TCP_KEEPIDLE") and\
