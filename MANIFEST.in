@@ -1,1 +1,2 @@
 recursive-include src/netius/base/extras *
+recursive-include src/netius/servers/extras *

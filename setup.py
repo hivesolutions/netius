@@ -68,6 +68,11 @@ setuptools.setup(
                 "src/netius/base/extras/net.cer",
                 "src/netius/base/extras/net.csr",
                 "src/netius/base/extras/net.key"
+            ),
+            "netius/servers/extras",
+            (
+                "src/netius/servers/extras/boy_0.jpg",
+                "src/netius/servers/extras/boy_1.jpg"
             )
         ),
     ),
