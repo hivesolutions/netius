@@ -41,6 +41,7 @@ import os
 import ssl
 import copy
 import errno
+import heapq
 import socket
 import logging
 import traceback
@@ -173,6 +174,11 @@ KEEPALIVE_INTERVAL = int(KEEPALIVE_TIMEOUT / 10)
 does not need to be too large and should not be considered too
 important (may be calculated automatically) """
 
+MINIMUM_DELTA = 0.001
+""" The minimum delta value that ensures that the delayed values
+are not executed in the same poll cycle as they have been inserted
+this is required to avoid unwanted loop cycles """
+
 # initializes the various paths that are going to be used for
 # the base files configuration in the complete service infra
 # structure, these should include the ssl based files
@@ -218,10 +224,10 @@ class Base(observer.Observable):
         raise errors.NetiusError("No valid poll mechanism available")
 
     def delay(self, callable, timeout = None):
-        target = time.time()
+        target = time.time() + MINIMUM_DELTA
         if timeout: target = target + timeout
         callable_t = (target, callable)
-        self._delayed.append(callable_t)
+        heapq.heappush(self._delayed, callable_t)
 
     def load(self):
         if self._loaded: return
@@ -521,16 +527,39 @@ class Base(observer.Observable):
         that they are run outside the handling.
         """
 
+        # in case there's no delayed items to be called returns immediately
+        # otherwise creates a copy of the delayed list and removes all
+        # of the elements from the current list in instance
         if not self._delayed: return
-        _delayed = copy.copy(self._delayed)
-        del self._delayed[:]
 
+        # retrieves the value for the current timestamp, to be used in
+        # comparisons against the target timestamps of the callables
         current = time.time()
-        for callable_t in _delayed:
+
+        # iterates over all the delayed callable tuples to try to find
+        # (and call) the ones that are meant to be executed in the past
+        # (have a target timestamp with a value less than the current)
+        while self._delayed:
+            # "pops" the current item from the delayed list to be used
+            # in the execution of the current iteration cycle
+            callable_t = heapq.heappop(self._delayed)
+
+            # unpacks the current callable tuple in iteration into a
+            # target (timestamp value) and a method to be called in
+            # case the target timestamp is valid (in the past)
             target, method = callable_t
-            is_valid = current >= target
-            if is_valid: method()
-            else: self._delayed.append(callable_t)
+
+            # tests if the current target is valid (less than or
+            # equals to the current time value) and in case it's
+            # not restores the value to the heap and breaks the loop
+            is_valid = target <= current
+            if not is_valid:
+                heapq.heappush(self._delayed, callable_t)
+                break
+
+            # calls the callback method as the delayed operation is
+            # now meant to be run
+            method()
 
     def _socket_keepalive(self, _socket):
         hasattr(_socket, "TCP_KEEPIDLE") and\
