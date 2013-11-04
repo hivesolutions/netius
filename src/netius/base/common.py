@@ -174,11 +174,6 @@ KEEPALIVE_INTERVAL = int(KEEPALIVE_TIMEOUT / 10)
 does not need to be too large and should not be considered too
 important (may be calculated automatically) """
 
-MINIMUM_DELTA = 0.001
-""" The minimum delta value that ensures that the delayed values
-are not executed in the same poll cycle as they have been inserted
-this is required to avoid unwanted loop cycles """
-
 # initializes the various paths that are going to be used for
 # the base files configuration in the complete service infra
 # structure, these should include the ssl based files
