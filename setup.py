@@ -56,6 +56,7 @@ setuptools.setup(
         "netius.base",
         "netius.clients",
         "netius.common",
+        "netius.extra",
         "netius.servers"
     ],
     package_dir = {
