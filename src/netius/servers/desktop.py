@@ -53,7 +53,6 @@ class DesktopServer(mjpg.MJPGServer):
         buffer = cStringIO.StringIO()
         image.save(buffer, "JPEG")
         data = buffer.getvalue()
-
         return data
 
 if __name__ == "__main__":
