@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import os
+
 import http
 
 BOUNDARY = "mjpegboundary"
@@ -116,11 +118,14 @@ class MJPGServer(http.HTTPServer):
     def get_image(self, connection):
         has_index = hasattr(connection, "index")
         if not has_index: connection.index = 0
-        target = connection.index % 2 + 1
+        target = connection.index % 2
         connection.index += 1
 
-        file_name = "C:/tobias/%d.jpg" % target
-        file = open(file_name, "rb")
+        base_path = os.path.dirname(__file__)
+        extras_path = os.path.join(base_path, "extras")
+        file_path = os.path.join(extras_path, "boy_%d.jpg" % target)
+
+        file = open(file_path, "rb")
         try: data = file.read()
         finally: file.close()
 
