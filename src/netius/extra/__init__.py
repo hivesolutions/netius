@@ -19,9 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
 
-__author__ = "João Magalhães joamag@hive.pt>"
-""" The author(s) of the module """
-
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -37,24 +34,6 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import cStringIO
+import desktop
 
-import PIL.ImageGrab
-
-import mjpg
-
-class DesktopServer(mjpg.MJPGServer):
-
-    def get_delay(self, connection):
-        return 1
-
-    def get_image(self, connection):
-        image = PIL.ImageGrab.grab()
-        buffer = cStringIO.StringIO()
-        image.save(buffer, "JPEG")
-        data = buffer.getvalue()
-        return data
-
-if __name__ == "__main__":
-    server = DesktopServer()
-    server.serve()
+from desktop import *
