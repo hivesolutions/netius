@@ -526,6 +526,10 @@ class Base(observer.Observable):
 
         These methods are expected to be run before a poll call so
         that they are run outside the handling.
+
+        The calling of the delayed methods takes into account a
+        series of assumptions including the loop identifier in order
+        to avoid loops in the delayed calls/insertions.
         """
 
         # in case there's no delayed items to be called returns immediately
@@ -566,8 +570,10 @@ class Base(observer.Observable):
             # in case the loop id present in the delayed call tuple is
             # the same as the current iteration identifier then the
             # call must be done in the next iteration cycle, this
-            # verification avoids loops in calls
-            if self._lid == lid:
+            # verification avoids loops in calls, note that this verification
+            # is only required for target zero calls referring the delayed
+            # calls to be executed immediately (on next loop)
+            if target == 0 and self._lid == lid:
                 pendings.append(callable_t)
                 continue
 
