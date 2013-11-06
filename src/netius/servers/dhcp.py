@@ -286,4 +286,4 @@ class DHCPServer(netius.DatagramServer):
 if __name__ == "__main__":
     import logging
     server = DHCPServer(level = logging.INFO)
-    server.serve(host = "0.0.0.0", port = 67)
+    server.serve(env = True)

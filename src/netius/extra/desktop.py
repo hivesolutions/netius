@@ -59,4 +59,4 @@ class DesktopServer(netius.servers.MJPGServer):
 
 if __name__ == "__main__":
     server = DesktopServer()
-    server.serve()
+    server.serve(env = True)

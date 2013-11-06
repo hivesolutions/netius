@@ -254,4 +254,4 @@ if __name__ == "__main__":
         facebook = ".*facebook.com.*"
     )
     server = ProxyServer(rules = rules, level = logging.INFO)
-    server.serve(host = "0.0.0.0", port = 8080)
+    server.serve(env = True)

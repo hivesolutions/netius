@@ -47,4 +47,4 @@ class EchoServer(ws.WSServer):
 
 if __name__ == "__main__":
     server = EchoServer()
-    server.serve()
+    server.serve(env = True)

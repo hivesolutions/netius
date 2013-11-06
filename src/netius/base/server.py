@@ -73,7 +73,27 @@ class Server(Base):
         info["ssl"] = self.ssl
         return info
 
-    def serve(self, host = "127.0.0.1", port = 9090, type = TCP_TYPE, ssl = False, key_file = None, cer_file = None, start = True):
+    def serve(
+        self,
+        host = "127.0.0.1",
+        port = 9090,
+        type = TCP_TYPE,
+        ssl = False,
+        key_file = None,
+        cer_file = None,
+        start = True,
+        env = False
+    ):
+        # processes the various default values taking into account if
+        # the environment variables are meant to be processed for the
+        # current context (default values are processed accordingly)
+        host = os.environ.get("HOST", host) if env else host
+        port = int(os.environ.get("PORT", port)) if env else port
+        type = int(os.environ.get("TYPE", type)) if env else type
+        ssl = bool(os.environ.get("SSL", ssl)) if env else ssl
+        key_file = os.environ.get("KEY_FILE", key_file) if env else key_file
+        cer_file = os.environ.get("CER_FILE", cer_file) if env else cer_file
+
         # updates the current service status to the configuration
         # stage as the next steps is to configure the service socket
         self.set_state(STATE_CONFIG)

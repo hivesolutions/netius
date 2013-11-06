@@ -169,4 +169,4 @@ class SOCKSServer(netius.StreamServer):
 if __name__ == "__main__":
     import logging
     server = SOCKSServer(level = logging.INFO)
-    server.serve(host = "0.0.0.0", port = 8080)
+    server.serve(env = True)

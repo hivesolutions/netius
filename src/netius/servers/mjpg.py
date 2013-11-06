@@ -133,4 +133,4 @@ class MJPGServer(http.HTTPServer):
 
 if __name__ == "__main__":
     server = MJPGServer()
-    server.serve()
+    server.serve(env = True)
