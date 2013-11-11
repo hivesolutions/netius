@@ -436,6 +436,21 @@ class Base(observer.Observable):
 
         return Connection(self, socket, address, ssl = ssl)
 
+    def is_debug(self):
+        return self.logger.isEnabledFor(logging.DEBUG)
+
+    def is_info(self):
+        return self.logger.isEnabledFor(logging.INFO)
+
+    def is_warning(self):
+        return self.logger.isEnabledFor(logging.WARNING)
+
+    def is_error(self):
+        return self.logger.isEnabledFor(logging.ERROR)
+
+    def is_critical(self):
+        return self.logger.isEnabledFor(logging.CRITICAL)
+
     def debug(self, object):
         self.log(object, level = logging.DEBUG)
 

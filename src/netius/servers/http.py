@@ -104,7 +104,8 @@ class HTTPServer(netius.StreamServer):
         return HTTPConnection(self, socket, address, ssl = ssl)
 
     def on_data_http(self, connection, parser):
-        pass
+        is_debug = self.is_debug()
+        is_debug and self._log_request(connection, parser)
 
     def _apply_base(self, headers):
         for key, value in BASE_HEADERS.iteritems():
@@ -114,3 +115,17 @@ class HTTPServer(netius.StreamServer):
     def _apply_parser(self, parser, headers):
         if parser.keep_alive: headers["Connection"] = "keep-alive"
         else: headers["Connection"] = "close"
+
+    def _log_request(self, connection, parser):
+        # unpacks the various values that are going to be part of
+        # the log message to be printed in the debug
+        ip_address = connection.address[0]
+        method = parser.method.upper()
+        path = parser.get_path()
+        version_s = parser.version_s
+
+        # creates the message from the complete set of components
+        # that are part of the current message and then prints a
+        # debug message with the contents of it
+        message = "%s %s %s @ %s" % (method, path, version_s, ip_address)
+        self.debug(message)
