@@ -46,14 +46,8 @@ import netius.clients
 
 class ProxyServer(http.HTTPServer):
 
-    def __init__(self, rules = {}, name = None, handler = None, *args, **kwargs):
-        http.HTTPServer.__init__(
-            self,
-            name = name,
-            handler = handler,
-            *args,
-            **kwargs
-        )
+    def __init__(self, rules = {}, *args, **kwargs):
+        http.HTTPServer.__init__(self, *args, **kwargs)
         self.rules = rules
         self.conn_map = {}
 
