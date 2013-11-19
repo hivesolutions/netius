@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import socket
+
 def cstring(value):
     index = value.index("\0")
     if index == -1: return value
@@ -61,3 +63,21 @@ def ip4_to_addr(value):
     third_a = int(third) * 256
     fourth_a = int(fourth)
     return first_a + second_a + third_a + fourth_a
+
+def host():
+    """
+    Retrieves the host for the current machine,
+    typically this would be the ipv4 address of
+    the main network interface.
+
+    No result type are guaranteed and a local address
+    (eg: 127.0.0.1) may be returned instead.
+
+    @rtype: Strong
+    @return: The string that contains the host address
+    as defined by specification for the current machine.
+    """
+
+    hostname = socket.gethostname()
+    host = socket.gethostbyname(hostname)
+    return host

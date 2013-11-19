@@ -133,6 +133,8 @@ class DHCPRequest(object):
     def response(self, options = {}):
         cls = self.__class__
 
+        host = netius.common.host()
+
         format = "!BBBBIHHIIII2Q64s128sI"
         result = []
         buffer = []
@@ -146,7 +148,7 @@ class DHCPRequest(object):
         flags = self.flags
         ciaddr = self.ciaddr
         yiaddr = netius.common.ip4_to_addr("172.16.0.99")
-        siaddr = netius.common.ip4_to_addr("172.16.0.25") # tenho de o conseguir sacar de algum lado (o meu ip)
+        siaddr = netius.common.ip4_to_addr(host)
         giaddr = self.siaddr
         chaddr = self.chaddr
         sname = ""
