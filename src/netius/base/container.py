@@ -41,8 +41,8 @@ from common import * #@UnusedWildImport
 
 class Container(Base):
 
-    def __init__(self, name = None, handler = None, *args, **kwargs):
-        Base.__init__(self, name = name, hadler = handler, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        Base.__init__(self, *args, **kwargs)
         self.bases = []
 
         self.bind("start", self.on_start)

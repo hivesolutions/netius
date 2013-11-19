@@ -41,8 +41,8 @@ from common import * #@UnusedWildImport
 
 class Client(Base):
 
-    def __init__(self, name = None, handler = None, thread = True, *args, **kwargs):
-        Base.__init__(self, name = name, hadler = handler, *args, **kwargs)
+    def __init__(self, thread = True, *args, **kwargs):
+        Base.__init__(self, *args, **kwargs)
         self.free_map = {}
         self.pendings = []
         self._pending_lock = threading.RLock()

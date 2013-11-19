@@ -41,8 +41,8 @@ from common import * #@UnusedWildImport
 
 class Server(Base):
 
-    def __init__(self, name = None, handler = None, *args, **kwargs):
-        Base.__init__(self, name = name, hadler = handler, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        Base.__init__(self, *args, **kwargs)
         self.socket = None
         self.host = None
         self.port = None
