@@ -96,13 +96,12 @@ class DHCPRequest(object):
         buffer.write("file    := %s\n" % self.file)
         buffer.write("options := %s" % repr(self.options))
         buffer.seek(0)
-        return buffer
+        info = buffer.read()
+        return info
 
     def print_info(self):
         info = self.get_info()
-        info_s = info.read()
-        print info_s
-        print "------------ // ------------"
+        print info
 
     def parse(self):
         format = "!BBBBIHHIIII2Q64s128s"
@@ -130,7 +129,7 @@ class DHCPRequest(object):
         self.siaddr_s = netius.common.addr_to_ip4(self.siaddr)
         self.giaddr_s = netius.common.addr_to_ip4(self.giaddr)
 
-    def response(self, options = {}):
+    def response(self, yiaddr, options = {}):
         cls = self.__class__
 
         host = netius.common.host()
@@ -147,7 +146,7 @@ class DHCPRequest(object):
         secs = 0x0000
         flags = self.flags
         ciaddr = self.ciaddr
-        yiaddr = netius.common.ip4_to_addr("172.16.0.99")   #@todo: this value is hardcoded!! must be returned using a pool manager !!!
+        yiaddr = netius.common.ip4_to_addr(yiaddr)
         siaddr = netius.common.ip4_to_addr(host)
         giaddr = self.siaddr
         chaddr = self.chaddr
@@ -252,16 +251,6 @@ class DHCPRequest(object):
 
 class DHCPServer(netius.DatagramServer):
 
-    def __init__(self, rules = {}, name = None, handler = None, *args, **kwargs):
-        netius.DatagramServer.__init__(
-            self,
-            name = name,
-            handler = handler,
-            *args,
-            **kwargs
-        )
-        self.rules = rules
-
     def serve(self, port = 67, type = netius.UDP_TYPE, *args, **kwargs):
         netius.DatagramServer.serve(self, port = port, type = type, *args, **kwargs)
 
@@ -270,17 +259,18 @@ class DHCPServer(netius.DatagramServer):
 
         request = DHCPRequest(data)
         request.parse()
-        request.print_info()
 
-        options = {
-            DNS_OPTION : dict(
-                servers = ["172.16.0.11", "172.16.0.12"]
-            ),
-            NAME_OPTION : dict(name = "hive")
-        }
+        options = self.get_options(request)
+        yiaddr = self.get_yiaddr(request)
 
-        response = request.response(options)
+        response = request.response(yiaddr, options = options)
         self.send(response, address)
+
+    def get_options(self, request):
+        raise netius.NetiusError("Not implemented")
+
+    def get_yiaddr(self, request):
+        raise netius.NetiusError("Not implemented")
 
 if __name__ == "__main__":
     import logging
