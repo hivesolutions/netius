@@ -48,8 +48,8 @@ DNS_DHCP = 3
 NAME_DHCP = 4
 REQUESTED_DHCP = 5
 LEASE_DHCP = 6
-OFFER_DHCP = 6
-END_DHCP = 6
+OFFER_DHCP = 7
+END_DHCP = 8
 
 class AddressPool(object):
 

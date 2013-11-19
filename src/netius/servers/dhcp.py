@@ -42,15 +42,6 @@ import cStringIO
 
 import netius.common
 
-SUBNET_OPTION = 1
-ROUTER_OPTION = 2
-DNS_OPTION = 3
-NAME_OPTION = 4
-REQUESTED_OPTION = 5
-LEASE_OPTION = 6
-OFFER_OPTION = 6
-END_OPTION = 6
-
 class DHCPRequest(object):
 
     options_m = None
