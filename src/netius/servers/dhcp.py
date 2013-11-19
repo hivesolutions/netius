@@ -282,11 +282,6 @@ class DHCPServer(netius.DatagramServer):
         response = request.response(options)
         self.send(response, address)
 
-    def on_connection_d(self, connection):
-        netius.DatagramServer.on_connection_d(self, connection)
-
-        if hasattr(connection, "tunnel_c"): connection.tunnel_c.close()
-
 if __name__ == "__main__":
     import logging
     server = DHCPServer(level = logging.INFO)
