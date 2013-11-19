@@ -50,14 +50,8 @@ class WSGIServer(http.HTTPServer):
     object as reference and a mount point.
     """
 
-    def __init__(self, app, mount = "", name = None, handler = None, *args, **kwargs):
-        http.HTTPServer.__init__(
-            self,
-            name = name,
-            handler = handler,
-            *args,
-            **kwargs
-        )
+    def __init__(self, app, mount = "", *args, **kwargs):
+        http.HTTPServer.__init__(self, *args, **kwargs)
         self.app = app
         self.mount = mount
         self.mount_l = len(mount)
