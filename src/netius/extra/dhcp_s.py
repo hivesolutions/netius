@@ -37,7 +37,55 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import netius.common
 import netius.servers
 
-class DHCPServerS(netius.DatagramServer):
-    pass
+OPTIONS = dict(
+    subnet = netius.common.SUBNET_DHCP,
+    router = netius.common.ROUTER_DHCP,
+    dns = netius.common.DNS_DHCP,
+    name = netius.common.NAME_DHCP,
+    lease = netius.common.LEASE_DHCP
+)
+""" The map of option names that associates
+a string based name with the integer based
+counter-part for resolution """
+
+class DHCPServerS(netius.servers.DHCPServer):
+
+    def __init__(self, pool = None, options = {}, *args, **kwargs):
+        netius.servers.DHCPServer.__init__(self, *args, **kwargs)
+
+        self.pool = pool or netius.common.AddressPool("192.168.0.61", "192.168.0.69")
+        self.options = {}
+        self.lease = 3600
+
+        self._build(options)
+
+    def get_options(self, request):
+        return self.options
+
+    def get_yiaddr(self, request):
+        return self.pool.peek(lease = self.lease)
+
+    def _build(self, options):
+        lease = options.get("lease", {})
+        self.lease = lease.get("time", 3600)
+
+        for key, value in options.iteritems():
+            key_i = OPTIONS.get(key, None)
+            if not key_i: continue
+            self.options[key_i] = value
+
+if __name__ == "__main__":
+    import logging
+    pool = netius.common.AddressPool("172.16.0.60", "172.16.0.61")
+    options = dict(
+        dns = dict(
+            servers = ["172.16.0.11", "172.16.0.12"]
+        ),
+        name = dict(name = "hive"),
+        lease = dict(time = 3600)
+    )
+    server = DHCPServerS(pool = pool, options = options, level = logging.INFO)
+    server.serve(env = True)
