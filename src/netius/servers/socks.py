@@ -90,14 +90,8 @@ class SOCKSConnection(netius.Connection):
 
 class SOCKSServer(netius.StreamServer):
 
-    def __init__(self, rules = {}, name = None, handler = None, *args, **kwargs):
-        netius.StreamServer.__init__(
-            self,
-            name = name,
-            handler = handler,
-            *args,
-            **kwargs
-        )
+    def __init__(self, rules = {}, *args, **kwargs):
+        netius.StreamServer.__init__(self, *args, **kwargs)
         self.rules = rules
         self.conn_map = {}
 
