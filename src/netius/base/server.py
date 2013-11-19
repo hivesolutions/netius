@@ -191,6 +191,11 @@ class Server(Base):
 
 class DatagramServer(Server):
 
+    def __init__(self, *args, **kwargs):
+        Server.__init__(self, *args, **kwargs)
+        self.pending = []
+        self.pending_lock = threading.RLock()
+
     def reads(self, reads):
         self.set_state(STATE_READ)
         for read in reads:
@@ -211,12 +216,6 @@ class DatagramServer(Server):
 
     def on_read(self, _socket):
         try:
-            # verifies if there's any pending operations in the
-            # socket (eg: ssl handshaking) and performs them trying
-            # to finish them, in they are still pending at the current
-            # state returns immediately (waits for next loop)
-            #### if self._pending(_socket): return @TODO tenho de ver se isto eNECESSARIO
-
             # iterates continuously trying to read as much data as possible
             # when there's a failure to read more data it should raise an
             # exception that should be handled properly
@@ -241,41 +240,104 @@ class DatagramServer(Server):
             for line in lines: self.info(line)
 
     def on_write(self, _socket):
-        connection = self.connections_m.get(_socket, None)
-        if not connection: return
-        if not connection.status == OPEN: return
-
         try:
-            connection._send()
+            self._send(_socket)
         except ssl.SSLError, error:
             error_v = error.args[0]
             if not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
-                connection.close()
         except socket.error, error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
-                connection.close()
         except BaseException, exception:
             self.warning(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.info(line)
-            connection.close()
 
     def on_error(self, _socket):
-        connection = self.connections_m.get(_socket, None)
-        if not connection: return
-        if not connection.status == OPEN: return
-
-        connection.close()
+        pass
 
     def on_data(self, connection, data):
         pass
+
+    def ensure_write(self):
+        # retrieves the identifier of the current thread and
+        # checks if it's the same as the one defined in the
+        # owner in case it's not then the operation is not
+        # considered to be safe and must be delayed
+        tid = thread.get_ident()
+        is_safe = tid == self.tid
+
+        # in case the thread where this code is being executed
+        # is not the same the operation is considered to be not
+        # safe and so it must be delayed to be executed in the
+        # next loop of the thread cycle, must return immediately
+        # to avoid extra subscription operations
+        if not is_safe: self.delay(self.ensure_write); return
+
+        # adds the current socket to the list of write operations
+        # so that it's going to be available for writing as soon
+        # as possible from the poll mechanism
+        self.sub_write(self.socket)
+
+    def remove_write(self):
+        self.unsub_write(self.socket)
+
+    def send(self, data, address, callback = None):
+        if callback: data = (data, callback)
+        data = (data, address)
+        self.ensure_write()
+        self.pending_lock.acquire()
+        try: self.pending.insert(0, data)
+        finally: self.pending_lock.release()
+
+    def _send(self, _socket):
+        self.pending_lock.acquire()
+        try:
+            while True:
+                if not self.pending: break
+                data = self.pending.pop()
+                data_o = data
+                callback = None
+                data, address = data
+                if type(data) == types.TupleType:
+                    data, callback = data
+                data_l = len(data)
+
+                try:
+                    # tries to send the data through the socket and
+                    # retrieves the number of bytes that were correctly
+                    # sent through the socket, this number may not be
+                    # the same as the size of the data in case only
+                    # part of the data has been sent
+                    count = _socket.sendto(data, address)
+                except:
+                    # in case there's an exception must add the data
+                    # object to the list of pending data because the data
+                    # has not been correctly sent
+                    self.pending.append(data_o)
+                    raise
+                else:
+                    # verifies if the data has been correctly sent through
+                    # the socket and for suck situations calls the callback
+                    # object, otherwise creates a new data object with only
+                    # the remaining (partial data) and the callback to be
+                    # sent latter (only then the callback is called)
+                    is_valid = count == data_l
+                    if is_valid:
+                        callback and callback(self)
+                    else:
+                        data_o = ((data[count:], callback), address)
+                        self.pending.append(data_o)
+        finally:
+            self.pending_lock.release()
+
+        self.remove_write()
 
 class StreamServer(Server):
 

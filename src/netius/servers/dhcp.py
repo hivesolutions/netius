@@ -147,7 +147,7 @@ class DHCPRequest(object):
         secs = 0x0000
         flags = self.flags
         ciaddr = self.ciaddr
-        yiaddr = netius.common.ip4_to_addr("172.16.0.99")
+        yiaddr = netius.common.ip4_to_addr("172.16.0.99")   #@todo: this value is hardcoded!! must be returned using a pool manager !!!
         siaddr = netius.common.ip4_to_addr(host)
         giaddr = self.siaddr
         chaddr = self.chaddr
@@ -273,12 +273,14 @@ class DHCPServer(netius.DatagramServer):
         request.print_info()
 
         options = {
-            DNS_OPTION : None,
-            NAME_OPTION : dict(name = "tobias.com")
+            DNS_OPTION : dict(
+                servers = ["172.16.0.11", "172.16.0.12"]
+            ),
+            NAME_OPTION : dict(name = "hive")
         }
 
         response = request.response(options)
-        self.socket.sendto(response, address)  #### @TODO ISTO AINDA NAO ESTA A LIDAR COM OS PROBLEMAS NAS FALHAS DOS WRITES !!!!
+        self.send(response, address)
 
     def on_connection_d(self, connection):
         netius.DatagramServer.on_connection_d(self, connection)
