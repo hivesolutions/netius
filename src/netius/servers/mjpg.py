@@ -54,14 +54,8 @@ class MJPGServer(http.HTTPServer):
     proper implementation should be made from this.
     """
 
-    def __init__(self, boundary = BOUNDARY, name = None, handler = None, *args, **kwargs):
-        http.HTTPServer.__init__(
-            self,
-            name = name,
-            handler = handler,
-            *args,
-            **kwargs
-        )
+    def __init__(self, boundary = BOUNDARY, *args, **kwargs):
+        http.HTTPServer.__init__(self, *args, **kwargs)
         self.boundary = boundary
 
     def on_data_http(self, connection, parser):
