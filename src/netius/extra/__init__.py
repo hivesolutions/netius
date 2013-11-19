@@ -35,5 +35,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import desktop
+import dhcp_s
 
 from desktop import *
+from dhcp_s import *

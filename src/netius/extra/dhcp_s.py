@@ -40,3 +40,4 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import netius.servers
 
 class DHCPServerS(netius.DatagramServer):
+    pass

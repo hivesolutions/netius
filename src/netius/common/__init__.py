@@ -34,10 +34,12 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import dhcp
 import http
 import socks
 import util
 
+from dhcp import *
 from http import *
 from socks import *
 from util import *
