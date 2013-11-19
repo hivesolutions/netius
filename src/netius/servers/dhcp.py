@@ -63,7 +63,10 @@ class DHCPRequest(object):
             cls._option_name,
             cls._option_requested,
             cls._option_lease,
+            cls._option_discovery,
             cls._option_offer,
+            cls._option_request,
+            cls._option_ack,
             cls._option_end
         )
         cls.options_l = len(cls.options_m)
@@ -233,8 +236,20 @@ class DHCPRequest(object):
         return "\x33" + payload
 
     @classmethod
+    def _option_discovery(cls):
+        return "\x35\x01\x01"
+
+    @classmethod
     def _option_offer(cls):
         return "\x35\x01\x02"
+
+    @classmethod
+    def _option_request(cls):
+        return "\x35\x01\x03"
+
+    @classmethod
+    def _option_ack(cls):
+        return "\x35\x01\x04"
 
     @classmethod
     def _option_end(cls):
@@ -253,6 +268,8 @@ class DHCPServer(netius.DatagramServer):
 
         options = self.get_options(request)
         yiaddr = self.get_yiaddr(request)
+
+        self.info("Offering address '%s' ..." % yiaddr)
 
         response = request.response(yiaddr, options = options)
         self.send(response, address)
