@@ -54,6 +54,29 @@ REQUEST_DHCP = 9
 ACK_DHCP = 10
 END_DHCP = 11
 
+OPTIONS_DHCP = dict(
+    subnet = SUBNET_DHCP,
+    router = ROUTER_DHCP,
+    dns = DNS_DHCP,
+    name = NAME_DHCP,
+    lease = LEASE_DHCP,
+    discovery = DISCOVERY_DHCP,
+    offer = OFFER_DHCP,
+    request = REQUEST_DHCP,
+    ack = ACK_DHCP,
+    end = END_DHCP
+)
+""" The map of option names that associates
+a string based name with the integer based
+counter-part for resolution """
+
+TYPES_DHCP = {
+    0x01 : "discovery",
+    0x02 : "offer",
+    0x03 : "request",
+    0x04 : "ack"
+}
+
 class AddressPool(object):
 
     def __init__(self, start_addr, end_addr):

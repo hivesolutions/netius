@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import re
 import struct
 import cStringIO
 
@@ -88,6 +89,7 @@ class DHCPRequest(object):
         buffer.write("chaddr  := %x\n" % self.chaddr[1])
         buffer.write("sname   := %s\n" % self.sname)
         buffer.write("file    := %s\n" % self.file)
+        buffer.write("magic   := %s\n" % self.magic)
         buffer.write("options := %s" % repr(self.options))
         buffer.seek(0)
         info = buffer.read()
@@ -101,7 +103,8 @@ class DHCPRequest(object):
         format = "!BBBBIHHIIII2Q64s128s"
 
         self.header = self.data[:236]
-        self.options = self.data[236:]
+        self.magic = self.data[236:240]
+        self.options = self.data[240:]
         result = struct.unpack(format, self.header)
         self.op = result[0]
         self.htype = result[1]
@@ -122,6 +125,43 @@ class DHCPRequest(object):
         self.yiaddr_s = netius.common.addr_to_ip4(self.yiaddr)
         self.siaddr_s = netius.common.addr_to_ip4(self.siaddr)
         self.giaddr_s = netius.common.addr_to_ip4(self.giaddr)
+
+        self.unpack_options()
+
+    def unpack_options(self):
+        self.options_m = {}
+
+        index = 0
+        while True:
+            byte = self.options[index]
+            if byte == "\xff": break
+
+            type = byte
+            type_i = ord(type)
+            length = ord(self.options[index + 1])
+            payload = self.options[index + 1:index + length + 1]
+
+            self.options_m[type_i] = payload
+
+            index += length + 2
+
+    def get_type(self):
+        payload = self.options_m.get(53, None)
+        type = ord(payload)
+        return type
+
+    def get_type_s(self):
+        type = self.get_type()
+        type_s = netius.common.TYPES_DHCP.get(type, None)
+        return type_s
+
+    def get_mac(self):
+        addr = self.chaddr[0]
+        addr_s = "%012x" % addr
+        addr_s = addr_s[:12]
+        addr_l = re.findall("..", addr_s)
+        mac_addr = ":".join(addr_l)
+        return mac_addr
 
     def response(self, yiaddr, options = {}):
         cls = self.__class__
@@ -265,6 +305,14 @@ class DHCPServer(netius.DatagramServer):
 
         request = DHCPRequest(data)
         request.parse()
+
+        self.on_data_dhcp(address, request)
+
+    def on_data_dhcp(self, address, request):
+        mac = request.get_mac()
+        type_s = request.get_type_s()
+
+        self.info("Received %s request from '%s'" % (type_s, mac))
 
         options = self.get_options(request)
         yiaddr = self.get_yiaddr(request)

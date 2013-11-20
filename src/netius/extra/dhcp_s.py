@@ -42,20 +42,6 @@ import copy
 import netius.common
 import netius.servers
 
-OPTIONS = dict(
-    subnet = netius.common.SUBNET_DHCP,
-    router = netius.common.ROUTER_DHCP,
-    dns = netius.common.DNS_DHCP,
-    name = netius.common.NAME_DHCP,
-    lease = netius.common.LEASE_DHCP,
-    discovery = netius.common.DISCOVERY_DHCP,
-    offer = netius.common.OFFER_DHCP,
-    end = netius.common.END_DHCP
-)
-""" The map of option names that associates
-a string based name with the integer based
-counter-part for resolution """
-
 class DHCPServerS(netius.servers.DHCPServer):
 
     def __init__(self, pool = None, options = {}, *args, **kwargs):
@@ -80,7 +66,7 @@ class DHCPServerS(netius.servers.DHCPServer):
         self.lease = lease.get("time", 3600)
 
         for key, value in options.iteritems():
-            key_i = OPTIONS.get(key, None)
+            key_i = netius.common.OPTIONS_DHCP.get(key, None)
             if not key_i: continue
             self.options[key_i] = value
 
