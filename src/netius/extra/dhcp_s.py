@@ -75,6 +75,7 @@ if __name__ == "__main__":
     pool = netius.common.AddressPool("172.16.0.80", "172.16.0.89")
     options = dict(
         router = dict(routers = ["172.16.0.6"]),
+        subnet = dict(subnet = "255.255.0.0"),
         dns = dict(
             servers = ["172.16.0.11", "172.16.0.12"]
         ),
