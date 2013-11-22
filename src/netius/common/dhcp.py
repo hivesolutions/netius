@@ -52,12 +52,13 @@ LEASE_DHCP = 7
 DISCOVER_DHCP = 8
 OFFER_DHCP = 9
 REQUEST_DHCP = 10
-NAK_DHCP = 11
+DECLINE_DHCP = 11
 ACK_DHCP = 12
-IDENTIFIER_DHCP = 13
-RENEWAL_DHCP = 14
-REBIND_DHCP = 15
-END_DHCP = 16
+NAK_DHCP = 13
+IDENTIFIER_DHCP = 14
+RENEWAL_DHCP = 15
+REBIND_DHCP = 16
+END_DHCP = 17
 
 OPTIONS_DHCP = dict(
     subnet = SUBNET_DHCP,
@@ -69,8 +70,9 @@ OPTIONS_DHCP = dict(
     discover = DISCOVER_DHCP,
     offer = OFFER_DHCP,
     request = REQUEST_DHCP,
-    nak = NAK_DHCP,
+    decline = DECLINE_DHCP,
     ack = ACK_DHCP,
+    nak = NAK_DHCP,
     identifier = IDENTIFIER_DHCP,
     renewal = RENEWAL_DHCP,
     rebind = REBIND_DHCP,
@@ -84,8 +86,18 @@ TYPES_DHCP = {
     0x01 : "discover",
     0x02 : "offer",
     0x03 : "request",
-    0x04 : "nak",
-    0x05 : "ack"
+    0x04 : "decline",
+    0x05 : "ack",
+    0x06 : "nak"
+}
+
+VERBS_DHCP = {
+    0x01 : "discovering",
+    0x02 : "offering",
+    0x03 : "requesting",
+    0x04 : "declining",
+    0x05 : "acknowledging",
+    0x06 : "not acknowledging"
 }
 
 class AddressPool(object):
@@ -131,6 +143,9 @@ class AddressPool(object):
         addr = self.peek()
         heapq.heappush(self.addrs, (target, addr))
         return addr
+
+    def exists(self, addr):
+        return addr in self.map
 
     def _populate(self):
         addr = self.start_addr

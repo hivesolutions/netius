@@ -53,17 +53,27 @@ class DHCPServerS(netius.servers.DHCPServer):
 
         self._build(options)
 
-    def get_options(self, request):
+    def get_type(self, request):
         type = request.get_type()
+        requested = request.get_requested()
+
+        if type == 0x01: result = netius.common.OFFER_DHCP
+        elif type == 0x03:
+            exists = self.pool.exists(requested)
+            if exists: result = netius.common.ACK_DHCP
+            else: result = netius.common.NAK_DHCP
+
+        return result
+
+    def get_options(self, request):
         options = copy.copy(self.options)
-        if type == 0x01: options[netius.common.OFFER_DHCP] = None
-        elif type == 0x03: options[netius.common.ACK_DHCP] = None
         return options
 
     def get_yiaddr(self, request):
         type = request.get_type()
-        if type == 0x01: yiaddr = self.pool.reserve(lease = self.lease)
-        elif type == 0x03: yiaddr = request.get_requested()
+        requested = request.get_requested()
+        if type == 0x01: yiaddr = self._reserve()
+        elif type == 0x03: yiaddr = self._confirm(requested)
         return  yiaddr
 
     def _build(self, options):
@@ -74,6 +84,12 @@ class DHCPServerS(netius.servers.DHCPServer):
             key_i = netius.common.OPTIONS_DHCP.get(key, None)
             if not key_i: continue
             self.options[key_i] = value
+
+    def _reserve(self):
+        return self.pool.reserve(lease = self.lease)
+
+    def _confirm(self, addr):
+        return addr
 
 if __name__ == "__main__":
     import logging
