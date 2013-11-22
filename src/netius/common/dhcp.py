@@ -108,8 +108,8 @@ class AddressPool(object):
         self.start_addr = start_addr
         self.end_addr = end_addr
         self.map = dict()
+        self.owners = dict()
         self.addrs = list()
-        self.times = list()
 
         self._populate()
 
@@ -139,23 +139,35 @@ class AddressPool(object):
 
         return addr
 
-    def reserve(self, lease = 3600):
+    def reserve(self, owner = None, lease = 3600):
         current = time.time()
         target = current + lease
         addr = self.peek()
+        self.map[addr] = target
+        self.owners[addr] = owner
         heapq.heappush(self.addrs, (target, addr))
         return addr
 
     def exists(self, addr):
         return addr in self.map
 
+    def is_valid(self, addr):
+        current = time.time()
+        target = self.map.get(addr, 0)
+        return target > current
+
+    def is_owner(self, owner, addr):
+        is_valid = self.is_valid(addr)
+        if not is_valid: return False
+        _owner = self.owners.get(addr, None)
+        return owner == _owner
+
     def _populate(self):
         addr = self.start_addr
-        index = 0
 
         while True:
-            self.map[addr] = index
+            self.map[addr] = 0
+            self.owners[addr] = None
             heapq.heappush(self.addrs, (0, addr))
             if addr == self.end_addr: break
             addr = AddressPool.get_next(addr)
-            index += 1
