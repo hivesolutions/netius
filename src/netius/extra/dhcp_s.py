@@ -54,8 +54,10 @@ class DHCPServerS(netius.servers.DHCPServer):
         self._build(options)
 
     def get_options(self, request):
+        type = request.get_type()
         options = copy.copy(self.options)
-        options[netius.common.OFFER_DHCP] = None
+        if type == 0x01: options[netius.common.OFFER_DHCP] = None
+        elif type == 0x03: options[netius.common.ACK_DHCP] = None
         return options
 
     def get_yiaddr(self, request):
@@ -72,6 +74,7 @@ class DHCPServerS(netius.servers.DHCPServer):
 
 if __name__ == "__main__":
     import logging
+    host = netius.common.host()
     pool = netius.common.AddressPool("172.16.0.80", "172.16.0.89")
     options = dict(
         router = dict(routers = ["172.16.0.6"]),
@@ -79,8 +82,12 @@ if __name__ == "__main__":
         dns = dict(
             servers = ["172.16.0.11", "172.16.0.12"]
         ),
+        identifier = dict(identifier = host),
+        broadcast = dict(broadcast = "172.16.255.255"),
         name = dict(name = "hive"),
-        lease = dict(time = 3600)
+        lease = dict(time = 3600),
+        renewal = dict(time = 1800),
+        rebind =  dict(time = 2700)
     )
     server = DHCPServerS(pool = pool, options = options, level = logging.INFO)
     server.serve(env = True)
