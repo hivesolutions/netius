@@ -320,7 +320,11 @@ class DHCPServer(netius.DatagramServer):
         self.info("Offering address '%s' ..." % yiaddr)
 
         response = request.response(yiaddr, options = options)
-        self.send(response, address)
+        self.send_dhcp(response)
+
+    def send_dhcp(self, data, *args, **kwargs):
+        address = ("255.255.255.255", self.port + 1)
+        return self.send(data, address, *args, **kwargs)
 
     def get_options(self, request):
         raise netius.NetiusError("Not implemented")

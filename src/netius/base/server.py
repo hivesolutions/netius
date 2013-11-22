@@ -184,6 +184,7 @@ class Server(Base):
         # sets the various options in the service socket so that it becomes
         # ready for the operation with the highest possible performance
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
         # returns the created udp socket to the calling method so that it
         # may be used from this point on
