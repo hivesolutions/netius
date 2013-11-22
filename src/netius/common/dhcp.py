@@ -109,6 +109,7 @@ class AddressPool(object):
         self.end_addr = end_addr
         self.map = dict()
         self.owners = dict()
+        self.owners_i = dict()
         self.addrs = list()
 
         self._populate()
@@ -130,26 +131,49 @@ class AddressPool(object):
         return next
 
     def peek(self):
+        addr = None
         current = time.time()
 
-        target, addr = heapq.heappop(self.addrs)
-        if target > current:
-            heapq.heappush(self.addrs, (target, addr))
-            raise netius.NetiusError("No address available")
+        while True:
+            target, addr = heapq.heappop(self.addrs)
+
+            _target = self.map.get(addr, 0)
+            if not target == _target: continue
+
+            if target > current:
+                heapq.heappush(self.addrs, (target, addr))
+                raise netius.NetiusError("No address available")
+
+            break
 
         return addr
 
     def reserve(self, owner = None, lease = 3600):
         current = time.time()
-        target = current + lease
+        target = int(current + lease)
         addr = self.peek()
         self.map[addr] = target
         self.owners[addr] = owner
+        self.owners_i[owner] = addr
         heapq.heappush(self.addrs, (target, addr))
         return addr
 
+    def touch(self, addr, lease = 3600):
+        is_valid = self.is_valid(addr)
+        if not is_valid: raise netius.NetiusError(
+            "Not possible to touch address"
+        )
+
+        current = time.time()
+        target = int(current + lease)
+        self.map[addr] = target
+        heapq.heappush(self.addrs, (target, addr))
+
     def exists(self, addr):
         return addr in self.map
+
+    def assigned(self, owner):
+        return self.owners_i.get(owner, None)
 
     def is_valid(self, addr):
         current = time.time()

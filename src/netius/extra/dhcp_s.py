@@ -60,7 +60,8 @@ class DHCPServerS(netius.servers.DHCPServer):
 
         if type == 0x01: result = netius.common.OFFER_DHCP
         elif type == 0x03:
-            is_owner = self.pool.is_owner(mac, requested)
+            current = self.pool.assigned(mac) or requested
+            is_owner = self.pool.is_owner(mac, current)
             if is_owner: result = netius.common.ACK_DHCP
             else: result = netius.common.NAK_DHCP
 
@@ -94,7 +95,11 @@ class DHCPServerS(netius.servers.DHCPServer):
 
     def _confirm(self, request):
         requested = request.get_requested()
-        return requested
+        mac = request.get_mac()
+        current = self.pool.assigned(mac) or requested
+        is_valid = self.pool.is_valid(current)
+        if is_valid: self.pool.touch(current, self.lease)
+        return current
 
 if __name__ == "__main__":
     import logging

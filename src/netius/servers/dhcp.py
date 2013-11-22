@@ -154,14 +154,14 @@ class DHCPRequest(object):
 
     def get_requested(self):
         payload = self.options_p.get(50, None)
-        if not payload: return None
+        if not payload: return "0.0.0.0"
         value, = struct.unpack("!I", payload)
         requested = netius.common.addr_to_ip4(value)
         return requested
 
     def get_type(self):
         payload = self.options_p.get(53, None)
-        if not payload: return None
+        if not payload: return 0x00
         type = ord(payload)
         return type
 
