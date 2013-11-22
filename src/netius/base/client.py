@@ -105,6 +105,9 @@ class Client(Base):
         if connection in connection_l: connection_l.remove (connection)
 
     def connect(self, host, port, ssl = False, key_file = None, cer_file = None):
+        if not host: raise errors.NetiusError("Invalid host for connect operation")
+        if not port: raise errors.NetiusError("Invalid port for connect operation")
+
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
 
