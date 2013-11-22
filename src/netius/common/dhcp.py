@@ -58,7 +58,8 @@ NAK_DHCP = 13
 IDENTIFIER_DHCP = 14
 RENEWAL_DHCP = 15
 REBIND_DHCP = 16
-END_DHCP = 17
+PROXY_DHCP = 17
+END_DHCP = 18
 
 OPTIONS_DHCP = dict(
     subnet = SUBNET_DHCP,
@@ -76,6 +77,7 @@ OPTIONS_DHCP = dict(
     identifier = IDENTIFIER_DHCP,
     renewal = RENEWAL_DHCP,
     rebind = REBIND_DHCP,
+    proxy = PROXY_DHCP,
     end = END_DHCP
 )
 """ The map of option names that associates

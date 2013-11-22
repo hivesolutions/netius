@@ -74,6 +74,7 @@ class DHCPRequest(object):
             cls._option_identifier,
             cls._option_renewal,
             cls._option_rebind,
+            cls._option_proxy,
             cls._option_end
         )
         cls.options_l = len(cls.options_m)
@@ -338,6 +339,12 @@ class DHCPRequest(object):
         time_s = struct.pack("!I", time)
         payload = cls._str(time_s)
         return "\x3b" + payload
+
+    @classmethod
+    def _option_proxy(cls, url = "http://localhost/proxy.pac"):
+        length = len(url)
+        length_o = chr(length)
+        return "\xfc" + length_o + url
 
     @classmethod
     def _option_end(cls):

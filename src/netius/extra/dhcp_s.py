@@ -106,7 +106,8 @@ if __name__ == "__main__":
         name = dict(name = "hive"),
         lease = dict(time = 3600),
         renewal = dict(time = 1800),
-        rebind =  dict(time = 2700)
+        rebind =  dict(time = 2700),
+        proxy = dict(url = "http://172.16.0.25:8080/proxy.pac")
     )
     server = DHCPServerS(pool = pool, options = options, level = logging.INFO)
     server.serve(env = True)
