@@ -61,7 +61,10 @@ class DHCPServerS(netius.servers.DHCPServer):
         return options
 
     def get_yiaddr(self, request):
-        return self.pool.reserve(lease = self.lease)
+        type = request.get_type()
+        if type == 0x01: yiaddr = self.pool.reserve(lease = self.lease)
+        elif type == 0x03: yiaddr = request.get_requested()
+        return  yiaddr
 
     def _build(self, options):
         lease = options.get("lease", {})

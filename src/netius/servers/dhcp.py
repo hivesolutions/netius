@@ -62,12 +62,17 @@ class DHCPRequest(object):
             cls._option_router,
             cls._option_dns,
             cls._option_name,
+            cls._option_broadcast,
             cls._option_requested,
             cls._option_lease,
-            cls._option_discovery,
+            cls._option_discover,
             cls._option_offer,
             cls._option_request,
+            cls._option_nak,
             cls._option_ack,
+            cls._option_identifier,
+            cls._option_renewal,
+            cls._option_rebind,
             cls._option_end
         )
         cls.options_l = len(cls.options_m)
@@ -129,7 +134,7 @@ class DHCPRequest(object):
         self.unpack_options()
 
     def unpack_options(self):
-        self.options_m = {}
+        self.options_p = {}
 
         index = 0
         while True:
@@ -139,14 +144,14 @@ class DHCPRequest(object):
             type = byte
             type_i = ord(type)
             length = ord(self.options[index + 1])
-            payload = self.options[index + 1:index + length + 1]
+            payload = self.options[index + 2:index + length + 2]
 
-            self.options_m[type_i] = payload
+            self.options_p[type_i] = payload
 
             index += length + 2
 
     def get_type(self):
-        payload = self.options_m.get(53, None)
+        payload = self.options_p.get(53, None)
         type = ord(payload)
         return type
 
@@ -154,6 +159,12 @@ class DHCPRequest(object):
         type = self.get_type()
         type_s = netius.common.TYPES_DHCP.get(type, None)
         return type_s
+
+    def get_requested(self):
+        payload = self.options_p.get(50, None)
+        value, = struct.unpack("!I", payload)
+        requested = netius.common.addr_to_ip4(value)
+        return requested
 
     def get_mac(self):
         addr = self.chaddr[0]
@@ -263,6 +274,13 @@ class DHCPRequest(object):
         return "\x0f" + payload
 
     @classmethod
+    def _option_broadcast(cls, broadcast = "192.168.0.255"):
+        subnet_a = netius.common.ip4_to_addr(broadcast)
+        subnet_s = struct.pack("!I", subnet_a)
+        payload = cls._str(subnet_s)
+        return "\x1c" + payload
+
+    @classmethod
     def _option_requested(cls, ip = "192.168.0.11"):
         ip_a = netius.common.ip4_to_addr(ip)
         ip_s = struct.pack("!I", ip_a)
@@ -276,7 +294,7 @@ class DHCPRequest(object):
         return "\x33" + payload
 
     @classmethod
-    def _option_discovery(cls):
+    def _option_discover(cls):
         return "\x35\x01\x01"
 
     @classmethod
@@ -288,8 +306,31 @@ class DHCPRequest(object):
         return "\x35\x01\x03"
 
     @classmethod
-    def _option_ack(cls):
+    def _option_nak(cls):
         return "\x35\x01\x04"
+
+    @classmethod
+    def _option_ack(cls):
+        return "\x35\x01\x05"
+
+    @classmethod
+    def _option_identifier(cls, identifier = "192.168.0.1"):
+        subnet_a = netius.common.ip4_to_addr(identifier)
+        subnet_s = struct.pack("!I", subnet_a)
+        payload = cls._str(subnet_s)
+        return "\x36" + payload
+
+    @classmethod
+    def _option_renewal(cls, time = 3600):
+        time_s = struct.pack("!I", time)
+        payload = cls._str(time_s)
+        return "\x3a" + payload
+
+    @classmethod
+    def _option_rebind(cls, time = 3600):
+        time_s = struct.pack("!I", time)
+        payload = cls._str(time_s)
+        return "\x3b" + payload
 
     @classmethod
     def _option_end(cls):
@@ -310,14 +351,23 @@ class DHCPServer(netius.DatagramServer):
 
     def on_data_dhcp(self, address, request):
         mac = request.get_mac()
+        type = request.get_type()
         type_s = request.get_type_s()
 
-        self.info("Received %s request from '%s'" % (type_s, mac))
+        self.info("Received %s message from '%s'" % (type_s, mac))
+
+        if not type in (0x01, 0x03): raise netius.NetiusError(
+            "Invalid operation type '%d'", type
+        )
+
+        if type == 0x01: verb = "offering"
+        else: verb = "confirming"
+        verb = verb.capitalize()
 
         options = self.get_options(request)
         yiaddr = self.get_yiaddr(request)
 
-        self.info("Offering address '%s' ..." % yiaddr)
+        self.info("%s address '%s' ..." % (verb, yiaddr))
 
         response = request.response(yiaddr, options = options)
         self.send_dhcp(response)

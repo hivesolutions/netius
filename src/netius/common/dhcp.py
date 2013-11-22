@@ -46,24 +46,34 @@ SUBNET_DHCP = 1
 ROUTER_DHCP = 2
 DNS_DHCP = 3
 NAME_DHCP = 4
-REQUESTED_DHCP = 5
-LEASE_DHCP = 6
-DISCOVERY_DHCP = 7
-OFFER_DHCP = 8
-REQUEST_DHCP = 9
-ACK_DHCP = 10
-END_DHCP = 11
+BROADCAST_DHCP = 5
+REQUESTED_DHCP = 6
+LEASE_DHCP = 7
+DISCOVER_DHCP = 8
+OFFER_DHCP = 9
+REQUEST_DHCP = 10
+NAK_DHCP = 11
+ACK_DHCP = 12
+IDENTIFIER_DHCP = 13
+RENEWAL_DHCP = 14
+REBIND_DHCP = 15
+END_DHCP = 16
 
 OPTIONS_DHCP = dict(
     subnet = SUBNET_DHCP,
     router = ROUTER_DHCP,
     dns = DNS_DHCP,
     name = NAME_DHCP,
+    broadcast = BROADCAST_DHCP,
     lease = LEASE_DHCP,
-    discovery = DISCOVERY_DHCP,
+    discover = DISCOVER_DHCP,
     offer = OFFER_DHCP,
     request = REQUEST_DHCP,
+    nak = NAK_DHCP,
     ack = ACK_DHCP,
+    identifier = IDENTIFIER_DHCP,
+    renewal = RENEWAL_DHCP,
+    rebind = REBIND_DHCP,
     end = END_DHCP
 )
 """ The map of option names that associates
@@ -71,10 +81,11 @@ a string based name with the integer based
 counter-part for resolution """
 
 TYPES_DHCP = {
-    0x01 : "discovery",
+    0x01 : "discover",
     0x02 : "offer",
     0x03 : "request",
-    0x04 : "ack"
+    0x04 : "nak",
+    0x05 : "ack"
 }
 
 class AddressPool(object):
