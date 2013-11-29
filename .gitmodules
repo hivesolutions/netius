@@ -1,3 +1,3 @@
 [submodule "bin"]
 	path = bin
-	url = https://joamag@bitbucket.org/hivesolutions/netius_bin.git
+	url = https://bitbucket.org/hivesolutions/netius_bin.git
