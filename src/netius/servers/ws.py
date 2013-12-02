@@ -237,7 +237,12 @@ class WSServer(netius.StreamServer):
             self.on_handshake(connection)
 
     def new_connection(self, socket, address, ssl = False):
-        return WSConnection(self, socket, address, ssl = ssl)
+        return WSConnection(
+            owner = self,
+            socket = socket,
+            address = address,
+            ssl = ssl
+        )
 
     def send_ws(self, connection, data):
         encoded = self._encode(data)
