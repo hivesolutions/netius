@@ -73,27 +73,30 @@ class HTTPConnection(netius.Connection):
             store = True
         )
         self.encoding = kwargs.get("encoding", PLAIN_ENCODING)
-        self.chunked = False
+        self.current = self.encoding
         self.gzip = None
         self.crc32 = 0
         self.size = 0
 
         self.parser.bind("on_data", self.on_data)
 
-    def send(self, data, callback = None, encoding = None):
-        encoding = encoding or self.encoding
-
-        if encoding == PLAIN_ENCODING:
+    def send(self, data, callback = None):
+        if self.current == PLAIN_ENCODING:
             self.send_plain(data, callback = callback)
-        elif encoding == CHUNKED_ENCODING:
+        elif self.current == CHUNKED_ENCODING:
             self.send_chunked(data, callback = callback)
-        elif encoding == GZIP_ENCODING:
+        elif self.current == GZIP_ENCODING:
             self.send_gzip(data, callback = callback)
 
     def flush(self, callback = None):
-        if self.gzip: self._flush_gzip(callback = callback)
-        elif self.chunked: self._flush_chunked(callback = callback)
-        else: self._flush_base(callback = callback)
+        if self.current == GZIP_ENCODING:
+            self._flush_gzip(callback = callback)
+        elif self.current == CHUNKED_ENCODING:
+            self._flush_chunked(callback = callback)
+        elif self.current == PLAIN_ENCODING:
+            self._flush_plain(callback = callback)
+
+        self.current = self.encoding
 
     def send_plain(self, data, callback = None):
         netius.Connection.send(self, data, callback = callback)
@@ -112,8 +115,6 @@ class HTTPConnection(netius.Connection):
         buffer_s = "".join(buffer)
 
         self.send_plain(buffer_s, callback = callback)
-
-        self.chunked = True
 
     def send_gzip(self, data, callback = None, level = 6):
         # "calculates" if the current sending of gzip data is
@@ -179,17 +180,27 @@ class HTTPConnection(netius.Connection):
     def parse(self, data):
         return self.parser.parse(data)
 
+    def set_chunked(self):
+        self.current = CHUNKED_ENCODING
+
+    def set_gzip(self):
+        self.current = GZIP_ENCODING
+
+    def is_chunked(self):
+        return self.current > PLAIN_ENCODING
+
+    def is_gzip(self):
+        return self.current == GZIP_ENCODING
+
     def on_data(self):
         self.owner.on_data_http(self, self.parser)
 
-    def _flush_base(self, callback = None):
+    def _flush_plain(self, callback = None):
         if not callback: return
-        self.send("", callback = callback)
+        self.send_plain("", callback = callback)
 
     def _flush_chunked(self, callback = None):
-        self.chunked = False
-        if not callback: return
-        self.send("0\r\n\r\n", callback = callback)
+        self.send_plain("0\r\n\r\n", callback = callback)
 
     def _flush_gzip(self, callback = None):
         data_c = self.gzip.flush(zlib.Z_FINISH)
@@ -305,6 +316,16 @@ class HTTPServer(netius.StreamServer):
     def _apply_parser(self, parser, headers):
         if parser.keep_alive: headers["Connection"] = "keep-alive"
         else: headers["Connection"] = "close"
+
+    def _apply_connection(self, connection, headers):
+        is_chunked = connection.is_chunked()
+        is_gzip = connection.is_gzip()
+
+        if is_chunked:
+            headers["Transfer-Encoding"] = "chunked"
+            if "Content-Length" in headers: del headers["Content-Length"]
+
+        if is_gzip: headers["Content-Encoding"] = "gzip"
 
     def _log_request(self, connection, parser):
         # unpacks the various values that are going to be part of
