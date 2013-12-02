@@ -65,15 +65,15 @@ that the content may be send in parts """
 
 class HTTPConnection(netius.Connection):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
         self.parser = netius.common.HTTPParser(
             self,
             type = netius.common.REQUEST,
             store = True
         )
-        self.encoding = kwargs.get("encoding", PLAIN_ENCODING)
-        self.current = self.encoding
+        self.encoding = encoding
+        self.current = encoding
         self.gzip = None
         self.crc32 = 0
         self.size = 0
@@ -306,12 +306,22 @@ class HTTPServer(netius.StreamServer):
     headers and read of data.
     """
 
+    def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
+        netius.StreamServer.__init__(self, *args, **kwargs)
+        self.encoding = encoding
+
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
         connection.parse(data)
 
     def new_connection(self, socket, address, ssl = False):
-        return HTTPConnection(self, socket, address, ssl = ssl)
+        return HTTPConnection(
+            owner = self,
+            socket = socket,
+            address = address,
+            ssl = ssl,
+            encoding = self.encoding
+        )
 
     def on_data_http(self, connection, parser):
         is_debug = self.is_debug()
