@@ -66,7 +66,7 @@ class Connection(object):
     appropriate operations.
     """
 
-    def __init__(self, owner, socket, address, ssl = False):
+    def __init__(self, owner = None, socket = None, address = None, ssl = False):
         self.status = CLOSED
         self.id = str(uuid.uuid4())
         self.connecting = False
