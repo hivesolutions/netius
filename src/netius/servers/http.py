@@ -37,6 +37,10 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import time
+import zlib
+import struct
+
 import netius.common
 
 BASE_HEADERS = {
@@ -54,8 +58,50 @@ class HTTPConnection(netius.Connection):
             type = netius.common.REQUEST,
             store = True
         )
+        self.gzip = None
+        self.crc32 = 0
+        self.size = 0
 
         self.parser.bind("on_data", self.on_data)
+
+    def flush(self, callback = None):
+        if self.gzip: self._flush_gzip(callback = callback)
+        else: self._flush_gzip(callback = callback)
+
+    def send_gzip(self, data, callback = None, level = 6):
+        # "calculates" if the current sending of gzip data is
+        # the first one by verifying if the gzip object is set
+        is_first = self.gzip == None
+
+        # in case this is the first sending a new compress object
+        # is created with the requested compress level
+        if is_first: self.gzip = zlib.compressobj(level)
+
+        # re-computes the crc 32 value from the provided data
+        # string and the previous crc 32 value in case it does
+        # exists (otherwise starts from zero)
+        self.crc32 = self.crc32 = zlib.crc32(data, self.crc32)
+
+        # increments the size value for the current data that
+        # is going to be sent by the length of the data string
+        self.size += len(data)
+
+        # compresses the provided data string and removes the
+        # initial data contents of the compressed data because
+        # they are not part of the gzip specification
+        data_c = self.gzip.compress(data)
+        data_c = data_c[2:]
+
+        # in case this is the first send operation, need to
+        # create and send the header of the gzip contents and
+        # then send them through the current connection
+        if is_first:
+            header = self._header_gzip()
+            self.send(header)
+
+        # sends the compressed data to the client endpoint setting
+        # the correct callback values as requested
+        self.send(data_c, callback = callback)
 
     def send_response(
         self,
@@ -88,6 +134,96 @@ class HTTPConnection(netius.Connection):
 
     def on_data(self):
         self.owner.on_data_http(self, self.parser)
+
+    def _flush_base(self, callback = None):
+        if not self.callback: return
+        self.send("", callback = callback)
+
+    def _flush_gzip(self, callback = None):
+        data_c = self.gzip.flush(zlib.Z_FINISH)
+        data_c = data_c[:-4]
+        self.send(data_c)
+
+        tail = self._tail_gzip()
+        self.send(tail, callback = callback)
+
+        self.gzip = None
+        self.crc32 = 0
+        self.size = 0
+
+    def _header_gzip(self):
+        # creates the buffer list that is going to be used in
+        # the storage of the various header parts
+        header = []
+
+        # writes the magic header and the compression method
+        # that is going to be used for the gzip compression
+        header.append("\x1f\x8b")
+        header.append("\x08")
+
+        # writes the flag values, for this situation there's
+        # no file name to be added and so unset flag values
+        # are going o be sent (nothing to be declared)
+        header.append("\x00")
+
+        # retrieves the current timestamp and then packs it into
+        # a long based value and adds it to the current header
+        timestamp = long(time.time())
+        timestamp = struct.pack("<L", timestamp)
+        header.append(timestamp)
+
+        # writes some extra heading values, includes information
+        # about the operative system, etc.
+        header.append("\x02")
+        header.append("\xff")
+
+        # joins the current header value into a single string and
+        # then returns it to the caller method to be sent
+        return "".join(header)
+
+    def _tail_gzip(self):
+        # creates the list that is going to be used as the buffer
+        # for the construction of the gzip tail value
+        tail = []
+
+        # converts the current crc 32 value into an unsigned value
+        # and then packs it as a little endian based long value
+        # and then adds it to the tail buffer
+        crc32 = self._unsigned(self.crc32)
+        crc32 = struct.pack("<L", crc32)
+        tail.append(crc32)
+
+        # converts the current response size into an unsigned value
+        # and then packs it into a little endian value and adds it
+        # to the tail buffer to be part of the tail value
+        size = self._unsigned(self.size)
+        size = struct.pack("<L", size)
+        tail.append(size)
+
+        # joins the tail buffer into a single string and returns it
+        # to the caller method as the tail value
+        return "".join(tail)
+
+    def _unsigned(self, number):
+        """
+        Converts the given number to unsigned assuming
+        a 32 bit value required for some of the gzip
+        based operations.
+
+        @type number: int
+        @param number: The number to be converted to unsigned.
+        @rtype: int
+        @return: The given number converted to unsigned.
+        """
+
+        # in case the number is positive or zero
+        # (no need to convert) returns the provided
+        # number immediately to the caller method
+        if number >= 0: return number
+
+        # runs the modulus in the number
+        # to convert it to unsigned
+        return number + 4294967296
 
 class HTTPServer(netius.StreamServer):
     """
