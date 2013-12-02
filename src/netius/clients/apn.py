@@ -61,8 +61,8 @@ in sandbox mode (for testing purposes) """
 
 class APNConnection(netius.Connection):
 
-    def __init__(self, owner, socket, address, ssl = False):
-        netius.Connection.__init__(self, owner, socket, address, ssl = ssl)
+    def __init__(self, *args, **kwargs):
+        netius.Connection.__init__(self, *args, **kwargs)
         self.token = None
         self.message = None
         self.sound = None
