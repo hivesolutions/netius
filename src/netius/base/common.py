@@ -434,7 +434,12 @@ class Base(observer.Observable):
         provided socket and address values.
         """
 
-        return Connection(self, socket, address, ssl = ssl)
+        return Connection(
+            owner = self,
+            socket = socket,
+            address = address,
+            ssl = ssl
+        )
 
     def is_debug(self):
         return self.logger.isEnabledFor(logging.DEBUG)
