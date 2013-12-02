@@ -51,8 +51,8 @@ GRANTED_EXTRA = 0x00
 
 class SOCKSConnection(netius.Connection):
 
-    def __init__(self, owner, socket, address, ssl = False):
-        netius.Connection.__init__(self, owner, socket, address, ssl = ssl)
+    def __init__(self, *args, **kwargs):
+        netius.Connection.__init__(self, *args, **kwargs)
         self.parser = netius.common.SOCKSParser(self)
 
         self.parser.bind("on_data", self.on_data)
