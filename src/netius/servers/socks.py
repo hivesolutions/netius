@@ -143,7 +143,12 @@ class SOCKSServer(netius.StreamServer):
         if hasattr(connection, "tunnel_c"): connection.tunnel_c.close()
 
     def new_connection(self, socket, address, ssl = False):
-        return SOCKSConnection(self, socket, address, ssl = ssl)
+        return SOCKSConnection(
+            owner = self,
+            socket = socket,
+            address = address,
+            ssl = ssl
+        )
 
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
