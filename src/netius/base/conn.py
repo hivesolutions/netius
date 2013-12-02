@@ -232,7 +232,15 @@ class Connection(object):
         self.pending_lock.acquire()
         try:
             while True:
+                # verifies if there's data pending to be sent in case
+                # there's not returns immediately, because there's
+                # nothing pending to be done for such case
                 if not self.pending: break
+
+                # retrieves the current data chunk to be send from the
+                # list of pending things and then saves the data chunk
+                # in an "original" object an tries to unpack it in case
+                # the type of it is a tuple
                 data = self.pending.pop()
                 data_o = data
                 callback = None
