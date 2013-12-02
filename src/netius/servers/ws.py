@@ -44,8 +44,8 @@ import netius
 
 class WSConnection(netius.Connection):
 
-    def __init__(self, owner, socket, address, ssl = False):
-        netius.Connection.__init__(self, owner, socket, address, ssl = ssl)
+    def __init__(self, *args, **kwargs):
+        netius.Connection.__init__(self, *args, **kwargs)
         self.handshake = False
         self.method = None
         self.path = None
