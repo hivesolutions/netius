@@ -117,15 +117,25 @@ class WSGIServer(http.HTTPServer):
         for value in sequence: connection.send(value)
 
         # in case the connection is not meant to be kept alive must
-        # send an empty string with the callback for the closing of
-        # the connection (connection close handle)
-        if not parser.keep_alive: connection.send("", callback = close)
+        # must set the callback of the flush operation to the close
+        # function so that the connection is closed
+        if parser.keep_alive: callback = None
+        else: callback = close
+
+        # runs the flush operation in the connection setting the proper
+        # callback method for it so that the connection state is defined
+        # in the proper way (closed or kept untouched)
+        connection.flush(callback = callback)
 
     def _start_response(self, connection, status, headers):
         # retrieves the parser object from the connection and uses
         # it to retrieve the string version of the http version
         parser = connection.parser
         version_s = parser.version_s
+
+        # verifies if the current connection is using a chunked based
+        # stream as this will affect some of the decisions
+        is_chunked = connection.is_chunked()
 
         # converts the provided list of header tuples into a key
         # values based map so that it may be used more easily
@@ -134,15 +144,19 @@ class WSGIServer(http.HTTPServer):
         # checks if the provided headers map contains the definition
         # of the content length in case it does not unsets the keep
         # alive setting in the parser because the keep alive setting
-        # requires the content length to be defined
+        # requires the content length to be defined or the target
+        # encoding type to be chunked
         has_length = "Content-Length" in headers
-        if not has_length: parser.keep_alive = False
+        if not has_length: parser.keep_alive = is_chunked
 
         # applies the base (static) headers to the headers map and then
         # applies the parser based values to the headers map, these
         # values should be dynamic and based in the current state
+        # finally applies the connection related headers to the current
+        # map of headers so that the proper values are filtered and added
         self._apply_base(headers)
         self._apply_parser(parser, headers)
+        self._apply_connection(connection, headers)
 
         # creates the list that will hold the various header string and
         # that is going to be used as buffer and then generates the various
@@ -156,4 +170,4 @@ class WSGIServer(http.HTTPServer):
         # joins the header strings list as the data string that contains
         # the headers and then sends the value through the connection
         data = "".join(buffer)
-        connection.send(data)
+        connection.send_plain(data)
