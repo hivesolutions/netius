@@ -49,24 +49,71 @@ BASE_HEADERS = {
 """ The map containing the complete set of headers
 that are meant to be applied to all the responses """
 
+PLAIN_ENCODING = 1
+""" Plain text encoding that does not transform the
+data from its based format, should be used only as
+a fallback method because of performance issues """
+
+CHUNKED_ENCODING = 2
+""" Chunked based encoding that allows the sending of
+the data as a series of length based parts """
+
+GZIP_ENCODING = 3
+""" The gzip based encoding used to compress data, this
+kind of encoding will always used chunked encoding so
+that the content may be send in parts """
+
 class HTTPConnection(netius.Connection):
 
-    def __init__(self, owner, socket, address, ssl = False):
-        netius.Connection.__init__(self, owner, socket, address, ssl = ssl)
+    def __init__(self, *args, **kwargs):
+        netius.Connection.__init__(self, *args, **kwargs)
         self.parser = netius.common.HTTPParser(
             self,
             type = netius.common.REQUEST,
             store = True
         )
+        self.encoding = kwargs.get("encoding", PLAIN_ENCODING)
+        self.chunked = False
         self.gzip = None
         self.crc32 = 0
         self.size = 0
 
         self.parser.bind("on_data", self.on_data)
 
+    def send(self, data, callback = None, encoding = None):
+        encoding = encoding or self.encoding
+
+        if encoding == PLAIN_ENCODING:
+            self.send_plain(data, callback = callback)
+        elif encoding == CHUNKED_ENCODING:
+            self.send_chunked(data, callback = callback)
+        elif encoding == GZIP_ENCODING:
+            self.send_gzip(data, callback = callback)
+
     def flush(self, callback = None):
         if self.gzip: self._flush_gzip(callback = callback)
-        else: self._flush_gzip(callback = callback)
+        elif self.chunked: self._flush_chunked(callback = callback)
+        else: self._flush_base(callback = callback)
+
+    def send_plain(self, data, callback = None):
+        netius.Connection.send(self, data, callback = callback)
+
+    def send_chunked(self, data, callback = None):
+        if not data: self.send_plain(data, callback = callback); return
+
+        buffer = []
+
+        size = len(data)
+
+        buffer.append("%x\r\n" % size)
+        buffer.append(data)
+        buffer.append("\r\n")
+
+        buffer_s = "".join(buffer)
+
+        self.send_plain(buffer_s, callback = callback)
+
+        self.chunked = True
 
     def send_gzip(self, data, callback = None, level = 6):
         # "calculates" if the current sending of gzip data is
@@ -97,11 +144,11 @@ class HTTPConnection(netius.Connection):
         # then send them through the current connection
         if is_first:
             header = self._header_gzip()
-            self.send(header)
+            self.send_chunked(header)
 
         # sends the compressed data to the client endpoint setting
         # the correct callback values as requested
-        self.send(data_c, callback = callback)
+        self.send_chunked(data_c, callback = callback)
 
     def send_response(
         self,
@@ -136,20 +183,27 @@ class HTTPConnection(netius.Connection):
         self.owner.on_data_http(self, self.parser)
 
     def _flush_base(self, callback = None):
-        if not self.callback: return
+        if not callback: return
         self.send("", callback = callback)
+
+    def _flush_chunked(self, callback = None):
+        self.chunked = False
+        if not callback: return
+        self.send("0\r\n\r\n", callback = callback)
 
     def _flush_gzip(self, callback = None):
         data_c = self.gzip.flush(zlib.Z_FINISH)
         data_c = data_c[:-4]
-        self.send(data_c)
+        self.send_chunked(data_c)
 
         tail = self._tail_gzip()
-        self.send(tail, callback = callback)
+        self.send_chunked(tail)
 
         self.gzip = None
         self.crc32 = 0
         self.size = 0
+
+        self._flush_chunked(callback = callback)
 
     def _header_gzip(self):
         # creates the buffer list that is going to be used in
