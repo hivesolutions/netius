@@ -50,8 +50,8 @@ that are meant to be applied to all the requests """
 
 class HTTPConnection(netius.Connection):
 
-    def __init__(self, owner, socket, address, ssl = False):
-        netius.Connection.__init__(self, owner, socket, address, ssl = ssl)
+    def __init__(self, *args, **kwargs):
+        netius.Connection.__init__(self, *args, **kwargs)
         self.parser = netius.common.HTTPParser(self, type = netius.common.RESPONSE)
         self.version = "HTTP/1.1"
         self.method = "GET"
