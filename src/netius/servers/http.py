@@ -102,18 +102,27 @@ class HTTPConnection(netius.Connection):
         netius.Connection.send(self, data, callback = callback)
 
     def send_chunked(self, data, callback = None):
+        # in case there's no valid data to be sent uses the plain
+        # send method to send the empty string and returns immediately
+        # to the caller method, to avoid any problems
         if not data: self.send_plain(data, callback = callback); return
 
+        # creates the new list that is going to be used to store
+        # the various parts of the chunk and then calculates the
+        # size (in bytes) of the data that is going to be sent
         buffer = []
-
         size = len(data)
 
+        # creates the various parts of the chunk with the size
+        # of the data that is going to be sent and then adds
+        # each of the parts to the chunk buffer list
         buffer.append("%x\r\n" % size)
         buffer.append(data)
         buffer.append("\r\n")
 
+        # joins the buffer containing the chunk parts and then
+        # sends it to the connection using the plain method
         buffer_s = "".join(buffer)
-
         self.send_plain(buffer_s, callback = callback)
 
     def send_gzip(self, data, callback = None, level = 6):
