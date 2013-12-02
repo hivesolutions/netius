@@ -243,7 +243,12 @@ class HTTPClient(netius.Client):
         self.remove_c(connection)
 
     def new_connection(self, socket, address, ssl = False):
-        return HTTPConnection(self, socket, address, ssl = ssl)
+        return HTTPConnection(
+            owner = self,
+            socket = socket,
+            address = address,
+            ssl = ssl
+        )
 
     def on_data_http(self, connection, parser):
         message = parser.get_message()
