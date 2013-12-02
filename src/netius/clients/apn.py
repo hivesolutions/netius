@@ -180,4 +180,9 @@ class APNClient(netius.Client):
         connection.send(message, callback = callback)
 
     def new_connection(self, socket, address, ssl = False):
-        return APNConnection(self, socket, address, ssl = ssl)
+        return APNConnection(
+            owner = self,
+            socket = socket,
+            address = address,
+            ssl = ssl
+        )
