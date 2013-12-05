@@ -146,7 +146,7 @@ class HTTPConnection(netius.Connection):
         # re-computes the crc 32 value from the provided data
         # string and the previous crc 32 value in case it does
         # exists (otherwise starts from zero)
-        self.crc32 = self.crc32 = zlib.crc32(data, self.crc32)
+        self.crc32 = zlib.crc32(data, self.crc32)
 
         # increments the size value for the current data that
         # is going to be sent by the length of the data string
@@ -156,7 +156,7 @@ class HTTPConnection(netius.Connection):
         # initial data contents of the compressed data because
         # they are not part of the gzip specification
         data_c = self.gzip.compress(data)
-        data_c = data_c[2:]
+        data_c = data_c[2:] if is_first else data_c
 
         # in case this is the first send operation, need to
         # create and send the header of the gzip contents and
@@ -221,17 +221,34 @@ class HTTPConnection(netius.Connection):
         self.send_plain("0\r\n\r\n", callback = callback)
 
     def _flush_gzip(self, callback = None):
+        # in case the gzip structure has not been initialized
+        # (no data sent) no need to run the flushing of the
+        # gzip data, so only the chunked part is flushed
+        if not self.gzip:
+            self._flush_chunked(callback = callback)
+            return
+
+        # flushes the internal zlib buffers to be able to retrieve
+        # the data pending to be sent to the client and then sends
+        # it using the chunked encoding strategy
         data_c = self.gzip.flush(zlib.Z_FINISH)
         data_c = data_c[:-4]
         self.send_chunked(data_c)
 
+        # retrieves the tail value of the gzip encoding (includes
+        # crc information) and also sends it using chunked strategy
         tail = self._tail_gzip()
         self.send_chunked(tail)
 
+        # resets the gzip values to the original ones so that new
+        # requests will starts the information from the beginning
         self.gzip = None
         self.crc32 = 0
         self.size = 0
 
+        # runs the flush operation for the underlying chunked encoding
+        # layer so that the client is correctly notified about the
+        # end of the current request (normal operation)
         self._flush_chunked(callback = callback)
 
     def _header_gzip(self):
