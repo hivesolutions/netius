@@ -63,6 +63,15 @@ GZIP_ENCODING = 3
 kind of encoding will always used chunked encoding so
 that the content may be send in parts """
 
+ENCODING_MAP = dict(
+    plain = 1,
+    chunked = 2,
+    gzip = 3
+)
+""" The map associating the various types of encoding with
+the corresponding integer value for each of them this is used
+in the initial construction of the server """
+
 class HTTPConnection(netius.Connection):
 
     def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
@@ -306,9 +315,9 @@ class HTTPServer(netius.StreamServer):
     headers and read of data.
     """
 
-    def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
+    def __init__(self, encoding = "plain", *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
-        self.encoding = encoding
+        self.encoding = ENCODING_MAP.get(encoding, PLAIN_ENCODING)
 
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
