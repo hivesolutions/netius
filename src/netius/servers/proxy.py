@@ -46,9 +46,8 @@ import netius.clients
 
 class ProxyServer(http.HTTPServer):
 
-    def __init__(self, rules = {}, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         http.HTTPServer.__init__(self, *args, **kwargs)
-        self.rules = rules
         self.conn_map = {}
 
         self.http_client = netius.clients.HTTPClient(
@@ -78,8 +77,6 @@ class ProxyServer(http.HTTPServer):
         self.container.add_base(self.http_client)
         self.container.add_base(self.raw_client)
 
-        self.compile()
-
     def start(self):
         self.http_client.load()
         self.raw_client.load()
@@ -87,10 +84,6 @@ class ProxyServer(http.HTTPServer):
 
     def stop(self):
         self.container.stop()
-
-    def compile(self):
-        for key, rule in self.rules.iteritems():
-            self.rules[key] = re.compile(rule)
 
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
@@ -103,44 +96,6 @@ class ProxyServer(http.HTTPServer):
 
         if hasattr(connection, "tunnel_c"): connection.tunnel_c.close()
         if hasattr(connection, "proxy_c"): connection.proxy_c.close()
-
-    def on_data_http(self, connection, parser):
-        http.HTTPServer.on_data_http(self, connection, parser)
-
-        method = parser.method.upper()
-        path = parser.path_s
-        version_s = parser.version_s
-
-        rejected = False
-        for rule in self.rules.itervalues():
-            rejected = rule.match(path)
-            if rejected: break
-
-        if rejected:
-            connection.send_response(
-                data = "This connection is not allowed",
-                version = version_s,
-                code = 403,
-                code_s = "Forbidden",
-                callback = self._prx_close
-            )
-            return
-
-        if method == "CONNECT":
-            host, port = path.split(":")
-            port = int(port)
-            _connection = self.raw_client.connect(host, port)
-            connection.tunnel_c = _connection
-            self.conn_map[_connection] = connection
-        else:
-            _connection = self.http_client.method(
-                method,
-                path,
-                headers = parser.headers
-            )
-            _connection.used = False
-            connection.proxy_c = _connection
-            self.conn_map[_connection] = connection
 
     def _prx_close(self, connection):
         connection.close()
@@ -242,10 +197,103 @@ class ProxyServer(http.HTTPServer):
         connection.close(flush = True)
         del self.conn_map[_connection]
 
+class ForwardProxyServer(ProxyServer):
+
+    def __init__(self, rules = {}, *args, **kwargs):
+        ProxyServer.__init__(self, *args, **kwargs)
+        self.rules = rules
+        self.compile()
+
+    def on_data_http(self, connection, parser):
+        ProxyServer.on_data_http(self, connection, parser)
+
+        method = parser.method.upper()
+        path = parser.path_s
+        version_s = parser.version_s
+
+        rejected = False
+        for rule in self.rules.itervalues():
+            rejected = rule.match(path)
+            if rejected: break
+
+        if rejected:
+            connection.send_response(
+                data = "This connection is not allowed",
+                version = version_s,
+                code = 403,
+                code_s = "Forbidden",
+                callback = self._prx_close
+            )
+            return
+
+        if method == "CONNECT":
+            host, port = path.split(":")
+            port = int(port)
+            _connection = self.raw_client.connect(host, port)
+            connection.tunnel_c = _connection
+            self.conn_map[_connection] = connection
+        else:
+            _connection = self.http_client.method(
+                method,
+                path,
+                headers = parser.headers
+            )
+            _connection.used = False
+            connection.proxy_c = _connection
+            self.conn_map[_connection] = connection
+
+    def compile(self):
+        for key, rule in self.rules.iteritems():
+            self.rules[key] = re.compile(rule)
+
+class ReverseProxyServer(ProxyServer):
+
+    def __init__(self, config = "proxy.json", hosts = {}, *args, **kwargs):
+        ProxyServer.__init__(self, *args, **kwargs)
+        self.load_config(path = config, hosts = hosts)
+
+    def on_data_http(self, connection, parser):
+        ProxyServer.on_data_http(self, connection, parser)
+
+        prefix = None
+        method = parser.method.upper()
+        path = parser.path_s
+        headers = parser.headers
+        version_s = parser.version_s
+
+        host = headers.get("host", None)
+        for _host, _prefix in self.hosts.iteritems():
+            if not _host == host: continue
+            prefix = _prefix
+            url = prefix + path
+            break
+
+        if not prefix:
+            connection.send_response(
+                data = "This connection is not allowed",
+                version = version_s,
+                code = 403,
+                code_s = "Forbidden",
+                callback = self._prx_close
+            )
+            return
+
+        _connection = self.http_client.method(
+            method,
+            url,
+            headers = parser.headers
+        )
+        _connection.used = False
+        connection.proxy_c = _connection
+        self.conn_map[_connection] = connection
+
 if __name__ == "__main__":
     import logging
     rules = dict(
         facebook = ".*facebook.com.*"
     )
-    server = ProxyServer(rules = rules, level = logging.INFO)
+    server = ForwardProxyServer(
+        rules = rules,
+        level = logging.INFO
+    )
     server.serve(env = True)
