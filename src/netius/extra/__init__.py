@@ -36,6 +36,10 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import desktop
 import dhcp_s
+import proxy_f
+import proxy_r
 
 from desktop import *
 from dhcp_s import *
+from proxy_f import *
+from proxy_r import *
