@@ -450,6 +450,8 @@ class Base(observer.Observable):
     def apply_config(self, path, kwargs):
         if not os.path.exists(path): return kwargs
 
+        self.info("Applying configuration file '%s' ..." % path)
+
         kwargs = copy.copy(kwargs)
         file = open(path, "rb")
         try: contents = json.load(file)
