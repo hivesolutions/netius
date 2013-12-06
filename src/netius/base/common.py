@@ -40,6 +40,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import os
 import ssl
 import copy
+import json
 import errno
 import heapq
 import socket
@@ -440,6 +441,24 @@ class Base(observer.Observable):
             address = address,
             ssl = ssl
         )
+
+    def load_config(self, path = "config.json", **kwargs):
+        kwargs = self.apply_config(path, kwargs)
+        for key, value in kwargs.iteritems():
+            setattr(self, key, value)
+
+    def apply_config(self, path, kwargs):
+        if not os.path.exists(path): return kwargs
+
+        kwargs = copy.copy(kwargs)
+        file = open(path, "rb")
+        try: contents = json.load(file)
+        finally: file.close()
+
+        for key, value in contents.iteritems():
+            kwargs[key] = value
+
+        return kwargs
 
     def is_debug(self):
         return self.logger.isEnabledFor(logging.DEBUG)
