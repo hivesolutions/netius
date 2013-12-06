@@ -119,5 +119,9 @@ if __name__ == "__main__":
         rebind =  dict(time = 2700),
         proxy = dict(url = "http://172.16.0.25:8080/proxy.pac")
     )
-    server = DHCPServerS(pool = pool, options = options, level = logging.INFO)
+    server = DHCPServerS(
+        pool = pool,
+        options = options,
+        level = logging.INFO
+    )
     server.serve(env = True)
