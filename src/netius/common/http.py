@@ -441,7 +441,7 @@ class HTTPParser(netius.Observable):
 
         # in case there's data parsed the partial data event
         # is triggered to notify handlers about the new data
-        if data_s: self.trigger("on_partial", data)
+        if data_s > 0: self.trigger("on_partial", data)
 
         # increments the byte counter value by the size of the data
         # and then returns the same counter to the caller method
