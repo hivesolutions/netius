@@ -397,11 +397,11 @@ class HTTPParser(netius.Observable):
             # the contents of the message buffer
             if not self.store: del self.message[:]
 
+            # adds the parsed number of bytes to the count value,
             # resets the pending length of the chunk to the initial
-            # zero value and adds the parsed number of bytes to the
-            # count value, and then returns that value to the caller
+            # zero value and then returns that value to the caller
+            count += self.chunk_l
             self.chunk_l = 0
-            count += 2
             return count
 
         # check if the start of the chunk state is the current one
@@ -409,14 +409,23 @@ class HTTPParser(netius.Observable):
         # length is zero (initial situation)
         is_start = self.chunk_l == 0
         if is_start:
+            # tries to split the data into two parts, the header
+            # and the data part of it and in case it's not possible
+            # returns the current byte counter value
             try: header, data = data.split("\r\n", 1)
             except: return count
+
+            # splits the header value so that additional chunk information
+            # is removed and then parsed the value as the original chunk
+            # size (dimension) adding the two extra bytes to the length
             header_s = header.split(";", 1)
             size = header_s[0]
             self.chunk_d = int(size.strip(), base = 16)
             self.chunk_l = self.chunk_d + 2
             self.chunk_s = len(self.message)
 
+            # increments the byte counter value by the size of the header
+            # plus the two additional separator characters size
             count += len(header) + 2
 
         # retrieve the partial data that is valid according to the
