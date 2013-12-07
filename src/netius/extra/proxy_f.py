@@ -80,7 +80,8 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             _connection = self.http_client.method(
                 method,
                 path,
-                headers = parser.headers
+                headers = parser.headers,
+                data = parser.get_message()
             )
             _connection.used = False
             connection.proxy_c = _connection
