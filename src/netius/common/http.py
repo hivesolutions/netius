@@ -164,6 +164,7 @@ class HTTPParser(netius.Observable):
         self.message_l = 0
         self.transfer_e = None
         self.chunked = False
+        self.chunk_d = 0
         self.chunk_l = 0
         self.chunk_s = 0
         self.chunk_e = 0
@@ -355,45 +356,85 @@ class HTTPParser(netius.Observable):
         return data_l
 
     def _parse_chunked(self, data):
+        # starts the parsed byte counter with the initial zero
+        # value this will be increment as bytes are parsed
         count = 0
 
-        is_end = self.chunk_l == 2
+        # verifies if the end of chunk state has been reached
+        # that happen when only the last two character remain
+        # to be parsed from the chunk
+        is_end = self.chunk_l < 3 and self.chunk_l > 0
         if is_end:
-            self.chunk_e = len(self.message)
-            self.trigger("on_chunk", (self.chunk_s, self.chunk_e))
+            # calculates the size of the data that is going
+            # to be parsed as that's required to check if
+            # the end chunk state has been reached
+            data_l = len(data)
+
+            # in case the required amount of data has not
+            # been received returns the parsed bytes amount
+            # (count) immediately to the caller
+            if data_l < self.chunk_l:
+                self.chunk_l -= data_l
+                count += data_l
+                return count
+
+            # in case the current chunk dimension (size) is
+            # zero this is the last chunk and so the state
+            # must be set to the finish and the on data event
+            # must be triggered to indicate the end of message
+            if self.chunk_d == 0:
+                self.state = FINISH_STATE
+                self.trigger("on_data")
+
+            # otherwise this is the end of a "normal" chunk and
+            # and so the end of chunk index must be calculated
+            # and the chunk event must be triggered
+            else:
+                self.chunk_e = len(self.message)
+                self.trigger("on_chunk", (self.chunk_s, self.chunk_e))
+
+            # in case the message is not meant to be stored deletes
+            # the contents of the message buffer
             if not self.store: del self.message[:]
+
+            # resets the pending length of the chunk to the initial
+            # zero value and adds the parsed number of bytes to the
+            # count value, and then returns that value to the caller
             self.chunk_l = 0
             count += 2
             return count
 
+        # check if the start of the chunk state is the current one
+        # does that by verifying that the current value for the chunk
+        # length is zero (initial situation)
         is_start = self.chunk_l == 0
         if is_start:
             try: header, data = data.split("\r\n", 1)
             except: return count
             header_s = header.split(";", 1)
             size = header_s[0]
-            self.chunk_l = int(size.strip(), base = 16) + 2
+            self.chunk_d = int(size.strip(), base = 16)
+            self.chunk_l = self.chunk_d + 2
             self.chunk_s = len(self.message)
 
             count += len(header) + 2
 
-        is_final = is_start and self.chunk_l == 2
-        if is_final:
-            self.state = FINISH_STATE
-            self.trigger("on_data")
-            index = data.find("\r\n")
-            if index == -1: return count
-            self.chunk_l = 0
-            return count + 2
-
+        # retrieve the partial data that is valid according to the
+        # calculated chunk length and then calculates the size of
+        # "that" partial data string value
         data = data[:self.chunk_l - 2]
         data_s = len(data)
 
+        # adds the partial data to the message list and then decrement
+        # the (remaining) chunk length by the size of the read data
         self.message.append(data)
         self.chunk_l -= data_s
 
-        self.trigger("on_partial", data)
+        # in case there's data parsed the partial data event
+        # is triggered to notify handlers about the new data
+        if data_s: self.trigger("on_partial", data)
 
+        # increments the byte counter value by the size of the data
+        # and then returns the same counter to the caller method
         count += data_s
-
         return count
