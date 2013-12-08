@@ -219,12 +219,22 @@ class HTTPParser(netius.Observable):
         # iterates continuously to try to process all that
         # data that has been sent for processing
         while size > 0:
-
+            # iterates while the current state is valid for
+            # parsing as there are only parsing methods for
+            # the range of valid states
             if self.state <= self.state_l:
+
+                # retrieves the parsing method for the current
+                # state and then runs it retrieving the number
+                # of valid parsed bytes in case this value is
+                # zero the parsing iteration is broken
                 method = self.states[self.state - 1]
                 count = method(data)
                 if count == 0: break
 
+                # decrements the size of the data buffer by the
+                # size of the parsed bytes and then retrieves the
+                # sub part of the data buffer as the new data buffer
                 size -= count
                 data = data[count:]
 
@@ -436,12 +446,12 @@ class HTTPParser(netius.Observable):
 
         # adds the partial data to the message list and then decrement
         # the (remaining) chunk length by the size of the read data
-        self.message.append(data)
+        if data: self.message.append(data)
         self.chunk_l -= data_s
 
         # in case there's data parsed the partial data event
         # is triggered to notify handlers about the new data
-        if data_s > 0: self.trigger("on_partial", data)
+        if data: self.trigger("on_partial", data)
 
         # increments the byte counter value by the size of the data
         # and then returns the same counter to the caller method
