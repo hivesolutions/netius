@@ -238,6 +238,8 @@ class HTTPParser(netius.Observable):
                 size -= count
                 data = data[count:]
 
+                # continues the loop as there should be still some
+                # data remaining to be parsed in the curren buffer
                 continue
 
             elif self.state == FINISH_STATE:
