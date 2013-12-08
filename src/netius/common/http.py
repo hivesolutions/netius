@@ -239,7 +239,7 @@ class HTTPParser(netius.Observable):
                 data = data[count:]
 
                 # continues the loop as there should be still some
-                # data remaining to be parsed in the curren buffer
+                # data remaining to be parsed in the current buffer
                 continue
 
             elif self.state == FINISH_STATE:
@@ -390,6 +390,12 @@ class HTTPParser(netius.Observable):
                 count += data_l
                 return count
 
+            # adds the parsed number of bytes to the count value,
+            # resets the pending length of the chunk to the initial
+            # zero value and then returns that value to the caller
+            count += self.chunk_l
+            self.chunk_l = 0
+
             # in case the current chunk dimension (size) is
             # zero this is the last chunk and so the state
             # must be set to the finish and the on data event
@@ -409,11 +415,8 @@ class HTTPParser(netius.Observable):
             # the contents of the message buffer
             if not self.store: del self.message[:]
 
-            # adds the parsed number of bytes to the count value,
-            # resets the pending length of the chunk to the initial
-            # zero value and then returns that value to the caller
-            count += self.chunk_l
-            self.chunk_l = 0
+            # returns the number of bytes that have been parsed by
+            # the current end of chunk operation to the caller method
             return count
 
         # check if the start of the chunk state is the current one
