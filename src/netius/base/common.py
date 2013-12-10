@@ -234,7 +234,7 @@ class Base(observer.Observable):
 
     def load_logging(self, level = logging.DEBUG):
         logging.basicConfig(format = "%(asctime)s [%(levelname)s] %(message)s")
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger("netius")
         self.logger.setLevel(level)
         self.handler and self.logger.addHandler(self.handler)
 
