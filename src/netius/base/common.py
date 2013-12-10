@@ -58,7 +58,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "0.3.0"
+VERSION = "0.3.2"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -175,6 +175,11 @@ KEEPALIVE_INTERVAL = int(KEEPALIVE_TIMEOUT / 10)
 does not need to be too large and should not be considered too
 important (may be calculated automatically) """
 
+LOG_FORMAT = "%(asctime)s [%(levelname)s] %(message)s"
+""" The format that is going to be used by the logger of the
+netius infra-structure for debuging purposes it should allow
+and end developer to dig into the details of the execution """
+
 # initializes the various paths that are going to be used for
 # the base files configuration in the complete service infra
 # structure, these should include the ssl based files
@@ -196,7 +201,7 @@ class Base(observer.Observable):
         observer.Observable.__init__(self, *args, **kwargs)
         poll = Base.test_poll()
         self.name = name or self.__class__.__name__
-        self.handler = handler
+        self.handler = handler or logging.StreamHandler()
         self.level = kwargs.get("level", logging.DEBUG)
         self.tid = None
         self.logger = None
@@ -232,11 +237,16 @@ class Base(observer.Observable):
         self.load_logging(self.level);
         self._loaded = True
 
-    def load_logging(self, level = logging.DEBUG):
-        logging.basicConfig(format = "%(asctime)s [%(levelname)s] %(message)s")
+    def load_logging(self, level = logging.DEBUG, format = LOG_FORMAT):
+        logging.basicConfig(format = format)
+        formatter = logging.Formatter(format)
         self.logger = logging.getLogger("netius")
+        self.logger.parent = None
         self.logger.setLevel(level)
         self.handler and self.logger.addHandler(self.handler)
+        for handler in self.logger.handlers:
+            handler.setFormatter(formatter)
+            handler.setLevel(level)
 
     def start(self):
         # retrieves the name of the polling mechanism that is
