@@ -512,7 +512,7 @@ class Base(observer.Observable):
         self.logger.log(level, message)
 
     def get_id(self):
-        return NAME + "-" + self._uuid
+        return NAME + "-" + str(self._uuid)
 
     def get_poll(self):
         return self.poll
