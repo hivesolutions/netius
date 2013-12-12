@@ -177,7 +177,7 @@ important (may be calculated automatically) """
 
 LOG_FORMAT = "%(asctime)s [%(levelname)s] %(message)s"
 """ The format that is going to be used by the logger of the
-netius infra-structure for debuging purposes it should allow
+netius infra-structure for debugging purposes it should allow
 and end developer to dig into the details of the execution """
 
 # initializes the various paths that are going to be used for
