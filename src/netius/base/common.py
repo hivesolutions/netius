@@ -197,11 +197,11 @@ class Base(observer.Observable):
     the read and write operations are easy to handle.
     """
 
-    def __init__(self, name = None, handler = None, *args, **kwargs):
+    def __init__(self, name = None, handlers = None, *args, **kwargs):
         observer.Observable.__init__(self, *args, **kwargs)
         poll = Base.test_poll()
         self.name = name or self.__class__.__name__
-        self.handler = handler or logging.StreamHandler()
+        self.handlers = handlers or (logging.StreamHandler(),)
         self.level = kwargs.get("level", logging.DEBUG)
         self.tid = None
         self.logger = None
@@ -246,7 +246,7 @@ class Base(observer.Observable):
         self.logger = logging.getLogger(identifier)
         self.logger.parent = None
         self.logger.setLevel(level)
-        self.handler and self.logger.addHandler(self.handler)
+        for handler in self.handlers: self.logger.addHandler(handler)
         for handler in self.logger.handlers:
             handler.setFormatter(formatter)
             handler.setLevel(level)
