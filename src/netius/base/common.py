@@ -238,6 +238,8 @@ class Base(observer.Observable):
         self._loaded = True
 
     def load_logging(self, level = logging.DEBUG, format = LOG_FORMAT):
+        level_t = type(level)
+        if not level_t == types.IntType: level = logging.getLevelName(level)
         formatter = logging.Formatter(format)
         self.logger = logging.getLogger("netius")
         self.logger.parent = None
