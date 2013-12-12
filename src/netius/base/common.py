@@ -208,6 +208,7 @@ class Base(observer.Observable):
         self.poll = kwargs.get("poll", poll)()
         self.connections = []
         self.connections_m = {}
+        self._uuid = uuid.uuid4()
         self._lid = 0
         self._running = False
         self._loaded = False
@@ -241,7 +242,8 @@ class Base(observer.Observable):
         level_t = type(level)
         if not level_t == types.IntType: level = logging.getLevelName(level)
         formatter = logging.Formatter(format)
-        self.logger = logging.getLogger("netius")
+        identifier = self.get_id()
+        self.logger = logging.getLogger(identifier)
         self.logger.parent = None
         self.logger.setLevel(level)
         self.handler and self.logger.addHandler(self.handler)
@@ -508,6 +510,9 @@ class Base(observer.Observable):
         message = unicode(object) if not object_t in types.StringTypes else object
         if not self.logger: return
         self.logger.log(level, message)
+
+    def get_id(self):
+        return NAME + "-" + self._uuid
 
     def get_poll(self):
         return self.poll
