@@ -351,20 +351,35 @@ class HTTPParser(netius.Observable):
         else: return self._parse_normal(data)
 
     def _parse_normal(self, data):
+        # retrieves the size of the data that has just been
+        # received and then in case the store flag is set
+        # adds the data to the message buffer and increments
+        # the message length counter with the size of the data
         data_l = len(data)
         if self.store: self.message.append(data)
         self.message_l += data_l
 
+        # verifies if the complete message has already been
+        # received, that occurs if the content length is
+        # defined and the value is the is the same as the
+        # currently defined message length
         has_finished = not self.content_l == -1 and\
             self.message_l == self.content_l
 
+        # triggers the partial data received event and then
+        # in case the complete message has not been received
+        # returns immediately the length of processed data
         self.trigger("on_partial", data)
-
         if not has_finished: return data_l
 
+        # updates the current state to the finish state and then
+        # triggers the on data event (indicating the end of the
+        # parsing of the message)
         self.state = FINISH_STATE
-
         self.trigger("on_data")
+        
+        # returns the length of the processed data as the amount
+        # of processed bytes by the current method
         return data_l
 
     def _parse_chunked(self, data):
