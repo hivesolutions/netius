@@ -158,10 +158,6 @@ class HTTPParser(netius.Observable):
         self.build()
         self.reset(type = type, store = store)
 
-    @staticmethod
-    def get_code_s(code):
-        return CODE_STRINGS.get(code, None)
-
     def build(self):
         """
         Builds the initial set of states ordered according to
