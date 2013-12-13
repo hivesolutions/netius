@@ -262,7 +262,7 @@ class HTTPParser(netius.Observable):
         if index == -1: return 0
 
         self.buffer.append(data[:index])
-        self.line_s = "".join(self.buffer)
+        self.line_s = "".join(self.buffer)[:-1]
         del self.buffer[:]
 
         values = self.line_s.split(" ", 2)
@@ -286,7 +286,7 @@ class HTTPParser(netius.Observable):
         # about the end of the parsing of the status line and then
         # returns the count of the parsed bytes of the message
         self.trigger("on_line")
-        return index + 2
+        return index + 1
 
     def _parse_headers(self, data):
         index = data.find("\r\n\r\n")
@@ -447,9 +447,13 @@ class HTTPParser(netius.Observable):
             # some of the current data to the buffer and then re-joins
             # it as the header value, then removes the complete set of
             # contents from the buffer so that it may be re-used
-            self.buffer.append(data)
-            header = "".join(self.buffer[:index])
+            self.buffer.append(data[:index])
+            header = "".join(self.buffer)[:-1]
             del self.buffer[:]
+
+            # sets the new data buffer as the partial buffer of the data
+            # except the extra newline character (not required)
+            data = data[index + 1:]
 
             # splits the header value so that additional chunk information
             # is removed and then parsed the value as the original chunk
