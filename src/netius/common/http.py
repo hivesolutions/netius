@@ -168,6 +168,9 @@ class HTTPParser(netius.Observable):
         self.chunk_l = 0
         self.chunk_s = 0
         self.chunk_e = 0
+        
+        
+        self.previous = []
 
     def clear(self, force = False):
         if not force and self.state == LINE_STATE: return
@@ -386,6 +389,8 @@ class HTTPParser(netius.Observable):
         # starts the parsed byte counter with the initial zero
         # value this will be increment as bytes are parsed
         count = 0
+        
+        self.previous.append((data, self.chunk_l))
 
         # verifies if the end of chunk state has been reached
         # that happen when only the last two character remain
@@ -450,7 +455,15 @@ class HTTPParser(netius.Observable):
             # size (dimension) adding the two extra bytes to the length
             header_s = header.split(";", 1)
             size = header_s[0]
-            self.chunk_d = int(size.strip(), base = 16)
+            try:
+                self.chunk_d = int(size.strip(), base = 16)
+            except:
+                print "-----------------------------------------"
+                print self.previous[-2]
+                print "--------------------------------------"
+                print self.previous[-1]
+                print "-----------------------------------------"
+                raise
             self.chunk_l = self.chunk_d + 2
             self.chunk_s = len(self.message)
 
