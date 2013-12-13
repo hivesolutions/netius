@@ -118,7 +118,9 @@ class SOCKSServer(netius.StreamServer):
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
 
-        if hasattr(connection, "tunnel_c"): connection.tunnel_c.send(data)
+        tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
+
+        if tunnel_c: tunnel_c.send(data)
         else: connection.parse(data)
 
     def on_data_socks(self, connection, parser):
@@ -140,7 +142,9 @@ class SOCKSServer(netius.StreamServer):
     def on_connection_d(self, connection):
         netius.StreamServer.on_connection_d(self, connection)
 
-        if hasattr(connection, "tunnel_c"): connection.tunnel_c.close()
+        tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
+
+        if tunnel_c: tunnel_c.close()
 
     def new_connection(self, socket, address, ssl = False):
         return SOCKSConnection(

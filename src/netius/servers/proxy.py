@@ -86,14 +86,19 @@ class ProxyServer(http.HTTPServer):
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
 
-        if hasattr(connection, "tunnel_c"): connection.tunnel_c.send(data)
+        tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
+
+        if tunnel_c: tunnel_c.send(data)
         else: connection.parse(data)
 
     def on_connection_d(self, connection):
         http.HTTPServer.on_connection_d(self, connection)
 
-        if hasattr(connection, "tunnel_c"): connection.tunnel_c.close()
-        if hasattr(connection, "proxy_c"): connection.proxy_c.close()
+        tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
+        proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
+
+        if tunnel_c: tunnel_c.close()
+        if proxy_c: proxy_c.close()
 
     def _prx_close(self, connection):
         connection.close()
@@ -141,12 +146,15 @@ class ProxyServer(http.HTTPServer):
         _connection.used = False
         connection = self.conn_map[_connection]
 
+        # invalidates both the tunnel connection and the proxy connection
+        # as they are no longer associated with the current connection
+        # not attached to the client connection
+        connection.tunnel_c = None
+        connection.proxy_c = None
+
         # creates the clojure function that will be used to close both
-        # the client and the server connections and the detach them from
-        # the connection mapping dictionary
-        def close(connection):
-            connection.close()
-            _connection.close()
+        # the client and the server connections on a callback action
+        def close(connection): connection.close(); _connection.close()
 
         # verifies that the connection is meant to be kept alive, the
         # connection is meant to be kept alive when both the client and
