@@ -289,11 +289,24 @@ class HTTPParser(netius.Observable):
         return index + 1
 
     def _parse_headers(self, data):
-        index = data.find("\r\n\r\n")
+        # creates a temporary buffer with the contents of
+        # the current buffer plus the current data and then
+        # joins it to retrieve the current complete buffer
+        # string to be used in the finding of the end of
+        # header sequence (required for complete parsing)
+        buffer_t = self.buffer + [data]
+        buffer_s = "".join(buffer_t)
+
+        # tries to find the end of headers sequence in case
+        # it's not found returns the zero value meaning that
+        # the no bytes have been processed (delays parsing)
+        index = buffer_s.find("\r\n\r\n")
         if index == -1: return 0
 
-        self.buffer.append(data[:index])
-        self.headers_s = "".join(self.buffer)
+        # retrieves the partial headers string from the buffer
+        # string and then deletes the current buffer so that
+        # it may be reused for other partial parsings
+        self.headers_s = buffer_s[:index]
         del self.buffer[:]
 
         # splits the complete set of lines that compromise
