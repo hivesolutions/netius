@@ -63,10 +63,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         if not prefix:
             connection.send_response(
-                data = "This connection is not allowed",
+                data = "No valid proxy endpoint found",
                 version = version_s,
-                code = 403,
-                code_s = "Forbidden",
+                code = 404,
+                code_s = "Not Found",
                 callback = self._prx_close
             )
             return

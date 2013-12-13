@@ -179,6 +179,7 @@ class HTTPConnection(netius.Connection):
         callback = None
     ):
         headers = headers or {}
+        code_s = code_s or netius.common.HTTPParser.get_code_s(code)
         data_l = len(data) if data else 0
 
         if not "content-length" in headers:
