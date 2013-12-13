@@ -146,12 +146,6 @@ class ProxyServer(http.HTTPServer):
         _connection.used = False
         connection = self.conn_map[_connection]
 
-        # invalidates both the tunnel connection and the proxy connection
-        # as they are no longer associated with the current connection
-        # not attached to the client connection
-        connection.tunnel_c = None
-        connection.proxy_c = None
-
         # creates the clojure function that will be used to close both
         # the client and the server connections on a callback action
         def close(connection): connection.close(); _connection.close()

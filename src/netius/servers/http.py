@@ -220,9 +220,9 @@ class HTTPConnection(netius.Connection):
         # than the 1.1 and the gzip encoding must be accepted
         elif self.encoding == GZIP_ENCODING:
             if parser.version < netius.common.HTTP_11:
-                self.encoding = PLAIN_ENCODING
+                self.current = PLAIN_ENCODING
             elif not "gzip" in parser.get_encodings():
-                self.encoding = CHUNKED_ENCODING
+                self.current = CHUNKED_ENCODING
             else:
                 self.current = GZIP_ENCODING
 
