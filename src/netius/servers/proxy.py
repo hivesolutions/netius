@@ -163,7 +163,7 @@ class ProxyServer(http.HTTPServer):
         # verifies if the current connection is of type chunked an in case
         # it is must first send the final (close) chunk and then call the
         # proper callback otherwise in case it's a plain connection the
-        # callback is immediately called in case it's dedined
+        # callback is immediately called in case it's defined
         if is_chunked: connection.send("0\r\n\r\n", callback = callback)
         elif callback: callback(connection)
 
