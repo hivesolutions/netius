@@ -147,7 +147,6 @@ class ProxyServer(http.HTTPServer):
         def close(connection):
             connection.close()
             _connection.close()
-            del self.conn_map[_connection]
 
         # verifies that the connection is meant to be kept alive, the
         # connection is meant to be kept alive when both the client and
@@ -165,7 +164,7 @@ class ProxyServer(http.HTTPServer):
         # proper callback otherwise in case it's a plain connection the
         # callback is immediately called in case it's defined
         if is_chunked: connection.send("0\r\n\r\n", callback = callback)
-        elif callback: callback(connection)
+        elif callback: connection.send("", callback = callback)
 
     def _on_prx_partial(self, client, parser, data):
         _connection = parser.owner
