@@ -258,7 +258,7 @@ class HTTPParser(netius.Observable):
         return size_o - size
 
     def _parse_line(self, data):
-        index = data.find("\r\n")
+        index = data.find("\n")
         if index == -1: return 0
 
         self.buffer.append(data[:index])
@@ -441,20 +441,15 @@ class HTTPParser(netius.Observable):
         if is_start:
             # tries to find the separator of the initial value for
             # the chunk in case it's not found returns immediately
-            index = data.find("\r\n")
+            index = data.find("\n")
             if index == -1: return 0
 
-            # adds the current data to the buffer and then re-joins
-            # it as the new (larger) data value then removes the
-            # complete set of contents from the buffer
+            # some of the current data to the buffer and then re-joins
+            # it as the header value, then removes the complete set of
+            # contents from the buffer so that it may be re-used
             self.buffer.append(data)
-            data = "".join(self.buffer)
+            header = "".join(self.buffer[:index])
             del self.buffer[:]
-
-            # splits the current data into two parts, the header
-            # and the data parts so that they are going to be used
-            # in the computation of the chunk size
-            header, data = data.split("\r\n", 1)
 
             # splits the header value so that additional chunk information
             # is removed and then parsed the value as the original chunk
