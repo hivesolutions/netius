@@ -168,10 +168,6 @@ class HTTPParser(netius.Observable):
         self.chunk_l = 0
         self.chunk_s = 0
         self.chunk_e = 0
-        
-        
-        self.previous = []
-        self.previous_t = []
 
     def clear(self, force = False):
         if not force and self.state == LINE_STATE: return
@@ -381,7 +377,7 @@ class HTTPParser(netius.Observable):
         # parsing of the message)
         self.state = FINISH_STATE
         self.trigger("on_data")
-        
+
         # returns the length of the processed data as the amount
         # of processed bytes by the current method
         return data_l
@@ -390,8 +386,6 @@ class HTTPParser(netius.Observable):
         # starts the parsed byte counter with the initial zero
         # value this will be increment as bytes are parsed
         count = 0
-        
-        self.previous.append((data, self.chunk_l))
 
         # verifies if the end of chunk state has been reached
         # that happen when only the last two character remain
@@ -445,46 +439,22 @@ class HTTPParser(netius.Observable):
         # length is zero (initial situation)
         is_start = self.chunk_l == 0
         if is_start:
-            # tries to split the data into two parts, the header
-            # and the data part of it and in case it's not possible
-            # returns the current byte counter value
-            try: header, data = data.split("\r\n", 1)
-            except: return count
+            # tries to find the separator of the initial value for
+            # the chunk in case it's not found returns immediately
+            index = data.find("\r\n")
+            if index == -1: return 0
+
+            # splits the current data into two parts, the header
+            # and the data parts so that they are going to be used
+            # in the computation of the chunk size
+            header, data = data.split("\r\n", 1)
 
             # splits the header value so that additional chunk information
             # is removed and then parsed the value as the original chunk
             # size (dimension) adding the two extra bytes to the length
             header_s = header.split(";", 1)
             size = header_s[0]
-            try:
-                self.chunk_d = int(size.strip(), base = 16)
-            except:
-                print "-----------------------------------------"
-                print repr(self.previous[-6][0])
-                print "/////////////////////////////////////////"
-                print repr(self.previous[-6][1])
-                print "-----------------------------------------"
-                print repr(self.previous[-5][0])
-                print "/////////////////////////////////////////"
-                print repr(self.previous[-5][1])
-                print "-----------------------------------------"
-                print repr(self.previous[-4][0])
-                print "/////////////////////////////////////////"
-                print repr(self.previous[-4][1])
-                print "-----------------------------------------"
-                print repr(self.previous[-3][0])
-                print "/////////////////////////////////////////"
-                print repr(self.previous[-3][1])
-                print "-----------------------------------------"
-                print repr(self.previous[-2][0])
-                print "/////////////////////////////////////////"
-                print repr(self.previous[-2][1])
-                print "--------------------------------------"
-                print repr(self.previous[-1][0])
-                print "/////////////////////////////////////////"
-                print repr(self.previous[-1][1])
-                print "-----------------------------------------"
-                raise
+            self.chunk_d = int(size.strip(), base = 16)
             self.chunk_l = self.chunk_d + 2
             self.chunk_s = len(self.message)
 
