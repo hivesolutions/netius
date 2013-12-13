@@ -209,6 +209,7 @@ class HTTPParser(netius.Observable):
         self.content_l = -1
         self.message_l = 0
         self.transfer_e = None
+        self.encodings = None
         self.chunked = False
         self.chunk_d = 0
         self.chunk_l = 0
@@ -237,6 +238,12 @@ class HTTPParser(netius.Observable):
         for value in self.message: buffer.write(value)
         buffer.seek(0)
         return buffer
+
+    def get_encodings(self):
+        if not self.encodings == None: return self.encodings
+        accept_encoding_s = self.headers.get("accept-encoding", "")
+        self.encodings = [value.strip() for value in accept_encoding_s.split(",")]
+        return self.encodings
 
     def parse(self, data):
         """

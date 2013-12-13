@@ -199,6 +199,36 @@ class HTTPConnection(netius.Connection):
     def parse(self, data):
         return self.parser.parse(data)
 
+    def resolve_encoding(self, parser):
+        # in case the "target" encoding is the plain one nothing
+        # is required to be done as this is allowed by any kind
+        # of http compliant connection (returns immediately)
+        if self.encoding == PLAIN_ENCODING:
+            self.current = PLAIN_ENCODING
+
+        # if the target encoding is chunked must verify if the
+        # type of http connection in question is 1.1 or above
+        # otherwise must down-grade the encoding to plain
+        elif self.encoding == CHUNKED_ENCODING:
+            if parser.version < netius.common.HTTP_11:
+                self.current = PLAIN_ENCODING
+            else:
+                self.current = CHUNKED_ENCODING
+
+        # if the target encoding is the compressed gzip style the
+        # current request must be verified have the version larger
+        # than the 1.1 and the gzip encoding must be accepted
+        elif self.encoding == GZIP_ENCODING:
+            if parser.version < netius.common.HTTP_11:
+                self.encoding = PLAIN_ENCODING
+            elif not "gzip" in parser.get_encodings():
+                self.encoding = CHUNKED_ENCODING
+            else:
+                self.current = GZIP_ENCODING
+
+    def set_encoding(self, encoding):
+        self.current = encoding
+
     def set_chunked(self):
         self.current = CHUNKED_ENCODING
 
@@ -353,6 +383,7 @@ class HTTPServer(netius.StreamServer):
     def on_data_http(self, connection, parser):
         is_debug = self.is_debug()
         is_debug and self._log_request(connection, parser)
+        connection.resolve_encoding(parser)
 
     def _apply_base(self, headers):
         for key, value in BASE_HEADERS.iteritems():
