@@ -171,6 +171,7 @@ class HTTPParser(netius.Observable):
         
         
         self.previous = []
+        self.previous_t = []
 
     def clear(self, force = False):
         if not force and self.state == LINE_STATE: return
@@ -458,6 +459,14 @@ class HTTPParser(netius.Observable):
             try:
                 self.chunk_d = int(size.strip(), base = 16)
             except:
+                print "-----------------------------------------"
+                print repr(self.previous[-4][0])
+                print "/////////////////////////////////////////"
+                print repr(self.previous[-4][1])
+                print "-----------------------------------------"
+                print repr(self.previous[-3][0])
+                print "/////////////////////////////////////////"
+                print repr(self.previous[-3][1])
                 print "-----------------------------------------"
                 print repr(self.previous[-2][0])
                 print "/////////////////////////////////////////"
