@@ -460,6 +460,10 @@ class HTTPParser(netius.Observable):
                 self.chunk_d = int(size.strip(), base = 16)
             except:
                 print "-----------------------------------------"
+                print repr(self.previous[-5][0])
+                print "/////////////////////////////////////////"
+                print repr(self.previous[-5][1])
+                print "-----------------------------------------"
                 print repr(self.previous[-4][0])
                 print "/////////////////////////////////////////"
                 print repr(self.previous[-4][1])
