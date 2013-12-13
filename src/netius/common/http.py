@@ -444,6 +444,13 @@ class HTTPParser(netius.Observable):
             index = data.find("\r\n")
             if index == -1: return 0
 
+            # adds the current data to the buffer and then re-joins
+            # it as the new (larger) data value then removes the
+            # complete set of contents from the buffer
+            self.buffer.append(data)
+            data = "".join(self.buffer)
+            del self.buffer[:]
+
             # splits the current data into two parts, the header
             # and the data parts so that they are going to be used
             # in the computation of the chunk size
