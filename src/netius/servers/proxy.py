@@ -130,15 +130,42 @@ class ProxyServer(http.HTTPServer):
         connection.send(data)
 
     def _on_prx_message(self, client, parser, message):
+        # retrieves the back-end connection from the provided parser and
+        # then evaluates if that connection is of type chunked
         _connection = parser.owner
         is_chunked = parser.chunked
 
+        # sets the current client connection as unused and then retrieves
+        # the requester connection associated with the client (back-end)
+        # connection in order to be used in the current processing
         _connection.used = False
-
-        if not is_chunked: return
-
         connection = self.conn_map[_connection]
-        connection.send("0\r\n\r\n", callback = self._prx_keep)
+
+        # creates the clojure function that will be used to close both
+        # the client and the server connections and the detach them from
+        # the connection mapping dictionary
+        def close(connection):
+            connection.close()
+            _connection.close()
+            del self.conn_map[_connection]
+
+        # verifies that the connection is meant to be kept alive, the
+        # connection is meant to be kept alive when both the client and
+        # the final (back-end) server respond with the keep alive flag
+        keep_alive = parser.keep_alive and connection.parser.keep_alive
+
+        # defines the proper callback function to be called at the end
+        # of the flushing of the connection according to the result of
+        # the keep alive evaluation (as defined in specification)
+        if keep_alive: callback = None
+        else: callback = close
+
+        # verifies if the current connection is of type chunked an in case
+        # it is must first send the final (close) chunk and then call the
+        # proper callback otherwise in case it's a plain connection the
+        # callback is immediately called in case it's dedined
+        if is_chunked: connection.send("0\r\n\r\n", callback = callback)
+        elif callback: callback(connection)
 
     def _on_prx_partial(self, client, parser, data):
         _connection = parser.owner
