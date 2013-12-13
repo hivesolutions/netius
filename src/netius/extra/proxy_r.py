@@ -75,7 +75,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             method,
             url,
             headers = parser.headers,
-            data = parser.get_message()
+            data = parser.get_message(),
+            version = version_s
         )
         _connection.used = False
         connection.proxy_c = _connection
