@@ -70,7 +70,15 @@ class Client(Base):
         for error in errors:
             self.on_error(error)
 
-    def acquire_c(self, host, port, ssl = False, key_file = None, cer_file = None, callback = None):
+    def acquire_c(
+        self,
+        host,
+        port,
+        ssl = False,
+        key_file = None,
+        cer_file = None,
+        callback = None
+    ):
         connection_t = (host, port, ssl, key_file, cer_file)
         connection_l = self.free_map.get(connection_t, None)
 
