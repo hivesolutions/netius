@@ -110,7 +110,7 @@ class Client(Base):
         if not hasattr(connection, "tuple"): return
         connection_t = connection.tuple
         connection_l = self.free_map.get(connection_t, [])
-        if connection in connection_l: connection_l.remove (connection)
+        if connection in connection_l: connection_l.remove(connection)
 
     def connect(self, host, port, ssl = False, key_file = None, cer_file = None):
         if not host: raise errors.NetiusError("Invalid host for connect operation")
