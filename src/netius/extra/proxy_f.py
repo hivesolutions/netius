@@ -84,6 +84,7 @@ class ForwardProxyServer(netius.servers.ProxyServer):
                 data = parser.get_message(),
                 version = version_s
             )
+            _connection.pending = True
             _connection.used = False
             connection.proxy_c = _connection
             self.conn_map[_connection] = connection

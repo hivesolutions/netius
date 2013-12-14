@@ -57,6 +57,7 @@ class ProxyServer(http.HTTPServer):
         self.http_client.bind("message", self._on_prx_message)
         self.http_client.bind("partial", self._on_prx_partial)
         self.http_client.bind("chunk", self._on_prx_chunk)
+        self.http_client.bind("connect", self._on_prx_connect)
         self.http_client.bind("acquire", self._on_prx_acquire)
         self.http_client.bind("close", self._on_prx_close)
         self.http_client.bind("error", self._on_prx_error)
@@ -143,6 +144,7 @@ class ProxyServer(http.HTTPServer):
         # sets the current client connection as unused and then retrieves
         # the requester connection associated with the client (back-end)
         # connection in order to be used in the current processing
+        _connection.pending = False
         _connection.used = False
         connection = self.conn_map[_connection]
 
@@ -196,12 +198,22 @@ class ProxyServer(http.HTTPServer):
         chunk = header + data_s + "\r\n"
         connection.send(chunk)
 
+    def _on_prx_connect(self, client, _connection):
+        _connection.pending = False
+
     def _on_prx_acquire(self, client, _connection):
+        _connection.pending = False
         _connection.used = True
 
     def _on_prx_close(self, client, _connection):
         connection = self.conn_map[_connection]
-        if _connection.used: connection.close(flush = True)
+        if _connection.pending: connection.send_response(
+            data = "Forbidden",
+            code = 403,
+            code_s = "Forbidden",
+            callback = self._prx_close
+        )
+        elif _connection.used: connection.close(flush = True)
         del self.conn_map[_connection]
 
     def _on_prx_error(self, client, _connection, error):
