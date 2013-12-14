@@ -144,7 +144,7 @@ class ProxyServer(http.HTTPServer):
         # sets the current client connection as unused and then retrieves
         # the requester connection associated with the client (back-end)
         # connection in order to be used in the current processing
-        _connection.pending = False
+        _connection.waiting = False
         _connection.used = False
         connection = self.conn_map[_connection]
 
@@ -199,15 +199,15 @@ class ProxyServer(http.HTTPServer):
         connection.send(chunk)
 
     def _on_prx_connect(self, client, _connection):
-        _connection.pending = False
+        _connection.waiting = False
 
     def _on_prx_acquire(self, client, _connection):
-        _connection.pending = False
+        _connection.waiting = False
         _connection.used = True
 
     def _on_prx_close(self, client, _connection):
         connection = self.conn_map[_connection]
-        if _connection.pending: connection.send_response(
+        if _connection.waiting: connection.send_response(
             data = "Forbidden",
             code = 403,
             code_s = "Forbidden",
