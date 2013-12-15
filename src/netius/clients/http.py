@@ -202,7 +202,15 @@ class HTTPClient(netius.Client):
             headers = headers
         )
 
-    def method(self, method, url, params = {}, headers = {}, data = None, version = "HTTP/1.1"):
+    def method(
+        self,
+        method,
+        url,
+        params = {},
+        headers = {},
+        data = None,
+        version = "HTTP/1.1"
+    ):
         query = urllib.urlencode(params)
         if query: url = url + "?" + query
 
