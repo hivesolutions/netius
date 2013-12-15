@@ -158,7 +158,15 @@ class HTTPClient(netius.Client):
     """
     Simple test of an http client, supports a series of basic
     operations and makes use of the http parser from netius.
+    
+    The current implementation supports the auto-release of the
+    connection once the message has been received, this is optional
+    and may be disabled with an argument in the constructor. 
     """
+    
+    def __init__(self, release = True, *args, **kwargs):
+        netius.Client.__init__(self, *args, **kwargs)
+        self.release = release
 
     def get(self, url, params = {}, headers = {}):
         return self.method(
@@ -253,7 +261,7 @@ class HTTPClient(netius.Client):
     def on_data_http(self, connection, parser):
         message = parser.get_message()
         self.trigger("message", self, parser, message)
-        self.release_c(connection)
+        if self.release: self.release_c(connection)
 
     def on_partial_http(self, connection, parser, data):
         self.trigger("partial", self, parser, data)
