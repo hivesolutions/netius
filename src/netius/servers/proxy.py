@@ -50,6 +50,7 @@ class ProxyServer(http.HTTPServer):
 
         self.http_client = netius.clients.HTTPClient(
             thread = False,
+            auto_release = False,
             *args,
             **kwargs
         )
@@ -58,7 +59,6 @@ class ProxyServer(http.HTTPServer):
         self.http_client.bind("partial", self._on_prx_partial)
         self.http_client.bind("chunk", self._on_prx_chunk)
         self.http_client.bind("connect", self._on_prx_connect)
-        self.http_client.bind("acquire", self._on_prx_acquire)
         self.http_client.bind("close", self._on_prx_close)
         self.http_client.bind("error", self._on_prx_error)
 
@@ -141,18 +141,11 @@ class ProxyServer(http.HTTPServer):
         _connection = parser.owner
         is_chunked = parser.chunked
 
-        # sets the current client connection as unused and then retrieves
+        # sets the current client connection as not waiting and then retrieves
         # the requester connection associated with the client (back-end)
         # connection in order to be used in the current processing
         _connection.waiting = False
-        _connection.used = False
         connection = self.conn_map[_connection]
-
-        # invalidates both the tunnel connection and the proxy connection
-        # as they are no longer associated with the current connection
-        # not attached to the client connection
-        connection.tunnel_c = None
-        connection.proxy_c = None
 
         # creates the clojure function that will be used to close the
         # current client connection and that may or may not close the
@@ -201,19 +194,26 @@ class ProxyServer(http.HTTPServer):
     def _on_prx_connect(self, client, _connection):
         _connection.waiting = False
 
-    def _on_prx_acquire(self, client, _connection):
-        _connection.waiting = False
-        _connection.used = True
-
     def _on_prx_close(self, client, _connection):
+        # retrieves the front-end connection associated with
+        # the back-end to be used for the operations
         connection = self.conn_map[_connection]
+
+        # in case the connection is under the waiting state
+        # the forbidden response is set to the client otherwise
+        # the front-end connection is closed immediately
         if _connection.waiting: connection.send_response(
             data = "Forbidden",
             code = 403,
             code_s = "Forbidden",
             callback = self._prx_close
         )
-        elif _connection.used: connection.close(flush = True)
+        else: connection.close(flush = True)
+
+        # removes the waiting state from the connection and
+        # the removes the back-end to front-end connection
+        # relation for the current proxy connection
+        _connection.waiting = False
         del self.conn_map[_connection]
 
     def _on_prx_error(self, client, _connection, error):

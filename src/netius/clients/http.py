@@ -158,12 +158,12 @@ class HTTPClient(netius.Client):
     """
     Simple test of an http client, supports a series of basic
     operations and makes use of the http parser from netius.
-    
+
     The current implementation supports the auto-release of the
     connection once the message has been received, this is optional
-    and may be disabled with an argument in the constructor. 
+    and may be disabled with an argument in the constructor.
     """
-    
+
     def __init__(self, auto_release = True, *args, **kwargs):
         netius.Client.__init__(self, *args, **kwargs)
         self.auto_release = auto_release
