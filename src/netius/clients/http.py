@@ -164,9 +164,9 @@ class HTTPClient(netius.Client):
     and may be disabled with an argument in the constructor. 
     """
     
-    def __init__(self, release = True, *args, **kwargs):
+    def __init__(self, auto_release = True, *args, **kwargs):
         netius.Client.__init__(self, *args, **kwargs)
-        self.release = release
+        self.auto_release = auto_release
 
     def get(self, url, params = {}, headers = {}):
         return self.method(
@@ -261,7 +261,7 @@ class HTTPClient(netius.Client):
     def on_data_http(self, connection, parser):
         message = parser.get_message()
         self.trigger("message", self, parser, message)
-        if self.release: self.release_c(connection)
+        if self.auto_release: self.release_c(connection)
 
     def on_partial_http(self, connection, parser, data):
         self.trigger("partial", self, parser, data)
