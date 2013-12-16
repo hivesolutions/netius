@@ -213,6 +213,7 @@ class Connection(object):
         to be send is completely sent to the socket.
         """
 
+        if not self.status == OPEN: return
         if callback: data = (data, callback)
         self.ensure_write()
         self.pending_lock.acquire()
