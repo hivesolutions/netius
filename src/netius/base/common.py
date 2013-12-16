@@ -58,7 +58,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "0.4.2"
+VERSION = "0.4.3"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -414,6 +414,10 @@ class Base(observer.Observable):
         self.debug(
             "Connection '%s' from '%s' created ..." %\
             (connection.id, connection.owner.name)
+        )
+        self.debug(
+            "Currently there are '%d' connections under '%s' ..." %\
+            (len(connection.owner.connections), connection.owner.name)
         )
 
     def on_connection_d(self, connection):
