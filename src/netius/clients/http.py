@@ -251,6 +251,16 @@ class HTTPClient(netius.Client):
         port = parsed.port or (ssl and 443 or 80)
         path = parsed.path
 
+        # in case there's a connection to be used must validate that the
+        # connection is valid for the current context so that the host,
+        # the port and the security of the connection is the same
+        if connection:
+            host_valid = connection.address == host
+            port_valid = connection.port == port
+            ssl_valid = connection.ssl == ssl
+            is_valid = host_valid and port_valid and ssl_valid
+            if not is_valid: connection.close(); connection = None
+
         # in case there's going to be a re-usage of an already existing
         # connection the acquire operation must be performed so that it
         # becomes unblocked from the previous context (required for usage)
