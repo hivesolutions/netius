@@ -44,7 +44,7 @@ import threading
 
 OPEN = 1
 """ The open status value, meant to be used in situations
-where the status of the entity is open (opposite of closed) """
+where the status of the entity is open (opposite of d) """
 
 CLOSED = 2
 """ Closed status value to be used in entities which have
@@ -82,10 +82,10 @@ class Connection(object):
         self.pending_lock = threading.RLock()
 
     def open(self, connect = False):
-        # in case the current status of the connection is not
-        # pending does not make sense to open it as it should
-        # already be open anyway (returns immediately)
-        if not self.status == PENDING: return
+        # in case the current status of the connection is already open
+        # it does not make sense to proceed with the opening of the
+        # connection as the connection is already open
+        if self.status == OPEN: return
 
         # retrieves the reference to the owner object from the
         # current instance to be used to add the socket to the
@@ -118,9 +118,10 @@ class Connection(object):
         owner.on_connection_c(self)
 
     def close(self, flush = False):
-        # in case the current status of the connection is not open
-        # doen't make sense to close as it's already closed
-        if not self.status == OPEN: return
+        # in case the current status of the connection is closes it does
+        # nor make sense to proceed with the closing as the connection
+        # is already in the closed state (nothing to be done)
+        if self.status == CLOSED: return
 
         # in case the flush flag is set a different approach is taken
         # where all the pending data is flushed (as possible) before
@@ -131,6 +132,11 @@ class Connection(object):
         # so that no one else changed the current connection status
         # this is relevant to avoid any erroneous situation
         self.status = CLOSED
+
+        # unsets the connecting flag this is for connections that
+        # are under the connecting state and that must be reverted
+        # to the original not connecting state
+        self.connecting = False
 
         # retrieves the reference to the owner object from the
         # current instance to be used to removed the socket from the
