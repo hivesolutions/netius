@@ -248,6 +248,11 @@ class Client(Base):
             self._pending_lock.release()
 
     def _connect(self, connection):
+        # in case the current connection has been closed meanwhile
+        # the current connection is meant to be avoided and so the
+        # method must return immediately to the caller method
+        if connection.status == CLOSED: return
+
         # retrieves the socket associated with the connection
         # and calls the open method of the connection to proceed
         # with the correct operations for the connection
