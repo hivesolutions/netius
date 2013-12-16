@@ -260,7 +260,8 @@ class HTTPClient(netius.Client):
 
         # in case there's a connection to be used must validate that the
         # connection is valid for the current context so that the host,
-        # the port and the security of the connection is the same
+        # the port and the security of the connection is the same, in case
+        # the connection is not valid closes it and set it as unset
         if connection:
             address_valid = connection.address == (host, port)
             ssl_valid = connection.ssl == ssl
