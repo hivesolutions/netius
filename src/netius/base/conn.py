@@ -126,8 +126,9 @@ class Connection(object):
         # in case the flush flag is set a different approach is taken
         # where all the pending data is flushed (as possible) before
         # the connection is effectively closed, this is only valid in
-        # case the current connection status is open
-        if flush and self.status == OPEN: return self.close_flush()
+        # case the current connection status is open and not connecting
+        if flush and self.status == OPEN and not self.connecting:
+            return self.close_flush()
 
         # immediately sets the status of the connection as closed
         # so that no one else changed the current connection status
