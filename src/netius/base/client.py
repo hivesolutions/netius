@@ -83,9 +83,8 @@ class Client(Base):
         connection_l = self.free_map.get(connection_t, None)
 
         if connection_l:
-            acquire = lambda: self.on_acquire(connection)
             connection = connection_l.pop()
-            self.delay(acquire)
+            self.acquire(connection)
         else:
             connection = self.connect(
                 host,
@@ -143,6 +142,10 @@ class Client(Base):
         finally: self._pending_lock.release()
 
         return connection
+
+    def acquire(self, connection):
+        acquire = lambda: self.on_acquire(connection)
+        self.delay(acquire)
 
     def on_read(self, _socket):
         connection = self.connections_m.get(_socket, None)

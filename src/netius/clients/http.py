@@ -251,6 +251,15 @@ class HTTPClient(netius.Client):
         port = parsed.port or (ssl and 443 or 80)
         path = parsed.path
 
+        # in case there's going to be a re-usage of an already existing
+        # connection the acquire operation must be performed so that it
+        # becomes unblocked from the previous context (required for usage)
+        connection and self.acquire(connection)
+
+        # tries to retrieve the connection that is going to be used for
+        # the performing of the request by either acquiring a connection
+        # from the list of available connection or re-using the connection
+        # that was passed to the method (and previously acquired)
         connection = connection or self.acquire_c(host, port, ssl = ssl)
         connection.set_http(
             version = version,
