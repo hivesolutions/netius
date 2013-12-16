@@ -227,6 +227,9 @@ class ProxyServer(http.HTTPServer):
         error_m = str(error) or "Unknown proxy relay error"
         connection = self.conn_map.get(_connection, None)
         if not connection: return
+
+        if not _connection.waiting: return
+
         connection.send_response(
             data = error_m,
             code = 500,
