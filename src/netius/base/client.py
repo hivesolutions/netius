@@ -156,12 +156,6 @@ class Client(Base):
         if not connection: return
         if not connection.status == OPEN: return
 
-        # in case the current connection is under the connecting
-        # state and is of type ssl, must try the ssl handshake to
-        # see if it may be completed as new data is available
-        if connection.connecting and connection.ssl:
-            self._ssl_handshake(_socket)
-
         try:
             # verifies if there's any pending operations in the
             # socket (eg: ssl handshaking) and performs them trying
@@ -202,8 +196,11 @@ class Client(Base):
         if not connection.status == OPEN: return
 
         if connection.connecting:
-            if connection.ssl: self._ssl_handshake(_socket)
-            else: self.on_connect(connection)
+            error = _socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+            if error: self.on_error(_socket)
+            else:
+                if connection.ssl: self._ssl_handshake(_socket)
+                else: self.on_connect(connection)
 
         try:
             connection._send()
