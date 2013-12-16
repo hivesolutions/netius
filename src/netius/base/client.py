@@ -148,9 +148,19 @@ class Client(Base):
         self.delay(acquire)
 
     def on_read(self, _socket):
+        # retrieves the connection object associated with the
+        # current socket that is going to be read in case there's
+        # no connection available or the status is not open
+        # must return the control flow immediately to the caller
         connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
+
+        # in case the current connection is under the connecting
+        # state and is of type ssl, must try the ssl handshake to
+        # see if it may be completed as new data is available
+        if connection.connecting and connection.ssl:
+            self._ssl_handshake(_socket)
 
         try:
             # verifies if there's any pending operations in the
@@ -192,7 +202,7 @@ class Client(Base):
         if not connection.status == OPEN: return
 
         if connection.connecting:
-            if connection.ssl: self._ssl_handshake(connection.socket)
+            if connection.ssl: self._ssl_handshake(_socket)
             else: self.on_connect(connection)
 
         try:
