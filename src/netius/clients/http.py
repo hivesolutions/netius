@@ -168,38 +168,68 @@ class HTTPClient(netius.Client):
         netius.Client.__init__(self, *args, **kwargs)
         self.auto_release = auto_release
 
-    def get(self, url, params = {}, headers = {}):
+    def get(
+        self,
+        url,
+        params = {},
+        headers = {},
+        **kwargs
+    ):
         return self.method(
             "GET",
             url,
             params = params,
-            headers = headers
+            headers = headers,
+            **kwargs
         )
 
-    def post(self, url, params = {}, headers = {}, data = None):
+    def post(
+        self,
+        url,
+        params = {},
+        headers = {},
+        data = None,
+        **kwargs
+    ):
         return self.method(
             "POST",
             url,
             params = params,
             headers = headers,
-            data = data
+            data = data,
+            **kwargs
         )
 
-    def put(self, url, params = {}, headers = {}, data = None):
+    def put(
+        self,
+        url,
+        params = {},
+        headers = {},
+        data = None,
+        **kwargs
+    ):
         return self.method(
             "PUT",
             url,
             params = params,
             headers = headers,
-            data = data
+            data = data,
+            **kwargs
         )
 
-    def delete(self, url, params = {}, headers = {}):
+    def delete(
+        self,
+        url,
+        params = {},
+        headers = {},
+        **kwargs
+    ):
         return self.method(
             "DELETE",
             url,
             params = params,
-            headers = headers
+            headers = headers,
+            **kwargs
         )
 
     def method(
@@ -209,7 +239,8 @@ class HTTPClient(netius.Client):
         params = {},
         headers = {},
         data = None,
-        version = "HTTP/1.1"
+        version = "HTTP/1.1",
+        connection = None
     ):
         query = urllib.urlencode(params)
         if query: url = url + "?" + query
@@ -220,7 +251,7 @@ class HTTPClient(netius.Client):
         port = parsed.port or (ssl and 443 or 80)
         path = parsed.path
 
-        connection = self.acquire_c(host, port, ssl = ssl)
+        connection = connection or self.acquire_c(host, port, ssl = ssl)
         connection.set_http(
             version = version,
             method = method,
