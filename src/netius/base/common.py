@@ -58,7 +58,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "0.4.3"
+VERSION = "0.4.4"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -416,7 +416,7 @@ class Base(observer.Observable):
             (connection.id, connection.owner.name)
         )
         self.debug(
-            "Currently there are '%d' connections under '%s' ..." %\
+            "There are '%d' connections for '%s' ..." %\
             (len(connection.owner.connections), connection.owner.name)
         )
 
@@ -424,6 +424,10 @@ class Base(observer.Observable):
         self.debug(
             "Connection '%s' from '%s' deleted" %\
             (connection.id, connection.owner.name)
+        )
+        self.debug(
+            "There are '%d' connections for '%s' ..." %\
+            (len(connection.owner.connections), connection.owner.name)
         )
 
     def info_dict(self):
