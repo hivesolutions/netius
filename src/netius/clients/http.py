@@ -242,9 +242,16 @@ class HTTPClient(netius.Client):
         version = "HTTP/1.1",
         connection = None
     ):
+        # encodes the provided parameters into the query string and then
+        # adds these parameters to the end of the provided url, these
+        # values are commonly named get parameters
         query = urllib.urlencode(params)
         if query: url = url + "?" + query
 
+        # parses the provided url and retrieves the various parts of the
+        # url that are going to be used in the creation of the connection
+        # takes into account some default values in case their are not part
+        # of the provided url (eg: port and the scheme)
         parsed = urlparse.urlparse(url)
         ssl = parsed.scheme == "https"
         host = parsed.hostname
