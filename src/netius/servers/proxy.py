@@ -200,8 +200,11 @@ class ProxyServer(http.HTTPServer):
 
     def _on_prx_close(self, client, _connection):
         # retrieves the front-end connection associated with
-        # the back-end to be used for the operations
-        connection = self.conn_map[_connection]
+        # the back-end to be used for the operations in case
+        # no connection is retrieved returns the control flow
+        # to the caller method immediately (nothing done)
+        connection = self.conn_map.get(_connection, None)
+        if not connection: return
 
         # in case the connection is under the waiting state
         # the forbidden response is set to the client otherwise
@@ -222,7 +225,8 @@ class ProxyServer(http.HTTPServer):
 
     def _on_prx_error(self, client, _connection, error):
         error_m = str(error) or "Unknown proxy relay error"
-        connection = self.conn_map[_connection]
+        connection = self.conn_ma.get(_connection, None)
+        if not connection: return
         connection.send_response(
             data = error_m,
             code = 500,

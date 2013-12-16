@@ -79,6 +79,9 @@ class ForwardProxyServer(netius.servers.ProxyServer):
         else:
             proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
             proxy_c = proxy_c or None
+            connection.proxy_c = None
+            if proxy_c in self.conn_map: del self.conn_map[proxy_c]
+
             _connection = self.http_client.method(
                 method,
                 path,
@@ -87,6 +90,7 @@ class ForwardProxyServer(netius.servers.ProxyServer):
                 version = version_s,
                 connection = proxy_c
             )
+
             _connection.waiting = True
             connection.proxy_c = _connection
             self.conn_map[_connection] = connection
