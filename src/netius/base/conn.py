@@ -50,6 +50,10 @@ CLOSED = 2
 """ Closed status value to be used in entities which have
 no pending structured opened and operations are limited """
 
+PENDING = 3
+""" The pending status used for transient states (eg created)
+connections under this state must be used carefully """
+
 CHUNK_SIZE = 4096
 """ The size of the chunk to be used while received
 data from the service socket """
@@ -67,7 +71,7 @@ class Connection(object):
     """
 
     def __init__(self, owner = None, socket = None, address = None, ssl = False):
-        self.status = CLOSED
+        self.status = PENDING
         self.id = str(uuid.uuid4())
         self.connecting = False
         self.owner = owner
@@ -79,9 +83,9 @@ class Connection(object):
 
     def open(self, connect = False):
         # in case the current status of the connection is not
-        # closed does not make sense to open it as it should
+        # pending does not make sense to open it as it should
         # already be open anyway (returns immediately)
-        if not self.status == CLOSED: return
+        if not self.status == PENDING: return
 
         # retrieves the reference to the owner object from the
         # current instance to be used to add the socket to the
@@ -228,6 +232,9 @@ class Connection(object):
 
     def is_closed(self):
         return self.status == CLOSED
+
+    def is_pending(self):
+        return self.status == PENDING
 
     def _send(self):
         self.pending_lock.acquire()
