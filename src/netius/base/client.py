@@ -271,6 +271,7 @@ class Client(Base):
                 for line in lines: self.info(line)
                 self.trigger("error", self, connection, error)
                 connection.close()
+                return
         except socket.error, error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
@@ -279,6 +280,7 @@ class Client(Base):
                 for line in lines: self.info(line)
                 self.trigger("error", self, connection, error)
                 connection.close()
+                return
         except BaseException, exception:
             self.warning(exception)
             lines = traceback.format_exc().splitlines()
