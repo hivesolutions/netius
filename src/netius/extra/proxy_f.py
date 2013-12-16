@@ -77,12 +77,15 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             connection.tunnel_c = _connection
             self.conn_map[_connection] = connection
         else:
+            proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
+            proxy_c = proxy_c or None
             _connection = self.http_client.method(
                 method,
                 path,
                 headers = parser.headers,
                 data = parser.get_message(),
-                version = version_s
+                version = version_s,
+                connection = proxy_c
             )
             _connection.waiting = True
             connection.proxy_c = _connection

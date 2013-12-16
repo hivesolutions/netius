@@ -59,6 +59,7 @@ class ProxyServer(http.HTTPServer):
         self.http_client.bind("partial", self._on_prx_partial)
         self.http_client.bind("chunk", self._on_prx_chunk)
         self.http_client.bind("connect", self._on_prx_connect)
+        self.http_client.bind("acquire", self._on_prx_acquire)
         self.http_client.bind("close", self._on_prx_close)
         self.http_client.bind("error", self._on_prx_error)
 
@@ -192,6 +193,9 @@ class ProxyServer(http.HTTPServer):
         connection.send(chunk)
 
     def _on_prx_connect(self, client, _connection):
+        _connection.waiting = False
+
+    def _on_prx_acquire(self, client, _connection):
         _connection.waiting = False
 
     def _on_prx_close(self, client, _connection):

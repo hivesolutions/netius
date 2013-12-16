@@ -71,12 +71,15 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             )
             return
 
+        proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
+        proxy_c = proxy_c or None
         _connection = self.http_client.method(
             method,
             url,
             headers = parser.headers,
             data = parser.get_message(),
-            version = version_s
+            version = version_s,
+            connection = proxy_c
         )
         _connection.waiting = True
         connection.proxy_c = _connection
