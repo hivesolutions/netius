@@ -58,7 +58,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "0.3.13"
+VERSION = "0.4.0"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -201,7 +201,8 @@ class Base(observer.Observable):
         observer.Observable.__init__(self, *args, **kwargs)
         poll = Base.test_poll()
         self.name = name or self.__class__.__name__
-        self.handlers = handlers or (logging.StreamHandler(),)
+        self.handler_stream = logging.StreamHandler()
+        self.handlers = handlers or (self.handler_stream,)
         self.level = kwargs.get("level", logging.DEBUG)
         self.tid = None
         self.logger = None
@@ -243,13 +244,14 @@ class Base(observer.Observable):
         if not level_t == types.IntType: level = logging.getLevelName(level)
         formatter = logging.Formatter(format)
         identifier = self.get_id()
+        self.handler_stream.setLevel(level)
+        self.handler_stream.setFormatter(formatter)
         self.logger = logging.getLogger(identifier)
         self.logger.parent = None
         self.logger.setLevel(level)
-        for handler in self.handlers: self.logger.addHandler(handler)
-        for handler in self.logger.handlers:
-            handler.setFormatter(formatter)
-            handler.setLevel(level)
+        for handler in self.handlers:
+            if not handler: continue
+            self.logger.addHandler(handler)
 
     def start(self):
         # retrieves the name of the polling mechanism that is
