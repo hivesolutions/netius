@@ -362,6 +362,13 @@ class HTTPParser(netius.Observable):
         self.headers_s = buffer_s[:index]
         del self.buffer[:]
 
+        # calculates the base length as the difference between
+        # the buffer string and the length of the currently
+        # provided data value and then uses this value to calculate
+        # the base index for the process data count value
+        base_length = len(buffer_s) - len(data)
+        base_index = index - base_length
+
         # splits the complete set of lines that compromise
         # the headers and then iterates over each of them
         # to set the key and value in the headers map
@@ -410,7 +417,7 @@ class HTTPParser(netius.Observable):
         # the parsed amount of information (bytes) to the caller
         self.trigger("on_headers")
         if has_finished: self.trigger("on_data")
-        return index + 4
+        return base_index + 4
 
     def _parse_message(self, data):
         if self.chunked: return self._parse_chunked(data)
@@ -530,9 +537,10 @@ class HTTPParser(netius.Observable):
             self.chunk_l = self.chunk_d + 2
             self.chunk_s = len(self.message)
 
-            # increments the byte counter value by the size of the header
-            # plus the two additional separator characters size
-            count += len(header) + 2
+            # increments the counter of the parsed number of bytes from the
+            # provided data by the index of the newline character position
+            # plus one byte respecting to the newline character
+            count += index + 1
 
         # retrieve the partial data that is valid according to the
         # calculated chunk length and then calculates the size of
