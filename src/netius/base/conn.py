@@ -256,7 +256,7 @@ class Connection(object):
         if self.wready:
             # creates the send lambda function that run the
             # new write handler for the data to be processed
-            send = lambda: self.owner.writes((self.socket,))
+            send = lambda: self.owner.on_write(self.socket)
 
             # checks if the safe flag is set and if it is runs
             # the send operation right way otherwise "waits" until
@@ -267,7 +267,7 @@ class Connection(object):
         # otherwise the write stream is not ready and so the
         # connection must be ensure to be write ready, should
         # subscribe to the write events as soon as possible
-        else:  self.ensure_write()
+        else: self.ensure_write()
 
     def recv(self, size = CHUNK_SIZE):
         return self._recv(size = size)
