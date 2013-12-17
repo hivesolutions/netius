@@ -271,7 +271,9 @@ class Connection(object):
         # otherwise the write stream is not ready and so the
         # connection must be ensure to be write ready, should
         # subscribe to the write events as soon as possible
-        else: self.ensure_write()
+        else:
+            print "not wready"
+            self.ensure_write()
 
     def recv(self, size = CHUNK_SIZE):
         return self._recv(size = size)
@@ -286,8 +288,13 @@ class Connection(object):
         return self.status == PENDING
 
     def _send(self):
+        # acquires the pending lock so that no other access to the
+        # the pending structure is made from a different thread
         self.pending_lock.acquire()
+        
         try:
+            # iterates continuously so that all the pending data to be
+            # sent is correctly sent to the other peer if that's possible
             while True:
                 # verifies if there's data pending to be sent in case
                 # there's not returns immediately, because there's
