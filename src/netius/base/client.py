@@ -160,12 +160,7 @@ class Client(Base):
         # the socket must be verified for errors and in case
         # there's none the connection must proceed, for example
         # the ssl connection handshake must be performed/retried
-        if connection.connecting:
-            error = _socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
-            if error: self.on_error(_socket)
-            else:
-                if connection.ssl: self._ssl_handshake(_socket)
-                else: self.on_connect(connection)
+        if connection.connecting: self._connectf(connection)
 
         try:
             # verifies if there's any pending operations in the
@@ -210,12 +205,7 @@ class Client(Base):
         # the socket must be verified for errors and in case
         # there's none the connection must proceed, for example
         # the ssl connection handshake must be performed/retried
-        if connection.connecting:
-            error = _socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
-            if error: self.on_error(_socket)
-            else:
-                if connection.ssl: self._ssl_handshake(_socket)
-                else: self.on_connect(connection)
+        if connection.connecting: self._connectf(connection)
 
         try:
             connection._send()
@@ -259,6 +249,25 @@ class Client(Base):
 
     def on_data(self, connection, data):
         pass
+
+    def _connectf(self, connection):
+        """
+        Finishes the process of connecting to the remote end-point
+        this should be done in certain steps of the connection.
+
+        The process of finishing the connecting process should include
+        the ssl handshaking process.
+
+        @type connection: Connection
+        @param connection: The connection that should have the connect
+        process tested for finishing.
+        """
+
+        error = connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        if error: self.on_error(connection.socket); return
+
+        if connection.ssl: self._ssl_handshake(connection.socket)
+        else: self.on_connect(connection)
 
     def _connects(self):
         self._pending_lock.acquire()
@@ -311,11 +320,7 @@ class Client(Base):
             connection.close()
             raise
         else:
-            error = _socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
-            if error: self.on_error(_socket)
-            else:
-                if connection.ssl: self._ssl_handshake(_socket)
-                else: self.on_connect(connection)
+            self._connectf(connection)
 
         # in case the connection is not of type ssl the method
         # may returns as there's nothing left to be done, as the
