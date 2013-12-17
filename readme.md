@@ -4,7 +4,7 @@ Series of network related libraries for the rapid creation of non blocking async
 
 ## Benchmarks
 
-Running `ab -n 2000  -k   http://srio.hive:8080/` whoud should get the following results:
+Running `ab -n 2000 -c 5 -k http://srio.hive:8080/` whoud should get the following results:
 
 * `HelloServer` - 4.3 req/sec
 * `WSGIServer` - 2.5 req/sec
