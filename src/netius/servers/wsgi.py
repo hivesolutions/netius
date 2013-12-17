@@ -177,13 +177,15 @@ if __name__ == "__main__":
 
     def app(environ, start_response):
         status = "200 OK"
+        contents = "Hello World"
+        content_l = len(contents)
         headers = (
-            ("Content-Length", "11"),
+            ("Content-Length", content_l),
             ("Content-type", "text/plain"),
             ("Connection", "keep-alive")
         )
         start_response(status, headers)
-        return "Hello World"
+        return contents
 
     server = WSGIServer(app = app, level = logging.INFO)
     server.serve(env = True)
