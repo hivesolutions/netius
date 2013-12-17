@@ -437,6 +437,8 @@ class StreamServer(Server):
         if not connection.status == OPEN: return
 
         try:
+            print "foi para sends server"
+            
             connection._send()
         except ssl.SSLError, error:
             error_v = error.args[0]

@@ -208,6 +208,8 @@ class Client(Base):
         if connection.connecting: self._connectf(connection)
 
         try:
+            print "foi para sends client"
+            
             connection._send()
         except ssl.SSLError, error:
             error_v = error.args[0]
