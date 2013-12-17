@@ -171,3 +171,19 @@ class WSGIServer(http.HTTPServer):
         # the headers and then sends the value through the connection
         data = "".join(buffer)
         connection.send_plain(data)
+
+if __name__ == "__main__":
+    import logging
+
+    def app(environ, start_response):
+        status = "200 OK"
+        headers = (
+            ("Content-Length", "11"),
+            ("Content-type", "text/plain"),
+            ("Connection", "keep-alive")
+        )
+        start_response(status, headers)
+        return "Hello World"
+
+    server = WSGIServer(app = app, level = logging.INFO)
+    server.serve(env = True)
