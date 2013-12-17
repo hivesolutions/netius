@@ -78,7 +78,7 @@ class Connection(object):
         self.socket = socket
         self.address = address
         self.ssl = ssl
-        self.ready = False
+        self.wready = False
         self.pending = []
         self.pending_lock = threading.RLock()
 
@@ -231,8 +231,18 @@ class Connection(object):
         to be send is completely sent to the socket.
         """
 
+        # verifies that the connection is currently in the open
+        # state and then verifies if a callback exists if that's
+        # the case the data tuple must be created with the data
+        # and the callback as the contents (standard process)
         if not self.status == OPEN: return
         if callback: data = (data, callback)
+
+        # retrieves the identifier of the current thread and then
+        # verifies if it's the same as thread where the event loop
+        # is being executed (safe execution) for options to be taken
+        tid = thread.get_ident()
+        is_safe = tid == self.owner.tid
 
         # acquires the pending lock and then insets the
         # data into the list of pending information to
@@ -241,11 +251,19 @@ class Connection(object):
         try: self.pending.insert(0, data)
         finally: self.pending_lock.release()
 
-        # in case the connection is ready for writing the
-        # underlying send operation should be performed
-        # in the next tick operation otherwise the write
-        # event must be ensured to be executed
-        if self.ready: self.owner.delay(self._send)
+        # verifies if the write ready flag is set, for that
+        # case the send flushing operation must be performed
+        if self.wready:
+
+            # checks if the safe flag is set and if it is runs
+            # the send operation right way otherwise "waits" until
+            # the next tick operation (delayed execution)
+            if is_safe: self._send()
+            else: self.owner.delay(self._send)
+
+        # otherwise the write stream is not ready and so the
+        # connection must be ensure to be write ready, should
+        # subscribe to the write events as soon as possible
         else: self.ensure_write()
 
     def recv(self, size = CHUNK_SIZE):
@@ -290,7 +308,7 @@ class Connection(object):
                 except:
                     # set the current connection write ready flag to false
                     # so that a new level notification must be received
-                    self.ready = False
+                    self.wready = False
 
                     # ensures that the write event is going to be triggered
                     # this is required for so that the remaining pending
@@ -320,7 +338,7 @@ class Connection(object):
         # sets the current connection ready for writing as all the
         # data has been written without any exception being raised
         # and then removes the request for the write event
-        self.ready = True
+        self.wready = True
         self.remove_write()
 
     def _recv(self, size):
