@@ -59,6 +59,7 @@ class SOCKSConnection(netius.Connection):
         self.parser.bind("on_auth", self.on_auth)
 
     def send_response(self, status = GRANTED):
+        print "vai enviar response para o cliente final de SOCKS (browser)"
         data = struct.pack("!BBHI", 0, status, 0, 0)
         self.send(data)
 
