@@ -6,6 +6,17 @@ Series of network related libraries for the rapid creation of non blocking async
 
 ### HTTP Client
 
+#### Synchronous usage
+
+```python
+import netius.clients
+print netius.clients.HTTPClient.get_s(
+    "http://www.flickr.com/",
+    async = False
+)["data"]
+```
+#### Asynchronous usage
+
 ```python
 import netius.clients
 
