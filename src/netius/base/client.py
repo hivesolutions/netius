@@ -136,6 +136,8 @@ class Client(Base):
         address = (host, port)
 
         connection = self.new_connection(_socket, address, ssl = ssl)
+        
+        print "connectando a %s" % str(address)
 
         self._pending_lock.acquire()
         try: self.pendings.append(connection)
@@ -238,6 +240,8 @@ class Client(Base):
 
     def on_connect(self, connection):
         connection.set_connected()
+        
+        print "CONECATOD A %s !!!" % str(connection.address)
         if hasattr(connection, "tuple"):
             self.on_acquire(connection)
 
