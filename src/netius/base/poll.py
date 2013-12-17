@@ -211,6 +211,8 @@ class EpollPoll(Poll):
         socket_fd = socket.fileno()
         self.read_fd[socket_fd] = socket
         self.read_o[socket] = owner
+        self.write_fd[socket_fd] = socket
+        self.write_o[socket] = owner
         self.epoll.register( #@UndefinedVariable
             socket_fd,
             select.EPOLLIN | select.EPOLLOUT | select.EPOLLET #@UndefinedVariable
@@ -231,6 +233,8 @@ class EpollPoll(Poll):
         )
         del self.read_fd[socket_fd]
         del self.read_o[socket]
+        del self.write_fd[socket_fd]
+        del self.write_o[socket]
 
     def unsub_write(self, socket):
         pass
