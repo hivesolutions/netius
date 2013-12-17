@@ -259,6 +259,7 @@ class HTTPClient(netius.Client):
             thread = False,
             auto_close = True
         )
+
         http_client.method(
             method,
             url,
@@ -268,9 +269,40 @@ class HTTPClient(netius.Client):
             version = version,
             connection = connection
         )
+
+        # in case the result in asynchronous no result should be
+        # provided as the data should be retrieved by callback but
+        # in case the current request is synchronous the proper result
+        # object must be constructed and populated
+        if async: result = None
+        else:
+            buffer = []
+            result = dict(
+                code = None,
+                data = None
+            )
+
+        # in case the current request to be made in synchronous
+        # and the on data and the message callbacks are not
+        # defined must create the proper functions for the building
+        # of the final result object (contains contents)
+        if not async and not on_data and not callback:
+            def on_partial(client, parser, data):
+                buffer.append(data)
+
+            def on_message(client, parser, message):
+                result["code"] = parser.code
+                result["data"] = "".join(buffer)
+
+            on_data = on_partial
+            callback = on_message
+
         if on_headers: http_client.bind("headers", on_headers)
         if on_data: http_client.bind("partial", on_data)
         if callback: http_client.bind("message", callback)
+
+        not async and http_client.start()
+        return result
 
     def get(
         self,
