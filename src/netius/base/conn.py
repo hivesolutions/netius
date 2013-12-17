@@ -319,7 +319,6 @@ class Connection(object):
                     # the same as the size of the data in case only
                     # part of the data has been sent
                     count = self.socket.send(data)
-                    print "enviou %s" % data
                     print "enviou %d bytes" % count 
                 except:
                     print "apanhou excepcao no _sends"
