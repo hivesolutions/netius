@@ -10,10 +10,11 @@ Series of network related libraries for the rapid creation of non blocking async
 
 ```python
 import netius.clients
-print netius.clients.HTTPClient.get_s(
+result = netius.clients.HTTPClient.get_s(
     "http://www.flickr.com/",
     async = False
-)["data"]
+)
+print result["data"]
 ```
 #### Asynchronous usage
 
