@@ -58,7 +58,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "0.6.2"
+VERSION = "0.6.3"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -518,7 +518,7 @@ class Base(observer.Observable):
     def log(self, object, level = logging.INFO):
         object_t = type(object)
         try: message = unicode(object) if not object_t in types.StringTypes else object
-        except: message = str(object).decode("utf-8")
+        except: message = str(object).decode("utf-8", errors = "ignore")
         if not self.logger: return
         self.logger.log(level, message)
 
