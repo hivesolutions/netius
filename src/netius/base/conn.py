@@ -200,7 +200,7 @@ class Connection(object):
         # verifies if the owner object is already subscribed for the
         # write operation in case it is returns immediately in order
         # avoid any extra subscription operation
-      #  if self.owner.is_sub_write(self.socket): return
+        if self.owner.is_sub_write(self.socket): return
 
         # adds the current socket to the list of write operations
         # so that it's going to be available for writing as soon
