@@ -255,8 +255,8 @@ class Connection(object):
         # case the send flushing operation must be performed
         if self.wready:
             # creates the send lambda function that run the
-            # on write handler for the data to be processed
-            send = lambda: self.owner.on_write(self.socket)
+            # new write handler for the data to be processed
+            send = lambda: self.owner.writes((self.socket,))
 
             # checks if the safe flag is set and if it is runs
             # the send operation right way otherwise "waits" until
