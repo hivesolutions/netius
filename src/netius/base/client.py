@@ -310,6 +310,12 @@ class Client(Base):
             self.trigger("error", self, connection, exception)
             connection.close()
             raise
+        else:
+            error = _socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+            if error: self.on_error(_socket)
+            else:
+                if connection.ssl: self._ssl_handshake(_socket)
+                else: self.on_connect(connection)
 
         # in case the connection is not of type ssl the method
         # may returns as there's nothing left to be done, as the
