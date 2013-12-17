@@ -173,7 +173,7 @@ class Connection(object):
         self.ensure_write()
 
     def set_connected(self):
-        self.remove_write()
+        #self.remove_write()
         self.connecting = False
 
     def ensure_write(self):
