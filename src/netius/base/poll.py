@@ -211,15 +211,16 @@ class EpollPoll(Poll):
         socket_fd = socket.fileno()
         self.read_fd[socket_fd] = socket
         self.read_o[socket] = owner
-        self.write_fd[socket_fd] = socket
-        self.write_o[socket] = owner
         self.epoll.register( #@UndefinedVariable
             socket_fd,
             select.EPOLLIN | select.EPOLLOUT | select.EPOLLET #@UndefinedVariable
         )
 
     def sub_write(self, socket, owner = None):
-        pass
+        if socket in self.write_o: return
+        socket_fd = socket.fileno()
+        self.write_fd[socket_fd] = socket
+        self.write_o[socket] = owner
 
     def sub_error(self, socket, owner = None):
         if socket in self.error_o: return
@@ -237,7 +238,10 @@ class EpollPoll(Poll):
         del self.write_o[socket]
 
     def unsub_write(self, socket):
-        pass
+        if not socket in self.write_o: return
+        socket_fd = socket.fileno()
+        del self.write_fd[socket_fd]
+        del self.write_o[socket]
 
     def unsub_error(self, socket):
         if not socket in self.error_o: return

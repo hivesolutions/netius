@@ -336,6 +336,8 @@ class Connection(object):
                         data_o = (data[count:], callback)
                         self.pending.append(data_o)
         finally:
+            # releases the pending access lock so that no leaks
+            # exists and no access to the pendings is prevented
             self.pending_lock.release()
 
         # sets the current connection ready for writing as all the
