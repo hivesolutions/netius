@@ -261,8 +261,12 @@ class Connection(object):
             # checks if the safe flag is set and if it is runs
             # the send operation right way otherwise "waits" until
             # the next tick operation (delayed execution)
-            if is_safe: send()
-            else: self.owner.delay(send)
+            if is_safe:
+                print "sending immeidate"
+                send()
+            else: 
+                print "sending delayed"
+                self.owner.delay(send)
 
         # otherwise the write stream is not ready and so the
         # connection must be ensure to be write ready, should
