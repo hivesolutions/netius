@@ -234,8 +234,6 @@ class EpollPoll(Poll):
         )
         del self.read_fd[socket_fd]
         del self.read_o[socket]
-        del self.write_fd[socket_fd]
-        del self.write_o[socket]
 
     def unsub_write(self, socket):
         if not socket in self.write_o: return
