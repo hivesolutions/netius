@@ -394,6 +394,9 @@ class DHCPServer(netius.DatagramServer):
         address = ("255.255.255.255", self.port + 1)
         return self.send(data, address, *args, **kwargs)
 
+    def get_type(self, request):
+        raise netius.NetiusError("Not implemented")
+
     def get_options(self, request):
         raise netius.NetiusError("Not implemented")
 
