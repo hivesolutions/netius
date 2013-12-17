@@ -318,11 +318,8 @@ class Connection(object):
                     # sent through the socket, this number may not be
                     # the same as the size of the data in case only
                     # part of the data has been sent
-                    count = self.socket.send(data)
-                    print "enviou %d bytes" % count 
+                    count = self.socket.send(data) 
                 except:
-                    print "apanhou excepcao no _sends"
-                    
                     # set the current connection write ready flag to false
                     # so that a new level notification must be received
                     self.wready = False
@@ -345,9 +342,7 @@ class Connection(object):
                     # sent latter (only then the callback is called)
                     is_valid = count == data_l
                     if is_valid:
-                        if callback: "vai chamar callback"
                         callback and callback(self)
-                        if callback: "acabou callback"
                     else:
                         data_o = (data[count:], callback)
                         self.pending.append(data_o)
