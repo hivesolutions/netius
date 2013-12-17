@@ -256,7 +256,10 @@ class Connection(object):
         if self.wready:
             # creates the send lambda function that run the
             # new write handler for the data to be processed
-            send = lambda: self.owner.on_write(self.socket)
+            send = lambda: self.owner.writes(
+                (self.socket,),
+                state = False
+            )
 
             # checks if the safe flag is set and if it is runs
             # the send operation right way otherwise "waits" until
@@ -342,7 +345,7 @@ class Connection(object):
                         self.pending.append(data_o)
         finally:
             # releases the pending access lock so that no leaks
-            # exists and no access to the pendings is prevented
+            # exists and no access to the pending is prevented
             self.pending_lock.release()
 
         # sets the current connection ready for writing as all the
