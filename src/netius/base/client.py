@@ -197,6 +197,9 @@ class Client(Base):
             connection.close()
 
     def on_write(self, _socket):
+        # retrieves the connection associated with the socket that
+        # is ready for the write operation and verifies that it
+        # exists and the current status of it is open (required)
         connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
