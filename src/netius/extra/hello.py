@@ -45,16 +45,26 @@ class HelloServer(netius.servers.HTTPServer):
         netius.servers.HTTPServer.on_data_http(
             self, connection, parser
         )
+
+        callback = self._hello_keep if parser.keep_alive else self._hello_close
+        connection_s = "keep-alive" if parser.keep_alive else "close"
+        headers = dict(Connection = connection_s)
+
         connection.send_response(
             data = "Hello World",
+            headers = headers,
             code = 200,
             code_s = "OK",
-            callback = self._hello_close
+            callback = callback
         )
-        
+
     def _hello_close(self, connection):
         connection.close()
 
+    def _hello_keep(self, connection):
+        pass
+
 if __name__ == "__main__":
-    server = HelloServer()
+    import logging
+    server = HelloServer(level = logging.INFO)
     server.serve(env = True)
