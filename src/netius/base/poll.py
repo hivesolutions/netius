@@ -196,6 +196,7 @@ class EpollPoll(Poll):
         result = ([], [], [])
 
         events = self.epoll.poll(POLL_TIMEOUT)
+        print events
         for fd, event in events:
             if event & select.EPOLLIN: #@UndefinedVariable
                 socket = self.read_fd.get(fd, None)
