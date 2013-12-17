@@ -141,6 +141,11 @@ class Connection(object):
         # to the original not connecting state
         self.connecting = False
 
+        # unsets the write ready flag so that no more write operations
+        # are performed as requested by specification (mandatory) this
+        # should avoid extra erroneous write operations
+        self.wready = False
+
         # retrieves the reference to the owner object from the
         # current instance to be used to removed the socket from the
         # proper pooling mechanisms (at least for reading)

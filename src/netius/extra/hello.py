@@ -59,7 +59,7 @@ class HelloServer(netius.servers.HTTPServer):
         )
 
     def _hello_close(self, connection):
-        connection.close()
+        self.delay(connection.close)
 
     def _hello_keep(self, connection):
         pass
