@@ -329,7 +329,8 @@ class HTTPParser(netius.Observable):
         elif self.type == RESPONSE:
             self.version_s, self.code_s, self.status_s = values
             self.version = VERSIONS_MAP.get(self.version_s, HTTP_10)
-            self.status = int(self.code_s)
+            self.code = int(self.code_s)
+            self.status = self.status_s
 
         # updates the current state of parsing to the header state
         # so that the headers are the next item to be processed

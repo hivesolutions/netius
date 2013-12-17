@@ -61,9 +61,8 @@ class Client(Base):
 
     @classmethod
     def cleanup_s(cls):
-        client = cls.get_client_s()
-        if not client: return
-        client.close()
+        if not cls._client: return
+        cls._client.close()
 
     def ticks(self):
         self.set_state(STATE_TICK)

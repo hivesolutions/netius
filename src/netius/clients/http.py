@@ -292,6 +292,7 @@ class HTTPClient(netius.Client):
 
             def on_message(client, parser, message):
                 result["code"] = parser.code
+                result["status"] = parser.status
                 result["data"] = "".join(buffer)
 
             on_data = on_partial
