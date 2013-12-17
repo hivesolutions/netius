@@ -229,6 +229,9 @@ class Connection(object):
         if not self.status == OPEN: return
         if callback: data = (data, callback)
 
+        # acquires the pending lock and then insets the
+        # data into the list of pending information to
+        # sent to the client end point
         self.pending_lock.acquire()
         try: self.pending.insert(0, data)
         finally: self.pending_lock.release()
