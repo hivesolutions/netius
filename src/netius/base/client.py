@@ -156,6 +156,17 @@ class Client(Base):
         if not connection: return
         if not connection.status == OPEN: return
 
+        # in case the connection is under the connecting state
+        # the socket must be verified for errors and in case
+        # there's none the connection must proceed, for example
+        # the ssl connection handshake must be performed/retried
+        if connection.connecting:
+            error = _socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+            if error: self.on_error(_socket)
+            else:
+                if connection.ssl: self._ssl_handshake(_socket)
+                else: self.on_connect(connection)
+
         try:
             # verifies if there's any pending operations in the
             # socket (eg: ssl handshaking) and performs them trying
@@ -195,6 +206,10 @@ class Client(Base):
         if not connection: return
         if not connection.status == OPEN: return
 
+        # in case the connection is under the connecting state
+        # the socket must be verified for errors and in case
+        # there's none the connection must proceed, for example
+        # the ssl connection handshake must be performed/retried
         if connection.connecting:
             error = _socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
             if error: self.on_error(_socket)
