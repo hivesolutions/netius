@@ -197,6 +197,11 @@ class Connection(object):
         # to so it for writing
         if not self.status == OPEN: return
 
+        # verifies if the owner object is already subscribed for the
+        # write operation in case it is returns immediately in order
+        # avoid any extra subscription operation
+        if self.owner.is_sub_write(): return
+
         # adds the current socket to the list of write operations
         # so that it's going to be available for writing as soon
         # as possible from the poll mechanism
@@ -238,14 +243,10 @@ class Connection(object):
 
         # in case the connection is ready for writing the
         # underlying send operation should be performed
-        # immediately until the connection becomes ready
-        # or the complete pending buffer is emptied
-        if self.ready: self._send()
-
-        # in case there's still data pending to be written
-        # to the buffer it must be written and so the write
-        # control support must be ensured
-        if self.pending: self.ensure_write()
+        # in the next tick operation otherwise the write
+        # event must be ensured to be executed
+        if self.ready: self.owner.delay(self._send)
+        else: self.ensure_write()
 
     def recv(self, size = CHUNK_SIZE):
         return self._recv(size = size)
@@ -287,6 +288,15 @@ class Connection(object):
                     # part of the data has been sent
                     count = self.socket.send(data)
                 except:
+                    # set the current connection write ready flag to false
+                    # so that a new level notification must be received
+                    self.ready = False
+
+                    # ensures that the write event is going to be triggered
+                    # this is required for so that the remaining pending
+                    # data is going to be correctly written
+                    self.ensure_write()
+
                     # in case there's an exception must add the data
                     # object to the list of pending data because the data
                     # has not been correctly sent
@@ -307,7 +317,10 @@ class Connection(object):
         finally:
             self.pending_lock.release()
 
-        self.ready = not self.pending
+        # sets the current connection ready for writing as all the
+        # data has been written without any exception being raised
+        # and then removes the request for the write event
+        self.ready = True
         self.remove_write()
 
     def _recv(self, size):
