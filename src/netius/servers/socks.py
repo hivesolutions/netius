@@ -161,13 +161,9 @@ class SOCKSServer(netius.StreamServer):
         version = connection.get_version()
         if version == 0x04: connection.send_response(status = GRANTED)
         elif version == 0x05: connection.send_response_extra(status = GRANTED_EXTRA)
-        
-        print "SOCKS connectado !!"
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
-        
-        print "recebeu data do cliente !!! %s" % data
         connection.send(data)
 
     def _on_raw_close(self, client, _connection):
