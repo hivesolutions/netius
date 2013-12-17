@@ -12,8 +12,12 @@ import netius.clients
 def on_partial(client, parser, data):
     print data
 
+def on_message(client, parser, message):
+    netius.clients.HTTPClient.cleanup_s()
+
 netius.clients.HTTPClient.get_s(
     "http://www.flickr.com/",
+    callback = on_message,
     on_data = on_partial
 )
 ```
