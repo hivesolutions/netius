@@ -290,6 +290,10 @@ class Connection(object):
         return self.status == PENDING
 
     def _send(self):
+        # sets the write ready flag so that any further request to
+        # write operation will be immediately performed
+        self.wready = True
+
         # acquires the pending lock so that no other access to the
         # the pending structure is made from a different thread
         self.pending_lock.acquire()
@@ -353,10 +357,8 @@ class Connection(object):
             # exists and no access to the pending is prevented
             self.pending_lock.release()
 
-        # sets the current connection ready for writing as all the
-        # data has been written without any exception being raised
-        # and then removes the request for the write event
-        self.wready = True
+        # removes the current connection from the set of connection
+        # that are monitored for any write event (no longer required)
         self.remove_write()
 
     def _recv(self, size):

@@ -316,6 +316,7 @@ class DatagramServer(Server):
             self.ensure_write()
 
     def _send(self, _socket):
+        self.wready = True
         self.pending_lock.acquire()
         try:
             while True:
@@ -365,7 +366,6 @@ class DatagramServer(Server):
         finally:
             self.pending_lock.release()
 
-        self.wready = True
         self.remove_write()
 
 class StreamServer(Server):
