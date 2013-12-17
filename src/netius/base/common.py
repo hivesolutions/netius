@@ -70,8 +70,14 @@ error code that indicates the failure to operate on a non
 blocking connection """
 
 WSAECONNABORTED = 10053
+""" Error code meant to be raised when a connection is aborted
+from the other peer meaning that that client or a server in the
+as abruptly dropped the connection """
 
 WSAECONNRESET = 10054
+""" Code that is used when a connection is reset meaning that
+the connection as been disconnected using a graceful approach
+and without raising any extraneous problems """
 
 POLL_ORDER = (
     EpollPoll,
@@ -85,9 +91,14 @@ poll method is defined for a base service they are selected
 based on this list testing them for acceptance first """
 
 SILENT_ERRORS = (
+    errno.ECONNABORTED,
+    errno.ECONNRESET,
     WSAECONNABORTED,
     WSAECONNRESET
 )
+""" List that contain the various connection error states that
+should not raise any extra logging information because even though
+they should drop the connection they are expected """
 
 VALID_ERRORS = (
     errno.EWOULDBLOCK,
