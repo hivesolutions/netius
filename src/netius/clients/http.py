@@ -251,11 +251,14 @@ class HTTPClient(netius.Client):
         async = True,
         callback = None,
         on_headers = None,
-        on_data = None,
-        auto_close = True
+        on_data = None
     ):
-
-        http_client = HTTPClient(thread = async, auto_close = auto_close)
+        http_client = async and cls.get_client_s(
+            thread = True
+        ) or HTTPClient(
+            thread = False,
+            auto_close = True
+        )
         http_client.method(
             method,
             url,

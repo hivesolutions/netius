@@ -41,6 +41,10 @@ from common import * #@UnusedWildImport
 
 class Client(Base):
 
+    _client = None
+    """ The global static client meant to be reused by the
+    various static clients that may be created """
+
     def __init__(self, thread = True, *args, **kwargs):
         Base.__init__(self, *args, **kwargs)
         self.free_map = {}
@@ -48,6 +52,18 @@ class Client(Base):
         self._pending_lock = threading.RLock()
 
         if thread: BaseThread(self).start()
+
+    @classmethod
+    def get_client_s(cls, *args, **kwargs):
+        if cls._client: return cls._client
+        cls._client = cls(*args, **kwargs)
+        return cls._client
+
+    @classmethod
+    def cleanup_s(cls):
+        client = cls.get_client_s()
+        if not client: return
+        client.close()
 
     def ticks(self):
         self.set_state(STATE_TICK)
