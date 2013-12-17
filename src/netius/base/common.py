@@ -69,6 +69,10 @@ windows environments as a replacement for the would block
 error code that indicates the failure to operate on a non
 blocking connection """
 
+WSAECONNABORTED = 10053
+
+WSAECONNRESET = 10054
+
 POLL_ORDER = (
     EpollPoll,
     KqueuePoll,
@@ -79,6 +83,11 @@ POLL_ORDER = (
 selected from the fastest to the slowest, in case no explicit
 poll method is defined for a base service they are selected
 based on this list testing them for acceptance first """
+
+SILENT_ERRORS = (
+    WSAECONNABORTED,
+    WSAECONNRESET
+)
 
 VALID_ERRORS = (
     errno.EWOULDBLOCK,
