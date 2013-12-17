@@ -164,6 +164,8 @@ class SOCKSServer(netius.StreamServer):
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
+        
+        print "recebeu data do cliente !!! %s" % data
         connection.send(data)
 
     def _on_raw_close(self, client, _connection):
