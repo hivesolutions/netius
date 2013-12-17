@@ -185,7 +185,7 @@ if __name__ == "__main__":
             ("Connection", "keep-alive")
         )
         start_response(status, headers)
-        return contents
+        return (contents,)
 
     server = WSGIServer(app = app, level = logging.INFO)
     server.serve(env = True)
