@@ -253,19 +253,18 @@ class Connection(object):
 
         # verifies if the write ready flag is set, for that
         # case the send flushing operation must be performed
-        #if self.wready:
+        if self.wready:
 
             # checks if the safe flag is set and if it is runs
             # the send operation right way otherwise "waits" until
             # the next tick operation (delayed execution)
-        #    if is_safe: self._send()
-        #    else: self.owner.delay(self._send)
+            if is_safe: self._send()
+            else: self.owner.delay(self._send)
 
         # otherwise the write stream is not ready and so the
         # connection must be ensure to be write ready, should
         # subscribe to the write events as soon as possible
-        #else:
-        self.ensure_write()
+        else: self.ensure_write()
 
     def recv(self, size = CHUNK_SIZE):
         return self._recv(size = size)
