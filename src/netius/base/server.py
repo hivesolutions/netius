@@ -194,25 +194,26 @@ class DatagramServer(Server):
 
     def __init__(self, *args, **kwargs):
         Server.__init__(self, *args, **kwargs)
+        self.wready = True
         self.pending = []
         self.pending_lock = threading.RLock()
 
-    def reads(self, reads):
-        self.set_state(STATE_READ)
+    def reads(self, reads, state = True):
+        if state: self.set_state(STATE_READ)
         for read in reads:
             self.on_read(read)
 
-    def writes(self, writes):
-        self.set_state(STATE_WRITE)
+    def writes(self, writes, state = True):
+        if state: self.set_state(STATE_WRITE)
         for write in writes:
             self.on_write(write)
 
-    def errors(self, errors):
-        self.set_state(STATE_ERRROR)
+    def errors(self, errors, state = True):
+        if state: self.set_state(STATE_ERRROR)
         for error in errors:
             self.on_error(error)
 
-    def serve(self, type = TCP_TYPE, *args, **kwargs):
+    def serve(self, type = UDP_TYPE, *args, **kwargs):
         Server.serve(self, type = type, *args, **kwargs)
 
     def on_read(self, _socket):
@@ -290,12 +291,25 @@ class DatagramServer(Server):
         self.unsub_write(self.socket)
 
     def send(self, data, address, callback = None):
+        tid = thread.get_ident()
+        is_safe = tid == self.tid
+
         if callback: data = (data, callback)
         data = (data, address)
-        self.ensure_write()
+
         self.pending_lock.acquire()
         try: self.pending.insert(0, data)
         finally: self.pending_lock.release()
+
+        if self.wready:
+            send = lambda: self.writes(
+                (self.socket,),
+                state = False
+            )
+            if is_safe: send()
+            else: self.delay(send)
+        else:
+            self.ensure_write()
 
     def _send(self, _socket):
         self.pending_lock.acquire()
@@ -318,6 +332,15 @@ class DatagramServer(Server):
                     # part of the data has been sent
                     count = _socket.sendto(data, address)
                 except:
+                    # set the current connection write ready flag to false
+                    # so that a new level notification must be received
+                    self.wready = False
+
+                    # ensures that the write event is going to be triggered
+                    # this is required for so that the remaining pending
+                    # data is going to be correctly written
+                    self.ensure_write()
+
                     # in case there's an exception must add the data
                     # object to the list of pending data because the data
                     # has not been correctly sent
@@ -338,24 +361,25 @@ class DatagramServer(Server):
         finally:
             self.pending_lock.release()
 
+        self.wready = True
         self.remove_write()
 
 class StreamServer(Server):
 
-    def reads(self, reads):
-        self.set_state(STATE_READ)
+    def reads(self, reads, state = True):
+        if state: self.set_state(STATE_READ)
         for read in reads:
             if read == self.socket: self.on_read_s(read)
             else: self.on_read(read)
 
-    def writes(self, writes):
-        self.set_state(STATE_WRITE)
+    def writes(self, writes, state = True):
+        if state: self.set_state(STATE_WRITE)
         for write in writes:
             if write == self.socket: self.on_write_s(write)
             else: self.on_write(write)
 
-    def errors(self, errors):
-        self.set_state(STATE_ERRROR)
+    def errors(self, errors, state = True):
+        if state: self.set_state(STATE_ERRROR)
         for error in errors:
             if error == self.socket: self.on_error_s(error)
             else: self.on_error(error)

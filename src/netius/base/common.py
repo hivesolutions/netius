@@ -401,14 +401,14 @@ class Base(observer.Observable):
         # calls are called if the correct time has been reached
         self._delays()
 
-    def reads(self, reads):
-        self.set_state(STATE_READ)
+    def reads(self, reads, state = True):
+        if state: self.set_state(STATE_READ)
 
-    def writes(self, writes):
-        self.set_state(STATE_WRITE)
+    def writes(self, writes, state = True):
+        if state: self.set_state(STATE_WRITE)
 
-    def errors(self, errors):
-        self.set_state(STATE_ERRROR)
+    def errors(self, errors, state = True):
+        if state: self.set_state(STATE_ERRROR)
 
     def on_connection_c(self, connection):
         self.debug(

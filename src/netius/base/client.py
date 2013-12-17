@@ -55,18 +55,18 @@ class Client(Base):
         if self.pendings: self._connects()
         self._delays()
 
-    def reads(self, reads):
-        self.set_state(STATE_READ)
+    def reads(self, reads, state = True):
+        if state: self.set_state(STATE_READ)
         for read in reads:
             self.on_read(read)
 
-    def writes(self, writes):
-        self.set_state(STATE_WRITE)
+    def writes(self, writes, state = True):
+        if state: self.set_state(STATE_WRITE)
         for write in writes:
             self.on_write(write)
 
-    def errors(self, errors):
-        self.set_state(STATE_ERRROR)
+    def errors(self, errors, state = True):
+        if state: self.set_state(STATE_ERRROR)
         for error in errors:
             self.on_error(error)
 
