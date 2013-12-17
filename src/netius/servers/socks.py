@@ -120,9 +120,7 @@ class SOCKSServer(netius.StreamServer):
 
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
 
-        if tunnel_c:
-            print "vai enviar dados para o cliente"
-            tunnel_c.send(data)
+        if tunnel_c: tunnel_c.send(data)
         else: connection.parse(data)
 
     def on_data_socks(self, connection, parser):

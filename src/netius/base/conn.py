@@ -261,19 +261,13 @@ class Connection(object):
             # checks if the safe flag is set and if it is runs
             # the send operation right way otherwise "waits" until
             # the next tick operation (delayed execution)
-            if is_safe:
-                print "sending immeidate"
-                send()
-            else: 
-                print "sending delayed"
-                self.owner.delay(send)
+            if is_safe: send()
+            else: self.owner.delay(send)
 
         # otherwise the write stream is not ready and so the
         # connection must be ensure to be write ready, should
         # subscribe to the write events as soon as possible
-        else:
-            print "not wready"
-            self.ensure_write()
+        else:  self.ensure_write()
 
     def recv(self, size = CHUNK_SIZE):
         return self._recv(size = size)
@@ -291,7 +285,7 @@ class Connection(object):
         # acquires the pending lock so that no other access to the
         # the pending structure is made from a different thread
         self.pending_lock.acquire()
-        
+
         try:
             # iterates continuously so that all the pending data to be
             # sent is correctly sent to the other peer if that's possible
@@ -318,7 +312,7 @@ class Connection(object):
                     # sent through the socket, this number may not be
                     # the same as the size of the data in case only
                     # part of the data has been sent
-                    count = self.socket.send(data) 
+                    count = self.socket.send(data)
                 except:
                     # set the current connection write ready flag to false
                     # so that a new level notification must be received
@@ -350,8 +344,6 @@ class Connection(object):
             # releases the pending access lock so that no leaks
             # exists and no access to the pendings is prevented
             self.pending_lock.release()
-            
-        print "pos wready = TRUE!!!"
 
         # sets the current connection ready for writing as all the
         # data has been written without any exception being raised
