@@ -319,7 +319,11 @@ class Connection(object):
                     # the same as the size of the data in case only
                     # part of the data has been sent
                     count = self.socket.send(data)
+                    print "enviou %s" % data
+                    print "enviou %d bytes" % count 
                 except:
+                    print "apanhou excepcao no _sends"
+                    
                     # set the current connection write ready flag to false
                     # so that a new level notification must be received
                     self.wready = False
@@ -342,7 +346,9 @@ class Connection(object):
                     # sent latter (only then the callback is called)
                     is_valid = count == data_l
                     if is_valid:
+                        if callback: "vai chamar callback"
                         callback and callback(self)
+                        if callback: "acabou callback"
                     else:
                         data_o = (data[count:], callback)
                         self.pending.append(data_o)
@@ -350,6 +356,8 @@ class Connection(object):
             # releases the pending access lock so that no leaks
             # exists and no access to the pendings is prevented
             self.pending_lock.release()
+            
+        print "pos wready = TRUE!!!"
 
         # sets the current connection ready for writing as all the
         # data has been written without any exception being raised
