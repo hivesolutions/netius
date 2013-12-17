@@ -78,6 +78,7 @@ class Connection(object):
         self.socket = socket
         self.address = address
         self.ssl = ssl
+        self.ready = False
         self.pending = []
         self.pending_lock = threading.RLock()
 
@@ -227,10 +228,21 @@ class Connection(object):
 
         if not self.status == OPEN: return
         if callback: data = (data, callback)
-        self.ensure_write()
+
         self.pending_lock.acquire()
         try: self.pending.insert(0, data)
         finally: self.pending_lock.release()
+
+        # in case the connection is ready for writing the
+        # underlying send operation should be performed
+        # immediately until the connection becomes ready
+        # or the complete pending buffer is emptied
+        if self.ready: self._send()
+
+        # in case there's still data pending to be written
+        # to the buffer it must be written and so the write
+        # control support must be ensured
+        if self.pending: self.ensure_write()
 
     def recv(self, size = CHUNK_SIZE):
         return self._recv(size = size)
@@ -292,6 +304,7 @@ class Connection(object):
         finally:
             self.pending_lock.release()
 
+        self.ready = not self.pending
         self.remove_write()
 
     def _recv(self, size):
