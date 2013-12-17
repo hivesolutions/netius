@@ -398,6 +398,7 @@ class Base(observer.Observable):
             # the resulting active sets for the callbacks
             reads, writes, errors = self.poll.poll()
             
+            print "poll"
             for connection in self.connections:
                 print connection.pending
 
