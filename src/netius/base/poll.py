@@ -308,12 +308,6 @@ class KqueuePoll(Poll):
             udata = socket_fd
         )
         self.kqueue.control([event], 1, 0)
-
-    def sub_write(self, socket, owner = None):
-        if socket in self.write_o: return
-        socket_fd = socket.fileno()
-        self.write_fd[socket_fd] = socket
-        self.write_o[socket] = owner
         event = select.kevent( #@UndefinedVariable
             socket_fd,
             filter = select.KQ_FILTER_WRITE, #@UndefinedVariable
@@ -321,6 +315,12 @@ class KqueuePoll(Poll):
             udata = socket_fd
         )
         self.kqueue.control([event], 1, 0)
+
+    def sub_write(self, socket, owner = None):
+        if socket in self.write_o: return
+        socket_fd = socket.fileno()
+        self.write_fd[socket_fd] = socket
+        self.write_o[socket] = owner
 
     def sub_error(self, socket, owner = None):
         if socket in self.error_o: return
@@ -335,18 +335,18 @@ class KqueuePoll(Poll):
             flags = select.KQ_EV_DELETE #@UndefinedVariable
         )
         self.kqueue.control([event], 0, 0)
-        del self.read_fd[socket_fd]
-        del self.read_o[socket]
-
-    def unsub_write(self, socket):
-        if not socket in self.write_o: return
-        socket_fd = socket.fileno()
         event = select.kevent( #@UndefinedVariable
             socket_fd,
             filter = select.KQ_FILTER_WRITE, #@UndefinedVariable
             flags = select.KQ_EV_DELETE #@UndefinedVariable
         )
         self.kqueue.control([event], 0, 0)
+        del self.read_fd[socket_fd]
+        del self.read_o[socket]
+
+    def unsub_write(self, socket):
+        if not socket in self.write_o: return
+        socket_fd = socket.fileno()
         del self.write_fd[socket_fd]
         del self.write_o[socket]
 
