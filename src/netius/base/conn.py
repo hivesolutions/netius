@@ -254,12 +254,15 @@ class Connection(object):
         # verifies if the write ready flag is set, for that
         # case the send flushing operation must be performed
         if self.wready:
+            # creates the send lambda function that run the
+            # on write handler for the data to be processed
+            send = lambda: self.owner.on_write(self.socket)
 
             # checks if the safe flag is set and if it is runs
             # the send operation right way otherwise "waits" until
             # the next tick operation (delayed execution)
-            if is_safe: self._send()
-            else: self.owner.delay(self._send)
+            if is_safe: send()
+            else: self.owner.delay(send)
 
         # otherwise the write stream is not ready and so the
         # connection must be ensure to be write ready, should
