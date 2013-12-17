@@ -517,7 +517,11 @@ class Base(observer.Observable):
 
     def log(self, object, level = logging.INFO):
         object_t = type(object)
-        message = unicode(object) if not object_t in types.StringTypes else object
+        message = unicode(
+            object,
+            encoding = "utf-8",
+            errors = "ignore"
+        ) if not object_t in types.StringTypes else object
         if not self.logger: return
         self.logger.log(level, message)
 
