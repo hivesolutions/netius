@@ -164,9 +164,110 @@ class HTTPClient(netius.Client):
     and may be disabled with an argument in the constructor.
     """
 
-    def __init__(self, auto_release = True, *args, **kwargs):
+    def __init__(self, auto_release = True, auto_close = False, *args, **kwargs):
         netius.Client.__init__(self, *args, **kwargs)
         self.auto_release = auto_release
+        self.auto_close = auto_close
+
+    @classmethod
+    def get_s(
+        cls,
+        url,
+        params = {},
+        headers = {},
+        **kwargs
+    ):
+        return cls.method_s(
+            "GET",
+            url,
+            params = params,
+            headers = headers,
+            **kwargs
+        )
+
+    @classmethod
+    def post_s(
+        cls,
+        url,
+        params = {},
+        headers = {},
+        data = None,
+        **kwargs
+    ):
+        return cls.method_s(
+            "POST",
+            url,
+            params = params,
+            headers = headers,
+            data = data,
+            **kwargs
+        )
+
+    @classmethod
+    def put_s(
+        cls,
+        url,
+        params = {},
+        headers = {},
+        data = None,
+        **kwargs
+    ):
+        return cls.method_s(
+            "PUT",
+            url,
+            params = params,
+            headers = headers,
+            data = data,
+            **kwargs
+        )
+
+    @classmethod
+    def delete_s(
+        cls,
+        url,
+        params = {},
+        headers = {},
+        **kwargs
+    ):
+        return cls.method_s(
+            "DELETE",
+            url,
+            params = params,
+            headers = headers,
+            **kwargs
+        )
+
+
+    @classmethod
+    def method_s(
+        cls,
+        method,
+        url,
+        params = {},
+        headers = {},
+        data = None,
+        version = "HTTP/1.1",
+        connection = None,
+        async = True,
+        callback = None,
+        on_headers = None,
+        on_data = None,
+        auto_close = True
+    ):
+
+        http_client = HTTPClient(thread = async, auto_close = auto_close)
+        http_client.method(
+            method,
+            url,
+            params = params,
+            headers = headers,
+            data = data,
+            version = version,
+            connection = connection
+        )
+        if on_headers: http_client.bind("headers", on_headers)
+        if on_data: http_client.bind("partial", on_data)
+        if callback: http_client.bind("message", callback)
 
     def get(
         self,
@@ -327,6 +428,7 @@ class HTTPClient(netius.Client):
         message = parser.get_message()
         self.trigger("message", self, parser, message)
         if self.auto_release: self.release_c(connection)
+        if self.auto_close: self.close()
 
     def on_partial_http(self, connection, parser, data):
         self.trigger("partial", self, parser, data)
