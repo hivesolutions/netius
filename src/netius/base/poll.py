@@ -220,7 +220,7 @@ class EpollPoll(Poll):
         self.write_o[socket] = owner
         self.epoll.register( #@UndefinedVariable
             socket_fd,
-            select.EPOLLIN | select.EPOLLOUT | select.EPOLLERR | select.EPOLLHUP #@UndefinedVariable
+            select.EPOLLIN | select.EPOLLOUT | select.EPOLLERR | select.EPOLLHUP | select.EPOLLET #@UndefinedVariable
         )
 
     def sub_write(self, socket, owner = None):
