@@ -480,7 +480,9 @@ class StreamServer(Server):
                 connection.close()
         except socket.error, error:
             error_v = error.args[0]
-            if error_v in VALID_ERRORS:
+            if error_v == errno.EAGAIN:
+                connection.wready = False
+            elif error_v in VALID_ERRORS:
                 pass
             elif error_v in SILENT_ERRORS:
                 connection.close()
