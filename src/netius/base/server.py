@@ -380,7 +380,7 @@ class StreamServer(Server):
         if state: self.set_state(STATE_WRITE)
         for write in writes:
             if write == self.socket: self.on_write_s(write)
-            else: self.on_write(write, valid = state) #@TODO: change this header value
+            else: self.on_write(write)
 
     def errors(self, errors, state = True):
         if state: self.set_state(STATE_ERRROR)
@@ -462,16 +462,10 @@ class StreamServer(Server):
             for line in lines: self.info(line)
             connection.close()
 
-    def on_write(self, _socket, valid = False):   #@TODO  change this header value
+    def on_write(self, _socket):
         connection = self.connections_m.get(_socket, None)
-        if not connection:
-            print "NO WRITE for socket as no connection is done" % _socket
-            return
-        if not connection.status == OPEN:
-            print "NO WRITE as connection is not open %s" % connection.id
-            return
-
-        if valid: print "WRITE event received for %s [socket_id = %s]" % (connection.id, id(_socket))
+        if not connection: return
+        if not connection.status == OPEN: return
 
         try:
             connection._send()
@@ -500,7 +494,7 @@ class StreamServer(Server):
     def on_error(self, _socket):
         connection = self.connections_m.get(_socket, None)
         if not connection: return
-        if connection.status == CLOSED: return
+        if not connection.status == OPEN: return
 
         connection.close()
 

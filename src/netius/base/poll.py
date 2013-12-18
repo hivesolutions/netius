@@ -40,7 +40,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import time
 import select
 
-POLL_TIMEOUT = 10
+POLL_TIMEOUT = 0.25
 """ The timeout to be used under the all the poll methods
 this should be considered the maximum amount of time a
 thread waits for a poll request """
@@ -204,9 +204,6 @@ class EpollPoll(Poll):
             if event & select.EPOLLOUT: #@UndefinedVariable
                 socket = self.write_fd.get(fd, None)
                 socket and result[1].append(socket)
-            if event & select.EPOLLERR or event & select.EPOLLHUP: #@UndefinedVariable
-                socket = self.read_fd.get(fd, None)
-                socket and result[2].append(socket)
 
         return result
 
@@ -219,7 +216,7 @@ class EpollPoll(Poll):
         self.write_o[socket] = owner
         self.epoll.register( #@UndefinedVariable
             socket_fd,
-            select.EPOLLIN | select.EPOLLOUT | select.EPOLLHUP | select.EPOLLET #@UndefinedVariable
+            select.EPOLLIN | select.EPOLLOUT | select.EPOLLET #@UndefinedVariable
         )
 
     def sub_write(self, socket, owner = None):
@@ -399,7 +396,7 @@ class PollPoll(Poll):
             if event & select.POLLIN: #@UndefinedVariable
                 socket = self.read_fd.get(fd, None)
                 socket and result[0].append(socket)
-            elif event & select.POLLOUT: #@UndefinedVariable
+            if event & select.POLLOUT: #@UndefinedVariable
                 socket = self.write_fd.get(fd, None)
                 socket and result[1].append(socket)
 
