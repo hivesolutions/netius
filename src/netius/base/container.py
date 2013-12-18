@@ -74,7 +74,7 @@ class Container(Base):
                     connection.ensure_write()
                     subscrito = self.is_sub_write(connection.socket)
                     socket_id = id(connection.socket)
-                    print "%s -> %d -> subscrito = %s" % (connection.id, len(connection.pending), str(subscrito), socket_id)
+                    print "%s -> %d -> subscrito = %s [socket_id = %s]" % (connection.id, len(connection.pending), str(subscrito), str(socket_id))
                     # tenho de fazer ensure !!!!
 
             # runs the "owner" based version of the poll operation
