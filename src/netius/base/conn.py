@@ -78,7 +78,7 @@ class Connection(object):
         self.socket = socket
         self.address = address
         self.ssl = ssl
-        self.wready = False
+        self.wready = True
         self.pending = []
         self.pending_lock = threading.RLock()
 
