@@ -78,6 +78,7 @@ class Connection(object):
         self.socket = socket
         self.address = address
         self.ssl = ssl
+        self.renable = True
         self.wready = True
         self.pending = []
         self.pending_lock = threading.RLock()
@@ -215,6 +216,37 @@ class Connection(object):
     def remove_write(self):
         if not self.status == OPEN: return
         self.owner.unsub_write(self.socket)
+
+    def enable_read(self):
+        """
+        Enables read operations for the current connection
+        this will set the read enable flag and then subscribe
+        to the read operations in case the underlying poll
+        method is not of type edge (level based).
+
+        This is a dangerous operation as it may cause the system
+        to stall if misused.
+        """
+
+        if not self.status == OPEN: return
+        is_edge = self.owner.is_edge()
+        self.renable = True
+        if not is_edge: self.owner.sub_read(self.socket)
+
+    def disable_read(self):
+        """
+        Disables any read operation on the current socket, does that
+        by disabling the current read enable and then unsubscribing
+        the current connection from the read operation.
+
+        This is an extremely dangerous operation and the correct knowledge
+        of the event poll is required to avoid stalling.
+        """
+
+        if not self.status == OPEN: return
+        is_edge = self.owner.is_edge()
+        self.renable = False
+        if not is_edge: self.owner.unsub_read(self.socket)
 
     def send(self, data, callback = None):
         """
