@@ -66,6 +66,7 @@ class Container(Base):
             # that the base service is selecting the connections
             self.set_state(STATE_POLL)
 
+            #@TODO REMOVE THIS !!!!!!!!!!!!!!!
             for base in self.bases:
                 for connection in base.connections:
                     if not connection.pending: continue
