@@ -159,6 +159,7 @@ class SOCKSServer(netius.StreamServer):
         if not tunnel_c: return
 
         tunnel_c.enable_read()
+        print "enabling read on %s" % tunnel_c.id
         self.reads((tunnel_c.socket,), state = False)
 
     def _on_raw_connect(self, client, _connection):
@@ -171,6 +172,7 @@ class SOCKSServer(netius.StreamServer):
         connection = self.conn_map[_connection]
         if len(connection.pending) > 64:
             _connection.disable_read()
+            print "disabling read on %s" % _connection.id
             connection.send(data, callback = self._on_resume)
         else:
             connection.send(data)
