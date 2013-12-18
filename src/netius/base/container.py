@@ -68,7 +68,8 @@ class Container(Base):
             
             for base in self.bases:
                 for connection in base.connections:
-                    print connection.pending
+                    if not connection.pending: continue
+                    print len(connection.pending)
 
             # runs the "owner" based version of the poll operation
             # so that the poll results are indexed by their owner
