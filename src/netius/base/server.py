@@ -471,13 +471,13 @@ class StreamServer(Server):
             print "NO WRITE as connection is not open %s" % connection.id
             return
 
+        print "WRITE event received for %s" % connection.id
+
         try:
             connection._send()
         except ssl.SSLError, error:
             error_v = error.args[0]
-            if error_v in SSL_VALID_ERRORS:
-                pass
-            else:
+            if not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
