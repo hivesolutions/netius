@@ -464,8 +464,12 @@ class StreamServer(Server):
 
     def on_write(self, _socket):
         connection = self.connections_m.get(_socket, None)
-        if not connection: return
-        if not connection.status == OPEN: return
+        if not connection:
+            print "NO WRITE for socket as no connection is done" % _socket
+            return
+        if not connection.status == OPEN:
+            print "NO WRITE as connection is not open %s" % connection.id
+            return
 
         try:
             connection._send()
