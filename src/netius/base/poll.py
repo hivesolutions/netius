@@ -171,8 +171,7 @@ class EpollPoll(Poll):
 
         self.epoll = select.epoll() #@UndefinedVariable
 
-        self.read_fd = {}
-        self.write_fd = {}
+        self.fd_m = {}
 
         self.read_o = {}
         self.write_o = {}
@@ -182,11 +181,10 @@ class EpollPoll(Poll):
         if not self._open: return
         self._open = False
 
-        for fd in self.read_fd: self.epoll.unregister(fd)
+        for fd in self.fd_m: self.epoll.unregister(fd)
         self.epoll = None
 
-        self.read_fd.clear()
-        self.write_fd.clear()
+        self.fd_m.clear()
 
         self.read_o.clear()
         self.write_o.clear()
@@ -199,32 +197,34 @@ class EpollPoll(Poll):
 
         for fd, event in events:
             if event & select.EPOLLIN: #@UndefinedVariable
-                socket = self.read_fd.get(fd, None)
+                socket = self.fd_m.get(fd, None)
                 socket and result[0].append(socket)
             if event & select.EPOLLOUT: #@UndefinedVariable
-                socket = self.write_fd.get(fd, None)
+                socket = self.fd_m.get(fd, None)
                 socket and result[1].append(socket)
+            if event & select.EPOLLERR or event & select.EPOLLHUP:  #@UndefinedVariable
+                socket = self.fd_m.get(fd, None)
+                socket and result[2].append(socket)
 
         return result
 
     def sub_read(self, socket, owner = None):
         if socket in self.read_o: return
         socket_fd = socket.fileno()
-        self.read_fd[socket_fd] = socket
+        self.fd_m[socket_fd] = socket
         self.read_o[socket] = owner
-        self.write_fd[socket_fd] = socket
         self.write_o[socket] = owner
+        self.error_o[socket] = owner
         self.epoll.register( #@UndefinedVariable
             socket_fd,
-            select.EPOLLIN | select.EPOLLOUT | select.EPOLLET #@UndefinedVariable
+            select.EPOLLIN | select.EPOLLOUT | select.EPOLLERR | select.EPOLLHUP | select.EPOLLET #@UndefinedVariable
         )
 
     def sub_write(self, socket, owner = None):
         pass
 
     def sub_error(self, socket, owner = None):
-        if socket in self.error_o: return
-        self.error_o[socket] = owner
+        pass
 
     def unsub_read(self, socket):
         if not socket in self.read_o: return
@@ -232,17 +232,16 @@ class EpollPoll(Poll):
         self.epoll.unregister( #@UndefinedVariable
             socket_fd
         )
-        del self.read_fd[socket_fd]
+        del self.fd_m[socket_fd]
         del self.read_o[socket]
-        del self.write_fd[socket_fd]
         del self.write_o[socket]
+        del self.error_o[socket]
 
     def unsub_write(self, socket):
         pass
 
     def unsub_error(self, socket):
-        if not socket in self.error_o: return
-        del self.error_o[socket]
+        pass
 
 class KqueuePoll(Poll):
 
@@ -260,8 +259,7 @@ class KqueuePoll(Poll):
 
         self.kqueue = select.kqueue() #@UndefinedVariable
 
-        self.read_fd = {}
-        self.write_fd = {}
+        self.fd_m = {}
 
         self.read_o = {}
         self.write_o = {}
@@ -274,8 +272,7 @@ class KqueuePoll(Poll):
         self.kqueue.close()
         self.kqueue = None
 
-        self.read_fd.clear()
-        self.write_fd.clear()
+        self.fd_m.clear()
 
         self.read_o.clear()
         self.write_o.clear()
@@ -287,10 +284,10 @@ class KqueuePoll(Poll):
         events = self.kqueue.control(None, 32, POLL_TIMEOUT)
         for event in events:
             if event.filter == select.KQ_FILTER_READ: #@UndefinedVariable
-                socket = self.read_fd.get(event.udata, None)
+                socket = self.fd_m.get(event.udata, None)
                 socket and result[0].append(socket)
             elif event.filter == select.KQ_FILTER_WRITE: #@UndefinedVariable
-                socket = self.write_fd.get(event.udata, None)
+                socket = self.fd_m.get(event.udata, None)
                 socket and result[1].append(socket)
 
         return result
@@ -298,10 +295,10 @@ class KqueuePoll(Poll):
     def sub_read(self, socket, owner = None):
         if socket in self.read_o: return
         socket_fd = socket.fileno()
-        self.read_fd[socket_fd] = socket
+        self.fd_m[socket_fd] = socket
         self.read_o[socket] = owner
-        self.write_fd[socket_fd] = socket
         self.write_o[socket] = owner
+        self.error_o[socket] = owner
         event = select.kevent( #@UndefinedVariable
             socket_fd,
             filter = select.KQ_FILTER_READ, #@UndefinedVariable
@@ -321,8 +318,7 @@ class KqueuePoll(Poll):
         pass
 
     def sub_error(self, socket, owner = None):
-        if socket in self.error_o: return
-        self.error_o[socket] = owner
+        pass
 
     def unsub_read(self, socket):
         if not socket in self.read_o: return
@@ -339,17 +335,16 @@ class KqueuePoll(Poll):
             flags = select.KQ_EV_DELETE #@UndefinedVariable
         )
         self.kqueue.control([event], 0, 0)
-        del self.read_fd[socket_fd]
+        del self.fd_m[socket_fd]
         del self.read_o[socket]
-        del self.write_fd[socket_fd]
         del self.write_o[socket]
+        del self.error_o[socket]
 
     def unsub_write(self, socket):
         pass
 
     def unsub_error(self, socket):
-        if not socket in self.error_o: return
-        del self.error_o[socket]
+        pass
 
 class PollPoll(Poll):
 
