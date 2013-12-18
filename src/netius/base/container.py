@@ -72,6 +72,7 @@ class Container(Base):
                     if connection.wready: continue
                     connection.ensure_write()
                     print len(connection.pending)
+                    print connection
                     # tenho de fazer ensure !!!!
 
             # runs the "owner" based version of the poll operation
