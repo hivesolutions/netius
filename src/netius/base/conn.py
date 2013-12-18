@@ -290,6 +290,11 @@ class Connection(object):
         return self.status == PENDING
 
     def _send(self):
+        # creates the list that is going to be used to store the
+        # complete set of callbacks to be called at the end of the
+        # send operation (deferred callback call)
+        callbacks = []
+        
         # sets the write ready flag so that any further request to
         # write operation will be immediately performed
         self.wready = True
@@ -351,7 +356,7 @@ class Connection(object):
                     # sent latter (only then the callback is called)
                     is_valid = count == data_l
                     if is_valid:
-                        callback and callback(self)
+                        if callback: callbacks.append(callback)
                     else:
                         data_o = (data[count:], callback)
                         self.pending.append(data_o)
@@ -359,6 +364,10 @@ class Connection(object):
             # releases the pending access lock so that no leaks
             # exists and no access to the pending is prevented
             self.pending_lock.release()
+            
+            # iterates over all the callbacks that are meant to
+            # be called in order for them to be processed
+            for callback in callbacks: callback(self)
 
         # removes the current connection from the set of connection
         # that are monitored for any write event (no longer required)
