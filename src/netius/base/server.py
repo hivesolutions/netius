@@ -471,7 +471,7 @@ class StreamServer(Server):
             print "NO WRITE as connection is not open %s" % connection.id
             return
 
-        if valid: print "WRITE event received for %s" % connection.id
+        if valid: print "WRITE event received for %s [socket_id = %s]" % (connection.id, id(_socket))
 
         try:
             connection._send()
