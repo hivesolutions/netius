@@ -467,6 +467,8 @@ class StreamServer(Server):
         if not connection: return
         if not connection.status == OPEN: return
 
+        print connection.wready
+
         #@todo: chekc this !!!
         connection.wready = True
 
