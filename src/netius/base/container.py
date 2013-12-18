@@ -66,6 +66,15 @@ class Container(Base):
             # that the base service is selecting the connections
             self.set_state(STATE_POLL)
 
+            #@TODO remove this
+            for base in self.bases:
+                for connection in base.connections:
+                    if not connection.pending: continue
+                    if connection.wready: continue
+                    connection.ensure_write()
+                    print "%s -> %d" % (connection.id, connection.pending)
+                    # tenho de fazer ensure !!!!
+
             # runs the "owner" based version of the poll operation
             # so that the poll results are indexed by their owner
             # reference to be easily routed to the base services
