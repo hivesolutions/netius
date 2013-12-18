@@ -508,7 +508,7 @@ class StreamServer(Server):
                 print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
                 print connection
                 
-                connection.wready = False
+                connection.wready = True
             elif error_v in VALID_ERRORS:
                 pass
             elif error_v in SILENT_ERRORS:
