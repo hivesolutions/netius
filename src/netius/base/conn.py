@@ -331,12 +331,6 @@ class Connection(object):
                     # part of the data has been sent
                     count = self.socket.send(data)
                 except:
-                    # set the current connection write ready flag to false
-                    # so that a new level notification must be received
-                    #self.wready = False
-                    
-                    #@TODO: review this stuff
-
                     # ensures that the write event is going to be triggered
                     # this is required for so that the remaining pending
                     # data is going to be correctly written

@@ -337,10 +337,6 @@ class DatagramServer(Server):
                     # part of the data has been sent
                     count = _socket.sendto(data, address)
                 except:
-                    # set the current connection write ready flag to false
-                    # so that a new level notification must be received
-                    self.wready = False
-
                     # ensures that the write event is going to be triggered
                     # this is required for so that the remaining pending
                     # data is going to be correctly written
@@ -480,13 +476,9 @@ class StreamServer(Server):
                 connection.close()
         except socket.error, error:
             error_v = error.args[0]
-            if error_v == errno.EAGAIN:
-                connection.wready = False
-            elif error_v in VALID_ERRORS:
-                pass
-            elif error_v in SILENT_ERRORS:
+            if error_v in SILENT_ERRORS:
                 connection.close()
-            else:
+            elif not error_v in VALID_ERRORS:
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)

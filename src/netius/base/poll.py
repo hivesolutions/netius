@@ -40,7 +40,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import time
 import select
 
-POLL_TIMEOUT = 5.0 #@TODO: review this !!!!!!!!!!!!!!!!!!!!!!!
+POLL_TIMEOUT = 0.25
 """ The timeout to be used under the all the poll methods
 this should be considered the maximum amount of time a
 thread waits for a poll request """
