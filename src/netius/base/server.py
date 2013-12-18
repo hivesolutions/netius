@@ -472,14 +472,14 @@ class StreamServer(Server):
         except ssl.SSLError, error:
             error_v = error.args[0]
             if error_v in SSL_VALID_ERRORS:
-                self.wready = False
+                pass
             else:
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
                 connection.close()
         except socket.error, error:
-            print error
+            error_v = error.args[0]
             if error_v in VALID_ERRORS:
                 pass
             elif error_v in SILENT_ERRORS:
