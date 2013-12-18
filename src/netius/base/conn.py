@@ -325,7 +325,9 @@ class Connection(object):
                     # the same as the size of the data in case only
                     # part of the data has been sent
                     count = self.socket.send(data)
-                except:
+                except BaseException, exception:
+                    print "Excepcao (wready = False) %s em %s" % (str(exception), self.id)
+                    
                     # sets the current connection write ready flag to false
                     # so that a new level notification must be received
                     self.wready = False
