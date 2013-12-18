@@ -479,10 +479,8 @@ class StreamServer(Server):
                 for line in lines: self.info(line)
                 connection.close()
         except socket.error, error:
-            error_v = error.args[0]
-            if error_v == errno.EAGAIN:
-                self.wready = False
-            elif error_v in VALID_ERRORS:
+            print error
+            if error_v in VALID_ERRORS:
                 pass
             elif error_v in SILENT_ERRORS:
                 connection.close()
