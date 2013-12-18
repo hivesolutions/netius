@@ -95,9 +95,7 @@ class Poll(object):
 
         for write in writes:
             base = self.write_o[write]
-            print base
             value = result.get(base, None)
-            print value
             if not value:
                 value = ([], [], [])
                 result[base] = value
