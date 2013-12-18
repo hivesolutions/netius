@@ -472,6 +472,7 @@ class StreamServer(Server):
         #@todo: chekc this !!!
         connection.wready = True
         
+        print "registado !!!! "
         print connection.wready
 
         try:
@@ -488,6 +489,25 @@ class StreamServer(Server):
         except socket.error, error:
             error_v = error.args[0]
             if error_v == errno.EAGAIN:
+                print "EAGAIN !!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                print connection
+                
                 connection.wready = False
             elif error_v in VALID_ERRORS:
                 pass
