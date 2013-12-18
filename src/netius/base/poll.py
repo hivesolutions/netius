@@ -196,6 +196,8 @@ class EpollPoll(Poll):
         result = ([], [], [])
 
         events = self.epoll.poll(POLL_TIMEOUT)
+        
+        print "COICO!!!!!" 
         for fd, event in events:
             if event & select.EPOLLIN: #@UndefinedVariable
                 socket = self.read_fd.get(fd, None)
@@ -203,9 +205,8 @@ class EpollPoll(Poll):
             elif event & select.EPOLLOUT: #@UndefinedVariable
                 socket = self.write_fd.get(fd, None)
                 socket and result[1].append(socket)
-            elif event & select.EPOLLERR or event & EPOLLHUP: #@UndefinedVariable
+            elif event & select.EPOLLERR or event & select.EPOLLHUP: #@UndefinedVariable
                 socket = self.write_fd.get(fd, None)
-                socket and result[0].append(socket)
                 socket and result[2].append(socket)
 
         return result
@@ -219,7 +220,7 @@ class EpollPoll(Poll):
         self.write_o[socket] = owner
         self.epoll.register( #@UndefinedVariable
             socket_fd,
-            select.EPOLLIN | select.EPOLLOUT | select.EPOLLET #@UndefinedVariable
+            select.EPOLLIN | select.EPOLLOUT | select.EPOLLERR | select.EPOLLHUP | select.EPOLLET #@UndefinedVariable
         )
 
     def sub_write(self, socket, owner = None):
