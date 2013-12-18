@@ -234,12 +234,11 @@ class EpollPoll(Poll):
         )
         del self.read_fd[socket_fd]
         del self.read_o[socket]
-
-    def unsub_write(self, socket):
-        if not socket in self.write_o: return
-        socket_fd = socket.fileno()
         del self.write_fd[socket_fd]
         del self.write_o[socket]
+
+    def unsub_write(self, socket):
+        pass
 
     def unsub_error(self, socket):
         if not socket in self.error_o: return
@@ -343,12 +342,11 @@ class KqueuePoll(Poll):
         self.kqueue.control([event], 0, 0)
         del self.read_fd[socket_fd]
         del self.read_o[socket]
-
-    def unsub_write(self, socket):
-        if not socket in self.write_o: return
-        socket_fd = socket.fileno()
         del self.write_fd[socket_fd]
         del self.write_o[socket]
+
+    def unsub_write(self, socket):
+        pass
 
     def unsub_error(self, socket):
         if not socket in self.error_o: return
