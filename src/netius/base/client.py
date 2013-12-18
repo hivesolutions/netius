@@ -255,7 +255,7 @@ class Client(Base):
     def on_error(self, _socket):
         connection = self.connections_m.get(_socket, None)
         if not connection: return
-        if not connection.status == OPEN: return
+        if connection.status == CLOSED: return
 
         connection.close()
 
