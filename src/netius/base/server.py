@@ -471,16 +471,20 @@ class StreamServer(Server):
             connection._send()
         except ssl.SSLError, error:
             error_v = error.args[0]
-            if not error_v in SSL_VALID_ERRORS:
+            if error_v in SSL_VALID_ERRORS:
+                self.wready = False
+            else:
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
                 connection.close()
         except socket.error, error:
             error_v = error.args[0]
-            if error_v in SILENT_ERRORS:
+            if error_v in SSL_VALID_ERRORS:
+                self.wready = False
+            elif error_v in SILENT_ERRORS:
                 connection.close()
-            elif not error_v in VALID_ERRORS:
+            else:
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
