@@ -170,6 +170,7 @@ class Client(Base):
         connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
+        if not connection.renable == True: return
 
         # in case the connection is under the connecting state
         # the socket must be verified for errors and in case
@@ -192,6 +193,7 @@ class Client(Base):
                 if data: self.on_data(connection, data)
                 else: connection.close(); break
                 if not connection.status == OPEN: break
+                if not connection.renable == True: break
         except ssl.SSLError, error:
             error_v = error.args[0]
             if not error_v in SSL_VALID_ERRORS:
