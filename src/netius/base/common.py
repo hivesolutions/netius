@@ -328,6 +328,9 @@ class Base(observer.Observable):
     def close(self):
         self.stop()
 
+    def is_edge(self):
+        return self.poll.is_edge()
+
     def is_empty(self):
         return self.poll.is_empty()
 

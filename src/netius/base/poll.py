@@ -109,6 +109,9 @@ class Poll(object):
 
         return result
 
+    def is_edge(self):
+        return False
+
     def is_empty(self):
         return not self.read_o and not self.write_o and not self.error_o
 
@@ -208,6 +211,9 @@ class EpollPoll(Poll):
 
         return result
 
+    def is_edge(self):
+        return True
+
     def sub_read(self, socket, owner = None):
         if socket in self.read_o: return
         socket_fd = socket.fileno()
@@ -291,6 +297,9 @@ class KqueuePoll(Poll):
                 socket and result[1].append(socket)
 
         return result
+
+    def is_edge(self):
+        return True
 
     def sub_read(self, socket, owner = None):
         if socket in self.read_o: return
@@ -400,6 +409,9 @@ class PollPoll(Poll):
 
         return result
 
+    def is_edge(self):
+        return False
+
     def sub_read(self, socket, owner = None):
         if socket in self.read_o: return
         socket_fd = socket.fileno()
@@ -497,6 +509,9 @@ class SelectPoll(Poll):
             self.error_l,
             POLL_TIMEOUT
         )
+
+    def is_edge(self):
+        return False
 
     def sub_read(self, socket, owner = None):
         if socket in self.read_o: return
