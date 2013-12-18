@@ -154,6 +154,13 @@ class SOCKSServer(netius.StreamServer):
             ssl = ssl
         )
 
+    def _on_resume(self, connection):
+        tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
+        if not tunnel_c: return
+
+        tunnel_c.enable_read()
+        self.reads((tunnel_c.socket,), state = False)
+
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
         version = connection.get_version()
@@ -162,7 +169,11 @@ class SOCKSServer(netius.StreamServer):
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
-        connection.send(data)
+        if len(connection.pending) > 64:
+            _connection.disable_read()
+            connection.send(data, callback = self._on_resume)
+        else:
+            connection.send(data)
 
     def _on_raw_close(self, client, _connection):
         connection = self.conn_map[_connection]
