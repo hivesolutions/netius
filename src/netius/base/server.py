@@ -501,6 +501,8 @@ class StreamServer(Server):
         connection = self.connections_m.get(_socket, None)
         if not connection: return
         if connection.status == CLOSED: return
+        
+        print "ERROR !!!!!!"
 
         connection.close()
 
