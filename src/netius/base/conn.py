@@ -328,7 +328,7 @@ class Connection(object):
                 except:
                     # set the current connection write ready flag to false
                     # so that a new level notification must be received
-                    self.wready = False
+                    #self.wready = False
 
                     # ensures that the write event is going to be triggered
                     # this is required for so that the remaining pending
