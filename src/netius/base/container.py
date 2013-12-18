@@ -70,6 +70,7 @@ class Container(Base):
                 for connection in base.connections:
                     if not connection.pending: continue
                     print len(connection.pending)
+                    print connection.wready
 
             # runs the "owner" based version of the poll operation
             # so that the poll results are indexed by their owner
