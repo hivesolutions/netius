@@ -196,9 +196,9 @@ class EpollPoll(Poll):
         result = ([], [], [])
 
         events = self.epoll.poll(POLL_TIMEOUT)
-         
+
         for fd, event in events:
-            if event & select.EPOLLIN or event & select.EPOLLHUP: #@UndefinedVariable
+            if event & select.EPOLLIN: #@UndefinedVariable
                 socket = self.read_fd.get(fd, None)
                 socket and result[0].append(socket)
             if event & select.EPOLLOUT: #@UndefinedVariable
@@ -219,7 +219,7 @@ class EpollPoll(Poll):
         self.write_o[socket] = owner
         self.epoll.register( #@UndefinedVariable
             socket_fd,
-            select.EPOLLIN | select.EPOLLOUT | select.EPOLLERR | select.EPOLLHUP | select.EPOLLET #@UndefinedVariable
+            select.EPOLLIN | select.EPOLLOUT | select.EPOLLHUP | select.EPOLLET #@UndefinedVariable
         )
 
     def sub_write(self, socket, owner = None):
