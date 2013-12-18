@@ -352,7 +352,7 @@ class Connection(object):
             # releases the pending access lock so that no leaks
             # exists and no access to the pending is prevented
             self.pending_lock.release()
-            
+
         # removes the current connection from the set of connection
         # that are monitored for any write event (no longer required)
         self.remove_write()
