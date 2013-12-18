@@ -160,7 +160,7 @@ class SOCKSServer(netius.StreamServer):
 
         tunnel_c.enable_read()
         print "enabling read on %s" % tunnel_c.id
-        self.reads((tunnel_c.socket,), state = False)
+        self.raw_client.reads((tunnel_c.socket,), state = False)
 
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
