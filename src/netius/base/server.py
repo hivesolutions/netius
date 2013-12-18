@@ -467,6 +467,9 @@ class StreamServer(Server):
         if not connection: return
         if not connection.status == OPEN: return
 
+        #@todo: chekc this !!!
+        connection.wready = True
+
         try:
             connection._send()
         except ssl.SSLError, error:
