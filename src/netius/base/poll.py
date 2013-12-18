@@ -198,14 +198,14 @@ class EpollPoll(Poll):
         events = self.epoll.poll(POLL_TIMEOUT)
          
         for fd, event in events:
-            if event & select.EPOLLIN: #@UndefinedVariable
+            if event & select.EPOLLIN or event & select.EPOLLHUP: #@UndefinedVariable
                 socket = self.read_fd.get(fd, None)
                 socket and result[0].append(socket)
-            elif event & select.EPOLLOUT: #@UndefinedVariable
+            if event & select.EPOLLOUT: #@UndefinedVariable
                 socket = self.write_fd.get(fd, None)
                 socket and result[1].append(socket)
-            elif event & select.EPOLLERR or event & select.EPOLLHUP: #@UndefinedVariable
-                socket = self.write_fd.get(fd, None)
+            if event & select.EPOLLERR or event & select.EPOLLHUP: #@UndefinedVariable
+                socket = self.read_fd.get(fd, None)
                 socket and result[2].append(socket)
 
         return result
