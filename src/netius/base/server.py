@@ -471,6 +471,8 @@ class StreamServer(Server):
 
         #@todo: chekc this !!!
         connection.wready = True
+        
+        print connection.wready
 
         try:
             connection._send()
