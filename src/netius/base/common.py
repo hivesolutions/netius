@@ -398,10 +398,6 @@ class Base(observer.Observable):
             # the resulting active sets for the callbacks
             reads, writes, errors = self.poll.poll()
 
-            print "poll"
-            for connection in self.connections:
-                print connection.pending
-
             # calls the various callbacks with the selections lists,
             # these are the main entry points for the logic to be executed
             # each of this methods should be implemented in the underlying

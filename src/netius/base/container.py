@@ -69,9 +69,9 @@ class Container(Base):
             for base in self.bases:
                 for connection in base.connections:
                     if not connection.pending: continue
+                    if connection.wready: continue
+                    connection.ensure_write()
                     print len(connection.pending)
-                    print connection.wready
-                    #if connection.pending and not connection.wready
                     # tenho de fazer ensure !!!!
 
             # runs the "owner" based version of the poll operation
