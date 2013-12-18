@@ -195,7 +195,7 @@ class EpollPoll(Poll):
     def poll(self):
         result = ([], [], [])
 
-        events = self.epoll.poll(POLL_TIMEOUT)
+        events = self.epoll.poll(-1)
         for fd, event in events:
             if event & select.EPOLLIN: #@UndefinedVariable
                 socket = self.read_fd.get(fd, None)
