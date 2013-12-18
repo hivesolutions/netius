@@ -65,6 +65,10 @@ class Container(Base):
             # updates the current state to poll to indicate
             # that the base service is selecting the connections
             self.set_state(STATE_POLL)
+            
+            for base in self.bases:
+                for connection in base.connections:
+                    print connection.pending
 
             # runs the "owner" based version of the poll operation
             # so that the poll results are indexed by their owner
