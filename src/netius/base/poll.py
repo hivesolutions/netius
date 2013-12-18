@@ -80,6 +80,8 @@ class Poll(object):
 
     def poll_owner(self):
         reads, writes, errors = self.poll()
+        
+        print writes
 
         result = dict()
 
