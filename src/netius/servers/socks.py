@@ -49,10 +49,17 @@ FAILED_AUTH = 0x5d
 
 GRANTED_EXTRA = 0x00
 
+MAX_PENDING = 131072
+""" The size in bytes considered to be the maximum
+allowed in the sending buffer, this maximum value
+avoids the starvation of the producer to consumer
+relation that could cause memory problems """
+
 class SOCKSConnection(netius.Connection):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, max_pending = MAX_PENDING, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
+        self.max_pending = max_pending
         self.parser = netius.common.SOCKSParser(self)
 
         self.parser.bind("on_data", self.on_data)
@@ -169,7 +176,7 @@ class SOCKSServer(netius.StreamServer):
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
-        if len(connection.pending) > 64:
+        if connection.pending_s > MAX_PENDING:
             _connection.disable_read()
             connection.send(data, callback = self._on_resume)
         else:

@@ -195,6 +195,7 @@ class DatagramServer(Server):
     def __init__(self, *args, **kwargs):
         Server.__init__(self, *args, **kwargs)
         self.wready = True
+        self.pending_s = 0
         self.pending = []
         self.pending_lock = threading.RLock()
 
@@ -298,12 +299,16 @@ class DatagramServer(Server):
         tid = thread.get_ident()
         is_safe = tid == self.tid
 
+        data_l = len(data)
+
         if callback: data = (data, callback)
         data = (data, address)
 
         self.pending_lock.acquire()
         try: self.pending.insert(0, data)
         finally: self.pending_lock.release()
+
+        self.pending_s += data_l
 
         if self.wready:
             send = lambda: self.writes(
@@ -328,6 +333,7 @@ class DatagramServer(Server):
                 if type(data) == types.TupleType:
                     data, callback = data
                 data_l = len(data)
+                self.pending_s -= data_l
 
                 try:
                     # tries to send the data through the socket and
@@ -363,6 +369,7 @@ class DatagramServer(Server):
                     else:
                         data_o = ((data[count:], callback), address)
                         self.pending.append(data_o)
+                        self.pending_s += data_l - count
         finally:
             self.pending_lock.release()
 

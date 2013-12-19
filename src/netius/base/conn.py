@@ -80,6 +80,7 @@ class Connection(object):
         self.ssl = ssl
         self.renable = True
         self.wready = True
+        self.pending_s = 0
         self.pending = []
         self.pending_lock = threading.RLock()
 
@@ -268,6 +269,11 @@ class Connection(object):
         to be send is completely sent to the socket.
         """
 
+        # calculates the size in bytes of the provided data so
+        # that it may be used latter for the incrementing of
+        # of the total size of pending bytes
+        data_l = len(data)
+
         # verifies that the connection is currently in the open
         # state and then verifies if a callback exists if that's
         # the case the data tuple must be created with the data
@@ -287,6 +293,10 @@ class Connection(object):
         self.pending_lock.acquire()
         try: self.pending.insert(0, data)
         finally: self.pending_lock.release()
+
+        # increments the size of the pending data to be sent by
+        # the size of the inner data buffer to be added (as requested)
+        self.pending_s += data_l
 
         # verifies if the write ready flag is set, for that
         # case the send flushing operation must be performed
@@ -349,6 +359,7 @@ class Connection(object):
                 if type(data) == types.TupleType:
                     data, callback = data
                 data_l = len(data)
+                self.pending_s -= data_l
 
                 try:
                     # tries to send the data through the socket and
@@ -384,6 +395,7 @@ class Connection(object):
                     else:
                         data_o = (data[count:], callback)
                         self.pending.append(data_o)
+                        self.pending_s += data_l - count
         finally:
             # releases the pending access lock so that no leaks
             # exists and no access to the pending is prevented
