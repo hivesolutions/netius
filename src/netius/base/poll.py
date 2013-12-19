@@ -79,7 +79,14 @@ class Poll(object):
         return []
 
     def poll_owner(self):
+        print "entriu"
         reads, writes, errors = self.poll()
+        print "saiu"
+
+        print reads
+        print writes
+        print errors
+        print "-----------------------------"
 
         result = dict()
 
