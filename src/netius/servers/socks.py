@@ -161,7 +161,7 @@ class SOCKSServer(netius.StreamServer):
             ssl = ssl
         )
 
-    def _on_resume(self, connection):
+    def _raw_resume(self, connection):
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
         if not tunnel_c: return
 
@@ -178,7 +178,7 @@ class SOCKSServer(netius.StreamServer):
         connection = self.conn_map[_connection]
         if connection.pending_s > MAX_PENDING:
             _connection.disable_read()
-            connection.send(data, callback = self._on_resume)
+            connection.send(data, callback = self._raw_resume)
         else:
             connection.send(data)
 
