@@ -403,7 +403,7 @@ class PollPoll(Poll):
             if event & select.POLLOUT: #@UndefinedVariable
                 socket = self.write_fd.get(fd, None)
                 socket and result[1].append(socket)
-            if event & select.POLLERROR or event & select.POLLHUP: #@UndefinedVariable
+            if event & select.POLLERR or event & select.POLLHUP: #@UndefinedVariable
                 socket = self.read_fd.get(fd, None)
                 socket and result[2].append(socket)
 
