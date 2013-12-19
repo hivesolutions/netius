@@ -136,7 +136,7 @@ class SOCKSServer(netius.StreamServer):
         # than the maximum size for the pending buffer the read operations
         # must be disabled and the the data is send with the resume connection
         # callback set for the final of the data flush
-        if tunnel_c.pending_s > MAX_PENDING:
+        if tunnel_c.pending_s > self.max_pending:
             connection.disable_read()
             tunnel_c.send(data, callback = self._resume)
 
@@ -195,7 +195,7 @@ class SOCKSServer(netius.StreamServer):
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
-        if connection.pending_s > MAX_PENDING:
+        if connection.pending_s > self.max_pending:
             _connection.disable_read()
             connection.send(data, callback = self._raw_resume)
         else:
