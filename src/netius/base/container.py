@@ -72,6 +72,10 @@ class Container(Base):
             result = self.poll.poll_owner()
             for base, values in result.iteritems():
                 reads, writes, errors = values
+                print reads
+                print writes
+                print errors
+                print "-----------------------------"
                 base.reads(reads)
                 base.writes(writes)
                 base.errors(errors)
