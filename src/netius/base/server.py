@@ -194,6 +194,7 @@ class DatagramServer(Server):
 
     def __init__(self, *args, **kwargs):
         Server.__init__(self, *args, **kwargs)
+        self.renable = True
         self.wready = True
         self.pending_s = 0
         self.pending = []
@@ -218,13 +219,21 @@ class DatagramServer(Server):
         Server.serve(self, type = type, *args, **kwargs)
 
     def on_read(self, _socket):
+        # in case the read enabled flag is not currently set
+        # must return immediately because the read operation
+        # is not currently being allowed
+        if not self.renable == True: return
+
         try:
             # iterates continuously trying to read as much data as possible
             # when there's a failure to read more data it should raise an
-            # exception that should be handled properly
+            # exception that should be handled properly, note that if the
+            # read enabled flag changed in the middle of the read handler
+            # the loop is stop as no more read operations are allowed
             while True:
                 data, address = _socket.recvfrom(CHUNK_SIZE)
                 self.on_data(address, data)
+                if not self.renable == True: break
         except ssl.SSLError, error:
             error_v = error.args[0]
             if not error_v in SSL_VALID_ERRORS:
@@ -294,6 +303,16 @@ class DatagramServer(Server):
 
     def remove_write(self):
         self.unsub_write(self.socket)
+
+    def enable_read(self):
+        is_edge = self.is_edge()
+        self.renable = True
+        if not is_edge: self.sub_read(self.socket)
+
+    def disable_read(self):
+        is_edge = self.owner.is_edge()
+        self.renable = False
+        if not is_edge: self.unsub_read(self.socket)
 
     def send(self, data, address, callback = None):
         tid = thread.get_ident()
