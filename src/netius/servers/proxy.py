@@ -199,7 +199,7 @@ class ProxyServer(http.HTTPServer):
         if is_chunked: return
 
         connection = self.conn_map[_connection]
-        if connection.pending_s > MAX_PENDING:
+        if connection.pending_s > self.max_pending:
             _connection.disable_read()
             connection.send(data, callback = self._prx_resume)
         else:
