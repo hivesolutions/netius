@@ -80,7 +80,7 @@ class Poll(object):
 
     def poll_owner(self):
         print "entriu"
-        reads, writes, errors = self.poll(POLL_TIMEOUT)
+        reads, writes, errors = self.poll()
         print "saiu"
 
         print reads
