@@ -554,8 +554,7 @@ class Base(observer.Observable):
     def get_poll_name(self):
         poll = self.get_poll()
         name = poll.__class__.__name__
-        name_s = name[:-4]
-        name = name_s[0]
+        name = name[:-4]
         name = name.lower()
         return name
 
