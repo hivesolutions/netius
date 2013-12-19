@@ -396,7 +396,6 @@ class PollPoll(Poll):
         result = ([], [], [])
 
         events = self._poll.poll(POLL_TIMEOUT * 1000)
-        print events
         for fd, event in events:
             if event & select.POLLIN: #@UndefinedVariable
                 socket = self.read_fd.get(fd, None)
