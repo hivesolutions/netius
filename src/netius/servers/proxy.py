@@ -116,7 +116,7 @@ class ProxyServer(http.HTTPServer):
         pass
 
     def _prx_resume(self, connection):
-        proxy_c = hasattr(connection, "proxy_c") and connection.tunnel_c
+        proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
         if not proxy_c: return
 
         proxy_c.enable_read()
