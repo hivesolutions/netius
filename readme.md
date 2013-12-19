@@ -40,3 +40,5 @@ Running `ab -n 20000 -c 5 -k http://srio.hive:8080/` whoud should get the follow
 
 * `HelloServer` - 9.6 K req/sec
 * `WSGIServer` - 8.7 K req/sec
+
+These values have been verified under commit #7c2687b.
