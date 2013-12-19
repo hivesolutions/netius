@@ -42,10 +42,17 @@ import http
 import netius.common
 import netius.clients
 
+MAX_PENDING = 131072
+""" The size in bytes considered to be the maximum
+allowed in the sending buffer, this maximum value
+avoids the starvation of the producer to consumer
+relation that could cause memory problems """
+
 class ProxyServer(http.HTTPServer):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, max_pending = MAX_PENDING, *args, **kwargs):
         http.HTTPServer.__init__(self, *args, **kwargs)
+        self.max_pending = max_pending
         self.conn_map = {}
 
         self.http_client = netius.clients.HTTPClient(
@@ -107,6 +114,20 @@ class ProxyServer(http.HTTPServer):
 
     def _prx_keep(self, connection):
         pass
+
+    def _prx_resume(self, connection):
+        proxy_c = hasattr(connection, "proxy_c") and connection.tunnel_c
+        if not proxy_c: return
+
+        proxy_c.enable_read()
+        self.http_client.reads((proxy_c.socket,), state = False)
+
+    def _raw_resume(self, connection):
+        tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
+        if not tunnel_c: return
+
+        tunnel_c.enable_read()
+        self.raw_client.reads((tunnel_c.socket,), state = False)
 
     def _on_prx_headers(self, client, parser, headers):
         # retrieves the owner of the parser as the client connection
@@ -178,7 +199,11 @@ class ProxyServer(http.HTTPServer):
         if is_chunked: return
 
         connection = self.conn_map[_connection]
-        connection.send(data)
+        if connection.pending_s > MAX_PENDING:
+            _connection.disable_read()
+            connection.send(data, callback = self._prx_resume)
+        else:
+            connection.send(data)
 
     def _on_prx_chunk(self, client, parser, range):
         _connection = parser.owner
@@ -190,7 +215,12 @@ class ProxyServer(http.HTTPServer):
         data_l = len(data_s)
         header = "%x\r\n" % data_l
         chunk = header + data_s + "\r\n"
-        connection.send(chunk)
+
+        if connection.pending_s > MAX_PENDING:
+            _connection.disable_read()
+            connection.send(chunk, callback = self._prx_resume)
+        else:
+            connection.send(chunk)
 
     def _on_prx_connect(self, client, _connection):
         _connection.waiting = False
@@ -246,7 +276,11 @@ class ProxyServer(http.HTTPServer):
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
-        connection.send(data)
+        if connection.pending_s > MAX_PENDING:
+            _connection.disable_read()
+            connection.send(data, callback = self._raw_resume)
+        else:
+            connection.send(data)
 
     def _on_raw_close(self, client, _connection):
         connection = self.conn_map[_connection]
