@@ -310,7 +310,7 @@ class DatagramServer(Server):
         if not is_edge: self.sub_read(self.socket)
 
     def disable_read(self):
-        is_edge = self.owner.is_edge()
+        is_edge = self.is_edge()
         self.renable = False
         if not is_edge: self.unsub_read(self.socket)
 
