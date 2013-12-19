@@ -395,7 +395,7 @@ class PollPoll(Poll):
     def poll(self):
         result = ([], [], [])
 
-        events = self._poll.poll(POLL_TIMEOUT)
+        events = self._poll.poll(POLL_TIMEOUT * 1000)
         print events
         for fd, event in events:
             if event & select.POLLIN: #@UndefinedVariable
