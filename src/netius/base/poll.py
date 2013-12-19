@@ -79,14 +79,7 @@ class Poll(object):
         return []
 
     def poll_owner(self):
-        print "entriu"
         reads, writes, errors = self.poll()
-        print "saiu"
-
-        print reads
-        print writes
-        print errors
-        print "-----------------------------"
 
         result = dict()
 
@@ -403,6 +396,7 @@ class PollPoll(Poll):
         result = ([], [], [])
 
         events = self._poll.poll(POLL_TIMEOUT)
+        print events
         for fd, event in events:
             if event & select.POLLIN: #@UndefinedVariable
                 socket = self.read_fd.get(fd, None)
