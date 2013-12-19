@@ -69,7 +69,9 @@ class Container(Base):
             # runs the "owner" based version of the poll operation
             # so that the poll results are indexed by their owner
             # reference to be easily routed to the base services
+            print "entrou"
             result = self.poll.poll_owner()
+            print "saiu"
             for base, values in result.iteritems():
                 reads, writes, errors = values
                 print reads
