@@ -64,6 +64,8 @@ class ProxyServer(http.HTTPServer):
         self.http_client = netius.clients.HTTPClient(
             thread = False,
             auto_release = False,
+            receive_buffer = max_pending,
+            send_buffer = max_pending,
             *args,
             **kwargs
         )
