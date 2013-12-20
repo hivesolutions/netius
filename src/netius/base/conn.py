@@ -359,7 +359,6 @@ class Connection(object):
                 if type(data) == types.TupleType:
                     data, callback = data
                 data_l = len(data)
-                self.pending_s -= data_l
 
                 try:
                     # tries to send the data through the socket and
@@ -384,6 +383,10 @@ class Connection(object):
                     self.pending.append(data_o)
                     raise
                 else:
+                    # decrements the size of the pending buffer by the number
+                    # of bytes that were correctly send through the buffer
+                    self.pending_s -= count
+
                     # verifies if the data has been correctly sent through
                     # the socket and for suck situations calls the callback
                     # object, otherwise creates a new data object with only
@@ -395,7 +398,6 @@ class Connection(object):
                     else:
                         data_o = (data[count:], callback)
                         self.pending.append(data_o)
-                        self.pending_s += data_l - count
         finally:
             # releases the pending access lock so that no leaks
             # exists and no access to the pending is prevented
