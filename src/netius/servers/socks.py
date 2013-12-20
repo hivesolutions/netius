@@ -106,7 +106,7 @@ class SOCKSServer(netius.StreamServer):
         )
         self.rules = rules
         self.max_pending = max_pending
-        self.min_pending = int(max_pending * 0.8)
+        self.min_pending = int(max_pending * 0.9)
         self.conn_map = {}
 
         self.raw_client = netius.clients.RawClient(
@@ -188,7 +188,7 @@ class SOCKSServer(netius.StreamServer):
         if _connection.pending_s > self.min_pending: return
 
         connection = self.conn_map[_connection]
-        #if not connection.renable == False: return
+        if not connection.renable == False: return
 
         connection.enable_read()
         self.reads((connection.socket,), state = False)
