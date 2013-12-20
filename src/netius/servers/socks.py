@@ -51,7 +51,7 @@ GRANTED_EXTRA = 0x00
 
 BUFFER_RATIO = 1.5
 
-MIN_RATIO = 0.8
+MIN_RATIO = 0.5
 
 MAX_PENDING = 65536
 """ The size in bytes considered to be the maximum
