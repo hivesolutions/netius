@@ -49,6 +49,10 @@ FAILED_AUTH = 0x5d
 
 GRANTED_EXTRA = 0x00
 
+BUFFER_RATIO = 1.5
+
+MIN_RATIO = 0.8
+
 MAX_PENDING = 65536
 """ The size in bytes considered to be the maximum
 allowed in the sending buffer, this maximum value
@@ -99,20 +103,20 @@ class SOCKSServer(netius.StreamServer):
     def __init__(self, rules = {}, max_pending = MAX_PENDING, *args, **kwargs):
         netius.StreamServer.__init__(
             self,
-            receive_buffer_c = int(max_pending * 1.5),
-            send_buffer_c = int(max_pending * 1.5),
+            receive_buffer_c = int(max_pending * BUFFER_RATIO),
+            send_buffer_c = int(max_pending * BUFFER_RATIO),
             *args,
             **kwargs
         )
         self.rules = rules
         self.max_pending = max_pending
-        self.min_pending = int(max_pending * 0.8)
+        self.min_pending = int(max_pending * MIN_RATIO)
         self.conn_map = {}
 
         self.raw_client = netius.clients.RawClient(
             thread = False,
-            receive_buffer = int(max_pending * 1.5),
-            send_buffer = int(max_pending * 1.5),
+            receive_buffer = int(max_pending * BUFFER_RATIO),
+            send_buffer = int(max_pending * BUFFER_RATIO),
             *args,
             **kwargs
         )
