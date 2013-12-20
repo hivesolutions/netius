@@ -230,6 +230,7 @@ class Connection(object):
         """
 
         if not self.status == OPEN: return
+        if not self.renable == False: return
         is_edge = self.owner.is_edge()
         self.renable = True
         if not is_edge: self.owner.sub_read(self.socket)
@@ -245,6 +246,7 @@ class Connection(object):
         """
 
         if not self.status == OPEN: return
+        if not self.renable == True: return
         is_edge = self.owner.is_edge()
         self.renable = False
         if not is_edge: self.owner.unsub_read(self.socket)

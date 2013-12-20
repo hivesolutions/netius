@@ -99,8 +99,8 @@ class SOCKSServer(netius.StreamServer):
     def __init__(self, rules = {}, max_pending = MAX_PENDING, *args, **kwargs):
         netius.StreamServer.__init__(
             self,
-            receive_buffer_c = max_pending * 2,
-            send_buffer_c = max_pending * 2,
+            receive_buffer_c = max_pending,
+            send_buffer_c = max_pending,
             *args,
             **kwargs
         )
@@ -111,8 +111,8 @@ class SOCKSServer(netius.StreamServer):
 
         self.raw_client = netius.clients.RawClient(
             thread = False,
-            receive_buffer = max_pending * 2,
-            send_buffer = max_pending * 2,
+            receive_buffer = max_pending,
+            send_buffer = max_pending,
             *args,
             **kwargs
         )
@@ -151,7 +151,7 @@ class SOCKSServer(netius.StreamServer):
 
         # otherwise it's a normal sending of data to the return end as
         # expected by the socks proxy server
-        tunnel_c.send(data, callback = self._resume)
+        tunnel_c.send(data, callback = self._throttle)
 
     def on_data_socks(self, connection, parser):
         host = parser.get_host()
@@ -184,9 +184,10 @@ class SOCKSServer(netius.StreamServer):
             ssl = ssl
         )
 
-    def _resume(self, _connection):
+    def _throttle(self, _connection):
+        if not _connection.renable == False: return
         if _connection.pending_s > self.min_pending: return
-        
+
         connection = self.conn_map[_connection]
         connection.enable_read()
         self.reads((connection.socket,), state = False)
