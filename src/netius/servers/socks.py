@@ -57,9 +57,8 @@ relation that could cause memory problems """
 
 class SOCKSConnection(netius.Connection):
 
-    def __init__(self, max_pending = MAX_PENDING, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
-        self.max_pending = max_pending
         self.parser = netius.common.SOCKSParser(self)
 
         self.parser.bind("on_data", self.on_data)
@@ -97,9 +96,10 @@ class SOCKSConnection(netius.Connection):
 
 class SOCKSServer(netius.StreamServer):
 
-    def __init__(self, rules = {}, *args, **kwargs):
+    def __init__(self, rules = {}, max_pending = MAX_PENDING, *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.rules = rules
+        self.max_pending = max_pending
         self.conn_map = {}
 
         self.raw_client = netius.clients.RawClient(
