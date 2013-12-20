@@ -37,6 +37,11 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+BUFFER_SIZE = 65536
+""" The size of the buffer that is going to be used in the
+sending and receiving of packets from the client, this value
+may influence performance by a large factor """
+
 from common import * #@UnusedWildImport
 
 class Client(Base):
@@ -146,6 +151,8 @@ class Client(Base):
         _socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFFER_SIZE)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, BUFFER_SIZE)
         self._socket_keepalive(_socket)
 
         address = (host, port)

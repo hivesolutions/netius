@@ -49,7 +49,7 @@ FAILED_AUTH = 0x5d
 
 GRANTED_EXTRA = 0x00
 
-MAX_PENDING = 131072
+MAX_PENDING = 65536
 """ The size in bytes considered to be the maximum
 allowed in the sending buffer, this maximum value
 avoids the starvation of the producer to consumer

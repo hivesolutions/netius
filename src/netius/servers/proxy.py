@@ -42,7 +42,7 @@ import http
 import netius.common
 import netius.clients
 
-MAX_PENDING = 131072
+MAX_PENDING = 65536
 """ The size in bytes considered to be the maximum
 allowed in the sending buffer, this maximum value
 avoids the starvation of the producer to consumer
