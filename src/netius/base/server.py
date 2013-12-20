@@ -112,7 +112,7 @@ class Server(Base):
         # updates the current service status to the configuration
         # stage as the next steps is to configure the service socket
         self.set_state(STATE_CONFIG)
-        
+
         # start the loading process of the base system so that the system should
         # be able to log some information that is going to be output
         self.load()
