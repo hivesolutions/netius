@@ -42,6 +42,15 @@ import http
 import netius.common
 import netius.clients
 
+BUFFER_RATIO = 1.5
+""" The ration for the calculus of the internal socket
+buffer size from the maximum pending buffer size """
+
+MIN_RATIO = 0.8
+""" The ration for the calculus of the minimum pending
+value this is going to be used to re-enable the operation
+and start the filling of the buffer again """
+
 MAX_PENDING = 65536
 """ The size in bytes considered to be the maximum
 allowed in the sending buffer, this maximum value
@@ -53,12 +62,13 @@ class ProxyServer(http.HTTPServer):
     def __init__(self, max_pending = MAX_PENDING, *args, **kwargs):
         http.HTTPServer.__init__(
             self,
-            receive_buffer_c = max_pending,
-            send_buffer_c = max_pending,
+            receive_buffer_c = int(max_pending * BUFFER_RATIO),
+            send_buffer_c = int(max_pending * BUFFER_RATIO),
             *args,
             **kwargs
         )
         self.max_pending = max_pending
+        self.min_pending = int(max_pending * MIN_RATIO)
         self.conn_map = {}
 
         self.http_client = netius.clients.HTTPClient(
@@ -80,8 +90,8 @@ class ProxyServer(http.HTTPServer):
 
         self.raw_client = netius.clients.RawClient(
             thread = False,
-            receive_buffer = max_pending,
-            send_buffer = max_pending,
+            receive_buffer = int(max_pending * BUFFER_RATIO),
+            send_buffe = int(max_pending * BUFFER_RATIO),
             *args,
             **kwargs
         )
@@ -114,15 +124,13 @@ class ProxyServer(http.HTTPServer):
 
         # verifies that the current size of the pending buffer is greater
         # than the maximum size for the pending buffer the read operations
-        # must be disabled and the the data is send with the resume connection
-        # callback set for the final of the data flush
-        if tunnel_c.pending_s > self.max_pending:
-            connection.disable_read()
-            tunnel_c.send(data, callback = self._resume)
+        # if that the case the read operations must be disabled
+        if tunnel_c.pending_s > self.max_pending: connection.disable_read()
 
-        # otherwise it's a normal sending of data to the return end as
-        # expected by the socks proxy server
-        else: tunnel_c.send(data)
+        # performs the sending operation on the data but uses the throttle
+        # callback so that the connection read operations may be resumed if
+        # the buffer has reached certain (minimum) levels
+        tunnel_c.send(data, callback = self._throttle)
 
     def on_connection_d(self, connection):
         http.HTTPServer.on_connection_d(self, connection)
@@ -133,8 +141,10 @@ class ProxyServer(http.HTTPServer):
         if tunnel_c: tunnel_c.close()
         if proxy_c: proxy_c.close()
 
-    def _resume(self, _connection):
+    def _throttle(self, _connection):
+        if _connection.pending_s > self.min_pending: return
         connection = self.conn_map[_connection]
+        if not connection.renable == False: return
         connection.enable_read()
         self.reads((connection.socket,), state = False)
 
@@ -144,16 +154,22 @@ class ProxyServer(http.HTTPServer):
     def _prx_keep(self, connection):
         pass
 
-    def _prx_resume(self, connection):
+    def _prx_throttle(self, connection):
+        if connection.pending_s > self.min_pending: return
+
         proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
         if not proxy_c: return
+        if not proxy_c.renable == False: return
 
         proxy_c.enable_read()
-        self.http_client.reads((proxy_c.socket,), state = False)
+        self.raw_client.reads((proxy_c.socket,), state = False)
 
-    def _raw_resume(self, connection):
+    def _raw_throttle(self, connection):
+        if connection.pending_s > self.min_pending: return
+
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
         if not tunnel_c: return
+        if not tunnel_c.renable == False: return
 
         tunnel_c.enable_read()
         self.raw_client.reads((tunnel_c.socket,), state = False)
@@ -228,11 +244,8 @@ class ProxyServer(http.HTTPServer):
         if is_chunked: return
 
         connection = self.conn_map[_connection]
-        if connection.pending_s > self.max_pending:
-            _connection.disable_read()
-            connection.send(data, callback = self._prx_resume)
-        else:
-            connection.send(data)
+        if connection.pending_s > self.max_pending: _connection.disable_read()
+        connection.send(data, callback = self._prx_throttle)
 
     def _on_prx_chunk(self, client, parser, range):
         _connection = parser.owner
@@ -245,11 +258,8 @@ class ProxyServer(http.HTTPServer):
         header = "%x\r\n" % data_l
         chunk = header + data_s + "\r\n"
 
-        if connection.pending_s > MAX_PENDING:
-            _connection.disable_read()
-            connection.send(chunk, callback = self._prx_resume)
-        else:
-            connection.send(chunk)
+        if connection.pending_s > MAX_PENDING: _connection.disable_read()
+        connection.send(chunk, callback = self._prx_throttle)
 
     def _on_prx_connect(self, client, _connection):
         _connection.waiting = False
@@ -305,11 +315,8 @@ class ProxyServer(http.HTTPServer):
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
-        if connection.pending_s > MAX_PENDING:
-            _connection.disable_read()
-            connection.send(data, callback = self._raw_resume)
-        else:
-            connection.send(data)
+        if connection.pending_s > MAX_PENDING: _connection.disable_read()
+        connection.send(data, callback = self._raw_throttle)
 
     def _on_raw_close(self, client, _connection):
         connection = self.conn_map[_connection]
