@@ -193,10 +193,8 @@ class SOCKSServer(netius.StreamServer):
 
     def _throttle(self, _connection):
         if _connection.pending_s > self.min_pending: return
-
         connection = self.conn_map[_connection]
         if not connection.renable == False: return
-
         connection.enable_read()
         self.reads((connection.socket,), state = False)
 
