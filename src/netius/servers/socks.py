@@ -99,8 +99,8 @@ class SOCKSServer(netius.StreamServer):
     def __init__(self, rules = {}, max_pending = MAX_PENDING, *args, **kwargs):
         netius.StreamServer.__init__(
             self,
-            receive_buffer_c = int(max_pending * 2),
-            send_buffer_c = int(max_pending * 2),
+            receive_buffer_c = int(max_pending * 1.2),
+            send_buffer_c = int(max_pending * 1.2),
             *args,
             **kwargs
         )
@@ -111,8 +111,8 @@ class SOCKSServer(netius.StreamServer):
 
         self.raw_client = netius.clients.RawClient(
             thread = False,
-            receive_buffer = int(max_pending * 2),
-            send_buffer = int(max_pending * 2),
+            receive_buffer = int(max_pending * 1.2),
+            send_buffer = int(max_pending * 1.2),
             *args,
             **kwargs
         )
@@ -143,14 +143,12 @@ class SOCKSServer(netius.StreamServer):
 
         # verifies that the current size of the pending buffer is greater
         # than the maximum size for the pending buffer the read operations
-        # must be disabled and the the data is send with the resume connection
-        # callback set for the final of the data flush
-        if tunnel_c.pending_s > self.max_pending:
-            connection.disable_read()
-            #tunnel_c.send(data, callback = self._resume)
+        # if that the case the read operations must be disabled
+        if tunnel_c.pending_s > self.max_pending: connection.disable_read()
 
-        # otherwise it's a normal sending of data to the return end as
-        # expected by the socks proxy server
+        # performs the sending operation on the data but uses the throttle
+        # callback so that the connection read operations may be resumed if
+        # the buffer has reached certain (minimum) levels
         tunnel_c.send(data, callback = self._throttle)
 
     def on_data_socks(self, connection, parser):
