@@ -37,7 +37,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-BUFFER_SIZE = 65536
+BUFFER_SIZE = None
 """ The size of the buffer that is going to be used in the
 sending and receiving of packets from the client, this value
 may influence performance by a large factor """
@@ -52,6 +52,8 @@ class Client(Base):
 
     def __init__(self, thread = True, *args, **kwargs):
         Base.__init__(self, *args, **kwargs)
+        self.receive_buffer = kwargs.get("receive_buffer", BUFFER_SIZE)
+        self.send_buffer = kwargs.get("send_buffer", BUFFER_SIZE)
         self.free_map = {}
         self.pendings = []
         self._pending_lock = threading.RLock()
@@ -151,8 +153,16 @@ class Client(Base):
         _socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFFER_SIZE)
-        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, BUFFER_SIZE)
+        if self.receive_buffer: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_RCVBUF,
+            self.receive_buffer
+        )
+        if self.send_buffer: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_SNDBUF,
+            self.send_buffer
+        )
         self._socket_keepalive(_socket)
 
         address = (host, port)
