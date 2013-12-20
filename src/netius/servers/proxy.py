@@ -95,10 +95,24 @@ class ProxyServer(http.HTTPServer):
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
 
+        # tries to retrieve the reference to the tunnel connection
+        # currently set in the connection in case it does not exists
+        # (initial handshake or http client proxy) runs the parse
+        # step on the data and then returns immediately
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
+        if not tunnel_c: connection.parse(data); return
 
-        if tunnel_c: tunnel_c.send(data)
-        else: connection.parse(data)
+        # verifies that the current size of the pending buffer is greater
+        # than the maximum size for the pending buffer the read operations
+        # must be disabled and the the data is send with the resume connection
+        # callback set for the final of the data flush
+        if tunnel_c.pending_s > self.max_pending:
+            connection.disable_read()
+            tunnel_c.send(data, callback = self._resume)
+
+        # otherwise it's a normal sending of data to the return end as
+        # expected by the socks proxy server
+        else: tunnel_c.send(data)
 
     def on_connection_d(self, connection):
         http.HTTPServer.on_connection_d(self, connection)
@@ -108,6 +122,11 @@ class ProxyServer(http.HTTPServer):
 
         if tunnel_c: tunnel_c.close()
         if proxy_c: proxy_c.close()
+
+    def _resume(self, _connection):
+        connection = self.conn_map[_connection]
+        connection.enable_read()
+        self.reads((connection.socket,), state = False)
 
     def _prx_close(self, connection):
         connection.close()
