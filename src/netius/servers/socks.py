@@ -106,6 +106,7 @@ class SOCKSServer(netius.StreamServer):
         )
         self.rules = rules
         self.max_pending = max_pending
+        self.min_pending = int(max_pending * 0.8)
         self.conn_map = {}
 
         self.raw_client = netius.clients.RawClient(
@@ -146,11 +147,11 @@ class SOCKSServer(netius.StreamServer):
         # callback set for the final of the data flush
         if tunnel_c.pending_s > self.max_pending:
             connection.disable_read()
-            tunnel_c.send(data, callback = self._resume)
+            #tunnel_c.send(data, callback = self._resume)
 
         # otherwise it's a normal sending of data to the return end as
         # expected by the socks proxy server
-        else: tunnel_c.send(data)
+        tunnel_c.send(data, callback = self._resume)
 
     def on_data_socks(self, connection, parser):
         host = parser.get_host()
@@ -184,6 +185,8 @@ class SOCKSServer(netius.StreamServer):
         )
 
     def _resume(self, _connection):
+        if _connection.pending_s > self.min_pending: return
+        
         connection = self.conn_map[_connection]
         connection.enable_read()
         self.reads((connection.socket,), state = False)
