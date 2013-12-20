@@ -200,9 +200,12 @@ class SOCKSServer(netius.StreamServer):
         connection.enable_read()
         self.reads((connection.socket,), state = False)
 
-    def _raw_resume(self, connection):
+    def _raw_throttle(self, connection):
+        if connection.pending_s > self.min_pending: return
+
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
         if not tunnel_c: return
+        if not tunnel_c.renable == False: return
 
         tunnel_c.enable_read()
         self.raw_client.reads((tunnel_c.socket,), state = False)
@@ -215,11 +218,8 @@ class SOCKSServer(netius.StreamServer):
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
-        if connection.pending_s > self.max_pending:
-            _connection.disable_read()
-            connection.send(data, callback = self._raw_resume)
-        else:
-            connection.send(data)
+        if connection.pending_s > self.max_pending: _connection.disable_read()
+        connection.send(data, callback = self._raw_throttle)
 
     def _on_raw_close(self, client, _connection):
         connection = self.conn_map[_connection]
