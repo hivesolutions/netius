@@ -37,6 +37,17 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+BUFFER_SIZE_S = 262144
+""" The size of both the send and receive buffers for
+the socket representing the server, this socket is
+responsible for the handling of the new connections """
+
+BUFFER_SIZE_C = 65536
+""" The size of the buffers (send and receive) that
+is going to be set on the on the sockets created by
+the server (client sockets), this is critical for a
+good performance of the server (large value) """
+
 from common import * #@UnusedWildImport
 
 class Server(Base):
@@ -169,6 +180,8 @@ class Server(Base):
         _socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFFER_SIZE_S) 
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, BUFFER_SIZE_S)
         self._socket_keepalive(_socket)
 
         # returns the created tcp socket to the calling method so that it
@@ -535,6 +548,8 @@ class StreamServer(Server):
         socket_c.setblocking(0)
         socket_c.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFFER_SIZE_C) 
+        socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, BUFFER_SIZE_C)
 
         if self.ssl: self._ssl_handshake(socket_c)
 
