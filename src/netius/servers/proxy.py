@@ -51,7 +51,13 @@ relation that could cause memory problems """
 class ProxyServer(http.HTTPServer):
 
     def __init__(self, max_pending = MAX_PENDING, *args, **kwargs):
-        http.HTTPServer.__init__(self, *args, **kwargs)
+        http.HTTPServer.__init__(
+            self,
+            receive_buffer_c = max_pending,
+            send_buffer_c = max_pending,
+            *args,
+            **kwargs
+        )
         self.max_pending = max_pending
         self.conn_map = {}
 
@@ -72,6 +78,8 @@ class ProxyServer(http.HTTPServer):
 
         self.raw_client = netius.clients.RawClient(
             thread = False,
+            receive_buffer = max_pending,
+            send_buffer = max_pending,
             *args,
             **kwargs
         )
