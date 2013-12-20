@@ -180,7 +180,7 @@ class Server(Base):
         _socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFFER_SIZE_S) 
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFFER_SIZE_S)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, BUFFER_SIZE_S)
         self._socket_keepalive(_socket)
 
@@ -365,7 +365,6 @@ class DatagramServer(Server):
                 if type(data) == types.TupleType:
                     data, callback = data
                 data_l = len(data)
-                self.pending_s -= data_l
 
                 try:
                     # tries to send the data through the socket and
@@ -390,6 +389,10 @@ class DatagramServer(Server):
                     self.pending.append(data_o)
                     raise
                 else:
+                    # decrements the size of the pending buffer by the number
+                    # of bytes that were correctly send through the buffer
+                    self.pending_s -= count
+
                     # verifies if the data has been correctly sent through
                     # the socket and for suck situations calls the callback
                     # object, otherwise creates a new data object with only
@@ -401,7 +404,6 @@ class DatagramServer(Server):
                     else:
                         data_o = ((data[count:], callback), address)
                         self.pending.append(data_o)
-                        self.pending_s += data_l - count
         finally:
             self.pending_lock.release()
 
@@ -548,7 +550,7 @@ class StreamServer(Server):
         socket_c.setblocking(0)
         socket_c.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFFER_SIZE_C) 
+        socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFFER_SIZE_C)
         socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, BUFFER_SIZE_C)
 
         if self.ssl: self._ssl_handshake(socket_c)
