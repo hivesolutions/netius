@@ -162,6 +162,13 @@ class Server(Base):
         if start: self.start()
 
     def socket_tcp(self, ssl, key_file, cer_file):
+        # retrieves the proper string based type for the current server socket
+        # and the prints a series of log message about the socket to be created
+        type_s = ssl and "ssl" or ""
+        self.debug("Creating server's tcp %s socket ..." % type_s)
+        if ssl: self.debug("Loading '%s' as key file" % key_file)
+        if ssl: self.debug("Loading '%s' as certificate file" % cer_file)
+
         # creates the socket that it's going to be used for the listening
         # of new connections (server socket) and sets it as non blocking
         _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -201,6 +208,10 @@ class Server(Base):
         return _socket
 
     def socket_udp(self):
+        # prints a small debug message about the udp socket that is going
+        # to be created for the server's connection
+        self.debug("Creating server's udp socket ...")
+
         # creates the socket that it's going to be used for the listening
         # of new connections (server socket) and sets it as non blocking
         _socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
