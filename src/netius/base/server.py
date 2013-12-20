@@ -330,11 +330,13 @@ class DatagramServer(Server):
         self.unsub_write(self.socket)
 
     def enable_read(self):
+        if not self.renable == False: return
         is_edge = self.is_edge()
         self.renable = True
         if not is_edge: self.sub_read(self.socket)
 
     def disable_read(self):
+        if not self.renable == True: return
         is_edge = self.is_edge()
         self.renable = False
         if not is_edge: self.unsub_read(self.socket)
