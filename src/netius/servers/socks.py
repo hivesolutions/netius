@@ -106,13 +106,13 @@ class SOCKSServer(netius.StreamServer):
         )
         self.rules = rules
         self.max_pending = max_pending
-        self.min_pending = int(max_pending * 0.9)
+        self.min_pending = int(max_pending * 0.8)
         self.conn_map = {}
 
         self.raw_client = netius.clients.RawClient(
             thread = False,
-            receive_buffer = int(max_pending * 1.2),
-            send_buffer = int(max_pending * 1.2),
+            receive_buffer = int(max_pending * 1.5),
+            send_buffer = int(max_pending * 1.5),
             *args,
             **kwargs
         )
