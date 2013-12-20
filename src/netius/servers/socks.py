@@ -99,8 +99,8 @@ class SOCKSServer(netius.StreamServer):
     def __init__(self, rules = {}, max_pending = MAX_PENDING, *args, **kwargs):
         netius.StreamServer.__init__(
             self,
-            receive_buffer_c = int(max_pending * 2),
-            send_buffer_c = int(max_pending * 2),
+            receive_buffer_c = int(max_pending * 1.2),
+            send_buffer_c = int(max_pending * 1.2),
             *args,
             **kwargs
         )
@@ -111,8 +111,8 @@ class SOCKSServer(netius.StreamServer):
 
         self.raw_client = netius.clients.RawClient(
             thread = False,
-            receive_buffer = max_pending,
-            send_buffer = max_pending,
+            receive_buffer = int(max_pending * 1.2),
+            send_buffer = int(max_pending * 1.2),
             *args,
             **kwargs
         )
