@@ -112,6 +112,10 @@ class Server(Base):
         # updates the current service status to the configuration
         # stage as the next steps is to configure the service socket
         self.set_state(STATE_CONFIG)
+        
+        # start the loading process of the base system so that the system should
+        # be able to log some information that is going to be output
+        self.load()
 
         # populates the basic information on the currently running
         # server like the host the port and the (is) ssl flag to be
@@ -146,10 +150,6 @@ class Server(Base):
         # listening in the socket with the maximum backlog as possible
         self.socket.bind((host, port))
         if type == TCP_TYPE: self.socket.listen(5)
-
-        # start the loading process of the base system so that the system should
-        # be able to log some information that is going to be output
-        self.load()
 
         # creates the string that identifies it the current service connection
         # is using a secure channel (ssl) and then prints an info message about
