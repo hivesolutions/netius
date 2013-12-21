@@ -213,7 +213,9 @@ class Client(Base):
                 if not connection.renable == True: break
         except ssl.SSLError, error:
             error_v = error.args[0]
-            if not error_v in SSL_VALID_ERRORS:
+            if error_v in SSL_SILENT_ERRORS:
+                connection.close()
+            elif not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
@@ -251,7 +253,9 @@ class Client(Base):
             connection._send()
         except ssl.SSLError, error:
             error_v = error.args[0]
-            if not error_v in SSL_VALID_ERRORS:
+            if error_v in SSL_SILENT_ERRORS:
+                connection.close()
+            elif not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)

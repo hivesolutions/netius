@@ -111,6 +111,13 @@ VALID_ERRORS = (
 """ List containing the complete set of error that represent
 non ready operations in a non blocking socket """
 
+SSL_SILENT_ERRORS = (
+    ssl.SSL_ERROR_EOF,
+)
+""" The list containing the errors that should be silenced
+while still making the connection dropped as they are expected
+to occur and should not be considered an exception """
+
 SSL_VALID_ERRORS = (
     ssl.SSL_ERROR_WANT_READ,
     ssl.SSL_ERROR_WANT_WRITE
