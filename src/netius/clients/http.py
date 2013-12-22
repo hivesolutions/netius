@@ -452,6 +452,15 @@ class HTTPClient(netius.Client):
         self.trigger("close", self, connection)
         self.remove_c(connection)
 
+        # verifies if the current client was created with
+        # the auto close flag an there are not more connections
+        # left open if that's the case closes the current
+        # client so that no more interaction exists as it's
+        # no longer required (as defined by the specification)
+        if not self.auto_close: return
+        if self.connections: return
+        self.close()
+
     def new_connection(self, socket, address, ssl = False):
         return HTTPConnection(
             owner = self,

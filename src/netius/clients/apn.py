@@ -179,6 +179,11 @@ class APNClient(netius.Client):
         callback = callback if close else None
         connection.send(message, callback = callback)
 
+    def on_connection_d(self, connection):
+        netius.Client.on_connection_d(self, connection)
+        if self.connections: return
+        self.close()
+
     def new_connection(self, socket, address, ssl = False):
         return APNConnection(
             owner = self,
