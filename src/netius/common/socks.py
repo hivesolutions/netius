@@ -280,7 +280,8 @@ class SOCKSParser(netius.Observable):
         if len(data) < 1:
             raise netius.ParserError("Invalid request (too short)")
 
-        self.size, = struct.unpack("!B", data[:1])
+        request = data[:1]
+        self.size, = struct.unpack("!B", request)
 
         self.state = ADDRESS_STATE
 
@@ -312,7 +313,8 @@ class SOCKSParser(netius.Observable):
         if len(data) < 2:
             raise netius.ParserError("Invalid request (too short)")
 
-        self.port, = struct.unpack("!H", data[:2])
+        request = data[:2]
+        self.port, = struct.unpack("!H", request)
 
         self.state = FINISH_STATE
 
