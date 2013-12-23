@@ -379,6 +379,12 @@ class HTTPClient(netius.Client):
         version = "HTTP/1.1",
         connection = None
     ):
+        # creates the message that is going to be used in the logging of
+        # the current method request for debugging purposes, this may be
+        # useful for a full record traceability of the request
+        message = "%s %s %s" % (method, url, version)
+        self.debug(message)
+
         # encodes the provided parameters into the query string and then
         # adds these parameters to the end of the provided url, these
         # values are commonly named get parameters
