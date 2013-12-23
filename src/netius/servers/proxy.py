@@ -141,6 +141,9 @@ class ProxyServer(http.HTTPServer):
         if tunnel_c: tunnel_c.close()
         if proxy_c: proxy_c.close()
 
+        setattr(connection, "tunnel_c", None)
+        setattr(connection, "proxy_c", None)
+
     def _throttle(self, _connection):
         if _connection.pending_s > self.min_pending: return
         connection = self.conn_map[_connection]

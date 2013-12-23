@@ -183,6 +183,8 @@ class SOCKSServer(netius.StreamServer):
 
         if tunnel_c: tunnel_c.close()
 
+        setattr(connection, "tunnel_c", None)
+
     def new_connection(self, socket, address, ssl = False):
         return SOCKSConnection(
             owner = self,
