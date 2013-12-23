@@ -214,6 +214,7 @@ class Client(Base):
         except ssl.SSLError, error:
             error_v = error.args[0]
             if error_v in SSL_SILENT_ERRORS:
+                self.debug(error)
                 connection.close()
             elif not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
@@ -223,6 +224,7 @@ class Client(Base):
         except socket.error, error:
             error_v = error.args[0]
             if error_v in SILENT_ERRORS:
+                self.debug(error)
                 connection.close()
             elif not error_v in VALID_ERRORS:
                 self.warning(error)
@@ -254,6 +256,7 @@ class Client(Base):
         except ssl.SSLError, error:
             error_v = error.args[0]
             if error_v in SSL_SILENT_ERRORS:
+                self.debug(error)
                 connection.close()
             elif not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
@@ -263,6 +266,7 @@ class Client(Base):
         except socket.error, error:
             error_v = error.args[0]
             if error_v in SILENT_ERRORS:
+                self.debug(error)
                 connection.close()
             elif not error_v in VALID_ERRORS:
                 self.warning(error)
