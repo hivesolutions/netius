@@ -62,7 +62,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             break
 
         if not prefix:
-            self.debug("No valid proxy endpoint found")
+            self.debug("No valid proxy endpoint found for '%s'" % host)
             connection.send_response(
                 data = "No valid proxy endpoint found",
                 version = version_s,
