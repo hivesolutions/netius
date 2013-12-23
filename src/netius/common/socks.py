@@ -174,7 +174,7 @@ class SOCKSParser(netius.Observable):
 
         if self.type == IPV4: address = struct.pack("!I", self.address)
         elif self.type == IPV6: address = struct.pack("!QQ", self.address)
-        else: address = struct.pack("!Bs", self.size, self.address)
+        else: address = struct.pack("!B", self.size) +  self.address
 
         return address
 
@@ -280,7 +280,7 @@ class SOCKSParser(netius.Observable):
         if len(data) < 1:
             raise netius.ParserError("Invalid request (too short)")
 
-        self.size = struct.unpack("!B", data)
+        self.size, = struct.unpack("!B", data[:1])
 
         self.state = ADDRESS_STATE
 
@@ -312,7 +312,7 @@ class SOCKSParser(netius.Observable):
         if len(data) < 2:
             raise netius.ParserError("Invalid request (too short)")
 
-        self.port, = struct.unpack("!H", data)
+        self.port, = struct.unpack("!H", data[:2])
 
         self.state = FINISH_STATE
 
