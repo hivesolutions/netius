@@ -85,6 +85,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             connection = proxy_c
         )
 
+        self.debug("Setting connection as waiting, proxy connection loading ...")
+
         _connection.waiting = True
         connection.proxy_c = _connection
         self.conn_map[_connection] = connection
