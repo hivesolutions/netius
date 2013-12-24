@@ -98,6 +98,7 @@ class HTTPConnection(netius.Connection):
 
         if parsed.query: path += "?" + parsed.query
 
+        headers = dict(headers)
         self._apply_base(headers)
         self._apply_dynamic(headers)
 
