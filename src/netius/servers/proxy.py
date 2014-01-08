@@ -125,7 +125,7 @@ class ProxyServer(http.HTTPServer):
         # verifies that the current size of the pending buffer is greater
         # than the maximum size for the pending buffer the read operations
         # if that the case the read operations must be disabled
-        if tunnel_c.pending_s > self.max_pending: connection.disable_read()
+        #if tunnel_c.pending_s > self.max_pending: connection.disable_read()
 
         # performs the sending operation on the data but uses the throttle
         # callback so that the connection read operations may be resumed if
@@ -211,6 +211,8 @@ class ProxyServer(http.HTTPServer):
         _connection = parser.owner
         is_chunked = parser.chunked
 
+        print "recevey mensagem"
+
         # sets the current client connection as not waiting and then retrieves
         # the requester connection associated with the client (back-end)
         # connection in order to be used in the current processing
@@ -247,7 +249,7 @@ class ProxyServer(http.HTTPServer):
         if is_chunked: return
 
         connection = self.conn_map[_connection]
-        if connection.pending_s > self.max_pending: _connection.disable_read()
+        #if connection.pending_s > self.max_pending: _connection.disable_read()
         connection.send(data, callback = self._prx_throttle)
 
     def _on_prx_chunk(self, client, parser, range):
@@ -261,7 +263,7 @@ class ProxyServer(http.HTTPServer):
         header = "%x\r\n" % data_l
         chunk = header + data_s + "\r\n"
 
-        if connection.pending_s > MAX_PENDING: _connection.disable_read()
+        #if connection.pending_s > MAX_PENDING: _connection.disable_read()
         connection.send(chunk, callback = self._prx_throttle)
 
     def _on_prx_connect(self, client, _connection):
@@ -318,7 +320,7 @@ class ProxyServer(http.HTTPServer):
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
-        if connection.pending_s > MAX_PENDING: _connection.disable_read()
+        #if connection.pending_s > MAX_PENDING: _connection.disable_read()
         connection.send(data, callback = self._raw_throttle)
 
     def _on_raw_close(self, client, _connection):
