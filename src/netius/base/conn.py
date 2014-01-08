@@ -236,6 +236,7 @@ class Connection(object):
 
         if not self.status == OPEN: return
         if not self.renable == False: return
+        print "re-enabled read" #@todo: remove this
         is_edge = self.owner.is_edge()
         self.renable = True
         if not is_edge: self.owner.sub_read(self.socket)
@@ -249,9 +250,10 @@ class Connection(object):
         This is an extremely dangerous operation and the correct knowledge
         of the event poll is required to avoid stalling.
         """
-
+        
         if not self.status == OPEN: return
         if not self.renable == True: return
+        print "disabled read" #@todo: remove this
         is_edge = self.owner.is_edge()
         self.renable = False
         if not is_edge: self.owner.unsub_read(self.socket)
