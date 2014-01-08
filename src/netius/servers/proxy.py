@@ -210,7 +210,7 @@ class ProxyServer(http.HTTPServer):
         # then evaluates if that connection is of type chunked
         _connection = parser.owner
         is_chunked = parser.chunked
-        
+
         print "recebeu mensage" #@todo: remove this
 
         # sets the current client connection as not waiting and then retrieves
