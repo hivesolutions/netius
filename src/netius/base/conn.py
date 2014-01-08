@@ -250,7 +250,7 @@ class Connection(object):
         This is an extremely dangerous operation and the correct knowledge
         of the event poll is required to avoid stalling.
         """
-        
+
         if not self.status == OPEN: return
         if not self.renable == True: return
         print "disabled read" #@todo: remove this
