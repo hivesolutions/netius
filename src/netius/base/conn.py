@@ -236,7 +236,6 @@ class Connection(object):
 
         if not self.status == OPEN: return
         if not self.renable == False: return
-        print "re-enabled read" #@todo: remove this
         self.renable = True
         self.owner.sub_read(self.socket)
 
@@ -252,7 +251,6 @@ class Connection(object):
 
         if not self.status == OPEN: return
         if not self.renable == True: return
-        print "disabled read" #@todo: remove this
         self.renable = False
         self.owner.unsub_read(self.socket)
 

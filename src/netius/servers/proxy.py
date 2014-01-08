@@ -211,8 +211,6 @@ class ProxyServer(http.HTTPServer):
         _connection = parser.owner
         is_chunked = parser.chunked
 
-        print "recebeu mensage" #@todo: remove this
-
         # sets the current client connection as not waiting and then retrieves
         # the requester connection associated with the client (back-end)
         # connection in order to be used in the current processing
