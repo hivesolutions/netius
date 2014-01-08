@@ -59,7 +59,7 @@ relation that could cause memory problems """
 
 class ProxyServer(http.HTTPServer):
 
-    def __init__(self, max_pending = MAX_PENDING, *args, **kwargs):
+    def __init__(self, throttle = True, max_pending = MAX_PENDING, *args, **kwargs):
         http.HTTPServer.__init__(
             self,
             receive_buffer_c = int(max_pending * BUFFER_RATIO),
@@ -67,6 +67,7 @@ class ProxyServer(http.HTTPServer):
             *args,
             **kwargs
         )
+        self.throttle = throttle
         self.max_pending = max_pending
         self.min_pending = int(max_pending * MIN_RATIO)
         self.conn_map = {}
@@ -91,7 +92,7 @@ class ProxyServer(http.HTTPServer):
         self.raw_client = netius.clients.RawClient(
             thread = False,
             receive_buffer = int(max_pending * BUFFER_RATIO),
-            send_buffe = int(max_pending * BUFFER_RATIO),
+            send_buffer = int(max_pending * BUFFER_RATIO),
             *args,
             **kwargs
         )
@@ -125,7 +126,8 @@ class ProxyServer(http.HTTPServer):
         # verifies that the current size of the pending buffer is greater
         # than the maximum size for the pending buffer the read operations
         # if that the case the read operations must be disabled
-        if tunnel_c.pending_s > self.max_pending: connection.disable_read()
+        should_disable = self.throttle and tunnel_c.pending_s > self.max_pending
+        if should_disable: connection.disable_read()
 
         # performs the sending operation on the data but uses the throttle
         # callback so that the connection read operations may be resumed if
@@ -247,7 +249,8 @@ class ProxyServer(http.HTTPServer):
         if is_chunked: return
 
         connection = self.conn_map[_connection]
-        if connection.pending_s > self.max_pending: _connection.disable_read()
+        should_disable = self.throttle and connection.pending_s > self.max_pending
+        if should_disable: _connection.disable_read()
         connection.send(data, callback = self._prx_throttle)
 
     def _on_prx_chunk(self, client, parser, range):
@@ -261,7 +264,8 @@ class ProxyServer(http.HTTPServer):
         header = "%x\r\n" % data_l
         chunk = header + data_s + "\r\n"
 
-        if connection.pending_s > MAX_PENDING: _connection.disable_read()
+        should_disable = self.throttle and connection.pending_s > self.max_pending
+        if should_disable: _connection.disable_read()
         connection.send(chunk, callback = self._prx_throttle)
 
     def _on_prx_connect(self, client, _connection):
@@ -318,7 +322,8 @@ class ProxyServer(http.HTTPServer):
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
-        if connection.pending_s > MAX_PENDING: _connection.disable_read()
+        should_disable = self.throttle and connection.pending_s > self.max_pending
+        if should_disable: _connection.disable_read()
         connection.send(data, callback = self._raw_throttle)
 
     def _on_raw_close(self, client, _connection):

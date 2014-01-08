@@ -105,7 +105,7 @@ class SOCKSConnection(netius.Connection):
 
 class SOCKSServer(netius.StreamServer):
 
-    def __init__(self, rules = {}, max_pending = MAX_PENDING, *args, **kwargs):
+    def __init__(self, rules = {}, throttle = True, max_pending = MAX_PENDING, *args, **kwargs):
         netius.StreamServer.__init__(
             self,
             receive_buffer_c = int(max_pending * BUFFER_RATIO),
@@ -114,6 +114,7 @@ class SOCKSServer(netius.StreamServer):
             **kwargs
         )
         self.rules = rules
+        self.throttle = throttle
         self.max_pending = max_pending
         self.min_pending = int(max_pending * MIN_RATIO)
         self.conn_map = {}
@@ -153,7 +154,8 @@ class SOCKSServer(netius.StreamServer):
         # verifies that the current size of the pending buffer is greater
         # than the maximum size for the pending buffer the read operations
         # if that the case the read operations must be disabled
-        if tunnel_c.pending_s > self.max_pending: connection.disable_read()
+        should_disable = self.throttle and tunnel_c.pending_s > self.max_pending
+        if should_disable: connection.disable_read()
 
         # performs the sending operation on the data but uses the throttle
         # callback so that the connection read operations may be resumed if
@@ -218,7 +220,8 @@ class SOCKSServer(netius.StreamServer):
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
-        if connection.pending_s > self.max_pending: _connection.disable_read()
+        should_disable = self.throttle and connection.pending_s > self.max_pending
+        if should_disable: _connection.disable_read()
         connection.send(data, callback = self._raw_throttle)
 
     def _on_raw_close(self, client, _connection):
