@@ -86,7 +86,7 @@ class WSGIServer(http.HTTPServer):
             QUERY_STRING = query,
             CONTENT_TYPE = parser.headers.get("content-type", ""),
             CONTENT_LENGTH = "" if parser.content_l == -1 else parser.content_l,
-            SERVER_NAME = netius.NAME,
+            SERVER_NAME = self.host,
             SERVER_PORT = self.port,
             SERVER_PROTOCOL = parser.version_s
         )
@@ -101,6 +101,8 @@ class WSGIServer(http.HTTPServer):
         environ["wsgi.multithread"] = True
         environ["wsgi.multiprocess"] = True
         environ["wsgi.run_once"] = False
+        environ["wsgi.server_name"] = netius.NAME
+        environ["wsgi.server_version"] = netius.VERSION
 
         # iterates over all the header values that have been received
         # to set them in the environment map to be used by the wsgi
@@ -184,6 +186,7 @@ if __name__ == "__main__":
             ("Content-type", "text/plain"),
             ("Connection", "keep-alive")
         )
+        print environ
         start_response(status, headers)
         return (contents,)
 
