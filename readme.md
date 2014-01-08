@@ -34,6 +34,11 @@ netius.clients.HTTPClient.get_s(
 )
 ```
 
+## Compatability
+
+Currently netius is compatible with pypy and a typical environment will benefit from a 1.5x to 2.5x
+performance increase when compared with the cpython interpreter.
+
 ## Benchmarks
 
 Running `ab -n 20000 -c 5 -k http://srio.hive:8080/` whoud should get the following results:
