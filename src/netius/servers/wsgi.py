@@ -100,7 +100,7 @@ class WSGIServer(http.HTTPServer):
         environ["wsgi.errors"] = sys.stderr
         environ["wsgi.multithread"] = True
         environ["wsgi.multiprocess"] = True
-        environ["wsgi.run_once"] = True
+        environ["wsgi.run_once"] = False
 
         # iterates over all the header values that have been received
         # to set them in the environment map to be used by the wsgi
