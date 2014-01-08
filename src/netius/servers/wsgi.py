@@ -186,7 +186,6 @@ if __name__ == "__main__":
             ("Content-type", "text/plain"),
             ("Connection", "keep-alive")
         )
-        print environ
         start_response(status, headers)
         return (contents,)
 
