@@ -239,7 +239,8 @@ class Connection(object):
         print "re-enabled read" #@todo: remove this
         is_edge = self.owner.is_edge()
         self.renable = True
-        if not is_edge: self.owner.sub_read(self.socket)
+        #if not is_edge: self.owner.sub_read(self.socket) @todo: check this
+        self.owner.sub_read(self.socket) # @todo: check this
 
     def disable_read(self):
         """
@@ -256,7 +257,8 @@ class Connection(object):
         print "disabled read" #@todo: remove this
         is_edge = self.owner.is_edge()
         self.renable = False
-        if not is_edge: self.owner.unsub_read(self.socket)
+        #if not is_edge: self.owner.unsub_read(self.socket) @todo: check this
+        self.owner.unsub_read(self.socket) # @todo: check this
 
     def send(self, data, callback = None):
         """

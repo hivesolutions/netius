@@ -72,8 +72,11 @@ class Container(Base):
             result = self.poll.poll_owner()
             for base, values in result.iteritems():
                 reads, writes, errors = values
+                print "reads"
                 base.reads(reads)
+                print "writes"
                 base.writes(writes)
+                print "errors"
                 base.errors(errors)
 
     def ticks(self):
