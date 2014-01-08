@@ -413,11 +413,8 @@ class Base(observer.Observable):
             # each of this methods should be implemented in the underlying
             # class instances as no behavior is defined at this inheritance
             # level (abstract class)
-            print "reads"
             self.reads(reads)
-            print "writes"
             self.writes(writes)
-            print "errors"
             self.errors(errors)
 
     def ticks(self):
