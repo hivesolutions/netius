@@ -157,6 +157,11 @@ class Server(Base):
         ssl_s = ssl and " using ssl" or ""
         self.info("Serving '%s' service on %s:%d%s ..." % (self.name, host, port, ssl_s))
 
+        # calls the on serve callback handler so that underlying services may be
+        # able to respond to the fact that the service is starting and some of
+        # them may print some specific debugging information
+        self.on_serve()
+
         # starts the base system so that the event loop gets started and the
         # the servers gets ready to accept new connections (starts service)
         if start: self.start()
@@ -225,6 +230,9 @@ class Server(Base):
         # returns the created udp socket to the calling method so that it
         # may be used from this point on
         return _socket
+
+    def on_serve(self):
+        pass
 
 class DatagramServer(Server):
 
