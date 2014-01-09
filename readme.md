@@ -40,7 +40,8 @@ In order to run the default servers of the netius infra-structure the out-of-box
 is sufficient and many services are available for instance:
 
 * WSGIServer - `python -m netius.servers.wsgi`
-* HelloServer - `python -m netius.extra.hello`
+* HelloServer - `MESSAGE="Hello Netius" python -m netius.extra.hello`
+* FileServer - `BASE_PATH=/ python -m netius.extra.file`
 
 ## Compatability
 
