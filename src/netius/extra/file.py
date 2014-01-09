@@ -39,8 +39,10 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import os
 import urllib
+import datetime
 import mimetypes
 
+import netius.common
 import netius.servers
 
 BUFFER_SIZE = 4096
@@ -118,10 +120,10 @@ class FileServer(netius.servers.HTTPServer):
         buffer.append("<table>")
         buffer.append("<thead>")
         buffer.append("<tr>")
-        buffer.append("<th>Name</th>")
-        buffer.append("<th>Last Modified</th>")
-        buffer.append("<th>Size</th>")
-        buffer.append("<th>Type</th>")
+        buffer.append("<th align=\"left\" width=\"260\">Name</th>")
+        buffer.append("<th align=\"left\" width=\"140\">Last Modified</th>")
+        buffer.append("<th align=\"left\" width=\"80\">Size</th>")
+        buffer.append("<th align=\"left\" width=\"250\">Type</th>")
         buffer.append("</tr>")
         buffer.append("</thead>")
         buffer.append("<tbody>")
@@ -129,18 +131,23 @@ class FileServer(netius.servers.HTTPServer):
             path_f = os.path.join(path, item)
             is_dir = os.path.isdir(path_f)
             item_s = item + "/" if is_dir else item
+
+            _time = os.path.getmtime(path_f)
+            date_time = datetime.datetime.utcfromtimestamp(_time)
+            time_s = date_time.strftime("%Y-%m-%d %H:%M")
+
+            size = os.path.getsize(path_f)
+            size_s = netius.common.size_round_unit(size, space = True)
+            size_s = "-" if is_dir else size_s
+
             type, _encoding = mimetypes.guess_type(path_f, strict = True)
             type = type or "-"
             type = "Directory" if is_dir else type
 
-            import time
-            tobias = time.ctime(os.path.getmtime(path_f))
-            print tobias
-
             buffer.append("<tr>")
             buffer.append("<td><a href=\"%s\">%s</td>" % (item_s, item_s))
-            buffer.append("<td>23 April, 2003</td>")
-            buffer.append("<td>23 KB</td>")
+            buffer.append("<td>%s</td>" % time_s)
+            buffer.append("<td>%s</td>" % size_s)
             buffer.append("<td>%s</td>" % type)
             buffer.append("</tr>")
         buffer.append("</tbody>")

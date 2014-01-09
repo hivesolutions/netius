@@ -39,6 +39,21 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import socket
 
+SIZE_UNITS_LIST = (
+    "B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"
+)
+""" The size units list that contains the complete set of
+units indexed by the depth they represent """
+
+SIZE_UNIT_COEFFICIENT = 1024
+""" The size unit coefficient as an integer value, this is
+going to be used in each of the size steps as divisor """
+
+DEFAULT_MINIMUM = 1024
+""" The default minimum value meaning that this is the
+maximum value that one integer value may have for the
+size rounding operation to be performed """
+
 def cstring(value):
     index = value.index("\0")
     if index == -1: return value
@@ -81,3 +96,65 @@ def host():
     hostname = socket.gethostname()
     host = socket.gethostbyname(hostname)
     return host
+
+def size_round_unit(
+    size_value,
+    minimum = DEFAULT_MINIMUM,
+    space = False,
+    depth = 0
+):
+    """
+    Rounds the size unit, returning a string representation
+    of the value with a good rounding precision.
+    This method should be used to round data sizing units.
+
+    @type size_value: int
+    @param size_value: The current size value (in bytes).
+    @type minimum: int
+    @param minimum: The minimum value to be used.
+    @type space: bool
+    @param space: If a space character must be used dividing
+    the value from the unit symbol.
+    @type depth: int
+    @param depth: The current iteration depth value.
+    @rtype: String
+    @return: The string representation of the data size
+    value in a simplified manner (unit).
+    """
+
+    # in case the current size value is acceptable (less than
+    # the minimum) this is the final iteration and the final
+    # string representation is going to be created
+    if size_value < minimum:
+        # rounds the size value, then converts the rounded
+        # size value into a string based representation
+        rounded_size_value = int(size_value)
+        rounded_size_value_string = str(rounded_size_value)
+
+        # retrieves the size unit (string mode) for the current
+        # depth according to the provided map
+        size_unit = SIZE_UNITS_LIST[depth]
+
+        # retrieves the appropriate separator based
+        # on the value of the space flag
+        separator = space and " " or ""
+
+        # creates the size value string appending the rounded
+        # size value string and the size unit and returns it
+        # to the caller method as the size value string
+        size_value_string = rounded_size_value_string + separator + size_unit
+        return size_value_string
+
+    # otherwise the value is not acceptable
+    # and a new iteration must be ran
+    else:
+        # re-calculates the new size value, increments the depth
+        # and runs the size round unit again with the new values
+        new_size_value = size_value / SIZE_UNIT_COEFFICIENT
+        new_depth = depth + 1
+        return size_round_unit(
+            new_size_value,
+            minimum = minimum,
+            space = space,
+            depth = new_depth
+        )
