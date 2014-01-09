@@ -254,10 +254,13 @@ class Connection(object):
         self.renable = False
         self.owner.unsub_read(self.socket)
 
-    def send(self, data, callback = None):
+    def send(self, data, delay = False, callback = None):
         """
         The main send call to be used by a proxy connection and
         from different threads.
+
+        In case the sending should be forced as delayed (next tick)
+        the delay flag should be set and the sending will be delayed.
 
         An optional callback attribute may be sent and so that
         when the send is complete it's called with a reference
@@ -269,6 +272,10 @@ class Connection(object):
         @type data: String
         @param data: The buffer containing the data to be sent
         through this connection to the other endpoint.
+        @type delay: bool
+        @param delay: If the send operation should be delay until
+        the next tick operation or if it should be performed as
+        soon as possible (as defined in specification).
         @type callback: Function
         @param callback: Function to be called when the data set
         to be send is completely sent to the socket.
@@ -316,7 +323,7 @@ class Connection(object):
             # checks if the safe flag is set and if it is runs
             # the send operation right way otherwise "waits" until
             # the next tick operation (delayed execution)
-            if is_safe: send()
+            if is_safe and not delay: send()
             else: self.owner.delay(send)
 
         # otherwise the write stream is not ready and so the
