@@ -100,8 +100,11 @@ class FileServer(netius.servers.HTTPServer):
         path_v = urllib.unquote(path_v)
 
         items = os.listdir(path)
-        buffer = list()
 
+        is_root = path_v == "" or path_v == "/"
+        if not is_root: items.insert(0, "..")
+
+        buffer = list()
         buffer.append("<html>")
         buffer.append("<title>Directory listing for %s</title>" % path_v)
         buffer.append("<body>")
