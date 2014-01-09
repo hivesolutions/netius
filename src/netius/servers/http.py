@@ -176,11 +176,15 @@ class HTTPConnection(netius.Connection):
         version = "HTTP/1.1",
         code = 200,
         code_s = None,
+        apply = False,
         callback = None
     ):
-        headers = headers or {}
+        data = data or ""
+        headers = headers or dict()
         code_s = code_s or netius.common.CODE_STRINGS.get(code, None)
         data_l = len(data) if data else 0
+
+        if apply: self.owner._apply_all(self.parser, self, headers)
 
         if not "content-length" in headers:
             headers["content-length"] = data_l
@@ -194,7 +198,7 @@ class HTTPConnection(netius.Connection):
         buffer_data = "".join(buffer)
 
         self.send(buffer_data)
-        data and self.send(data, callback = callback)
+        self.send(data, callback = callback)
 
     def parse(self, data):
         return self.parser.parse(data)
@@ -385,12 +389,23 @@ class HTTPServer(netius.StreamServer):
         is_debug and self._log_request(connection, parser)
         connection.resolve_encoding(parser)
 
+    def _apply_all(self, parser, connection, headers, lower = True):
+        self._apply_base(headers)
+        self._apply_parser(parser, headers)
+        self._apply_connection(connection, headers)
+        if not lower: return
+        for key, value in headers.items():
+            key_l = key.lower()
+            del headers[key]
+            headers[key_l] = value
+
     def _apply_base(self, headers):
         for key, value in BASE_HEADERS.iteritems():
             if key in headers: continue
             headers[key] = value
 
     def _apply_parser(self, parser, headers):
+        if "Connection" in headers: return
         if parser.keep_alive: headers["Connection"] = "keep-alive"
         else: headers["Connection"] = "close"
 
