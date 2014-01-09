@@ -80,15 +80,55 @@ class FileServer(netius.servers.HTTPServer):
                 callback = self._file_close
             )
 
+        # verifies if the currently resolved path refers an directory or
+        # instead a normal file and handles each of the cases properly by
+        # redirecting the request to the proper handlers
+        is_dir = os.path.isdir(path_f)
+        if is_dir: return self.on_dir_file(connection, path_f)
+        else: return self.on_normal_file(connection, path_f)
+
+    def on_dir_file(self, connection, path):
+        parser = connection.parser
+        path_v = parser.get_path()
+
+        items = os.listdir(path)
+        buffer = list()
+
+        buffer.append("<html>")
+        buffer.append("<title>Directory listing for %s</title>" % path_v)
+        buffer.append("<body>")
+        buffer.append("<h2>Directory listing for %s</h2>" % path_v)
+        buffer.append("<hr/>")
+        buffer.append("<ul>")
+        for item in items:
+            path_f = os.path.join(path, item)
+            is_dir = os.path.isdir(path_f)
+            item_s = item + "/" if is_dir else item
+            buffer.append("<li><a href=\"%s\">%s</a>" % (item_s, item_s))
+        buffer.append("</ul>")
+        buffer.append("<hr/>")
+        buffer.append("</body>")
+        buffer.append("</html>")
+
+        data = "".join(buffer)
+
+        return connection.send_response(
+            data = data,
+            code = 200,
+            apply = True,
+            callback = self._file_close #@todo: self._file_may_close
+        )
+
+    def on_normal_file(self, connection, path):
         # prints a debug message about the file that is going to be read
         # from the current file system to be sent to the connection
-        self.debug("Reading file '%s' from file system" % path_f)
+        self.debug("Reading file '%s' from file system" % path)
 
         # retrieves the size of the file that has just be resolved using
         # the currently provided path value and then associates the file
         # with the current connection
-        file_size = os.path.getsize(path_f)
-        file = open(path_f, "rb")
+        file_size = os.path.getsize(path)
+        file = open(path, "rb")
         connection.file = file
 
         # sends the initial part of the file response containing the headers
