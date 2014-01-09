@@ -119,7 +119,7 @@ class FileServer(netius.servers.HTTPServer):
             data = data,
             code = 200,
             apply = True,
-            callback = self._file_close #@todo: self._file_may_close
+            callback = self._file_check_close
         )
 
     def on_normal_file(self, connection, path):
@@ -150,7 +150,11 @@ class FileServer(netius.servers.HTTPServer):
     def _file_send(self, connection):
         file = connection.file
         data = file.read(4096)
-        if data: connection.send(data, callback = self._file_send)
+        if data: connection.send(
+            data,
+            delay = True,
+            callback = self._file_send
+        )
         else: self._file_finish(connection)
 
     def _file_finish(self, connection):
@@ -160,6 +164,10 @@ class FileServer(netius.servers.HTTPServer):
         connection.close()
 
     def _file_close(self, connection):
+        connection.close()
+
+    def _file_check_close(self, connection):
+        if connection.parser.keep_alive: return
         connection.close()
 
 if __name__ == "__main__":
