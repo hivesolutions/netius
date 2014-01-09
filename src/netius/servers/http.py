@@ -205,10 +205,10 @@ class HTTPConnection(netius.Connection):
         code_s = code_s or netius.common.CODE_STRINGS.get(code, None)
         data_l = len(data) if data else 0
 
-        if apply: self.owner._apply_all(self.parser, self, headers)
-
         if not "content-length" in headers:
             headers["content-length"] = data_l
+
+        if apply: self.owner._apply_all(self.parser, self, headers)
 
         buffer = []
         buffer.append("%s %d %s\r\n" % (version, code, code_s))
@@ -410,15 +410,11 @@ class HTTPServer(netius.StreamServer):
         is_debug and self._log_request(connection, parser)
         connection.resolve_encoding(parser)
 
-    def _apply_all(self, parser, connection, headers, lower = True):
+    def _apply_all(self, parser, connection, headers, upper = True):
+        if upper: self._headers_upper(headers)
         self._apply_base(headers)
         self._apply_parser(parser, headers)
         self._apply_connection(connection, headers)
-        if not lower: return
-        for key, value in headers.items():
-            key_l = key.lower()
-            del headers[key]
-            headers[key_l] = value
 
     def _apply_base(self, headers):
         for key, value in BASE_HEADERS.iteritems():
@@ -439,6 +435,12 @@ class HTTPServer(netius.StreamServer):
             if "Content-Length" in headers: del headers["Content-Length"]
 
         if is_gzip: headers["Content-Encoding"] = "gzip"
+
+    def _headers_upper(self, headers):
+        for key, value in headers.items():
+            key_u = netius.common.header_up(key)
+            del headers[key]
+            headers[key_u] = value
 
     def _log_request(self, connection, parser):
         # unpacks the various values that are going to be part of
