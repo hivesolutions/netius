@@ -39,6 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import os
 import urllib
+import mimetypes
 
 import netius.servers
 
@@ -79,9 +80,9 @@ class FileServer(netius.servers.HTTPServer):
         if not os.path.exists(path_f):
             return connection.send_response(
                 data = "File not Found",
-                headers = {
-                    "Connection" : "close"
-                },
+                headers = dict(
+                    connection = "close"
+                ),
                 code = 404,
                 apply = True,
                 callback = self._file_close
@@ -135,6 +136,11 @@ class FileServer(netius.servers.HTTPServer):
         # from the current file system to be sent to the connection
         self.debug("Reading file '%s' from file system" % path)
 
+        # tries to guess the mime type of the file present in the target
+        # file path that is going to be returned, this may fails as it's not
+        # always possible to determine the correct mime type for a file
+        type, _encoding = mimetypes.guess_type(path)
+
         # retrieves the size of the file that has just be resolved using
         # the currently provided path value and then associates the file
         # with the current connection
@@ -142,14 +148,19 @@ class FileServer(netius.servers.HTTPServer):
         file = open(path, "rb")
         connection.file = file
 
+        # creates the map that will hold the various header values for the
+        # the current message to be sent it may contain both the length
+        # of the file that is going to be returned and the type of it
+        headers = dict()
+        headers["content-length"] = "%d" % file_size
+        if type: headers["content-type"] = type
+
         # sends the initial part of the file response containing the headers
         # and the description of the file (includes size) the callback to this
         # operation is the initial sending of the file contents so that the
         # sending of the proper file contents starts with success
         return connection.send_response(
-            headers = {
-                "Content-Length" : "%d" % file_size
-            },
+            headers = headers,
             code = 200,
             apply = True,
             callback = self._file_send
