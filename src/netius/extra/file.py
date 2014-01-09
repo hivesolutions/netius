@@ -140,7 +140,7 @@ class FileServer(netius.servers.HTTPServer):
         # tries to guess the mime type of the file present in the target
         # file path that is going to be returned, this may fails as it's not
         # always possible to determine the correct mime type for a file
-        type, _encoding = mimetypes.guess_type(path)
+        type, _encoding = mimetypes.guess_type(path, strict = True)
 
         # retrieves the size of the file that has just be resolved using
         # the currently provided path value and then associates the file
