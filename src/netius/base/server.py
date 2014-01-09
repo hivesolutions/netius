@@ -63,6 +63,7 @@ class Server(Base):
         self.port = None
         self.type = None
         self.ssl = False
+        self.env = False
 
     def cleanup(self):
         Base.cleanup(self)
@@ -124,6 +125,7 @@ class Server(Base):
         self.port = port
         self.type = type
         self.ssl = ssl
+        self.env = env
 
         # defaults the provided ssl key and certificate paths to the
         # ones statically defined (dummy certificates), please beware

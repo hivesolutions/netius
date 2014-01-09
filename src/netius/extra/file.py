@@ -92,6 +92,8 @@ class FileServer(netius.servers.HTTPServer):
             if is_dir: return self.on_dir_file(connection, path_f)
             else: return self.on_normal_file(connection, path_f)
         except BaseException, exception:
+            # handles the exception gracefully by sending the contents of
+            # it to the client and identifying the problem correctly
             return self.on_exception_file(connection, exception)
 
     def on_dir_file(self, connection, path):
