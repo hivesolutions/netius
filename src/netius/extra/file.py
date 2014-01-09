@@ -42,6 +42,11 @@ import urllib
 
 import netius.servers
 
+BUFFER_SIZE = 4096
+""" The size of the buffer that is going to be used when
+sending the file to the client, this should not be neither
+to big nor to small (as both situations would create problems) """
+
 class FileServer(netius.servers.HTTPServer):
 
     def __init__(self, base_path = "", *args, **kwargs):
@@ -149,7 +154,7 @@ class FileServer(netius.servers.HTTPServer):
 
     def _file_send(self, connection):
         file = connection.file
-        data = file.read(4096)
+        data = file.read(BUFFER_SIZE)
         if data: connection.send(
             data,
             delay = True,
