@@ -111,18 +111,44 @@ class FileServer(netius.servers.HTTPServer):
 
         buffer = list()
         buffer.append("<html>")
-        buffer.append("<title>Directory listing for %s</title>" % path_v)
+        buffer.append("<title>Index of %s</title>" % path_v)
         buffer.append("<body>")
-        buffer.append("<h2>Directory listing for %s</h2>" % path_v)
+        buffer.append("<h2>Index of %s</h2>" % path_v)
         buffer.append("<hr/>")
-        buffer.append("<ul>")
+        buffer.append("<table>")
+        buffer.append("<thead>")
+        buffer.append("<tr>")
+        buffer.append("<th>Name</th>")
+        buffer.append("<th>Last Modified</th>")
+        buffer.append("<th>Size</th>")
+        buffer.append("<th>Type</th>")
+        buffer.append("</tr>")
+        buffer.append("</thead>")
+        buffer.append("<tbody>")
         for item in items:
             path_f = os.path.join(path, item)
             is_dir = os.path.isdir(path_f)
             item_s = item + "/" if is_dir else item
-            buffer.append("<li><a href=\"%s\">%s</a>" % (item_s, item_s))
-        buffer.append("</ul>")
+            type, _encoding = mimetypes.guess_type(path_f, strict = True)
+            type = type or "-"
+            type = "Directory" if is_dir else type
+
+            import time
+            tobias = time.ctime(os.path.getmtime(path_f))
+            print tobias
+
+            buffer.append("<tr>")
+            buffer.append("<td><a href=\"%s\">%s</td>" % (item_s, item_s))
+            buffer.append("<td>23 April, 2003</td>")
+            buffer.append("<td>23 KB</td>")
+            buffer.append("<td>%s</td>" % type)
+            buffer.append("</tr>")
+        buffer.append("</tbody>")
+        buffer.append("</table>")
         buffer.append("<hr/>")
+        buffer.append("<span>")
+        buffer.append("%s/%s" % (netius.NAME, netius.VERSION))
+        buffer.append("</span>")
         buffer.append("</body>")
         buffer.append("</html>")
 
