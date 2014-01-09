@@ -38,6 +38,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import os
+import urllib
 
 import netius.servers
 
@@ -61,6 +62,7 @@ class FileServer(netius.servers.HTTPServer):
         # the correct file name/path to be used in the reading from the
         # current file system, so that it's possible to handle the data
         path = parser.get_path()
+        path = urllib.unquote(path)
         path = path.lstrip("/")
         path_f = os.path.join(self.base_path, path)
         path_f = os.path.abspath(path_f)
@@ -90,6 +92,7 @@ class FileServer(netius.servers.HTTPServer):
     def on_dir_file(self, connection, path):
         parser = connection.parser
         path_v = parser.get_path()
+        path_v = urllib.unquote(path_v)
 
         items = os.listdir(path)
         buffer = list()
