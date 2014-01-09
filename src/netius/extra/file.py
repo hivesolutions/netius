@@ -102,6 +102,7 @@ class FileServer(netius.servers.HTTPServer):
         path_v = urllib.unquote(path_v)
 
         items = os.listdir(path)
+        items.sort()
 
         is_root = path_v == "" or path_v == "/"
         if not is_root: items.insert(0, "..")
