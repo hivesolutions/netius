@@ -110,6 +110,11 @@ class Server(Base):
         key_file = os.environ.get("KEY_FILE", key_file) if env else key_file
         cer_file = os.environ.get("CER_FILE", cer_file) if env else cer_file
 
+        # runs the various extra variable initialization taking into
+        # account if the environment variable is currently set or not
+        # please note that some side effects may arise from this set
+        if env: self.level = os.environ.get("LEVEL", self.level)
+
         # updates the current service status to the configuration
         # stage as the next steps is to configure the service socket
         self.set_state(STATE_CONFIG)
