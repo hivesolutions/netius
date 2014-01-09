@@ -60,6 +60,8 @@ class FileServer(netius.servers.HTTPServer):
         file = hasattr(connection, "file") and connection.file
         if file: file.close()
         setattr(connection, "file", None)
+        setattr(connection, "range", None)
+        setattr(connection, "bytes_p", None)
 
     def on_serve(self):
         netius.servers.HTTPServer.on_serve(self)
@@ -138,6 +140,12 @@ class FileServer(netius.servers.HTTPServer):
         # from the current file system to be sent to the connection
         self.debug("Reading file '%s' from file system" % path)
 
+        # retrieves the parser from the connection and then uses it to
+        # gather the range as a string to be used latter for conversion
+        parser = connection.parser
+        range_s = parser.headers.get("range", None)
+        is_partial = True if range_s else False
+
         # tries to guess the mime type of the file present in the target
         # file path that is going to be returned, this may fails as it's not
         # always possible to determine the correct mime type for a file
@@ -150,12 +158,46 @@ class FileServer(netius.servers.HTTPServer):
         file = open(path, "rb")
         connection.file = file
 
+        # convert the current string based representation of the range
+        # into a tuple based presentation otherwise creates the default
+        # tuple containing the initial position and the final one
+        if is_partial:
+            range_s = range_s[6:]
+            start_s, end_s = range_s.split("-", 1)
+            start = int(start_s) if start_s else 0
+            end = int(end_s) if end_s else file_size - 1
+            range = (start, end)
+        else: range = (0, file_size - 1)
+
+        # calculates the real data size of the chunk that is going to be
+        # sent to the client this must use the normal range approach
+        data_size = range[1] - range[0] + 1
+
+        # associates the range tuple with the current connection as it's
+        # going to be used latter for additional computation
+        connection.range = range
+        connection.bytes_p = data_size
+
+        # seeks the current file to the initial position where it's going
+        # to start it's reading processing as according to the range
+        file.seek(range[0])
+
+        # creates the string that will represent the content range that is
+        # going to be returned to the client in the current request
+        content_range_s = "bytes %d-%d/%d" % (range[0], range[1], file_size)
+
         # creates the map that will hold the various header values for the
         # the current message to be sent it may contain both the length
         # of the file that is going to be returned and the type of it
         headers = dict()
-        headers["content-length"] = "%d" % file_size
+        headers["content-length"] = "%d" % data_size
         if type: headers["content-type"] = type
+        if is_partial: headers["content-range"] = content_range_s
+        if not is_partial: headers["accept-ranges"] = "bytes"
+
+        # "calculates" the proper returning code taking into account if the
+        # current data to be sent is partial or not
+        code = 206 if is_partial else 200
 
         # sends the initial part of the file response containing the headers
         # and the description of the file (includes size) the callback to this
@@ -163,7 +205,7 @@ class FileServer(netius.servers.HTTPServer):
         # sending of the proper file contents starts with success
         return connection.send_response(
             headers = headers,
-            code = 200,
+            code = code,
             apply = True,
             callback = self._file_send
         )
@@ -192,17 +234,25 @@ class FileServer(netius.servers.HTTPServer):
 
     def _file_send(self, connection):
         file = connection.file
-        data = file.read(BUFFER_SIZE)
-        if data: connection.send(
+        range = connection.range
+        is_larger = BUFFER_SIZE > connection.bytes_p
+        buffer_s = connection.bytes_p if is_larger else BUFFER_SIZE
+        data = file.read(buffer_s)
+        data_l = len(data) if data else 0
+        connection.bytes_p -= data_l
+        is_final = not data or connection.bytes_p == 0
+        callback = self._file_finish if is_final else self._file_send
+        connection.send(
             data,
             delay = True,
-            callback = self._file_send
+            callback = callback
         )
-        else: self._file_finish(connection)
 
     def _file_finish(self, connection):
         connection.file.close()
         connection.file = None
+        connection.range = None
+        connection.bytes_p = None
         if connection.parser.keep_alive: return
         connection.close()
 
