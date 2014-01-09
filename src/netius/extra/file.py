@@ -105,6 +105,17 @@ class FileServer(netius.servers.HTTPServer):
         path_v = parser.get_path()
         path_v = urllib.unquote(path_v)
 
+        is_valid = path_v.endswith("/")
+        if not is_valid:
+            return connection.send_response(
+                data = "Permanent redirect",
+                headers = dict(
+                    location = path_v + "/"
+                ),
+                code = 301,
+                apply = True
+            )
+
         items = os.listdir(path)
         items.sort()
 
@@ -121,8 +132,8 @@ class FileServer(netius.servers.HTTPServer):
         buffer.append("<thead>")
         buffer.append("<tr>")
         buffer.append("<th align=\"left\" width=\"260\">Name</th>")
-        buffer.append("<th align=\"left\" width=\"140\">Last Modified</th>")
-        buffer.append("<th align=\"left\" width=\"80\">Size</th>")
+        buffer.append("<th align=\"left\" width=\"130\">Last Modified</th>")
+        buffer.append("<th align=\"left\" width=\"70\">Size</th>")
         buffer.append("<th align=\"left\" width=\"250\">Type</th>")
         buffer.append("</tr>")
         buffer.append("</thead>")
