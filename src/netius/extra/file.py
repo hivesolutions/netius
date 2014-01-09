@@ -63,6 +63,7 @@ class FileServer(netius.servers.HTTPServer):
 
     def on_serve(self):
         netius.servers.HTTPServer.on_serve(self)
+        if self.env: self.base_path = os.environ.get("BASE_PATH", self.base_path)
         self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
 
     def on_data_http(self, connection, parser):
@@ -81,23 +82,17 @@ class FileServer(netius.servers.HTTPServer):
         # verifies if the requested file exists in case it does not
         # raises an error indicating the problem so that the user is
         # notified about the failure to find the appropriate file
-        if not os.path.exists(path_f):
-            return connection.send_response(
-                data = "File not Found",
-                headers = dict(
-                    connection = "close"
-                ),
-                code = 404,
-                apply = True,
-                callback = self._file_close
-            )
+        if not os.path.exists(path_f): return self.on_no_file(connection)
 
-        # verifies if the currently resolved path refers an directory or
-        # instead a normal file and handles each of the cases properly by
-        # redirecting the request to the proper handlers
-        is_dir = os.path.isdir(path_f)
-        if is_dir: return self.on_dir_file(connection, path_f)
-        else: return self.on_normal_file(connection, path_f)
+        try:
+            # verifies if the currently resolved path refers an directory or
+            # instead a normal file and handles each of the cases properly by
+            # redirecting the request to the proper handlers
+            is_dir = os.path.isdir(path_f)
+            if is_dir: return self.on_dir_file(connection, path_f)
+            else: return self.on_normal_file(connection, path_f)
+        except BaseException, exception:
+            return self.on_exception_file(connection, exception)
 
     def on_dir_file(self, connection, path):
         parser = connection.parser
@@ -168,6 +163,28 @@ class FileServer(netius.servers.HTTPServer):
             code = 200,
             apply = True,
             callback = self._file_send
+        )
+
+    def on_no_file(self, connection):
+        return connection.send_response(
+            data = "File not found",
+            headers = dict(
+                connection = "close"
+            ),
+            code = 404,
+            apply = True,
+            callback = self._file_close
+        )
+
+    def on_exception_file(self, connection, exception):
+        return connection.send_response(
+            data = "Problem handling request - %s" % str(exception),
+            headers = dict(
+                connection = "close"
+            ),
+            code = 500,
+            apply = True,
+            callback = self._file_close
         )
 
     def _file_send(self, connection):
