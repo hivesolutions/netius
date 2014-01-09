@@ -34,6 +34,14 @@ netius.clients.HTTPClient.get_s(
 )
 ```
 
+## Running
+
+In order to run the default servers of the netius infra-structure the out-of-box installation
+is sufficient and many services are available for instance:
+
+* WSGIServer - `python -m netius.servers.wsgi`
+* HelloServer - `python -m netius.extra.hello`
+
 ## Compatability
 
 Currently netius is compatible with pypy and a typical environment will benefit from a 1.5x to 2.5x
@@ -43,7 +51,7 @@ performance increase when compared with the cpython interpreter.
 
 Running `ab -n 20000 -c 5 -k http://srio.hive:8080/` whoud should get the following results:
 
-* `HelloServer - python -m netius.extra.hello` - 9.6 K req/sec
-* `WSGIServer - python -m netius.servers.wsgi` - 8.7 K req/sec
+* `HelloServer` - 9.6 K req/sec
+* `WSGIServer` - 8.7 K req/sec
 
 These values have been verified under commit #7c2687b.
