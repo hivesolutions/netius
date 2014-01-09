@@ -115,7 +115,7 @@ class FileServer(netius.servers.HTTPServer):
         buffer.append("<html>")
         buffer.append("<title>Index of %s</title>" % path_v)
         buffer.append("<body>")
-        buffer.append("<h2>Index of %s</h2>" % path_v)
+        buffer.append("<h1>Index of %s</h1>" % path_v)
         buffer.append("<hr/>")
         buffer.append("<table>")
         buffer.append("<thead>")
@@ -158,7 +158,6 @@ class FileServer(netius.servers.HTTPServer):
         buffer.append("</span>")
         buffer.append("</body>")
         buffer.append("</html>")
-
         data = "".join(buffer)
 
         return connection.send_response(
