@@ -40,7 +40,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import time
 import select
 
-POLL_TIMEOUT = -1
+POLL_TIMEOUT = 0.25
 """ The timeout to be used under the all the poll methods
 this should be considered the maximum amount of time a
 thread waits for a poll request """
@@ -197,7 +197,6 @@ class EpollPoll(Poll):
         result = ([], [], [])
 
         events = self.epoll.poll(POLL_TIMEOUT)
-        print "poll"
         for fd, event in events:
             if event & select.EPOLLIN: #@UndefinedVariable
                 socket = self.fd_m.get(fd, None)

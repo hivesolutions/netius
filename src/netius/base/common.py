@@ -676,11 +676,8 @@ class Base(observer.Observable):
             # is only required for target zero calls referring the delayed
             # calls to be executed immediately (on next loop)
             if target == 0 and self._lid == lid:
-                print "NAO VAI EXECUTAR !!!"
                 pendings.append(callable_t)
                 continue
-            
-            print "VAI chamar !!!"
 
             # calls the callback method as the delayed operation is
             # now meant to be run
