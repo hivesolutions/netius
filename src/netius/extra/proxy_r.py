@@ -80,7 +80,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         connection.proxy_c = None
         if proxy_c in self.conn_map:
             proxy_c.close()
-            del self.conn_map[proxy_c]
+            if proxy_c in self.conn_map: del self.conn_map[proxy_c]
 
         _connection = self.http_client.method(
             method,
