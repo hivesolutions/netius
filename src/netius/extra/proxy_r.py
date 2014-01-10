@@ -80,6 +80,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         proxy_c = proxy_c or None
         connection.proxy_c = None
         if proxy_c in self.conn_map: del self.conn_map[proxy_c]
+        
+        
+        print "entrou"
 
         _connection = self.http_client.method(
             method,
@@ -89,6 +92,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             version = version_s,
             connection = proxy_c
         )
+        
+        print "saiu"
 
         self.debug("Setting connection as waiting, proxy connection loading ...")
 
