@@ -460,7 +460,7 @@ class HTTPClient(netius.Client):
         self.remove_c(connection)
 
         # verifies if the current client was created with
-        # the auto close flag an there are not more connections
+        # the auto close flag and there are not more connections
         # left open if that's the case closes the current
         # client so that no more interaction exists as it's
         # no longer required (as defined by the specification)
