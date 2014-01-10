@@ -202,6 +202,7 @@ class EpollPoll(Poll):
                 socket = self.fd_m.get(fd, None)
                 socket and result[0].append(socket)
             if event & select.EPOLLOUT: #@UndefinedVariable
+                print "EPOLLOUT"
                 socket = self.fd_m.get(fd, None)
                 socket and result[1].append(socket)
             if event & select.EPOLLERR or event & select.EPOLLHUP:  #@UndefinedVariable
