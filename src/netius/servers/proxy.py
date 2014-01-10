@@ -291,7 +291,7 @@ class ProxyServer(http.HTTPServer):
             code_s = "Forbidden",
             callback = self._prx_close
         )
-        else: connection.close(flush = True)
+        else: connection.close()
 
         # removes the waiting state from the connection and
         # the removes the back-end to front-end connection
@@ -328,5 +328,5 @@ class ProxyServer(http.HTTPServer):
 
     def _on_raw_close(self, client, _connection):
         connection = self.conn_map[_connection]
-        connection.close(flush = True)
+        connection.close()
         del self.conn_map[_connection]
