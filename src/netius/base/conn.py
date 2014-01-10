@@ -105,6 +105,8 @@ class Connection(object):
         # the map that associates the socket with the connection
         owner.connections.append(self)
         owner.connections_m[self.socket] = self
+        
+        print "opened %d" % id(self)
 
         # sets the status of the current connection as open
         # as all the internal structures have been correctly
