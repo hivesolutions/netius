@@ -151,8 +151,8 @@ class ProxyServer(http.HTTPServer):
     def on_serve(self):
         http.HTTPServer.on_serve(self)
         if self.env: self.throttle = os.environ.get("THROTTLE", self.throttle)
-        if self.throttle: self.info("Throttling connection in the proxy ...")
-        else: self.info("Not throttling connection in the proxy ...")
+        if self.throttle: self.info("Throttling connections in the proxy ...")
+        else: self.info("Not throttling connections in the proxy ...")
 
     def _throttle(self, _connection):
         if _connection.pending_s > self.min_pending: return
