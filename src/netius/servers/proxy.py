@@ -223,8 +223,6 @@ class ProxyServer(http.HTTPServer):
         # current client connection and that may or may not close the
         # corresponding back-end connection (as define in specification)
         def close(connection): connection.close()
-        
-        _connection.close()
 
         # verifies that the connection is meant to be kept alive, the
         # connection is meant to be kept alive when both the client and
