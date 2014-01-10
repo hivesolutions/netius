@@ -80,7 +80,7 @@ the connection as been disconnected using a graceful approach
 and without raising any extraneous problems """
 
 POLL_ORDER = (
-    SelectPoll
+    SelectPoll,
 )
 """ The order from which the poll methods are going to be
 selected from the fastest to the slowest, in case no explicit
