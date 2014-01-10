@@ -304,7 +304,7 @@ class ProxyServer(http.HTTPServer):
         connection = self.conn_map.get(_connection, None)
         if not connection: return
 
-        if not _connection.waiting: self.warning("Proxy Error - " + error_m); return
+        if not _connection.waiting: return
 
         connection.send_response(
             data = error_m,
