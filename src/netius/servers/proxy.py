@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import os
+
 import http
 
 import netius.common
@@ -146,6 +148,12 @@ class ProxyServer(http.HTTPServer):
         setattr(connection, "tunnel_c", None)
         setattr(connection, "proxy_c", None)
 
+    def on_serve(self):
+        http.HTTPServer.on_serve(self)
+        if self.env: self.throttle = os.environ.get("THROTTLE", self.throttle)
+        if self.throttle: self.info("Throttling connection in the proxy ...")
+        else: self.info("Not throttling connection in the proxy ...")
+
     def _throttle(self, _connection):
         if _connection.pending_s > self.min_pending: return
         connection = self.conn_map[_connection]
@@ -212,7 +220,7 @@ class ProxyServer(http.HTTPServer):
         # then evaluates if that connection is of type chunked
         _connection = parser.owner
         is_chunked = parser.chunked
-        
+
         print "mensage"
 
         # sets the current client connection as not waiting and then retrieves

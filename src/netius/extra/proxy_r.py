@@ -73,13 +73,15 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             return
 
         # verifies if the current connection contains already contains
-        # a proxy connection if that's the case that must be unset from the 
+        # a proxy connection if that's the case that must be unset from the
         # connection and from the connection map internal structures at
         # least until the http client returns from the method call
         proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
         proxy_c = proxy_c or None
         connection.proxy_c = None
         if proxy_c in self.conn_map: del self.conn_map[proxy_c]
+
+        print "method"
 
         _connection = self.http_client.method(
             method,
@@ -89,6 +91,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             version = version_s,
             connection = proxy_c
         )
+
+        print "method end"
 
         self.debug("Setting connection as waiting, proxy connection loading ...")
 
