@@ -105,8 +105,6 @@ class Connection(object):
         # the map that associates the socket with the connection
         owner.connections.append(self)
         owner.connections_m[self.socket] = self
-        
-        print "opened %d" % id(self)
 
         # sets the status of the current connection as open
         # as all the internal structures have been correctly
@@ -133,10 +131,7 @@ class Connection(object):
         # the connection is effectively closed, this is only valid in
         # case the current connection status is open and not connecting
         if flush and self.status == OPEN and not self.connecting:
-            print "will close %d" % id(self)
             return self.close_flush()
-
-        print "closed %d" % id(self)
 
         # immediately sets the status of the connection as closed
         # so that no one else changed the current connection status
