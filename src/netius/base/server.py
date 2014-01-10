@@ -369,7 +369,7 @@ class DatagramServer(Server):
         self.renable = False
         self.unsub_read(self.socket)
 
-    def send(self, data, address, callback = None):
+    def send(self, data, address, delay = False, callback = None):
         tid = thread.get_ident()
         is_safe = tid == self.tid
 
@@ -389,7 +389,7 @@ class DatagramServer(Server):
                 (self.socket,),
                 state = False
             )
-            if is_safe: send()
+            if is_safe and not delay: send()
             else: self.delay(send)
         else:
             self.ensure_write()
