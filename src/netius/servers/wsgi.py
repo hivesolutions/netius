@@ -154,6 +154,8 @@ class WSGIServer(http.HTTPServer):
         length = 0 if status_c in (304,) else length 
         if length == 0: connection.set_encoding(http.PLAIN_ENCODING)
 
+        print headers
+
         # verifies if the current connection is using a chunked based
         # stream as this will affect some of the decisions that are
         # going to be taken as part of response header creation
