@@ -141,8 +141,6 @@ class ProxyServer(http.HTTPServer):
 
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
         proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
-        
-        if not proxy_c: print "NAO TINHA proxy_c MUITO GRAVE !!!!"
 
         if tunnel_c: tunnel_c.close()
         if proxy_c: proxy_c.close()
@@ -152,7 +150,7 @@ class ProxyServer(http.HTTPServer):
 
     def on_serve(self):
         http.HTTPServer.on_serve(self)
-        if self.env: self.throttle = os.environ.get("THROTTLE", self.throttle)
+        if self.env: self.throttle = int(os.environ.get("THROTTLE", self.throttle))
         if self.throttle: self.info("Throttling connections in the proxy ...")
         else: self.info("Not throttling connections in the proxy ...")
 
@@ -290,9 +288,7 @@ class ProxyServer(http.HTTPServer):
         # no connection is retrieved returns the control flow
         # to the caller method immediately (nothing done)
         connection = self.conn_map.get(_connection, None)
-        if not connection:
-            print "NAO TINHA MAPEAMENTO MUITO GRAVE !!!!"
-            return
+        if not connection: return
 
         # in case the connection is under the waiting state
         # the forbidden response is set to the client otherwise
