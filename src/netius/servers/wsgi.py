@@ -154,8 +154,6 @@ class WSGIServer(http.HTTPServer):
         length = 0 if status_c in (304,) else length 
         if length == 0: connection.set_encoding(http.PLAIN_ENCODING)
 
-        print headers
-
         # verifies if the current connection is using a chunked based
         # stream as this will affect some of the decisions that are
         # going to be taken as part of response header creation
@@ -166,7 +164,7 @@ class WSGIServer(http.HTTPServer):
         # alive setting in the parser because the keep alive setting
         # requires the content length to be defined or the target
         # encoding type to be chunked
-        has_length = "Content-Length" in headers
+        has_length = not length == -1
         if not has_length: parser.keep_alive = is_chunked
 
         # applies the base (static) headers to the headers map and then
