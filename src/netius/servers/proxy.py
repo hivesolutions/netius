@@ -141,6 +141,9 @@ class ProxyServer(http.HTTPServer):
 
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
         proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
+        
+        if not tunnel_c: print "NAO TINHA tuunnel_c MUITO GRAVE !!!!"
+        if not proxy_c: print "NAO TINHA proxy_c MUITO GRAVE !!!!"
 
         if tunnel_c: tunnel_c.close()
         if proxy_c: proxy_c.close()
@@ -288,7 +291,9 @@ class ProxyServer(http.HTTPServer):
         # no connection is retrieved returns the control flow
         # to the caller method immediately (nothing done)
         connection = self.conn_map.get(_connection, None)
-        if not connection: return
+        if not connection:
+            print "NAO TINHA MAPEAMENTO MUITO GRAVE !!!!"
+            return
 
         # in case the connection is under the waiting state
         # the forbidden response is set to the client otherwise
