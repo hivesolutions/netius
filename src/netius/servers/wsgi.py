@@ -111,7 +111,7 @@ class WSGIServer(http.HTTPServer):
             key = "HTTP_" + key.replace("-", "_").upper()
             environ[key] = value
             
-        print "conecou %d" + id(connection)
+        print "conecou %d" % id(connection)
 
         # runs the app logic with the provided environment map and start
         # response clojure and then iterates over the complete set of values
