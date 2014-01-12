@@ -147,11 +147,11 @@ class WSGIServer(http.HTTPServer):
         headers = dict(headers)
 
         # tries to retrieve the content length value from the headers
-        # in case they exist and the value of them is zero the plain
+        # in case they exist and if the value of them is zero the plain
         # encoding is set in order to avoid extra problems while using
         # chunked encoding with zero length based messages
         length = headers.get("Content-Length", -1)
-        length = 0 if status_c in (304,) else length 
+        length = 0 if status_c in (204, 304,) else length
         if length == 0: connection.set_encoding(http.PLAIN_ENCODING)
 
         # verifies if the current connection is using a chunked based
