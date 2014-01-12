@@ -60,8 +60,10 @@ class WSGIServer(http.HTTPServer):
         http.HTTPServer.on_data_http(self, connection, parser)
 
         # clojure method to be used to close the current connection in
-        # case that's required by the current connection headers
-        def close(connection): connection.close()
+        # case that's required by the current connection headers, the
+        # closing of the connection is delayed so that no invalid file
+        # descriptor problem occurs for the connections in operation
+        def close(connection): self.delay(connection.close)
 
         # method created as a clojure that handles the starting of
         # response as defined in the wsgi standards
