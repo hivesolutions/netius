@@ -137,8 +137,16 @@ class WSGIServer(http.HTTPServer):
         parser = connection.parser
         version_s = parser.version_s
 
+        # tries to retrieve the content length value from the headers
+        # in case they exist and the value of them is zero the plain
+        # encoding is set in order to avoid extra problems while using
+        # chunked encoding with zero length based messages
+        length = headers.get("Content-Length", -1)
+        if length == 0: connection.set_encoding(http.PLAIN_ENCODING)
+
         # verifies if the current connection is using a chunked based
-        # stream as this will affect some of the decisions
+        # stream as this will affect some of the decisions that are
+        # going to be taken as part of response header creation
         is_chunked = connection.is_chunked()
 
         # converts the provided list of header tuples into a key
