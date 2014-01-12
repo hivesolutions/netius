@@ -137,6 +137,11 @@ class WSGIServer(http.HTTPServer):
         parser = connection.parser
         version_s = parser.version_s
 
+        # adds an extra space to the status line and then
+        # splits it into the status message and the code
+        status_c, _status_m = (status + " ").split(" ", 1)
+        status_c = int(status_c)
+
         # converts the provided list of header tuples into a key
         # values based map so that it may be used more easily
         headers = dict(headers)
@@ -146,9 +151,8 @@ class WSGIServer(http.HTTPServer):
         # encoding is set in order to avoid extra problems while using
         # chunked encoding with zero length based messages
         length = headers.get("Content-Length", -1)
+        length = -1 if status_c in (304,) else length 
         if length == 0: connection.set_encoding(http.PLAIN_ENCODING)
-
-        print length
 
         # verifies if the current connection is using a chunked based
         # stream as this will affect some of the decisions that are
