@@ -158,6 +158,10 @@ class WSGIServer(http.HTTPServer):
         self._apply_base(headers)
         self._apply_parser(parser, headers)
         self._apply_connection(connection, headers)
+        
+        #@todo remove this:
+        headers["Transfer-Encoding"] = "chunked"
+        
 
         # creates the list that will hold the various header string and
         # that is going to be used as buffer and then generates the various
