@@ -116,6 +116,9 @@ class HTTPConnection(netius.Connection):
             self._flush_chunked(callback = callback)
         elif self.current == PLAIN_ENCODING:
             self._flush_plain(callback = callback)
+            
+        print self.encoding
+        print self.current
 
         self.current = self.encoding
 

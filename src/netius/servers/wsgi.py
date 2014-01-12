@@ -63,7 +63,8 @@ class WSGIServer(http.HTTPServer):
         # case that's required by the current connection headers, the
         # closing of the connection is delayed so that no invalid file
         # descriptor problem occurs for the connections in operation
-        def close(connection): self.delay(connection.close)
+        def close(connection):
+            self.delay(connection.close)
 
         # method created as a clojure that handles the starting of
         # response as defined in the wsgi standards
