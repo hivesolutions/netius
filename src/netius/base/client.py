@@ -101,12 +101,22 @@ class Client(Base):
         cer_file = None,
         callback = None
     ):
+        # creates the tuple that is going to describe the connection
+        # and tries to retrieve a valid connection from the map of
+        # free connections (connection re-usage)
         connection_t = (host, port, ssl, key_file, cer_file)
         connection_l = self.free_map.get(connection_t, None)
 
+        # in case the connection list was successfully retrieved a new
+        # connection is re-used by acquiring the connection
         if connection_l:
             connection = connection_l.pop()
             self.acquire(connection)
+
+        # otherwise a new connection must be created by establishing
+        # a connection operation, this may be performed immediately
+        # or delayed until a next execution cycle (no immediate connection
+        # was able to be performed) then sets the tuple in the connection
         else:
             connection = self.connect(
                 host,
@@ -117,6 +127,8 @@ class Client(Base):
             )
             connection.tuple = connection_t
 
+        # returns the connection object the caller method, this connection
+        # is acquired and should be safe and ready to be used
         return connection
 
     def release_c(self, connection):
