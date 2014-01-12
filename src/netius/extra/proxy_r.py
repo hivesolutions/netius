@@ -98,6 +98,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # not been yet established (no data has been  received)
         self.debug("Setting connection as waiting, proxy connection loading ...")
 
+        # sets the current http back-end client connection as waiting and then
+        # maps it as the proxy connection in the connection and also creates
+        # the reverse mapping using the connection map of the current server
         _connection.waiting = True
         connection.proxy_c = _connection
         self.conn_map[_connection] = connection
