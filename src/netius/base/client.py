@@ -114,9 +114,9 @@ class Client(Base):
             self.acquire(connection)
 
         # otherwise a new connection must be created by establishing
-        # a connection operation, this may be performed immediately
-        # or delayed until a next execution cycle (no immediate connection
-        # was able to be performed) then sets the tuple in the connection
+        # a connection operation, this operation is not going to be
+        # performed immediately as it's going to be deferred to the
+        # next execution cycle (delayed execution)
         else:
             connection = self.connect(
                 host,
