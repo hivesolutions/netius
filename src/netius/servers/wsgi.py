@@ -151,7 +151,7 @@ class WSGIServer(http.HTTPServer):
         # encoding is set in order to avoid extra problems while using
         # chunked encoding with zero length based messages
         length = headers.get("Content-Length", -1)
-        length = -1 if status_c in (304,) else length 
+        length = 0 if status_c in (304,) else length 
         if length == 0: connection.set_encoding(http.PLAIN_ENCODING)
 
         # verifies if the current connection is using a chunked based
