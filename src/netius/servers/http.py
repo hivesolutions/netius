@@ -274,6 +274,7 @@ class HTTPConnection(netius.Connection):
         self.send_plain("", callback = callback)
 
     def _flush_chunked(self, callback = None):
+        print "acabou %d" + id(self)
         self.send_plain("0\r\n\r\n", callback = callback)
 
     def _flush_gzip(self, callback = None):
