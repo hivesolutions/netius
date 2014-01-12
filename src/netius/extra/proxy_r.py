@@ -81,8 +81,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         connection.proxy_c = None
         if proxy_c in self.conn_map: del self.conn_map[proxy_c]
 
-        print "method"
-
+        # calls the proper (http) method in the client this should acquire
+        # a new connection and starts the process of sending the request
+        # to the associated http server (request handling)
         _connection = self.http_client.method(
             method,
             url,
@@ -92,8 +93,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             connection = proxy_c
         )
 
-        print "method end"
-
+        # prints a debug message about the connection becoming a waiting
+        # connection meaning that the connection with the client host has
+        # not been yet established (no data has been  received)
         self.debug("Setting connection as waiting, proxy connection loading ...")
 
         _connection.waiting = True
