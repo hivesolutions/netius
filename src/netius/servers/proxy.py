@@ -142,7 +142,6 @@ class ProxyServer(http.HTTPServer):
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
         proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
         
-        if not tunnel_c: print "NAO TINHA tuunnel_c MUITO GRAVE !!!!"
         if not proxy_c: print "NAO TINHA proxy_c MUITO GRAVE !!!!"
 
         if tunnel_c: tunnel_c.close()
