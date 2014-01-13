@@ -213,9 +213,11 @@ class FileServer(netius.servers.HTTPServer):
         if not_modified: self.on_not_modified(connection, path); return
 
         # tries to guess the mime type of the file present in the target
-        # file path that is going to be returned, this may fails as it's not
+        # file path that is going to be returned, this may fail as it's not
         # always possible to determine the correct mime type for a file
+        # for suck situations the default mime type is used
         type, _encoding = mimetypes.guess_type(path, strict = True)
+        type = type or "application/octet-stream"
 
         # retrieves the size of the file that has just be resolved using
         # the currently provided path value and then associates the file
