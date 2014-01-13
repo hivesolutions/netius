@@ -589,6 +589,35 @@ class Base(observer.Observable):
         state_s = state_s.lower() if lower else state_s
         return state_s
 
+    def get_env(self, name, default = None, cast = str):
+        """
+        Retrieves the value of the environment variable with the
+        requested name, defaulting to the provided value in case
+        it's not possible to find such variable.
+
+        An optional cast type may be provided in order to cast the
+        value of the environment variable in to the target type.
+
+        @type name: String
+        @param name: The name of the environment variable that is
+        meant to be retrieved from the current environment
+        @type default: Object
+        @param default: The default value to be returned in case
+        no value is found for the provided name.
+        @type cast: Type
+        @param cast: The cast type to be used to cast the value
+        of the requested environment variable.
+        @rtype: Object
+        @return: The value of the requested environment variable
+        properly casted into the target value.
+        """
+
+        if not name in os.environ: return default
+        value = os.environ.get(name, default)
+        try: value = int(value) == 1 if cast == bool else cast(value)
+        except: value = value
+        return value
+
     def _pending(self, _socket):
         """
         Tries to perform the pending operations in the socket

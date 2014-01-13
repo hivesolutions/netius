@@ -37,8 +37,6 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import os
-
 import netius.servers
 
 class HelloServer(netius.servers.HTTPServer):
@@ -49,7 +47,7 @@ class HelloServer(netius.servers.HTTPServer):
 
     def on_serve(self):
         netius.servers.HTTPServer.on_serve(self)
-        if self.env: self.message = os.environ.get("MESSAGE", self.message)
+        if self.env: self.message = self.get_env("MESSAGE", self.message)
         self.info("Serving '%s' as welcome message ..." % self.message)
 
     def on_data_http(self, connection, parser):

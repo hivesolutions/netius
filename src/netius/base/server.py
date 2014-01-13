@@ -103,12 +103,12 @@ class Server(Base):
         # processes the various default values taking into account if
         # the environment variables are meant to be processed for the
         # current context (default values are processed accordingly)
-        host = os.environ.get("HOST", host) if env else host
-        port = int(os.environ.get("PORT", port)) if env else port
-        type = int(os.environ.get("TYPE", type)) if env else type
-        ssl = bool(os.environ.get("SSL", ssl)) if env else ssl
-        key_file = os.environ.get("KEY_FILE", key_file) if env else key_file
-        cer_file = os.environ.get("CER_FILE", cer_file) if env else cer_file
+        host = self.get_env("HOST", host) if env else host
+        port =  self.get_env("PORT", port, cast = int) if env else port
+        type = self.get_env("TYPE", type, cast = int) if env else type
+        ssl = self.get_env("SSL", ssl, cast = bool) if env else ssl
+        key_file = self.get_env("KEY_FILE", key_file) if env else key_file
+        cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
 
         # runs the various extra variable initialization taking into
         # account if the environment variable is currently set or not

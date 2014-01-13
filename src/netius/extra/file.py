@@ -67,7 +67,7 @@ class FileServer(netius.servers.HTTPServer):
 
     def on_serve(self):
         netius.servers.HTTPServer.on_serve(self)
-        if self.env: self.base_path = os.environ.get("BASE_PATH", self.base_path)
+        if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)
         self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
 
     def on_data_http(self, connection, parser):

@@ -37,8 +37,6 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import os
-
 import http
 
 import netius.common
@@ -150,7 +148,7 @@ class ProxyServer(http.HTTPServer):
 
     def on_serve(self):
         http.HTTPServer.on_serve(self)
-        if self.env: self.throttle = int(os.environ.get("THROTTLE", self.throttle))
+        if self.env: self.throttle = self.get_env("THROTTLE", self.throttle, cast = bool)
         if self.throttle: self.info("Throttling connections in the proxy ...")
         else: self.info("Not throttling connections in the proxy ...")
 
