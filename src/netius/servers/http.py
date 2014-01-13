@@ -198,6 +198,7 @@ class HTTPConnection(netius.Connection):
         code = 200,
         code_s = None,
         apply = False,
+        flush = True,
         callback = None
     ):
         data = data or ""
@@ -218,8 +219,9 @@ class HTTPConnection(netius.Connection):
         buffer.append("\r\n")
         buffer_data = "".join(buffer)
 
-        self.send(buffer_data)
-        self.send(data, callback = callback)
+        self.send_plain(buffer_data)
+        if flush: self.send(data); self.flush(callback = callback)
+        else: self.send(data, callback = callback)
 
     def parse(self, data):
         return self.parser.parse(data)

@@ -86,19 +86,19 @@ class FileServer(netius.servers.HTTPServer):
         # verifies if the requested file exists in case it does not
         # raises an error indicating the problem so that the user is
         # notified about the failure to find the appropriate file
-        if not os.path.exists(path_f): return self.on_no_file(connection)
+        if not os.path.exists(path_f): self.on_no_file(connection)
 
         try:
             # verifies if the currently resolved path refers an directory or
             # instead a normal file and handles each of the cases properly by
             # redirecting the request to the proper handlers
             is_dir = os.path.isdir(path_f)
-            if is_dir: return self.on_dir_file(connection, path_f)
-            else: return self.on_normal_file(connection, path_f)
+            if is_dir: self.on_dir_file(connection, path_f)
+            else: self.on_normal_file(connection, path_f)
         except BaseException, exception:
             # handles the exception gracefully by sending the contents of
             # it to the client and identifying the problem correctly
-            return self.on_exception_file(connection, exception)
+            self.on_exception_file(connection, exception)
 
     def on_dir_file(self, connection, path):
         parser = connection.parser
@@ -107,7 +107,7 @@ class FileServer(netius.servers.HTTPServer):
 
         is_valid = path_v.endswith("/")
         if not is_valid:
-            return connection.send_response(
+            connection.send_response(
                 data = "Permanent redirect",
                 headers = dict(
                     location = path_v + "/"
@@ -171,7 +171,7 @@ class FileServer(netius.servers.HTTPServer):
         buffer.append("</html>")
         data = "".join(buffer)
 
-        return connection.send_response(
+        connection.send_response(
             data = data,
             code = 200,
             apply = True,
@@ -246,15 +246,16 @@ class FileServer(netius.servers.HTTPServer):
         # and the description of the file (includes size) the callback to this
         # operation is the initial sending of the file contents so that the
         # sending of the proper file contents starts with success
-        return connection.send_response(
+        connection.send_response(
             headers = headers,
             code = code,
             apply = True,
+            flush = False,
             callback = self._file_send
         )
 
     def on_no_file(self, connection):
-        return connection.send_response(
+        connection.send_response(
             data = "File not found",
             headers = dict(
                 connection = "close"
@@ -265,7 +266,7 @@ class FileServer(netius.servers.HTTPServer):
         )
 
     def on_exception_file(self, connection, exception):
-        return connection.send_response(
+        connection.send_response(
             data = "Problem handling request - %s" % str(exception),
             headers = dict(
                 connection = "close"
@@ -296,8 +297,9 @@ class FileServer(netius.servers.HTTPServer):
         connection.file = None
         connection.range = None
         connection.bytes_p = None
-        if connection.parser.keep_alive: return
-        connection.close()
+        is_keep_alive = connection.parser.keep_alive
+        callback = None if is_keep_alive else self._file_close
+        connection.flush(callback = callback)
 
     def _file_close(self, connection):
         connection.close()
