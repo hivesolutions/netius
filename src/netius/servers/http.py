@@ -390,11 +390,17 @@ class HTTPServer(netius.StreamServer):
 
     def __init__(self, encoding = "plain", *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
-        self.encoding = ENCODING_MAP.get(encoding, PLAIN_ENCODING)
+        self.encoding_s = encoding
 
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
         connection.parse(data)
+
+    def on_serve(self):
+        netius.StreamServer.on_serve(self)
+        if self.env: self.encoding_s = self.get_env("ENCODING", self.encoding_s)
+        self.encoding = ENCODING_MAP.get(self.encoding_s, PLAIN_ENCODING)
+        self.info("Starting HTTP server with '%s' encoding ..." % self.encoding_s)
 
     def new_connection(self, socket, address, ssl = False):
         return HTTPConnection(
