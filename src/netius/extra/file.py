@@ -68,27 +68,35 @@ class FileServer(netius.servers.HTTPServer):
     def on_serve(self):
         netius.servers.HTTPServer.on_serve(self)
         if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)
+        self.base_path = os.path.abspath(self.base_path)
+        self.base_path = os.path.normpath(self.base_path)
         self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
 
     def on_data_http(self, connection, parser):
         netius.servers.HTTPServer.on_data_http(self, connection, parser)
 
-        # retrieves the requested path from the parser and the constructs
-        # the correct file name/path to be used in the reading from the
-        # current file system, so that it's possible to handle the data
-        path = parser.get_path()
-        path = urllib.unquote(path)
-        path = path.lstrip("/")
-        path_f = os.path.join(self.base_path, path)
-        path_f = os.path.abspath(path_f)
-        path_f = os.path.normpath(path_f)
-
-        # verifies if the requested file exists in case it does not
-        # raises an error indicating the problem so that the user is
-        # notified about the failure to find the appropriate file
-        if not os.path.exists(path_f): self.on_no_file(connection)
-
         try:
+            # retrieves the requested path from the parser and the constructs
+            # the correct file name/path to be used in the reading from the
+            # current file system, so that it's possible to handle the data
+            path = parser.get_path()
+            path = urllib.unquote(path)
+            path = path.lstrip("/")
+            path_f = os.path.join(self.base_path, path)
+            path_f = os.path.abspath(path_f)
+            path_f = os.path.normpath(path_f)
+
+            # verifies if the provided path starts with the contents of the
+            # base path in case it does not it's a security issue and a proper
+            # exception must be raised indicating the issue
+            is_sub = path_f.startswith(self.base_path)
+            if not is_sub: raise netius.SecurityError("Invalid path")
+
+            # verifies if the requested file exists in case it does not
+            # raises an error indicating the problem so that the user is
+            # notified about the failure to find the appropriate file
+            if not os.path.exists(path_f): self.on_no_file(connection)
+
             # verifies if the currently resolved path refers an directory or
             # instead a normal file and handles each of the cases properly by
             # redirecting the request to the proper handlers
@@ -189,6 +197,21 @@ class FileServer(netius.servers.HTTPServer):
         range_s = parser.headers.get("range", None)
         is_partial = True if range_s else False
 
+        # retrieves the last modified timestamp for the resource path and
+        # uses it to create the etag for the resource to be served
+        modified = os.path.getmtime(path)
+        etag = "netius-%.2f" % modified
+
+        # retrieves the header that describes the previous version in the
+        # client side (client side etag) and compares both of the etags to
+        # verify if the file changed meanwhile or not
+        _etag = parser.headers.get("if-none-match", None)
+        not_modified = etag == _etag
+
+        # in case the file did not change in the mean time the not modified
+        # callback must be called to correctly handled the file no change
+        if not_modified: self.on_not_modified(connection, path); return
+
         # tries to guess the mime type of the file present in the target
         # file path that is going to be returned, this may fails as it's not
         # always possible to determine the correct mime type for a file
@@ -233,6 +256,7 @@ class FileServer(netius.servers.HTTPServer):
         # the current message to be sent it may contain both the length
         # of the file that is going to be returned and the type of it
         headers = dict()
+        headers["etag"] = etag
         headers["content-length"] = "%d" % data_size
         if type: headers["content-type"] = type
         if is_partial: headers["content-range"] = content_range_s
@@ -274,6 +298,14 @@ class FileServer(netius.servers.HTTPServer):
             code = 500,
             apply = True,
             callback = self._file_close
+        )
+
+    def on_not_modified(self, connection, path):
+        connection.set_encoding(netius.servers.PLAIN_ENCODING)
+        connection.send_response(
+            data = "",
+            code = 304,
+            apply = True
         )
 
     def _file_send(self, connection):

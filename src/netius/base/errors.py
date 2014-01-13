@@ -70,3 +70,15 @@ class ParserError(NetiusError):
     """
 
     pass
+
+class SecurityError(NetiusError):
+    """
+    Error caused by a failed security verification this
+    errors should be properly audited in order to avoid
+    extra problems that may arise from them.
+
+    This kind of problems is considered to be runtime
+    as they should not be related with programming.
+    """
+
+    pass
