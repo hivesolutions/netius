@@ -241,6 +241,7 @@ class Base(observer.Observable):
         self._running = False
         self._loaded = False
         self._delayed = []
+        self._delayed_o = []
         self.set_state(STATE_STOP);
 
     def __del__(self):
@@ -254,11 +255,27 @@ class Base(observer.Observable):
 
         raise errors.NetiusError("No valid poll mechanism available")
 
-    def delay(self, callable, timeout = None):
+    def delay(self, callable, timeout = None, verify = False):
+        # creates the original target value with a zero value (forced
+        # execution in next tick) in case the timeout value is set the
+        # value is incremented to the current time, then created the
+        # callable original tuple with the target (time) and the callable
         target = 0
         if timeout: target = time.time() + timeout
-        callable_t = (target, self._lid, callable)
+        callable_o = (target, callable)
+
+        # in case the verify flag is set, must verify id the callable
+        # is already inserted in the list of delayed operations in
+        # case it does returns immediately to avoid duplicated values
+        is_duplicate = verify and callable_o in self._delayed_o
+        if is_duplicate: return
+
+        # creates the "final" callable tuple with the target time, the
+        # callable and the loop id (lid) then inserts both the delayed
+        # (original) callable tuple and the callable tuple in the lists
+        callable_t = (target, callable, self._lid)
         heapq.heappush(self._delayed, callable_t)
+        heapq.heappush(self._delayed_o, callable_o)
 
     def load(self):
         if self._loaded: return
@@ -672,10 +689,11 @@ class Base(observer.Observable):
         # comparisons against the target timestamps of the callables
         current = time.time()
 
-        # creates the list that will hold all the values that are not
+        # creates the lists that will hold all the values that are not
         # yet ready to be called in this iteration, the value in this
         # list will be added back to the heap at the end of the iteration
         pendings = []
+        pendings_o = []
 
         # iterates over all the delayed callable tuples to try to find
         # (and call) the ones that are meant to be executed in the past
@@ -684,11 +702,12 @@ class Base(observer.Observable):
             # "pops" the current item from the delayed list to be used
             # in the execution of the current iteration cycle
             callable_t = heapq.heappop(self._delayed)
+            callable_o = heapq.heappop(self._delayed_o)
 
             # unpacks the current callable tuple in iteration into a
             # target (timestamp value) and a method to be called in
             # case the target timestamp is valid (in the past)
-            target, lid, method = callable_t
+            target, method, lid = callable_t
 
             # tests if the current target is valid (less than or
             # equals to the current time value) and in case it's
@@ -696,6 +715,7 @@ class Base(observer.Observable):
             is_valid = target <= current
             if not is_valid:
                 pendings.append(callable_t)
+                pendings_o.append(callable_o)
                 break
 
             # in case the loop id present in the delayed call tuple is
@@ -706,17 +726,21 @@ class Base(observer.Observable):
             # calls to be executed immediately (on next loop)
             if target == 0 and self._lid == lid:
                 pendings.append(callable_t)
+                pendings_o.append(callable_o)
                 continue
 
             # calls the callback method as the delayed operation is
-            # now meant to be run
+            # now meant to be run, this is an operation that may change
+            # the current list of delayed object (causing cycles) and so
+            # must be implemented with the proper precautions
             method()
 
         # iterates over all the pending callable tuple values and adds
         # them back to the delayed heap list so that they are called
         # latter on (not ready to be called now)
-        for pending in pendings:
+        for pending, pending_o in zip(pendings, pendings_o):
             heapq.heappush(self._delayed, pending)
+            heapq.heappush(self._delayed_o, pending_o)
 
     def _socket_keepalive(self, _socket):
         hasattr(_socket, "TCP_KEEPIDLE") and\

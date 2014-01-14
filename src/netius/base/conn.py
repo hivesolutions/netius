@@ -313,18 +313,11 @@ class Connection(object):
         # verifies if the write ready flag is set, for that
         # case the send flushing operation must be performed
         if self.wready:
-            # creates the send lambda function that run the
-            # new write handler for the data to be processed
-            send = lambda: self.owner.writes(
-                (self.socket,),
-                state = False
-            )
-
             # checks if the safe flag is set and if it is runs
             # the send operation right way otherwise "waits" until
             # the next tick operation (delayed execution)
-            if is_safe and not delay: send()
-            else: self.owner.delay(send)
+            if is_safe and not delay: self._flush_write()
+            else: self.owner.delay(self._flush_write, verify = True)
 
         # otherwise the write stream is not ready and so the
         # connection must be ensure to be write ready, should
@@ -424,3 +417,12 @@ class Connection(object):
 
     def _close_callback(self, connection):
         connection.close()
+
+    def _flush_write(self):
+        """
+        Flush operations to be called by the delaying controller
+        (in ticks) that will trigger all the write operations
+        pending for the current connection's socket.
+        """
+
+        self.owner.writes((self.socket,), state = False)
