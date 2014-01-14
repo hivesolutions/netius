@@ -93,8 +93,8 @@ class WSGIServer(http.HTTPServer):
         environ["wsgi.url_scheme"] = "https" if connection.ssl else "http"
         environ["wsgi.input"] = parser.get_message_b()
         environ["wsgi.errors"] = sys.stderr
-        environ["wsgi.multithread"] = True
-        environ["wsgi.multiprocess"] = True
+        environ["wsgi.multithread"] = False
+        environ["wsgi.multiprocess"] = False
         environ["wsgi.run_once"] = False
         environ["wsgi.server_name"] = netius.NAME
         environ["wsgi.server_version"] = netius.VERSION
