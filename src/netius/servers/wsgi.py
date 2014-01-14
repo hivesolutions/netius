@@ -59,13 +59,6 @@ class WSGIServer(http.HTTPServer):
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
 
-        # clojure method to be used to close the current connection in
-        # case that's required by the current connection headers, the
-        # closing of the connection is delayed so that no invalid file
-        # descriptor problem occurs for the connections in operation
-        def close(connection):
-            self.delay(connection.close)
-
         # method created as a clojure that handles the starting of
         # response as defined in the wsgi standards
         def start_response(status, headers):
@@ -114,22 +107,19 @@ class WSGIServer(http.HTTPServer):
             key = "HTTP_" + key.replace("-", "_").upper()
             environ[key] = value
 
-        # runs the app logic with the provided environment map and start
+        # runs the app logic with the provided environment map and starts
         # response clojure and then iterates over the complete set of values
         # in the returned iterator to send the messages to the other end
+        # note that the iterator is set in the connection for latter retrieval
         sequence = self.app(environ, start_response)
-        for value in sequence: connection.send(value)
+        iterator = iter(sequence)
+        connection.iterator = iterator
 
-        # in case the connection is not meant to be kept alive must
-        # must set the callback of the flush operation to the close
-        # function so that the connection is closed
-        if parser.keep_alive: callback = None
-        else: callback = close
-
-        # runs the flush operation in the connection setting the proper
-        # callback method for it so that the connection state is defined
-        # in the proper way (closed or kept untouched)
-        connection.flush(callback = callback)
+        # triggers the start of the connection iterator flushing operation
+        # by calling the send part method for the current connection, this
+        # should start reading data from the iterator and sending it to the
+        # connection associated (recursive approach)
+        self._send_part(connection)
 
     def _start_response(self, connection, status, headers):
         # retrieves the parser object from the connection and uses
@@ -190,6 +180,38 @@ class WSGIServer(http.HTTPServer):
         data = "".join(buffer)
         connection.send_plain(data)
 
+    def _send_part(self, connection):
+        # unsets the is final flag and invalidates the data object to the
+        # original unset value, these are the default values
+        is_final = False
+        data = None
+
+        # extracts both the parser and the iterator from the connection
+        # object so that they may be used for the current set of operations
+        parser = connection.parser
+        iterator = connection.iterator
+
+        # tries to retrieve data from the current iterator and in
+        # case the stop iteration is received sets the is final flag
+        # so that no more data is sent through the connection
+        try: data = iterator.next()
+        except StopIteration: is_final = True
+
+        # in case the connection is not meant to be kept alive must
+        # must set the callback of the flush operation to the close
+        # function so that the connection is closed
+        if parser.keep_alive: callback = None
+        else: callback = self._close
+
+        # runs the flush operation in the connection setting the proper
+        # callback method for it so that the connection state is defined
+        # in the proper way (closed or kept untouched)
+        if is_final: connection.flush(callback = callback)
+        else: connection.send(data, delay = True, callback = self._send_part)
+
+    def _close(self, connection):
+        self.delay(connection.close)
+
 if __name__ == "__main__":
     import logging
 
@@ -203,7 +225,7 @@ if __name__ == "__main__":
             ("Connection", "keep-alive")
         )
         start_response(status, headers)
-        return (contents,)
+        yield contents
 
     server = WSGIServer(app = app, level = logging.INFO)
     server.serve(env = True)
