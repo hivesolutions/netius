@@ -199,13 +199,16 @@ class WSGIServer(http.HTTPServer):
 
         # in case the connection is not meant to be kept alive must
         # must set the callback of the flush operation to the close
-        # function so that the connection is closed
+        # function so that the connection is closed, this callback
+        # method is only going to be used if this is the final iteration
         if parser.keep_alive: callback = None
         else: callback = self._close
 
-        # runs the flush operation in the connection setting the proper
-        # callback method for it so that the connection state is defined
-        # in the proper way (closed or kept untouched)
+        # in case the final flag is set runs the flush operation in the
+        # connection setting the proper callback method for it so that
+        # the connection state is defined in the proper way (closed or
+        # kept untouched) otherwise sends the retrieved data setting the
+        # callback to the current method so that more that is sent
         if is_final: connection.flush(callback = callback)
         else: connection.send(data, delay = True, callback = self._send_part)
 
@@ -225,7 +228,7 @@ if __name__ == "__main__":
             ("Connection", "keep-alive")
         )
         start_response(status, headers)
-        yield contents
+        return (contents,)
 
     server = WSGIServer(app = app, level = logging.INFO)
     server.serve(env = True)
