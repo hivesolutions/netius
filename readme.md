@@ -48,6 +48,21 @@ is sufficient and many services are available for instance:
 Currently netius is compatible with pypy and a typical environment will benefit from a 1.5x to 2.5x
 performance increase when compared with the cpython interpreter.
 
+## Testing
+
+### Edge triggered polling
+
+Edge based polling is a bit tricky as it may easly end up in a dead lock of data.
+The best way to testing this kind of problem is to change the POLLING_TIMEOUT value to a negative
+value so that the loop blocks for data.
+
+```python
+LEVEL=DEBUG POLLING_TIMEOUT= 1 BASE_PATH=/ python -m netius.extra.file`
+```
+
+The try to extract a really large file from this server (eg: 1.0 GB) and see if it is able to serve it
+without any problems.
+
 ## Benchmarks
 
 Running `ab -n 20000 -c 5 -k http://srio.hive:8080/` whoud should get the following results:
