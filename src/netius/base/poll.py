@@ -509,11 +509,16 @@ class SelectPoll(Poll):
         self.error_o.clear()
 
     def poll(self):
+        # "calculates" the amount of time the select method is going
+        # to be sleeping for empty polls based on the fact that the
+        # current timeout value may be unset
+        sleep_timeout = self.timeout or POLL_TIMEOUT
+
         # verifies if the current selection list is empty
         # in case it's sleeps for a while and then continues
         # the loop (this avoids error in empty selection)
         is_empty = self.is_empty()
-        if is_empty: time.sleep(self.timeout); return ([], [], [])
+        if is_empty: time.sleep(sleep_timeout); return ([], [], [])
 
         # runs the proper select statement waiting for the desired
         # amount of time as timeout at the end a tuple with three
