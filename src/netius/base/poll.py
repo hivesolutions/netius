@@ -274,6 +274,7 @@ class KqueuePoll(Poll):
         if self._open: return
         self._open = True
         self.timeout = timeout
+        if self.timeout < 0: self.timeout = None
 
         self.kqueue = select.kqueue() #@UndefinedVariable
 
