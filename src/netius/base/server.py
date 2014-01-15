@@ -151,7 +151,7 @@ class Server(Base):
 
         # ensures that the current polling mechanism is correctly open as the
         # service socket is going to be added to it next
-        self.poll.open()
+        self.poll.open(timeout = self.poll_timeout)
 
         # adds the socket to all of the pool lists so that it's ready to read
         # write and handle error, this is the expected behavior of a service
