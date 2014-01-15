@@ -56,6 +56,13 @@ class Poll(object):
         self._open = False
 
     @classmethod
+    def name(cls):
+        name = cls.__name__
+        name = name[:-4]
+        name = name.lower()
+        return name
+
+    @classmethod
     def test(cls):
         return True
 
@@ -109,6 +116,9 @@ class Poll(object):
             value[2].append(error)
 
         return result
+
+    def is_open(self):
+        return self._open
 
     def is_edge(self):
         return False

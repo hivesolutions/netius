@@ -114,6 +114,7 @@ class Server(Base):
         # account if the environment variable is currently set or not
         # please note that some side effects may arise from this set
         if env: self.level = self.get_env("LEVEL", self.level)
+        if env: self.poll_name = self.get_env("POLL", self.poll_name)
         if env: self.poll_timeout = self.get_env(
             "POLL_TIMEOUT",
             self.poll_timeout,
@@ -150,7 +151,9 @@ class Server(Base):
         else: raise errors.NetiusError("Invalid server type provided '%d'" % type)
 
         # ensures that the current polling mechanism is correctly open as the
-        # service socket is going to be added to it next
+        # service socket is going to be added to it next, this overrides the
+        # default behavior of the common infra-structure (on start)
+        self.poll = self.build_poll()
         self.poll.open(timeout = self.poll_timeout)
 
         # adds the socket to all of the pool lists so that it's ready to read

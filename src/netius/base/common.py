@@ -58,7 +58,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "0.8.22"
+VERSION = "0.8.23"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -234,6 +234,7 @@ class Base(observer.Observable):
         self.tid = None
         self.logger = None
         self.poll = kwargs.get("poll", poll)()
+        self.poll_name = self.poll.name()
         self.poll_timeout = kwargs.get("poll_timeout", POLL_TIMEOUT)
         self.connections = []
         self.connections_m = {}
@@ -249,12 +250,34 @@ class Base(observer.Observable):
         self.close()
 
     @classmethod
-    def test_poll(cls):
+    def test_poll(cls, preferred = None):
+        # sets the initial selected variable with the unselected
+        # (invalid) value so that at lease one selection must be
+        # done in order for this method to succeed
+        selected = None
+
+        # iterates over all the poll classes ordered by preference
+        # (best first) and tries to find the one that better matched
+        # the current situation, either the preferred poll method or
+        # the most performant one in case it's not possible
         for poll in POLL_ORDER:
             if not poll.test(): continue
-            return poll
+            if not selected: selected = poll
+            if not preferred: break
+            name = poll.name()
+            if not name == preferred: continue
+            selected = poll
+            break
 
-        raise errors.NetiusError("No valid poll mechanism available")
+        # in case no polling method was selected must raise an exception
+        # indicating that no valid polling mechanism is available
+        if not selected: raise errors.NetiusError(
+            "No valid poll mechanism available"
+        )
+
+        # returns the selected polling mechanism class to the caller method
+        # as expected by the current method
+        return selected
 
     def delay(self, callable, timeout = None, verify = False):
         # creates the original target value with a zero value (forced
@@ -299,6 +322,11 @@ class Base(observer.Observable):
             self.logger.addHandler(handler)
 
     def start(self):
+        # re-builds the polling structure with the new name this
+        # is required so that it's possible to change the polling
+        # mechanism in the middle of the loading process
+        self.poll = self.build_poll()
+
         # retrieves the name of the polling mechanism that is
         # going to be used in the main loop of the current
         # base service, this is going to be used for diagnostics
@@ -572,6 +600,15 @@ class Base(observer.Observable):
         if not self.logger: return
         self.logger.log(level, message)
 
+    def build_poll(self):
+        # verifies if the currently set polling mechanism is open in
+        # case it's no need to re-build the polling mechanism, otherwise
+        # rebuild the polling mechanism with the current name and returns
+        # the new poll object to the caller method (as expected)
+        if self.poll and self.poll.is_open(): return self.poll
+        self.poll = Base.test_poll(preferred = self.poll_name)()
+        return self.poll
+
     def get_id(self):
         return NAME + "-" + str(self._uuid)
 
@@ -580,9 +617,7 @@ class Base(observer.Observable):
 
     def get_poll_name(self):
         poll = self.get_poll()
-        name = poll.__class__.__name__
-        name = name[:-4]
-        name = name.lower()
+        name = poll.name()
         return name
 
     def set_state(self, state):
