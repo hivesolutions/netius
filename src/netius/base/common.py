@@ -58,7 +58,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "0.8.26"
+VERSION = "0.9.0"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -444,8 +444,6 @@ class Base(observer.Observable):
             # "in between loop" operation should be performed in this
             # callback as this is the "space" they have for execution
             self.ticks()
-
-            print "cenas"
 
             # updates the current state to poll to indicate
             # that the base service is selecting the connections
