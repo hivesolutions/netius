@@ -135,8 +135,13 @@ class SOCKSServer(netius.StreamServer):
         self.container.add_base(self.raw_client)
 
     def start(self):
+        # loads the raw client infra-structure so that the client becomes ready
+        # to created remote connection on behalf of the socks server
         self.raw_client.load()
-        self.container.start()
+
+        # starts the container structure this is a blocking call as this will start
+        # the main event loop as expected by the current infra-structure
+        self.container.start(self)
 
     def stop(self):
         self.container.stop()

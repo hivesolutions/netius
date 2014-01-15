@@ -43,9 +43,24 @@ class Container(Base):
 
     def __init__(self, *args, **kwargs):
         Base.__init__(self, *args, **kwargs)
+        self.owner = None
         self.bases = []
 
         self.bind("start", self.on_start)
+
+    def start(self, owner):
+        # sets the current polling structure of the owner in the container
+        # it's important to use the already initialized poll in the container
+        # so that the requested environment (host, port , etc.) is used note
+        # that event the same logger is used for the container (logic propagation)
+        self.owner = owner
+        self.poll = owner.poll
+        self.logger = owner.logger
+        self._loaded = True
+
+        # calls the super method of the base for the current container this should
+        # start the event loop for the container (blocking call)
+        Base.start(self)
 
     def cleanup(self):
         Base.cleanup(self)
