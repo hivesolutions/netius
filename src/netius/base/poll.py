@@ -482,6 +482,7 @@ class SelectPoll(Poll):
         if self._open: return
         self._open = True
         self.timeout = timeout
+        if self.timeout < 0: self.timeout = None
 
         self.read_l = []
         self.write_l = []
