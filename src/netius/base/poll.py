@@ -59,9 +59,10 @@ class Poll(object):
     def test(cls):
         return True
 
-    def open(self):
+    def open(self, timeout = POLL_TIMEOUT):
         if self._open: return
         self._open = True
+        self.timeout = timeout
 
         self.read_o = {}
         self.write_o = {}
@@ -168,9 +169,10 @@ class EpollPoll(Poll):
     def test(cls):
         return hasattr(select, "epoll")
 
-    def open(self):
+    def open(self, timeout = POLL_TIMEOUT):
         if self._open: return
         self._open = True
+        self.timeout = timeout
 
         self.epoll = select.epoll() #@UndefinedVariable
 
@@ -196,7 +198,7 @@ class EpollPoll(Poll):
     def poll(self):
         result = ([], [], [])
 
-        events = self.epoll.poll(POLL_TIMEOUT)
+        events = self.epoll.poll(self.timeout)
         for fd, event in events:
             if event & select.EPOLLIN: #@UndefinedVariable
                 socket = self.fd_m.get(fd, None)
@@ -258,9 +260,10 @@ class KqueuePoll(Poll):
     def test(cls):
         return hasattr(select, "kqueue")
 
-    def open(self):
+    def open(self, timeout = POLL_TIMEOUT):
         if self._open: return
         self._open = True
+        self.timeout = timeout
 
         self.kqueue = select.kqueue() #@UndefinedVariable
 
@@ -286,7 +289,7 @@ class KqueuePoll(Poll):
     def poll(self):
         result = ([], [], [])
 
-        events = self.kqueue.control(None, 32, POLL_TIMEOUT)
+        events = self.kqueue.control(None, 32, self.timeout)
         for event in events:
             if event.filter == select.KQ_FILTER_READ: #@UndefinedVariable
                 socket = self.fd_m.get(event.udata, None)
@@ -364,9 +367,10 @@ class PollPoll(Poll):
     def test(cls):
         return hasattr(select, "poll")
 
-    def open(self):
+    def open(self, timeout = POLL_TIMEOUT):
         if self._open: return
         self._open = True
+        self.timeout = timeout
 
         self._poll = select.poll() #@UndefinedVariable
 
@@ -394,7 +398,7 @@ class PollPoll(Poll):
     def poll(self):
         result = ([], [], [])
 
-        events = self._poll.poll(POLL_TIMEOUT * 1000)
+        events = self._poll.poll(self.timeout * 1000)
         for fd, event in events:
             if event & select.POLLIN: #@UndefinedVariable
                 socket = self.read_fd.get(fd, None)
@@ -464,9 +468,10 @@ class SelectPoll(Poll):
         Poll.__init__(self, *args, **kwargs)
         self._open = False
 
-    def open(self):
+    def open(self, timeout = POLL_TIMEOUT):
         if self._open: return
         self._open = True
+        self.timeout = timeout
 
         self.read_l = []
         self.write_l = []
@@ -497,7 +502,7 @@ class SelectPoll(Poll):
         # in case it's sleeps for a while and then continues
         # the loop (this avoids error in empty selection)
         is_empty = self.is_empty()
-        if is_empty: time.sleep(POLL_TIMEOUT); return ([], [], [])
+        if is_empty: time.sleep(self.timeout); return ([], [], [])
 
         # runs the proper select statement waiting for the desired
         # amount of time as timeout at the end a tuple with three
@@ -506,7 +511,7 @@ class SelectPoll(Poll):
             self.read_l,
             self.write_l,
             self.error_l,
-            POLL_TIMEOUT
+            self.timeout
         )
 
     def is_edge(self):

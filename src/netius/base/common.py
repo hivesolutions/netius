@@ -234,6 +234,7 @@ class Base(observer.Observable):
         self.tid = None
         self.logger = None
         self.poll = kwargs.get("poll", poll)()
+        self.poll_timeout = kwargs.get("poll_timeout", POLL_TIMEOUT)
         self.connections = []
         self.connections_m = {}
         self._uuid = uuid.uuid4()
@@ -315,7 +316,7 @@ class Base(observer.Observable):
         # opens the polling mechanism so that its internal structures
         # become ready for the polling cycle, the inverse operation
         # (close) should be performed as part of the cleanup
-        self.poll.open()
+        self.poll.open(timeout = self.poll_timeout)
 
         # sets the running flag that controls the running of the
         # main loop and then changes the current state to start
@@ -326,7 +327,7 @@ class Base(observer.Observable):
         # enters the main loop operation printing a message
         # to the logger indicating this start, this stage
         # should block the thread until a stop call is made
-        self.debug("Starting '%s' service main loop ..." % self.name)
+        self.debug("Starting '%s' service main loop (%.2fs) ..." % (self.name, self.poll_timeout))
         self.debug("Using '%s' as polling mechanism" % poll_name)
         self.trigger("start", self)
         try: self.loop()
