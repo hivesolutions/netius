@@ -417,6 +417,8 @@ class Base(observer.Observable):
             # callback as this is the "space" they have for execution
             self.ticks()
 
+            print "cenas"
+
             # updates the current state to poll to indicate
             # that the base service is selecting the connections
             self.set_state(STATE_POLL)
