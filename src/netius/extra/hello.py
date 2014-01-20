@@ -64,6 +64,7 @@ class HelloServer(netius.servers.HTTPServer):
             headers = headers,
             code = 200,
             code_s = "OK",
+            apply = True,
             callback = callback
         )
 
