@@ -299,8 +299,12 @@ class ProxyServer(http.HTTPServer):
         # the front-end connection is closed immediately
         if _connection.waiting: connection.send_response(
             data = "Forbidden",
+            headers = dict(
+                connection = "close"
+            ),
             code = 403,
             code_s = "Forbidden",
+            apply = True,
             callback = self._prx_close
         )
         else: connection.close(flush = True)
@@ -320,8 +324,12 @@ class ProxyServer(http.HTTPServer):
 
         connection.send_response(
             data = error_m,
+            headers = dict(
+                connection = "close"
+            ),
             code = 500,
             code_s = "Internal Error",
+            apply = True,
             callback = self._prx_close
         )
 
@@ -329,7 +337,8 @@ class ProxyServer(http.HTTPServer):
         connection = self.conn_map[_connection]
         connection.send_response(
             code = 200,
-            code_s = "Connection established"
+            code_s = "Connection established",
+            apply = True
         )
 
     def _on_raw_data(self, client, _connection, data):

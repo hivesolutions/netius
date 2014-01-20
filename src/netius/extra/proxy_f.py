@@ -63,9 +63,13 @@ class ForwardProxyServer(netius.servers.ProxyServer):
         if rejected:
             connection.send_response(
                 data = "This connection is not allowed",
+                headers = dict(
+                    connection = "close"
+                ),
                 version = version_s,
                 code = 403,
                 code_s = "Forbidden",
+                apply = True,
                 callback = self._prx_close
             )
             return

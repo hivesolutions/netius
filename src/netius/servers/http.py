@@ -206,9 +206,14 @@ class HTTPConnection(netius.Connection):
         code_s = code_s or netius.common.CODE_STRINGS.get(code, None)
         data_l = len(data) if data else 0
 
+        # verifies if the content length header is currently present
+        # in the provided headers and in case it's not inserts it
         if not "content-length" in headers:
             headers["content-length"] = data_l
 
+        # in case the apply flag is set the apply all operation is performed
+        # so that a series of headers are applied to the current context
+        # (things like the name of the server connection, etc)
         if apply: self.owner._apply_all(self.parser, self, headers)
 
         buffer = []

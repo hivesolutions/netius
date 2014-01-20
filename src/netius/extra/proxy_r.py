@@ -65,9 +65,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             self.debug("No valid proxy endpoint found for '%s'" % host)
             connection.send_response(
                 data = "No valid proxy endpoint found",
+                headers = dict(
+                    connection = "close"
+                ),
                 version = version_s,
                 code = 404,
                 code_s = "Not Found",
+                apply = True,
                 callback = self._prx_close
             )
             return
