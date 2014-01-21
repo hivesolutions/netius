@@ -88,6 +88,13 @@ class SMTPConnection(netius.Connection):
         base = "%s %s" % (code, message)
         self.owner.debug(base)
 
+        # verifies if the provided code contains the separator character
+        # this should mean that this is a multiple line based response
+        # and for those situations no processing occurs immediately waiting
+        # instead for the last line (not dashed) to run the processing
+        is_multiple = "-" in code
+        if is_multiple: return
+
         # runs the code based assertion so that if there's an expected
         # value set for the current connection it's correctly validated
         self.assert_c(code)
@@ -106,11 +113,15 @@ class SMTPConnection(netius.Connection):
         elif self.state == DATA_STATE:
             self.data()
         elif self.state == CONTENTS_STATE:
-            self.send(self.contents)
-            self.send("\r\n.\r\n")
-            self.state = QUIT_STATE
+            self.contents_t()
         elif self.state == QUIT_STATE:
             self.quit()
+
+    def contents_t(self):
+        self.state = QUIT_STATE
+        self.send(self.contents)
+        self.send("\r\n.\r\n")
+        self.set_expected(250)
 
     def helo(self, host):
         self.assert_s(HELLO_STATE)
@@ -152,10 +163,15 @@ class SMTPConnection(netius.Connection):
 
     def assert_c(self, code):
         if not self.expected: return
-        valid = self.expected == int(code)
+        expected = self.expected
+        code_i = int(code)
         self.expected = None
+        valid = expected == code_i
         if valid: return
-        raise netius.ParserError("Invalid code")
+        raise netius.ParserError(
+            "Invalid code expected '%d' got '%d'" %\
+            (expected, code_i)
+        )
 
     def assert_s(self, expected):
         if self.state == expected: return
