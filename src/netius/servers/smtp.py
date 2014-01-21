@@ -232,6 +232,5 @@ class SMTPServer(netius.StreamServer):
 
 if __name__ == "__main__":
     import logging
-
     server = SMTPServer(level = logging.INFO)
     server.serve(env = True)
