@@ -61,6 +61,7 @@ class SMTPConnection(netius.Connection):
         self.froms = None
         self.tos = None
         self.contents = None
+        self.expected = None
         self.to_index = 0
         self.state = HELLO_STATE
 
@@ -83,6 +84,10 @@ class SMTPConnection(netius.Connection):
     def on_line(self, code, message):
         base = "%s %s" % (code, message)
         self.owner.debug(base)
+
+        # runs the code based assertion so that if there's an expected
+        # value set for the current connection it's correctly validated
+        self.assert_c(code)
 
         #@TODO: this state thing must be optimized !!!
         # into a list of state and methods
@@ -108,30 +113,45 @@ class SMTPConnection(netius.Connection):
         self.state = FROM_STATE
         message = host
         self.send_smtp("HELO", message)
+        self.set_expected(250)
 
     def mail(self, value):
         self.assert_s(FROM_STATE)
         self.state = TO_STATE
         message = "FROM:<%s>" % value
         self.send_smtp("MAIL", message)
+        self.set_expected(250)
 
     def rcpt(self, value, final = True):
         self.assert_s(TO_STATE)
         if final: self.state = DATA_STATE
         message = "TO:<%s>" % value
         self.send_smtp("RCPT", message)
+        self.set_expected(250)
 
     def data(self):
         self.assert_s(DATA_STATE)
         self.state = CONTENTS_STATE
         message = ""
         self.send_smtp("DATA", message)
+        self.set_expected(354)
 
     def quit(self):
         self.assert_s(QUIT_STATE)
         self.state = FINAL_STATE
         message = ""
         self.send_smtp("QUIT", message)
+        self.set_expected(221)
+
+    def set_expected(self, expected):
+        self.expected = expected
+
+    def assert_c(self, code):
+        if not self.expected: return
+        valid = self.expected == int(code)
+        self.expected = None
+        if valid: return
+        raise netius.ParserError("Invalid code")
 
     def assert_s(self, expected):
         if self.state == expected: return
