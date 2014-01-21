@@ -67,6 +67,25 @@ class SMTPConnection(netius.Connection):
 
         self.parser.bind("on_line", self.on_line)
 
+        self.build()
+
+    def build(self):
+        """
+        Builds the initial set of states ordered according to
+        their internal integer definitions, this method provides
+        a fast and scalable way of parsing data.
+        """
+
+        self.states = (
+            self.helo_t,
+            self.mail_t,
+            self.rcpt_t,
+            self.data,
+            self.contents_t,
+            self.quit
+        )
+        self.state_l = len(self.states)
+
     def set_smtp(self, froms, tos, contents):
         self.froms = froms
         self.tos = tos
@@ -99,23 +118,27 @@ class SMTPConnection(netius.Connection):
         # value set for the current connection it's correctly validated
         self.assert_c(code)
 
-        #@TODO: this state thing must be optimized !!!
-        #into a list of state and methods
+        # verifies that the current state valid represents a valid state
+        # according to the ones that have "generate" handling methods, otherwise
+        # raises a parser error indicating the problem
+        if self.state >= self.state_l:
+            raise netius.ParserError("Invalid state")
 
-        if self.state == HELLO_STATE:
-            self.helo("relay.example.org")
-        elif self.state == FROM_STATE:
-            self.mail(self.froms[0])
-        elif self.state == TO_STATE:
-            is_final = self.to_index == len(self.tos) - 1
-            self.rcpt(self.tos[self.to_index], final = is_final)
-            self.to_index += 1
-        elif self.state == DATA_STATE:
-            self.data()
-        elif self.state == CONTENTS_STATE:
-            self.contents_t()
-        elif self.state == QUIT_STATE:
-            self.quit()
+        # tries to retrieve the method for the current state in iteration
+        # and then calls the retrieve method with no arguments (handler method)
+        method = self.states[self.state - 1]
+        method()
+
+    def helo_t(self):
+        self.helo("relay.example.org")
+
+    def mail_t(self):
+        self.mail(self.froms[0])
+
+    def rcpt_t(self):
+        is_final = self.to_index == len(self.tos) - 1
+        self.rcpt(self.tos[self.to_index], final = is_final)
+        self.to_index += 1
 
     def contents_t(self):
         self.state = QUIT_STATE
@@ -169,7 +192,7 @@ class SMTPConnection(netius.Connection):
         valid = expected == code_i
         if valid: return
         raise netius.ParserError(
-            "Invalid code expected '%d' got '%d'" %\
+            "Invalid response code expected '%d' received '%d'" %\
             (expected, code_i)
         )
 
@@ -180,6 +203,8 @@ class SMTPConnection(netius.Connection):
 class SMTPClient(netius.Client):
 
     def message(self, froms, tos, contents, *args, **kwargs):
+        # @todo: this must be retrieved using an async based
+        # dns client that should be built latter on :)
         host = "gmail-smtp-in.l.google.com"
         port = 25
 
