@@ -147,6 +147,11 @@ class SMTPConnection(netius.Connection):
         self.queued()
 
     def on_line(self, code, message):
+        # calls the proper top level owner based line information handler that
+        # should ignore any usages as the connection will take care of the proper
+        # handling for the current connection
+        self.owner.on_line_smtp(code, message)
+
         # converts the provided code into a lower case value and then uses it
         # to create the problem name for the handler method to be used
         code_l = code.lower()
@@ -212,6 +217,9 @@ class SMTPServer(netius.StreamServer):
             address = address,
             ssl = ssl
         )
+
+    def on_line_smtp(self, code, message):
+        pass
 
     def on_header_smtp(self, from_l, to_l):
         pass
