@@ -55,6 +55,12 @@ DNS_IQUERY = 0x1
 
 DNS_STATUS = 0x2
 
+DNS_AA = 0x04
+
+DNS_TC = 0x02
+
+DNS_RD = 0x01
+
 DNS_TYPES = dict(
     A = 0x01,
     NS = 0x02,
@@ -93,16 +99,17 @@ class DNSRequest(object):
         result = []
         buffer = []
 
-        first_header = 0x0
+        first_flags = 0x0
 
-        first_header += DNS_QUERY
-        first_header += DNS_SQUERY << 1
+        first_flags += DNS_QUERY << 7
+        first_flags += DNS_SQUERY << 3
+        first_flags |= DNS_RD
 
-        second_header = 0x0
+        second_flags = 0x0
 
         result.append(self.id)
-        result.append(first_header)
-        result.append(second_header)
+        result.append(first_flags)
+        result.append(second_flags)
         result.append(0x1)
         result.append(0x0)
         result.append(0x0)
@@ -159,7 +166,23 @@ class DNSResponse(object):
         self.data = data
 
     def parse(self):
-        pass
+
+        format = "!HBBHHHH"
+
+        self.header = self.data[:12]
+        result = struct.unpack(format, self.header)
+
+        self.id = result[0]
+        self.first_flags = result[1]
+        self.second_flags = result[2]
+        self.qdcount = result[3]
+        self.ancount = result[4]
+        self.nscount = result[5]
+        self.arcount = result[6]
+
+
+
+        print self.ancount
 
 class DNSClient(netius.DatagramClient):
 
