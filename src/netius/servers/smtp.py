@@ -47,11 +47,16 @@ HEADER_STATE = 3
 
 DATA_STATE = 4
 
+TERMINATION_SIZE = 5
+""" The size of the termination sequence of the smtp message
+this is going to be used in some parsing calculus """
+
 class SMTPConnection(netius.Connection):
 
     def __init__(self, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
         self.parser = netius.common.SMTPParser(self)
+        self.previous = ""
         self.host = "smtp.localhost"
         self.chost = None
         self.from_l = []
@@ -112,13 +117,24 @@ class SMTPConnection(netius.Connection):
         self.send_smtp(550, message)
 
     def on_raw_data(self, data):
-
-        ## @todo tenho de alterar isto para lidar com uma queue
-        # de pelo menos os ultimos n - 1 caracteres !!!
-
+        # calls the proper callback handler for data in the owner indicating
+        # that the current data has just been received and must be properly
+        # handled to the proper redirector middleware
         self.owner.on_data_smtp(data)
 
-        is_final = not data.find("\r\n.\r\n") == -1
+        # calculates the length of the data that has just been received and then
+        # measures the size of the possible remaining bytes of the buffer from the
+        # previously received ones and appends them to the buffer ten trying to
+        # find the termination string in the final concatenated string
+        data_l = len(data)
+        remaining = TERMINATION_SIZE - data_l if TERMINATION_SIZE > data_l else 0
+        previous_v = self.previous[remaining * -1:] if remaining > 0 else ""
+        buffer = previous_v + data[TERMINATION_SIZE * -1:]
+        is_final = not buffer.find("\r\n.\r\n") == -1
+
+        # updates the previous value string with the current buffer used for finding
+        # the termination string, this value may be used in the next iteration
+        self.previous = buffer
 
         # verifies if this is the final part of the message as
         # pre-defined before the data configuration, if that's not
