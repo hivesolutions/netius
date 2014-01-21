@@ -54,6 +54,8 @@ class SMTPConnection(netius.Connection):
         self.parser = netius.common.SMTPParser(self)
         self.host = "smtp.localhost"
         self.chost = None
+        self.from_l = []
+        self.to_l = []
         self.state = INTIAL_STATE
 
         self.parser.bind("on_line", self.on_line)
@@ -77,12 +79,14 @@ class SMTPConnection(netius.Connection):
         if not self.state == HELLO_STATE:
             raise netius.ParserError("Invalid state")
         self.state = HEADER_STATE
+        self.chost = host
         message = "Hello %s, I am glad to meet you" % host
         self.send_smtp(250, message)
 
     def end_data(self):
         if not self.state == HEADER_STATE:
             raise netius.ParserError("Invalid state")
+        self.owner.on_header_smtp(self.from_l, self.to_l)
         self.state = DATA_STATE
         message = "End data with <CR><LF>.<CR><LF>"
         self.send_smtp(354, message)
@@ -90,6 +94,7 @@ class SMTPConnection(netius.Connection):
     def queued(self, index = -1):
         if not self.state == DATA_STATE:
             raise netius.ParserError("Invalid state")
+        self.owner.on_message_smtp()
         self.state = HEADER_STATE
         message = "Ok: queued as %d" % index
         self.send_smtp(250, message)
@@ -107,10 +112,12 @@ class SMTPConnection(netius.Connection):
         self.send_smtp(550, message)
 
     def on_raw_data(self, data):
-        print data
 
         ## @todo tenho de alterar isto para lidar com uma queue
         # de pelo menos os ultimos n - 1 caracteres !!!
+
+        self.owner.on_data_smtp(data)
+
         is_final = not data.find("\r\n.\r\n") == -1
 
         # verifies if this is the final part of the message as
@@ -149,11 +156,11 @@ class SMTPConnection(netius.Connection):
         self.not_implemented()
 
     def on_mail(self, message):
-        print message
+        self.from_l.append(message)
         self.ok()
 
     def on_rcpt(self, message):
-        print message
+        self.to_l.append(message)
         self.ok()
 
     def on_data(self, message):
@@ -189,6 +196,15 @@ class SMTPServer(netius.StreamServer):
             address = address,
             ssl = ssl
         )
+
+    def on_header_smtp(self, from_l, to_l):
+        pass
+
+    def on_data_smtp(self, data):
+        pass
+
+    def on_message_smtp(self):
+        pass
 
 if __name__ == "__main__":
     import logging
