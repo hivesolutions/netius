@@ -378,13 +378,13 @@ class DatagramServer(Server):
         self.unsub_read(self.socket)
 
     def send(self, data, address, delay = False, callback = None):
-        tid = thread.get_ident()
-        is_safe = tid == self.tid
-
         data_l = len(data)
 
         if callback: data = (data, callback)
         data = (data, address)
+
+        tid = thread.get_ident()
+        is_safe = tid == self.tid
 
         self.pending_lock.acquire()
         try: self.pending.insert(0, data)
@@ -393,12 +393,8 @@ class DatagramServer(Server):
         self.pending_s += data_l
 
         if self.wready:
-            send = lambda: self.writes(
-                (self.socket,),
-                state = False
-            )
-            if is_safe and not delay: send()
-            else: self.delay(send)
+            if is_safe and not delay: self._flush_write()
+            else: self.delay(self._flush_write, verify = True)
         else:
             self.ensure_write()
 
@@ -458,6 +454,15 @@ class DatagramServer(Server):
             self.pending_lock.release()
 
         self.remove_write()
+
+    def _flush_write(self):
+        """
+        Flush operations to be called by the delaying controller
+        (in ticks) that will trigger all the write operations
+        pending for the current connection's socket.
+        """
+
+        self.writes((self.socket,), state = False)
 
 class StreamServer(Server):
 
