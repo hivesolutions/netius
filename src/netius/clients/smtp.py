@@ -75,13 +75,14 @@ class SMTPConnection(netius.Connection):
         return self.parser.parse(data)
 
     def send_smtp(self, code, message, delay = False, callback = None):
-        data = "%s %s\r\n" % (code, message)
-        print data
+        base = "%s %s" % (code, message)
+        data = base + "\r\n"
         self.send(data, delay = delay, callback = callback)
+        self.owner.debug(base)
 
     def on_line(self, code, message):
-
-        print "%s - %s" % (code, message)
+        base = "%s %s" % (code, message)
+        self.owner.debug(base)
 
         #@TODO: this state thing must be optimized !!!
         # into a list of state and methods
