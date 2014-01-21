@@ -84,6 +84,9 @@ DNS_CLASSES = dict(
     IN = 0x01
 )
 
+DNS_TYPES_R = dict(zip(DNS_TYPES.values(), DNS_TYPES.keys()))
+DNS_CLASSES_R = dict(zip(DNS_TYPES.values(), DNS_TYPES.keys()))
+
 class DNSRequest(object):
 
     def __init__(self, name, type = "a", cls = "in"):
@@ -180,9 +183,98 @@ class DNSResponse(object):
         self.nscount = result[5]
         self.arcount = result[6]
 
+        self.queries = []
+        self.answers = []
+        self.name_servers = []
+        self.authorities = []
 
+        data = self.data[12:]
+        index = 12
 
-        print self.ancount
+        for index in range(self.qdcount):
+            index, query = self.parse_qd(data, index)
+            self.queries.append(query)
+
+        for index in range(self.ancount):
+            index, answer = self.parse_an(data, index)
+            self.answers.append(answer)
+
+        print self.queries
+
+    def parse_qd(self, data, index):
+        index, name = self.parse_label(data, index)
+        index, type = self.parse_short(data, index)
+        index, cls = self.parse_short(data, index)
+        type_s = DNS_TYPES_R.get(type, "undefined")
+        cls_s = DNS_CLASSES_R.get(cls, "undefined")
+        return (index, (name, type_s, cls_s))
+
+    def parse_an(self, data, index):
+        index, name = self.parse_label(data, index)
+        index, type = self.parse_short(data, index)
+        index, cls = self.parse_short(data, index)
+        index, ttl = self.parse_long(data, index)
+
+        type_s = DNS_TYPES_R.get(type, "undefined")
+        cls_s = DNS_CLASSES_R.get(cls, "undefined")
+        return (index, (name, type_s, cls_s, ttl, ))
+
+    def parse_ns(self, data, index):
+        pass
+
+    def parse_ar(self, data, index):
+        pass
+
+    def parse_label(self, data, index):
+        is_final = False
+        buffer = []
+
+        while True:
+            if is_final: break
+
+            initial = data[index]
+            if initial == "\0": index += 1; break
+
+            initial_i = ord(initial)
+            is_pointer = initial_i & 0xc0
+
+            if is_pointer:
+                _count, _data = self.parse_pointer(data, index)
+                is_final = True
+            else:
+                _data = data[index + 1:index + initial_i + 1]
+                _count = initial_i + 1
+
+            buffer.append(_data)
+            index += _count
+
+        data = ".".join(buffer)
+        return (index, data)
+
+    def parse_pointer(self, data, index):
+        slice = data[index:index + 2]
+
+        offset, = struct.unpack("!H", slice)
+        offset &= 0x3fff
+
+        label = self.parse_label(data, index - offset)
+
+        return (index + 2, label)
+
+    def parse_byte(self, data, index):
+        _data = data[index:index + 1]
+        short, = struct.unpack("!B", _data)
+        return (index + 1, short)
+
+    def parse_short(self, data, index):
+        _data = data[index:index + 2]
+        short, = struct.unpack("!H", _data)
+        return (index + 2, short)
+
+    def parse_long(self, data, index):
+        _data = data[index:index + 4]
+        short, = struct.unpack("!L", _data)
+        return (index + 4, short)
 
 class DNSClient(netius.DatagramClient):
 
