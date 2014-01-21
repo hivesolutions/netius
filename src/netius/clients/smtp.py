@@ -82,6 +82,9 @@ class SMTPConnection(netius.Connection):
         self.owner.debug(base)
 
     def on_line(self, code, message):
+        # creates the base string from the provided code value and the
+        # message associated with it, then logs the values into the
+        # current debug logger support (for traceability)
         base = "%s %s" % (code, message)
         self.owner.debug(base)
 
@@ -90,7 +93,8 @@ class SMTPConnection(netius.Connection):
         self.assert_c(code)
 
         #@TODO: this state thing must be optimized !!!
-        # into a list of state and methods
+        #into a list of state and methods
+
         if self.state == HELLO_STATE:
             self.helo("relay.example.org")
         elif self.state == FROM_STATE:
@@ -112,35 +116,35 @@ class SMTPConnection(netius.Connection):
         self.assert_s(HELLO_STATE)
         self.state = FROM_STATE
         message = host
-        self.send_smtp("HELO", message)
+        self.send_smtp("helo", message)
         self.set_expected(250)
 
     def mail(self, value):
         self.assert_s(FROM_STATE)
         self.state = TO_STATE
         message = "FROM:<%s>" % value
-        self.send_smtp("MAIL", message)
+        self.send_smtp("mail", message)
         self.set_expected(250)
 
     def rcpt(self, value, final = True):
         self.assert_s(TO_STATE)
         if final: self.state = DATA_STATE
         message = "TO:<%s>" % value
-        self.send_smtp("RCPT", message)
+        self.send_smtp("rcpt", message)
         self.set_expected(250)
 
     def data(self):
         self.assert_s(DATA_STATE)
         self.state = CONTENTS_STATE
         message = ""
-        self.send_smtp("DATA", message)
+        self.send_smtp("data", message)
         self.set_expected(354)
 
     def quit(self):
         self.assert_s(QUIT_STATE)
         self.state = FINAL_STATE
         message = ""
-        self.send_smtp("QUIT", message)
+        self.send_smtp("quit", message)
         self.set_expected(221)
 
     def set_expected(self, expected):
