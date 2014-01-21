@@ -69,7 +69,7 @@ class SMTPConnection(netius.Connection):
         if self.state == DATA_STATE: self.on_raw_data(data)
         else: return self.parser.parse(data)
 
-    def send_smtp(self, code, message, delay = False, callback = None):
+    def send_smtp(self, code, message = "", delay = False, callback = None):
         base = "%d %s" % (code, message)
         data = base + "\r\n"
         self.send(data, delay = delay, callback = callback)

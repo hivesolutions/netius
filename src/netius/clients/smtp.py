@@ -95,7 +95,7 @@ class SMTPConnection(netius.Connection):
     def parse(self, data):
         return self.parser.parse(data)
 
-    def send_smtp(self, code, message, delay = False, callback = None):
+    def send_smtp(self, code, message = "", delay = False, callback = None):
         base = "%s %s" % (code, message)
         data = base + "\r\n"
         self.send(data, delay = delay, callback = callback)
@@ -174,15 +174,13 @@ class SMTPConnection(netius.Connection):
     def data(self):
         self.assert_s(DATA_STATE)
         self.state = CONTENTS_STATE
-        message = ""
-        self.send_smtp("data", message)
+        self.send_smtp("data")
         self.set_expected(354)
 
     def quit(self):
         self.assert_s(QUIT_STATE)
         self.state = FINAL_STATE
-        message = ""
-        self.send_smtp("quit", message)
+        self.send_smtp("quit")
         self.set_expected(221)
 
     def set_expected(self, expected):
