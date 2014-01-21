@@ -144,6 +144,11 @@ class SMTPConnection(netius.Connection):
         self.queued()
 
     def on_line(self, code, message):
+        # "joins" the code and the message part of the message into the base
+        # string and then uses this value to print some debug information
+        base = "%s %s" % (code, message)
+        self.owner.debug(base)
+
         # calls the proper top level owner based line information handler that
         # should ignore any usages as the connection will take care of the proper
         # handling for the current connection
@@ -233,5 +238,5 @@ class SMTPServer(netius.StreamServer):
 
 if __name__ == "__main__":
     import logging
-    server = SMTPServer(level = logging.INFO)
+    server = SMTPServer(level = logging.DEBUG)
     server.serve(env = True)
