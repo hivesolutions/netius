@@ -85,12 +85,9 @@ class Client(Base):
 
 class DatagramClient(Client):
 
-
-    # @todo tenho sempre de ter um socket registardo no gajo
-    # como manda a lei
-
     def __init__(self, *args, **kwargs):
         Client.__init__(self, *args, **kwargs)
+        self.socket = None
         self.renable = True
         self.wready = True
         self.pending_s = 0
@@ -162,6 +159,30 @@ class DatagramClient(Client):
     def on_data(self, connection, data):
         pass
 
+    def ensure_socket(self):
+        # in case the socket is already created and valid returns immediately
+        # as nothing else remain to be done in the current method
+        if self.socket: return
+
+        # prints a small debug message about the udp socket that is going
+        # to be created for the client's connection
+        self.debug("Creating clients's udp socket ...")
+
+        # creates the socket that it's going to be used for the listening
+        # of new connections (client socket) and sets it as non blocking
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.setblocking(0)
+
+        # sets the various options in the service socket so that it becomes
+        # ready for the operation with the highest possible performance
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+        # adds the socket to all of the pool lists so that it's ready to read
+        # write and handle error, this is the expected behavior of a service
+        # socket so that it can handle all of the expected operations
+        self.sub_all(self.socket)
+
     def ensure_write(self):
         # retrieves the identifier of the current thread and
         # checks if it's the same as the one defined in the
@@ -196,6 +217,8 @@ class DatagramClient(Client):
         self.unsub_read(self.socket)
 
     def send(self, data, address, delay = False, callback = None):
+        self.ensure_socket()
+
         data_l = len(data)
 
         if callback: data = (data, callback)
