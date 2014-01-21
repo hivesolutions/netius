@@ -53,14 +53,14 @@ this is going to be used in some parsing calculus """
 
 class SMTPConnection(netius.Connection):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, host = "smtp.localhost", *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
         self.parser = netius.common.SMTPParser(self)
-        self.previous = ""
-        self.host = "smtp.localhost"
+        self.host = host
         self.chost = None
         self.from_l = []
         self.to_l = []
+        self.previous = ""
         self.state = INTIAL_STATE
 
         self.parser.bind("on_line", self.on_line)
