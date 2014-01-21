@@ -101,11 +101,10 @@ class SMTPParser(netius.Observable):
         del self.buffer[:]
 
         # splits the provided line into the code and message parts in case
-        # the split is not successful (not enough information) raises an
-        # exception indicating the problem that has occurred
+        # the split is not successful (not enough information) then an extra
+        # value is added to the sequence of values for compatibility
         values = self.line_s.split(" ", 1)
-        if not len(values) > 1:
-            raise netius.ParserError("Invalid smtp line '%s'" % self.line_s)
+        if not len(values) > 1: values.append("")
 
         # unpacks the set of values that have just been parsed into the code
         # and the message items as expected by the smtp specification

@@ -59,7 +59,8 @@ class SMTPConnection(netius.Connection):
         self.parser.bind("on_line", self.on_line)
 
     def parse(self, data):
-        return self.parser.parse(data)
+        if self.state == DATA_STATE: self.on_raw_data(data)
+        else: return self.parser.parse(data)
 
     def send_smtp(self, code, message, delay = False, callback = None):
         data = "%d %s\r\n" % (code, message)
@@ -79,6 +80,24 @@ class SMTPConnection(netius.Connection):
         message = "Hello %s, I am glad to meet you" % host
         self.send_smtp(250, message)
 
+    def end_data(self):
+        if not self.state == HEADER_STATE:
+            raise netius.ParserError("Invalid state")
+        self.state = DATA_STATE
+        message = "End data with <CR><LF>.<CR><LF>"
+        self.send_smtp(354, message)
+
+    def queued(self, index = -1):
+        if not self.state == DATA_STATE:
+            raise netius.ParserError("Invalid state")
+        self.state = HEADER_STATE
+        message = "Ok: queued as %d" % index
+        self.send_smtp(250, message)
+
+    def bye(self):
+        message = "Bye"
+        self.send_smtp(221, message)
+
     def ok(self):
         message = "Ok"
         self.send_smtp(250, message)
@@ -86,6 +105,23 @@ class SMTPConnection(netius.Connection):
     def not_implemented(self):
         message = "Not implemented"
         self.send_smtp(550, message)
+
+    def on_raw_data(self, data):
+        print data
+
+        ## @todo tenho de alterar isto para lidar com uma queue
+        # de pelo menos os ultimos n - 1 caracteres !!!
+        is_final = not data.find("\r\n.\r\n") == -1
+
+        # verifies if this is the final part of the message as
+        # pre-defined before the data configuration, if that's not
+        # the case must return the control flow immediately
+        if not is_final: return
+
+        # runs the queued command indicating that the message has
+        # been queued for sending and that the connection may now
+        # be closed if there's nothing remaining to be done
+        self.queued()
 
     def on_line(self, code, message):
         # converts the provided code into a lower case value and then uses it
@@ -121,8 +157,10 @@ class SMTPConnection(netius.Connection):
         self.ok()
 
     def on_data(self, message):
-        self.state = DATA_STATE
-        self.ok()
+        self.end_data()
+
+    def on_quit(self, message):
+        self.bye()
 
 class SMTPServer(netius.StreamServer):
 
