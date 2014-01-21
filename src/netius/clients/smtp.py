@@ -121,7 +121,7 @@ class SMTPConnection(netius.Connection):
         # verifies that the current state valid represents a valid state
         # according to the ones that have "generate" handling methods, otherwise
         # raises a parser error indicating the problem
-        if self.state >= self.state_l:
+        if self.state > self.state_l:
             raise netius.ParserError("Invalid state")
 
         # tries to retrieve the method for the current state in iteration
