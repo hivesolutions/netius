@@ -37,25 +37,92 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import netius
+import netius.common
+
+INTIAL_STATE = 1
+
+HELLO_STATE = 2
+
+HEADER_STATE = 3
+
+DATA_STATE = 4
 
 class SMTPConnection(netius.Connection):
 
     def __init__(self, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
+        self.parser = netius.common.SMTPParser(self)
         self.host = "smtp.localhost"
+        self.chost = None
+        self.state = INTIAL_STATE
+
+        self.parser.bind("on_line", self.on_line)
 
     def parse(self, data):
-        print data
         return self.parser.parse(data)
 
     def send_smtp(self, code, message, delay = False, callback = None):
-        data = "%d %s" % (code, message)
+        data = "%d %s\r\n" % (code, message)
         self.send(data, delay = delay, callback = callback)
 
-    def hello(self):
+    def ready(self):
+        if not self.state == INTIAL_STATE:
+            raise netius.ParserError("Invalid state")
+        self.state = HELLO_STATE
         message = "%s ESMTP %s" % (self.host, netius.NAME)
         self.send_smtp(220, message)
+
+    def hello(self, host):
+        if not self.state == HELLO_STATE:
+            raise netius.ParserError("Invalid state")
+        self.state = HEADER_STATE
+        message = "Hello %s, I am glad to meet you" % host
+        self.send_smtp(250, message)
+
+    def ok(self):
+        message = "Ok"
+        self.send_smtp(250, message)
+
+    def not_implemented(self):
+        message = "Not implemented"
+        self.send_smtp(550, message)
+
+    def on_line(self, code, message):
+        # converts the provided code into a lower case value and then uses it
+        # to create the problem name for the handler method to be used
+        code_l = code.lower()
+        method_n = "on_" + code_l
+
+        # verifies if the method for the current code exists in case it
+        # does not raises an exception indicating the problem with the
+        # code that has just been received (probably erroneous)
+        extists = hasattr(self, method_n)
+        if not extists: raise netius.ParserError("Invalid code '%s'" % code)
+
+        # retrieves the reference to the method that is going to be called
+        # for the handling of the current line from the current instance and
+        # then calls it with the provided message
+        method = getattr(self, method_n)
+        method(message)
+
+    def on_helo(self, message):
+        host = message
+        self.hello(host)
+
+    def on_ehlo(self, message):
+        self.not_implemented()
+
+    def on_mail(self, message):
+        print message
+        self.ok()
+
+    def on_rcpt(self, message):
+        print message
+        self.ok()
+
+    def on_data(self, message):
+        self.state = DATA_STATE
+        self.ok()
 
 class SMTPServer(netius.StreamServer):
 
@@ -67,7 +134,7 @@ class SMTPServer(netius.StreamServer):
 
     def on_connection_c(self, connection):
         netius.StreamServer.on_connection_c(self, connection)
-        connection.hello()
+        connection.ready()
 
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
