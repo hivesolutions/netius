@@ -82,7 +82,8 @@ class SMTPConnection(netius.Connection):
             self.rcpt_t,
             self.data,
             self.contents_t,
-            self.quit
+            self.quit,
+            self.pass_t
         )
         self.state_l = len(self.states)
 
@@ -145,6 +146,9 @@ class SMTPConnection(netius.Connection):
         self.send(self.contents)
         self.send("\r\n.\r\n")
         self.set_expected(250)
+
+    def pass_t(self):
+        pass
 
     def helo(self, host):
         self.assert_s(HELLO_STATE)
