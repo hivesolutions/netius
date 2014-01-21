@@ -80,7 +80,7 @@ DNS_CLASSES = dict(
 
 class DNSRequest(object):
 
-    def __init__(self, name, type = "a", cls = "in", *args, **kwargs):
+    def __init__(self, name, type = "a", cls = "in"):
         self.id = self._generate_id()
         self.name = name
         self.type = type
@@ -153,6 +153,14 @@ class DNSRequest(object):
         IDENTIFIER = (IDENTIFIER + 1) & 0xffff
         return IDENTIFIER
 
+class DNSResponse(object):
+
+    def __init__(self, data):
+        self.data = data
+
+    def parse(self):
+        pass
+
 class DNSClient(netius.DatagramClient):
 
     def query(self, name, type = "a", cls = "in", *args, **kwargs):
@@ -164,7 +172,8 @@ class DNSClient(netius.DatagramClient):
 
     def on_data(self, address, data):
         netius.DatagramClient.on_data(self, address, data)
-        print data
+        response = DNSResponse(data)
+        response.parse()
 
 if __name__ == "__main__":
     def handler(): pass
