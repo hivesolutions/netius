@@ -188,18 +188,17 @@ class DNSResponse(object):
         self.name_servers = []
         self.authorities = []
 
-        data = self.data[12:]
         index = 12
 
-        for index in range(self.qdcount):
-            index, query = self.parse_qd(data, index)
+        for _index in range(self.qdcount):
+            index, query = self.parse_qd(self.data, index)
             self.queries.append(query)
 
-        for index in range(self.ancount):
-            index, answer = self.parse_an(data, index)
+        for _index in range(self.ancount):
+            index, answer = self.parse_an(self.data, index)
             self.answers.append(answer)
 
-        print self.queries
+        print self.answers
 
     def parse_qd(self, data, index):
         index, name = self.parse_label(data, index)
@@ -214,10 +213,12 @@ class DNSResponse(object):
         index, type = self.parse_short(data, index)
         index, cls = self.parse_short(data, index)
         index, ttl = self.parse_long(data, index)
-
+        index, size = self.parse_short(data, index)
+        payload = data[index:index + size]
+        index += size
         type_s = DNS_TYPES_R.get(type, "undefined")
         cls_s = DNS_CLASSES_R.get(cls, "undefined")
-        return (index, (name, type_s, cls_s, ttl, ))
+        return (index, (name, type_s, cls_s, ttl, payload))
 
     def parse_ns(self, data, index):
         pass
@@ -226,12 +227,9 @@ class DNSResponse(object):
         pass
 
     def parse_label(self, data, index):
-        is_final = False
         buffer = []
 
         while True:
-            if is_final: break
-
             initial = data[index]
             if initial == "\0": index += 1; break
 
@@ -239,14 +237,15 @@ class DNSResponse(object):
             is_pointer = initial_i & 0xc0
 
             if is_pointer:
-                _count, _data = self.parse_pointer(data, index)
-                is_final = True
-            else:
-                _data = data[index + 1:index + initial_i + 1]
-                _count = initial_i + 1
+                index, _data = self.parse_pointer(data, index)
+                data = ".".join(buffer) if buffer else ""
+                data += _data
+                return (index, data)
+
+            _data = data[index + 1:index + initial_i + 1]
 
             buffer.append(_data)
-            index += _count
+            index += initial_i + 1
 
         data = ".".join(buffer)
         return (index, data)
@@ -257,7 +256,7 @@ class DNSResponse(object):
         offset, = struct.unpack("!H", slice)
         offset &= 0x3fff
 
-        label = self.parse_label(data, index - offset)
+        _index, label = self.parse_label(data, offset)
 
         return (index + 2, label)
 
