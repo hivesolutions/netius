@@ -341,7 +341,7 @@ class DatagramServer(Server):
     def on_error(self, _socket):
         pass
 
-    def on_data(self, connection, data):
+    def on_data(self, address, data):
         pass
 
     def ensure_write(self):
