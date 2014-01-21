@@ -49,9 +49,13 @@ class SMTPConnection(netius.Connection):
         print data
         return self.parser.parse(data)
 
+    def send_smtp(self, code, message, delay = False, callback = None):
+        data = "%d %s" % (code, message)
+        self.send(data, delay = delay, callback = callback)
+
     def hello(self):
-        message = "220 %s ESMTP %s" % (self.host, netius.NAME)
-        self.send(message)
+        message = "%s ESMTP %s" % (self.host, netius.NAME)
+        self.send_smtp(220, message)
 
 class SMTPServer(netius.StreamServer):
 
@@ -60,6 +64,10 @@ class SMTPServer(netius.StreamServer):
 
     def serve(self, port = 25, *args, **kwargs):
         netius.StreamServer.serve(self, port = port, *args, **kwargs)
+
+    def on_connection_c(self, connection):
+        netius.StreamServer.on_connection_c(self, connection)
+        connection.hello()
 
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
