@@ -40,6 +40,7 @@ import http
 import mjpg
 import ws
 import proxy
+import smtp
 import socks
 import wsgi
 
@@ -48,6 +49,7 @@ from echo import *
 from http import *
 from mjpg import *
 from proxy import *
+from smtp import *
 from socks import *
 from ws import *
 from wsgi import *
