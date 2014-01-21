@@ -55,13 +55,36 @@ DNS_IQUERY = 0x1
 
 DNS_STATUS = 0x2
 
+DNS_TYPES = dict(
+    A = 0x01,
+    NS = 0x02,
+    MD = 0x03,
+    MF = 0x04,
+    CNAME = 0x05,
+    SOA = 0x06,
+    MB = 0x07,
+    MG = 0x08,
+    MR = 0x09,
+    NULL = 0x0a,
+    WKS = 0x0b,
+    PTR = 0x0c,
+    HINFO = 0x0d,
+    MINFO = 0x0e,
+    MX = 0x0f,
+    TXT = 0x10,
+)
+
+DNS_CLASSES = dict(
+    IN = 0x01
+)
+
 class DNSRequest(object):
 
-    def __init__(self, name, type = "a", *args, **kwargs):
-        netius.Connection.__init__(self, *args, **kwargs)
-        self.id = self.generate_id()
+    def __init__(self, name, type = "a", cls = "in", *args, **kwargs):
+        self.id = self._generate_id()
         self.name = name
         self.type = type
+        self.cls = cls
 
     def request(self):
 
@@ -80,7 +103,7 @@ class DNSRequest(object):
         result.append(self.id)
         result.append(first_header)
         result.append(second_header)
-        result.append(0x0)
+        result.append(0x1)
         result.append(0x0)
         result.append(0x0)
         result.append(0x0)
@@ -88,27 +111,60 @@ class DNSRequest(object):
         data = struct.pack(format, *result)
         buffer.append(data)
 
+        query = self._query(
+            self.name,
+            type = self.type,
+            cls = self.cls
+        )
+        buffer.append(query)
+
         data = "".join(buffer)
 
         return data
 
-    def generate_id(self):
+    def _query(self, name, type = "a", cls = "in"):
+        type_i = DNS_TYPES.get(type.upper(), 0x00)
+        clsi = DNS_CLASSES.get(cls.upper(), 0x00)
+
+        format = "!HH"
+
+        data = self._lstring(name)
+        data += struct.pack(format, type_i, clsi)
+
+        return data
+
+    def _lstring(self, value):
+        buffer = []
+        format = "!B"
+
+        parts = value.split(".")
+        for part in parts:
+            part_l = len(part)
+            prefix = struct.pack("!B", part_l)
+            part_s = prefix + part
+            buffer.append(part_s)
+
+        buffer.append("\0")
+        data = "".join(buffer)
+        return data
+
+    def _generate_id(self):
         global IDENTIFIER
         IDENTIFIER = (IDENTIFIER + 1) & 0xffff
         return IDENTIFIER
 
 class DNSClient(netius.DatagramClient):
 
-    def query(self, name, type = "a", *args, **kwargs):
-        request = DNSRequest(name, type = type)
+    def query(self, name, type = "a", cls = "in", *args, **kwargs):
+        request = DNSRequest(name, type = type, cls = cls)
         data = request.request()
 
+        address = ("172.16.0.11", 53)
+        self.send(data, address)
 
-
-
-#    def on_data(self, connection, data):
-#        netius.Client.on_data(self, connection, data)
-#        connection.parse(data)
+    def on_data(self, address, data):
+        netius.DatagramClient.on_data(self, address, data)
+        print data
 
 if __name__ == "__main__":
     def handler(): pass
