@@ -74,31 +74,27 @@ class SMTPConnection(netius.Connection):
         self.send(data, delay = delay, callback = callback)
 
     def ready(self):
-        if not self.state == INTIAL_STATE:
-            raise netius.ParserError("Invalid state")
+        self.assert_s(INTIAL_STATE)
         self.state = HELLO_STATE
         message = "%s ESMTP %s" % (self.host, netius.NAME)
         self.send_smtp(220, message)
 
     def hello(self, host):
-        if not self.state == HELLO_STATE:
-            raise netius.ParserError("Invalid state")
+        self.assert_s(HELLO_STATE)
         self.state = HEADER_STATE
         self.chost = host
         message = "Hello %s, I am glad to meet you" % host
         self.send_smtp(250, message)
 
     def end_data(self):
-        if not self.state == HEADER_STATE:
-            raise netius.ParserError("Invalid state")
+        self.assert_s(HEADER_STATE)
         self.owner.on_header_smtp(self.from_l, self.to_l)
         self.state = DATA_STATE
         message = "End data with <CR><LF>.<CR><LF>"
         self.send_smtp(354, message)
 
     def queued(self, index = -1):
-        if not self.state == DATA_STATE:
-            raise netius.ParserError("Invalid state")
+        self.assert_s(DATA_STATE)
         self.owner.on_message_smtp()
         self.state = HEADER_STATE
         message = "Ok: queued as %d" % index
@@ -189,6 +185,10 @@ class SMTPConnection(netius.Connection):
 
     def on_quit(self, message):
         self.bye()
+
+    def assert_s(self, expected):
+        if self.state == expected: return
+        raise netius.ParserError("Invalid state")
 
 class SMTPServer(netius.StreamServer):
 

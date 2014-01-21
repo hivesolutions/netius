@@ -103,39 +103,38 @@ class SMTPConnection(netius.Connection):
             self.quit()
 
     def helo(self, host):
-        if not self.state == HELLO_STATE:
-            raise netius.ParserError("Invalid state")
+        self.assert_s(HELLO_STATE)
         self.state = FROM_STATE
         message = host
         self.send_smtp("HELO", message)
 
     def mail(self, value):
-        if not self.state == FROM_STATE:
-            raise netius.ParserError("Invalid state")
+        self.assert_s(FROM_STATE)
         self.state = TO_STATE
         message = "FROM:<%s>" % value
         self.send_smtp("MAIL", message)
 
     def rcpt(self, value, final = True):
-        if not self.state == TO_STATE:
-            raise netius.ParserError("Invalid state")
+        self.assert_s(TO_STATE)
         if final: self.state = DATA_STATE
         message = "TO:<%s>" % value
         self.send_smtp("RCPT", message)
 
     def data(self):
-        if not self.state == DATA_STATE:
-            raise netius.ParserError("Invalid state")
+        self.assert_s(DATA_STATE)
         self.state = CONTENTS_STATE
         message = ""
         self.send_smtp("DATA", message)
 
     def quit(self):
-        if not self.state == QUIT_STATE:
-            raise netius.ParserError("Invalid state")
+        self.assert_s(QUIT_STATE)
         self.state = FINAL_STATE
         message = ""
         self.send_smtp("QUIT", message)
+
+    def assert_s(self, expected):
+        if self.state == expected: return
+        raise netius.ParserError("Invalid state")
 
 class SMTPClient(netius.Client):
 
