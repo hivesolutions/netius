@@ -49,6 +49,8 @@ DATA_STATE = 4
 
 CONTENTS_STATE = 5
 
+QUIT_STATE = 6
+
 class SMTPConnection(netius.Connection):
 
     def __init__(self, *args, **kwargs):
@@ -94,6 +96,9 @@ class SMTPConnection(netius.Connection):
         elif self.state == CONTENTS_STATE:
             self.send(self.contents)
             self.send("\r\n.\r\n")
+            self.state = QUIT_STATE
+        elif self.state == QUIT_STATE:
+            self.quit()
 
     def helo(self, host):
         if not self.state == HELLO_STATE:
@@ -122,6 +127,13 @@ class SMTPConnection(netius.Connection):
         self.state = CONTENTS_STATE
         message = ""
         self.send_smtp("DATA", message)
+
+    def quit(self):
+        if not self.state == QUIT_STATE:
+            raise netius.ParserError("Invalid state")
+        self.state = HELLO_STATE
+        message = ""
+        self.send_smtp("QUIT", message)
 
 class SMTPClient(netius.Client):
 
