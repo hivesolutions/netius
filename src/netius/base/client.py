@@ -217,8 +217,6 @@ class DatagramClient(Client):
         self.unsub_read(self.socket)
 
     def send(self, data, address, delay = False, callback = None):
-        self.ensure_socket()
-
         data_l = len(data)
 
         if callback: data = (data, callback)
@@ -303,6 +301,7 @@ class DatagramClient(Client):
         pending for the current connection's socket.
         """
 
+        self.ensure_socket()
         self.writes((self.socket,), state = False)
 
 class StreamClient(Client):
