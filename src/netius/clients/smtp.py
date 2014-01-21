@@ -157,5 +157,13 @@ class SMTPClient(netius.Client):
         )
 
 if __name__ == "__main__":
+    import email.mime.text
+
+    mime = email.mime.text.MIMEText("Hello World")
+    mime["Subject"] = "The contents of a message"
+    mime["From"] = "joamag@localhost.com"
+    mime["To"] = "joamag@gmail.com.com"
+    contents = mime.as_string()
+
     smtp_client = SMTPClient()
-    smtp_client.message(["joamag@gmail.com"], ["joamag@gmail.com"], "Hello World")
+    smtp_client.message(["joamag@localhost.com"], ["joamag@gmail.com"], contents)
