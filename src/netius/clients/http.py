@@ -155,7 +155,7 @@ class HTTPConnection(netius.Connection):
         if not "host" in headers:
             headers["host"] = host_s
 
-class HTTPClient(netius.Client):
+class HTTPClient(netius.StreamClient):
     """
     Simple test of an http client, supports a series of basic
     operations and makes use of the http parser from netius.
@@ -166,7 +166,7 @@ class HTTPClient(netius.Client):
     """
 
     def __init__(self, auto_release = True, auto_close = False, *args, **kwargs):
-        netius.Client.__init__(self, *args, **kwargs)
+        netius.StreamClient.__init__(self, *args, **kwargs)
         self.auto_release = auto_release
         self.auto_close = auto_close
 
@@ -437,25 +437,25 @@ class HTTPClient(netius.Client):
         return connection
 
     def on_connect(self, connection):
-        netius.Client.on_connect(self, connection)
+        netius.StreamClient.on_connect(self, connection)
         self.trigger("connect", self, connection)
 
     def on_acquire(self, connection):
-        netius.Client.on_acquire(self, connection)
+        netius.StreamClient.on_acquire(self, connection)
         self.trigger("acquire", self, connection)
         connection.send_request()
 
     def on_release(self, connection):
-        netius.Client.on_release(self, connection)
+        netius.StreamClient.on_release(self, connection)
         self.trigger("release", self, connection)
         connection.parser.clear()
 
     def on_data(self, connection, data):
-        netius.Client.on_data(self, connection, data)
+        netius.StreamClient.on_data(self, connection, data)
         connection.parse(data)
 
     def on_connection_d(self, connection):
-        netius.Client.on_connection_d(self, connection)
+        netius.StreamClient.on_connection_d(self, connection)
         self.trigger("close", self, connection)
         self.remove_c(connection)
 

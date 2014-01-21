@@ -54,9 +54,6 @@ class Client(Base):
         Base.__init__(self, *args, **kwargs)
         self.receive_buffer = kwargs.get("receive_buffer", BUFFER_SIZE)
         self.send_buffer = kwargs.get("send_buffer", BUFFER_SIZE)
-        self.free_map = {}
-        self.pendings = []
-        self._pending_lock = threading.RLock()
 
         if thread: BaseThread(self).start()
 
@@ -70,12 +67,6 @@ class Client(Base):
     def cleanup_s(cls):
         if not cls._client: return
         cls._client.close()
-
-    def ticks(self):
-        self.set_state(STATE_TICK)
-        self._lid = (self._lid + 1) % 2147483647
-        if self.pendings: self._connects()
-        self._delays()
 
     def reads(self, reads, state = True):
         if state: self.set_state(STATE_READ)
@@ -91,6 +82,53 @@ class Client(Base):
         if state: self.set_state(STATE_ERRROR)
         for error in errors:
             self.on_error(error)
+
+class DatagramClient(Client):
+    pass
+
+
+
+
+    def send_to(self, host, port):
+        if not host: raise errors.NetiusError("Invalid host for connect operation")
+        if not port: raise errors.NetiusError("Invalid port for connect operation")
+
+        _socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        _socket.setblocking(0)
+
+        _socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        if self.receive_buffer: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_RCVBUF,
+            self.receive_buffer
+        )
+        if self.send_buffer: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_SNDBUF,
+            self.send_buffer
+        )
+        self._socket_keepalive(_socket)
+
+        self.sub_all(_socket)
+
+        return _socket
+
+
+class StreamClient(Client):
+
+    def __init__(self, *args, **kwargs):
+        Client.__init__(self, *args, **kwargs)
+        self.pendings = []
+        self.free_map = {}
+        self._pending_lock = threading.RLock()
+
+    def ticks(self):
+        self.set_state(STATE_TICK)
+        self._lid = (self._lid + 1) % 2147483647
+        if self.pendings: self._connects()
+        self._delays()
 
     def acquire_c(
         self,

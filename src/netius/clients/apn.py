@@ -90,7 +90,7 @@ class APNConnection(netius.Connection):
         self.cer_file = cer_file
         self._close = _close
 
-class APNClient(netius.Client):
+class APNClient(netius.StreamClient):
 
     def message(self, token, *args, **kwargs):
         # unpacks the various keyword based arguments fro the
@@ -134,7 +134,7 @@ class APNClient(netius.Client):
         )
 
     def on_connect(self, connection):
-        netius.Client.on_connect(self, connection)
+        netius.StreamClient.on_connect(self, connection)
 
         # creates the callback handler that closes the current
         # client infra-structure after sending
@@ -180,7 +180,7 @@ class APNClient(netius.Client):
         connection.send(message, callback = callback)
 
     def on_connection_d(self, connection):
-        netius.Client.on_connection_d(self, connection)
+        netius.StreamClient.on_connection_d(self, connection)
         if self.connections: return
         self.close()
 

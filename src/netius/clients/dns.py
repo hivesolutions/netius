@@ -37,32 +37,83 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import struct
+
 import netius
 
-class DNSConnection(netius.Connection):
+IDENTIFIER = 0x0000
+""" The global class identifier value that is going to
+be used when assigning new values to the request """
 
-    def __init__(self, *args, **kwargs):
+DNS_QUERY = 0x0
+
+DNS_RESPONSE = 0x1
+
+DNS_SQUERY = 0x0
+
+DNS_IQUERY = 0x1
+
+DNS_STATUS = 0x2
+
+class DNSRequest(object):
+
+    def __init__(self, name, type = "a", *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
+        self.id = self.generate_id()
+        self.name = name
+        self.type = type
 
-class DNSClient(netius.Client):
+    def request(self):
+
+        format = "!HBBHHHH"
+
+        result = []
+        buffer = []
+
+        first_header = 0x0
+
+        first_header += DNS_QUERY
+        first_header += DNS_SQUERY << 1
+
+        second_header = 0x0
+
+        result.append(self.id)
+        result.append(first_header)
+        result.append(second_header)
+        result.append(0x0)
+        result.append(0x0)
+        result.append(0x0)
+        result.append(0x0)
+
+        data = struct.pack(format, *result)
+        buffer.append(data)
+
+        data = "".join(buffer)
+
+        return data
+
+    def generate_id(self):
+        global IDENTIFIER
+        IDENTIFIER = (IDENTIFIER + 1) & 0xffff
+        return IDENTIFIER
+
+class DNSClient(netius.DatagramClient):
 
     def query(self, name, type = "a", *args, **kwargs):
-        pass
+        request = DNSRequest(name, type = type)
+        data = request.request()
 
-    def on_data(self, connection, data):
-        netius.Client.on_data(self, connection, data)
-        connection.parse(data)
 
-    def new_connection(self, socket, address, ssl = False):
-        return DNSConnection(
-            owner = self,
-            socket = socket,
-            address = address,
-            ssl = ssl
-        )
+
+
+#    def on_data(self, connection, data):
+#        netius.Client.on_data(self, connection, data)
+#        connection.parse(data)
 
 if __name__ == "__main__":
     def handler(): pass
 
     smtp_client = DNSClient()
-    smtp_client.query("gmail.com", type = "mx", callback = "tobias")
+    smtp_client.query(
+        "gmail.com", type = "mx", callback = handler
+    )

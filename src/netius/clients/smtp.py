@@ -202,7 +202,7 @@ class SMTPConnection(netius.Connection):
         if self.state == expected: return
         raise netius.ParserError("Invalid state")
 
-class SMTPClient(netius.Client):
+class SMTPClient(netius.StreamClient):
 
     def message(self, froms, tos, contents, *args, **kwargs):
         # @todo: this must be retrieved using an async based
@@ -218,14 +218,14 @@ class SMTPClient(netius.Client):
         return connection
 
     def on_connect(self, connection):
-        netius.Client.on_connect(self, connection)
+        netius.StreamClient.on_connect(self, connection)
 
     def on_data(self, connection, data):
-        netius.Client.on_data(self, connection, data)
+        netius.StreamClient.on_data(self, connection, data)
         connection.parse(data)
 
     def on_connection_d(self, connection):
-        netius.Client.on_connection_d(self, connection)
+        netius.StreamClient.on_connection_d(self, connection)
         if self.connections: return
         self.close()
 

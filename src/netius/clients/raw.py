@@ -39,16 +39,16 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import netius
 
-class RawClient(netius.Client):
+class RawClient(netius.StreamClient):
 
     def on_connect(self, connection):
-        netius.Client.on_connect(self, connection)
+        netius.StreamClient.on_connect(self, connection)
         self.trigger("connect", self, connection)
 
     def on_data(self, connection, data):
-        netius.Client.on_data(self, connection, data)
+        netius.StreamClient.on_data(self, connection, data)
         self.trigger("data", self, connection, data)
 
     def on_connection_d(self, connection):
-        netius.Client.on_connection_d(self, connection)
+        netius.StreamClient.on_connection_d(self, connection)
         self.trigger("close", self, connection)
