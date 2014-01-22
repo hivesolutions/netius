@@ -138,12 +138,12 @@ class DNSRequest(object):
 
         format = "!HH"
 
-        data = self._lstring(name)
+        data = self._label(name)
         data += struct.pack(format, type_i, clsi)
 
         return data
 
-    def _lstring(self, value):
+    def _label(self, value):
         buffer = []
         format = "!B"
 
@@ -238,8 +238,8 @@ class DNSResponse(object):
 
             if is_pointer:
                 index, _data = self.parse_pointer(data, index)
-                data = ".".join(buffer) if buffer else ""
-                data += _data
+                buffer.append(_data)
+                data = ".".join(buffer)
                 return (index, data)
 
             _data = data[index + 1:index + initial_i + 1]
@@ -277,11 +277,11 @@ class DNSResponse(object):
 
 class DNSClient(netius.DatagramClient):
 
-    def query(self, name, type = "a", cls = "in", *args, **kwargs):
+    def query(self, name, type = "a", cls = "in"):
         request = DNSRequest(name, type = type, cls = cls)
         data = request.request()
 
-        address = ("172.16.0.11", 53)
+        address = ("8.8.8.8", 53)
         self.send(data, address)
 
     def on_data(self, address, data):
@@ -293,6 +293,4 @@ if __name__ == "__main__":
     def handler(): pass
 
     smtp_client = DNSClient()
-    smtp_client.query(
-        "gmail.com", type = "mx", callback = handler
-    )
+    smtp_client.query("gmail.com", type = "mx", cls = "in")
