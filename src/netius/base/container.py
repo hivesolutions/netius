@@ -54,7 +54,10 @@ class Container(Base):
         # so that the requested environment (host, port , etc.) is used note
         # that event the same logger is used for the container (logic propagation)
         self.owner = owner
+        self.poll_c = owner.poll_c
         self.poll = owner.poll
+        self.poll_name = owner.poll_name
+        self.poll_timeout = owner.poll_timeout
         self.logger = owner.logger
         self._loaded = True
 
