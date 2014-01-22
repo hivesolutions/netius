@@ -39,7 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import struct
 
-import netius
+import netius.common
 
 IDENTIFIER = 0x0000
 """ The global class identifier value that is going to
@@ -213,12 +213,26 @@ class DNSResponse(object):
         index, type = self.parse_short(data, index)
         index, cls = self.parse_short(data, index)
         index, ttl = self.parse_long(data, index)
-        index, size = self.parse_short(data, index)
-        payload = data[index:index + size]
-        index += size
+        index, _size = self.parse_short(data, index)
         type_s = DNS_TYPES_R.get(type, "undefined")
         cls_s = DNS_CLASSES_R.get(cls, "undefined")
+        index, payload = self.parse_payload(data, index, type_s)
         return (index, (name, type_s, cls_s, ttl, payload))
+
+    def parse_payload(self, data, index, type_s):
+        type_s = type_s.lower()
+        method_name = "parse_" + type_s
+        method = getattr(self, method_name)
+        return method(data, index)
+
+    def parse_a(self, data, index):
+        index, address = self.parse_ip4(data, index)
+        return (index, address)
+
+    def parse_mx(self, data, index):
+        index, preference = self.parse_short(data, index)
+        index, address = self.parse_label(data, index)
+        return (index, (preference, address))
 
     def parse_ns(self, data, index):
         pass
@@ -259,6 +273,11 @@ class DNSResponse(object):
         _index, label = self.parse_label(data, offset)
 
         return (index + 2, label)
+
+    def parse_ip4(self, data, index):
+        index, long = self.parse_long(data, index)
+        address = netius.common.addr_to_ip4(long)
+        return (index, address)
 
     def parse_byte(self, data, index):
         _data = data[index:index + 1]
