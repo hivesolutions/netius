@@ -250,12 +250,14 @@ class HTTPClient(netius.StreamClient):
         version = "HTTP/1.1",
         connection = None,
         async = True,
+        daemon = True,
         callback = None,
         on_headers = None,
         on_data = None
     ):
         http_client = async and cls.get_client_s(
-            thread = True
+            thread = True,
+            daemon = daemon
         ) or HTTPClient(
             thread = False,
             auto_close = True

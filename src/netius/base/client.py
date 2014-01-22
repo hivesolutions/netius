@@ -53,12 +53,12 @@ class Client(Base):
     system from exiting correctly, in order to prevent that
     the cleanup method should be called """
 
-    def __init__(self, thread = True, *args, **kwargs):
+    def __init__(self, thread = True, daemon = False, *args, **kwargs):
         Base.__init__(self, *args, **kwargs)
         self.receive_buffer = kwargs.get("receive_buffer", BUFFER_SIZE)
         self.send_buffer = kwargs.get("send_buffer", BUFFER_SIZE)
 
-        if thread: BaseThread(self).start()
+        if thread: BaseThread(self, daemon = daemon).start()
 
     @classmethod
     def get_client_s(cls, *args, **kwargs):

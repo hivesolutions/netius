@@ -300,12 +300,20 @@ class DNSClient(netius.DatagramClient):
         self.requests = dict()
 
     @classmethod
-    def query_s(cls, name, type = "a", cls_ = "in", ns = None, callback = None):
+    def query_s(
+        cls,
+        name,
+        type = "a",
+        cls_ = "in",
+        ns = None,
+        callback = None,
+        daemon = True
+    ):
         # retrieves the reference to the global static dns client that
         # is going to be used and the performs the query operation in it
         # so that the proper network request is sent and then the callback
         # function is called with the proper response object
-        dns_client = cls.get_client_s(thread = True,)
+        dns_client = cls.get_client_s(thread = True, daemon = daemon)
         dns_client.query(
             name,
             type = type,
@@ -389,4 +397,12 @@ if __name__ == "__main__":
         address = extra[1]
         print address
 
-    DNSClient.query_s("gmail.com", type = "mx", callback = handler)
+    # runs the static version of a dns query, note that
+    # the daemon flag is unset so that the global client
+    # runs in foreground avoiding the exit of the process
+    DNSClient.query_s(
+        "gmail.com",
+        type = "mx",
+        callback = handler,
+        daemon = False
+    )
