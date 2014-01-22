@@ -206,7 +206,16 @@ class SMTPConnection(netius.Connection):
 
 class SMTPClient(netius.StreamClient):
 
-    def message(self, froms, tos, contents, *args, **kwargs):
+    def __init__(self, auto_close = False, *args, **kwargs):
+        netius.StreamClient.__init__(self, *args, **kwargs)
+        self.auto_close = auto_close
+
+    @classmethod
+    def message_s(cls, froms, tos, contents, daemon = True):
+        smtp_client = cls.get_client_s(thread = True, daemon = daemon)
+        smtp_client.message(froms, tos, contents)
+
+    def message(self, froms, tos, contents):
 
         def handler(response):
             # retrieves the first answer (probably the most accurate)
@@ -247,6 +256,7 @@ class SMTPClient(netius.StreamClient):
 
     def on_connection_d(self, connection):
         netius.StreamClient.on_connection_d(self, connection)
+        if not self.auto_close: return
         if self.connections: return
         self.close()
 
@@ -265,10 +275,9 @@ if __name__ == "__main__":
     receiver = "joamag@gmail.com"
 
     mime = email.mime.text.MIMEText("Hello World")
-    mime["Subject"] = "The contents of a message"
+    mime["Subject"] = "Hello World"
     mime["From"] = sender
     mime["To"] = receiver
     contents = mime.as_string()
 
-    smtp_client = SMTPClient()
-    smtp_client.message([sender], [receiver], contents)
+    SMTPClient.message_s([sender], [receiver], contents)
