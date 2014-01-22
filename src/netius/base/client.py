@@ -58,6 +58,9 @@ class Client(Base):
         self.receive_buffer = kwargs.get("receive_buffer", BUFFER_SIZE)
         self.send_buffer = kwargs.get("send_buffer", BUFFER_SIZE)
 
+        # in case the thread flag is set a new thread must be constructed
+        # for the running of the client's main loop then, these thread
+        # may or may not be constructed using a daemon approach
         if thread: BaseThread(self, daemon = daemon).start()
 
     @classmethod
