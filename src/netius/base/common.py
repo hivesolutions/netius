@@ -233,7 +233,8 @@ class Base(observer.Observable):
         self.level = kwargs.get("level", logging.DEBUG)
         self.tid = None
         self.logger = None
-        self.poll = kwargs.get("poll", poll)()
+        self.poll_c = kwargs.get("poll", poll)
+        self.poll = self.poll_c()
         self.poll_name = self.poll.name()
         self.poll_timeout = kwargs.get("poll_timeout", POLL_TIMEOUT)
         self.connections = []
@@ -600,11 +601,22 @@ class Base(observer.Observable):
 
     def build_poll(self):
         # verifies if the currently set polling mechanism is open in
-        # case it's no need to re-build the polling mechanism, otherwise
-        # rebuild the polling mechanism with the current name and returns
-        # the new poll object to the caller method (as expected)
+        # case it's ther's no need to re-build the polling mechanism
+        # otherwise rebuilds the polling mechanism with the current
+        # name and returns the new poll object to the caller method
         if self.poll and self.poll.is_open(): return self.poll
-        self.poll = Base.test_poll(preferred = self.poll_name)()
+
+        # runs the testing of the poll again and verifies if the polling
+        # class has changed in case it did not returns the current poll
+        # instance as expected by the current infra-structure
+        poll_c = Base.test_poll(preferred = self.poll_name)
+        if poll_c == self.poll_c: return self.poll
+
+        # updates the polling class with the new value and re-creates
+        # the polling instance with the new polling class returning this
+        # new value to the caller method
+        self.poll_c = poll_c
+        self.poll = self.poll_c()
         return self.poll
 
     def get_id(self):
