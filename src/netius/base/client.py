@@ -48,7 +48,10 @@ class Client(Base):
 
     _client = None
     """ The global static client meant to be reused by the
-    various static clients that may be created """
+    various static clients that may be created, this client
+    may leak creating blocking threads that will prevent the
+    system from exiting correctly, in order to prevent that
+    the cleanup method should be called """
 
     def __init__(self, thread = True, *args, **kwargs):
         Base.__init__(self, *args, **kwargs)

@@ -301,11 +301,12 @@ class DNSClient(netius.DatagramClient):
 
     @classmethod
     def query_s(cls, name, type = "a", cls_ = "in", ns = None, callback = None):
-        http_client = cls.get_client_s(
-            thread = True
-        )
-
-        http_client.query(
+        # retrieves the reference to the global static dns client that
+        # is going to be used and the performs the query operation in it
+        # so that the proper network request is sent and then the callback
+        # function is called with the proper response object
+        dns_client = cls.get_client_s(thread = True,)
+        dns_client.query(
             name,
             type = type,
             cls = cls_,
@@ -374,6 +375,18 @@ class DNSClient(netius.DatagramClient):
 
 if __name__ == "__main__":
     def handler(response):
-        print response.answers
+        # runs the final cleanup operation in the dns
+        # client so that the system is able to exit
+        # without this the system would be stuck in
+        # the base system thread
+        DNSClient.cleanup_s()
+
+        # unpacks the complete set of contents from
+        # the first answer so that only the address
+        # of the answer is available, then prints it
+        first = response.answers[0]
+        extra = first[4]
+        address = extra[1]
+        print address
 
     DNSClient.query_s("gmail.com", type = "mx", callback = handler)
