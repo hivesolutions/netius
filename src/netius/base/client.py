@@ -37,12 +37,12 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+from common import * #@UnusedWildImport
+
 BUFFER_SIZE = None
 """ The size of the buffer that is going to be used in the
 sending and receiving of packets from the client, this value
 may influence performance by a large factor """
-
-from common import * #@UnusedWildImport
 
 class Client(Base):
 

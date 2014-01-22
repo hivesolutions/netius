@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+from common import * #@UnusedWildImport
+
 BUFFER_SIZE_S = None
 """ The size of both the send and receive buffers for
 the socket representing the server, this socket is
@@ -47,8 +49,6 @@ BUFFER_SIZE_C = None
 is going to be set on the on the sockets created by
 the server (client sockets), this is critical for a
 good performance of the server (large value) """
-
-from common import * #@UnusedWildImport
 
 class Server(Base):
 
