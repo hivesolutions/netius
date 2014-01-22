@@ -39,6 +39,8 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import netius.common
 
+import dns
+
 HELLO_STATE = 1
 
 FROM_STATE = 2
@@ -205,17 +207,36 @@ class SMTPConnection(netius.Connection):
 class SMTPClient(netius.StreamClient):
 
     def message(self, froms, tos, contents, *args, **kwargs):
-        # @todo: this must be retrieved using an async based
-        # dns client that should be built latter on :)
-        host = "gmail-smtp-in.l.google.com"
-        port = 25
 
-        # establishes the connection to the target host and port
-        # and using the provided key and certificate files an then
-        # sets the smtp information in the current connection
-        connection = self.connect(host, port)
-        connection.set_smtp(froms, tos, contents)
-        return connection
+        def handler(response):
+            # retrieves the first answer (probably the most accurate)
+            # and then unpacks it until the mx address is retrieved
+            first = response.answers[0]
+            extra = first[4]
+            address = extra[1]
+
+            # sets the proper address (host) and port values that are
+            # going to be used to establish the connection
+            host = address
+            port = 25
+
+            # establishes the connection to the target host and port
+            # and using the provided key and certificate files an then
+            # sets the smtp information in the current connection
+            connection = self.connect(host, port)
+            connection.set_smtp(froms, tos, contents)
+            return connection
+
+        # retrieves the first target of the complete list of
+        # to targets and then splits the email value so that
+        # both the base name and the host are retrieved
+        first = tos[0]
+        _name, host = first.split("@", 1)
+
+        # runs the dns query to be able to retrieve the proper
+        # mail exchange host for the target email address and then
+        # sets the proper callback for sending
+        dns.DNSClient.query_s(host, type = "mx", callback = handler)
 
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
