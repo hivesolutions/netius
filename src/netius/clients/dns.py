@@ -89,11 +89,12 @@ DNS_CLASSES_R = dict(zip(DNS_TYPES.values(), DNS_TYPES.keys()))
 
 class DNSRequest(object):
 
-    def __init__(self, name, type = "a", cls = "in"):
+    def __init__(self, name, type = "a", cls = "in", callback = None):
         self.id = self._generate_id()
         self.name = name
         self.type = type
         self.cls = cls
+        self.callback = callback
 
     def request(self):
 
@@ -198,8 +199,6 @@ class DNSResponse(object):
             index, answer = self.parse_an(self.data, index)
             self.answers.append(answer)
 
-        print self.answers
-
     def parse_qd(self, data, index):
         index, name = self.parse_label(data, index)
         index, type = self.parse_short(data, index)
@@ -296,20 +295,85 @@ class DNSResponse(object):
 
 class DNSClient(netius.DatagramClient):
 
-    def query(self, name, type = "a", cls = "in"):
-        request = DNSRequest(name, type = type, cls = cls)
+    def __init__(self, *args, **kwargs):
+        netius.DatagramClient.__init__(self, *args, **kwargs)
+        self.requests = dict()
+
+    @classmethod
+    def query_s(cls, name, type = "a", cls_ = "in", ns = None, callback = None):
+        http_client = cls.get_client_s(
+            thread = True
+        )
+
+        http_client.query(
+            name,
+            type = type,
+            cls = cls_,
+            ns = ns,
+            callback = callback
+        )
+
+    def query(self, name, type = "a", cls = "in", ns = None, callback = None):
+        # verifies if a target name server was specified for the query
+        # in case it was not uses the default (globally provided) value
+        # that may be used for generic queries assuming internet access
+        ns = ns or "8.8.8.8"
+
+        # creates a new dns request object describing the query that was
+        # just sent and then generates the request stream code that is
+        # going to be used for sending the request through network
+        request = DNSRequest(
+            name,
+            type = type,
+            cls = cls,
+            callback = callback
+        )
         data = request.request()
 
-        address = ("8.8.8.8", 53)
+        # adds the current request object to the list of requests
+        # that are pending a valid response, a garbage collector
+        # system should be able to erase this request from the
+        # pending list in case a timeout value has passed
+        self.requests[request.id] = request
+
+        # creates the final address assuming default port in the
+        # name server and then send the contents of the dns request
+        address = (ns, 53)
         self.send(data, address)
 
     def on_data(self, address, data):
         netius.DatagramClient.on_data(self, address, data)
+
+        # create the dns response with the provided data stream and
+        # runs the parse operation in it so that the response becomes
+        # populated with the proper contents, this operation is risky as
+        # it may fail in case the message is malformed
         response = DNSResponse(data)
         response.parse()
 
-if __name__ == "__main__":
-    def handler(): pass
+        # calls the dns specific data handler with the proper response
+        # object populated with the response from the dns server
+        self.on_data_dns(address, response)
 
-    smtp_client = DNSClient()
-    smtp_client.query("gmail.com", type = "mx", cls = "in")
+    def on_data_dns(self, address, response):
+        # tries to retrieve the request associated with the current
+        # response and in case none is found returns immediately as
+        # there's nothing remaining to be done
+        request = self.requests.get(response.id, None)
+        if not request: return
+
+        # removes the pending request from the map in order to avoid
+        # any memory leak in the request response relations
+        del self.requests[response.id]
+
+        # in case no callback is not defined for the request returns
+        # immediately as there's nothing else remaining to be done,
+        # otherwise calls the proper callback with the response
+        if not request.callback: return
+        request.callback(response)
+
+if __name__ == "__main__":
+    def handler(response):
+        print response.answers
+
+    DNSClient.query_s("gmail.com", type = "mx", callback = handler)
