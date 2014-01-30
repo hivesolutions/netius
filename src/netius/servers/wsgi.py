@@ -71,6 +71,13 @@ class WSGIServer(http.HTTPServer):
         query = parser.get_query()
         path_info = path[self.mount_l:]
 
+        # retrieves a possible forwarded protocol value from the request
+        # headers and calculates the appropriate (final scheme value)
+        # taking the proxy value into account
+        forwarded_protocol = parser.headers.get("x-forwarded-proto", None)
+        scheme = "https" if connection.ssl else "http"
+        scheme = forwarded_protocol if forwarded_protocol else scheme
+
         # initializes the environment map (structure) with all the cgi based
         # variables that should enable the application to handle the request
         # and respond to it in accordance
@@ -90,7 +97,7 @@ class WSGIServer(http.HTTPServer):
         # to the wsgi specifications note that the message is retrieved
         # as a buffer to be able to handle the file specific operations
         environ["wsgi.version"] = (1, 0)
-        environ["wsgi.url_scheme"] = "https" if connection.ssl else "http"
+        environ["wsgi.url_scheme"] = scheme
         environ["wsgi.input"] = parser.get_message_b()
         environ["wsgi.errors"] = sys.stderr
         environ["wsgi.multithread"] = False
