@@ -53,6 +53,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         path = parser.path_s
         headers = parser.headers
         version_s = parser.version_s
+        is_secure = connection.ssl
+        protocol = "https" if is_secure else "http"
 
         host = headers.get("host", None)
         for _host, _prefix in self.hosts.iteritems():
@@ -76,6 +78,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             )
             return
 
+        # updates the various headers that are relates with the reverse
+        # proxy operation this is required so that the request gets
+        # properly handled by the reverse server, otherwise some problems
+        # would occur in the operation of handling the request
+        headers["x-forwarded-proto"] = protocol
+
         # verifies if the current connection contains already contains
         # a proxy connection if that's the case that must be unset from the
         # connection and from the connection map internal structures at
@@ -91,7 +99,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         _connection = self.http_client.method(
             method,
             url,
-            headers = parser.headers,
+            headers = headers,
             data = parser.get_message(),
             version = version_s,
             connection = proxy_c
