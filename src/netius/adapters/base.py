@@ -71,6 +71,20 @@ class BaseAdapter(object):
         finally:
             file.close()
 
+    def size(self, key):
+        return 0
+
+    def sizes(self):
+        list = self.list()
+        sizes = [self.size(key) for key in list]
+        return sizes
+
+    def total(self):
+        total = 0
+        list = self.list()
+        for key in list: total += self.size(key)
+        return total
+
     def reserve(self, owner = "nobody"):
         return self.set("", owner = owner)
 

@@ -65,6 +65,10 @@ class FsAdapter(base.BaseAdapter):
         file_path = os.path.join(self.base_path, key)
         os.remove(file_path)
 
+    def size(self, key):
+        file_path = os.path.join(self.base_path, key)
+        return os.path.getsize(file_path)
+
     def count(self):
         files = os.listdir(self.base_path)
         return len(files)

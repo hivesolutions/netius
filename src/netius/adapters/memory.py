@@ -61,15 +61,19 @@ class MemoryAdapter(base.BaseAdapter):
         del self.map[key]
 
     def append(self, key, value):
-        _value = self.map.get(key, "")
+        _value = self.map[key]
         _value += value
         self.map[key] = _value
 
     def truncate(self, key, count):
-        _value = self.map.get(key, "")
+        _value = self.map[key]
         offset = count * -1
         _value = _value[:offset]
         self.map[key] = _value
+
+    def size(self, key):
+        _value = self.map[key]
+        return len(_value)
 
     def count(self):
         return len(self.map)
