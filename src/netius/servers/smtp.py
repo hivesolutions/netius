@@ -51,6 +51,10 @@ TERMINATION_SIZE = 5
 """ The size of the termination sequence of the smtp message
 this is going to be used in some parsing calculus """
 
+CAPABILITIES = (
+    "STARTTLS",
+)
+
 class SMTPConnection(netius.Connection):
 
     def __init__(self, host = "smtp.localhost", *args, **kwargs):
@@ -70,9 +74,36 @@ class SMTPConnection(netius.Connection):
         if self.state == DATA_STATE: self.on_raw_data(data)
         else: return self.parser.parse(data)
 
-    def send_smtp(self, code, message = "", delay = False, callback = None):
+    def send_smtp(self, code, message = "", lines = (), delay = False, callback = None):
+        if lines: self.send_smtp_lines(
+            code,
+            message = message,
+            lines = lines,
+            delay = delay,
+            callback = callback
+        )
+        else: self.send_smtp_base(
+            code,
+            message,
+            delay,
+            callback
+        )
+
+    def send_smtp_base(self, code, message = "", delay = False, callback = None):
         base = "%d %s" % (code, message)
         data = base + "\r\n"
+        self.send(data, delay = delay, callback = callback)
+        self.owner.debug(base)
+
+    def send_smtp_lines(self, code, message = "", lines = (), delay = False, callback = None):
+        lines = list(lines)
+        lines.insert(0, message)
+        body = lines[:-1]
+        tail = lines[-1]
+        base = "%d %s" % (code, message)
+        lines_s = ["%d-%s" % (code, line) for line in body]
+        lines_s.append("%d %s" % (code, tail))
+        data = "\r\n".join(lines_s) + "\r\n"
         self.send(data, delay = delay, callback = callback)
         self.owner.debug(base)
 
@@ -93,7 +124,7 @@ class SMTPConnection(netius.Connection):
         self.assert_s(HELO_STATE)
         self.chost = host
         message = "ehlo %s" % host
-        self.send_smtp(250, message)
+        self.send_smtp(250, message, lines = CAPABILITIES)
         self.state = HEADER_STATE
 
     def starttls(self):
