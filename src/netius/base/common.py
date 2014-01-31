@@ -839,14 +839,14 @@ class Base(observer.Observable):
             )
 
     def _ssl_upgrade(self, _socket, key_file = None, cer_file = None, server = True):
-        _socket = self._ssl_wrap(
+        socket_ssl = self._ssl_wrap(
             _socket,
             key_file = key_file,
             cer_file = cer_file,
             server = server
         )
-        self._ssl_handshake(_socket)
-        return _socket
+        self._ssl_handshake(socket_ssl)
+        return socket_ssl
 
     def _ssl_wrap(self, _socket, key_file = None, cer_file = None, server = True):
         dir_path = os.path.dirname(__file__)
@@ -864,8 +864,7 @@ class Base(observer.Observable):
             certfile = cer_file,
             server_side = server,
             ssl_version = ssl.PROTOCOL_SSLv23,
-            do_handshake_on_connect = False,
-            ciphers = "ALL"
+            do_handshake_on_connect = False
         )
         return socket_ssl
 
