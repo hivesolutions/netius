@@ -37,7 +37,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import os
 import uuid
 import hashlib
-import cStringIO
+import StringIO
 
 class BaseAdapter(object):
 
@@ -52,7 +52,7 @@ class BaseAdapter(object):
         return value
 
     def get_file(self, key, mode = "rb"):
-        return cStringIO.StringIO()
+        return StringIO.StringIO()
 
     def delete(self, key):
         pass
