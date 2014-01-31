@@ -67,9 +67,10 @@ FINAL_STATE = 11
 
 class SMTPConnection(netius.Connection):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, host = "smtp.localhost", *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
         self.parser = netius.common.SMTPParser(self)
+        self.host = host
         self.froms = None
         self.tos = None
         self.contents = None
@@ -200,11 +201,11 @@ class SMTPConnection(netius.Connection):
         self.call()
 
     def helo_t(self):
-        self.helo("relay.example.org")
+        self.helo(self.host)
         self.next_sequence()
 
     def ehlo_t(self):
-        self.ehlo("relay.example.org")
+        self.ehlo(self.host)
         self.next_sequence()
 
     def stls_t(self):
@@ -246,7 +247,7 @@ class SMTPConnection(netius.Connection):
     def quit_t(self):
         self.quit()
         self.next_sequence()
-    
+
     def close_t(self):
         self.close()
 
