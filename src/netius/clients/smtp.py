@@ -41,19 +41,25 @@ import netius.common
 
 import dns
 
-HELLO_STATE = 1
+HELO_STATE = 1
 
-FROM_STATE = 2
+EHLO_STATE = 2
 
-TO_STATE = 3
+STLS_STATE = 3
 
-DATA_STATE = 4
+UPGRADE_STATE = 4
 
-CONTENTS_STATE = 5
+FROM_STATE = 5
 
-QUIT_STATE = 6
+TO_STATE = 6
 
-FINAL_STATE = 7
+DATA_STATE = 7
+
+CONTENTS_STATE = 8
+
+QUIT_STATE = 9
+
+FINAL_STATE = 10
 
 class SMTPConnection(netius.Connection):
 
@@ -65,7 +71,7 @@ class SMTPConnection(netius.Connection):
         self.contents = None
         self.expected = None
         self.to_index = 0
-        self.state = HELLO_STATE
+        self.state = HELO_STATE
         self.sindex = 0
         self.sequence = ()
 
@@ -82,11 +88,14 @@ class SMTPConnection(netius.Connection):
 
         self.states = (
             self.helo_t,
+            self.ehlo_t,
+            self.stls_t,
+            self.upgrade_t,
             self.mail_t,
             self.rcpt_t,
-            self.data,
+            self.data_t,
             self.contents_t,
-            self.quit,
+            self.quit_t,
             self.pass_t
         )
         self.state_l = len(self.states)
@@ -98,7 +107,22 @@ class SMTPConnection(netius.Connection):
 
     def set_message_seq(self):
         sequence = (
-            HELLO_STATE,
+            HELO_STATE,
+            FROM_STATE,
+            TO_STATE,
+            DATA_STATE,
+            CONTENTS_STATE,
+            QUIT_STATE,
+            FINAL_STATE
+        )
+        self.set_sequence(sequence)
+
+    def set_message_stls_seq(self):
+        sequence = (
+            HELO_STATE,
+            STLS_STATE,
+            UPGRADE_STATE,
+            HELO_STATE,
             FROM_STATE,
             TO_STATE,
             DATA_STATE,
@@ -157,14 +181,32 @@ class SMTPConnection(netius.Connection):
 
     def helo_t(self):
         self.helo("relay.example.org")
+        self.next_sequence()
+
+    def ehlo_t(self):
+        self.ehlo("relay.example.org")
+        self.next_sequence()
+
+    def stls_t(self):
+        self.starttls()
+        self.next_sequence()
+
+    def upgrade_t(self):
+        print "going to upgrade connection"
 
     def mail_t(self):
         self.mail(self.froms[0])
+        self.next_sequence()
 
     def rcpt_t(self):
         is_final = self.to_index == len(self.tos) - 1
         self.rcpt(self.tos[self.to_index], final = is_final)
         self.to_index += 1
+        if is_final: self.next_sequence()
+
+    def data_t(self):
+        self.data()
+        self.next_sequence()
 
     def contents_t(self):
         self.assert_s(CONTENTS_STATE)
@@ -173,41 +215,51 @@ class SMTPConnection(netius.Connection):
         self.set_expected(250)
         self.next_sequence()
 
+    def quit_t(self):
+        self.quit()
+        self.next_sequence()
+
     def pass_t(self):
         pass
 
     def helo(self, host):
-        self.assert_s(HELLO_STATE)
+        self.assert_s(HELO_STATE)
         message = host
         self.send_smtp("helo", message)
         self.set_expected(250)
-        self.next_sequence()
+
+    def ehlo(self, host):
+        self.assert_s(EHLO_STATE)
+        message = host
+        self.send_smtp("ehlo", message)
+        self.set_expected(250)
+
+    def starttls(self):
+        self.assert_s(STLS_STATE)
+        self.send_smtp("starttls")
+        self.set_expected(220)
 
     def mail(self, value):
         self.assert_s(FROM_STATE)
         message = "FROM:<%s>" % value
         self.send_smtp("mail", message)
         self.set_expected(250)
-        self.next_sequence()
 
-    def rcpt(self, value, final = True):
+    def rcpt(self, value):
         self.assert_s(TO_STATE)
         message = "TO:<%s>" % value
         self.send_smtp("rcpt", message)
         self.set_expected(250)
-        if final: self.next_sequence()
 
     def data(self):
         self.assert_s(DATA_STATE)
         self.send_smtp("data")
         self.set_expected(354)
-        self.next_sequence()
 
     def quit(self):
         self.assert_s(QUIT_STATE)
         self.send_smtp("quit")
         self.set_expected(221)
-        self.next_sequence()
 
     def set_expected(self, expected):
         self.expected = expected
@@ -267,7 +319,7 @@ class SMTPClient(netius.StreamClient):
             # and using the provided key and certificate files an then
             # sets the smtp information in the current connection
             connection = self.connect(_host, _port)
-            connection.set_message_seq()
+            connection.set_message_stls_seq()
             connection.set_smtp(froms, tos, contents)
             return connection
 
