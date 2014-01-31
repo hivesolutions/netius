@@ -68,6 +68,8 @@ class POPConnection(netius.Connection):
         self.count = 0
         self.byte_c = 0
         self.contents = str()
+        self.sizes = ()
+        self.keys = ()
         self.state = INTIAL_STATE
 
         self.parser.bind("on_line", self.on_line)
@@ -117,7 +119,8 @@ class POPConnection(netius.Connection):
         message = "%d messages (%d octets)" % (self.count, self.byte_c)
         lines = []
         for index in xrange(self.count):
-            line = "%d 120" % index   #@todo this is an hardcoded size
+            size = self.sizes[index]
+            line = "%d %d" % (index, size)
             lines.append(line)
         self.send_pop(message, lines = lines)
 
@@ -277,11 +280,13 @@ class POPServer(netius.StreamServer):
 
     def on_stat_pop(self, connection):
         count = self.adapter.count()
+        total = self.adapter.total()
         connection.count = count
-        connection.byte_c = 200  #@todo this is an hardcoded value
+        connection.byte_c = total
 
     def on_list_pop(self, connection):
-        pass
+        sizes = self.adapter.sizes()
+        connection.sizes = sizes
 
     def on_uidl_pop(self, connection):
         connection.keys = self.adapter.list()
