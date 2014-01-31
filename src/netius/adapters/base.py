@@ -44,6 +44,7 @@ class BaseAdapter(object):
 
     def get(self, key):
         file = self.get_file(key)
+        if not file: return file
         try: value = file.read()
         finally: file.close()
         return value
