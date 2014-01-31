@@ -66,6 +66,8 @@ class SMTPConnection(netius.Connection):
         self.expected = None
         self.to_index = 0
         self.state = HELLO_STATE
+        self.sindex = 0
+        self.sequence = ()
 
         self.parser.bind("on_line", self.on_line)
 
@@ -88,6 +90,27 @@ class SMTPConnection(netius.Connection):
             self.pass_t
         )
         self.state_l = len(self.states)
+
+    def set_sequence(self, sequence):
+        self.sindex = 0
+        self.sequence = sequence
+        self.state = sequence[0]
+
+    def set_message_seq(self):
+        sequence = (
+            HELLO_STATE,
+            FROM_STATE,
+            TO_STATE,
+            DATA_STATE,
+            CONTENTS_STATE,
+            QUIT_STATE,
+            FINAL_STATE
+        )
+        self.set_sequence(sequence)
+
+    def next_sequence(self):
+        self.sindex += 1
+        self.state = self.sequence[self.sindex]
 
     def set_smtp(self, froms, tos, contents):
         self.froms = froms
@@ -144,46 +167,47 @@ class SMTPConnection(netius.Connection):
         self.to_index += 1
 
     def contents_t(self):
-        self.state = QUIT_STATE
+        self.assert_s(CONTENTS_STATE)
         self.send(self.contents)
         self.send("\r\n.\r\n")
         self.set_expected(250)
+        self.next_sequence()
 
     def pass_t(self):
         pass
 
     def helo(self, host):
         self.assert_s(HELLO_STATE)
-        self.state = FROM_STATE
         message = host
         self.send_smtp("helo", message)
         self.set_expected(250)
+        self.next_sequence()
 
     def mail(self, value):
         self.assert_s(FROM_STATE)
-        self.state = TO_STATE
         message = "FROM:<%s>" % value
         self.send_smtp("mail", message)
         self.set_expected(250)
+        self.next_sequence()
 
     def rcpt(self, value, final = True):
         self.assert_s(TO_STATE)
-        if final: self.state = DATA_STATE
         message = "TO:<%s>" % value
         self.send_smtp("rcpt", message)
         self.set_expected(250)
+        if final: self.next_sequence()
 
     def data(self):
         self.assert_s(DATA_STATE)
-        self.state = CONTENTS_STATE
         self.send_smtp("data")
         self.set_expected(354)
+        self.next_sequence()
 
     def quit(self):
         self.assert_s(QUIT_STATE)
-        self.state = FINAL_STATE
         self.send_smtp("quit")
         self.set_expected(221)
+        self.next_sequence()
 
     def set_expected(self, expected):
         self.expected = expected
@@ -215,37 +239,53 @@ class SMTPClient(netius.StreamClient):
         smtp_client = cls.get_client_s(thread = True, daemon = daemon)
         smtp_client.message(froms, tos, contents)
 
-    def message(self, froms, tos, contents):
+    def message(self, froms, tos, contents, host = None, port = 25):
 
-        def handler(response):
-            # retrieves the first answer (probably the most accurate)
-            # and then unpacks it until the mx address is retrieved
-            first = response.answers[0]
-            extra = first[4]
-            address = extra[1]
+        def handler(response = None):
+            # in case there's a valid response provided must parse it
+            # to try to "recover" the final address that is going to be
+            # used in the establishment of the smtp connection
+            if response:
+                # retrieves the first answer (probably the most accurate)
+                # and then unpacks it until the mx address is retrieved
+                first = response.answers[0]
+                extra = first[4]
+                address = extra[1]
+
+            # otherwise the host should have been provided and as such the
+            # address value is set with the provided host
+            else: address = host
 
             # sets the proper address (host) and port values that are
-            # going to be used to establish the connection
-            host = address
-            port = 25
+            # going to be used to establish the connection, notice that
+            # in case the values provided as parameter to the message
+            # method are valid they are used instead of the "resolved"
+            _host = host or address
+            _port = port or 25
 
             # establishes the connection to the target host and port
             # and using the provided key and certificate files an then
             # sets the smtp information in the current connection
-            connection = self.connect(host, port)
+            connection = self.connect(_host, _port)
+            connection.set_message_seq()
             connection.set_smtp(froms, tos, contents)
             return connection
+
+        # in case the host address has been provided by argument the
+        # handler method is called immediately to trigger the processing
+        # of the smtp connection using the current host and port
+        if host: handler(); return
 
         # retrieves the first target of the complete list of
         # to targets and then splits the email value so that
         # both the base name and the host are retrieved
         first = tos[0]
-        _name, host = first.split("@", 1)
+        _name, domain = first.split("@", 1)
 
         # runs the dns query to be able to retrieve the proper
         # mail exchange host for the target email address and then
         # sets the proper callback for sending
-        dns.DNSClient.query_s(host, type = "mx", callback = handler)
+        dns.DNSClient.query_s(domain, type = "mx", callback = handler)
 
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
@@ -281,4 +321,10 @@ if __name__ == "__main__":
     contents = mime.as_string()
 
     smtp_client = SMTPClient(auto_close = True)
-    smtp_client.message([sender], [receiver], contents)
+    smtp_client.message(
+        [sender],
+        [receiver],
+        contents,
+        host = "smtp.gmail.com",
+        port = 587
+    )
