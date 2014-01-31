@@ -41,5 +41,5 @@ class MongoAdapter(base.BaseAdapter):
     def set(self, value, owner = "nobody"):
         pass
 
-    def get(self, uuid):
+    def get(self, key):
         pass

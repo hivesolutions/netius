@@ -34,10 +34,25 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import uuid
+import hashlib
+
 class BaseAdapter(object):
 
     def set(self, value, owner = "nobody"):
         pass
 
-    def get(self, uuid):
+    def get(self, key):
+        file = self.get_file(key)
+        try: value = file.read()
+        finally: file.close()
+        return value
+
+    def get_file(self, key):
         pass
+
+    def generate(self):
+        identifier = str(uuid.uuid4())
+        hash = hashlib.sha256(identifier)
+        key = hash.hexdigest()
+        return key

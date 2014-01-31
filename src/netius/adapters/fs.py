@@ -34,12 +34,29 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import os
+
 import base
 
 class FSAdapter(base.BaseAdapter):
 
-    def set(self, value, owner = "nobody"):
-        pass
+    def __init__(self, base_path = None):
+        base.BaseAdapter.__init__(self)
+        self.base_path = base_path or "fs.data"
+        self.base_path = os.path.abspath(self.base_path)
+        self.base_path = os.path.normpath(self.base_path)
+        if not os.path.exists(self.base_path):
+            os.makedirs(self.base_path)
 
-    def get(self, uuid):
-        pass
+    def set(self, value, owner = "nobody"):
+        key = self.generate()
+        file_path = os.path.join(self.base_path, key)
+        file = open(file_path, "wb")
+        try: file.write(value)
+        finally: file.close()
+        return key
+
+    def get_file(self, key):
+        file_path = os.path.join(self.base_path, key)
+        file = open(file_path, "wb")
+        return file
