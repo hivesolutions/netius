@@ -56,7 +56,7 @@ class FsAdapter(base.BaseAdapter):
         finally: file.close()
         return key
 
-    def get_file(self, key):
+    def get_file(self, key, mode = "rb"):
         file_path = os.path.join(self.base_path, key)
-        file = open(file_path, "wb")
+        file = open(file_path, mode)
         return file

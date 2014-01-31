@@ -34,6 +34,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import os
 import uuid
 import hashlib
 
@@ -49,8 +50,25 @@ class BaseAdapter(object):
         finally: file.close()
         return value
 
-    def get_file(self, key):
+    def get_file(self, key, mode = "rb"):
         pass
+
+    def append(self, key, value):
+        file = self.get_file(key, mode = "ab")
+        try: file.write(value)
+        finally: file.close()
+
+    def truncate(self, key, count):
+        file = self.get_file(key, mode = "r+")
+        try:
+            offset = count * -1
+            file.seek(offset, os.SEEK_END)
+            file.truncate()
+        finally:
+            file.close()
+
+    def reserve(self, owner = "nobody"):
+        return self.set("", owner = owner)
 
     def generate(self):
         identifier = str(uuid.uuid4())

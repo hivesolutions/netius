@@ -49,9 +49,15 @@ class MemoryAdapter(base.BaseAdapter):
     def set(self, value, owner = "nobody"):
         key = self.generate()
         self.map[key] = value
+        return key
 
-    def get_file(self, key):
+    def get_file(self, key, mode = "rb"):
         if not key in self.map: netius.NetiusError("Key not found")
         value = self.map[key]
         file = cStringIO.StringIO(value)
         return file
+
+    def append(self, key, value):
+        _value = self.map.get(key, "")
+        _value += value
+        self.map[key] = _value
