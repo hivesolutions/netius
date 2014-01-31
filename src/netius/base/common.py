@@ -50,6 +50,8 @@ import traceback
 import errors
 import observer
 
+import netius.adapters
+
 from conn import * #@UnusedWildImport
 from poll import * #@UnusedWildImport
 
@@ -682,6 +684,26 @@ class Base(observer.Observable):
         try: value = int(value) == 1 if cast == bool else cast(value)
         except: value = value
         return value
+
+    def get_adapter(self, name = "memory", *args, **kwargs):
+        """
+        Retrieves an instance of a storage adapter described
+        by the provided name, note that the dynamic (extra)
+        arguments are going to be used in the construction of
+        the adapter instance.
+
+        @type name: String
+        @param name: The name of the adapter to be retrieved
+        this should be equivalent to the adapter class name.
+        @rtype: Adapter
+        @return: An instance (properly configured) of the
+        requested adapter (defined by the name argument).
+        """
+
+        name_f = name.title() + "Adapter"
+        adapter_c = getattr(netius.adapters, name_f)
+        adapter = adapter_c(*args, **kwargs)
+        return adapter
 
     def _pending(self, _socket):
         """
