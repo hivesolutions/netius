@@ -206,29 +206,6 @@ class POPConnection(netius.Connection):
         if message: self.accept()
         else: self.auth()
 
-    def on_user(self, token):
-        # adds the partial token value to the token buffer and
-        # then verifies if it contains the token if that's the
-        # case continues the parsing otherwise returns immediately
-        self.token_buf.append(token)
-        index = token.find("\n")
-        if index == -1: return
-
-        # joins the the token buffer recreating the token string
-        # and then decodes into as a base 64 string and splits it
-        # around its own components so that the proper auth callback
-        # may be called to validate the authentication
-        token = "".join(self.token_buf)
-        token_s = base64.b64decode(token)
-        _identifier, username, password = token_s.split("\0")
-
-        # calls the callback to the authentication and in case everything
-        # goes ok the ok value is called and the state of the current
-        # connection is changed to session (authentication is valid)
-        self.owner.on_auth_pop(self, username, password)
-        self.ok()
-        self.state = SESSION_STATE
-
     def on_stat(self, message):
         self.stat()
 
@@ -249,6 +226,37 @@ class POPConnection(netius.Connection):
     def on_quit(self, message):
         self.bye()
         self.close(flush = True)
+
+    def on_user(self, token):
+        # adds the partial token value to the token buffer and
+        # then verifies if it contains the token if that's the
+        # case continues the parsing otherwise returns immediately
+        self.token_buf.append(token)
+        index = token.find("\n")
+        if index == -1: return
+
+        # removes the extra characters from the token so that no
+        # extra value is considered to be part of the token
+        token = token.rstrip()
+
+        # logs the received token as this handler is not a callback
+        # from the typical on message method
+        self.owner.debug(token)
+
+        # joins the the token buffer recreating the token string
+        # and then decodes into as a base 64 string and splits it
+        # around its own components so that the proper auth callback
+        # may be called to validate the authentication
+        token = "".join(self.token_buf)
+        token_s = base64.b64decode(token)
+        _identifier, username, password = token_s.split("\0")
+
+        # calls the callback to the authentication and in case everything
+        # goes ok the ok value is called and the state of the current
+        # connection is changed to session (authentication is valid)
+        self.owner.on_auth_pop(self, username, password)
+        self.ok()
+        self.state = SESSION_STATE
 
     def assert_s(self, expected):
         if self.state == expected: return
