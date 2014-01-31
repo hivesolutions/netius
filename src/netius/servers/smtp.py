@@ -41,7 +41,7 @@ import netius.common
 
 INTIAL_STATE = 1
 
-HELLO_STATE = 2
+HELO_STATE = 2
 
 HEADER_STATE = 3
 
@@ -76,41 +76,56 @@ class SMTPConnection(netius.Connection):
 
     def ready(self):
         self.assert_s(INTIAL_STATE)
-        self.state = HELLO_STATE
         message = "%s ESMTP %s" % (self.host, netius.NAME)
         self.send_smtp(220, message)
+        self.state = HELO_STATE
 
-    def hello(self, host):
-        self.assert_s(HELLO_STATE)
-        self.state = HEADER_STATE
+    def helo(self, host):
+        self.assert_s(HELO_STATE)
         self.chost = host
-        message = "Hello %s, I am glad to meet you" % host
+        message = "helo %s" % host
         self.send_smtp(250, message)
+        self.state = HEADER_STATE
+
+    def ehlo(self, host):
+        self.assert_s(HELO_STATE)
+        self.chost = host
+        message = "ehlo %s" % host
+        self.send_smtp(250, message)
+        self.state = HEADER_STATE
+
+    def starttls(self):
+        def callback(connection):
+            connection.upgrade(server = True)
+
+        message = "go ahead"
+        self.send_smtp(220, message, callback = callback)
+        self.state = HELO_STATE
 
     def end_data(self):
         self.assert_s(HEADER_STATE)
         self.owner.on_header_smtp(self.from_l, self.to_l)
-        self.state = DATA_STATE
-        message = "End data with <CR><LF>.<CR><LF>"
+        message = "go ahead"
         self.send_smtp(354, message)
+        self.state = DATA_STATE
 
     def queued(self, index = -1):
         self.assert_s(DATA_STATE)
         self.owner.on_message_smtp()
-        self.state = HEADER_STATE
-        message = "Ok: queued as %d" % index
+        message = "ok queued as %d" % index
         self.send_smtp(250, message)
+        self.state = HEADER_STATE
 
     def bye(self):
-        message = "Bye"
+        message = "bye"
         self.send_smtp(221, message)
 
     def ok(self):
-        message = "Ok"
+        message = "ok"
         self.send_smtp(250, message)
 
     def not_implemented(self):
-        message = "Not implemented"
+        message = "not implemented"
         self.send_smtp(550, message)
 
     def on_raw_data(self, data):
@@ -176,7 +191,11 @@ class SMTPConnection(netius.Connection):
         self.hello(host)
 
     def on_ehlo(self, message):
-        self.not_implemented()
+        host = message
+        self.ehlo(host)
+
+    def on_starttls(self, message):
+        self.starttls()
 
     def on_mail(self, message):
         self.from_l.append(message)
