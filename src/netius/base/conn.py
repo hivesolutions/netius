@@ -74,6 +74,7 @@ class Connection(object):
         self.status = PENDING
         self.id = str(uuid.uuid4())
         self.connecting = False
+        self.upgrading = False
         self.owner = owner
         self.socket = socket
         self.address = address
@@ -181,6 +182,40 @@ class Connection(object):
     def close_flush(self):
         self.send("", callback = self._close_callback)
 
+    def upgrade(self, key_file = None, cer_file = None, server = True):
+        # in case the current connection is already an ssl oriented one there's
+        # nothing to be done here and the method returns immediately ot caller
+        if self.ssl: return
+
+        # sets the ssl flag of the current connection as the connection is now
+        # going to be considered as ssl oriented and then sets the upgrading flag
+        # for the same connection so that the main event loop "knows" how to handle
+        # new event on this connection properly
+        self.ssl = True
+        self.upgrading = True
+
+        # removes the "old" association socket association for the connection and
+        # unsubscribes the "old" socket from the complete set of events
+        del self.owner.connections_m[self.socket]
+        self.owner.unsub_all(self.socket)
+
+        # upgrades the current socket into an ssl oriented socket, note that the server
+        # flag controls if the socket to be created is a client or a server one this
+        # is relevant for the ssl handshaking part of the connection, the resulting
+        # encapsulated ssl socket is then set as the current connection's socket
+        self.socket = self.owner._ssl_upgrade(
+            self.socket,
+            key_file = key_file,
+            cer_file = cer_file,
+            server = server
+        )
+
+        # updates the current socket in connection resolution map with the new ssl one
+        # and then subscribes the same socket for the read and error events
+        self.owner.connections_m[self.socket] = self
+        self.owner.sub_read(self.socket)
+        self.owner.sub_error(self.socket)
+
     def set_connecting(self):
         self.connecting = True
         self.ensure_write()
@@ -188,6 +223,9 @@ class Connection(object):
     def set_connected(self):
         self.remove_write()
         self.connecting = False
+
+    def set_upgraded(self):
+        self.upgrading = False
 
     def ensure_write(self):
         # retrieves the identifier of the current thread and
