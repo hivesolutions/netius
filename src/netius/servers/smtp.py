@@ -209,6 +209,7 @@ class SMTPConnection(netius.Connection):
 
     def on_quit(self, message):
         self.bye()
+        self.close(flush = True)
 
     def assert_s(self, expected):
         if self.state == expected: return

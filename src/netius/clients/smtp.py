@@ -103,7 +103,7 @@ class SMTPConnection(netius.Connection):
             self.data_t,
             self.contents_t,
             self.quit_t,
-            self.pass_t
+            self.close_t
         )
         self.state_l = len(self.states)
 
@@ -246,6 +246,9 @@ class SMTPConnection(netius.Connection):
     def quit_t(self):
         self.quit()
         self.next_sequence()
+    
+    def close_t(self):
+        self.close()
 
     def pass_t(self):
         pass
@@ -431,4 +434,4 @@ if __name__ == "__main__":
     contents = mime.as_string()
 
     smtp_client = SMTPClient(auto_close = True)
-    smtp_client.message([sender], [receiver], contents)
+    smtp_client.message([sender], [receiver], contents, host = "localhost", port = 25, stls = True)
