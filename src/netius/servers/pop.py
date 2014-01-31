@@ -51,7 +51,8 @@ SESSION_STATE = 4
 
 CAPABILITIES = (
     "TOP",
-    "USER"
+    "USER",
+    "STLS"
 )
 
 AUTH_METHODS = (
@@ -65,6 +66,7 @@ class POPConnection(netius.Connection):
         self.parser = netius.common.POPParser(self)
         self.host = host
         self.username = None
+        self.token_buf = str()
         self.count = 0
         self.byte_c = 0
         self.contents = str()
@@ -107,6 +109,7 @@ class POPConnection(netius.Connection):
     def accept(self):
         self.assert_s(HELO_STATE)
         self.ok()
+        self.token_buf = []
         self.state = AUTH_STATE
 
     def stat(self):
@@ -201,8 +204,24 @@ class POPConnection(netius.Connection):
         else: self.auth()
 
     def on_user(self, token):
+        # adds the partial token value to the token buffer and
+        # then verifies if it contains the token if that's the
+        # case continues the parsing otherwise returns immediately
+        self.token_buf.append(token)
+        index = token.find("\n")
+        if index == -1: return
+
+        # joins the the token buffer recreating the token string
+        # and then decodes into as a base 64 string and splits it
+        # around its own components so that the proper auth callback
+        # may be called to validate the authentication
+        token = "".join(self.token_buf)
         token_s = base64.b64decode(token)
         _identifier, username, password = token_s.split("\0")
+
+        # calls the callback to the authentication and in case everything
+        # goes ok the ok value is called and the state of the current
+        # connection is changed to session (authentication is valid)
         self.owner.on_auth_pop(self, username, password)
         self.ok()
         self.state = SESSION_STATE
