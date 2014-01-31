@@ -816,15 +816,25 @@ class Base(observer.Observable):
                 1
             )
 
+    def _ssl_upgrade(self, _socket, key_file = None, cer_file = None, server = True):
+        _socket = self._ssl_wrap(
+            _socket,
+            key_file = key_file,
+            cer_file = cer_file,
+            server = server
+        )
+        self._ssl_handshake(_socket)
+        return _socket
+
     def _ssl_wrap(self, _socket, key_file = None, cer_file = None, server = True):
         dir_path = os.path.dirname(__file__)
-        base_path = os.path.join(dir_path, "../../")
-        base_path = os.path.normpath(base_path)
+        root_path = os.path.join(dir_path, "../")
+        root_path = os.path.normpath(root_path)
+        base_path = os.path.join(root_path, "base")
         extras_path = os.path.join(base_path, "extras")
-        ssl_path = os.path.join(extras_path, "ssl")
 
-        key_file = key_file or os.path.join(ssl_path, "server.key")
-        cer_file = cer_file or os.path.join(ssl_path, "server.cer")
+        key_file = key_file or os.path.join(extras_path, "net.key")
+        cer_file = cer_file or os.path.join(extras_path, "net.cer")
 
         socket_ssl = ssl.wrap_socket(
             _socket,
