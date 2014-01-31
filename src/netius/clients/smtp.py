@@ -435,4 +435,4 @@ if __name__ == "__main__":
     contents = mime.as_string()
 
     smtp_client = SMTPClient(auto_close = True)
-    smtp_client.message([sender], [receiver], contents, host = "localhost", port = 25, stls = True)
+    smtp_client.message([sender], [receiver], contents)
