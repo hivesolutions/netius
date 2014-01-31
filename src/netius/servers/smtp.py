@@ -58,6 +58,7 @@ class SMTPConnection(netius.Connection):
         self.parser = netius.common.SMTPParser(self)
         self.host = host
         self.chost = None
+        self.key = None
         self.from_l = []
         self.to_l = []
         self.previous = ""
@@ -73,6 +74,7 @@ class SMTPConnection(netius.Connection):
         base = "%d %s" % (code, message)
         data = base + "\r\n"
         self.send(data, delay = delay, callback = callback)
+        self.owner.debug(base)
 
     def ready(self):
         self.assert_s(INTIAL_STATE)
@@ -103,15 +105,16 @@ class SMTPConnection(netius.Connection):
 
     def end_data(self):
         self.assert_s(HEADER_STATE)
-        self.owner.on_header_smtp(self.from_l, self.to_l)
+        self.owner.on_header_smtp(self, self.from_l, self.to_l)
         message = "go ahead"
         self.send_smtp(354, message)
         self.state = DATA_STATE
 
     def queued(self, index = -1):
         self.assert_s(DATA_STATE)
-        self.owner.on_message_smtp()
-        message = "ok queued as %d" % index
+        self.owner.on_message_smtp(self)
+        identifier = self.key or index
+        message = "ok queued as %s" % identifier
         self.send_smtp(250, message)
         self.state = HEADER_STATE
 
@@ -131,7 +134,7 @@ class SMTPConnection(netius.Connection):
         # calls the proper callback handler for data in the owner indicating
         # that the current data has just been received and must be properly
         # handled to the proper redirector middleware
-        self.owner.on_data_smtp(data)
+        self.owner.on_data_smtp(self, data)
 
         # calculates the length of the data that has just been received and then
         # measures the size of the possible remaining bytes of the buffer from the
@@ -166,7 +169,7 @@ class SMTPConnection(netius.Connection):
         # calls the proper top level owner based line information handler that
         # should ignore any usages as the connection will take care of the proper
         # handling for the current connection
-        self.owner.on_line_smtp(code, message)
+        self.owner.on_line_smtp(self, code, message)
 
         # converts the provided code into a lower case value and then uses it
         # to create the problem name for the handler method to be used
@@ -217,8 +220,9 @@ class SMTPConnection(netius.Connection):
 
 class SMTPServer(netius.StreamServer):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, adapter_s = "memory", *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
+        self.adapter_s = adapter_s
 
     def serve(self, host = "smtp.localhost", port = 25, *args, **kwargs):
         netius.StreamServer.serve(self, port = port, *args, **kwargs)
@@ -235,7 +239,12 @@ class SMTPServer(netius.StreamServer):
     def on_serve(self):
         netius.StreamServer.on_serve(self)
         if self.env: self.host = self.get_env("SMTP_HOST", self.host)
-        self.info("Starting SMTP server on '%s' ..." % self.host)
+        if self.env: self.adapter_s = self.get_env("SMTP_ADAPTER", self.adapter_s)
+        self.adapter = self.get_adapter(self.adapter_s)
+        self.info(
+            "Starting SMTP server on '%s' using '%s' ..." %\
+            (self.host, self.adapter_s)
+        )
 
     def new_connection(self, socket, address, ssl = False):
         return SMTPConnection(
@@ -246,17 +255,17 @@ class SMTPServer(netius.StreamServer):
             host = self.host
         )
 
-    def on_line_smtp(self, code, message):
+    def on_line_smtp(self, connection, code, message):
         pass
 
-    def on_header_smtp(self, from_l, to_l):
-        pass
+    def on_header_smtp(self, connection, from_l, to_l):
+        connection.key = self.adapter.reserve()
 
-    def on_data_smtp(self, data):
-        pass
+    def on_data_smtp(self, connection, data):
+        self.adapter.append(connection.key, data)
 
-    def on_message_smtp(self):
-        pass
+    def on_message_smtp(self, connection):
+        self.adapter.truncate(connection.key, TERMINATION_SIZE)
 
 if __name__ == "__main__":
     import logging
