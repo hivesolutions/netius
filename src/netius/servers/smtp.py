@@ -220,8 +220,9 @@ class SMTPServer(netius.StreamServer):
     def __init__(self, *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
 
-    def serve(self, port = 25, *args, **kwargs):
+    def serve(self, host = "smtp.localhost", port = 25, *args, **kwargs):
         netius.StreamServer.serve(self, port = port, *args, **kwargs)
+        self.host = host
 
     def on_connection_c(self, connection):
         netius.StreamServer.on_connection_c(self, connection)
@@ -233,14 +234,16 @@ class SMTPServer(netius.StreamServer):
 
     def on_serve(self):
         netius.StreamServer.on_serve(self)
-        self.info("Starting SMTP server ...")
+        if self.env: self.host = self.get_env("SMTP_HOST", self.host)
+        self.info("Starting SMTP server on '%s' ..." % self.host)
 
     def new_connection(self, socket, address, ssl = False):
         return SMTPConnection(
             owner = self,
             socket = socket,
             address = address,
-            ssl = ssl
+            ssl = ssl,
+            host = self.host
         )
 
     def on_line_smtp(self, code, message):
