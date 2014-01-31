@@ -61,3 +61,9 @@ class MemoryAdapter(base.BaseAdapter):
         _value = self.map.get(key, "")
         _value += value
         self.map[key] = _value
+
+    def truncate(self, key, count):
+        _value = self.map.get(key, "")
+        offset = count * -1
+        _value = _value[:offset]
+        self.map[key] = _value
