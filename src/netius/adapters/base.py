@@ -37,6 +37,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import os
 import uuid
 import hashlib
+import cStringIO
 
 class BaseAdapter(object):
 
@@ -51,6 +52,9 @@ class BaseAdapter(object):
         return value
 
     def get_file(self, key, mode = "rb"):
+        return cStringIO.StringIO()
+
+    def delete(self, key):
         pass
 
     def append(self, key, value):
@@ -69,6 +73,12 @@ class BaseAdapter(object):
 
     def reserve(self, owner = "nobody"):
         return self.set("", owner = owner)
+
+    def count(self):
+        return 0
+
+    def list(self):
+        return ()
 
     def generate(self):
         identifier = str(uuid.uuid4())

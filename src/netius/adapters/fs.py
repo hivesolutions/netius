@@ -60,3 +60,15 @@ class FsAdapter(base.BaseAdapter):
         file_path = os.path.join(self.base_path, key)
         file = open(file_path, mode)
         return file
+
+    def delete(self, key):
+        file_path = os.path.join(self.base_path, key)
+        os.remove(file_path)
+
+    def count(self):
+        files = os.listdir(self.base_path)
+        return len(files)
+
+    def list(self):
+        files = os.listdir(self.base_path)
+        return files

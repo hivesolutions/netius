@@ -34,11 +34,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import cStringIO
-
 import base
 
 class NullAdapter(base.BaseAdapter):
-
-    def get_file(self, key, mode = "rb"):
-        return cStringIO.StringIO()
+    pass

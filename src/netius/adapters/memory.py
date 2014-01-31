@@ -57,6 +57,9 @@ class MemoryAdapter(base.BaseAdapter):
         file = cStringIO.StringIO(value)
         return file
 
+    def delete(self, key):
+        del self.map[key]
+
     def append(self, key, value):
         _value = self.map.get(key, "")
         _value += value
@@ -67,3 +70,9 @@ class MemoryAdapter(base.BaseAdapter):
         offset = count * -1
         _value = _value[:offset]
         self.map[key] = _value
+
+    def count(self):
+        return len(self.map)
+
+    def list(self):
+        return self.map.keys()
