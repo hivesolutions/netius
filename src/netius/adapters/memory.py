@@ -34,7 +34,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import cStringIO
+import StringIO
 
 import netius
 
@@ -54,7 +54,11 @@ class MemoryAdapter(base.BaseAdapter):
     def get_file(self, key, mode = "rb"):
         if not key in self.map: netius.NetiusError("Key not found")
         value = self.map[key]
-        file = cStringIO.StringIO(value)
+        file = StringIO.StringIO(value)
+        close = self._build_close(file, key)
+        _close = file.close
+        file._close = _close
+        file.close = close
         return file
 
     def delete(self, key):
@@ -80,3 +84,12 @@ class MemoryAdapter(base.BaseAdapter):
 
     def list(self):
         return self.map.keys()
+    
+    def _build_close(self, file, key):
+        
+        def close():
+            value = file.getvalue()
+            self.map[key] = value
+            file._close()
+        
+        return close
