@@ -64,6 +64,10 @@ class POPConnection(netius.Connection):
         netius.Connection.__init__(self, *args, **kwargs)
         self.parser = netius.common.POPParser(self)
         self.host = host
+        self.username = None
+        self.count = 0
+        self.byte_c = 0
+        self.contents = str()
         self.state = INTIAL_STATE
 
         self.parser.bind("on_line", self.on_line)
@@ -102,6 +106,42 @@ class POPConnection(netius.Connection):
         self.assert_s(HELO_STATE)
         self.ok()
         self.state = AUTH_STATE
+
+    def stat(self):
+        self.owner.on_stat_pop(self)
+        message = "%d %d" % (self.count, self.byte_c)
+        self.send_pop(message)
+
+    def list(self):
+        self.owner.on_list_pop(self)
+        message = "%d messages (%d octets)" % (self.count, self.byte_c)
+        lines = []
+        for index in xrange(self.count):
+            line = "%d 120" % index   #@todo this is an hardcoded size
+            lines.append(line)
+        self.send_pop(message, lines = lines)
+
+    def uidl(self):
+        self.owner.on_uidl_pop(self)
+        message = "%d messages (%d octets)" % (self.count, self.byte_c)
+        lines = []
+        for index in xrange(self.count):
+            key = self.keys[index]
+            line = "%d %s" % (index, key)
+            lines.append(line)
+        self.send_pop(message, lines = lines)
+
+    def retr(self, index):
+        self.owner.on_retr_pop(self, index)
+        contents = self.contents
+        size = len(contents)
+        message = "%d octets" % size
+        self.send_pop(message, lines = (contents,))
+
+    def dele(self, index):
+        self.owner.on_dele_pop(self, index)
+        message = "removed"
+        self.send_pop(message)
 
     def starttls(self):
         def callback(connection):
@@ -160,12 +200,26 @@ class POPConnection(netius.Connection):
     def on_user(self, token):
         token_s = base64.b64decode(token)
         _identifier, username, password = token_s.split("\0")
-        #@todo tenho de por aki o callback de auth !!!
+        self.owner.on_auth_pop(self, username, password)
         self.ok()
         self.state = SESSION_STATE
 
-    def on_stat(self):
+    def on_stat(self, message):
         self.stat()
+
+    def on_list(self, message):
+        self.list()
+
+    def on_uidl(self, message):
+        self.uidl()
+
+    def on_retr(self, message):
+        index = int(message)
+        self.retr(index)
+
+    def on_dele(self, message):
+        index = int(message)
+        self.dele(index)
 
     def on_stls(self, message):
         self.starttls()
@@ -217,6 +271,28 @@ class POPServer(netius.StreamServer):
 
     def on_line_pop(self, connection, code, message):
         pass
+
+    def on_auth_pop(self, connection, username, password):
+        connection.username = username
+
+    def on_stat_pop(self, connection):
+        count = self.adapter.count()
+        connection.count = count
+        connection.byte_c = 200  #@todo this is an hardcoded value
+
+    def on_list_pop(self, connection):
+        pass
+
+    def on_uidl_pop(self, connection):
+        connection.keys = self.adapter.list()
+
+    def on_retr_pop(self, connection, index):
+        key = connection.keys[index]
+        connection.contents = self.adapter.get(key)
+
+    def on_dele_pop(self, connection, index):
+        key = connection.keys[index]
+        self.adapter.delete(key)
 
 if __name__ == "__main__":
     import logging
