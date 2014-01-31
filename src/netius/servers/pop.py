@@ -66,7 +66,7 @@ class POPConnection(netius.Connection):
         self.parser = netius.common.POPParser(self)
         self.host = host
         self.username = None
-        self.token_buf = str()
+        self.token_buf = []
         self.count = 0
         self.byte_c = 0
         self.contents = str()
