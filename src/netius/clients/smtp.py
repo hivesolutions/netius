@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import base64
+
 import netius.common
 
 import dns
@@ -49,17 +51,19 @@ STLS_STATE = 3
 
 UPGRADE_STATE = 4
 
-FROM_STATE = 5
+AUTH_STATE = 5
 
-TO_STATE = 6
+FROM_STATE = 6
 
-DATA_STATE = 7
+TO_STATE = 7
 
-CONTENTS_STATE = 8
+DATA_STATE = 8
 
-QUIT_STATE = 9
+CONTENTS_STATE = 9
 
-FINAL_STATE = 10
+QUIT_STATE = 10
+
+FINAL_STATE = 11
 
 class SMTPConnection(netius.Connection):
 
@@ -69,6 +73,8 @@ class SMTPConnection(netius.Connection):
         self.froms = None
         self.tos = None
         self.contents = None
+        self.username = None
+        self.password = None
         self.expected = None
         self.to_index = 0
         self.state = HELO_STATE
@@ -91,6 +97,7 @@ class SMTPConnection(netius.Connection):
             self.ehlo_t,
             self.stls_t,
             self.upgrade_t,
+            self.auth_t,
             self.mail_t,
             self.rcpt_t,
             self.data_t,
@@ -105,9 +112,10 @@ class SMTPConnection(netius.Connection):
         self.sequence = sequence
         self.state = sequence[0]
 
-    def set_message_seq(self):
+    def set_message_seq(self, ehlo = True):
         sequence = (
-            HELO_STATE,
+            EHLO_STATE if ehlo else HELO_STATE,
+            AUTH_STATE,
             FROM_STATE,
             TO_STATE,
             DATA_STATE,
@@ -117,12 +125,13 @@ class SMTPConnection(netius.Connection):
         )
         self.set_sequence(sequence)
 
-    def set_message_stls_seq(self):
+    def set_message_stls_seq(self, ehlo = True):
         sequence = (
-            HELO_STATE,
+            EHLO_STATE if ehlo else HELO_STATE,
             STLS_STATE,
             UPGRADE_STATE,
-            HELO_STATE,
+            EHLO_STATE if ehlo else HELO_STATE,
+            AUTH_STATE,
             FROM_STATE,
             TO_STATE,
             DATA_STATE,
@@ -136,10 +145,12 @@ class SMTPConnection(netius.Connection):
         self.sindex += 1
         self.state = self.sequence[self.sindex]
 
-    def set_smtp(self, froms, tos, contents):
+    def set_smtp(self, froms, tos, contents, username = None, password = None):
         self.froms = froms
         self.tos = tos
         self.contents = contents
+        self.username = username
+        self.password = password
 
     def parse(self, data):
         return self.parser.parse(data)
@@ -174,10 +185,19 @@ class SMTPConnection(netius.Connection):
         if self.state > self.state_l:
             raise netius.ParserError("Invalid state")
 
+        # runs the calling of the next state based method according to the
+        # currently defined state, this is the increments in calling
+        self.call()
+
+    def call(self):
         # tries to retrieve the method for the current state in iteration
         # and then calls the retrieve method with no arguments (handler method)
         method = self.states[self.state - 1]
         method()
+
+    def skip(self):
+        self.next_sequence()
+        self.call()
 
     def helo_t(self):
         self.helo("relay.example.org")
@@ -192,7 +212,15 @@ class SMTPConnection(netius.Connection):
         self.next_sequence()
 
     def upgrade_t(self):
-        print "going to upgrade connection"
+        self.upgrade(server = False)
+        self.next_sequence()
+
+    def auth_t(self):
+        is_valid = self.username and self.password
+        if not is_valid: self.skip(); return
+
+        self.auth(self.username, self.password)
+        self.next_sequence()
 
     def mail_t(self):
         self.mail(self.froms[0])
@@ -200,7 +228,7 @@ class SMTPConnection(netius.Connection):
 
     def rcpt_t(self):
         is_final = self.to_index == len(self.tos) - 1
-        self.rcpt(self.tos[self.to_index], final = is_final)
+        self.rcpt(self.tos[self.to_index])
         self.to_index += 1
         if is_final: self.next_sequence()
 
@@ -238,6 +266,14 @@ class SMTPConnection(netius.Connection):
         self.assert_s(STLS_STATE)
         self.send_smtp("starttls")
         self.set_expected(220)
+
+    def auth(self, username, password, method = "plain"):
+        self.assert_s(AUTH_STATE)
+        auth_value = "\0%s\0%s" % (username, password)
+        auth_value = base64.b64encode(auth_value)
+        message = "%s %s" % (method, auth_value)
+        self.send_smtp("auth", message)
+        self.set_expected(235)
 
     def mail(self, value):
         self.assert_s(FROM_STATE)
@@ -291,7 +327,17 @@ class SMTPClient(netius.StreamClient):
         smtp_client = cls.get_client_s(thread = True, daemon = daemon)
         smtp_client.message(froms, tos, contents)
 
-    def message(self, froms, tos, contents, host = None, port = 25):
+    def message(
+        self,
+        froms,
+        tos,
+        contents,
+        host = None,
+        port = 25,
+        username = None,
+        password = None,
+        stls = False
+    ):
 
         def handler(response = None):
             # in case there's a valid response provided must parse it
@@ -319,8 +365,15 @@ class SMTPClient(netius.StreamClient):
             # and using the provided key and certificate files an then
             # sets the smtp information in the current connection
             connection = self.connect(_host, _port)
-            connection.set_message_stls_seq()
-            connection.set_smtp(froms, tos, contents)
+            if stls: connection.set_message_stls_seq()
+            else: connection.set_message_seq()
+            connection.set_smtp(
+                froms,
+                tos,
+                contents,
+                username = username,
+                password = password
+            )
             return connection
 
         # in case the host address has been provided by argument the
@@ -341,6 +394,10 @@ class SMTPClient(netius.StreamClient):
 
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
+
+    def on_upgrade(self, connection):
+        netius.StreamClient.on_upgrade(self, connection)
+        connection.call()
 
     def on_data(self, connection, data):
         netius.StreamClient.on_data(self, connection, data)
@@ -373,10 +430,4 @@ if __name__ == "__main__":
     contents = mime.as_string()
 
     smtp_client = SMTPClient(auto_close = True)
-    smtp_client.message(
-        [sender],
-        [receiver],
-        contents,
-        host = "smtp.gmail.com",
-        port = 587
-    )
+    smtp_client.message([sender], [receiver], contents)
