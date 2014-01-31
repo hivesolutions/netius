@@ -53,6 +53,7 @@ setuptools.setup(
     zip_safe = False,
     packages = [
         "netius",
+        "netius.adapters",
         "netius.base",
         "netius.clients",
         "netius.common",
