@@ -439,6 +439,14 @@ class StreamClient(Client):
         # the ssl connection handshake must be performed/retried
         if connection.connecting: self._connectf(connection)
 
+        # if the current connection state is upgrading the proper
+        # upgrading operations must be performed for example ssl
+        # handshaking and then the proper callbacks may be called
+        # as a consequence of that note that if there's pending
+        # operations at the end of this call no data will be received
+        # and processed as a consequence
+        if connection.upgrading: self._upgradef(connection)
+
         try:
             # verifies if there's any pending operations in the
             # socket (eg: ssl handshaking) and performs them trying
@@ -535,6 +543,9 @@ class StreamClient(Client):
         if hasattr(connection, "tuple"):
             self.on_acquire(connection)
 
+    def on_upgrade(self, connection):
+        connection.set_upgraded()
+
     def on_acquire(self, connection):
         pass
 
@@ -562,6 +573,9 @@ class StreamClient(Client):
 
         if connection.ssl: self._ssl_handshake(connection.socket)
         else: self.on_connect(connection)
+
+    def _upgradef(self, connection):
+        self._ssl_handshake(connection.socket)
 
     def _connects(self):
         self._pending_lock.acquire()
@@ -635,7 +649,11 @@ class StreamClient(Client):
         )
 
     def _ssl_handshake(self, _socket):
-        Base._ssl_handshake(self, _socket)
+        Client._ssl_handshake(self, _socket)
         if _socket._pending: return
+
         connection = self.connections_m.get(_socket, None)
-        connection and self.on_connect(connection)
+        if not connection: return
+
+        if connection.connecting: self.on_connect(connection)
+        elif connection.upgrading: self.on_upgrade(connection)

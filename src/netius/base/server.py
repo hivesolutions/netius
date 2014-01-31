@@ -526,6 +526,10 @@ class StreamServer(Server):
         if not connection.status == OPEN: return
         if not connection.renable == True: return
 
+        # verifies if the connection is currently under the upgrading
+        # status if that's the case runs the upgrade finish operation
+        if connection.upgrading: self._upgradef(connection)
+
         try:
             # verifies if there's any pending operations in the
             # socket (eg: ssl handshaking) and performs them trying
@@ -608,6 +612,9 @@ class StreamServer(Server):
 
         connection.close()
 
+    def on_upgrade(self, connection):
+        connection.set_upgraded()
+
     def on_data(self, connection, data):
         pass
 
@@ -636,3 +643,15 @@ class StreamServer(Server):
     def on_socket_d(self, socket_c):
         connection = self.connections_m.get(socket_c, None)
         if not connection: return
+
+    def _upgradef(self, connection):
+        self._ssl_handshake(connection.socket)
+
+    def _ssl_handshake(self, _socket):
+        Server._ssl_handshake(self, _socket)
+        if _socket._pending: return
+
+        connection = self.connections_m.get(_socket, None)
+        if not connection: return
+
+        if connection.upgrading: self.on_upgrade(connection)
