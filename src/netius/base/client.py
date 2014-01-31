@@ -463,6 +463,7 @@ class StreamClient(Client):
                 else: connection.close(); break
                 if not connection.status == OPEN: break
                 if not connection.renable == True: break
+                if not connection.socket == _socket: break
         except ssl.SSLError, error:
             error_v = error.args[0]
             if error_v in SSL_SILENT_ERRORS:
