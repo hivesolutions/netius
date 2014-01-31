@@ -97,7 +97,6 @@ class SMTPConnection(netius.Connection):
     def starttls(self):
         def callback(connection):
             connection.upgrade(server = True)
-
         message = "go ahead"
         self.send_smtp(220, message, callback = callback)
         self.state = HELO_STATE
