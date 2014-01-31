@@ -94,6 +94,13 @@ class POPConnection(netius.Connection):
         self.send_pop(message)
         self.state = HELO_STATE
 
+    def starttls(self):
+        def callback(connection):
+            connection.upgrade(server = True)
+        message = "go ahead"
+        self.send_pop(message, callback = callback)
+        self.state = HELO_STATE
+
     def capa(self):
         self.assert_s(HELO_STATE)
         message = "list follows"
@@ -149,13 +156,6 @@ class POPConnection(netius.Connection):
         message = "removed"
         self.send_pop(message)
 
-    def starttls(self):
-        def callback(connection):
-            connection.upgrade(server = True)
-        message = "go ahead"
-        self.send_pop(message, callback = callback)
-        self.state = HELO_STATE
-
     def bye(self):
         message = "bye"
         self.send_pop(message)
@@ -195,6 +195,9 @@ class POPConnection(netius.Connection):
         # then calls it with the provided message
         method = getattr(self, method_n)
         method(message)
+
+    def on_stls(self, message):
+        self.starttls()
 
     def on_capa(self, message):
         self.capa()
@@ -242,9 +245,6 @@ class POPConnection(netius.Connection):
     def on_dele(self, message):
         index = int(message)
         self.dele(index)
-
-    def on_stls(self, message):
-        self.starttls()
 
     def on_quit(self, message):
         self.bye()
