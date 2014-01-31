@@ -1,5 +1,7 @@
 *.pyc
 
+fs.data
+
 /dist/
 /src/netius.egg-info/
 /scripts/build/builds/
