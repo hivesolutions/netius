@@ -34,12 +34,24 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import base
-import fs
-import memory
-import mongo
+import cStringIO
 
-from base import *
-from fs import *
-from memory import *
-from mongo import *
+import netius
+
+import base
+
+class MemoryAdapter(base.BaseAdapter):
+
+    def __init__(self):
+        base.BaseAdapter.__init__(self)
+        self.map = dict()
+
+    def set(self, value, owner = "nobody"):
+        key = self.generate()
+        self.map[key] = value
+
+    def get_file(self, key):
+        if not key in self.map: netius.NetiusError("Key not found")
+        value = self.map[key]
+        file = cStringIO.StringIO(value)
+        return file
