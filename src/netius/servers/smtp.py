@@ -65,7 +65,7 @@ class SMTPConnection(netius.Connection):
         self.key = None
         self.from_l = []
         self.to_l = []
-        self.previous = ""
+        self.previous = str()
         self.state = INTIAL_STATE
 
         self.parser.bind("on_line", self.on_line)
@@ -134,11 +134,12 @@ class SMTPConnection(netius.Connection):
         self.send_smtp(220, message, callback = callback)
         self.state = HELO_STATE
 
-    def end_data(self):
+    def data(self):
         self.assert_s(HEADER_STATE)
         self.owner.on_header_smtp(self, self.from_l, self.to_l)
         message = "go ahead"
         self.send_smtp(354, message)
+        self.previous = str()
         self.state = DATA_STATE
 
     def queued(self, index = -1):
@@ -239,7 +240,7 @@ class SMTPConnection(netius.Connection):
         self.ok()
 
     def on_data(self, message):
-        self.end_data()
+        self.data()
 
     def on_quit(self, message):
         self.bye()
