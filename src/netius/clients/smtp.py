@@ -107,6 +107,13 @@ class SMTPConnection(netius.Connection):
         )
         self.state_l = len(self.states)
 
+    def set_smtp(self, froms, tos, contents, username = None, password = None):
+        self.froms = froms
+        self.tos = tos
+        self.contents = contents
+        self.username = username
+        self.password = password
+
     def set_sequence(self, sequence):
         self.sindex = 0
         self.sequence = sequence
@@ -144,13 +151,6 @@ class SMTPConnection(netius.Connection):
     def next_sequence(self):
         self.sindex += 1
         self.state = self.sequence[self.sindex]
-
-    def set_smtp(self, froms, tos, contents, username = None, password = None):
-        self.froms = froms
-        self.tos = tos
-        self.contents = contents
-        self.username = username
-        self.password = password
 
     def parse(self, data):
         return self.parser.parse(data)
@@ -336,6 +336,7 @@ class SMTPClient(netius.StreamClient):
         port = 25,
         username = None,
         password = None,
+        ehlo = True,
         stls = False
     ):
 
@@ -365,8 +366,8 @@ class SMTPClient(netius.StreamClient):
             # and using the provided key and certificate files an then
             # sets the smtp information in the current connection
             connection = self.connect(_host, _port)
-            if stls: connection.set_message_stls_seq()
-            else: connection.set_message_seq()
+            if stls: connection.set_message_stls_seq(ehlo = ehlo)
+            else: connection.set_message_seq(ehlo = ehlo)
             connection.set_smtp(
                 froms,
                 tos,
