@@ -61,8 +61,7 @@ class MemoryAdapter(base.BaseAdapter):
         value = item["value"]
         file = StringIO.StringIO(value)
         close = self._build_close(file, key)
-        _close = file.close
-        file._close = _close
+        file._close = file.close
         file.close = close
         return file
 
