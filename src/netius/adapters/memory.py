@@ -84,12 +84,12 @@ class MemoryAdapter(base.BaseAdapter):
 
     def list(self):
         return self.map.keys()
-    
+
     def _build_close(self, file, key):
-        
+
         def close():
             value = file.getvalue()
             self.map[key] = value
             file._close()
-        
+
         return close

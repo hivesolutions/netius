@@ -35,6 +35,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import os
+import ctypes
 
 import base
 
@@ -76,3 +77,18 @@ class FsAdapter(base.BaseAdapter):
     def list(self):
         files = os.listdir(self.base_path)
         return files
+
+    def _symlink(self, source, target):
+        if os.name == "nt":
+            symlink = ctypes.windll.kernel32.CreateSymbolicLinkW #@UndefinedVariable
+            symlink.argtypes = (
+                ctypes.c_wchar_p,
+                ctypes.c_wchar_p,
+                ctypes.c_uint32
+            )
+            symlink.restype = ctypes.c_ubyte
+            flags = 1 if os.path.isdir(source) else 0
+            result = symlink(target, source, flags)
+            if result == 0: raise ctypes.WinError()
+        else:
+            os.symlink(source, target) #@UndefinedVariable
