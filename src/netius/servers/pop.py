@@ -306,25 +306,29 @@ class POPServer(netius.StreamServer):
         connection.username = username
 
     def on_stat_pop(self, connection):
-        count = self.adapter.count()
-        total = self.adapter.total()
+        username = connection.username
+        count = self.adapter.count(owner = username)
+        total = self.adapter.total(owner = username)
         connection.count = count
         connection.byte_c = total
 
     def on_list_pop(self, connection):
-        sizes = self.adapter.sizes()
+        username = connection.username
+        sizes = self.adapter.sizes(owner = username)
         connection.sizes = sizes
 
     def on_uidl_pop(self, connection):
-        connection.keys = self.adapter.list()
+        username = connection.username
+        connection.keys = self.adapter.list(owner = username)
 
     def on_retr_pop(self, connection, index):
         key = connection.keys[index]
         connection.contents = self.adapter.get(key)
 
     def on_dele_pop(self, connection, index):
+        username = connection.username
         key = connection.keys[index]
-        self.adapter.delete(key)
+        self.adapter.delete(key, owner = username)
 
 if __name__ == "__main__":
     import logging
