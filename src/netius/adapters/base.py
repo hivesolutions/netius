@@ -54,7 +54,7 @@ class BaseAdapter(object):
     def get_file(self, key, mode = "rb"):
         return StringIO.StringIO()
 
-    def delete(self, key):
+    def delete(self, key, owner = "nobody"):
         pass
 
     def append(self, key, value):
@@ -74,24 +74,24 @@ class BaseAdapter(object):
     def size(self, key):
         return 0
 
-    def sizes(self):
-        list = self.list()
+    def sizes(self, owner = None):
+        list = self.list(owner = owner)
         sizes = [self.size(key) for key in list]
         return sizes
 
-    def total(self):
+    def total(self, owner = None):
         total = 0
-        list = self.list()
+        list = self.list(owner = owner)
         for key in list: total += self.size(key)
         return total
 
     def reserve(self, owner = "nobody"):
         return self.set("", owner = owner)
 
-    def count(self):
+    def count(self, owner = None):
         return 0
 
-    def list(self):
+    def list(self, owner = None):
         return ()
 
     def generate(self):
