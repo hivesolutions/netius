@@ -310,7 +310,7 @@ class SMTPServer(netius.StreamServer):
         # and then generates a new identifier for the current
         # message that is going to be delivered/queued
         connection.keys = keys
-        connection.identifier = self._generate()
+        connection.identifier = self._generate(hashed = False)
 
     def on_data_smtp(self, connection, data):
         for key in connection.keys:
