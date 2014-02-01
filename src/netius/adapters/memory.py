@@ -45,15 +45,20 @@ class MemoryAdapter(base.BaseAdapter):
     def __init__(self):
         base.BaseAdapter.__init__(self)
         self.map = dict()
+        self.owners = dict()
 
     def set(self, value, owner = "nobody"):
+        map_o = self._ensure(owner)
         key = self.generate()
-        self.map[key] = value
+        item = dict(value = value, owner = owner)
+        self.map[key] = item
+        map_o[key] = item
         return key
 
     def get_file(self, key, mode = "rb"):
         if not key in self.map: netius.NetiusError("Key not found")
-        value = self.map[key]
+        item = self.map[key]
+        value = item["value"]
         file = StringIO.StringIO(value)
         close = self._build_close(file, key)
         _close = file.close
@@ -61,35 +66,50 @@ class MemoryAdapter(base.BaseAdapter):
         file.close = close
         return file
 
-    def delete(self, key):
+    def delete(self, key, owner = "nobody"):
+        item = self.map[key]
+        owner = item["owner"]
+        map_o = self._ensure(owner)
         del self.map[key]
+        del map_o[key]
 
     def append(self, key, value):
-        _value = self.map[key]
+        item = self.map[key]
+        _value = item["value"]
         _value += value
-        self.map[key] = _value
+        item["value"] = _value
 
     def truncate(self, key, count):
-        _value = self.map[key]
+        item = self.map[key]
+        _value = item["value"]
         offset = count * -1
         _value = _value[:offset]
-        self.map[key] = _value
+        item["value"] = _value
 
     def size(self, key):
-        _value = self.map[key]
+        item = self.map[key]
+        _value = item["value"]
         return len(_value)
 
-    def count(self):
-        return len(self.map)
+    def count(self, owner = None):
+        map = self._ensure(owner) if owner else self.map
+        return len(map)
 
-    def list(self):
-        return self.map.keys()
+    def list(self, owner = None):
+        map = self._ensure(owner) if owner else self.map
+        return map.keys()
+
+    def _ensure(self, owner):
+        map = self.owners.get(owner, {})
+        self.owners[owner] = map
+        return map
 
     def _build_close(self, file, key):
 
         def close():
             value = file.getvalue()
-            self.map[key] = value
+            item = self.map[key]
+            item["value"] = value
             file._close()
 
         return close
