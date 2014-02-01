@@ -291,13 +291,22 @@ class SMTPServer(netius.StreamServer):
         pass
 
     def on_header_smtp(self, connection, from_l, to_l):
-        connection.key = self.adapter.reserve()
+        emails = self._emails(to_l)
+        email = emails[0]
+        name = email.split("@", 1)[0]
+        connection.key = self.adapter.reserve(owner = name)
 
     def on_data_smtp(self, connection, data):
         self.adapter.append(connection.key, data)
 
     def on_message_smtp(self, connection):
         self.adapter.truncate(connection.key, TERMINATION_SIZE)
+
+    def _emails(self, sequence, prefix = "to"):
+        prefix_l = len(prefix)
+        base = prefix_l + 2
+        emails = [item[base:-1] for item in sequence]
+        return emails
 
 if __name__ == "__main__":
     import logging
