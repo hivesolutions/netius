@@ -62,7 +62,8 @@ class SMTPConnection(netius.Connection):
         self.parser = netius.common.SMTPParser(self)
         self.host = host
         self.chost = None
-        self.key = None
+        self.identifier = None
+        self.keys = []
         self.from_l = []
         self.to_l = []
         self.previous = str()
@@ -145,7 +146,7 @@ class SMTPConnection(netius.Connection):
     def queued(self, index = -1):
         self.assert_s(DATA_STATE)
         self.owner.on_message_smtp(self)
-        identifier = self.key or index
+        identifier = self.identifier or index
         message = "ok queued as %s" % identifier
         self.send_smtp(250, message)
         self.state = HEADER_STATE
@@ -291,16 +292,38 @@ class SMTPServer(netius.StreamServer):
         pass
 
     def on_header_smtp(self, connection, from_l, to_l):
-        emails = self._emails(to_l)
-        email = emails[0]
-        name = email.split("@", 1)[0]
-        connection.key = self.adapter.reserve(owner = name)
+        # creates the list that will hold the various keys
+        # to the adapter items that are going to be created
+        # for the delivery of the message to the target then
+        # retrieves the complete list of users associated with
+        # the to (target) list of values
+        keys = []
+        users = self._users(to_l)
+
+        # iterates over the complete set of users to reserve
+        # new keys for the various items to be delivered
+        for user in users:
+            key = self.adapter.reserve(owner = user)
+            keys.append(key)
+
+        # sets the list of reserved keys in the connection
+        # and then generates a new identifier for the current
+        # message that is going to be delivered/queued
+        connection.keys = keys
+        connection.identifier = self.adapter.generate()
 
     def on_data_smtp(self, connection, data):
-        self.adapter.append(connection.key, data)
+        for key in connection.keys:
+            self.adapter.append(key, data)
 
     def on_message_smtp(self, connection):
-        self.adapter.truncate(connection.key, TERMINATION_SIZE)
+        for key in connection.keys:
+            self.adapter.truncate(key, TERMINATION_SIZE)
+
+    def _users(self, sequence, prefix = "to"):
+        emails = self._emails(sequence, prefix = prefix)
+        users = [email.split("@", 1)[0] for email in emails]
+        return users
 
     def _emails(self, sequence, prefix = "to"):
         prefix_l = len(prefix)
