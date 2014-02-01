@@ -51,10 +51,13 @@ class FsAdapter(base.BaseAdapter):
 
     def set(self, value, owner = "nobody"):
         key = self.generate()
+        owner_path = self._ensure(owner)
         file_path = os.path.join(self.base_path, key)
+        link_path = os.path.join(owner_path, key)
         file = open(file_path, "wb")
         try: file.write(value)
         finally: file.close()
+        self._symlink(file_path, link_path)
         return key
 
     def get_file(self, key, mode = "rb"):
@@ -62,21 +65,36 @@ class FsAdapter(base.BaseAdapter):
         file = open(file_path, mode)
         return file
 
-    def delete(self, key):
+    def delete(self, key, owner = "nobody"):
+        owner_path = self._ensure(owner)
         file_path = os.path.join(self.base_path, key)
+        link_path = os.path.join(owner_path, key)
         os.remove(file_path)
+        os.remove(link_path)
 
     def size(self, key):
         file_path = os.path.join(self.base_path, key)
         return os.path.getsize(file_path)
 
-    def count(self):
-        files = os.listdir(self.base_path)
-        return len(files)
+    def count(self, owner = None):
+        list = self.list(owner = owner)
+        return len(list)
 
-    def list(self):
-        files = os.listdir(self.base_path)
+    def list(self, owner = None):
+        path = self._path(owner = owner)
+        exists = os.path.exists(path)
+        files = os.listdir(path) if exists else []
         return files
+
+    def _path(self, owner = None):
+        if not owner: return self.base_path
+        return os.path.join(self.base_path, owner)
+
+    def _ensure(self, owner):
+        owner_path = os.path.join(self.base_path, owner)
+        if os.path.exists(owner_path): return owner_path
+        os.makedirs(owner_path)
+        return owner_path
 
     def _symlink(self, source, target):
         if os.name == "nt":
