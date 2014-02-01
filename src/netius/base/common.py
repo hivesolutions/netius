@@ -45,6 +45,7 @@ import errno
 import heapq
 import socket
 import logging
+import hashlib
 import traceback
 
 import errors
@@ -811,6 +812,28 @@ class Base(observer.Observable):
         for pending, pending_o in zip(pendings, pendings_o):
             heapq.heappush(self._delayed, pending)
             heapq.heappush(self._delayed_o, pending_o)
+
+    def _generate(self, hashed = True):
+        """
+        Generates a random unique identifier that may be used
+        to uniquely identify a certain object or operation.
+
+        This method must be used carefully to avoid any unwanted
+        behavior resulting from value collisions.
+
+        @type hashed: bool
+        @param hashed: If the identifier should be hashed into
+        and hexadecimal string instead of an uuid based identifier.
+        @rtype: String
+        @return: The random unique identifier generated and that
+        may be used to identify objects or operations.
+        """
+
+        identifier = str(uuid.uuid4())
+        if not hashed: return identifier
+        hash = hashlib.sha256(identifier)
+        indetifier = hash.hexdigest()
+        return indetifier
 
     def _socket_keepalive(self, _socket):
         hasattr(_socket, "TCP_KEEPIDLE") and\
