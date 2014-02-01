@@ -37,7 +37,6 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import dhcp
 import echo
 import http
-import imap
 import mjpg
 import pop
 import proxy
@@ -49,7 +48,6 @@ import wsgi
 from dhcp import *
 from echo import *
 from http import *
-from imap import *
 from mjpg import *
 from pop import *
 from proxy import *
