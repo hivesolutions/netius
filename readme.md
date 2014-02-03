@@ -36,7 +36,7 @@ netius.clients.HTTPClient.get_s(
 
 ## Examples
 
-A series of example are located in the [examples.md](examples.md) page.
+A series of example are located in the examples.md page.
 
 ## Running
 
