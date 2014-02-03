@@ -34,6 +34,10 @@ netius.clients.HTTPClient.get_s(
 )
 ```
 
+## Examples
+
+A series of example are located in the (examples.md)[examples.md] page.
+
 ## Running
 
 In order to run the default servers of the netius infra-structure the out-of-box installation
