@@ -63,6 +63,11 @@ GZIP_ENCODING = 3
 kind of encoding will always used chunked encoding so
 that the content may be send in parts """
 
+Z_PARTIAL_FLUSH = 1
+""" The zlib constant value representing the partial flush
+of the current zlib stream, this value has to be defined
+locally as it is not defines under the zlib module """
+
 ENCODING_MAP = dict(
     plain = 1,
     chunked = 2,
@@ -179,7 +184,7 @@ class HTTPConnection(netius.Connection):
         # that in case the resulting of the compress operation
         # is not valid a sync flush operation is performed
         data_c = self.gzip.compress(data)
-        if not data_c: data_c = self.gzip.flush(zlib.Z_SYNC_FLUSH)
+        if not data_c: data_c = self.gzip.flush(Z_PARTIAL_FLUSH)
         data_c = data_c[2:] if is_first else data_c
 
         # in case this is the first send operation, need to
