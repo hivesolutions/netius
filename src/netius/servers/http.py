@@ -175,8 +175,11 @@ class HTTPConnection(netius.Connection):
 
         # compresses the provided data string and removes the
         # initial data contents of the compressed data because
-        # they are not part of the gzip specification
+        # they are not part of the gzip specification, notice
+        # that in case the resulting of the compress operation
+        # is not valid a sync flush operation is performed
         data_c = self.gzip.compress(data)
+        if not data_c: data_c = self.gzip.flush(zlib.Z_SYNC_FLUSH)
         data_c = data_c[2:] if is_first else data_c
 
         # in case this is the first send operation, need to

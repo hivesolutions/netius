@@ -56,6 +56,25 @@ class WSGIServer(http.HTTPServer):
         self.mount = mount
         self.mount_l = len(mount)
 
+    def on_connection_d(self, connection):
+        http.HTTPServer.on_connection_d(self, connection)
+
+        # verifies if there's an iterator object currently defined
+        # in the connection so that it may be close in case that's
+        # required, this is mandatory to avoid any memory leak
+        iterator = hasattr(connection, "iterator") and connection.iterator
+        if not iterator: return
+
+        # verifies if the close attributes is defined in the iterator
+        # and if that's the case calls the close method in order to
+        # avoid any memory leak caused by the generator
+        has_close = hasattr(iterator, "close")
+        if has_close: iterator.close()
+
+        # unsets the iterator attribute in the connection object so that
+        # it may no longer be used by any chunk of logic code
+        setattr(connection, "iterator", None)
+
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
 
