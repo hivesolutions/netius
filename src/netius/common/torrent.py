@@ -47,9 +47,15 @@ character and expression with decimal digits """
 
 def bdecode(data):
     # converts the provide (string) data into a list
-    # of chunks (characters) reversing it 
+    # of chunks (characters) reversing it so that the
+    # proper pop/push operations may be performed, as
+    # pop is done from the back of the list
     chunks = list(data)
     chunks.reverse()
+
+    # runs the dechunking operation in the created list
+    # of chunks obtaining a dictionary base structure
+    # as the result of the bencoding operation
     root = dechunk(chunks)
     return root
 
@@ -65,34 +71,45 @@ def dechunk(chunks):
             key = dechunk(chunks)
             hash[key] = dechunk(chunks)
             item = chunks.pop()
+
         return hash
 
     elif item == "l":
         item = chunks.pop()
         list = []
+
         while not item == "e":
             chunks.append(item)
             list.append(dechunk(chunks))
             item = chunks.pop()
+
         return list
 
     elif item == "i":
         item = chunks.pop()
-        num = ""
+        number = ""
+
         while not item == "e":
-            num  += item
+            number  += item
             item = chunks.pop()
-        return int(num)
+
+        return int(number)
 
     elif DECIMAL_REGEX.search(item):
-        num = ""
+        number = ""
+
         while DECIMAL_REGEX.search(item):
-            num += item
+            number += item
             item = chunks.pop()
+
         line = ""
-        num = int(num)
-        for _index in range(num):
+        number = int(number)
+        for _index in range(number):
             line += chunks.pop()
+
         return line
 
     raise netius.ParserError("Invalid input")
+
+
+print bdecode("d3:cow3:moo4:spam4:eggse")
