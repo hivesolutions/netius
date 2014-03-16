@@ -19,6 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
 
+__author__ = "João Magalhães joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,16 +37,17 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import apn
-import dns
-import http
-import raw
-import smtp
-import torrent
+import netius
 
-from apn import *
-from dns import *
-from http import *
-from raw import *
-from smtp import *
-from torrent import *
+class TorrentClient(netius.StreamClient):
+    """
+    Implementation of the torrent protocol, able to download
+    and seed files across a peer to peer mesh network.
+
+    The client provides a series of top level methods that
+    provide the main interface with the system.
+    """
+
+    def __init__(self, auto_close = False, *args, **kwargs):
+        netius.StreamClient.__init__(self, *args, **kwargs)
+        self.auto_close = auto_close
