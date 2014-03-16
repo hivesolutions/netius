@@ -91,6 +91,14 @@ class APNConnection(netius.Connection):
         self._close = _close
 
 class APNClient(netius.StreamClient):
+    """
+    Client class that defines the interface to operate
+    an apple push notifications (apn) client that is
+    able to send push notifications to apple devices.
+
+    Should be compliant with a simple message oriented
+    interface for easy of usage from developers.
+    """
 
     def message(self, token, *args, **kwargs):
         # unpacks the various keyword based arguments fro the
