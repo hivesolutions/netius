@@ -110,6 +110,3 @@ def dechunk(chunks):
         return line
 
     raise netius.ParserError("Invalid input")
-
-
-print bdecode("d3:cow3:moo4:spam4:eggse")
