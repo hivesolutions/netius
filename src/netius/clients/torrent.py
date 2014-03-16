@@ -37,7 +37,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import netius
+import netius.common
 
 class TorrentClient(netius.StreamClient):
     """
@@ -46,8 +46,39 @@ class TorrentClient(netius.StreamClient):
 
     The client provides a series of top level methods that
     provide the main interface with the system.
+
+    The current implementation support both a torrent file
+    (using trackers) strategy and also a DHT (distributed
+    has table) strategy for completely decentralized usage.
     """
 
     def __init__(self, auto_close = False, *args, **kwargs):
         netius.StreamClient.__init__(self, *args, **kwargs)
         self.auto_close = auto_close
+
+    def download(self, file_path = None, info_hash = None):
+        """
+        Starts the "downloading" process of a torrent associated file
+        using the defined peer to peer torrent strategy suing either
+        the provided torrent path as reference or just the info hash
+        of the file that is going to be downloaded.
+
+        Note that if only the info hash is provided a DHT bases strategy
+        is going to be used to retrieve the peers list.
+        """
+
+        if file_path: info = self.load_info(file_path)
+        else: info = dict(info_hash = info_hash)
+
+        import pprint
+        pprint.pprint(info)
+
+    def load_info(self, file_path):
+        file = open(file_path, "rb")
+        try: data = file.read()
+        finally: file.close()
+        return netius.common.bdecode(data)
+
+if __name__ == "__main__":
+    torrent_client = TorrentClient()
+    torrent_client.download("C:\Users\joamag\Downloads\Delivery.Man.(2013).torrent")
