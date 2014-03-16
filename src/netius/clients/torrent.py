@@ -77,7 +77,9 @@ class TorrentClient(netius.StreamClient):
         file = open(file_path, "rb")
         try: data = file.read()
         finally: file.close()
-        return netius.common.bdecode(data)
+        struct = netius.common.bdecode(data)
+        struct["info_hash"] = netius.common.info_hash(struct)
+        return struct
 
 if __name__ == "__main__":
     torrent_client = TorrentClient()

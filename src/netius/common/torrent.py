@@ -39,12 +39,19 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import re
 import types
+import hashlib
 
 import netius
 
 DECIMAL_REGEX = re.compile(r"\d")
 """ Simple regular expression that matched any
 character and expression with decimal digits """
+
+def info_hash(root):
+    info = root["info"]
+    data = bencode(info)
+    info_hash = hashlib.sha1(data)
+    return info_hash.digest()
 
 def bencode(root):
     # joins the complete set of values created by
@@ -71,9 +78,13 @@ def chunk(item):
     chunk_t = type(item)
 
     if chunk_t == types.DictType:
-        for key, value in item.iteritems():
+        yield "d"
+        keys = item.keys(); keys.sort()
+        for key in keys:
+            value = item[key]
             for part in chunk(key): yield part
             for part in chunk(value): yield part
+        yield "e"
 
     elif chunk_t == types.ListType:
         yield "l"
