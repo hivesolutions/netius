@@ -39,6 +39,7 @@ import http
 import pop
 import smtp
 import socks
+import torrent
 import util
 
 from dhcp import *
@@ -46,4 +47,5 @@ from http import *
 from pop import *
 from smtp import *
 from socks import *
+from torrent import *
 from util import *
