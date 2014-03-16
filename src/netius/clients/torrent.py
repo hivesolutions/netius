@@ -81,4 +81,4 @@ class TorrentClient(netius.StreamClient):
 
 if __name__ == "__main__":
     torrent_client = TorrentClient()
-    torrent_client.download("C:\Users\joamag\Downloads\Delivery.Man.(2013).torrent")
+    torrent_client.download("C:\Users\joamag\Downloads\ubuntu-12.04.4-alternate-amd64.iso.torrent")

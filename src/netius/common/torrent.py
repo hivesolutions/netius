@@ -38,12 +38,20 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import re
+import types
 
 import netius
 
 DECIMAL_REGEX = re.compile(r"\d")
 """ Simple regular expression that matched any
 character and expression with decimal digits """
+
+def bencode(root):
+    # joins the complete set of values created by
+    # generator that has been returned from the chunk
+    # function using the provided root value
+    data = "".join([value for value in chunk(root)])
+    return data
 
 def bdecode(data):
     # converts the provide (string) data into a list
@@ -58,6 +66,29 @@ def bdecode(data):
     # as the result of the bencoding operation
     root = dechunk(chunks)
     return root
+
+def chunk(item):
+    chunk_t = type(item)
+
+    if chunk_t == types.DictType:
+        for key, value in item.iteritems():
+            for part in chunk(key): yield part
+            for part in chunk(value): yield part
+
+    elif chunk_t == types.ListType:
+        yield "l"
+        for value in item:
+            for part in chunk(value): yield part
+        yield "e"
+
+    elif chunk_t == types.IntType:
+        yield "i%de" % item
+
+    elif chunk_t in types.StringTypes:
+        yield "%d:%s" % (len(item), item)
+
+    else:
+        raise netius.ParserError("Not possible to encode")
 
 def dechunk(chunks):
     item = chunks.pop()
