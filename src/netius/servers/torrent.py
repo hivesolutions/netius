@@ -64,17 +64,32 @@ class TorrentTask(object):
         if file_path: self.info = self.load_info(file_path)
         else: self.info = dict(info_hash = info_hash)
 
+        self.pieces_tracker()
         self.peers_tracker()
 
     def load_info(self, file_path):
         file = open(file_path, "rb")
         try: data = file.read()
         finally: file.close()
+
         struct = netius.common.bdecode(data)
         struct["info_hash"] = netius.common.info_hash(struct)
         return struct
 
+    def pieces_tracker(self):
+        info = self.info.get("info", {})
+        pieces = info.get("pieces", "")
+        self.info["pieces"] = [piece for piece in netius.common.chunks(pieces, 20)]
+
     def peers_tracker(self):
+        """
+        Tries to retrieve as much information as possible about the
+        peers from the currently loaded tracker information.
+
+        It's possible that no tracker information exits for the current
+        task and for such situations no state change will occur.
+        """
+
         announce = self.info.get("announce", None)
         announce_list = self.info.get("announce-list", [[announce]])
 
