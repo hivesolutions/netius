@@ -116,7 +116,6 @@ class TorrentTask(object):
         self.file.seek(index * piece_length + begin)
         self.file.write(data)
         self.file.flush()
-        self.check_piece(index, begin)
 
     def peers_tracker(self):
         """
