@@ -37,7 +37,11 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import uuid
+import hashlib
+
 import netius.common
+import netius.clients
 
 class TorrentClient(netius.StreamClient):
     """
@@ -55,6 +59,7 @@ class TorrentClient(netius.StreamClient):
     def __init__(self, auto_close = False, *args, **kwargs):
         netius.StreamClient.__init__(self, *args, **kwargs)
         self.auto_close = auto_close
+        self.peer_id = self._generate_id()
 
     def download(self, file_path = None, info_hash = None):
         """
@@ -70,8 +75,7 @@ class TorrentClient(netius.StreamClient):
         if file_path: info = self.load_info(file_path)
         else: info = dict(info_hash = info_hash)
 
-        import pprint
-        pprint.pprint(info)
+        self.peers_tracker(info)
 
     def load_info(self, file_path):
         file = open(file_path, "rb")
@@ -80,6 +84,21 @@ class TorrentClient(netius.StreamClient):
         struct = netius.common.bdecode(data)
         struct["info_hash"] = netius.common.info_hash(struct)
         return struct
+
+    def peers_tracker(self, info):
+        announce = info.get("announce", None)
+        announce_list = info.get("announce-list", [[announce]])
+        for tracker in announce_list:
+            tracker_url = tracker[0]
+            netius.clients.HTTPClient.get_s(tracker_url)
+            print tracker_url
+
+    def _generate_id(self):
+        random = str(uuid.uuid4())
+        hash = hashlib.sha1(random)
+        digest = hash.hexdigest()
+        id = "-NE1000-%s" % digest[:12]
+        return id
 
 if __name__ == "__main__":
     torrent_client = TorrentClient()
