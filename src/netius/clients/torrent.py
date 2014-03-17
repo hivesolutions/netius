@@ -99,7 +99,7 @@ class TorrentConnection(netius.Connection):
         self.next()
 
     def next(self):
-        index, begin = self.task.pop_piece()
+        index, begin = self.task.pop_piece(self.bitfield)
         self.request(index, begin = begin)
 
     def handshake(self):

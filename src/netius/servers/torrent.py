@@ -67,9 +67,6 @@ class TorrentTask(object):
         self.downloaded = 0
         self.left = 0
         self.peers = []
-        self.missing = []
-        self.available = []
-        self.downloading = []
 
         if torrent_path: self.info = self.load_info(torrent_path)
         else: self.info = dict(info_hash = info_hash)
@@ -98,8 +95,10 @@ class TorrentTask(object):
     def load_pieces(self):
         number_pieces = self.info["number_pieces"]
         number_parts = self.info["number_parts"]
-        self.missing = range(number_pieces * number_parts)
-        self.missing.reverse()
+        bitfield = "".join(["0" for _index in xrange(number_pieces)])
+        mask = "".join(["0" for _index in xrange(number_pieces * number_parts)])
+        self.bitfield = netius.common.string_to_bits(bitfield)
+        self.mask = netius.common.string_to_bits(mask)
 
     def pieces_tracker(self):
         info = self.info.get("info", {})
@@ -175,7 +174,7 @@ class TorrentTask(object):
     def connect_peer(self, peer):
         self.owner.client.peer(self, peer["ip"], peer["port"])
 
-    def pop_piece(self):
+    def pop_piece(self, bitfield):       
         number_parts = self.info["number_parts"]
         piece_id = self.missing.pop()
         index = piece_id / number_parts
