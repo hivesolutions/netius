@@ -39,66 +39,64 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import struct
 
-import netius
+import netius.common
 
 HANDSHAKE_STATE = 1
 
 NORMAL_STATE = 2
 
-TORRENT_TYPES = {
-    0 : "choke",
-    1 : "unchoke",
-    2 : "interested",
-    3 : "not interested",
-    4 : "have",
-    5 : "bitfield",
-    6 : "request",
-    7 : "piece",
-    8 : "cancel",
-    9 : "port"
-}
-
 class TorrentConnection(netius.Connection):
 
     def __init__(self, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
+        self.parser = netius.common.TorrentParser(self)
         self.task = None
         self.peer_id = None
+        self.bitfield = b""
         self.state = HANDSHAKE_STATE
 
-        self.build()
+        self.parser.bind("on_handshake", self.on_handshake)
+        self.parser.bind("on_message", self.on_message)
 
-    def build(self):
-        """
-        Builds the initial set of states ordered according to
-        their internal integer definitions, this method provides
-        a fast and scalable way of parsing data.
-        """
+    def parse(self, data):
+        self.parser.parse(data)
 
-        self.states = (
-            self.handshake_t,
-            self.normal_t
-        )
-        self.state_l = len(self.states)
-
-    def handle(self, data):
-        # tries to retrieve the method for the current state in iteration
-        # and then calls the retrieve method with (handler method)
-        method = self.states[self.state - 1]
-        method(data)
-
-    def handshake_t(self, data):
-        length, = struct.unpack("!B", data[:1])
-        _protocol, _reserved, _info_hash, self.peer_id = struct.unpack("!%dsQ20s20s" % length, data[1:])
+    def on_handshake(self, protocol, reserved, info_hash, peer_id):
+        self.peer_id = peer_id
         self.state = NORMAL_STATE
 
-    def normal_t(self, data):
-        length, = struct.unpack("!L", data[:4])
-        if length == 0: self.owner.debug("keep-alive")
+    def on_message(self, length, type, data):
+        self.owner.debug(type)
+        self.handle(type, data)
 
-        type, = struct.unpack("!B", data[4:5])
-        type_s = TORRENT_TYPES.get(type, "invalid")
-        self.owner.debug(type_s)
+    def handle(self, type, data):
+        # constructs the name of the method that is going to be called
+        # for the handle of the message from the provided type and verifies
+        # if the method exists under the current instance
+        method_name = "%s_t" % type
+        if not hasattr(self, method_name): return
+
+        # tries to retrieve the method for the current state in iteration
+        # and then calls the retrieve method with (handler method)
+        method = getattr(self, method_name)
+        method(data)
+
+    def bitfield_t(self, data):
+        self.bitfield = netius.common.string_to_bits(data[5:])
+
+    def unchoke_t(self, data):
+        requested = -1
+
+        for index, value in enumerate(self.bitfield):
+            if value == 0: continue
+            requested = index
+            break
+
+        if requested == -1: return
+        self.request(requested, length = 32)
+
+    def piece_t(self, data):
+        pass
 
     def handshake(self):
         data = struct.pack(
@@ -109,6 +107,11 @@ class TorrentConnection(netius.Connection):
             self.task.info["info_hash"],
             self.task.owner.peer_id
         )
+        data and self.send(data)
+
+    def request(self, index, begin = 0, length = None):
+        length = length or 16384
+        data = struct.pack("!LBLLL", 13, 6, index, begin, length)
         data and self.send(data)
 
 class TorrentClient(netius.StreamClient):
@@ -144,7 +147,7 @@ class TorrentClient(netius.StreamClient):
 
     def on_data(self, connection, data):
         netius.StreamClient.on_data(self, connection, data)
-        connection.handle(data)
+        connection.parse(data)
 
     def on_connection_d(self, connection):
         netius.StreamClient.on_connection_d(self, connection)

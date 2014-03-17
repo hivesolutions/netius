@@ -83,6 +83,9 @@ def ip4_to_addr(value):
     fourth_a = int(fourth)
     return first_a + second_a + third_a + fourth_a
 
+def string_to_bits(self, value):
+    return bin(reduce(lambda x, y : (x << 8) + y, (ord(c) for c in value), 1))[3:]
+
 def host():
     """
     Retrieves the host for the current machine,
