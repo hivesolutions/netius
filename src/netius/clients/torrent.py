@@ -37,7 +37,29 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import struct
+
 import netius
+
+class TorrentConnection(netius.Connection):
+
+    def __init__(self, *args, **kwargs):
+        netius.Connection.__init__(self, *args, **kwargs)
+        self.task = None
+
+    def handle(self, data):
+        pass
+
+    def handshake(self):
+        data = struct.pack(
+            "!B19sQ20s20s",
+            19,
+            "BitTorrent protocol",
+            0,
+            self.task.info["info_hash"],
+            self.task.owner.peer_id
+        )
+        data and self.send(data)
 
 class TorrentClient(netius.StreamClient):
     """
@@ -55,3 +77,36 @@ class TorrentClient(netius.StreamClient):
     def __init__(self, auto_close = False, *args, **kwargs):
         netius.StreamClient.__init__(self, *args, **kwargs)
         self.auto_close = auto_close
+
+    def peer(self, task, host, port, ssl = False, connection = None):
+        connection = connection or self.acquire_c(host, port, ssl = ssl)
+        connection.task = task
+        return connection
+
+    def on_connect(self, connection):
+        netius.StreamClient.on_connect(self, connection)
+        self.trigger("connect", self, connection)
+
+    def on_acquire(self, connection):
+        netius.StreamClient.on_acquire(self, connection)
+        self.trigger("acquire", self, connection)
+        connection.handshake()
+
+    def on_data(self, connection, data):
+        netius.StreamClient.on_data(self, connection, data)
+        print data
+        #connection.parse(data)
+
+    def on_connection_d(self, connection):
+        netius.StreamClient.on_connection_d(self, connection)
+        if not self.auto_close: return
+        if self.connections: return
+        self.close()
+
+    def new_connection(self, socket, address, ssl = False):
+        return TorrentConnection(
+            owner = self,
+            socket = socket,
+            address = address,
+            ssl = ssl
+        )

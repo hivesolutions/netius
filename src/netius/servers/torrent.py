@@ -60,10 +60,11 @@ class TorrentTask(object):
         self.downloaded = 0
         self.left = 0
         self.peers = []
-        if file_path: info = self.load_info(file_path)
-        else: info = dict(info_hash = info_hash)
-        self.peers_tracker(info)
-        print self.peers
+
+        if file_path: self.info = self.load_info(file_path)
+        else: self.info = dict(info_hash = info_hash)
+
+        self.peers_tracker()
 
     def load_info(self, file_path):
         file = open(file_path, "rb")
@@ -73,16 +74,16 @@ class TorrentTask(object):
         struct["info_hash"] = netius.common.info_hash(struct)
         return struct
 
-    def peers_tracker(self, info):
-        announce = info.get("announce", None)
-        announce_list = info.get("announce-list", [[announce]])
+    def peers_tracker(self):
+        announce = self.info.get("announce", None)
+        announce_list = self.info.get("announce-list", [[announce]])
 
         for tracker in announce_list:
             tracker_url = tracker[0]
             result = netius.clients.HTTPClient.get_s(
                 tracker_url,
                 params = dict(
-                    info_hash = info["info_hash"],
+                    info_hash = self.info["info_hash"],
                     peer_id = self.owner.peer_id,
                     port = "1000",
                     uploaded = self.uploaded,
@@ -113,11 +114,16 @@ class TorrentTask(object):
                 )
                 self.peers.append(peer)
 
+    def connect_peer(self, index = 0):
+        peer = self.peers[index]
+        self.owner.client.peer(self, peer["ip"], peer["port"])
+
 class TorrentServer(netius.StreamServer):
 
     def __init__(self, *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.peer_id = self._generate_id()
+        self.client = netius.clients.TorrentClient()
 
     def download(self, file_path = None, info_hash = None):
         """
@@ -142,6 +148,7 @@ class TorrentServer(netius.StreamServer):
             file_path = file_path,
             info_hash = info_hash
         )
+        task.connect_peer()
 
     def _generate_id(self):
         random = str(uuid.uuid4())
@@ -153,3 +160,4 @@ class TorrentServer(netius.StreamServer):
 if __name__ == "__main__":
     torrent_server = TorrentServer()
     torrent_server.download("C:\ubuntu.torrent")
+    torrent_server.start()
