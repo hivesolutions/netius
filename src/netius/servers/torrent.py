@@ -95,10 +95,8 @@ class TorrentTask(object):
     def load_pieces(self):
         number_pieces = self.info["number_pieces"]
         number_parts = self.info["number_parts"]
-        bitfield = "".join(["0" for _index in xrange(number_pieces)])
-        mask = "".join(["0" for _index in xrange(number_pieces * number_parts)])
-        self.bitfield = netius.common.string_to_bits(bitfield)
-        self.mask = netius.common.string_to_bits(mask)
+        self.bitfield = [True for _index in xrange(number_pieces)]
+        self.mask = [True for _index in xrange(number_pieces * number_parts)]
 
     def pieces_tracker(self):
         info = self.info.get("info", {})
@@ -174,27 +172,49 @@ class TorrentTask(object):
     def connect_peer(self, peer):
         self.owner.client.peer(self, peer["ip"], peer["port"])
 
-    def pop_piece(self, bitfield):       
-        number_parts = self.info["number_parts"]
-        piece_id = self.missing.pop()
-        index = piece_id / number_parts
-        begin = (piece_id % number_parts) * PIECE_SIZE
-        self.downloading.append(piece_id)
+    def _and(self, first, second):
+        result = []
+        for _first, _second in zip(first, second):
+            if first and second: value = True
+            else: False
+            result.append(value)
+        return result
+    
+    def pop_piece(self, bitfield):
+        index = 0
+        result = self._and(bitfield, self.bitfield)
+        for bit in result:
+            if bit == True: break
+            index += 1
+
+        begin = self.pop_part(index)
+        self.update_piece(index)
+
         return (index, begin)
 
-    def push_piece(self, index, begin):
-        piece_id = (index * PIECE_SIZE) + (begin / PIECE_SIZE)
-        if piece_id in self.downloading:
-            self.downloading.remove(piece_id)
-        self.missing.append(piece_id)
+    def pop_part(self, index):
+        number_parts = self.info["number_parts"]
+        base = index * number_parts
 
-    def check_piece(self, index, begin):
-        piece_id = (index * PIECE_SIZE) + (begin / PIECE_SIZE)
-        if piece_id in self.missing:
-            self.missing.remove(piece_id)
-        if piece_id in self.downloading:
-            self.downloading.remove(piece_id)
-        self.available.append(piece_id)
+        for part_index in xrange(number_parts):
+            state = self.mask[base + part_index]
+            if state == True: break
+
+        self.mask[base + part_index] = False
+        return part_index * PIECE_SIZE
+
+    def update_piece(self, index):
+        number_parts = self.info["number_parts"]
+        base = index * number_parts
+        piece_state = 0
+
+        for part_index in xrange(number_parts):
+            state = self.mask[base + part_index]
+            if state == 0: continue
+            piece_state = 1
+            break
+
+        self.bitfield[index] = piece_state
 
 class TorrentServer(netius.StreamServer):
 

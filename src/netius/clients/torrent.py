@@ -87,7 +87,8 @@ class TorrentConnection(netius.Connection):
         method(data)
 
     def bitfield_t(self, data):
-        self.bitfield = netius.common.string_to_bits(data)
+        bitfield = netius.common.string_to_bits(data)
+        self.bitfield = [True if value == "1" else False for value in bitfield]
 
     def unchoke_t(self, data):
         self.next()
