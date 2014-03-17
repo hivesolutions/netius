@@ -99,6 +99,7 @@ class TorrentTask(object):
         number_pieces = self.info["number_pieces"]
         number_parts = self.info["number_parts"]
         self.missing = range(number_pieces * number_parts)
+        self.missing.reverse()
 
     def pieces_tracker(self):
         info = self.info.get("info", {})
@@ -111,9 +112,14 @@ class TorrentTask(object):
         self.info["number_parts"] = number_parts
 
     def set_data(self, data, index, begin):
+        print "index = %d" % index
+        print "begin = %d" % begin
+
         piece_length = self.info["info"]["piece length"]
         self.file.seek(index * piece_length + begin)
         self.file.write(data)
+        self.file.flush()
+        self.check_piece(index, begin)
 
     def peers_tracker(self):
         """
@@ -163,20 +169,30 @@ class TorrentTask(object):
                 )
                 self.peers.append(peer)
 
-    def connect_peer(self, index = 0):
-        peer = self.peers[index]
+    def connect_peers(self):
+        for peer in self.peers: self.connect_peer(peer)
+
+    def connect_peer(self, peer):
         self.owner.client.peer(self, peer["ip"], peer["port"])
 
     def pop_piece(self):
         number_parts = self.info["number_parts"]
-        piece_id = self.available.pop()
+        piece_id = self.missing.pop()
         index = piece_id / number_parts
-        begin = piece_id % number_parts
+        begin = (piece_id % number_parts) * PIECE_SIZE
         self.downloading.append(piece_id)
         return (index, begin)
 
     def push_piece(self, index, begin):
-        piece_id = index * PIECE_SIZE + begin
+        piece_id = (index * PIECE_SIZE) + (begin / PIECE_SIZE)
+        if piece_id in self.downloading:
+            self.downloading.remove(piece_id)
+        self.missing.append(piece_id)
+
+    def check_piece(self, index, begin):
+        piece_id = (index * PIECE_SIZE) + (begin / PIECE_SIZE)
+        if piece_id in self.missing:
+            self.missing.remove(piece_id)
         if piece_id in self.downloading:
             self.downloading.remove(piece_id)
         self.available.append(piece_id)
@@ -216,7 +232,7 @@ class TorrentServer(netius.StreamServer):
             torrent_path = torrent_path,
             info_hash = info_hash
         )
-        task.connect_peer()
+        task.connect_peers()
 
     def _generate_id(self):
         random = str(uuid.uuid4())
