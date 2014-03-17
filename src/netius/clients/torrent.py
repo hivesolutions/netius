@@ -38,10 +38,27 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import uuid
+import struct
 import hashlib
 
 import netius.common
 import netius.clients
+
+#@todo must change this from here
+def chunks(l, n):
+    for i in xrange(0, len(l), n):
+        yield l[i:i + n]
+
+class TorrentTask(object):
+    """
+    Describes a task (operation) that is going to be performed
+    using the peer to peer mesh network of the torrent protocol.
+
+    Each of the download operations should be able to be described
+    by this task object (for latter reference).
+    """
+
+    pass
 
 class TorrentClient(netius.StreamClient):
     """
@@ -88,10 +105,28 @@ class TorrentClient(netius.StreamClient):
     def peers_tracker(self, info):
         announce = info.get("announce", None)
         announce_list = info.get("announce-list", [[announce]])
-        for tracker in announce_list:
+        for tracker in announce_list[:1]:
             tracker_url = tracker[0]
-            netius.clients.HTTPClient.get_s(tracker_url)
-            print tracker_url
+            result = netius.clients.HTTPClient.get_s(
+                tracker_url,
+                params = dict(
+                    info_hash = info["info_hash"],
+                    peer_id = self.peer_id,
+                    port = "1000",
+                    uploaded = "1000",
+                    downloaded = "1000",
+                    left = "100",
+                    compact = "0"
+                ),
+                async = False
+            )
+            data = result["data"]
+            response = netius.common.bdecode(data)
+            peers = [a for a in chunks(response["peers"], 6)]
+            for peer in peers:
+                address, port = struct.unpack("!LH", peer)
+                ip4 = netius.common.addr_to_ip4(address)
+                print ip4, port
 
     def _generate_id(self):
         random = str(uuid.uuid4())
