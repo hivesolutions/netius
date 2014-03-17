@@ -59,6 +59,10 @@ def cstring(value):
     if index == -1: return value
     return value[:index]
 
+def chunks(sequence, count):
+    for index in xrange(0, len(sequence), count):
+        yield sequence[index:index + count]
+
 def header_up(name):
     values = name.split("-")
     values = [value.title() for value in values]

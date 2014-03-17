@@ -42,6 +42,7 @@ import pop
 import proxy
 import smtp
 import socks
+import torrent
 import ws
 import wsgi
 
@@ -53,5 +54,6 @@ from pop import *
 from proxy import *
 from smtp import *
 from socks import *
+from torrent import *
 from ws import *
 from wsgi import *
