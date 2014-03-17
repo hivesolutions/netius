@@ -38,6 +38,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import uuid
+import types
 import struct
 import hashlib
 
@@ -58,7 +59,64 @@ class TorrentTask(object):
     by this task object (for latter reference).
     """
 
-    pass
+    def __init__(self, owner, file_path = None, info_hash = None):
+        self.owner = owner
+        self.uploaded = 0
+        self.downloaded = 0
+        self.left = 0
+        self.peers = []
+        if file_path: info = self.load_info(file_path)
+        else: info = dict(info_hash = info_hash)
+        self.peers_tracker(info)
+        print self.peers
+
+    def load_info(self, file_path):
+        file = open(file_path, "rb")
+        try: data = file.read()
+        finally: file.close()
+        struct = netius.common.bdecode(data)
+        struct["info_hash"] = netius.common.info_hash(struct)
+        return struct
+
+    def peers_tracker(self, info):
+        announce = info.get("announce", None)
+        announce_list = info.get("announce-list", [[announce]])
+
+        for tracker in announce_list:
+            tracker_url = tracker[0]
+            result = netius.clients.HTTPClient.get_s(
+                tracker_url,
+                params = dict(
+                    info_hash = info["info_hash"],
+                    peer_id = self.owner.peer_id,
+                    port = "1000",
+                    uploaded = self.uploaded,
+                    downloaded = self.downloaded,
+                    left = self.left,
+                    compact = "0"
+                ),
+                async = False
+            )
+
+            data = result["data"]
+            if not data: continue
+
+            response = netius.common.bdecode(data)
+            peers = response["peers"]
+
+            if type(peers) == types.DictType:
+                self.peers = peers
+                continue
+
+            peers = [peer for peer in chunks(peers, 6)]
+            for peer in peers:
+                address, port = struct.unpack("!LH", peer)
+                ip = netius.common.addr_to_ip4(address)
+                peer = dict(
+                    ip = ip,
+                    port = port
+                )
+                self.peers.append(peer)
 
 class TorrentClient(netius.StreamClient):
     """
@@ -87,46 +145,20 @@ class TorrentClient(netius.StreamClient):
 
         Note that if only the info hash is provided a DHT bases strategy
         is going to be used to retrieve the peers list.
+
+        @type file_path: String
+        @param file_path: The path to the file that contains the torrent
+        information that is going to be used for file processing.
+        @type info_hash: String
+        @param info_hash: The info hash value of the file that is going
+        to be downloaded, may be used for magnet torrents (DHT).
         """
 
-        if file_path: info = self.load_info(file_path)
-        else: info = dict(info_hash = info_hash)
-
-        self.peers_tracker(info)
-
-    def load_info(self, file_path):
-        file = open(file_path, "rb")
-        try: data = file.read()
-        finally: file.close()
-        struct = netius.common.bdecode(data)
-        struct["info_hash"] = netius.common.info_hash(struct)
-        return struct
-
-    def peers_tracker(self, info):
-        announce = info.get("announce", None)
-        announce_list = info.get("announce-list", [[announce]])
-        for tracker in announce_list[:1]:
-            tracker_url = tracker[0]
-            result = netius.clients.HTTPClient.get_s(
-                tracker_url,
-                params = dict(
-                    info_hash = info["info_hash"],
-                    peer_id = self.peer_id,
-                    port = "1000",
-                    uploaded = "1000",
-                    downloaded = "1000",
-                    left = "100",
-                    compact = "0"
-                ),
-                async = False
-            )
-            data = result["data"]
-            response = netius.common.bdecode(data)
-            peers = [a for a in chunks(response["peers"], 6)]
-            for peer in peers:
-                address, port = struct.unpack("!LH", peer)
-                ip4 = netius.common.addr_to_ip4(address)
-                print ip4, port
+        task = TorrentTask(
+            self,
+            file_path = file_path,
+            info_hash = info_hash
+        )
 
     def _generate_id(self):
         random = str(uuid.uuid4())
@@ -137,4 +169,4 @@ class TorrentClient(netius.StreamClient):
 
 if __name__ == "__main__":
     torrent_client = TorrentClient()
-    torrent_client.download("C:\Users\joamag\Downloads\ubuntu-12.04.4-alternate-amd64.iso.torrent")
+    torrent_client.download("C:\ubuntu.torrent")
