@@ -238,7 +238,6 @@ class HTTPClient(netius.StreamClient):
             **kwargs
         )
 
-
     @classmethod
     def method_s(
         cls,
