@@ -300,9 +300,13 @@ class TorrentParser(netius.Observable):
         if self.length > 0: type, = struct.unpack("!B", result[4:5])
         else: type = -1
 
+        # resolves the current type integer based type into the proper
+        # string based type values so that it may be used from now on
         type_s = TORRENT_TYPES.get(type, "invalid")
         data = result[5:]
 
+        # triggers the on message event notifying the listeners about
+        # the current message that has been received (includes payload and type)
         self.trigger("on_message", self.length, type_s, data)
 
         # resets the current message processing state as the message
@@ -312,5 +316,8 @@ class TorrentParser(netius.Observable):
         del self.buffer[:]
         self.buffer_l = 0
 
+        # increments the current byte processed counter with the current
+        # diff value and then returns the count value to the caller method
+        # notifying it about the number of processed bytes
         count += diff
         return count
