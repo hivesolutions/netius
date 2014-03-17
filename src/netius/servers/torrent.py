@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import math
 import uuid
 import types
 import struct
@@ -44,6 +45,11 @@ import hashlib
 
 import netius.common
 import netius.clients
+
+PIECE_SIZE = 16384
+""" The typical size of piece that is going to be retrieved
+using the current torrent infra-structure, this value conditions
+most of the torrent operations and should be defined carefully """
 
 class TorrentTask(object):
     """
@@ -61,6 +67,9 @@ class TorrentTask(object):
         self.downloaded = 0
         self.left = 0
         self.peers = []
+        self.missing = []
+        self.available = []
+        self.downloading = []
 
         if torrent_path: self.info = self.load_info(torrent_path)
         else: self.info = dict(info_hash = info_hash)
@@ -69,6 +78,7 @@ class TorrentTask(object):
         self.peers_tracker()
 
         self.load_file()
+        self.load_pieces()
 
     def load_info(self, torrent_path):
         file = open(torrent_path, "rb")
@@ -85,10 +95,20 @@ class TorrentTask(object):
         self.file.write("\0")
         self.file.flush()
 
+    def load_pieces(self):
+        number_pieces = self.info["number_pieces"]
+        number_parts = self.info["number_parts"]
+        self.missing = range(number_pieces * number_parts)
+
     def pieces_tracker(self):
         info = self.info.get("info", {})
         pieces = info.get("pieces", "")
+        piece_length = info.get("piece length", 1)
+        number_parts = math.ceil(float(piece_length) / float(PIECE_SIZE))
+        number_parts = int(number_parts)
         self.info["pieces"] = [piece for piece in netius.common.chunks(pieces, 20)]
+        self.info["number_pieces"] = len(self.info["pieces"])
+        self.info["number_parts"] = number_parts
 
     def set_data(self, data, index, begin):
         piece_length = self.info["info"]["piece length"]
@@ -147,8 +167,19 @@ class TorrentTask(object):
         peer = self.peers[index]
         self.owner.client.peer(self, peer["ip"], peer["port"])
 
-    def peek_piece(self):
+    def pop_piece(self):
+        number_parts = self.info["number_parts"]
+        piece_id = self.available.pop()
+        index = piece_id / number_parts
+        begin = piece_id % number_parts
+        self.downloading.append(piece_id)
+        return (index, begin)
 
+    def push_piece(self, index, begin):
+        piece_id = index * PIECE_SIZE + begin
+        if piece_id in self.downloading:
+            self.downloading.remove(piece_id)
+        self.available.append(piece_id)
 
 class TorrentServer(netius.StreamServer):
 

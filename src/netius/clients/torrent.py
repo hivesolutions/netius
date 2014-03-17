@@ -45,6 +45,11 @@ HANDSHAKE_STATE = 1
 
 NORMAL_STATE = 2
 
+PIECE_SIZE = 16384
+""" The typical size of piece that is going to be retrieved
+using the current torrent infra-structure, this value conditions
+most of the torrent operations and should be defined carefully """
+
 class TorrentConnection(netius.Connection):
 
     def __init__(self, *args, **kwargs):
@@ -111,8 +116,7 @@ class TorrentConnection(netius.Connection):
         )
         data and self.send(data)
 
-    def request(self, index, begin = 0, length = None):
-        length = length or 16384
+    def request(self, index, begin = 0, length = PIECE_SIZE):
         data = struct.pack("!LBLLL", 13, 6, index, begin, length)
         data and self.send(data)
 
