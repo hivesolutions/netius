@@ -41,14 +41,64 @@ import struct
 
 import netius
 
+HANDSHAKE_STATE = 1
+
+NORMAL_STATE = 2
+
+TORRENT_TYPES = {
+    0 : "choke",
+    1 : "unchoke",
+    2 : "interested",
+    3 : "not interested",
+    4 : "have",
+    5 : "bitfield",
+    6 : "request",
+    7 : "piece",
+    8 : "cancel",
+    9 : "port"
+}
+
 class TorrentConnection(netius.Connection):
 
     def __init__(self, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
         self.task = None
+        self.peer_id = None
+        self.state = HANDSHAKE_STATE
+
+        self.build()
+
+    def build(self):
+        """
+        Builds the initial set of states ordered according to
+        their internal integer definitions, this method provides
+        a fast and scalable way of parsing data.
+        """
+
+        self.states = (
+            self.handshake_t,
+            self.normal_t
+        )
+        self.state_l = len(self.states)
 
     def handle(self, data):
-        pass
+        # tries to retrieve the method for the current state in iteration
+        # and then calls the retrieve method with (handler method)
+        method = self.states[self.state - 1]
+        method(data)
+
+    def handshake_t(self, data):
+        length, = struct.unpack("!B", data[:1])
+        _protocol, _reserved, _info_hash, self.peer_id = struct.unpack("!%dsQ20s20s" % length, data[1:])
+        self.state = NORMAL_STATE
+
+    def normal_t(self, data):
+        length, = struct.unpack("!L", data[:4])
+        if length == 0: self.owner.debug("keep-alive")
+
+        type, = struct.unpack("!B", data[4:5])
+        type_s = TORRENT_TYPES.get(type, "invalid")
+        self.owner.debug(type_s)
 
     def handshake(self):
         data = struct.pack(
@@ -94,8 +144,7 @@ class TorrentClient(netius.StreamClient):
 
     def on_data(self, connection, data):
         netius.StreamClient.on_data(self, connection, data)
-        print data
-        #connection.parse(data)
+        connection.handle(data)
 
     def on_connection_d(self, connection):
         netius.StreamClient.on_connection_d(self, connection)
