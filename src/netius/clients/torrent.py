@@ -82,7 +82,7 @@ class TorrentConnection(netius.Connection):
         method(data)
 
     def bitfield_t(self, data):
-        self.bitfield = netius.common.string_to_bits(data[5:])
+        self.bitfield = netius.common.string_to_bits(data)
 
     def unchoke_t(self, data):
         requested = -1
@@ -96,7 +96,9 @@ class TorrentConnection(netius.Connection):
         self.request(requested, length = 32)
 
     def piece_t(self, data):
-        pass
+        index, begin = struct.unpack("!LL", data[:8])
+        data = data[8:]
+        self.task.set_data(data, index, begin)
 
     def handshake(self):
         data = struct.pack(

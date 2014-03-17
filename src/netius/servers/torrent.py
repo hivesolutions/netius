@@ -54,21 +54,24 @@ class TorrentTask(object):
     by this task object (for latter reference).
     """
 
-    def __init__(self, owner, file_path = None, info_hash = None):
+    def __init__(self, owner, target_path, torrent_path = None, info_hash = None):
         self.owner = owner
+        self.target_path = target_path
         self.uploaded = 0
         self.downloaded = 0
         self.left = 0
         self.peers = []
 
-        if file_path: self.info = self.load_info(file_path)
+        if torrent_path: self.info = self.load_info(torrent_path)
         else: self.info = dict(info_hash = info_hash)
 
         self.pieces_tracker()
         self.peers_tracker()
 
-    def load_info(self, file_path):
-        file = open(file_path, "rb")
+        self.load_file()
+
+    def load_info(self, torrent_path):
+        file = open(torrent_path, "rb")
         try: data = file.read()
         finally: file.close()
 
@@ -76,10 +79,21 @@ class TorrentTask(object):
         struct["info_hash"] = netius.common.info_hash(struct)
         return struct
 
+    def load_file(self):
+        self.file = open(self.target_path, "wb")
+        self.file.seek(780140544 - 1)
+        self.file.write("\0")
+        self.file.flush()
+
     def pieces_tracker(self):
         info = self.info.get("info", {})
         pieces = info.get("pieces", "")
         self.info["pieces"] = [piece for piece in netius.common.chunks(pieces, 20)]
+
+    def set_data(self, data, index, begin):
+        piece_length = self.info["info"]["piece length"]
+        self.file.seek(index * piece_length + begin)
+        self.file.write(data)
 
     def peers_tracker(self):
         """
@@ -133,6 +147,9 @@ class TorrentTask(object):
         peer = self.peers[index]
         self.owner.client.peer(self, peer["ip"], peer["port"])
 
+    def peek_piece(self):
+
+
 class TorrentServer(netius.StreamServer):
 
     def __init__(self, *args, **kwargs):
@@ -140,7 +157,7 @@ class TorrentServer(netius.StreamServer):
         self.peer_id = self._generate_id()
         self.client = netius.clients.TorrentClient()
 
-    def download(self, file_path = None, info_hash = None):
+    def download(self, target_path, torrent_path = None, info_hash = None):
         """
         Starts the "downloading" process of a torrent associated file
         using the defined peer to peer torrent strategy suing either
@@ -150,8 +167,12 @@ class TorrentServer(netius.StreamServer):
         Note that if only the info hash is provided a DHT bases strategy
         is going to be used to retrieve the peers list.
 
-        @type file_path: String
-        @param file_path: The path to the file that contains the torrent
+        @type target_path: String
+        @param target_path: The path to the file that will be used to store
+        the binary information resulting from the download, this file may also
+        be used to store some temporary information on state of download.
+        @type torrent_path: String
+        @param torrent_path: The path to the file that contains the torrent
         information that is going to be used for file processing.
         @type info_hash: String
         @param info_hash: The info hash value of the file that is going
@@ -160,7 +181,8 @@ class TorrentServer(netius.StreamServer):
 
         task = TorrentTask(
             self,
-            file_path = file_path,
+            target_path,
+            torrent_path = torrent_path,
             info_hash = info_hash
         )
         task.connect_peer()
@@ -174,5 +196,5 @@ class TorrentServer(netius.StreamServer):
 
 if __name__ == "__main__":
     torrent_server = TorrentServer()
-    torrent_server.download("C:\ubuntu.torrent")
+    torrent_server.download("C:/tobias.download", "C:\ubuntu.torrent")
     torrent_server.start()
