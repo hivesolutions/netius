@@ -58,7 +58,7 @@ BLOCK_SIZE = 16384
 using the current torrent infra-structure, this value conditions
 most of the torrent operations and should be defined carefully """
 
-THRESHOLD_END = 10485760
+THRESHOLD_END = 1048576
 """ The threshold value from which the task is considered to be
 under the ending stage, from this stage on a new strategy for the
 download may apply as it is more difficult to get blocks """
@@ -282,7 +282,13 @@ class TorrentTask(netius.Observable):
         announce = self.info.get("announce", None)
         announce_list = self.info.get("announce-list", [[announce]])
         for tracker in announce_list:
+            # retrieves the first element of the tracker structure as the
+            # url of it and then verifies that it references an http based
+            # tracker (as that's the only one supported)
             tracker_url = tracker[0]
+            is_http = tracker_url.startswith(("http://", "https://"))
+            if not is_http: continue
+
             result = netius.clients.HTTPClient.get_s(
                 tracker_url,
                 params = dict(
@@ -319,6 +325,8 @@ class TorrentTask(netius.Observable):
                     port = port
                 )
                 self.peers.append(peer)
+
+            self.owner.debug("Received %d peers from '%s'" % (len(peers), tracker_url))
 
     def connect_peers(self):
         for peer in self.peers: self.connect_peer(peer)
@@ -489,7 +497,7 @@ if __name__ == "__main__":
         print "Download completed"
 
     torrent_server = TorrentServer(level = logging.DEBUG)
-    task = torrent_server.download("C:/", "C:/ubuntu_server.torrent")
+    task = torrent_server.download("C:/", "C:/ubuntu.torrent")
     task.bind("piece", on_piece)
     task.bind("complete", on_complete)
     torrent_server.serve(env = True)
