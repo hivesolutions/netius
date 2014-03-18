@@ -122,7 +122,7 @@ class TorrentConnection(netius.Connection):
         index, begin = block
         data = data[8:]
         self.task.set_data(data, index, begin)
-        self.add_request(block)
+        self.remove_request(block)
         self.next()
         self.trigger("piece", self, data, index, begin)
 
@@ -141,6 +141,7 @@ class TorrentConnection(netius.Connection):
         self.pend_requests += 1
 
     def remove_request(self, block):
+        if not block in self.requests: return
         self.requests.remove(block)
         self.pend_requests -= 1
 
