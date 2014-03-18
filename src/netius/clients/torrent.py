@@ -149,7 +149,6 @@ class TorrentConnection(netius.Connection):
         self.pend_requests = 0
 
     def release(self):
-        print "release"
         for index, begin in self.requests:
             self.task.push_block(index, begin)
         self.reset()
