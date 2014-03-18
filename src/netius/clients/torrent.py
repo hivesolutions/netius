@@ -93,7 +93,6 @@ class TorrentConnection(netius.Connection):
         self.unchoke()
 
     def on_message(self, length, type, data):
-        self.owner.debug(type)
         self.handle(type, data)
 
     def parse(self, data):
