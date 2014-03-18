@@ -81,18 +81,26 @@ class HTTPConnection(netius.Connection):
 
     def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
-        self.parser = netius.common.HTTPParser(
-            self,
-            type = netius.common.REQUEST,
-            store = True
-        )
+        self.parser = None
         self.encoding = encoding
         self.current = encoding
         self.gzip = None
         self.crc32 = 0
         self.size = 0
 
+    def open(self, *args, **kwargs):
+        netius.Connection.open(self, *args, **kwargs)
+        self.parser = netius.common.HTTPParser(
+            self,
+            type = netius.common.REQUEST,
+            store = True
+        )
         self.parser.bind("on_data", self.on_data)
+
+    def close(self, *args, **kwargs):
+        netius.Connection.close(self, *args, **kwargs)
+        self.parser.owner = None
+        self.parser.unbind("on_data")
 
     def send(self, data, delay = False, callback = None):
         if self.current == PLAIN_ENCODING:

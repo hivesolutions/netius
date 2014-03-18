@@ -59,7 +59,7 @@ class SMTPConnection(netius.Connection):
 
     def __init__(self, host = "smtp.localhost", *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
-        self.parser = netius.common.SMTPParser(self)
+        self.parser = None
         self.host = host
         self.chost = None
         self.identifier = None
@@ -69,7 +69,15 @@ class SMTPConnection(netius.Connection):
         self.previous = str()
         self.state = INTIAL_STATE
 
+    def open(self, *args, **kwargs):
+        netius.Connection.open(self, *args, **kwargs)
+        self.parser = netius.common.SMTPParser(self)
         self.parser.bind("on_line", self.on_line)
+
+    def close(self, *args, **kwargs):
+        netius.Connection.close(self, *args, **kwargs)
+        self.parser.owner = None
+        self.parser.unbind("on_line")
 
     def parse(self, data):
         if self.state == DATA_STATE: self.on_raw_data(data)

@@ -63,7 +63,7 @@ class POPConnection(netius.Connection):
 
     def __init__(self, host = "pop.localhost", *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
-        self.parser = netius.common.POPParser(self)
+        self.parser = None
         self.host = host
         self.username = None
         self.token_buf = []
@@ -74,7 +74,15 @@ class POPConnection(netius.Connection):
         self.keys = ()
         self.state = INTIAL_STATE
 
+    def open(self, *args, **kwargs):
+        netius.Connection.open(self, *args, **kwargs)
+        self.parser = netius.common.POPParser(self)
         self.parser.bind("on_line", self.on_line)
+
+    def close(self, *args, **kwargs):
+        netius.Connection.close(self, *args, **kwargs)
+        self.parser.owner = None
+        self.parser.unbind("on_line")
 
     def parse(self, data):
         if self.state == AUTH_STATE: self.on_user(data)

@@ -52,7 +52,7 @@ class HTTPConnection(netius.Connection):
 
     def __init__(self, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
-        self.parser = netius.common.HTTPParser(self, type = netius.common.RESPONSE)
+        self.parser = None
         self.version = "HTTP/1.1"
         self.method = "GET"
         self.url = None
@@ -63,10 +63,21 @@ class HTTPConnection(netius.Connection):
         self.headers = {}
         self.data = None
 
+    def open(self, *args, **kwargs):
+        netius.Connection.open(self, *args, **kwargs)
+        self.parser = netius.common.HTTPParser(self, type = netius.common.RESPONSE)
         self.parser.bind("on_data", self.on_data)
         self.parser.bind("on_partial", self.on_partial)
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_chunk", self.on_chunk)
+
+    def close(self, *args, **kwargs):
+        netius.Connection.close(self, *args, **kwargs)
+        self.parser.owner = None
+        self.parser.unbind("on_data")
+        self.parser.unbind("on_partial")
+        self.parser.unbind("on_headers")
+        self.parser.unbind("on_chunk")
 
     def set_http(
         self,

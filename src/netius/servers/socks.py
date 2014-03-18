@@ -68,10 +68,19 @@ class SOCKSConnection(netius.Connection):
 
     def __init__(self, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
-        self.parser = netius.common.SOCKSParser(self)
+        self.parser = None
 
+    def open(self, *args, **kwargs):
+        netius.Connection.open(self, *args, **kwargs)
+        self.parser = netius.common.SOCKSParser(self)
         self.parser.bind("on_data", self.on_data)
         self.parser.bind("on_auth", self.on_auth)
+
+    def close(self, *args, **kwargs):
+        netius.Connection.close(self, *args, **kwargs)
+        self.parser.owner = None
+        self.parser.unbind("on_data")
+        self.parser.unbind("on_auth")
 
     def send_response(self, status = GRANTED):
         data = struct.pack("!BBHI", 0, status, 0, 0)
