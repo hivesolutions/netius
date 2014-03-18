@@ -181,6 +181,17 @@ class TorrentTask(object):
         return result
 
     def speed(self):
+        """
+        Retrieves a float number representing the global speed
+        of the task in bytes per second, this value is computed
+        using the original creation time of the task and so it
+        may not represent the most accurate speedup.
+
+        @rtype: float
+        @return: The current speed of download, defined as bytes
+        per second from the original task creation time.
+        """
+
         current = time.time()
         delta = current - self.start
         bytes_second = self.downloaded / delta
