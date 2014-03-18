@@ -155,6 +155,8 @@ class TorrentTask(netius.Observable):
         self.start = time.time()
         self.uploaded = 0
         self.downloaded = 0
+        self.connections = 0
+        self.unchoked = 0
         self.peers = []
 
         if torrent_path: self.info = self.load_info(torrent_path)
@@ -166,10 +168,21 @@ class TorrentTask(netius.Observable):
         self.load_file()
         self.load_pieces()
 
-    def on_block(self, task, index, begin):
+    def on_close(self, connection):
+        is_unchoked = connection.choked == netius.clients.UNCHOKED
+        self.connections -= 1
+        self.unchoked -= 1 if is_unchoked else 0
+
+    def on_choked(self, connection):
+        self.unchoked -= 1
+
+    def on_unchoked(self, connection):
+        self.unchoked += 1
+
+    def on_block(self, pieces, index, begin):
         self.trigger("block", self, index, begin)
 
-    def on_piece(self, task, index):
+    def on_piece(self, pieces, index):
         self.verify_piece(index)
         self.trigger("piece", self, index)
 
@@ -223,11 +236,11 @@ class TorrentTask(netius.Observable):
         self.file.write(data)
         self.file.flush()
 
+        # increments the amount of downloaded bytes for the task and then
         # marks the current block as stored so that no other equivalent
-        # operation is performed (avoiding duplicated operations) and then
-        # increments the amount of downloaded bytes for the task
-        self.stored.mark_block(index, begin)
+        # operation is performed (avoiding duplicated operations)
         self.downloaded += len(data)
+        self.stored.mark_block(index, begin)
 
     def peers_tracker(self):
         """
@@ -285,7 +298,20 @@ class TorrentTask(netius.Observable):
         for peer in self.peers: self.connect_peer(peer)
 
     def connect_peer(self, peer):
-        self.owner.client.peer(self, peer["ip"], peer["port"])
+        connection = self.owner.client.peer(self, peer["ip"], peer["port"])
+        self.connections += 1
+        connection.bind("close", self.on_close)
+        connection.bind("choked", self.on_choked)
+        connection.bind("unchoked", self.on_unchoked)
+
+    def info_string(self):
+        return "==== STATUS ====\n" +\
+            "peers       := %d\n" % len(self.peers) +\
+            "connections := %d\n" % self.connections +\
+            "choked      := %d\n" % (self.connections - self.unchoked) +\
+            "unchoked    := %d\n" % self.unchoked +\
+            "percent     := %d%%\n" % int(self.percent()) +\
+            "speed       := %s/s" % netius.common.size_round_unit(self.speed())
 
     def left(self):
         size = self.info["info"]["length"]
@@ -399,7 +425,8 @@ if __name__ == "__main__":
         left = task.left()
         percent = int(percent)
         speed_s = netius.common.size_round_unit(speed)
-        print "[%d%%] - %d (%s/s)" % ( percent, left, speed_s)
+        print task.info_string()
+        print "[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s)
 
     torrent_server = TorrentServer()
     task = torrent_server.download("C:/tobias.download", "C:\ubuntu.torrent")

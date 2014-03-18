@@ -45,9 +45,9 @@ HANDSHAKE_STATE = 1
 
 NORMAL_STATE = 2
 
-CHOCKED = 1
+CHOKED = 1
 
-UNCHOCKED = 2
+UNCHOKED = 2
 
 BLOCK_SIZE = 16384
 """ The typical size of block that is going to be retrieved
@@ -65,7 +65,7 @@ class TorrentConnection(netius.Connection):
         self.peer_id = None
         self.bitfield = b""
         self.state = HANDSHAKE_STATE
-        self.chocked = CHOCKED
+        self.choked = CHOKED
 
         self.parser.bind("on_handshake", self.on_handshake)
         self.parser.bind("on_message", self.on_message)
@@ -100,13 +100,15 @@ class TorrentConnection(netius.Connection):
         self.bitfield = [True if value == "1" else False for value in bitfield]
 
     def choke_t(self, data):
-        self.chocked = CHOCKED
-        self.trigger("chocked", self)
+        if self.choked == CHOKED: return
+        self.choked = CHOKED
+        self.trigger("choked", self)
 
     def unchoke_t(self, data):
-        self.chocked = UNCHOCKED
+        if self.choked == UNCHOKED: return
+        self.choked = UNCHOKED
         self.next()
-        self.trigger("unchocked", self)
+        self.trigger("unchoked", self)
 
     def piece_t(self, data):
         index, begin = struct.unpack("!LL", data[:8])
@@ -117,7 +119,7 @@ class TorrentConnection(netius.Connection):
         self.trigger("piece", self, data, index, begin)
 
     def next(self, count = None):
-        if not self.chocked == UNCHOCKED: return
+        if not self.choked == UNCHOKED: return
         if count == None: count = self.max_requests - self.pend_requests
         for _index in xrange(count):
             block = self.task.pop_block(self.bitfield)
@@ -182,8 +184,6 @@ class TorrentClient(netius.StreamClient):
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
         self.trigger("connect", self, connection)
-        connection.bind("choked", self.on_choked)
-        connection.bind("unchoked", self.on_unchoked)
 
     def on_acquire(self, connection):
         netius.StreamClient.on_acquire(self, connection)
@@ -193,16 +193,6 @@ class TorrentClient(netius.StreamClient):
     def on_data(self, connection, data):
         netius.StreamClient.on_data(self, connection, data)
         connection.parse(data)
-
-    def on_connection_d(self, connection):
-        netius.StreamClient.on_connection_d(self, connection)
-        self.trigger("closed", self, connection)
-
-    def on_choked(self, connection):
-        self.trigger("choked", self, connection)
-
-    def on_unchoked(self, connection):
-        self.trigger("unchoked", self, connection)
 
     def new_connection(self, socket, address, ssl = False):
         return TorrentConnection(
