@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import os
 import math
 import uuid
 import time
@@ -128,7 +129,14 @@ class Pieces(netius.Observable):
             break
 
         self.bitfield[index] = piece_state
-        if piece_state == False: self.trigger("piece", self, index)
+        if piece_state == True: return
+
+        self.trigger("piece", self, index)
+
+        for bit in self.bitfield:
+            if bit == True: return
+
+        self.trigger("complete", self)
 
     def _and(self, first, second):
         result = []
@@ -186,6 +194,9 @@ class TorrentTask(netius.Observable):
         self.verify_piece(index)
         self.trigger("piece", self, index)
 
+    def on_complete(self, pieces):
+        self.trigger("complete", self)
+
     def load_info(self, torrent_path):
         file = open(torrent_path, "rb")
         try: data = file.read()
@@ -196,8 +207,12 @@ class TorrentTask(netius.Observable):
         return struct
 
     def load_file(self):
+        size = self.info["length"]
+        name = self.info["info"]["name"]
+        is_dir = os.path.isdir(self.target_path)
+        if is_dir: self.target_path = os.path.join(self.target_path, name)
         self.file = open(self.target_path, "wb")
-        self.file.seek(780140544 - 1)
+        self.file.seek(size - 1)
         self.file.write("\0")
         self.file.flush()
 
@@ -208,15 +223,20 @@ class TorrentTask(netius.Observable):
         self.stored = Pieces(self, number_pieces, number_blocks)
         self.stored.bind("block", self.on_block)
         self.stored.bind("piece", self.on_piece)
+        self.stored.bind("complete", self.on_complete)
 
     def pieces_tracker(self):
         info = self.info.get("info", {})
         pieces = info.get("pieces", "")
+        length = info.get("length", None)
         piece_length = info.get("piece length", 1)
         number_blocks = math.ceil(float(piece_length) / float(BLOCK_SIZE))
         number_blocks = int(number_blocks)
-        self.info["pieces"] = [piece for piece in netius.common.chunks(pieces, 20)]
-        self.info["number_pieces"] = len(self.info["pieces"])
+        pieces_l = [piece for piece in netius.common.chunks(pieces, 20)]
+        pieces_count = len(pieces_l)
+        self.info["pieces"] = pieces_l
+        self.info["length"] = length or pieces_count * piece_length
+        self.info["number_pieces"] = pieces_count
         self.info["number_blocks"] = number_blocks
 
     def set_data(self, data, index, begin):
@@ -265,11 +285,14 @@ class TorrentTask(netius.Observable):
                 params = dict(
                     info_hash = self.info["info_hash"],
                     peer_id = self.owner.peer_id,
-                    port = "1000",
+                    port = 6881,
                     uploaded = self.uploaded,
                     downloaded = self.downloaded,
                     left = self.left(),
-                    compact = "0"
+                    compact = 1,
+                    no_peer_id = 0,
+                    event = "started",
+                    numwant = 50
                 ),
                 async = False
             )
@@ -314,7 +337,7 @@ class TorrentTask(netius.Observable):
             "speed       := %s/s" % netius.common.size_round_unit(self.speed())
 
     def left(self):
-        size = self.info["info"]["length"]
+        size = self.info["length"]
         return size - self.downloaded
 
     def speed(self):
@@ -335,7 +358,7 @@ class TorrentTask(netius.Observable):
         return bytes_second
 
     def percent(self):
-        size = self.info["info"]["length"]
+        size = self.info["length"]
         return float(self.downloaded) / float(size) * 100.0
 
     def pop_block(self, bitfield):
@@ -428,7 +451,11 @@ if __name__ == "__main__":
         print task.info_string()
         print "[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s)
 
+    def on_complete(task):
+        print "Download completed"
+
     torrent_server = TorrentServer()
-    task = torrent_server.download("C:/tobias.download", "C:\ubuntu.torrent")
+    task = torrent_server.download("C:/", "C:/ubuntu.torrent")
     task.bind("piece", on_piece)
+    task.bind("complete", on_complete)
     torrent_server.serve(env = True)

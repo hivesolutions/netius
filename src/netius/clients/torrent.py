@@ -107,6 +107,7 @@ class TorrentConnection(netius.Connection):
     def unchoke_t(self, data):
         if self.choked == UNCHOKED: return
         self.choked = UNCHOKED
+        self.pend_requests = 0
         self.next()
         self.trigger("unchoked", self)
 
