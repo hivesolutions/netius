@@ -49,8 +49,8 @@ CHOCKED = 1
 
 UNCHOCKED = 2
 
-PIECE_SIZE = 16384
-""" The typical size of piece that is going to be retrieved
+BLOCK_SIZE = 16384
+""" The typical size of block that is going to be retrieved
 using the current torrent infra-structure, this value conditions
 most of the torrent operations and should be defined carefully """
 
@@ -148,7 +148,7 @@ class TorrentConnection(netius.Connection):
         data = struct.pack("!LBL", 5, 4, index)
         data and self.send(data)
 
-    def request(self, index, begin = 0, length = PIECE_SIZE):
+    def request(self, index, begin = 0, length = BLOCK_SIZE):
         data = struct.pack("!LBLLL", 13, 6, index, begin, length)
         data and self.send(data)
 

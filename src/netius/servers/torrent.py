@@ -47,8 +47,8 @@ import hashlib
 import netius.common
 import netius.clients
 
-PIECE_SIZE = 16384
-""" The typical size of piece that is going to be retrieved
+BLOCK_SIZE = 16384
+""" The typical size of block that is going to be retrieved
 using the current torrent infra-structure, this value conditions
 most of the torrent operations and should be defined carefully """
 
@@ -106,7 +106,7 @@ class TorrentTask(netius.Observable):
         info = self.info.get("info", {})
         pieces = info.get("pieces", "")
         piece_length = info.get("piece length", 1)
-        number_blocks = math.ceil(float(piece_length) / float(PIECE_SIZE))
+        number_blocks = math.ceil(float(piece_length) / float(BLOCK_SIZE))
         number_blocks = int(number_blocks)
         self.info["pieces"] = [piece for piece in netius.common.chunks(pieces, 20)]
         self.info["number_pieces"] = len(self.info["pieces"])
@@ -223,7 +223,7 @@ class TorrentTask(netius.Observable):
             if state == True: break
 
         self.mask[base + block_index] = False
-        return block_index * PIECE_SIZE
+        return block_index * BLOCK_SIZE
 
     def update_piece(self, index):
         number_blocks = self.info["number_blocks"]
@@ -252,7 +252,7 @@ class TorrentTask(netius.Observable):
         hash = hashlib.sha1()
         while True:
             if pending == 0: break
-            count = PIECE_SIZE if pending > PIECE_SIZE else pending
+            count = BLOCK_SIZE if pending > BLOCK_SIZE else pending
             data = file.read(count)
             hash.update(data)
             pending -= count
