@@ -42,6 +42,8 @@ import types
 import thread
 import threading
 
+import observer
+
 OPEN = 1
 """ The open status value, meant to be used in situations
 where the status of the entity is open (opposite of d) """
@@ -58,7 +60,7 @@ CHUNK_SIZE = 4096
 """ The size of the chunk to be used while received
 data from the service socket """
 
-class Connection(object):
+class Connection(observer.Observable):
     """
     Abstract connection object that should encapsulate
     a socket object enabling it to be accessed in much
@@ -71,6 +73,7 @@ class Connection(object):
     """
 
     def __init__(self, owner = None, socket = None, address = None, ssl = False):
+        observer.Observable.__init__(self)
         self.status = PENDING
         self.id = str(uuid.uuid4())
         self.connecting = False

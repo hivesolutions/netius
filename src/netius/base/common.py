@@ -49,7 +49,6 @@ import hashlib
 import traceback
 
 import errors
-import observer
 
 import netius.adapters
 
