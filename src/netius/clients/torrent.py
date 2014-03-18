@@ -56,9 +56,11 @@ most of the torrent operations and should be defined carefully """
 
 class TorrentConnection(netius.Connection):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, max_requests = 50, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
         self.parser = netius.common.TorrentParser(self)
+        self.max_requests = max_requests
+        self.pend_requests = 0
         self.task = None
         self.peer_id = None
         self.bitfield = b""
@@ -99,23 +101,30 @@ class TorrentConnection(netius.Connection):
 
     def choke_t(self, data):
         self.chocked = CHOCKED
+        self.trigger("chocked", self)
 
     def unchoke_t(self, data):
         self.chocked = UNCHOCKED
         self.next()
+        self.trigger("unchocked", self)
 
     def piece_t(self, data):
         index, begin = struct.unpack("!LL", data[:8])
         data = data[8:]
         self.task.set_data(data, index, begin)
+        self.pend_requests -= 1
         self.next()
+        self.trigger("piece", self, data, index, begin)
 
-    def next(self):
+    def next(self, count = None):
         if not self.chocked == UNCHOCKED: return
-        block = self.task.pop_block(self.bitfield)
-        if not block: return
-        index, begin = block
-        self.request(index, begin = begin)
+        if count == None: count = self.max_requests - self.pend_requests
+        for _index in xrange(count):
+            block = self.task.pop_block(self.bitfield)
+            if not block: return
+            index, begin = block
+            self.request(index, begin = begin)
+            self.pend_requests += 1
 
     def handshake(self):
         data = struct.pack(

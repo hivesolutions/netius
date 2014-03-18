@@ -57,6 +57,11 @@ BLOCK_SIZE = 16384
 using the current torrent infra-structure, this value conditions
 most of the torrent operations and should be defined carefully """
 
+THRESHOLD_END = 10485760
+""" The threshold value from which the task is considered to be
+under the ending stage, from this stage on a new strategy for the
+download may apply as it is more difficult to get blocks """
+
 class Pieces(netius.Observable):
     """
     Class that represents the logical structure of a file that is
@@ -74,7 +79,15 @@ class Pieces(netius.Observable):
         self.bitfield = [True for _index in xrange(number_pieces)]
         self.mask = [True for _index in xrange(number_pieces * number_blocks)]
 
-    def pop_block(self, bitfield):
+    def piece(self, index):
+        return self.bitfield[index]
+
+    def block(self, index, begin):
+        base = index * self.number_blocks
+        block_index = begin / BLOCK_SIZE
+        return self.mask[base + block_index]
+
+    def pop_block(self, bitfield, mark = True):
         index = 0
         result = self._and(bitfield, self.bitfield)
         for bit in result:
@@ -83,7 +96,7 @@ class Pieces(netius.Observable):
 
         if index == len(result): return None
 
-        begin = self.update_block(index)
+        begin = self.update_block(index, mark = mark)
         return (index, begin)
 
     def mark_block(self, index, begin):
@@ -93,7 +106,7 @@ class Pieces(netius.Observable):
         self.trigger("block", self, index, begin)
         self.update_piece(index)
 
-    def update_block(self, index):
+    def update_block(self, index, mark = True):
         base = index * self.number_blocks
 
         for block_index in xrange(self.number_blocks):
@@ -101,7 +114,7 @@ class Pieces(netius.Observable):
             if state == True: break
 
         begin = block_index * BLOCK_SIZE
-        self.mark_block(index, begin)
+        if mark: self.mark_block(index, begin)
         return begin
 
     def update_piece(self, index):
@@ -194,10 +207,25 @@ class TorrentTask(netius.Observable):
         self.info["number_blocks"] = number_blocks
 
     def set_data(self, data, index, begin):
+        # retrieves the current status of the block in the stored
+        # pieces structure and in case it's already stored returns
+        # immediately as this is a duplicated block setting, possible
+        # in the last part of the file retrieval (end game)
+        block = self.stored.block(index, begin)
+        if not block: return
+
+        # retrieves the size of a piece and uses that value together
+        # with the block begin offset value to seek the proper file position
+        # and then writes the received data under that position, flushing
+        # the file contents afterwards to avoid file corruption
         piece_length = self.info["info"]["piece length"]
         self.file.seek(index * piece_length + begin)
         self.file.write(data)
         self.file.flush()
+
+        # marks the current block as stored so that no other equivalent
+        # operation is performed (avoiding duplicated operations) and then
+        # increments the amount of downloaded bytes for the task
         self.stored.mark_block(index, begin)
         self.downloaded += len(data)
 
@@ -285,7 +313,10 @@ class TorrentTask(netius.Observable):
         return float(self.downloaded) / float(size) * 100.0
 
     def pop_block(self, bitfield):
-        return self.requested.pop_block(bitfield)
+        left = self.left()
+        is_end = left < THRESHOLD_END
+        structure = self.stored if is_end else self.requested
+        return structure.pop_block(bitfield, mark = not is_end)
 
     def verify_piece(self, index):
         file = open(self.target_path, "rb")
@@ -363,11 +394,12 @@ class TorrentServer(netius.StreamServer):
 
 if __name__ == "__main__":
     def on_piece(task, index):
-        speed = task.speed()
         percent = task.percent()
+        speed = task.speed()
+        left = task.left()
         percent = int(percent)
         speed_s = netius.common.size_round_unit(speed)
-        print "%s/s - %d%%" % (speed_s, percent)
+        print "[%d%%] - %d (%s/s)" % ( percent, left, speed_s)
 
     torrent_server = TorrentServer()
     task = torrent_server.download("C:/tobias.download", "C:\ubuntu.torrent")
