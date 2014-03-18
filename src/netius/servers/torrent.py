@@ -166,8 +166,8 @@ class TorrentTask(netius.Observable):
         self.start = time.time()
         self.uploaded = 0
         self.downloaded = 0
-        self.connections = 0
         self.unchoked = 0
+        self.connections = []
         self.peers = []
 
         if torrent_path: self.info = self.load_info(torrent_path)
@@ -181,7 +181,7 @@ class TorrentTask(netius.Observable):
 
     def on_close(self, connection):
         is_unchoked = connection.choked == netius.clients.UNCHOKED
-        self.connections -= 1
+        self.connections.remove(connection)
         self.unchoked -= 1 if is_unchoked else 0
 
     def on_choked(self, connection):
@@ -323,9 +323,12 @@ class TorrentTask(netius.Observable):
     def connect_peers(self):
         for peer in self.peers: self.connect_peer(peer)
 
+    def disconnect_peers(self):
+        for connection in self.connections: connection.close()
+
     def connect_peer(self, peer):
         connection = self.owner.client.peer(self, peer["ip"], peer["port"])
-        self.connections += 1
+        self.connections.append(connection)
         connection.bind("close", self.on_close)
         connection.bind("choked", self.on_choked)
         connection.bind("unchoked", self.on_unchoked)
@@ -333,8 +336,8 @@ class TorrentTask(netius.Observable):
     def info_string(self):
         return "==== STATUS ====\n" +\
             "peers       := %d\n" % len(self.peers) +\
-            "connections := %d\n" % self.connections +\
-            "choked      := %d\n" % (self.connections - self.unchoked) +\
+            "connections := %d\n" % len(self.connections) +\
+            "choked      := %d\n" % (len(self.connections) - self.unchoked) +\
             "unchoked    := %d\n" % self.unchoked +\
             "percent     := %d%%\n" % int(self.percent()) +\
             "speed       := %s/s" % netius.common.size_round_unit(self.speed())
@@ -450,6 +453,9 @@ class TorrentServer(netius.StreamServer):
         created for downloading of the requested file.
         """
 
+        def on_complete(task):
+            task.disconnect_peers()
+
         task = TorrentTask(
             self,
             target_path,
@@ -457,6 +463,7 @@ class TorrentServer(netius.StreamServer):
             info_hash = info_hash
         )
         task.connect_peers()
+        task.bind("complete", on_complete)
         return task
 
     def _generate_id(self):
@@ -481,8 +488,8 @@ if __name__ == "__main__":
     def on_complete(task):
         print "Download completed"
 
-    torrent_server = TorrentServer(level = logging.INFO)
-    task = torrent_server.download("C:/", "C:/ubuntu.torrent")
+    torrent_server = TorrentServer(level = logging.DEBUG)
+    task = torrent_server.download("C:/", "C:/ubuntu_server.torrent")
     task.bind("piece", on_piece)
     task.bind("complete", on_complete)
     torrent_server.serve(env = True)
