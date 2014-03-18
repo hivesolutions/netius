@@ -52,6 +52,74 @@ BLOCK_SIZE = 16384
 using the current torrent infra-structure, this value conditions
 most of the torrent operations and should be defined carefully """
 
+class Pieces(netius.Observable):
+    """
+    Class that represents the logical structure of a file that is
+    divided into pieces and blocks as a hierarchy, this class is
+    responsible for the management of the data structures of such
+    data storage model.
+    """
+
+    def __init__(self, owner, number_pieces, number_blocks):
+        netius.Observable.__init__(self)
+
+        self.owner = owner
+        self.number_pieces = number_pieces
+        self.number_blocks = number_blocks
+        self.bitfield = [True for _index in xrange(number_pieces)]
+        self.mask = [True for _index in xrange(number_pieces * number_blocks)]
+
+    def pop_block(self, bitfield):
+        index = 0
+        result = self._and(bitfield, self.bitfield)
+        for bit in result:
+            if bit == True: break
+            index += 1
+
+        if index == len(result): return None
+
+        begin = self.update_block(index)
+        return (index, begin)
+
+    def mark_block(self, index, begin):
+        base = index * self.number_blocks
+        block_index = begin / BLOCK_SIZE
+        self.mask[base + block_index] = False
+        self.trigger("block", self, index, begin)
+        self.update_piece(index)
+
+    def update_block(self, index):
+        base = index * self.number_blocks
+
+        for block_index in xrange(self.number_blocks):
+            state = self.mask[base + block_index]
+            if state == True: break
+
+        begin = block_index * BLOCK_SIZE
+        self.mark_block(index, begin)
+        return begin
+
+    def update_piece(self, index):
+        base = index * self.number_blocks
+        piece_state = False
+
+        for block_index in xrange(self.number_blocks):
+            state = self.mask[base + block_index]
+            if state == False: continue
+            piece_state = True
+            break
+
+        self.bitfield[index] = piece_state
+        if piece_state == False: self.trigger("piece", self, index)
+
+    def _and(self, first, second):
+        result = []
+        for _first, _second in zip(first, second):
+            if _first and _second: value = True
+            else: value = False
+            result.append(value)
+        return result
+
 class TorrentTask(netius.Observable):
     """
     Describes a task (operation) that is going to be performed
@@ -90,6 +158,14 @@ class TorrentTask(netius.Observable):
         struct["info_hash"] = netius.common.info_hash(struct)
         return struct
 
+
+    def on_block(self, task, index, begin):
+        self.trigger("block", self, index, begin)
+
+    def on_piece(self, task, index):
+        self.verify_piece(index)
+        self.trigger("piece", self, index)
+
     def load_file(self):
         self.file = open(self.target_path, "wb")
         self.file.seek(780140544 - 1)
@@ -99,8 +175,10 @@ class TorrentTask(netius.Observable):
     def load_pieces(self):
         number_pieces = self.info["number_pieces"]
         number_blocks = self.info["number_blocks"]
-        self.bitfield = [True for _index in xrange(number_pieces)]
-        self.mask = [True for _index in xrange(number_pieces * number_blocks)]
+        self.requested = Pieces(self, number_pieces, number_blocks)
+        self.stored = Pieces(self, number_pieces, number_blocks)
+        self.stored.bind("block", self.on_block)
+        self.stored.bind("piece", self.on_piece)
 
     def pieces_tracker(self):
         info = self.info.get("info", {})
@@ -117,8 +195,8 @@ class TorrentTask(netius.Observable):
         self.file.seek(index * piece_length + begin)
         self.file.write(data)
         self.file.flush()
+        self.stored.mark_block(index, begin)
         self.downloaded += len(data)
-        self.trigger("block", self, data, index, begin)
 
     def peers_tracker(self):
         """
@@ -129,9 +207,13 @@ class TorrentTask(netius.Observable):
         task and for such situations no state change will occur.
         """
 
+        # retrieves both the announce and the announce list structure from
+        # the current info dictionary and uses both of them to create the
+        # final list containing the various addresses of trackers, then
+        # iterates over each of the trackers to retrieve the information
+        # about the various peers associated with the torrent file
         announce = self.info.get("announce", None)
         announce_list = self.info.get("announce-list", [[announce]])
-
         for tracker in announce_list:
             tracker_url = tracker[0]
             result = netius.clients.HTTPClient.get_s(
@@ -174,15 +256,6 @@ class TorrentTask(netius.Observable):
     def connect_peer(self, peer):
         self.owner.client.peer(self, peer["ip"], peer["port"])
 
-    #@todo: must change this !!! to a different place
-    def _and(self, first, second):
-        result = []
-        for _first, _second in zip(first, second):
-            if _first and _second: value = True
-            else: value = False
-            result.append(value)
-        return result
-
     def speed(self):
         """
         Retrieves a float number representing the global speed
@@ -200,43 +273,8 @@ class TorrentTask(netius.Observable):
         bytes_second = self.downloaded / delta
         return bytes_second
 
-    def pop_piece(self, bitfield):
-        index = 0
-        result = self._and(bitfield, self.bitfield)
-        for bit in result:
-            if bit == True: break
-            index += 1
-
-        if index == len(result): return None
-
-        begin = self.pop_block(index)
-        self.update_piece(index)
-
-        return (index, begin)
-
-    def pop_block(self, index):
-        number_blocks = self.info["number_blocks"]
-        base = index * number_blocks
-
-        for block_index in xrange(number_blocks):
-            state = self.mask[base + block_index]
-            if state == True: break
-
-        self.mask[base + block_index] = False
-        return block_index * BLOCK_SIZE
-
-    def update_piece(self, index):
-        number_blocks = self.info["number_blocks"]
-        base = index * number_blocks
-        piece_state = False
-
-        for block_index in xrange(number_blocks):
-            state = self.mask[base + block_index]
-            if state == False: continue
-            piece_state = True
-            break
-
-        self.bitfield[index] = piece_state
+    def pop_block(self, bitfield):
+        return self.requested.pop_block(bitfield)
 
     def verify_piece(self, index):
         file = open(self.target_path, "rb")
@@ -265,7 +303,7 @@ class TorrentServer(netius.StreamServer):
     def __init__(self, *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.peer_id = self._generate_id()
-        self.client = netius.clients.TorrentClient()
+        self.client = netius.clients.TorrentClient(*args, **kwargs)
 
     def download(self, target_path, torrent_path = None, info_hash = None):
         """
@@ -313,12 +351,12 @@ class TorrentServer(netius.StreamServer):
         return id
 
 if __name__ == "__main__":
-    def handler(task, data, index, begin):
+    def on_piece(task, index):
         speed = task.speed()
         speed_s = netius.common.size_round_unit(speed)
         print "%s/s" % speed_s
 
     torrent_server = TorrentServer()
     task = torrent_server.download("C:/tobias.download", "C:\ubuntu.torrent")
-    task.bind("block", handler)
+    task.bind("piece", on_piece)
     torrent_server.serve(env = True)

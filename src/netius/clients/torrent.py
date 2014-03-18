@@ -112,9 +112,9 @@ class TorrentConnection(netius.Connection):
 
     def next(self):
         if not self.chocked == UNCHOCKED: return
-        piece = self.task.pop_piece(self.bitfield)
-        if not piece: return
-        index, begin = piece
+        block = self.task.pop_block(self.bitfield)
+        if not block: return
+        index, begin = block
         self.request(index, begin = begin)
 
     def handshake(self):
