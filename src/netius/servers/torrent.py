@@ -178,7 +178,7 @@ class TorrentTask(object):
             else: False
             result.append(value)
         return result
-    
+
     def pop_piece(self, bitfield):
         index = 0
         result = self._and(bitfield, self.bitfield)

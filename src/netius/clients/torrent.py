@@ -69,6 +69,8 @@ class TorrentConnection(netius.Connection):
     def on_handshake(self, protocol, reserved, info_hash, peer_id):
         self.peer_id = peer_id
         self.state = NORMAL_STATE
+        self.interested()
+        self.unchoke()
 
     def on_message(self, length, type, data):
         self.owner.debug(type)
@@ -91,7 +93,6 @@ class TorrentConnection(netius.Connection):
         self.bitfield = [True if value == "1" else False for value in bitfield]
 
     def unchoke_t(self, data):
-        self.interested()
         self.next()
 
     def piece_t(self, data):
@@ -115,8 +116,24 @@ class TorrentConnection(netius.Connection):
         )
         data and self.send(data)
 
+    def choke(self):
+        data = struct.pack("!LB", 1, 0)
+        data and self.send(data)
+
+    def unchoke(self):
+        data = struct.pack("!LB", 1, 1)
+        data and self.send(data)
+
     def interested(self):
         data = struct.pack("!LB", 1, 2)
+        data and self.send(data)
+
+    def not_interested(self):
+        data = struct.pack("!LB", 1, 3)
+        data and self.send(data)
+
+    def have(self, index):
+        data = struct.pack("!LBL", 5, 4, index)
         data and self.send(data)
 
     def request(self, index, begin = 0, length = PIECE_SIZE):
