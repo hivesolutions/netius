@@ -225,7 +225,26 @@ class TorrentTask(object):
         self.bitfield[index] = piece_state
 
     def verify_piece(self, index):
-        pass
+        file = open(self.target_path, "rb")
+        try: self._verify_piece(index, file)
+        finally: file.close()
+
+    def _verify_piece(self, index, file):
+        piece = self.info["pieces"][index]
+        piece_length = self.info["info"]["piece length"]
+        file = open(self.target_path, "rb")
+        file.seek(index * piece_length)
+        pending = piece_length
+        hash = hashlib.sha1()
+        while True:
+            if pending == 0: break
+            count = PIECE_SIZE if pending > PIECE_SIZE else pending
+            data = file.read(count)
+            hash.update(data)
+            pending -= count
+        digest = hash.digest()
+        if not digest ==  piece:
+            raise RuntimeError("error verifying piece index '%d'" % index)
 
 class TorrentServer(netius.StreamServer):
 
