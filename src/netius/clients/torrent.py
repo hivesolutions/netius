@@ -58,7 +58,7 @@ class TorrentConnection(netius.Connection):
 
     def __init__(self, max_requests = 50, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
-        self.parser = netius.common.TorrentParser(self)
+        self.parser = None
         self.max_requests = max_requests
         self.pend_requests = 0
         self.task = None
@@ -66,11 +66,22 @@ class TorrentConnection(netius.Connection):
         self.bitfield = b""
         self.state = HANDSHAKE_STATE
         self.choked = CHOKED
+        self.downloaded = 0
         self.requests = []
 
+    def open(self, *args, **kwargs):
+        netius.Connection.open(self, *args, **kwargs)
+        self.parser = netius.common.TorrentParser(self)
         self.bind("close", self.on_close)
         self.parser.bind("on_handshake", self.on_handshake)
         self.parser.bind("on_message", self.on_message)
+
+    def close(self, *args, **kwargs):
+        netius.Connection.close(self, *args, **kwargs)
+        self.parser.owner = None
+        self.unbind("close")
+        self.parser.unbind("on_handshake")
+        self.parser.unbind("on_message")
 
     def on_close(self, connection):
         self.release()
@@ -122,6 +133,7 @@ class TorrentConnection(netius.Connection):
         index, begin = block
         data = data[8:]
         self.task.set_data(data, index, begin)
+        self.downloaded += len(data)
         self.remove_request(block)
         self.next()
         self.trigger("piece", self, data, index, begin)
