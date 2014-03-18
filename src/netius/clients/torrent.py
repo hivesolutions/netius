@@ -91,6 +91,7 @@ class TorrentConnection(netius.Connection):
         self.bitfield = [True if value == "1" else False for value in bitfield]
 
     def unchoke_t(self, data):
+        self.interested()
         self.next()
 
     def piece_t(self, data):
@@ -112,6 +113,10 @@ class TorrentConnection(netius.Connection):
             self.task.info["info_hash"],
             self.task.owner.peer_id
         )
+        data and self.send(data)
+
+    def interested(self):
+        data = struct.pack("!LB", 1, 2)
         data and self.send(data)
 
     def request(self, index, begin = 0, length = PIECE_SIZE):
