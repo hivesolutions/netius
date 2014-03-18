@@ -98,19 +98,19 @@ class TorrentTask(netius.Observable):
 
     def load_pieces(self):
         number_pieces = self.info["number_pieces"]
-        number_parts = self.info["number_parts"]
+        number_blocks = self.info["number_blocks"]
         self.bitfield = [True for _index in xrange(number_pieces)]
-        self.mask = [True for _index in xrange(number_pieces * number_parts)]
+        self.mask = [True for _index in xrange(number_pieces * number_blocks)]
 
     def pieces_tracker(self):
         info = self.info.get("info", {})
         pieces = info.get("pieces", "")
         piece_length = info.get("piece length", 1)
-        number_parts = math.ceil(float(piece_length) / float(PIECE_SIZE))
-        number_parts = int(number_parts)
+        number_blocks = math.ceil(float(piece_length) / float(PIECE_SIZE))
+        number_blocks = int(number_blocks)
         self.info["pieces"] = [piece for piece in netius.common.chunks(pieces, 20)]
         self.info["number_pieces"] = len(self.info["pieces"])
-        self.info["number_parts"] = number_parts
+        self.info["number_blocks"] = number_blocks
 
     def set_data(self, data, index, begin):
         piece_length = self.info["info"]["piece length"]
@@ -118,7 +118,7 @@ class TorrentTask(netius.Observable):
         self.file.write(data)
         self.file.flush()
         self.downloaded += len(data)
-        self.trigger("part", self, data, index, begin)
+        self.trigger("block", self, data, index, begin)
 
     def peers_tracker(self):
         """
@@ -209,29 +209,29 @@ class TorrentTask(netius.Observable):
 
         if index == len(result): return None
 
-        begin = self.pop_part(index)
+        begin = self.pop_block(index)
         self.update_piece(index)
 
         return (index, begin)
 
-    def pop_part(self, index):
-        number_parts = self.info["number_parts"]
-        base = index * number_parts
+    def pop_block(self, index):
+        number_blocks = self.info["number_blocks"]
+        base = index * number_blocks
 
-        for part_index in xrange(number_parts):
-            state = self.mask[base + part_index]
+        for block_index in xrange(number_blocks):
+            state = self.mask[base + block_index]
             if state == True: break
 
-        self.mask[base + part_index] = False
-        return part_index * PIECE_SIZE
+        self.mask[base + block_index] = False
+        return block_index * PIECE_SIZE
 
     def update_piece(self, index):
-        number_parts = self.info["number_parts"]
-        base = index * number_parts
+        number_blocks = self.info["number_blocks"]
+        base = index * number_blocks
         piece_state = False
 
-        for part_index in xrange(number_parts):
-            state = self.mask[base + part_index]
+        for block_index in xrange(number_blocks):
+            state = self.mask[base + block_index]
             if state == False: continue
             piece_state = True
             break
@@ -320,5 +320,5 @@ if __name__ == "__main__":
 
     torrent_server = TorrentServer()
     task = torrent_server.download("C:/tobias.download", "C:\ubuntu.torrent")
-    task.bind("part", handler)
+    task.bind("block", handler)
     torrent_server.serve(env = True)
