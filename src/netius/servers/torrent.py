@@ -142,7 +142,6 @@ class TorrentTask(netius.Observable):
         self.start = time.time()
         self.uploaded = 0
         self.downloaded = 0
-        self.left = 0
         self.peers = []
 
         if torrent_path: self.info = self.load_info(torrent_path)
@@ -154,6 +153,13 @@ class TorrentTask(netius.Observable):
         self.load_file()
         self.load_pieces()
 
+    def on_block(self, task, index, begin):
+        self.trigger("block", self, index, begin)
+
+    def on_piece(self, task, index):
+        self.verify_piece(index)
+        self.trigger("piece", self, index)
+
     def load_info(self, torrent_path):
         file = open(torrent_path, "rb")
         try: data = file.read()
@@ -162,14 +168,6 @@ class TorrentTask(netius.Observable):
         struct = netius.common.bdecode(data)
         struct["info_hash"] = netius.common.info_hash(struct)
         return struct
-
-
-    def on_block(self, task, index, begin):
-        self.trigger("block", self, index, begin)
-
-    def on_piece(self, task, index):
-        self.verify_piece(index)
-        self.trigger("piece", self, index)
 
     def load_file(self):
         self.file = open(self.target_path, "wb")
@@ -229,7 +227,7 @@ class TorrentTask(netius.Observable):
                     port = "1000",
                     uploaded = self.uploaded,
                     downloaded = self.downloaded,
-                    left = self.left,
+                    left = self.left(),
                     compact = "0"
                 ),
                 async = False
@@ -261,6 +259,10 @@ class TorrentTask(netius.Observable):
     def connect_peer(self, peer):
         self.owner.client.peer(self, peer["ip"], peer["port"])
 
+    def left(self):
+        size = self.info["info"]["length"]
+        return size - self.downloaded
+
     def speed(self):
         """
         Retrieves a float number representing the global speed
@@ -277,6 +279,10 @@ class TorrentTask(netius.Observable):
         delta = current - self.start
         bytes_second = self.downloaded / delta
         return bytes_second
+
+    def percent(self):
+        size = self.info["info"]["length"]
+        return float(self.downloaded) / float(size) * 100.0
 
     def pop_block(self, bitfield):
         return self.requested.pop_block(bitfield)
@@ -358,8 +364,10 @@ class TorrentServer(netius.StreamServer):
 if __name__ == "__main__":
     def on_piece(task, index):
         speed = task.speed()
+        percent = task.percent()
+        percent = int(percent)
         speed_s = netius.common.size_round_unit(speed)
-        print "%s/s" % speed_s
+        print "%s/s - %d%%" % (speed_s, percent)
 
     torrent_server = TorrentServer()
     task = torrent_server.download("C:/tobias.download", "C:\ubuntu.torrent")
