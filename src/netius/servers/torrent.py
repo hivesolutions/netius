@@ -100,10 +100,13 @@ class Pieces(netius.Observable):
         begin = self.update_block(index, mark = mark)
         return (index, begin)
 
-    def mark_block(self, index, begin):
+    def push_block(self, index, begin):
+        self.mark_block(index, begin, value = True)
+
+    def mark_block(self, index, begin, value = False):
         base = index * self.number_blocks
         block_index = begin / BLOCK_SIZE
-        self.mask[base + block_index] = False
+        self.mask[base + block_index] = value
         self.trigger("block", self, index, begin)
         self.update_piece(index)
 
@@ -366,6 +369,9 @@ class TorrentTask(netius.Observable):
         is_end = left < THRESHOLD_END
         structure = self.stored if is_end else self.requested
         return structure.pop_block(bitfield, mark = not is_end)
+
+    def push_block(self, index, begin):
+        self.requested.push_block(index, begin)
 
     def verify_piece(self, index):
         file = open(self.target_path, "rb")

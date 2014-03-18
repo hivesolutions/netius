@@ -66,12 +66,14 @@ class TorrentConnection(netius.Connection):
         self.bitfield = b""
         self.state = HANDSHAKE_STATE
         self.choked = CHOKED
+        self.requests = []
 
+        self.bind("close", self.on_close)
         self.parser.bind("on_handshake", self.on_handshake)
         self.parser.bind("on_message", self.on_message)
 
-    def parse(self, data):
-        self.parser.parse(data)
+    def on_close(self, connection):
+        self.release()
 
     def on_handshake(self, protocol, reserved, info_hash, peer_id):
         self.peer_id = peer_id
@@ -82,6 +84,9 @@ class TorrentConnection(netius.Connection):
     def on_message(self, length, type, data):
         self.owner.debug(type)
         self.handle(type, data)
+
+    def parse(self, data):
+        self.parser.parse(data)
 
     def handle(self, type, data):
         # constructs the name of the method that is going to be called
@@ -102,20 +107,22 @@ class TorrentConnection(netius.Connection):
     def choke_t(self, data):
         if self.choked == CHOKED: return
         self.choked = CHOKED
+        self.release()
         self.trigger("choked", self)
 
     def unchoke_t(self, data):
         if self.choked == UNCHOKED: return
         self.choked = UNCHOKED
-        self.pend_requests = 0
+        self.reset()
         self.next()
         self.trigger("unchoked", self)
 
     def piece_t(self, data):
-        index, begin = struct.unpack("!LL", data[:8])
+        block = struct.unpack("!LL", data[:8])
+        index, begin = block
         data = data[8:]
         self.task.set_data(data, index, begin)
-        self.pend_requests -= 1
+        self.add_request(block)
         self.next()
         self.trigger("piece", self, data, index, begin)
 
@@ -127,7 +134,25 @@ class TorrentConnection(netius.Connection):
             if not block: return
             index, begin = block
             self.request(index, begin = begin)
-            self.pend_requests += 1
+            self.add_request(block)
+
+    def add_request(self, block):
+        self.requests.append(block)
+        self.pend_requests += 1
+
+    def remove_request(self, block):
+        self.requests.remove(block)
+        self.pend_requests -= 1
+
+    def reset(self):
+        del self.requests[:]
+        self.pend_requests = 0
+
+    def release(self):
+        print "release"
+        for index, begin in self.requests:
+            self.task.push_block(index, begin)
+        self.reset()
 
     def handshake(self):
         data = struct.pack(
