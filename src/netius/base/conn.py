@@ -88,6 +88,9 @@ class Connection(observer.Observable):
         self.pending = []
         self.pending_lock = threading.RLock()
 
+    def __del__(self):
+        self.owner.debug("Connection '%s' deleted from memory" % self.id)
+
     def open(self, connect = False):
         # in case the current status of the connection is already open
         # it does not make sense to proceed with the opening of the
@@ -197,7 +200,7 @@ class Connection(observer.Observable):
 
     def upgrade(self, key_file = None, cer_file = None, server = True):
         # in case the current connection is already an ssl oriented one there's
-        # nothing to be done here and the method returns immediately ot caller
+        # nothing to be done here and the method returns immediately to caller
         if self.ssl: return
 
         # sets the ssl flag of the current connection as the connection is now
