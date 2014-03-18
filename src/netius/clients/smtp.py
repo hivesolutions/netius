@@ -83,7 +83,7 @@ class SMTPConnection(netius.Connection):
         self.sequence = ()
 
         self.build()
-    
+
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
         self.parser = netius.common.SMTPParser(self)
