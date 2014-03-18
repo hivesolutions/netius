@@ -249,6 +249,7 @@ class TorrentParser(netius.Observable):
         self.buffer.append(data)
         result = "".join(self.buffer)
         self.buffer = [result]
+        self.buffer_l = len(result)
         return result
 
     def _parse_handshake(self, data):
@@ -269,9 +270,15 @@ class TorrentParser(netius.Observable):
         return diff
 
     def _parse_message(self, data):
+        # starts the current processed byte count at zero and then
+        # measures the current total received bytes using the length
+        # of the current data chunk received and the buffer length
         count = 0
         total = len(data) + self.buffer_l
 
+        # in case the length is not yet defined it must be searched
+        # inside the current message so that it may than be re-used
+        # to check if the complete message has been received
         if self.length == None:
             if total < 4: return 0
             diff = 4 - self.buffer_l if self.buffer_l < 4 else 0
