@@ -39,6 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import math
 import uuid
+import time
 import types
 import struct
 import hashlib
@@ -63,6 +64,7 @@ class TorrentTask(object):
     def __init__(self, owner, target_path, torrent_path = None, info_hash = None):
         self.owner = owner
         self.target_path = target_path
+        self.start = time.time()
         self.uploaded = 0
         self.downloaded = 0
         self.left = 0
@@ -109,13 +111,11 @@ class TorrentTask(object):
         self.info["number_parts"] = number_parts
 
     def set_data(self, data, index, begin):
-        print "index = %d" % index
-        print "begin = %d" % begin
-
         piece_length = self.info["info"]["piece length"]
         self.file.seek(index * piece_length + begin)
         self.file.write(data)
         self.file.flush()
+        self.downloaded += len(data)
 
     def peers_tracker(self):
         """
@@ -171,13 +171,20 @@ class TorrentTask(object):
     def connect_peer(self, peer):
         self.owner.client.peer(self, peer["ip"], peer["port"])
 
+    #@todo: must change this !!! to a different place
     def _and(self, first, second):
         result = []
         for _first, _second in zip(first, second):
-            if first and second: value = True
-            else: False
+            if _first and _second: value = True
+            else: value = False
             result.append(value)
         return result
+
+    def speed(self):
+        current = time.time()
+        delta = current - self.start
+        bytes_second = self.downloaded / delta
+        return bytes_second
 
     def pop_piece(self, bitfield):
         index = 0
@@ -185,6 +192,8 @@ class TorrentTask(object):
         for bit in result:
             if bit == True: break
             index += 1
+
+        if index == len(result): return None
 
         begin = self.pop_part(index)
         self.update_piece(index)
@@ -205,15 +214,18 @@ class TorrentTask(object):
     def update_piece(self, index):
         number_parts = self.info["number_parts"]
         base = index * number_parts
-        piece_state = 0
+        piece_state = False
 
         for part_index in xrange(number_parts):
             state = self.mask[base + part_index]
-            if state == 0: continue
-            piece_state = 1
+            if state == False: continue
+            piece_state = True
             break
 
         self.bitfield[index] = piece_state
+
+    def verify_piece(self, index):
+        pass
 
 class TorrentServer(netius.StreamServer):
 

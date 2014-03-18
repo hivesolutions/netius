@@ -45,6 +45,10 @@ HANDSHAKE_STATE = 1
 
 NORMAL_STATE = 2
 
+CHOCKED = 1
+
+UNCHOCKED = 2
+
 PIECE_SIZE = 16384
 """ The typical size of piece that is going to be retrieved
 using the current torrent infra-structure, this value conditions
@@ -59,6 +63,7 @@ class TorrentConnection(netius.Connection):
         self.peer_id = None
         self.bitfield = b""
         self.state = HANDSHAKE_STATE
+        self.chocked = CHOCKED
 
         self.parser.bind("on_handshake", self.on_handshake)
         self.parser.bind("on_message", self.on_message)
@@ -92,7 +97,11 @@ class TorrentConnection(netius.Connection):
         bitfield = netius.common.string_to_bits(data)
         self.bitfield = [True if value == "1" else False for value in bitfield]
 
+    def choke_t(self, data):
+        self.chocked = CHOCKED
+
     def unchoke_t(self, data):
+        self.chocked = UNCHOCKED
         self.next()
 
     def piece_t(self, data):
@@ -102,7 +111,10 @@ class TorrentConnection(netius.Connection):
         self.next()
 
     def next(self):
-        index, begin = self.task.pop_piece(self.bitfield)
+        if not self.chocked == UNCHOCKED: return
+        piece = self.task.pop_piece(self.bitfield)
+        if not piece: return
+        index, begin = piece
         self.request(index, begin = begin)
 
     def handshake(self):
@@ -137,11 +149,6 @@ class TorrentConnection(netius.Connection):
         data and self.send(data)
 
     def request(self, index, begin = 0, length = PIECE_SIZE):
-        print "requested"
-        print "index = %d" % index
-        print "begin = %d" % begin
-        print "length = %d" % length
-
         data = struct.pack("!LBLLL", 13, 6, index, begin, length)
         data and self.send(data)
 
