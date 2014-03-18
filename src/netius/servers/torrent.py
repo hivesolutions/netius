@@ -47,6 +47,11 @@ import hashlib
 import netius.common
 import netius.clients
 
+ID_STRING = "NE1000"
+""" Text value that is going to be used to identify the agent
+of torrent against the other peers, should be a join of both
+the abbreviation of the agent name and version """
+
 BLOCK_SIZE = 16384
 """ The typical size of block that is going to be retrieved
 using the current torrent infra-structure, this value conditions
@@ -295,8 +300,8 @@ class TorrentTask(netius.Observable):
             hash.update(data)
             pending -= count
         digest = hash.digest()
-        if not digest ==  piece:
-            raise RuntimeError("error verifying piece index '%d'" % index)
+        if digest ==  piece: return
+        raise netius.DataError("Verifying piece index '%d'" % index)
 
 class TorrentServer(netius.StreamServer):
 
@@ -347,7 +352,7 @@ class TorrentServer(netius.StreamServer):
         random = str(uuid.uuid4())
         hash = hashlib.sha1(random)
         digest = hash.hexdigest()
-        id = "-NE1000-%s" % digest[:12]
+        id = "-%s-%s" % (ID_STRING, digest[:12])
         return id
 
 if __name__ == "__main__":
