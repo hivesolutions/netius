@@ -114,7 +114,7 @@ def chunk(item):
             for part in chunk(value): yield part
         yield "e"
 
-    elif chunk_t == types.IntType:
+    elif chunk_t in (types.IntType, types.LongType):
         yield "i%de" % item
 
     elif chunk_t in types.StringTypes:
@@ -173,7 +173,7 @@ def dechunk(chunks):
 
         return line
 
-    raise netius.ParserError("Invalid input")
+    raise netius.ParserError("Invalid input: '%s'" % item)
 
 class TorrentParser(netius.Observable):
 
