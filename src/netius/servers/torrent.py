@@ -400,7 +400,26 @@ class TorrentServer(netius.StreamServer):
     def __init__(self, *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.peer_id = self._generate_id()
-        self.client = netius.clients.TorrentClient(*args, **kwargs)
+        self.client = netius.clients.TorrentClient(
+            thread = False,
+            *args,
+            **kwargs
+        )
+
+        self.container = netius.Container(*args, **kwargs)
+        self.container.add_base(self)
+        self.container.add_base(self.client)
+
+    def start(self):
+        # loads the currently associated (torrent) client and then
+        # starts the container this should trigger the start of the
+        # event loop in the container and the proper listening of all
+        # the connections in the current environment
+        self.client.load()
+        self.container.start(self)
+
+    def stop(self):
+        self.container.stop()
 
     def download(self, target_path, torrent_path = None, info_hash = None):
         """
@@ -448,6 +467,8 @@ class TorrentServer(netius.StreamServer):
         return id
 
 if __name__ == "__main__":
+    import logging
+
     def on_piece(task, index):
         percent = task.percent()
         speed = task.speed()
@@ -460,7 +481,7 @@ if __name__ == "__main__":
     def on_complete(task):
         print "Download completed"
 
-    torrent_server = TorrentServer()
+    torrent_server = TorrentServer(level = logging.INFO)
     task = torrent_server.download("C:/", "C:/ubuntu.torrent")
     task.bind("piece", on_piece)
     task.bind("complete", on_complete)
