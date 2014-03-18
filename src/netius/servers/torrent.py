@@ -52,7 +52,7 @@ PIECE_SIZE = 16384
 using the current torrent infra-structure, this value conditions
 most of the torrent operations and should be defined carefully """
 
-class TorrentTask(object):
+class TorrentTask(netius.Observable):
     """
     Describes a task (operation) that is going to be performed
     using the peer to peer mesh network of the torrent protocol.
@@ -62,6 +62,8 @@ class TorrentTask(object):
     """
 
     def __init__(self, owner, target_path, torrent_path = None, info_hash = None):
+        netius.Observable.__init__(self)
+
         self.owner = owner
         self.target_path = target_path
         self.start = time.time()
@@ -274,6 +276,10 @@ class TorrentServer(netius.StreamServer):
         Note that if only the info hash is provided a DHT bases strategy
         is going to be used to retrieve the peers list.
 
+        The returned value is the task entity representing the newly created
+        task for the downloading of the requested file, this object may be
+        used for the operations and listening of events.
+
         @type target_path: String
         @param target_path: The path to the file that will be used to store
         the binary information resulting from the download, this file may also
@@ -284,6 +290,9 @@ class TorrentServer(netius.StreamServer):
         @type info_hash: String
         @param info_hash: The info hash value of the file that is going
         to be downloaded, may be used for magnet torrents (DHT).
+        @rtype: TorrentTask
+        @return: The torrent task object that represents the task that has been
+        created for downloading of the requested file.
         """
 
         task = TorrentTask(
@@ -293,6 +302,7 @@ class TorrentServer(netius.StreamServer):
             info_hash = info_hash
         )
         task.connect_peers()
+        return task
 
     def _generate_id(self):
         random = str(uuid.uuid4())
