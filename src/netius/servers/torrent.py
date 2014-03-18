@@ -118,6 +118,7 @@ class TorrentTask(netius.Observable):
         self.file.write(data)
         self.file.flush()
         self.downloaded += len(data)
+        self.trigger("part", self, data, index, begin)
 
     def peers_tracker(self):
         """
@@ -312,6 +313,12 @@ class TorrentServer(netius.StreamServer):
         return id
 
 if __name__ == "__main__":
+    def handler(task, data, index, begin):
+        speed = task.speed()
+        speed_s = netius.common.size_round_unit(speed)
+        print "%s/s" % speed_s
+
     torrent_server = TorrentServer()
-    torrent_server.download("C:/tobias.download", "C:\ubuntu.torrent")
-    torrent_server.start()
+    task = torrent_server.download("C:/tobias.download", "C:\ubuntu.torrent")
+    task.bind("part", handler)
+    torrent_server.serve(env = True)
