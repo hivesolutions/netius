@@ -174,10 +174,6 @@ class TorrentClient(netius.StreamClient):
     has table) strategy for completely decentralized usage.
     """
 
-    def __init__(self, auto_close = False, *args, **kwargs):
-        netius.StreamClient.__init__(self, *args, **kwargs)
-        self.auto_close = auto_close
-
     def peer(self, task, host, port, ssl = False, connection = None):
         connection = connection or self.acquire_c(host, port, ssl = ssl)
         connection.task = task
@@ -186,6 +182,8 @@ class TorrentClient(netius.StreamClient):
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
         self.trigger("connect", self, connection)
+        connection.bind("choked", self.on_choked)
+        connection.bind("unchoked", self.on_unchoked)
 
     def on_acquire(self, connection):
         netius.StreamClient.on_acquire(self, connection)
@@ -198,9 +196,13 @@ class TorrentClient(netius.StreamClient):
 
     def on_connection_d(self, connection):
         netius.StreamClient.on_connection_d(self, connection)
-        if not self.auto_close: return
-        if self.connections: return
-        self.close()
+        self.trigger("closed", self, connection)
+
+    def on_choked(self, connection):
+        self.trigger("choked", self, connection)
+
+    def on_unchoked(self, connection):
+        self.trigger("unchoked", self, connection)
 
     def new_connection(self, socket, address, ssl = False):
         return TorrentConnection(
