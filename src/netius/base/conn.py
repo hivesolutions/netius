@@ -89,6 +89,7 @@ class Connection(observer.Observable):
         self.pending_lock = threading.RLock()
 
     def __del__(self):
+        observer.Observable.__del__(self)
         self.owner.debug("Connection '%s' deleted from memory" % self.id)
 
     def open(self, connect = False):
