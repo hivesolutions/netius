@@ -74,10 +74,6 @@ class HTTPConnection(netius.Connection):
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
         self.parser.destroy()
-        self.parser.unbind("on_data")
-        self.parser.unbind("on_partial")
-        self.parser.unbind("on_headers")
-        self.parser.unbind("on_chunk")
 
     def set_http(
         self,

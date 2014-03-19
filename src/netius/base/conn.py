@@ -133,7 +133,7 @@ class Connection(observer.Observable):
         # the current netius specification and strategy
         self.trigger("open", self)
 
-    def close(self, flush = False):
+    def close(self, flush = False, destroy = True):
         # in case the current status of the connection is closes it does
         # nor make sense to proceed with the closing as the connection
         # is already in the closed state (nothing to be done)
@@ -195,6 +195,12 @@ class Connection(observer.Observable):
         # object is notified about the closing of this connection, as requested by
         # the current netius specification and strategy
         self.trigger("close", self)
+        
+        # in case the destroy flag is set the current object is destroy meaning that
+        # for instance the current event registered handlers will no longer be available
+        # this is important to avoid any memory leak from circular references, from
+        # this moment on the connection is considered disabled (not ready for usage)
+        if destroy: self.destroy()
 
     def close_flush(self):
         self.send("", callback = self._close_callback)

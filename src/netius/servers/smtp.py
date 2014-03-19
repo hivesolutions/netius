@@ -77,7 +77,6 @@ class SMTPConnection(netius.Connection):
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
         self.parser.destroy()
-        self.parser.unbind("on_line")
 
     def parse(self, data):
         if self.state == DATA_STATE: self.on_raw_data(data)

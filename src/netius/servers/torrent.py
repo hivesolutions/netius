@@ -83,6 +83,10 @@ class Pieces(netius.Observable):
     def __del__(self):
         netius.Observable.__del__(self)
         print "PIECES APAGADO !!!"
+        
+    def destroy(self):
+        netius.Observable.destroy(self)
+        self.owner = None
 
     def piece(self, index):
         return self.bitfield[index]
@@ -197,9 +201,6 @@ class TorrentTask(netius.Observable):
 
     def on_close(self, connection):
         is_unchoked = connection.choked == netius.clients.UNCHOKED
-        connection.unbind("close")
-        connection.unbind("choked")
-        connection.unbind("unchoked")
         self.connections.remove(connection)
         self.unchoked -= 1 if is_unchoked else 0
 
@@ -253,11 +254,8 @@ class TorrentTask(netius.Observable):
         self.stored.bind("complete", self.on_complete)
 
     def unload_pieces(self):
-        self.stored.unbind("block")
-        self.stored.unbind("piece")
-        self.stored.unbind("complete")
-        self.requested.owner = None
-        self.stored.owner = None
+        self.requested.destroy()
+        self.stored.destroy()
         self.requested = None
         self.stored = None
 
@@ -534,7 +532,7 @@ if __name__ == "__main__":
     def on_complete(task):
         print "Download completed"
 
-    torrent_server = TorrentServer(level = logging.WARNING)
+    torrent_server = TorrentServer(level = logging.DEBUG)
     task = torrent_server.download("C:/", "C:/ubuntu.torrent")
     task.bind("piece", on_piece)
     task.bind("complete", on_complete)

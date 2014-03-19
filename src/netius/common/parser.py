@@ -50,7 +50,8 @@ class Parser(netius.Observable):
         print "Parser '%i' deleted from memory" % id(self)
 
     def build(self):
-        pass
+        netius.Observable.build(self)
 
     def destroy(self):
+        netius.Observable.destroy(self)
         self.owner = None

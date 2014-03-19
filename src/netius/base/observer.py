@@ -53,6 +53,12 @@ class Observable(object):
     def __del__(self):
         self.unbind_all()
 
+    def build(self):
+        pass
+
+    def destroy(self):
+        self.unbind_all()
+
     def bind(self, name, method):
         methods = self.events.get(name, [])
         methods.append(method)

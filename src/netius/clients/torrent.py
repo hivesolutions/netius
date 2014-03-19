@@ -79,9 +79,6 @@ class TorrentConnection(netius.Connection):
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
         self.parser.destroy()
-        self.unbind("close")
-        self.parser.unbind("on_handshake")
-        self.parser.unbind("on_message")
 
     def on_close(self, connection):
         self.release()
