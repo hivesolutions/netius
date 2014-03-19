@@ -80,6 +80,7 @@ class HTTPConnection(netius.Connection):
         version = "HTTP/1.1",
         method = "GET",
         url = None,
+        base = None,
         host = None,
         port = None,
         path = None,
@@ -89,6 +90,7 @@ class HTTPConnection(netius.Connection):
         self.method = method.upper()
         self.version = version
         self.url = url
+        self.base = base
         self.host = host
         self.port = port
         self.path = path
@@ -130,16 +132,21 @@ class HTTPConnection(netius.Connection):
         return self.parser.parse(data)
 
     def on_data(self):
+        message = self.parser.get_message()
+        self.trigger("message", self, self.parser, message)
         self.owner.on_data_http(self, self.parser)
         self.parser.clear()
 
     def on_partial(self, data):
+        self.trigger("partial", self, self.parser, data)
         self.owner.on_partial_http(self, self.parser, data)
 
     def on_headers(self):
+        self.trigger("headers", self, self.parser)
         self.owner.on_headers_http(self, self.parser)
 
     def on_chunk(self, range):
+        self.trigger("chunk", self, self.parser, range)
         self.owner.on_chunk_http(self, self.parser, range)
 
     def _apply_base(self, headers):
@@ -259,7 +266,8 @@ class HTTPClient(netius.StreamClient):
         daemon = True,
         callback = None,
         on_headers = None,
-        on_data = None
+        on_data = None,
+        on_result = None
     ):
         http_client = async and cls.get_client_s(
             thread = True,
@@ -269,50 +277,20 @@ class HTTPClient(netius.StreamClient):
             auto_close = True
         )
 
-        http_client.method(
+        return http_client.method(
             method,
             url,
             params = params,
             headers = headers,
             data = data,
             version = version,
-            connection = connection
+            connection = connection,
+            async = async,
+            callback = callback,
+            on_headers = on_headers,
+            on_data = on_data,
+            on_result = on_result
         )
-
-        # in case the result in asynchronous no result should be
-        # provided as the data should be retrieved by callback but
-        # in case the current request is synchronous the proper result
-        # object must be constructed and populated
-        if async: result = None
-        else:
-            buffer = []
-            result = dict(
-                code = None,
-                data = None
-            )
-
-        # in case the current request to be made in synchronous
-        # and the on data and the message callbacks are not
-        # defined must create the proper functions for the building
-        # of the final result object (contains contents)
-        if not async and not on_data and not callback:
-            def on_partial(client, parser, data):
-                buffer.append(data)
-
-            def on_message(client, parser, message):
-                result["code"] = parser.code
-                result["status"] = parser.status
-                result["data"] = "".join(buffer)
-
-            on_data = on_partial
-            callback = on_message
-
-        if on_headers: http_client.bind("headers", on_headers)
-        if on_data: http_client.bind("partial", on_data)
-        if callback: http_client.bind("message", callback)
-
-        not async and http_client.start()
-        return result
 
     def get(
         self,
@@ -386,13 +364,23 @@ class HTTPClient(netius.StreamClient):
         headers = {},
         data = None,
         version = "HTTP/1.1",
-        connection = None
+        connection = None,
+        async = True,
+        callback = None,
+        on_headers = None,
+        on_data = None,
+        on_result = None
     ):
         # creates the message that is going to be used in the logging of
         # the current method request for debugging purposes, this may be
         # useful for a full record traceability of the request
         message = "%s %s %s" % (method, url, version)
         self.debug(message)
+
+        # stores the initial version of the url in a fallback variable so
+        # that it may latter be used for the storage of that information
+        # in the associated connection (used in callbacks)
+        base = url
 
         # encodes the provided parameters into the query string and then
         # adds these parameters to the end of the provided url, these
@@ -434,6 +422,7 @@ class HTTPClient(netius.StreamClient):
             version = version,
             method = method,
             url = url,
+            base = base,
             host = host,
             port = port,
             path = path,
@@ -442,7 +431,58 @@ class HTTPClient(netius.StreamClient):
         )
         connection.set_headers(headers)
         connection.set_data(data)
-        return connection
+
+        # verifies if the current request to be done should create
+        # a request structure representing it, this is the case when
+        # the request is synchronous and no handled is defined and
+        # when then on result callback is defined, this callback receives
+        # this request structure as the result, and it contains the
+        # complete set of contents of the http request (easy usage)
+        has_request = not async and not on_data and not callback
+        has_request = has_request or on_result
+        if has_request:
+
+            # creates both the buffer list and the request structure so that
+            # they may be used for the correct construction of the request
+            # structure that is going to be send in the callback
+            buffer = []
+            request = dict(
+                code = None,
+                data = None
+            )
+
+            def on_partial(client, parser, data):
+                buffer.append(data)
+
+            def on_message(client, parser, message):
+                request["code"] = parser.code
+                request["status"] = parser.status
+                request["data"] = "".join(buffer)
+                if on_result: on_result(client, parser, request)
+
+            on_data = on_partial
+            callback = on_message
+
+        # defines the proper return result value taking into account if
+        # this is a synchronous or asynchronous request, one uses the
+        # connection as the result and the other the request structure
+        if async: result = connection
+        elif has_request: result = request
+        else: result = None
+
+        # registers for the proper event handlers according to the
+        # provided parameters, note that these are considered to be
+        # the lower level infra-structure of the event handling
+        if on_headers: connection.bind("headers", on_headers)
+        if on_data: connection.bind("partial", on_data)
+        if callback: connection.bind("message", callback)
+
+        # in case the current request is not meant to be handled as
+        # asynchronous tries to start the current event loop (blocking
+        # the current workflow) then returns the proper value to the
+        # caller method (taking into account if it is sync or async)
+        not async and self.start()
+        return result
 
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
