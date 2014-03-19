@@ -67,7 +67,7 @@ class Server(Base):
 
     def __del__(self):
         Base.__del__(self)
-        self.debug("Server '%s' deleted from memory" % self._uuid)
+        self.debug("Server (%s) '%s' deleted from memory" % (self.name, self._uuid))
 
     def cleanup(self):
         Base.cleanup(self)
