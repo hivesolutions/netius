@@ -158,7 +158,7 @@ class DHTClient(netius.DatagramClient):
         *args,
         **kwargs
     ):
-        #@todo: this address is completly hardcoded
+        #@todo: this address is completely hardcoded
         request = DHTRequest(
             peer_id,
             type = type,
