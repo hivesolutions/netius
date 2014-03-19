@@ -174,7 +174,7 @@ class TorrentTask(netius.Observable):
         self.uploaded = 0
         self.downloaded = 0
         self.unchoked = 0
-        self.next_refresh = 0
+        self.next_refresh = self.start + REFRESH_TIME
         self.connections = []
         self.peers = []
         self.peers_m = {}
@@ -225,6 +225,41 @@ class TorrentTask(netius.Observable):
 
     def on_complete(self, pieces):
         self.trigger("complete", self)
+
+    def on_tracker(self, client, parser, result):
+        # extracts the data (string) contents of the http response and in case
+        # there're none of them continues the loop as there's nothing to be
+        # processed from this tracker response (invalid response)
+        data = result["data"]
+        if not data: return
+
+        # tries to decode the provided data from the tracker using the bencoder
+        # and extracts the peers part of the message to be processed
+        response = netius.common.bdecode(data)
+        peers = response["peers"]
+
+        # verifies if the provided peers part is not compact (already a dictionary)
+        # if that's the case there's nothing remaining to be done, otherwise extra
+        # processing must be done to
+        if type(peers) == types.DictType: self.extend_peers(peers)
+
+        # need to normalize the peer structure by decoding the peers string into a
+        # set of address port sub strings (as defined in torrent specification)
+        else:
+            peers = [peer for peer in netius.common.chunks(peers, 6)]
+            for peer in peers:
+                address, port = struct.unpack("!LH", peer)
+                ip = netius.common.addr_to_ip4(address)
+                peer = dict(ip = ip, port = port)
+                self.add_peer(peer)
+
+        # prints a debug message about the peer loading that has just occurred, this
+        # may be used for the purpose of development (and traceability)
+        self.owner.debug("Received %d peers from '%s'" % (len(peers), parser.owner.base))
+
+        # refreshes the connection with the peers because new peers have been added
+        # to the current task and there may be new connections pending
+        self.connect_peers()
 
     def load_info(self, torrent_path):
         file = open(torrent_path, "rb")
@@ -310,6 +345,11 @@ class TorrentTask(netius.Observable):
         if not peer: return
         peer["dht"] = port
 
+    def peers_dht(self):
+        #@todo, still things pending here
+        # vou tetar sabe rmais peers utilizando a DHT !! :)
+        pass
+
     def peers_tracker(self):
         """
         Tries to retrieve as much information as possible about the
@@ -336,7 +376,9 @@ class TorrentTask(netius.Observable):
 
             # runs the get http retrieval call (blocking call) so that it's
             # possible to retrieve the contents for the announce of the tracker
-            result = netius.clients.HTTPClient.get_s(
+            # this is an asynchronous call and the on tracker callback will be
+            # called at the end of the process with the message
+            self.owner.http_client.get(
                 tracker_url,
                 params = dict(
                     info_hash = self.info["info_hash"],
@@ -350,38 +392,8 @@ class TorrentTask(netius.Observable):
                     event = "started",
                     numwant = 50
                 ),
-                async = False
+                on_result = self.on_tracker
             )
-
-            # extracts the data (string) contents of the http response and in case
-            # there're none of them continues the loop as there's nothing to be
-            # processed from this tracker response (invalid response)
-            data = result["data"]
-            if not data: continue
-
-            # tries to decode the provided data from the tracker using the bencoder
-            # and extracts the peers part of the message to be processed
-            response = netius.common.bdecode(data)
-            peers = response["peers"]
-
-            # verifies if the provided peers part is not compact (already a dictionary)
-            # if that's the case there's nothing remaining to be done, otherwise extra
-            # processing must be done to
-            if type(peers) == types.DictType: self.extend_peers(peers)
-
-            # need to normalize the peer structure by decoding the peers string into a
-            # set of address port sub strings (as defined in torrent specification)
-            else:
-                peers = [peer for peer in netius.common.chunks(peers, 6)]
-                for peer in peers:
-                    address, port = struct.unpack("!LH", peer)
-                    ip = netius.common.addr_to_ip4(address)
-                    peer = dict(ip = ip, port = port)
-                    self.add_peer(peer)
-
-            # prints a debug message about the peer loading that has just occurred, this
-            # may be used for the purpose of development (and traceability)
-            self.owner.debug("Received %d peers from '%s'" % (len(peers), tracker_url))
 
     def connect_peers(self):
         for peer in self.peers: self.connect_peer(peer)
@@ -493,8 +505,14 @@ class TorrentServer(netius.ContainerServer):
             *args,
             **kwargs
         )
+        self.http_client = netius.clients.HTTPClient(
+            thread = False,
+            *args,
+            **kwargs
+        )
         self.tasks = []
         self.add_base(self.client)
+        self.add_base(self.http_client)
 
     def cleanup(self):
         netius.ContainerServer.cleanup(self)
