@@ -58,24 +58,24 @@ class DHTRequest(object):
 
     def __init__(
         self,
-        host,
-        port,
         peer_id,
+        host = "127.0.0.1",
+        port = 9090,
         type = "ping",
         callback = None,
         *args,
         **kwargs
     ):
         self.id = self._generate_id()
+        self.peer_id = peer_id
         self.host = host
         self.port = port
-        self.peer_id = peer_id
         self.type = type
         self.callback = callback
         self.args = args,
         self.kwargs = kwargs
         self._peer_id = self._get_peer_id()
-        
+
     @classmethod
     def contact(cls, host, port):
         addr = netius.common.ip4_to_addr(host)
@@ -85,9 +85,14 @@ class DHTRequest(object):
         if not hasattr(self, self.type):
             raise netius.ParserError("Invalid type '%s'" % self.type)
         method = getattr(self, self.type)
-        request = method()
-        request["t"] = str(self.id)
-        request["y"] = "q"
+        query = method()
+        request = dict(
+            t = str(self.id),
+            y = "q",
+            q = self.type,
+            a = query
+        )
+        print request
         return netius.common.bencode(request)
 
     def ping(self):
@@ -114,9 +119,9 @@ class DHTRequest(object):
             token = self.kwargs["token"]
         )
 
-    def get_peer_id(self):
+    def _get_peer_id(self):
         contact = DHTRequest.contact(self.host, self.port)
-        return self.pee_id + contact
+        return self.peer_id + contact
 
     def _generate_id(self):
         global IDENTIFIER
@@ -153,6 +158,7 @@ class DHTClient(netius.DatagramClient):
         *args,
         **kwargs
     ):
+        #@todo: this address is completly hardcoded
         request = DHTRequest(
             peer_id,
             type = type,
@@ -163,7 +169,6 @@ class DHTClient(netius.DatagramClient):
         data = request.request()
 
         address = (host, port)
-        print "SENT-> %s" % data
         self.send(data, address)
 
     def on_data(self, address, data):
