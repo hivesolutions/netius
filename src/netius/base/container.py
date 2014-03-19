@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import server
+
 from common import * #@UnusedWildImport
 
 class Container(Base):
@@ -125,6 +127,10 @@ class Container(Base):
 
     def on_start(self, service):
         self.apply_all()
+        self.trigger_all("start")
+
+    def on_stop(self, service):
+        self.trigger_all("stop")
 
     def add_base(self, base):
         self.apply_base(base)
@@ -147,3 +153,33 @@ class Container(Base):
     def apply_base(self, base):
         base.tid = self.tid
         base.poll = self.poll
+
+    def trigger_all(self, name, *args, **kwargs):
+        for base in self.bases: base.trigger(name, base, *args, **kwargs)
+
+class ContainerServer(server.StreamServer):
+
+    def __init__(self, *args, **kwargs):
+        server.StreamServer.__init__(self, *args, **kwargs)
+        self.container = Container(*args, **kwargs)
+        self.add_base(self)
+
+    def start(self):
+        # starts the container this should trigger the start of the
+        # event loop in the container and the proper listening of all
+        # the connections in the current environment
+        self.container.start(self)
+
+    def stop(self):
+        # verifies if there's a container object currently defined in
+        # the object and in case it does exist propagates the stop call
+        # to the container so that the proper stop operation is performed
+        if not self.container: return
+        self.container.stop()
+
+    def cleanup(self):
+        server.StreamServer.cleanup(self)
+        self.container = None
+
+    def add_base(self, base):
+        self.container.add_base(base)
