@@ -250,6 +250,7 @@ class Base(observer.Observable):
         self.set_state(STATE_STOP);
 
     def __del__(self):
+        observer.Observable.__del__(self)
         self.close()
 
     @classmethod
