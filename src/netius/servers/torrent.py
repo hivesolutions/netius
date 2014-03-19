@@ -83,7 +83,7 @@ class Pieces(netius.Observable):
     def __del__(self):
         netius.Observable.__del__(self)
         print "PIECES APAGADO !!!"
-        
+
     def destroy(self):
         netius.Observable.destroy(self)
         self.owner = None
@@ -455,15 +455,22 @@ class TorrentServer(netius.StreamServer):
         self.container.add_base(self.client)
 
     def start(self):
-        # loads the currently associated (torrent) client and then
         # starts the container this should trigger the start of the
         # event loop in the container and the proper listening of all
         # the connections in the current environment
-        self.client.load()
         self.container.start(self)
 
     def stop(self):
+        # verifies if there's a container object currently defined in
+        # the object and in case it does exist propagates the stop call
+        # to the container so that the proper stop operation is performed
+        if not self.container: return
         self.container.stop()
+
+    def cleanup(self):
+        netius.StreamServer.cleanup(self)
+        self.container = None
+        self.client.destroy()
 
     def download(self, target_path, torrent_path = None, info_hash = None):
         """
@@ -542,4 +549,4 @@ if __name__ == "__main__":
 
     after = hp.heap()
     leftover = after - before
-    print leftover[0].byid
+    print leftover
