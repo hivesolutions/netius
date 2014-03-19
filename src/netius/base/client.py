@@ -65,7 +65,7 @@ class Client(Base):
 
     def __del__(self):
         Base.__del__(self)
-        self.debug("Client '%s' deleted from memory" % self._uuid)
+        self.debug("Client (%s) '%s' deleted from memory" % (self.name, self._uuid))
 
     @classmethod
     def get_client_s(cls, *args, **kwargs):
