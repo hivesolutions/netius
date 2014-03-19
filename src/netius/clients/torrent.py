@@ -248,6 +248,8 @@ class TorrentClient(netius.StreamClient):
     The current implementation support both a torrent file
     (using trackers) strategy and also a DHT (distributed
     has table) strategy for completely decentralized usage.
+
+    @see: http://www.bittorrent.org/beps/bep_0003.html
     """
 
     def peer(self, task, host, port, ssl = False, connection = None):
