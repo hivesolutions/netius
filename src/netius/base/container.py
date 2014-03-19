@@ -48,6 +48,10 @@ class Container(Base):
 
         self.bind("start", self.on_start)
 
+    def __del__(self):
+        Base.__del__(self)
+        self.debug("Container (%s) '%s' deleted from memory" % (self.name, self._uuid))
+
     def start(self, owner):
         # sets the current polling structure of the owner in the container
         # it's important to use the already initialized poll in the container
@@ -58,8 +62,14 @@ class Container(Base):
         self.poll = owner.poll
         self.poll_name = owner.poll_name
         self.poll_timeout = owner.poll_timeout
+        self.level = owner.level
         self.logger = owner.logger
         self._loaded = True
+
+        # runs the starting operation in the complete set of base structures
+        # registered under the container, this is the required operation in
+        # order to propagate the changed in the container to the bases
+        self.start_all()
 
         # calls the super method of the base for the current container this should
         # start the event loop for the container (blocking call)
@@ -69,6 +79,7 @@ class Container(Base):
         Base.cleanup(self)
         self.owner = None
         for base in self.bases: base.cleanup()
+        del self.bases[:]
 
     def loop(self):
         # iterates continuously while the running flag
@@ -106,6 +117,17 @@ class Container(Base):
     def add_base(self, base):
         self.apply_base(base)
         self.bases.append(base)
+
+    def remove_base(self, base):
+        self.bases.remove(base)
+
+    def start_base(self, base):
+        base.level = self.level
+        base.logger = self.logger
+        base.load()
+
+    def start_all(self):
+        for base in self.bases: self.start_base(base)
 
     def apply_all(self):
         for base in self.bases: self.apply_base(base)
