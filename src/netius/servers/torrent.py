@@ -521,21 +521,27 @@ class TorrentServer(netius.StreamServer):
 if __name__ == "__main__":
     import logging
 
+    from guppy import hpy
+    hp = hpy()
+    before = hp.heap()
+
     def on_piece(task, index):
-        percent = task.percent()
-        speed = task.speed()
-        left = task.left()
-        percent = int(percent)
-        speed_s = netius.common.size_round_unit(speed)
-        print task.info_string()
-        print "[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s)
+        owner = task.owner
+        task.disconnect_peers()
+        task.unload()
+        owner.stop()
 
     def on_complete(task):
         print "Download completed"
 
-    torrent_server = TorrentServer(level = logging.DEBUG)
+    torrent_server = TorrentServer(level = logging.WARNING)
     task = torrent_server.download("C:/", "C:/ubuntu.torrent")
     task.bind("piece", on_piece)
     task.bind("complete", on_complete)
     del task
     torrent_server.serve(env = True)
+    del torrent_server
+
+    after = hp.heap()
+    leftover = after - before
+    print leftover[0].byid
