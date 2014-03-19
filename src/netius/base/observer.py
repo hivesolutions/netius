@@ -50,6 +50,9 @@ class Observable(object):
     def __init__(self, *args, **kwargs):
         self.events = {}
 
+    def __del__(self):
+        self.unbind_all()
+
     def bind(self, name, method):
         methods = self.events.get(name, [])
         methods.append(method)
@@ -59,6 +62,10 @@ class Observable(object):
         methods = self.events.get(name, [])
         if method: methods.remove(method)
         else: del methods[:]
+
+    def unbind_all(self):
+        for methods in self.events.itervalues(): del methods[:]
+        self.events.clear()
 
     def trigger(self, name, *args, **kwargs):
         methods = self.events.get(name, [])
