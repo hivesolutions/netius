@@ -164,7 +164,7 @@ class Connection(observer.Observable):
         # resets the size of the data pending to be send and the clears
         # the list of pending information (invalidation the previous one)
         self.pending_s = 0
-        self.pending = []
+        del self.pending[:]
 
         # retrieves the reference to the owner object from the
         # current instance to be used to removed the socket from the
