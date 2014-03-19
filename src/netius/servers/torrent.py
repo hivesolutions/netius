@@ -408,6 +408,7 @@ class TorrentTask(netius.Observable):
         return structure.pop_block(bitfield, mark = not is_end)
 
     def push_block(self, index, begin):
+        if not self.requested: return
         self.requested.push_block(index, begin)
 
     def verify_piece(self, index):
