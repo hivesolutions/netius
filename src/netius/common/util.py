@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import math
 import socket
 
 SIZE_UNITS_LIST = (
@@ -53,6 +54,11 @@ DEFAULT_MINIMUM = 1024
 """ The default minimum value meaning that this is the
 maximum value that one integer value may have for the
 size rounding operation to be performed """
+
+DEFAULT_PLACES = 3
+""" The default number of places (digits) that are going
+to be used for the string representation in the round
+based conversion of size units to be performed """
 
 def cstring(value):
     index = value.index("\0")
@@ -108,6 +114,7 @@ def size_round_unit(
     size_value,
     minimum = DEFAULT_MINIMUM,
     space = False,
+    places = DEFAULT_PLACES,
     depth = 0
 ):
     """
@@ -115,13 +122,21 @@ def size_round_unit(
     of the value with a good rounding precision.
     This method should be used to round data sizing units.
 
-    @type size_value: int
+    Note that using the places parameter it's possible to control
+    the number of digits (including decimal places) of the
+    number that is going to be "generated".
+
+    @type size_value: int/float
     @param size_value: The current size value (in bytes).
     @type minimum: int
     @param minimum: The minimum value to be used.
     @type space: bool
     @param space: If a space character must be used dividing
     the value from the unit symbol.
+    @type places: int
+    @param places: The target number of digits to be used for
+    describing the value to be used for output, this is going
+    to be used to calculate the proper number of decimal places.
     @type depth: int
     @param depth: The current iteration depth value.
     @rtype: String
@@ -133,10 +148,23 @@ def size_round_unit(
     # the minimum) this is the final iteration and the final
     # string representation is going to be created
     if size_value < minimum:
+        # calculates the target number of decimal places taking
+        # into account the size (in digits) of the current size
+        # value, this may never be a negative number
+        log_value = math.log10(size_value)
+        digits = int(log_value) + 1
+        places = places - digits
+        places = places if places > 0 else 0
+
+        # creates the proper format string that is going to
+        # be used in the creation of the proper float value
+        # according to the calculated number of places
+        format = "%%.%df" % places
+
         # rounds the size value, then converts the rounded
         # size value into a string based representation
-        rounded_size_value = int(size_value)
-        rounded_size_value_string = str(rounded_size_value)
+        size_value = round(size_value, places)
+        size_value_s = format % size_value
 
         # retrieves the size unit (string mode) for the current
         # depth according to the provided map
@@ -149,7 +177,7 @@ def size_round_unit(
         # creates the size value string appending the rounded
         # size value string and the size unit and returns it
         # to the caller method as the size value string
-        size_value_string = rounded_size_value_string + separator + size_unit
+        size_value_string = size_value_s + separator + size_unit
         return size_value_string
 
     # otherwise the value is not acceptable
@@ -157,11 +185,12 @@ def size_round_unit(
     else:
         # re-calculates the new size value, increments the depth
         # and runs the size round unit again with the new values
-        new_size_value = size_value / SIZE_UNIT_COEFFICIENT
+        new_size_value = float(size_value) / SIZE_UNIT_COEFFICIENT
         new_depth = depth + 1
         return size_round_unit(
             new_size_value,
             minimum = minimum,
             space = space,
+            places = places,
             depth = new_depth
         )
