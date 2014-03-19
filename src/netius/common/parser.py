@@ -46,6 +46,7 @@ class Parser(netius.Observable):
         self.owner = owner
 
     def __del__(self):
+        netius.Observable.__del__(self)
         print "Parser '%i' deleted from memory" % id(self)
 
     def build(self):
