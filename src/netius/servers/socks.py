@@ -110,10 +110,10 @@ class SOCKSConnection(netius.Connection):
     def on_auth(self):
         self.owner.on_auth_socks(self, self.parser)
 
-class SOCKSServer(netius.StreamServer):
+class SOCKSServer(netius.ContainerServer):
 
     def __init__(self, rules = {}, throttle = True, max_pending = MAX_PENDING, *args, **kwargs):
-        netius.StreamServer.__init__(
+        netius.ContainerServer.__init__(
             self,
             receive_buffer_c = int(max_pending * BUFFER_RATIO),
             send_buffer_c = int(max_pending * BUFFER_RATIO),
@@ -137,30 +137,15 @@ class SOCKSServer(netius.StreamServer):
         self.raw_client.bind("data", self._on_raw_data)
         self.raw_client.bind("close", self._on_raw_close)
 
-        self.container = netius.Container(*args, **kwargs)
-        self.container.add_base(self)
-        self.container.add_base(self.raw_client)
-
-    def start(self):
-        # starts the container this should trigger the start of the
-        # event loop in the container and the proper listening of all
-        # the connections in the current environment
-        self.container.start(self)
-
-    def stop(self):
-        # verifies if there's a container object currently defined in
-        # the object and in case it does exist propagates the stop call
-        # to the container so that the proper stop operation is performed
-        if not self.container: return
-        self.container.stop()
+        self.add_base(self)
+        self.add_base(self.raw_client)
 
     def cleanup(self):
-        netius.StreamServer.cleanup(self)
-        self.container = None
+        netius.ContainerServer.cleanup(self)
         self.raw_client.destroy()
 
     def on_data(self, connection, data):
-        netius.StreamServer.on_data(self, connection, data)
+        netius.ContainerServer.on_data(self, connection, data)
 
         # tries to retrieve the reference to the tunnel connection
         # currently set in the connection in case it does not exists
@@ -197,7 +182,7 @@ class SOCKSServer(netius.StreamServer):
         connection.send_auth(method = 0)
 
     def on_connection_d(self, connection):
-        netius.StreamServer.on_connection_d(self, connection)
+        netius.ContainerServer.on_connection_d(self, connection)
 
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
 
