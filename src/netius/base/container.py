@@ -46,13 +46,15 @@ class Container(Base):
         self.owner = None
         self.bases = []
 
-        self.bind("start", self.on_start)
-
     def __del__(self):
         Base.__del__(self)
         self.debug("Container (%s) '%s' deleted from memory" % (self.name, self._uuid))
 
     def start(self, owner):
+        # registers for the start event on the current container so that when
+        # the start operation is completed the proper propagation may occur
+        self.bind("start", self.on_start)
+
         # sets the current polling structure of the owner in the container
         # it's important to use the already initialized poll in the container
         # so that the requested environment (host, port , etc.) is used note
@@ -77,9 +79,19 @@ class Container(Base):
 
     def cleanup(self):
         Base.cleanup(self)
+
+        # unsets the owner of the container, this should diminish the chance of
+        # memory leaks due to cycle references (required to avoid problems)
         self.owner = None
+
+        # iterates over all the bases registered and propagates the cleanup operation
+        # over them, deleting the list of bases afterwards (no more usage for them)
         for base in self.bases: base.cleanup()
         del self.bases[:]
+
+        # unbinds the start operation from the on start event, as this is no longer
+        # required, should re-register for it on "next start" event
+        self.unbind("start", self.on_start)
 
     def loop(self):
         # iterates continuously while the running flag
