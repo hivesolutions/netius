@@ -188,7 +188,7 @@ class DHTClient(netius.DatagramClient):
         self.on_data_dht(address, response)
 
     def on_data_dht(self, address, response):
-        # @todo this processing is completly hardcoded
+        # @todo this processing is completely hardcoded
 
         response = response.get_response()
         nodes = response.get("nodes", "")
