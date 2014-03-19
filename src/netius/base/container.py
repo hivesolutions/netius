@@ -67,6 +67,7 @@ class Container(Base):
 
     def cleanup(self):
         Base.cleanup(self)
+        self.owner = None
         for base in self.bases: base.cleanup()
 
     def loop(self):
