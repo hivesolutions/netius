@@ -49,6 +49,11 @@ import hashlib
 import netius.common
 import netius.clients
 
+REFRESH_TIME = 30.0
+""" The default time in between refresh call in the torrent task
+each refresh operation should perform some operations (eg: DHT
+refresh, tracker re-retrieval, etc) """
+
 ID_STRING = "NE1000"
 """ Text value that is going to be used to identify the agent
 of torrent against the other peers, should be a join of both
@@ -169,8 +174,10 @@ class TorrentTask(netius.Observable):
         self.uploaded = 0
         self.downloaded = 0
         self.unchoked = 0
+        self.next_refresh = 0
         self.connections = []
         self.peers = []
+        self.peers_m = {}
 
     def load(self):
         if self.torrent_path: self.info = self.load_info(self.torrent_path)
@@ -192,6 +199,15 @@ class TorrentTask(netius.Observable):
         is_unchoked = connection.choked == netius.clients.UNCHOKED
         self.connections.remove(connection)
         self.unchoked -= 1 if is_unchoked else 0
+
+    def ticks(self):
+        if time.time() < self.next_refresh: return
+        self.refresh()
+
+    def refresh(self):
+        self.peers_tracker()
+        self.next_refresh = time.time() + REFRESH_TIME
+        self.trigger("refresh", self)
 
     def on_choked(self, connection):
         self.unchoked -= 1
@@ -342,8 +358,7 @@ class TorrentTask(netius.Observable):
             # verifies if the provided peers part is not compact (already a dictionary)
             # if that's the case there's nothing remaining to be done, otherwise extra
             # processing must be done to
-            if type(peers) == types.DictType:
-                self.peers = peers
+            if type(peers) == types.DictType: self.extend_peers(peers)
 
             # need to normalize the peer structure by decoding the peers string into a
             # set of address port sub strings (as defined in torrent specification)
@@ -353,7 +368,7 @@ class TorrentTask(netius.Observable):
                     address, port = struct.unpack("!LH", peer)
                     ip = netius.common.addr_to_ip4(address)
                     peer = dict(ip = ip, port = port)
-                    self.peers.append(peer)
+                    self.add_peer(peer)
 
             # prints a debug message about the peer loading that has just occurred, this
             # may be used for the purpose of development (and traceability)
@@ -423,6 +438,21 @@ class TorrentTask(netius.Observable):
         try: self._verify_piece(index, file)
         finally: file.close()
 
+    def extend_peers(self, peers):
+        for peer in peers: self.add_peer(peer)
+
+    def add_peer(self, peer):
+        peer_t = (peer["ip"], peer["port"])
+        if peer_t in self.peers_m: return
+        self.peers_m[peer_t] = peer
+        self.peers.append(peer)
+
+    def remove_peer(self, peer):
+        peer_t = (peer["ip"], peer["port"])
+        if not peer_t in self.peers_m: return
+        del self.peers_m[peer_t]
+        self.peers.remove(peer)
+
     def _verify_piece(self, index, file):
         piece = self.info["pieces"][index]
         piece_length = self.info["info"]["piece length"]
@@ -457,6 +487,10 @@ class TorrentServer(netius.ContainerServer):
         netius.ContainerServer.cleanup(self)
         self.cleanup_tasks()
         self.client.destroy()
+
+    def ticks(self):
+        netius.ContainerServer.ticks(self)
+        for task in self.tasks: task.ticks()
 
     def download(self, target_path, torrent_path = None, info_hash = None):
         """
