@@ -460,6 +460,9 @@ class HTTPClient(netius.StreamClient):
                 request["data"] = "".join(buffer)
                 if on_result: on_result(client, parser, request)
 
+            # sets the proper callback references so that the newly created
+            # clojure based methods are called for the current connection
+            # under the desired events, for the construction of the request
             on_data = on_partial
             callback = on_message
 
