@@ -352,10 +352,7 @@ class TorrentTask(netius.Observable):
                 for peer in peers:
                     address, port = struct.unpack("!LH", peer)
                     ip = netius.common.addr_to_ip4(address)
-                    peer = dict(
-                        ip = ip,
-                        port = port
-                    )
+                    peer = dict(ip = ip, port = port)
                     self.peers.append(peer)
 
             self.owner.debug("Received %d peers from '%s'" % (len(peers), tracker_url))
