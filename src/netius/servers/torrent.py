@@ -206,6 +206,7 @@ class TorrentTask(netius.Observable):
 
     def refresh(self):
         self.peers_tracker()
+        self.connect_peers()
         self.next_refresh = time.time() + REFRESH_TIME
         self.trigger("refresh", self)
 
@@ -382,6 +383,8 @@ class TorrentTask(netius.Observable):
         for connection in connections: connection.close()
 
     def connect_peer(self, peer):
+        if not peer["new"]: return
+        peer["new"] = False
         connection = self.owner.client.peer(self, peer["ip"], peer["port"])
         self.connections.append(connection)
         connection.bind("close", self.on_close)
@@ -444,6 +447,8 @@ class TorrentTask(netius.Observable):
     def add_peer(self, peer):
         peer_t = (peer["ip"], peer["port"])
         if peer_t in self.peers_m: return
+        peer["time"] = time.time()
+        peer["new"] = True
         self.peers_m[peer_t] = peer
         self.peers.append(peer)
 
@@ -492,7 +497,7 @@ class TorrentServer(netius.ContainerServer):
         netius.ContainerServer.ticks(self)
         for task in self.tasks: task.ticks()
 
-    def download(self, target_path, torrent_path = None, info_hash = None):
+    def download(self, target_path, torrent_path = None, info_hash = None, close = False):
         """
         Starts the "downloading" process of a torrent associated file
         using the defined peer to peer torrent strategy suing either
@@ -516,12 +521,18 @@ class TorrentServer(netius.ContainerServer):
         @type info_hash: String
         @param info_hash: The info hash value of the file that is going
         to be downloaded, may be used for magnet torrents (DHT).
+        @type close: bool
+        @param close: If the server infra-structure should be close (process ends)
+        at the end of the download, this is not the default behavior (multiple download).
         @rtype: TorrentTask
         @return: The torrent task object that represents the task that has been
         created for downloading of the requested file.
         """
 
-        def on_complete(task): self.remove_task(task)
+        def on_complete(task):
+            owner = task.owner
+            self.remove_task(task)
+            if close: owner.close()
 
         task = TorrentTask(
             self,
@@ -557,7 +568,7 @@ if __name__ == "__main__":
     import logging
 
     def on_start(server):
-        task = server.download("C:/", "C:/ubuntu.torrent")
+        task = server.download("C:/", "C:/ubuntu.torrent", close = True)
         task.bind("piece", on_piece)
         task.bind("complete", on_complete)
 
