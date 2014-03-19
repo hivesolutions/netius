@@ -41,6 +41,8 @@ import cStringIO
 
 import netius
 
+import parser
+
 REQUEST = 1
 """ The http request message indicator, should be
 used when identifying the http request messages """
@@ -141,7 +143,7 @@ CODE_STRINGS = {
 """ Dictionary associating the error code as integers
 with the official descriptive message for it """
 
-class HTTPParser(netius.Observable):
+class HTTPParser(parser.Parser):
     """
     Parser object for the http format, should be able to
     parse both request and response messages.
@@ -152,9 +154,8 @@ class HTTPParser(netius.Observable):
     """
 
     def __init__(self, owner, type = REQUEST, store = False):
-        netius.Observable.__init__(self)
+        parser.Parser.__init__(self, owner)
 
-        self.owner = owner
         self.build()
         self.reset(type = type, store = store)
 

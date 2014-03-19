@@ -41,6 +41,8 @@ import struct
 
 import netius.common
 
+import parser
+
 IPV4 = 0x01
 
 IPV6 = 0x04
@@ -69,12 +71,11 @@ PORT_STATE = 10
 
 FINISH_STATE = 11
 
-class SOCKSParser(netius.Observable):
+class SOCKSParser(parser.Parser):
 
     def __init__(self, owner):
-        netius.Observable.__init__(self)
+        parser.Parser.__init__(self, owner)
 
-        self.owner = owner
         self.build()
         self.reset()
 

@@ -44,6 +44,8 @@ import hashlib
 
 import netius
 
+import parser
+
 HANDSHAKE_SIZE = 68
 """ The typical size for an handshake message according
 to the current torrent protocol definition, the value
@@ -175,12 +177,11 @@ def dechunk(chunks):
 
     raise netius.ParserError("Invalid input: '%s'" % item)
 
-class TorrentParser(netius.Observable):
+class TorrentParser(parser.Parser):
 
     def __init__(self, owner, store = False):
-        netius.Observable.__init__(self)
+        parser.Parser.__init__(self, owner)
 
-        self.owner = owner
         self.length = None
         self.buffer = []
         self.buffer_l = 0
@@ -222,6 +223,11 @@ class TorrentParser(netius.Observable):
         # iterates continuously to try to process all that
         # data that has been sent for processing
         while size > 0:
+            # in case there's no owner associated with the
+            # current parser must break the loop because
+            # there's no way to continue with parsing
+            if not self.owner: break
+
             # retrieves the parsing method for the current
             # state and then runs it retrieving the number
             # of valid parsed bytes in case this value is

@@ -37,14 +37,13 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import netius
+import parser
 
-class SMTPParser(netius.Observable):
+class SMTPParser(parser.Parser):
 
     def __init__(self, owner, store = False):
-        netius.Observable.__init__(self)
+        parser.Parser.__init__(self, owner)
 
-        self.owner = owner
         self.buffer = []
 
     def parse(self, data):
