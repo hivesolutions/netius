@@ -356,7 +356,6 @@ class TorrentTask(netius.Observable):
             port = peer.get("dht", None)
             if not port: continue
             host = peer["ip"]
-            print "DHT"
             self.owner.dht_client.get_peers(
                 host = host,
                 port = port,
