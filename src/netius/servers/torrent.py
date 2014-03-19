@@ -614,7 +614,7 @@ if __name__ == "__main__":
     import logging
 
     def on_start(server):
-        task = server.download("C:/", "C:/fedora.torrent", close = True)
+        task = server.download("C:/", "C:/ubuntu.torrent", close = True)
         task.bind("piece", on_piece)
         task.bind("complete", on_complete)
 
@@ -624,8 +624,8 @@ if __name__ == "__main__":
         left = task.left()
         percent = int(percent)
         speed_s = netius.common.size_round_unit(speed)
-        #print task.info_string()
-        #print "[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s)
+        print task.info_string()
+        print "[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s)
 
     def on_complete(task):
         print "Download completed"

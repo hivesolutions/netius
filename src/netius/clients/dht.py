@@ -54,6 +54,15 @@ class DHTResponse(object):
     def parse(self):
         self.info = netius.common.bdecode(self.data)
 
+    def get_response(self):
+        return self.info.get("r", {})
+
+    def is_error(self):
+        return self.info("y", True)
+
+    def is_response(self):
+        return self.info("r", True)
+
 class DHTRequest(object):
 
     def __init__(
@@ -92,7 +101,6 @@ class DHTRequest(object):
             q = self.type,
             a = query
         )
-        print request
         return netius.common.bencode(request)
 
     def ping(self):
@@ -180,4 +188,17 @@ class DHTClient(netius.DatagramClient):
         self.on_data_dht(address, response)
 
     def on_data_dht(self, address, response):
-        print response.info
+        # @todo this processing is completly hardcoded
+
+        response = response.get_response()
+        nodes = response.get("nodes", "")
+        tobias = []
+        peers = [peer for peer in netius.common.chunks(nodes, 26)]
+        print peers
+        for peer in peers:
+            _peer_id, address, port = struct.unpack("!20sLH", peer)
+            ip = netius.common.addr_to_ip4(address)
+            peer = dict(ip = ip, port = port)
+            tobias.append(peer)
+
+        print tobias
