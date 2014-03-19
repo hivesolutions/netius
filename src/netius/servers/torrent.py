@@ -192,7 +192,6 @@ class TorrentTask(netius.Observable):
 
     def unload(self):
         self.owner = None
-        self.unbind_all()
         self.unload_file()
         self.unload_pieces()
 
@@ -240,7 +239,9 @@ class TorrentTask(netius.Observable):
         self.file.flush()
 
     def unload_file(self):
+        if not self.file: return
         self.file.close()
+        self.file = None
 
     def load_pieces(self):
         number_pieces = self.info["number_pieces"]
@@ -527,7 +528,7 @@ if __name__ == "__main__":
         print "------------------------------"
         import gc
         import pprint
-        #pprint.pprint(gc.get_referrers(task))
+        pprint.pprint(gc.get_referrers(task))
 
     def on_complete(task):
         print "Download completed"
@@ -536,4 +537,5 @@ if __name__ == "__main__":
     task = torrent_server.download("C:/", "C:/ubuntu.torrent")
     task.bind("piece", on_piece)
     task.bind("complete", on_complete)
+    del task
     torrent_server.serve(env = True)
