@@ -195,11 +195,25 @@ class TorrentParser(parser.Parser):
         a fast and scalable way of parsing data.
         """
 
+        parser.Parser.build(self)
+
         self.states = (
             self._parse_handshake,
             self._parse_message
         )
         self.state_l = len(self.states)
+
+    def destroy(self):
+        """
+        Destroys the current structure for the parser meaning that
+        it's restored to the original values, this method should only
+        be called on situation where no more parser usage is required.
+        """
+
+        parser.Parser.destroy(self)
+
+        self.states = ()
+        self.state_l = 0
 
     def parse(self, data):
         """
