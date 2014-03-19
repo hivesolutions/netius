@@ -522,13 +522,13 @@ if __name__ == "__main__":
     import logging
 
     def on_piece(task, index):
-        task.disconnect_peers()
-        task.unload()
-        print task
-        print "------------------------------"
-        import gc
-        import pprint
-        pprint.pprint(gc.get_referrers(task))
+        percent = task.percent()
+        speed = task.speed()
+        left = task.left()
+        percent = int(percent)
+        speed_s = netius.common.size_round_unit(speed)
+        print task.info_string()
+        print "[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s)
 
     def on_complete(task):
         print "Download completed"
