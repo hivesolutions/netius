@@ -63,6 +63,10 @@ class Client(Base):
         # may or may not be constructed using a daemon approach
         if thread: BaseThread(self, daemon = daemon).start()
 
+    def __del__(self):
+        Base.__del__(self)
+        self.debug("Client '%s' deleted from memory" % self._uuid)
+
     @classmethod
     def get_client_s(cls, *args, **kwargs):
         if cls._client: return cls._client
