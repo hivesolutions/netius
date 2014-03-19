@@ -38,6 +38,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import os
+import copy
 import math
 import uuid
 import time
@@ -189,6 +190,7 @@ class TorrentTask(netius.Observable):
         self.owner = None
         self.unload_file()
         self.unload_pieces()
+        self.disconnect_peers()
 
     def on_close(self, connection):
         is_unchoked = connection.choked == netius.clients.UNCHOKED
@@ -354,7 +356,7 @@ class TorrentTask(netius.Observable):
         for peer in self.peers: self.connect_peer(peer)
 
     def disconnect_peers(self):
-        connections = list(self.connections)
+        connections = copy.copy(self.connections)
         for connection in connections: connection.close()
 
     def connect_peer(self, peer):
@@ -440,6 +442,7 @@ class TorrentServer(netius.StreamServer):
             *args,
             **kwargs
         )
+        self.tasks = []
 
         self.container = netius.Container(*args, **kwargs)
         self.container.add_base(self)
@@ -461,6 +464,7 @@ class TorrentServer(netius.StreamServer):
     def cleanup(self):
         netius.StreamServer.cleanup(self)
         self.container = None
+        self.cleanup_tasks()
         self.client.destroy()
 
     def download(self, target_path, torrent_path = None, info_hash = None):
@@ -492,9 +496,7 @@ class TorrentServer(netius.StreamServer):
         created for downloading of the requested file.
         """
 
-        def on_complete(task):
-            task.disconnect_peers()
-            task.unload()
+        def on_complete(task): self.remove_task(task)
 
         task = TorrentTask(
             self,
@@ -505,7 +507,19 @@ class TorrentServer(netius.StreamServer):
         task.load()
         task.connect_peers()
         task.bind("complete", on_complete)
+        self.tasks.append(task)
         return task
+
+    def add_task(self, task):
+        self.tasks.append(task)
+
+    def remove_task(self, task):
+        task.unload()
+        self.tasks.remove(task)
+
+    def cleanup_tasks(self):
+        tasks = copy.copy(self.tasks)
+        for task in tasks: self.remove_task(task)
 
     def _generate_id(self):
         random = str(uuid.uuid4())
