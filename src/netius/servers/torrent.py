@@ -184,6 +184,7 @@ class TorrentTask(netius.Observable):
         else: self.info = dict(info_hash = self.info_hash)
 
         self.pieces_tracker()
+        self.peers_dht()
         self.peers_tracker()
 
         self.load_file()
@@ -205,6 +206,7 @@ class TorrentTask(netius.Observable):
         self.refresh()
 
     def refresh(self):
+        self.peers_dht()
         self.peers_tracker()
         self.connect_peers()
         self.next_refresh = time.time() + REFRESH_TIME
@@ -225,6 +227,9 @@ class TorrentTask(netius.Observable):
 
     def on_complete(self, pieces):
         self.trigger("complete", self)
+
+    def on_dht(self, response):
+        print response
 
     def on_tracker(self, client, parser, result):
         # extracts the data (string) contents of the http response and in case
@@ -267,7 +272,7 @@ class TorrentTask(netius.Observable):
         finally: file.close()
 
         struct = netius.common.bdecode(data)
-        struct["info_hash"] = netius.common.info_hash(struct)
+        struct["info_hash"] = self.info_hash = netius.common.info_hash(struct)
         return struct
 
     def load_file(self):
@@ -346,9 +351,19 @@ class TorrentTask(netius.Observable):
         peer["dht"] = port
 
     def peers_dht(self):
-        #@todo, still things pending here
-        # vou tetar sabe rmais peers utilizando a DHT !! :)
-        pass
+        if not self.info_hash: return
+        for peer in self.peers:
+            port = peer.get("dht", None)
+            if not port: continue
+            host = peer["ip"]
+            print "DHT"
+            self.owner.dht_client.get_peers(
+                host = host,
+                port = port,
+                peer_id = self.owner.peer_id,
+                info_hash = self.info_hash,
+                callback = self.on_dht
+            )
 
     def peers_tracker(self):
         """
@@ -381,7 +396,7 @@ class TorrentTask(netius.Observable):
             self.owner.http_client.get(
                 tracker_url,
                 params = dict(
-                    info_hash = self.info["info_hash"],
+                    info_hash = self.info_hash,
                     peer_id = self.owner.peer_id,
                     port = 6881,
                     uploaded = self.uploaded,
@@ -510,9 +525,15 @@ class TorrentServer(netius.ContainerServer):
             *args,
             **kwargs
         )
+        self.dht_client = netius.clients.DHTClient(
+            thread = False,
+            *args,
+            **kwargs
+        )
         self.tasks = []
         self.add_base(self.client)
         self.add_base(self.http_client)
+        self.add_base(self.dht_client)
 
     def cleanup(self):
         netius.ContainerServer.cleanup(self)
@@ -594,7 +615,7 @@ if __name__ == "__main__":
     import logging
 
     def on_start(server):
-        task = server.download("C:/", "C:/ubuntu.torrent", close = True)
+        task = server.download("C:/", "C:/fedora.torrent", close = True)
         task.bind("piece", on_piece)
         task.bind("complete", on_complete)
 
@@ -604,8 +625,8 @@ if __name__ == "__main__":
         left = task.left()
         percent = int(percent)
         speed_s = netius.common.size_round_unit(speed)
-        print task.info_string()
-        print "[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s)
+        #print task.info_string()
+        #print "[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s)
 
     def on_complete(task):
         print "Download completed"
