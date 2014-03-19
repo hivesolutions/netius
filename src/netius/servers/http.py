@@ -99,7 +99,7 @@ class HTTPConnection(netius.Connection):
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
-        self.parser.owner = None
+        self.parser.destroy()
         self.parser.unbind("on_data")
 
     def send(self, data, delay = False, callback = None):

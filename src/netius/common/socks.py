@@ -80,6 +80,14 @@ class SOCKSParser(parser.Parser):
         self.reset()
 
     def build(self):
+        """
+        Builds the initial set of states ordered according to
+        their internal integer definitions, this method provides
+        a fast and scalable way of parsing data.
+        """
+
+        parser.Parser.build(self)
+
         self.states = (
             self._parse_version,
             self._parse_header,
@@ -93,6 +101,18 @@ class SOCKSParser(parser.Parser):
             self._parse_port
         )
         self.state_l = len(self.states)
+
+    def destroy(self):
+        """
+        Destroys the current structure for the parser meaning that
+        it's restored to the original values, this method should only
+        be called on situation where no more parser usage is required.
+        """
+
+        parser.Parser.destroy(self)
+
+        self.states = ()
+        self.state_l = 0
 
     def reset(self):
         self.state = VERSION_STATE

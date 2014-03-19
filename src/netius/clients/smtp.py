@@ -91,7 +91,7 @@ class SMTPConnection(netius.Connection):
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
-        self.parser.owner = None
+        self.parser.destroy()
         self.parser.unbind("on_line")
 
     def build(self):
