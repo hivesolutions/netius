@@ -309,6 +309,8 @@ class TorrentTask(netius.Observable):
             is_http = tracker_url.startswith(("http://", "https://"))
             if not is_http: continue
 
+            # runs the get http retrieval call (blocking call) so that it's
+            # possible to retrieve the contents for the announce of the tracker
             result = netius.clients.HTTPClient.get_s(
                 tracker_url,
                 params = dict(
@@ -326,25 +328,35 @@ class TorrentTask(netius.Observable):
                 async = False
             )
 
+            # extracts the data (string) contents of the http response and in case
+            # there're none of them continues the loop as there's nothing to be
+            # processed from this tracker response (invalid response)
             data = result["data"]
             if not data: continue
 
+            # tries to decode the provided data from the tracker using the bencoder
+            # and extracts the peers part of the message to be processed
             response = netius.common.bdecode(data)
             peers = response["peers"]
 
+            # verifies if the provided peers part is not compact (already a dictionary)
+            # if that's the case there's nothing remaining to be done, otherwise extra
+            # processing must be done to
             if type(peers) == types.DictType:
                 self.peers = peers
-                continue
 
-            peers = [peer for peer in netius.common.chunks(peers, 6)]
-            for peer in peers:
-                address, port = struct.unpack("!LH", peer)
-                ip = netius.common.addr_to_ip4(address)
-                peer = dict(
-                    ip = ip,
-                    port = port
-                )
-                self.peers.append(peer)
+            # need to normalize the peer structure by decoding the peers string into a
+            # set of address port sub strings (as defined in torrent specification)
+            else:
+                peers = [peer for peer in netius.common.chunks(peers, 6)]
+                for peer in peers:
+                    address, port = struct.unpack("!LH", peer)
+                    ip = netius.common.addr_to_ip4(address)
+                    peer = dict(
+                        ip = ip,
+                        port = port
+                    )
+                    self.peers.append(peer)
 
             self.owner.debug("Received %d peers from '%s'" % (len(peers), tracker_url))
 
@@ -429,10 +441,10 @@ class TorrentTask(netius.Observable):
         if digest ==  piece: return
         raise netius.DataError("Verifying piece index '%d'" % index)
 
-class TorrentServer(netius.StreamServer):
+class TorrentServer(netius.ContainerServer):
 
     def __init__(self, *args, **kwargs):
-        netius.StreamServer.__init__(self, *args, **kwargs)
+        netius.ContainerServer.__init__(self, *args, **kwargs)
         self.peer_id = self._generate_id()
         self.client = netius.clients.TorrentClient(
             thread = False,
@@ -440,27 +452,10 @@ class TorrentServer(netius.StreamServer):
             **kwargs
         )
         self.tasks = []
-
-        self.container = netius.Container(*args, **kwargs)
-        self.container.add_base(self)
-        self.container.add_base(self.client)
-
-    def start(self):
-        # starts the container this should trigger the start of the
-        # event loop in the container and the proper listening of all
-        # the connections in the current environment
-        self.container.start(self)
-
-    def stop(self):
-        # verifies if there's a container object currently defined in
-        # the object and in case it does exist propagates the stop call
-        # to the container so that the proper stop operation is performed
-        if not self.container: return
-        self.container.stop()
+        self.add_base(self.client)
 
     def cleanup(self):
-        netius.StreamServer.cleanup(self)
-        self.container = None
+        netius.ContainerServer.cleanup(self)
         self.cleanup_tasks()
         self.client.destroy()
 
@@ -528,6 +523,11 @@ class TorrentServer(netius.StreamServer):
 if __name__ == "__main__":
     import logging
 
+    def on_start(server):
+        task = server.download("C:/", "C:/ubuntu.torrent")
+        task.bind("piece", on_piece)
+        task.bind("complete", on_complete)
+
     def on_piece(task, index):
         percent = task.percent()
         speed = task.speed()
@@ -541,7 +541,5 @@ if __name__ == "__main__":
         print "Download completed"
 
     torrent_server = TorrentServer(level = logging.DEBUG)
-    task = torrent_server.download("C:/", "C:/ubuntu.torrent")
-    task.bind("piece", on_piece)
-    task.bind("complete", on_complete)
+    torrent_server.bind("start", on_start)
     torrent_server.serve(env = True)
