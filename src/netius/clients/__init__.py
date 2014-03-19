@@ -35,6 +35,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import apn
+import dht
 import dns
 import http
 import raw
@@ -42,6 +43,7 @@ import smtp
 import torrent
 
 from apn import *
+from dht import *
 from dns import *
 from http import *
 from raw import *
