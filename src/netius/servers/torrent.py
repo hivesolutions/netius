@@ -80,6 +80,10 @@ class Pieces(netius.Observable):
         self.bitfield = [True for _index in xrange(number_pieces)]
         self.mask = [True for _index in xrange(number_pieces * number_blocks)]
 
+    def __del__(self):
+        netius.Observable.__del__(self)
+        print "PIECES APAGADO !!!"
+
     def piece(self, index):
         return self.bitfield[index]
 
@@ -163,6 +167,8 @@ class TorrentTask(netius.Observable):
 
         self.owner = owner
         self.target_path = target_path
+        self.torrent_path = torrent_path
+        self.info_hash = info_hash
         self.start = time.time()
         self.uploaded = 0
         self.downloaded = 0
@@ -170,8 +176,13 @@ class TorrentTask(netius.Observable):
         self.connections = []
         self.peers = []
 
-        if torrent_path: self.info = self.load_info(torrent_path)
-        else: self.info = dict(info_hash = info_hash)
+    def __del__(self):
+        netius.Observable.__del__(self)
+        print "TASK APAGADO !!!"
+
+    def load(self):
+        if self.torrent_path: self.info = self.load_info(self.torrent_path)
+        else: self.info = dict(info_hash = self.info_hash)
 
         self.pieces_tracker()
         self.peers_tracker()
@@ -179,8 +190,17 @@ class TorrentTask(netius.Observable):
         self.load_file()
         self.load_pieces()
 
+    def unload(self):
+        self.owner = None
+        self.unbind_all()
+        self.unload_file()
+        self.unload_pieces()
+
     def on_close(self, connection):
         is_unchoked = connection.choked == netius.clients.UNCHOKED
+        connection.unbind("close")
+        connection.unbind("choked")
+        connection.unbind("unchoked")
         self.connections.remove(connection)
         self.unchoked -= 1 if is_unchoked else 0
 
@@ -219,6 +239,9 @@ class TorrentTask(netius.Observable):
         self.file.write("\0")
         self.file.flush()
 
+    def unload_file(self):
+        self.file.close()
+
     def load_pieces(self):
         number_pieces = self.info["number_pieces"]
         number_blocks = self.info["number_blocks"]
@@ -227,6 +250,15 @@ class TorrentTask(netius.Observable):
         self.stored.bind("block", self.on_block)
         self.stored.bind("piece", self.on_piece)
         self.stored.bind("complete", self.on_complete)
+
+    def unload_pieces(self):
+        self.stored.unbind("block")
+        self.stored.unbind("piece")
+        self.stored.unbind("complete")
+        self.requested.owner = None
+        self.stored.owner = None
+        self.requested = None
+        self.stored = None
 
     def pieces_tracker(self):
         info = self.info.get("info", {})
@@ -380,6 +412,7 @@ class TorrentTask(netius.Observable):
         left = self.left()
         is_end = left < THRESHOLD_END
         structure = self.stored if is_end else self.requested
+        if not structure: return None
         return structure.pop_block(bitfield, mark = not is_end)
 
     def push_block(self, index, begin):
@@ -464,6 +497,7 @@ class TorrentServer(netius.StreamServer):
 
         def on_complete(task):
             task.disconnect_peers()
+            task.unload()
 
         task = TorrentTask(
             self,
@@ -471,6 +505,7 @@ class TorrentServer(netius.StreamServer):
             torrent_path = torrent_path,
             info_hash = info_hash
         )
+        task.load()
         task.connect_peers()
         task.bind("complete", on_complete)
         return task
@@ -486,13 +521,13 @@ if __name__ == "__main__":
     import logging
 
     def on_piece(task, index):
-        percent = task.percent()
-        speed = task.speed()
-        left = task.left()
-        percent = int(percent)
-        speed_s = netius.common.size_round_unit(speed)
-        print task.info_string()
-        print "[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s)
+        task.disconnect_peers()
+        task.unload()
+        print task
+        print "------------------------------"
+        import gc
+        import pprint
+        #pprint.pprint(gc.get_referrers(task))
 
     def on_complete(task):
         print "Download completed"
