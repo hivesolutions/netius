@@ -355,6 +355,8 @@ class TorrentTask(netius.Observable):
                     peer = dict(ip = ip, port = port)
                     self.peers.append(peer)
 
+            # prints a debug message about the peer loading that has just occurred, this
+            # may be used for the purpose of development (and traceability)
             self.owner.debug("Received %d peers from '%s'" % (len(peers), tracker_url))
 
     def connect_peers(self):
