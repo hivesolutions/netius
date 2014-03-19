@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import time
 import struct
 
 import netius.common
@@ -49,11 +50,16 @@ CHOKED = 1
 
 UNCHOKED = 2
 
-ALIVE_TIMEOUT = 30
+ALIVE_TIMEOUT = 45
 """ The timeout that is going to be used in the operation of
 keep alive the connection that are active, any connections that
 does not send a message with an interval less than this timeout
 is going to be disconnected """
+
+SPEED_LIMIT = 10240
+""" The minimum download speed limit from which a connection will
+be disconnected if does not fulfill such limit, this is going to
+optimize the connection in competition for blocks """
 
 BLOCK_SIZE = 16384
 """ The typical size of block that is going to be retrieved
@@ -72,6 +78,7 @@ class TorrentConnection(netius.Connection):
         self.bitfield = b""
         self.state = HANDSHAKE_STATE
         self.choked = CHOKED
+        self.start = time.time()
         self.messages = 0
         self.downloaded = 0
         self.requests = []
@@ -213,10 +220,14 @@ class TorrentConnection(netius.Connection):
 
     def is_alive(self, timeout = ALIVE_TIMEOUT, schedule = False):
         messages = self.messages
+        downloaded = self.downloaded
 
         def clojure():
             if not self.is_open(): return
-            if self.messages == messages: self.close()
+            delta = self.downloaded - downloaded
+            rate = float(delta) / float(timeout)
+            if self.messages == messages: self.close(); return
+            if rate < SPEED_LIMIT: self.close(); return
             callable = self.is_alive()
             self.owner.delay(callable, timeout)
 
