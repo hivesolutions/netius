@@ -302,6 +302,14 @@ class TorrentTask(netius.Observable):
         self.downloaded += len(data)
         self.stored.mark_block(index, begin)
 
+    def set_dht(self, peer_t, port):
+        # tries to retrieve the peer associated with the provided peer tuple
+        # and in case it succeeds sets the proper dht (port) value in the peer
+        # so that it may latter be used for DHT based operations
+        peer = self.peers_m.get(peer_t, None)
+        if not peer: return
+        peer["dht"] = port
+
     def peers_tracker(self):
         """
         Tries to retrieve as much information as possible about the

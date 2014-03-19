@@ -150,6 +150,10 @@ class TorrentConnection(netius.Connection):
         self.next()
         self.trigger("piece", self, data, index, begin)
 
+    def port_t(self, data):
+        port, = struct.unpack("!H", data[:8])
+        self.task.set_dht(self.address, port)
+
     def next(self, count = None):
         if not self.choked == UNCHOKED: return
         if count == None: count = self.max_requests - self.pend_requests
@@ -183,7 +187,7 @@ class TorrentConnection(netius.Connection):
             "!B19sQ20s20s",
             19,
             "BitTorrent protocol",
-            0,
+            1,
             self.task.info["info_hash"],
             self.task.owner.peer_id
         )
