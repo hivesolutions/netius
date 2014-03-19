@@ -58,7 +58,7 @@ BLOCK_SIZE = 16384
 using the current torrent infra-structure, this value conditions
 most of the torrent operations and should be defined carefully """
 
-THRESHOLD_END = 1048576
+THRESHOLD_END = 10485760
 """ The threshold value from which the task is considered to be
 under the ending stage, from this stage on a new strategy for the
 download may apply as it is more difficult to get blocks """
@@ -71,10 +71,9 @@ class Pieces(netius.Observable):
     data storage model.
     """
 
-    def __init__(self, owner, number_pieces, number_blocks):
+    def __init__(self, number_pieces, number_blocks):
         netius.Observable.__init__(self)
 
-        self.owner = owner
         self.number_pieces = number_pieces
         self.number_blocks = number_blocks
         self.bitfield = [True for _index in xrange(number_pieces)]
@@ -83,10 +82,6 @@ class Pieces(netius.Observable):
     def __del__(self):
         netius.Observable.__del__(self)
         print "PIECES APAGADO !!!"
-
-    def destroy(self):
-        netius.Observable.destroy(self)
-        self.owner = None
 
     def piece(self, index):
         return self.bitfield[index]
@@ -180,10 +175,6 @@ class TorrentTask(netius.Observable):
         self.connections = []
         self.peers = []
 
-    def __del__(self):
-        netius.Observable.__del__(self)
-        print "TASK APAGADO !!!"
-
     def load(self):
         if self.torrent_path: self.info = self.load_info(self.torrent_path)
         else: self.info = dict(info_hash = self.info_hash)
@@ -247,15 +238,15 @@ class TorrentTask(netius.Observable):
     def load_pieces(self):
         number_pieces = self.info["number_pieces"]
         number_blocks = self.info["number_blocks"]
-        self.requested = Pieces(self, number_pieces, number_blocks)
-        self.stored = Pieces(self, number_pieces, number_blocks)
+        self.requested = Pieces(number_pieces, number_blocks)
+        self.stored = Pieces(number_pieces, number_blocks)
         self.stored.bind("block", self.on_block)
         self.stored.bind("piece", self.on_piece)
         self.stored.bind("complete", self.on_complete)
 
     def unload_pieces(self):
-        self.requested.destroy()
-        self.stored.destroy()
+        if self.requested: self.requested.destroy()
+        if self.stored: self.stored.destroy()
         self.requested = None
         self.stored = None
 
@@ -526,15 +517,14 @@ class TorrentServer(netius.StreamServer):
 if __name__ == "__main__":
     import logging
 
-    from guppy import hpy
-    hp = hpy()
-    before = hp.heap()
-
     def on_piece(task, index):
-        owner = task.owner
-        task.disconnect_peers()
-        task.unload()
-        owner.stop()
+        percent = task.percent()
+        speed = task.speed()
+        left = task.left()
+        percent = int(percent)
+        speed_s = netius.common.size_round_unit(speed)
+        print task.info_string()
+        print "[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s)
 
     def on_complete(task):
         print "Download completed"
@@ -543,10 +533,4 @@ if __name__ == "__main__":
     task = torrent_server.download("C:/", "C:/ubuntu.torrent")
     task.bind("piece", on_piece)
     task.bind("complete", on_complete)
-    del task
     torrent_server.serve(env = True)
-    del torrent_server
-
-    after = hp.heap()
-    leftover = after - before
-    print leftover
