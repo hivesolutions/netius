@@ -49,6 +49,12 @@ CHOKED = 1
 
 UNCHOKED = 2
 
+ALIVE_TIMEOUT = 30
+""" The timeout that is going to be used in the operation of
+keep alive the connection that are active, any connections that
+does not send a message with an interval less than this timeout
+is going to be disconnected """
+
 BLOCK_SIZE = 16384
 """ The typical size of block that is going to be retrieved
 using the current torrent infra-structure, this value conditions
@@ -66,6 +72,7 @@ class TorrentConnection(netius.Connection):
         self.bitfield = b""
         self.state = HANDSHAKE_STATE
         self.choked = CHOKED
+        self.messages = 0
         self.downloaded = 0
         self.requests = []
 
@@ -75,6 +82,8 @@ class TorrentConnection(netius.Connection):
         self.bind("close", self.on_close)
         self.parser.bind("on_handshake", self.on_handshake)
         self.parser.bind("on_message", self.on_message)
+
+        self.is_alive(timeout = ALIVE_TIMEOUT, schedule = True)
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
@@ -91,6 +100,7 @@ class TorrentConnection(netius.Connection):
 
     def on_message(self, length, type, data):
         self.handle(type, data)
+        self.messages += 1
 
     def parse(self, data):
         self.parser.parse(data)
@@ -173,6 +183,10 @@ class TorrentConnection(netius.Connection):
         )
         data and self.send(data)
 
+    def keep_alive(self):
+        data = struct.pack("!L", 0)
+        data and self.send(data)
+
     def choke(self):
         data = struct.pack("!LB", 1, 0)
         data and self.send(data)
@@ -196,6 +210,18 @@ class TorrentConnection(netius.Connection):
     def request(self, index, begin = 0, length = BLOCK_SIZE):
         data = struct.pack("!LBLLL", 13, 6, index, begin, length)
         data and self.send(data)
+
+    def is_alive(self, timeout = ALIVE_TIMEOUT, schedule = False):
+        messages = self.messages
+
+        def clojure():
+            if not self.is_open(): return
+            if self.messages == messages: self.close()
+            callable = self.is_alive()
+            self.owner.delay(callable, timeout)
+
+        if schedule: self.owner.delay(clojure, timeout)
+        return clojure
 
 class TorrentClient(netius.StreamClient):
     """
