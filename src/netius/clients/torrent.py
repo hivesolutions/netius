@@ -89,7 +89,6 @@ class TorrentConnection(netius.Connection):
         self.bind("close", self.on_close)
         self.parser.bind("on_handshake", self.on_handshake)
         self.parser.bind("on_message", self.on_message)
-
         self.is_alive(timeout = ALIVE_TIMEOUT, schedule = True)
 
     def close(self, *args, **kwargs):
