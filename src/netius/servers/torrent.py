@@ -332,7 +332,8 @@ class TorrentTask(netius.Observable):
         for peer in self.peers: self.connect_peer(peer)
 
     def disconnect_peers(self):
-        for connection in self.connections: connection.close()
+        connections = list(self.connections)
+        for connection in connections: connection.close()
 
     def connect_peer(self, peer):
         connection = self.owner.client.peer(self, peer["ip"], peer["port"])
