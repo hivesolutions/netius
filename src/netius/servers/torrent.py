@@ -80,10 +80,6 @@ class Pieces(netius.Observable):
         self.bitfield = [True for _index in xrange(number_pieces)]
         self.mask = [True for _index in xrange(number_pieces * number_blocks)]
 
-    def __del__(self):
-        netius.Observable.__del__(self)
-        print "PIECES APAGADO !!!"
-
     def piece(self, index):
         return self.bitfield[index]
 
