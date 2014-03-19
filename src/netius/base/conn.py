@@ -195,7 +195,7 @@ class Connection(observer.Observable):
         # object is notified about the closing of this connection, as requested by
         # the current netius specification and strategy
         self.trigger("close", self)
-        
+
         # in case the destroy flag is set the current object is destroy meaning that
         # for instance the current event registered handlers will no longer be available
         # this is important to avoid any memory leak from circular references, from
