@@ -425,6 +425,12 @@ class Base(observer.Observable):
         return self.poll.unsub_error(socket)
 
     def cleanup(self):
+        # destroys the current information on the delays that are is longer
+        # going to be executed as the poll/system is closing, this is required
+        # in order to avoid any possible memory leak with clojures/cycles
+        del self._delayed[:]
+        del self._delayed_o[:]
+
         # creates a copy of the connections list because this structure
         # is going to be changed in the closing of the connection object
         connections = copy.copy(self.connections)
