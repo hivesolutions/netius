@@ -86,11 +86,10 @@ DNS_CLASSES_R = dict(zip(DNS_TYPES.values(), DNS_TYPES.keys()))
 class DNSRequest(netius.Request):
 
     def __init__(self, name, type = "a", cls = "in", callback = None):
-        netius.Request.__init__(self)
+        netius.Request.__init__(self, callback = callback)
         self.name = name
         self.type = type
         self.cls = cls
-        self.callback = callback
 
     def request(self):
 
@@ -156,10 +155,6 @@ class DNSRequest(netius.Request):
         return data
 
 class DNSResponse(netius.Response):
-
-    def __init__(self, data):
-        netius.Response.__init__(self)
-        self.data = data
 
     def parse(self):
 

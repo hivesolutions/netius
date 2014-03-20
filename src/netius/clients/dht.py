@@ -41,29 +41,7 @@ import struct
 
 import netius.common
 
-IDENTIFIER = 0x0000
-""" The global class identifier value that is going to
-be used when assigning new values to the request """
-
-class DHTResponse(object):
-
-    def __init__(self, data):
-        self.data = data
-        self.info = {}
-
-    def parse(self):
-        self.info = netius.common.bdecode(self.data)
-
-    def get_response(self):
-        return self.info.get("r", {})
-
-    def is_error(self):
-        return self.info("y", True)
-
-    def is_response(self):
-        return self.info("r", True)
-
-class DHTRequest(object):
+class DHTRequest(netius.Request):
 
     def __init__(
         self,
@@ -75,12 +53,11 @@ class DHTRequest(object):
         *args,
         **kwargs
     ):
-        self.id = self._generate_id()
+        netius.Request.__init__(self, callback = callback)
         self.peer_id = peer_id
         self.host = host
         self.port = port
         self.type = type
-        self.callback = callback
         self.args = args,
         self.kwargs = kwargs
         self._peer_id = self._get_peer_id()
@@ -131,10 +108,27 @@ class DHTRequest(object):
         contact = DHTRequest.contact(self.host, self.port)
         return self.peer_id + contact
 
-    def _generate_id(self):
-        global IDENTIFIER
-        IDENTIFIER = (IDENTIFIER + 1) & 0xffff
-        return IDENTIFIER
+class DHTResponse(netius.Response):
+
+    def __init__(self, data):
+        netius.Response.__init__(self, data)
+        self.info = {}
+
+    def parse(self):
+        self.info = netius.common.bdecode(self.data)
+
+    def get_id(self):
+        t = self.info.get("t", -1)
+        return int(t)
+
+    def get_payload(self):
+        return self.info.get("r", {})
+
+    def is_error(self):
+        return self.info("y", True)
+
+    def is_response(self):
+        return self.info("r", True)
 
 class DHTClient(netius.DatagramClient):
     """
@@ -166,7 +160,6 @@ class DHTClient(netius.DatagramClient):
         *args,
         **kwargs
     ):
-        #@todo: this address is completely hardcoded
         request = DHTRequest(
             peer_id,
             type = type,
@@ -175,6 +168,8 @@ class DHTClient(netius.DatagramClient):
             **kwargs
         )
         data = request.request()
+
+        self.add_request(request)
 
         address = (host, port)
         self.send(data, address)
@@ -188,17 +183,10 @@ class DHTClient(netius.DatagramClient):
         self.on_data_dht(address, response)
 
     def on_data_dht(self, address, response):
-        # @todo this processing is completely hardcoded
+        response_id = response.get_id()
 
-        response = response.get_response()
-        nodes = response.get("nodes", "")
-        tobias = []
-        peers = [peer for peer in netius.common.chunks(nodes, 26)]
-        print peers
-        for peer in peers:
-            _peer_id, address, port = struct.unpack("!20sLH", peer)
-            ip = netius.common.addr_to_ip4(address)
-            peer = dict(ip = ip, port = port)
-            tobias.append(peer)
+        request = self.get_request(response_id)
+        self.remove_request(request)
 
-        print tobias
+        if not request.callback: return
+        request.callback(response)

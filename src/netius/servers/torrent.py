@@ -229,7 +229,34 @@ class TorrentTask(netius.Observable):
         self.trigger("complete", self)
 
     def on_dht(self, response):
-        print response
+        # verifies if the response is valid and in case it's not
+        # returns immediately to avoid any erroneous parsing
+        if not response: return
+
+        # retrieves the payload for the response and then uses it
+        # to retrieves the nodes part of the response for parsing
+        # of the peers that are going to be added (to the task)
+        payload = response.get_payload()
+        nodes = payload.get("nodes", "")
+
+        # creates the list that will hold the final set of peers
+        # parsed from the nodes string, this is going to be used
+        # to extend the list of peers in the task
+        peers = []
+
+        # splits the current nodes list into a set of chunks of
+        # a pre-defined size and then iterates over all of them
+        # creating the proper peer dictionary for each of them
+        chunks = [chunk for chunk in netius.common.chunks(nodes, 26)]
+        for chunk in chunks:
+            peer_id, address, port = struct.unpack("!20sLH", chunk)
+            ip = netius.common.addr_to_ip4(address)
+            peer = dict(id = peer_id, ip = ip, port = port)
+            peers.append(peer)
+
+        # extends the currently defined peers list in the current
+        # torrent task with the ones that have been discovered
+        self.extend_peers(peers)
 
     def on_tracker(self, client, parser, result):
         # extracts the data (string) contents of the http response and in case

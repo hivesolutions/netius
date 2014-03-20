@@ -50,9 +50,10 @@ class Request(object):
     """ The global class identifier value that is going to
     be used when assigning new values to the request """
 
-    def __init__(self, timeout = REQUEST_TIMEOUT):
+    def __init__(self, timeout = REQUEST_TIMEOUT, callback = None):
         self.id = self.__class__._generate_id()
         self.timeout = time.time() + timeout
+        self.callback = callback
 
     @classmethod
     def _generate_id(cls):
@@ -61,4 +62,6 @@ class Request(object):
         return cls.IDENTIFIER
 
 class Response(object):
-    pass
+
+    def __init__(self, data):
+        self.data = data
