@@ -113,8 +113,9 @@ def host():
 def size_round_unit(
     size_value,
     minimum = DEFAULT_MINIMUM,
-    space = False,
     places = DEFAULT_PLACES,
+    reduce = True,
+    space = False,
     depth = 0
 ):
     """
@@ -130,13 +131,17 @@ def size_round_unit(
     @param size_value: The current size value (in bytes).
     @type minimum: int
     @param minimum: The minimum value to be used.
-    @type space: bool
-    @param space: If a space character must be used dividing
-    the value from the unit symbol.
     @type places: int
     @param places: The target number of digits to be used for
     describing the value to be used for output, this is going
     to be used to calculate the proper number of decimal places.
+    @type reduce: bool
+    @param reduce: If the final string value should be reduced
+    meaning that right decimal zeros should be removed as they
+    represent an extra unused value.
+    @type space: bool
+    @param space: If a space character must be used dividing
+    the value from the unit symbol.
     @type depth: int
     @param depth: The current iteration depth value.
     @rtype: String
@@ -166,6 +171,18 @@ def size_round_unit(
         size_value = round(size_value, places)
         size_value_s = format % size_value
 
+        # forces the reduce flag when the depth is zero, meaning
+        # that an integer value will never be decimal, this is
+        # required to avoid strange results for depth zero
+        reduce = reduce or depth == 0
+
+        # strips the value from zero appended to the right and
+        # then strips the value also from a possible decimal
+        # point value that may be included in it, this is only
+        # performed in case the reduce flag is enabled
+        if reduce: size_value_s = size_value_s.rstrip("0")
+        if reduce: size_value_s = size_value_s.rstrip(".")
+
         # retrieves the size unit (string mode) for the current
         # depth according to the provided map
         size_unit = SIZE_UNITS_LIST[depth]
@@ -190,7 +207,8 @@ def size_round_unit(
         return size_round_unit(
             new_size_value,
             minimum = minimum,
-            space = space,
             places = places,
+            reduce = reduce,
+            space = space,
             depth = new_depth
         )
