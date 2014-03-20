@@ -40,6 +40,13 @@ import hashlib
 import StringIO
 
 class BaseAdapter(object):
+    """
+    Top level abstract representation of a netius adapter.
+    The adapter is responsible for the storage/retrieval
+    of key based values, and may be used as the storage
+    engine back-end for a series or purposes (eg: email
+    storage, torrent hash table storage, sessions, etc.)
+    """
 
     def set(self, value, owner = "nobody"):
         pass
