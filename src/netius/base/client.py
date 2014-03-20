@@ -44,6 +44,11 @@ BUFFER_SIZE = None
 sending and receiving of packets from the client, this value
 may influence performance by a large factor """
 
+GC_TIMEOUT = 10
+""" The timeout to be used for the running of the garbage
+collector of pending request in a datagram client, this
+value will be used n the delay operation of the action """
+
 class Client(Base):
 
     _client = None
@@ -102,7 +107,18 @@ class DatagramClient(Client):
         self.wready = True
         self.pending_s = 0
         self.pending = []
+        self.requests = []
+        self.requests_m = {}
         self.pending_lock = threading.RLock()
+
+    def boot(self):
+        netius.Client.boot(self)
+        self.keep_gc(timeout = GC_TIMEOUT, run = False)
+
+    def cleanup(self):
+        netius.Client.cleanup(self)
+        del self.requests[:]
+        self.requests_m.clear()
 
     def on_read(self, _socket):
         try:
@@ -168,6 +184,54 @@ class DatagramClient(Client):
 
     def on_data(self, connection, data):
         pass
+
+    def keep_gc(self, timeout = GC_TIMEOUT, run = True):
+        if run: self.gc()
+        self.delay(self.keep_gc, timeout)
+
+    def gc(self):
+        # prints a message (for debug) about the garbage collection
+        # operation that is going to be run
+        self.debug("Running garbage collection ...")
+
+        # retrieves the current time value and iterates over the
+        # various request currently defined in the client (pending
+        # and answer) to try to find the ones that have time out
+        current = time.time()
+        while True:
+            # verifies if the requests structure (list) is empty and
+            # if that's the case break the loop, nothing more remains
+            # to be processed for the current garbage collection operation
+            if not self.requests: break
+
+            # retrieves the top level request (peek operation) and
+            # verifies if the timeout value of it has exceed the
+            # current time if that's the case removes it as it
+            # should no longer be handled (time out)
+            request = self.requests[0]
+            if request.timeout > current: break
+            self.remove_request(request)
+
+            # extracts the callback method from the request and in
+            # case it is defined and valid calls it with an invalid
+            # argument meaning that an error has occurred
+            callback = request.callback
+            callback and callback(None)
+
+    def add_request(self, request):
+        # adds the current request object to the list of requests
+        # that are pending a valid response, a garbage collector
+        # system should be able to erase this request from the
+        # pending list in case a timeout value has passed
+        self.requests.append(request)
+        self.requests_m[request.id] = request
+
+    def remove_request(self, request):
+        self.requests.remove(request)
+        del self.requests_m[request.id]
+
+    def get_request(self, id):
+        return self.requests_m.get(id, None)
 
     def ensure_socket(self):
         # in case the socket is already created and valid returns immediately

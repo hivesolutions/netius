@@ -41,10 +41,6 @@ import struct
 
 import netius.common
 
-IDENTIFIER = 0x0000
-""" The global class identifier value that is going to
-be used when assigning new values to the request """
-
 DNS_QUERY = 0x0
 
 DNS_RESPONSE = 0x1
@@ -87,10 +83,10 @@ DNS_CLASSES = dict(
 DNS_TYPES_R = dict(zip(DNS_TYPES.values(), DNS_TYPES.keys()))
 DNS_CLASSES_R = dict(zip(DNS_TYPES.values(), DNS_TYPES.keys()))
 
-class DNSRequest(object):
+class DNSRequest(netius.Request):
 
     def __init__(self, name, type = "a", cls = "in", callback = None):
-        self.id = self._generate_id()
+        netius.Request.__init__(self)
         self.name = name
         self.type = type
         self.cls = cls
@@ -159,14 +155,10 @@ class DNSRequest(object):
         data = "".join(buffer)
         return data
 
-    def _generate_id(self):
-        global IDENTIFIER
-        IDENTIFIER = (IDENTIFIER + 1) & 0xffff
-        return IDENTIFIER
-
-class DNSResponse(object):
+class DNSResponse(netius.Response):
 
     def __init__(self, data):
+        netius.Response.__init__(self)
         self.data = data
 
     def parse(self):
@@ -295,10 +287,6 @@ class DNSResponse(object):
 
 class DNSClient(netius.DatagramClient):
 
-    def __init__(self, *args, **kwargs):
-        netius.DatagramClient.__init__(self, *args, **kwargs)
-        self.requests = dict()
-
     @classmethod
     def query_s(
         cls,
@@ -339,11 +327,9 @@ class DNSClient(netius.DatagramClient):
         )
         data = request.request()
 
-        # adds the current request object to the list of requests
-        # that are pending a valid response, a garbage collector
-        # system should be able to erase this request from the
-        # pending list in case a timeout value has passed
-        self.requests[request.id] = request
+        # adds the current request pending callback handing to the internal
+        # management structures so that it becomes callable latter
+        self.add_request(request)
 
         # creates the final address assuming default port in the
         # name server and then send the contents of the dns request
@@ -368,12 +354,12 @@ class DNSClient(netius.DatagramClient):
         # tries to retrieve the request associated with the current
         # response and in case none is found returns immediately as
         # there's nothing remaining to be done
-        request = self.requests.get(response.id, None)
+        request = self.get_request(response.id)
         if not request: return
 
-        # removes the pending request from the map in order to avoid
-        # any memory leak in the request response relations
-        del self.requests[response.id]
+        # removes the request being handled from the current request
+        # structures so that a callback is no longer answered
+        self.remove_request(request)
 
         # in case no callback is not defined for the request returns
         # immediately as there's nothing else remaining to be done,
@@ -383,6 +369,11 @@ class DNSClient(netius.DatagramClient):
 
 if __name__ == "__main__":
     def handler(response):
+        # in case the provided response is not valid
+        # a timeout message is printed to indicate the
+        # problem with the resolution
+        if not response: print "Timeout in resolution"; return
+
         # runs the final cleanup operation in the dns
         # client so that the system is able to exit
         # without this the system would be stuck in

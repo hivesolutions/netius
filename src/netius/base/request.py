@@ -19,6 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
 
+__author__ = "João Magalhães joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,22 +37,28 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import client
-import common
-import conn
-import container
-import errors
-import observer
-import poll
-import request
-import server
+import time
 
-from client import *
-from common import *
-from conn import *
-from container import *
-from errors import *
-from observer import *
-from poll import *
-from request import *
-from server import *
+REQUEST_TIMEOUT = 10
+""" The timeout until a request is considered to be
+expired and is discarded from the request related
+structures, this is crucial to avoid memory leaks """
+
+class Request(object):
+
+    IDENTIFIER = 0x0000
+    """ The global class identifier value that is going to
+    be used when assigning new values to the request """
+
+    def __init__(self, timeout = REQUEST_TIMEOUT):
+        self.id = self.__class__._generate_id()
+        self.timeout = time.time() + timeout
+
+    @classmethod
+    def _generate_id(cls):
+        cls.IDENTIFIER
+        cls.IDENTIFIER = (cls.IDENTIFIER + 1) & 0xffff
+        return cls.IDENTIFIER
+
+class Response(object):
+    pass
