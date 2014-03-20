@@ -247,7 +247,7 @@ class Base(observer.Observable):
         self._loaded = False
         self._delayed = []
         self._delayed_o = []
-        self.set_state(STATE_STOP);
+        self.set_state(STATE_STOP)
 
     def __del__(self):
         observer.Observable.__del__(self)
