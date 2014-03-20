@@ -321,11 +321,28 @@ class Base(observer.Observable):
     def load(self):
         if self._loaded: return
 
+        # calls the boot hook responsible for the initialization of the various
+        # structures of the base system, note that is going to be called once
+        # per each loop starting process (structure should be destroyed on cleanup)
         self.boot()
+
+        # loads the various parts of the base system, under this calls each
+        # of the systems should have it's internal structures started
         self.load_logging(self.level)
+
+        # calls the welcome handle this is meant to be used to print some
+        # information about the finishing of the loading of the infra-structure
+        # this is going to be called once per base system
+        self.welcome()
+
+        # sets the private loading flag ensuring that no extra load operations
+        # will be done after this first call to the loading (no duplicates)
         self._loaded = True
 
     def boot(self):
+        pass
+
+    def welcome(self):
         pass
 
     def load_logging(self, level = logging.DEBUG, format = LOG_FORMAT):

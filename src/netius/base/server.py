@@ -69,6 +69,11 @@ class Server(Base):
         Base.__del__(self)
         self.debug("Server (%s) '%s' deleted from memory" % (self.name, self._uuid))
 
+    def welcome(self):
+        Base.welcome(self)
+
+        self.info("Booting %s %s (%s) ..." % (NAME, VERSION, PLATFORM))
+
     def cleanup(self):
         Base.cleanup(self)
 
