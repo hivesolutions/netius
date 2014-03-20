@@ -432,7 +432,7 @@ class TorrentTask(netius.Observable):
             "choked      := %d\n" % (len(self.connections) - self.unchoked) +\
             "unchoked    := %d\n" % self.unchoked +\
             "percent     := %.2f % %\n" % self.percent() +\
-            "speed       := %s/s" % netius.common.size_round_unit(self.speed(), space = True)
+            "speed       := %s/s" % self.speed_s()
 
     def left(self):
         size = self.info["length"]
@@ -454,6 +454,13 @@ class TorrentTask(netius.Observable):
         delta = current - self.start
         bytes_second = self.downloaded / delta
         return bytes_second
+
+    def speed_s(self):
+        return netius.common.size_round_unit(
+            self.speed(),
+            space = True,
+            reduce = False
+        )
 
     def percent(self):
         size = self.info["length"]
@@ -620,10 +627,9 @@ if __name__ == "__main__":
 
     def on_piece(task, index):
         percent = task.percent()
-        speed = task.speed()
+        speed_s = task.speed_s()
         left = task.left()
         percent = int(percent)
-        speed_s = netius.common.size_round_unit(speed, space = True)
         print task.info_string()
         print "[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s)
 
