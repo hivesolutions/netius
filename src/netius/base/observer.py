@@ -65,7 +65,8 @@ class Observable(object):
         self.events[name] = methods
 
     def unbind(self, name, method = None):
-        methods = self.events.get(name, [])
+        methods = self.events.get(name, None)
+        if not methods: return
         if method: methods.remove(method)
         else: del methods[:]
 
@@ -74,5 +75,6 @@ class Observable(object):
         self.events.clear()
 
     def trigger(self, name, *args, **kwargs):
-        methods = self.events.get(name, [])
+        methods = self.events.get(name, None)
+        if not methods: return
         for method in methods: method(*args, **kwargs)
