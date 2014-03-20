@@ -308,8 +308,12 @@ class Base(observer.Observable):
     def load(self):
         if self._loaded: return
 
-        self.load_logging(self.level);
+        self.boot()
+        self.load_logging(self.level)
         self._loaded = True
+
+    def boot(self):
+        pass
 
     def load_logging(self, level = logging.DEBUG, format = LOG_FORMAT):
         level_t = type(level)
