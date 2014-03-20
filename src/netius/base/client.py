@@ -46,7 +46,7 @@ BUFFER_SIZE = None
 sending and receiving of packets from the client, this value
 may influence performance by a large factor """
 
-GC_TIMEOUT = 30
+GC_TIMEOUT = 30.0
 """ The timeout to be used for the running of the garbage
 collector of pending request in a datagram client, this
 value will be used n the delay operation of the action """

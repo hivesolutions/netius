@@ -50,7 +50,7 @@ CHOKED = 1
 
 UNCHOKED = 2
 
-ALIVE_TIMEOUT = 45
+ALIVE_TIMEOUT = 45.0
 """ The timeout that is going to be used in the operation of
 keep alive the connection that are active, any connections that
 does not send a message with an interval less than this timeout

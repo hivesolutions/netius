@@ -41,7 +41,7 @@ import time
 
 import errors
 
-REQUEST_TIMEOUT = 10
+REQUEST_TIMEOUT = 10.0
 """ The timeout until a request is considered to be
 expired and is discarded from the request related
 structures, this is crucial to avoid memory leaks """
