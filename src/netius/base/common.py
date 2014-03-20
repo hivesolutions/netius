@@ -38,6 +38,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import os
+import sys
 import ssl
 import copy
 import json
@@ -64,6 +65,18 @@ VERSION = "0.9.12"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
+
+PLATFORM = ("%s %d.%d.%d.%s" % (
+    sys.subversion[0],
+    sys.version_info[0],
+    sys.version_info[1],
+    sys.version_info[2],
+    sys.version_info[3]
+)).lower()
+""" Extra system information containing some of the details
+of the technical platform that is running the system, this
+string should be exposed carefully to avoid extra information
+from being exposed to outside agents """
 
 WSAEWOULDBLOCK = 10035
 """ The wsa would block error code meant to be used on
