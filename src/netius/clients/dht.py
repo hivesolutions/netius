@@ -183,9 +183,7 @@ class DHTClient(netius.DatagramClient):
         self.on_data_dht(address, response)
 
     def on_data_dht(self, address, response):
-        response_id = response.get_id()
-
-        request = self.get_request(response_id)
+        request = self.get_request(response)
         self.remove_request(request)
 
         if not request.callback: return

@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import request
+
 from common import * #@UnusedWildImport
 
 BUFFER_SIZE = None
@@ -112,11 +114,11 @@ class DatagramClient(Client):
         self.pending_lock = threading.RLock()
 
     def boot(self):
-        netius.Client.boot(self)
+        Client.boot(self)
         self.keep_gc(timeout = GC_TIMEOUT, run = False)
 
     def cleanup(self):
-        netius.Client.cleanup(self)
+        Client.cleanup(self)
         del self.requests[:]
         self.requests_m.clear()
 
@@ -231,6 +233,8 @@ class DatagramClient(Client):
         del self.requests_m[request.id]
 
     def get_request(self, id):
+        is_response = isinstance(id, request.Response)
+        if is_response: id = id.get_id()
         return self.requests_m.get(id, None)
 
     def ensure_socket(self):

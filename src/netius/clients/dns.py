@@ -186,6 +186,9 @@ class DNSResponse(netius.Response):
             index, answer = self.parse_an(self.data, index)
             self.answers.append(answer)
 
+    def get_id(self):
+        return self.id
+
     def parse_qd(self, data, index):
         index, name = self.parse_label(data, index)
         index, type = self.parse_short(data, index)
@@ -349,7 +352,7 @@ class DNSClient(netius.DatagramClient):
         # tries to retrieve the request associated with the current
         # response and in case none is found returns immediately as
         # there's nothing remaining to be done
-        request = self.get_request(response.id)
+        request = self.get_request(response)
         if not request: return
 
         # removes the request being handled from the current request

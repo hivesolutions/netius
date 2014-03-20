@@ -39,12 +39,19 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import time
 
+import errors
+
 REQUEST_TIMEOUT = 10
 """ The timeout until a request is considered to be
 expired and is discarded from the request related
 structures, this is crucial to avoid memory leaks """
 
 class Request(object):
+    """
+    Abstract request structure used to represent
+    a request in a server/client model, this allows
+    for easy identification and response (callback).
+    """
 
     IDENTIFIER = 0x0000
     """ The global class identifier value that is going to
@@ -62,6 +69,22 @@ class Request(object):
         return cls.IDENTIFIER
 
 class Response(object):
+    """
+    Top level abstract representation of a response to
+    be sent based on a previously created request, the
+    input of this object should be raw data and a relation
+    between the request and the response is required.
+
+    The association/relation between the response and the
+    request should be done using the original request
+    generated identifier.
+    """
 
     def __init__(self, data):
         self.data = data
+
+    def parse(self):
+        pass
+
+    def get_id(self):
+        raise errors.NetiusError("Not implemented")

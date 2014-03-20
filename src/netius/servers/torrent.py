@@ -254,9 +254,17 @@ class TorrentTask(netius.Observable):
             peer = dict(id = peer_id, ip = ip, port = port)
             peers.append(peer)
 
+        # in case no valid peers have been parsed there's no need
+        # to continue with the processing, nothing to be done
+        if not peers: return
+
         # extends the currently defined peers list in the current
         # torrent task with the ones that have been discovered
         self.extend_peers(peers)
+
+        # prints a debug message about the peer loading that has just occurred, this
+        # may be used for the purpose of development (and traceability)
+        self.owner.debug("Received %d peers from DHT peer" % len(peers))
 
     def on_tracker(self, client, parser, result):
         # extracts the data (string) contents of the http response and in case
