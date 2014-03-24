@@ -54,6 +54,9 @@ this is going to be used in some parsing calculus """
 CAPABILITIES = (
     "STARTTLS",
 )
+""" The sequence defining the various capabilities that are
+available under the current smtp server implementation, the
+description of these capabilities should conform with the rfp """ 
 
 class SMTPConnection(netius.Connection):
 
