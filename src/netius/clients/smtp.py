@@ -220,8 +220,10 @@ class SMTPConnection(netius.Connection):
         self.next_sequence()
 
     def upgrade_t(self):
-        self.upgrade(server = False)
+        def callback(connection):
+            connection.upgrade(server = False)
         self.next_sequence()
+        callback(self)
 
     def auth_t(self):
         is_valid = self.username and self.password
