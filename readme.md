@@ -49,6 +49,7 @@ is sufficient and many services are available for instance:
 * HelloServer - `MESSAGE="Hello Netius" python -m netius.extra.hello`
 * FileServer - `BASE_PATH=/ python -m netius.extra.file`
 * SMTPServer - `python -m netius.servers.smtp`
+* RelaySMTPServer - `python -m netius.extra.smtp_r`
 
 ## Compatability
 
