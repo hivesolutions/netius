@@ -467,15 +467,19 @@ class SMTPClient(netius.StreamClient):
     def mark(self, contents):
         parser = email.parser.Parser()
         message = parser.parsestr(contents)
-        message["Date"] = self.date()
-        message["User-Agent"] = self.user_agent()
+        message["Date"] = self.date(message)
+        message["User-Agent"] = self.user_agent(message)
         return message.as_string()
 
-    def date(self):
+    def date(self, message):
+        date = message.get("Date", None)
+        if date: return date
         date_time = datetime.datetime.utcnow()
         return date_time.strftime("%a, %d %b %Y %H:%M:%S +0000")
 
-    def user_agent(self):
+    def user_agent(self, message):
+        user_agent = message.get("User-Agent", None)
+        if user_agent: return user_agent
         return "%s/%s" % (netius.NAME, netius.VERSION)
 
 if __name__ == "__main__":
