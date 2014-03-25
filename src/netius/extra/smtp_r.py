@@ -37,6 +37,11 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import uuid
+import hashlib
+
+import email.parser
+
 import netius.clients
 import netius.servers
 
@@ -91,11 +96,35 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         self.relay(froms, connection.remotes, data_s)
 
     def relay(self, froms, tos, contents):
+        # retrieves the first email from the froms list as this is
+        # the one that is going to be used for message id generation
+        # and then generates a new "temporary" messa id
+        first = froms[0]
+        message_id = self.message_id(email = first)
+
+        # creates a new email parser and parses the provided contents
+        # as mime text and then appends the "new" message id to it
+        # converting then the result into a plain text value
+        parser = email.parser.Parser()
+        message = parser.parsestr(contents)
+        message_id = message.get("Message-ID", message_id)
+        message["Message-ID"] = message_id
+        contents = message.as_string()
+
+        # generates a new smtp client for the sending of the message,
+        # uses the current host for identification and then triggers
+        # the message event to send the message to the target host
         smtp_client = netius.clients.SMTPClient(
             auto_close = True,
             host = self.host
         )
         smtp_client.message(froms, tos, contents)
+
+    def message_id(self, email = "user@localhost"):
+        _user, domain = email.split("@", 1)
+        identifier = str(uuid.uuid4())
+        digest = hashlib.sha1(identifier).hexdigest()
+        return "<%s@%s>" % (digest, domain)
 
 if __name__ == "__main__":
     import logging
