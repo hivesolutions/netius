@@ -48,6 +48,7 @@ is sufficient and many services are available for instance:
 * WSGIServer - `python -m netius.servers.wsgi`
 * HelloServer - `MESSAGE="Hello Netius" python -m netius.extra.hello`
 * FileServer - `BASE_PATH=/ python -m netius.extra.file`
+* SMTPServer - `python -m netius.servers.smtp`
 
 ## Compatability
 
