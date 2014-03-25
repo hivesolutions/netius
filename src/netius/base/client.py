@@ -723,10 +723,21 @@ class StreamClient(Client):
 
     def _ssl_handshake(self, _socket):
         Client._ssl_handshake(self, _socket)
+
+        # verifies if the socket still has operations pending,
+        # meaning that the handshake is still pending data and
+        # if that's the case returns immediately (nothing done)
         if _socket._pending: return
 
+        # tries to retrieve the connection associated with the
+        # ssl socket and in case none is available returns
+        # immediately as there's nothing to be done here
         connection = self.connections_m.get(_socket, None)
         if not connection: return
 
+        # verifies if the connection is either connecting or upgrading
+        # and calls the proper event handler for each event, this is
+        # required because the connection workflow is probably dependent
+        # on the calling of these event handlers to proceed
         if connection.connecting: self.on_connect(connection)
         elif connection.upgrading: self.on_upgrade(connection)
