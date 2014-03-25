@@ -91,7 +91,10 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         self.relay(froms, connection.remotes, data_s)
 
     def relay(self, froms, tos, contents):
-        smtp_client = netius.clients.SMTPClient(auto_close = True)
+        smtp_client = netius.clients.SMTPClient(
+            auto_close = True,
+            host = self.host
+        )
         smtp_client.message(froms, tos, contents)
 
 if __name__ == "__main__":
