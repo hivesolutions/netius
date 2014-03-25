@@ -962,3 +962,4 @@ class BaseThread(threading.Thread):
     def run(self):
         threading.Thread.run(self)
         self.owner.start()
+        self.owner = None
