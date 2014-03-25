@@ -124,6 +124,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         _user, domain = email.split("@", 1)
         identifier = str(uuid.uuid4())
         digest = hashlib.sha1(identifier).hexdigest()
+        digest = digest.upper()
         return "<%s@%s>" % (digest, domain)
 
 if __name__ == "__main__":
