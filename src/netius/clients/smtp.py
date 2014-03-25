@@ -100,6 +100,7 @@ class SMTPConnection(netius.Connection):
         a fast and scalable way of parsing data.
         """
 
+        netius.Connection.build(self)
         self.states = (
             self.helo_t,
             self.ehlo_t,
@@ -122,6 +123,7 @@ class SMTPConnection(netius.Connection):
         be called on situation where no more client usage is required.
         """
 
+        netius.Connection.destroy(self)
         self.states = ()
         self.state_l = 0
 
