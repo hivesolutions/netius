@@ -66,16 +66,27 @@ class RelaySMTPServer(netius.servers.SMTPServer):
     def on_data_smtp(self, connection, data):
         netius.servers.SMTPServer.on_data_smtp(self, connection, data)
 
+        # verifies if there're remote addresses in the current
+        # connection's message and if there is adds the received
+        # data to the current relay buffer that is used
         if not connection.remotes: return
         connection.relay.append(data)
 
     def on_message_smtp(self, connection):
         netius.servers.SMTPServer.on_message_smtp(self, connection)
 
+        # in case there's no remotes list in the current connection
+        # there's no need to proceed as no relay is required
         if not connection.remotes: return
 
+        # joins the current relay buffer to create the full message
+        # data and then removes the (non required) termination value
+        # from it to avoid any possible problems with extra size
         data_s = "".join(connection.relay)
         data_s = data_s[:netius.servers.TERMINATION_SIZE * -1]
+
+        # retrieves the list of "froms" for the connection and then
+        # sends the message for relay to all of the current remotes
         froms = self._emails(connection.from_l, prefix = "from")
         self.relay(froms, connection.remotes, data_s)
 
