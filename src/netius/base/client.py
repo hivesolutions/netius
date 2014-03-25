@@ -78,19 +78,6 @@ class Client(Base):
         Base.__del__(self)
         self.debug("Client (%s) '%s' deleted from memory" % (self.name, self._uuid))
 
-    def ensure_loop(self):
-        # verifies if the (run in) thread flag is set and that the there's
-        # not thread currently created for the client in case any of these
-        # conditions fails the control flow is returned immediately to caller
-        if not self.thread: return
-        if self._thread: return
-
-        # in case the thread flag is set a new thread must be constructed
-        # for the running of the client's main loop then, these thread
-        # may or may not be constructed using a daemon approach
-        self._thread = BaseThread(self, daemon = self.daemon)
-        self._thread.start()
-
     @classmethod
     def get_client_s(cls, *args, **kwargs):
         if cls._client: return cls._client
@@ -116,6 +103,31 @@ class Client(Base):
         if state: self.set_state(STATE_ERRROR)
         for error in errors:
             self.on_error(error)
+
+    def ensure_loop(self):
+        """
+        Ensures that the proper main loop thread requested in the building
+        of the entity is started if that was requested.
+
+        This mechanisms is required because the thread construction and
+        starting should be deferred until an operation in the connection
+        is requested (lazy thread construction).
+
+        The call to this method should be properly inserted on the code so
+        that it is only called when a main (polling) loop is required.
+        """
+
+        # verifies if the (run in) thread flag is set and that the there's
+        # not thread currently created for the client in case any of these
+        # conditions fails the control flow is returned immediately to caller
+        if not self.thread: return
+        if self._thread: return
+
+        # in case the thread flag is set a new thread must be constructed
+        # for the running of the client's main loop then, these thread
+        # may or may not be constructed using a daemon approach
+        self._thread = BaseThread(self, daemon = self.daemon)
+        self._thread.start()
 
 class DatagramClient(Client):
 
