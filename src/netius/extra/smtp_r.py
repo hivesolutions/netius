@@ -98,7 +98,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
     def relay(self, froms, tos, contents):
         # retrieves the first email from the froms list as this is
         # the one that is going to be used for message id generation
-        # and then generates a new "temporary" messa id
+        # and then generates a new "temporary" message id
         first = froms[0]
         message_id = self.message_id(email = first)
 
