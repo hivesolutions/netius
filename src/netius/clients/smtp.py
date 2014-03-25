@@ -393,6 +393,12 @@ class SMTPClient(netius.StreamClient):
         # of the smtp connection using the current host and port
         if host: handler(); return
 
+        # ensures that the proper main loop is started so that the current
+        # smtp client does not become orphan as no connection has been
+        # established as of this moment (as expected) and the dns client
+        # is going to be run as a daemon (avoids process exit)
+        self.ensure_loop()
+
         # retrieves the first target of the complete list of
         # to targets and then splits the email value so that
         # both the base name and the host are retrieved

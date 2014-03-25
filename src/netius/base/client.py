@@ -70,15 +70,26 @@ class Client(Base):
         Base.__init__(self, *args, **kwargs)
         self.receive_buffer = kwargs.get("receive_buffer", BUFFER_SIZE)
         self.send_buffer = kwargs.get("send_buffer", BUFFER_SIZE)
-
-        # in case the thread flag is set a new thread must be constructed
-        # for the running of the client's main loop then, these thread
-        # may or may not be constructed using a daemon approach
-        if thread: BaseThread(self, daemon = daemon).start()
+        self.thread = thread
+        self.daemon = daemon
+        self._thread = None
 
     def __del__(self):
         Base.__del__(self)
         self.debug("Client (%s) '%s' deleted from memory" % (self.name, self._uuid))
+
+    def ensure_loop(self):
+        # verifies if the (run in) thread flag is set and that the there's
+        # not thread currently created for the client in case any of these
+        # conditions fails the control flow is returned immediately to caller
+        if not self.thread: return
+        if self._thread: return
+
+        # in case the thread flag is set a new thread must be constructed
+        # for the running of the client's main loop then, these thread
+        # may or may not be constructed using a daemon approach
+        self._thread = BaseThread(self, daemon = self.daemon)
+        self._thread.start()
 
     @classmethod
     def get_client_s(cls, *args, **kwargs):
@@ -301,6 +312,8 @@ class DatagramClient(Client):
         self.unsub_read(self.socket)
 
     def send(self, data, address, delay = False, callback = None):
+        self.ensure_loop()
+
         data_l = len(data)
 
         if callback: data = (data, callback)
@@ -458,6 +471,8 @@ class StreamClient(Client):
     def connect(self, host, port, ssl = False, key_file = None, cer_file = None):
         if not host: raise errors.NetiusError("Invalid host for connect operation")
         if not port: raise errors.NetiusError("Invalid port for connect operation")
+
+        self.ensure_loop()
 
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
