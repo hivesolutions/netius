@@ -40,6 +40,7 @@ import file
 import hello
 import proxy_f
 import proxy_r
+import smtp_r
 
 from desktop import *
 from dhcp_s import *
@@ -47,3 +48,4 @@ from file import *
 from hello import *
 from proxy_f import *
 from proxy_r import *
+from smtp_r import *
