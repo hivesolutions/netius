@@ -38,6 +38,9 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import base64
+import datetime
+
+import email.parser
 
 import netius.common
 
@@ -369,8 +372,12 @@ class SMTPClient(netius.StreamClient):
         username = None,
         password = None,
         ehlo = True,
-        stls = False
+        stls = False,
+        mark = True
     ):
+        # in case the mark flag is set the contents data is modified
+        # and "marked" with the pre-defined header values of the client
+        if mark: contents = self.mark(contents)
 
         def handler(response = None):
             # in case there's a valid response provided must parse it
@@ -456,6 +463,20 @@ class SMTPClient(netius.StreamClient):
             ssl = ssl,
             host = self.host
         )
+
+    def mark(self, contents):
+        parser = email.parser.Parser()
+        message = parser.parsestr(contents)
+        message["Date"] = self.date()
+        message["User-Agent"] = self.user_agent()
+        return message.as_string()
+
+    def date(self):
+        date_time = datetime.datetime.utcnow()
+        return date_time.strftime("%a, %d %b %Y %H:%M:%S +0000")
+
+    def user_agent(self):
+        return "%s/%s" % (netius.NAME, netius.VERSION)
 
 if __name__ == "__main__":
     import email.mime.text
