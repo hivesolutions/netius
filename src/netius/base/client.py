@@ -770,7 +770,7 @@ class StreamClient(Client):
         # ssl socket and in case none is available returns
         # immediately as there's nothing to be done here
         connection = self.connections_m.get(_socket, None)
-        if not connection: return
+        if not connection: self.warning("No connection for handshake"); return
 
         # verifies if the connection is either connecting or upgrading
         # and calls the proper event handler for each event, this is
