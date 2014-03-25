@@ -673,7 +673,7 @@ class StreamServer(Server):
         # ssl socket and in case none is available returns
         # immediately as there's nothing to be done here
         connection = self.connections_m.get(_socket, None)
-        if not connection: self.warning("No connection for handshake"); return
+        if not connection: return
 
         # in case the current connection is under the upgrade
         # status calls the proper event handler so that the
