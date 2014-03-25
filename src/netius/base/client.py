@@ -762,6 +762,10 @@ class StreamClient(Client):
         # if that's the case returns immediately (nothing done)
         if _socket._pending: return
 
+        # prints a debug information notifying the developer about
+        # the finishing of the handshaking process for the connection
+        self.debug("Handshaking completed for socket")
+
         # tries to retrieve the connection associated with the
         # ssl socket and in case none is available returns
         # immediately as there's nothing to be done here

@@ -210,6 +210,10 @@ class Connection(observer.Observable):
         # nothing to be done here and the method returns immediately to caller
         if self.ssl: return
 
+        # prints a debug message about the upgrading of the connection that is
+        # going to be performed for the current connection
+        self.owner.debug("Upgrading '%s' into an SSL connection ..." % self.id)
+
         # sets the ssl flag of the current connection as the connection is now
         # going to be considered as ssl oriented and then sets the upgrading flag
         # for the same connection so that the main event loop "knows" how to handle
