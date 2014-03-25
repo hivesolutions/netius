@@ -82,16 +82,16 @@ class SMTPConnection(netius.Connection):
         self.sindex = 0
         self.sequence = ()
 
-        self.build()
-
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
         self.parser = netius.common.SMTPParser(self)
         self.parser.bind("on_line", self.on_line)
+        self.build()
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
         self.parser.destroy()
+        self.destroy()
 
     def build(self):
         """
@@ -114,6 +114,16 @@ class SMTPConnection(netius.Connection):
             self.close_t
         )
         self.state_l = len(self.states)
+
+    def destroy(self):
+        """
+        Destroys the current structure for the stats meaning that
+        it's restored to the original values, this method should only
+        be called on situation where no more client usage is required.
+        """
+
+        self.states = ()
+        self.state_l = 0
 
     def set_smtp(self, froms, tos, contents, username = None, password = None):
         self.froms = froms
@@ -457,5 +467,8 @@ if __name__ == "__main__":
     mime["To"] = receiver
     contents = mime.as_string()
 
-    smtp_client = SMTPClient(auto_close = True)
+    smtp_client = SMTPClient(auto_close = True, thread = False)
     smtp_client.message([sender], [receiver], contents)
+    smtp_client.start()
+    del smtp_client
+    del contents
