@@ -104,7 +104,7 @@ class Client(Base):
         for error in errors:
             self.on_error(error)
 
-    def ensure_loop(self):
+    def ensure_loop(self, env = True):
         """
         Ensures that the proper main loop thread requested in the building
         of the entity is started if that was requested.
@@ -115,6 +115,10 @@ class Client(Base):
 
         The call to this method should be properly inserted on the code so
         that it is only called when a main (polling) loop is required.
+
+        @type env: bool
+        @param env: If the environment variables should be used for the
+        setting of some of the parameters of the new client/poll to be used.
         """
 
         # verifies if the (run in) thread flag is set and that the there's
@@ -122,6 +126,17 @@ class Client(Base):
         # conditions fails the control flow is returned immediately to caller
         if not self.thread: return
         if self._thread: return
+
+        # runs the various extra variable initialization taking into
+        # account if the environment variable is currently set or not
+        # please note that some side effects may arise from this set
+        if env: self.level = self.get_env("LEVEL", self.level)
+        if env: self.poll_name = self.get_env("POLL", self.poll_name)
+        if env: self.poll_timeout = self.get_env(
+            "POLL_TIMEOUT",
+            self.poll_timeout,
+            cast = float
+        )
 
         # in case the thread flag is set a new thread must be constructed
         # for the running of the client's main loop then, these thread
