@@ -331,8 +331,15 @@ class SMTPConnection(netius.Connection):
 
 class SMTPClient(netius.StreamClient):
 
-    def __init__(self, auto_close = False, *args, **kwargs):
+    def __init__(
+        self,
+        host = "smtp.localhost",
+        auto_close = False,
+        *args,
+        **kwargs
+    ):
         netius.StreamClient.__init__(self, *args, **kwargs)
+        self.host = host
         self.auto_close = auto_close
 
     @classmethod
@@ -434,7 +441,8 @@ class SMTPClient(netius.StreamClient):
             owner = self,
             socket = socket,
             address = address,
-            ssl = ssl
+            ssl = ssl,
+            host = self.host
         )
 
 if __name__ == "__main__":
