@@ -221,6 +221,11 @@ class DatagramClient(Client):
         self.delay(self.keep_gc, timeout)
 
     def gc(self):
+        # in case there're no requests pending in the current client
+        # there's no need to start the garbage collection logic, as
+        # this would required some (minimal) resources
+        if not self.requests: return
+
         # prints a message (for debug) about the garbage collection
         # operation that is going to be run
         self.debug("Running garbage collection ...")
