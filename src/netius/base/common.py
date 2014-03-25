@@ -390,10 +390,18 @@ class Base(observer.Observable):
         self._running = True
         self.set_state(STATE_START)
 
+        # retrieves the complete set of information regarding the current
+        # thread that is being used for the starting of the loop, this data
+        # may be used for runtime debugging purposes (debug only data)
+        cthread = threading.current_thread()
+        name = cthread.getName()
+        ident = thread.get_ident()
+
         # enters the main loop operation printing a message
         # to the logger indicating this start, this stage
         # should block the thread until a stop call is made
         self.debug("Starting '%s' service main loop (%.2fs) ..." % (self.name, self.poll_timeout))
+        self.debug("Using thread '%s' with tid '%d'" % (name, ident))
         self.debug("Using '%s' as polling mechanism" % poll_name)
         self.trigger("start", self)
         try: self.loop()

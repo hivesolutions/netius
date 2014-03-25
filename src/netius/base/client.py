@@ -52,6 +52,12 @@ collector of pending request in a datagram client, this
 value will be used n the delay operation of the action """
 
 class Client(Base):
+    """
+    Abstract client implementation, should provide the required
+    mechanisms for basic socket client handling and thread starting
+    and managing techniques. Proper and concrete implementation for
+    the various socket types should inherit from this class.
+    """
 
     _client = None
     """ The global static client meant to be reused by the
