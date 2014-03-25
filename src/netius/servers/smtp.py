@@ -263,9 +263,10 @@ class SMTPConnection(netius.Connection):
 
 class SMTPServer(netius.StreamServer):
 
-    def __init__(self, adapter_s = "memory", *args, **kwargs):
+    def __init__(self, adapter_s = "memory", locals = ("localhost",), *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.adapter_s = adapter_s
+        self.locals = locals
 
     def serve(self, host = "smtp.localhost", port = 25, *args, **kwargs):
         netius.StreamServer.serve(self, port = port, *args, **kwargs)
@@ -308,7 +309,8 @@ class SMTPServer(netius.StreamServer):
         # retrieves the complete list of users associated with
         # the to (target) list of values
         keys = []
-        users = self._users(to_l)
+        locals = self._locals(to_l)
+        users = self._users(locals)
 
         # iterates over the complete set of users to reserve
         # new keys for the various items to be delivered
@@ -330,16 +332,29 @@ class SMTPServer(netius.StreamServer):
         for key in connection.keys:
             self.adapter.truncate(key, TERMINATION_SIZE)
 
-    def _users(self, sequence, prefix = "to"):
+    def _locals(self, sequence, prefix = "to"):
         emails = self._emails(sequence, prefix = prefix)
-        users = [email.split("@", 1)[0] for email in emails]
-        return users
+        emails = [email for email in emails if self._is_local(email)]
+        return emails
+
+    def _remotes(self, sequence, prefix = "to"):
+        emails = self._emails(sequence, prefix = prefix)
+        emails = [email for email in emails if not self._is_local(email)]
+        return emails
 
     def _emails(self, sequence, prefix = "to"):
         prefix_l = len(prefix)
         base = prefix_l + 2
         emails = [item[base:-1] for item in sequence]
         return emails
+
+    def _users(self, emails):
+        users = [email.split("@", 1)[0] for email in emails]
+        return users
+
+    def _is_local(self, email):
+        domain = email.split("@", 1)[1]
+        return domain in self.locals
 
 if __name__ == "__main__":
     import logging
