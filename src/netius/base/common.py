@@ -916,7 +916,6 @@ class Base(observer.Observable):
             cer_file = cer_file,
             server = server
         )
-        self._ssl_handshake(socket_ssl)
         return socket_ssl
 
     def _ssl_wrap(self, _socket, key_file = None, cer_file = None, server = True):

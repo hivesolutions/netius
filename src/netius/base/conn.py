@@ -244,6 +244,11 @@ class Connection(observer.Observable):
         self.owner.sub_read(self.socket)
         self.owner.sub_error(self.socket)
 
+        # runs the initial handshake try out for the upgrading of the connection, this
+        # should only be performed after the initial subscription and handling of the
+        # "new" connection/socket so that no registration mismatch occur
+        self.owner._ssl_handshake(self.socket)
+
     def set_connecting(self):
         self.connecting = True
         self.ensure_write()
