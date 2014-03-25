@@ -218,7 +218,8 @@ class Connection(observer.Observable):
         self.upgrading = True
 
         # removes the "old" association socket association for the connection and
-        # unsubscribes the "old" socket from the complete set of events
+        # unsubscribes the "old" socket from the complete set of events, this should
+        # be enough to avoid any interaction with the "old" socket
         del self.owner.connections_m[self.socket]
         self.owner.unsub_all(self.socket)
 
