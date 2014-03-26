@@ -152,6 +152,12 @@ def write_public_key(path, public_key):
         begin = BEGIN_PUBLIC,
         end = END_PUBLIC
     )
+    
+def pem_to_der(in_path, out_path, begin = BEGIN_PRIVATE, end = END_PRIVATE):
+    data = open_pem_key(in_path, begin = begin, end = end)
+    file = open(out_path, "wb")
+    try: file.write(data)
+    finally: file.close()
 
 def private_to_public(private_key):
     public_key = dict(
@@ -166,5 +172,8 @@ pkey = open_public_key("C:/repo.extra/netius/src/netius/base/extras/net.pub")
 print pkey
 
 write_public_key("C:/tobias.pub", pkey)
-pkey = open_public_key("C:/tobias.pub")
-print pkey
+#pkey = open_public_key("C:/tobias.pub")
+#print pkey
+
+pem_to_der("C:/repo.extra/netius/src/netius/base/extras/net.pub", "C:/net.pub.der", begin = BEGIN_PUBLIC, end = END_PUBLIC)
+pem_to_der("C:/tobias.pub", "C:/tobias.pub.der", begin = BEGIN_PUBLIC, end = END_PUBLIC)

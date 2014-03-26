@@ -203,11 +203,13 @@ def asn1_build(node):
         yield chr(OBJECT_IDENTIFIER) + asn1_length(len(value)) + value
 
     elif tag == SEQUENCE:
-        r = ""
+        buffer = []
         for item in value:
-            for gen in asn1_build(item): yield gen
-
-        yield chr(SEQUENCE) + asn1_length(len(r)) + r
+            generator = asn1_build(item)
+            data = "".join(generator)
+            buffer.append(data)
+        result = "".join(buffer)
+        yield chr(SEQUENCE) + asn1_length(len(result)) + result
 
     else:
         raise netius.GeneratorError("Unexpected tag in template 0x%02x" % tag)
