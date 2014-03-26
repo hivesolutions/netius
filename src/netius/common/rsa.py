@@ -152,7 +152,7 @@ def write_public_key(path, public_key):
         begin = BEGIN_PUBLIC,
         end = END_PUBLIC
     )
-    
+
 def pem_to_der(in_path, out_path, begin = BEGIN_PRIVATE, end = END_PRIVATE):
     data = open_pem_key(in_path, begin = begin, end = end)
     file = open(out_path, "wb")

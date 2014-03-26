@@ -158,19 +158,27 @@ def asn1_parse(template, data):
 
     return result
 
-def asn1_length(n):
+def asn1_length(length):
     """
     Returns a string representing a field length in ASN.1 format.
+    This value is computed taking into account the multiple byte
+    representation of very large values.
+
+    @type length: int
+    @param length:The integer based length value that is going to
+    be used in the conversion to a string representation.
+    @rtype: String
+    @return: The string based representation of the provided length
+    integer value according to the ASN.1 specification.
     """
 
-    assert n >= 0
-    if n < 0x7f:
-        return chr(n)
-    r = ""
-    while n > 0:
-        r = chr(n & 0xff) + r
-        n >>= 8
-    return r
+    assert length >= 0
+    if length < 0x7f: return chr(length)
+
+    result = util.integer_to_bytes(length)
+    number = len(result)
+    result = chr(number | 0x80) + result
+    return result
 
 def asn_gen(node):
     generator = asn1_build(node)
