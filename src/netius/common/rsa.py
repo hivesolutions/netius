@@ -128,7 +128,25 @@ def open_public_key(path):
     return public_key
 
 def write_private_key(path, private_key):
-    pass
+    data = asn.asn_gen(
+        (asn.SEQUENCE, [
+            (asn.INTEGER, private_key["version"]),
+            (asn.INTEGER, private_key["modulus"]),
+            (asn.INTEGER, private_key["public_exponent"]),
+            (asn.INTEGER, private_key["private_exponent"]),
+            (asn.INTEGER, private_key["prime1"]),
+            (asn.INTEGER, private_key["prime2"]),
+            (asn.INTEGER, private_key["exponent1"]),
+            (asn.INTEGER, private_key["exponent2"]),
+            (asn.INTEGER, private_key["coefficient"])
+        ])
+    )
+    write_pem_key(
+        path,
+        data,
+        begin = BEGIN_PRIVATE,
+        end = END_PRIVATE
+    )
 
 def write_public_key(path, public_key):
     data = "\x00" + asn.asn_gen(
@@ -165,15 +183,3 @@ def private_to_public(private_key):
         public_exponent = private_key["public_exponent"]
     )
     return public_key
-
-import pprint
-pprint.pprint(open_private_key("C:/repo.extra/netius/src/netius/base/extras/net.key"))
-pkey = open_public_key("C:/repo.extra/netius/src/netius/base/extras/net.pub")
-print pkey
-
-write_public_key("C:/tobias.pub", pkey)
-pkey = open_public_key("C:/tobias.pub")
-print pkey
-
-pem_to_der("C:/repo.extra/netius/src/netius/base/extras/net.pub", "C:/net.pub.der", begin = BEGIN_PUBLIC, end = END_PUBLIC)
-pem_to_der("C:/tobias.pub", "C:/tobias.pub.der", begin = BEGIN_PUBLIC, end = END_PUBLIC)

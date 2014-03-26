@@ -131,14 +131,18 @@ def asn1_parse(template, data):
             length = util.bytes_to_integer(data[index:index + number])
             index += number
 
-        if tag == INTEGER:
+        if tag == BIT_STRING:
+            result.append(data[index:index + length])
+            index += length
+
+        elif tag == OCTET_STRING:
+            result.append(data[index:index + length])
+            index += length
+
+        elif tag == INTEGER:
             number = util.bytes_to_integer(data[index:index + length])
             index += length
             result.append(number)
-
-        elif tag == BIT_STRING:
-            result.append(data[index:index + length])
-            index += length
 
         elif tag == NULL:
             assert length == 0
@@ -196,11 +200,11 @@ def asn1_build(node):
 
     tag, value = node
 
-    if tag == OCTET_STRING:
-        yield chr(OCTET_STRING) + asn1_length(len(value)) + value
-
-    elif tag == BIT_STRING:
+    if tag == BIT_STRING:
         yield chr(BIT_STRING) + asn1_length(len(value)) + value
+
+    elif tag == OCTET_STRING:
+        yield chr(OCTET_STRING) + asn1_length(len(value)) + value
 
     elif tag == INTEGER:
         value = util.integer_to_bytes(value)
