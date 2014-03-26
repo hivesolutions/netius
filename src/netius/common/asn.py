@@ -98,6 +98,9 @@ def asn1_parse(template, data):
     result = []
     index = 0
 
+    # iterates over the complete set of items in the current
+    # template structure to "apply" them to the current values
+    # so that they are correctly parsed/verified
     for item in template:
         # verifies if the data type for the current template
         # item to be parser is tuple and based on that defined
