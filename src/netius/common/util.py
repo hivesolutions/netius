@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import os
 import math
 import socket
 
@@ -92,13 +93,17 @@ def ip4_to_addr(value):
 def string_to_bits(value):
     return bin(reduce(lambda x, y : (x << 8) + y, (ord(c) for c in value), 1))[3:]
 
-def integer_to_bytes(number):
+def integer_to_bytes(number, length = 0):
     bytes = []
     number = abs(number)
 
     while number > 0:
         bytes.append(chr(number % 256))
         number >>= 8
+
+    remaining = len(bytes) - length
+    remaining = 0 if remaining < 0 else remaining
+    for _index in xrange(remaining): bytes.append("\x00")
 
     bytes = reversed(bytes)
     return "".join(bytes)
@@ -107,6 +112,36 @@ def bytes_to_integer(bytes):
     number = 0
     for byte in bytes: number = (number << 8) | ord(byte)
     return number
+
+def random_integer(number_bits):
+    """
+    Generates a random integer of approximately the
+    size of the provided number bits bits rounded up
+    to whole bytes.
+
+    @type number_bits: int
+    @param number_bits: The number of bits of the generated
+    random integer, this value will be used as the basis
+    for the calculus of the required bytes.
+    @rtype: int
+    @return: The generated random integer, should be provided
+    with the requested size.
+    """
+
+    # calculates the number of bytes to represent the number
+    # by dividing the number of bits by a byte and then rounding
+    # the value to the next integer value
+    number_bytes = math.ceil(number_bits / 8.0)
+    number_bytes = int(number_bytes)
+
+    # generates a random data string with the specified
+    # number of bytes in length
+    random_data = os.urandom(number_bytes)
+
+    # converts the random data int an integer
+    # value and returns it to the caller method
+    random_integer = bytes_to_integer(random_data)
+    return random_integer
 
 def host():
     """
