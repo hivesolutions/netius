@@ -100,7 +100,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # the one that is going to be used for message id generation
         # and then generates a new "temporary" message id
         first = froms[0]
-        message_id = self.message_id(email = first)
+        message_id = self.message_id(connection, email = first)
 
         # creates a new email parser and parses the provided contents
         # as mime text and then appends the "new" message id to it
@@ -122,13 +122,14 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         )
         smtp_client.message(froms, tos, contents)
 
-    def message_id(self, email = "user@localhost"):
+    def message_id(self, connection, email = "user@localhost"):
         _user, domain = email.split("@", 1)
         domain = self.host or domain
         identifier = str(uuid.uuid4())
-        digest = hashlib.sha1(identifier).hexdigest()
-        digest = digest.upper()
-        return "<%s@%s>" % (digest, domain)
+        identifier = hashlib.sha1(identifier).hexdigest()
+        identifier = identifier.upper()
+        identifier = connection.identifier or identifier
+        return "<%s@%s>" % (identifier, domain)
 
 if __name__ == "__main__":
     import logging

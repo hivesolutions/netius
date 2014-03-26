@@ -878,9 +878,11 @@ class Base(observer.Observable):
         """
 
         identifier = str(uuid.uuid4())
+        identifier = identifier.upper()
         if not hashed: return identifier
         hash = hashlib.sha256(identifier)
         indetifier = hash.hexdigest()
+        identifier = identifier.upper()
         return indetifier
 
     def _socket_keepalive(self, _socket):
