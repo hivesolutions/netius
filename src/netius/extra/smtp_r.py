@@ -122,6 +122,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
 
     def message_id(self, email = "user@localhost"):
         _user, domain = email.split("@", 1)
+        domain = self.host or domain
         identifier = str(uuid.uuid4())
         digest = hashlib.sha1(identifier).hexdigest()
         digest = digest.upper()
