@@ -39,9 +39,10 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import base64
 
-import netius.common
+import netius
 
 import asn
+import util
 
 BEGIN_PRIVATE = "-----BEGIN RSA PRIVATE KEY-----"
 END_PRIVATE = "-----END RSA PRIVATE KEY-----"
@@ -77,10 +78,20 @@ def write_pem_key(
     width = 64
 ):
     data = base64.b64encode(data)
-    # @todo tenho de fazer o split em lines iguais !!!
 
-    chunks = [chunk for chunk in netius.common.chunks(data, 26)]
+    chunks = [chunk for chunk in util.chunks(data, width)]
     data = "\n".join(chunks)
+
+    file = open(path, "wb")
+    try:
+        file.write(begin)
+        file.write("\n")
+        file.write(data)
+        file.write("\n")
+        file.write(end)
+        file.write("\n")
+    finally:
+        file.close()
 
 def open_private_key(path):
     data = open_pem_key(
@@ -120,13 +131,13 @@ def write_private_key(path, private_key):
     pass
 
 def write_public_key(path, public_key):
-    data = asn.asn1_build(
+    data = "\x00" + asn.asn_gen(
         (asn.SEQUENCE, [
             (asn.INTEGER, public_key["modulus"]),
             (asn.INTEGER, public_key["public_exponent"])
         ])
     )
-    data = asn.asn1_build(
+    data = asn.asn_gen(
         (asn.SEQUENCE, [
             (asn.SEQUENCE, [
                 (asn.OBJECT_IDENTIFIER, RSAID_PKCS1),
@@ -152,5 +163,8 @@ def private_to_public(private_key):
 import pprint
 pprint.pprint(open_private_key("C:/repo.extra/netius/src/netius/base/extras/net.key"))
 pkey = open_public_key("C:/repo.extra/netius/src/netius/base/extras/net.pub")
+print pkey
 
 write_public_key("C:/tobias.pub", pkey)
+pkey = open_public_key("C:/tobias.pub")
+print pkey
