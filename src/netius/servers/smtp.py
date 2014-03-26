@@ -37,6 +37,9 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import time
+import datetime
+
 import netius.common
 
 INTIAL_STATE = 1
@@ -66,6 +69,7 @@ class SMTPConnection(netius.Connection):
         self.host = host
         self.chost = None
         self.identifier = None
+        self.time = time.time()
         self.keys = []
         self.from_l = []
         self.to_l = []
@@ -260,6 +264,17 @@ class SMTPConnection(netius.Connection):
     def assert_s(self, expected):
         if self.state == expected: return
         raise netius.ParserError("Invalid state")
+
+    def to_s(self):
+        return ", ".join(["<%s>" % email[4:-1] for email in self.to_l])
+
+    def received_s(self):
+        to_s = self.to_s()
+        date_time = datetime.datetime.utcfromtimestamp(self.time)
+        date_s = date_time.strftime("%a, %d %b %Y %H:%M:%S +0000")
+        return "from %s\n\t" % self.chost +\
+            "by %s with ESMTP id %s\n\t" % (self.host, self.identifier) +\
+            "for %s; %s" % (to_s, date_s)
 
 class SMTPServer(netius.StreamServer):
 

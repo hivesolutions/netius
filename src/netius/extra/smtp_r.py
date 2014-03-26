@@ -93,9 +93,9 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # retrieves the list of "froms" for the connection and then
         # sends the message for relay to all of the current remotes
         froms = self._emails(connection.from_l, prefix = "from")
-        self.relay(froms, connection.remotes, data_s)
+        self.relay(connection, froms, connection.remotes, data_s)
 
-    def relay(self, froms, tos, contents):
+    def relay(self, connection, froms, tos, contents):
         # retrieves the first email from the froms list as this is
         # the one that is going to be used for message id generation
         # and then generates a new "temporary" message id
@@ -107,7 +107,9 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # converting then the result into a plain text value
         parser = email.parser.Parser()
         message = parser.parsestr(contents)
+        received = connection.received_s()
         message_id = message.get("Message-ID", message_id)
+        message["Received"] = received
         message["Message-ID"] = message_id
         contents = message.as_string()
 
