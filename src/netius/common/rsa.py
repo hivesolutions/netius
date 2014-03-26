@@ -172,8 +172,8 @@ pkey = open_public_key("C:/repo.extra/netius/src/netius/base/extras/net.pub")
 print pkey
 
 write_public_key("C:/tobias.pub", pkey)
-#pkey = open_public_key("C:/tobias.pub")
-#print pkey
+pkey = open_public_key("C:/tobias.pub")
+print pkey
 
 pem_to_der("C:/repo.extra/netius/src/netius/base/extras/net.pub", "C:/net.pub.der", begin = BEGIN_PUBLIC, end = END_PUBLIC)
 pem_to_der("C:/tobias.pub", "C:/tobias.pub.der", begin = BEGIN_PUBLIC, end = END_PUBLIC)
