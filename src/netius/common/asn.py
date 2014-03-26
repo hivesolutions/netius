@@ -41,6 +41,8 @@ import types
 
 import netius
 
+import util
+
 INTEGER = 0x02
 BIT_STRING = 0x03
 OCTET_STRING = 0x04
@@ -126,16 +128,12 @@ def asn1_parse(template, data):
         # defines the length of the current value to be read instead
         if length & 0x80:
             number = length & 0x7f
-            length = 0
-            for _index in range(number):
-                length = (length << 8) | ord(data[index])
-                index += 1
+            length = util.bytes_to_integer(data[index:index + number])
+            index += number
 
         if tag == INTEGER:
-            number = 0
-            for _index in range(length):
-                number = (number << 8) | ord(data[index])
-                index += 1
+            number = util.bytes_to_integer(data[index:index + length])
+            index += length
             result.append(number)
 
         elif tag == BIT_STRING:
@@ -174,6 +172,10 @@ def asn1_length(n):
         n >>= 8
     return r
 
+def asn_gen(node):
+    generator = asn1_build(node)
+    return "".join(generator)
+
 def asn1_build(node):
     """
     Builds an ASN.1 data structure based on pairs of (type, data),
@@ -187,20 +189,25 @@ def asn1_build(node):
     tag, value = node
 
     if tag == OCTET_STRING:
-        return chr(OCTET_STRING) + asn1_length(len(value)) + value
+        yield chr(OCTET_STRING) + asn1_length(len(value)) + value
+
+    elif tag == INTEGER:
+        value = util.integer_to_bytes(value)
+        yield chr(INTEGER) + asn1_length(len(value)) + value
 
     elif tag == NULL:
         assert value is None
-        return chr(NULL) + asn1_length(0)
+        yield chr(NULL) + asn1_length(0)
 
     elif tag == OBJECT_IDENTIFIER:
-        return chr(OBJECT_IDENTIFIER) + asn1_length(len(value)) + value
+        yield chr(OBJECT_IDENTIFIER) + asn1_length(len(value)) + value
 
     elif tag == SEQUENCE:
         r = ""
-        for x in value:
-            r += asn1_build(x)
-        return chr(SEQUENCE) + asn1_length(len(r)) + r
+        for item in value:
+            for gen in asn1_build(item): yield gen
+
+        yield chr(SEQUENCE) + asn1_length(len(r)) + r
 
     else:
         raise netius.GeneratorError("Unexpected tag in template 0x%02x" % tag)
