@@ -92,6 +92,22 @@ def ip4_to_addr(value):
 def string_to_bits(value):
     return bin(reduce(lambda x, y : (x << 8) + y, (ord(c) for c in value), 1))[3:]
 
+def integer_to_bytes(number):
+    bytes = []
+    number = abs(number)
+
+    while number > 0:
+        bytes.append(chr(number % 256))
+        number >>= 8
+
+    bytes = reversed(bytes)
+    return "".join(bytes)
+
+def bytes_to_integer(bytes):
+    number = 0
+    for byte in bytes: number = (number << 8) | ord(byte)
+    return number
+
 def host():
     """
     Retrieves the host for the current machine,
