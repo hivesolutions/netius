@@ -273,7 +273,7 @@ class SMTPConnection(netius.Connection):
         date_time = datetime.datetime.utcfromtimestamp(self.time)
         date_s = date_time.strftime("%a, %d %b %Y %H:%M:%S +0000")
         return "from %s\n" % self.chost +\
-            "        by %s with ESMTP id %s\n\t" % (self.host, self.identifier) +\
+            "        by %s with ESMTP id %s\n" % (self.host, self.identifier) +\
             "        for %s; %s" % (to_s, date_s)
 
 class SMTPServer(netius.StreamServer):
