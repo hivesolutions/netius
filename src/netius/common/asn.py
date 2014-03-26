@@ -184,20 +184,23 @@ def asn1_build(node):
     used as reference for the generation of the ASN.1 buffer.
     """
 
-    if node[0] == OCTET_STRING:
-        return chr(OCTET_STRING) + asn1_length(len(node[1])) + node[1]
+    tag, value = node
 
-    if node[0] == NULL:
-        assert node[1] is None
+    if tag == OCTET_STRING:
+        return chr(OCTET_STRING) + asn1_length(len(value)) + value
+
+    elif tag == NULL:
+        assert value is None
         return chr(NULL) + asn1_length(0)
 
-    elif node[0] == OBJECT_IDENTIFIER:
-        return chr(OBJECT_IDENTIFIER) + asn1_length(len(node[1])) + node[1]
+    elif tag == OBJECT_IDENTIFIER:
+        return chr(OBJECT_IDENTIFIER) + asn1_length(len(value)) + value
 
-    elif node[0] == SEQUENCE:
+    elif tag == SEQUENCE:
         r = ""
-        for x in node[1]:
+        for x in value:
             r += asn1_build(x)
         return chr(SEQUENCE) + asn1_length(len(r)) + r
+
     else:
-        raise netius.GeneratorError("Unexpected tag in template 0x%02x" % node[0])
+        raise netius.GeneratorError("Unexpected tag in template 0x%02x" % tag)

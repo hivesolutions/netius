@@ -39,7 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import base64
 
-import netius
+import netius.common
 
 import asn
 
@@ -47,6 +47,10 @@ BEGIN_PRIVATE = "-----BEGIN RSA PRIVATE KEY-----"
 END_PRIVATE = "-----END RSA PRIVATE KEY-----"
 BEGIN_PUBLIC = "-----BEGIN PUBLIC KEY-----"
 END_PUBLIC = "-----END PUBLIC KEY-----"
+
+RSAID_PKCS1 = "\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01"
+HASHID_SHA1 = "\x2b\x0e\x03\x02\x1a"
+HASHID_SHA256 = "\x60\x86\x48\x01\x65\x03\x04\x02\x01"
 
 def open_pem_key(path, begin = BEGIN_PRIVATE, end = END_PRIVATE):
     file = open(path, "rb")
@@ -64,6 +68,19 @@ def open_pem_key(path, begin = BEGIN_PRIVATE, end = END_PRIVATE):
     data = data[begin_index:end_index]
     data = data.strip()
     return base64.b64decode(data)
+
+def write_pem_key(
+    path,
+    data,
+    begin = BEGIN_PRIVATE,
+    end = END_PRIVATE,
+    width = 64
+):
+    data = base64.b64encode(data)
+    # @todo tenho de fazer o split em lines iguais !!!
+
+    chunks = [chunk for chunk in netius.common.chunks(data, 26)]
+    data = "\n".join(chunks)
 
 def open_private_key(path):
     data = open_pem_key(
@@ -103,7 +120,27 @@ def write_private_key(path, private_key):
     pass
 
 def write_public_key(path, public_key):
-    pass
+    data = asn.asn1_build(
+        (asn.SEQUENCE, [
+            (asn.INTEGER, public_key["modulus"]),
+            (asn.INTEGER, public_key["public_exponent"])
+        ])
+    )
+    data = asn.asn1_build(
+        (asn.SEQUENCE, [
+            (asn.SEQUENCE, [
+                (asn.OBJECT_IDENTIFIER, RSAID_PKCS1),
+                (asn.NULL, None)
+            ]),
+            (asn.OCTET_STRING, data)
+        ])
+    )
+    write_pem_key(
+        path,
+        data,
+        begin = BEGIN_PUBLIC,
+        end = END_PUBLIC
+    )
 
 def private_to_public(private_key):
     public_key = dict(
@@ -114,4 +151,6 @@ def private_to_public(private_key):
 
 import pprint
 pprint.pprint(open_private_key("C:/repo.extra/netius/src/netius/base/extras/net.key"))
-pprint.pprint(open_public_key("C:/repo.extra/netius/src/netius/base/extras/net.pub"))
+pkey = open_public_key("C:/repo.extra/netius/src/netius/base/extras/net.pub")
+
+write_public_key("C:/tobias.pub", pkey)
