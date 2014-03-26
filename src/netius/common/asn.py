@@ -199,6 +199,9 @@ def asn1_build(node):
     if tag == OCTET_STRING:
         yield chr(OCTET_STRING) + asn1_length(len(value)) + value
 
+    elif tag == BIT_STRING:
+        yield chr(BIT_STRING) + asn1_length(len(value)) + value
+
     elif tag == INTEGER:
         value = util.integer_to_bytes(value)
         yield chr(INTEGER) + asn1_length(len(value)) + value

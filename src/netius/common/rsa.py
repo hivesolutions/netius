@@ -143,7 +143,7 @@ def write_public_key(path, public_key):
                 (asn.OBJECT_IDENTIFIER, RSAID_PKCS1),
                 (asn.NULL, None)
             ]),
-            (asn.OCTET_STRING, data)
+            (asn.BIT_STRING, data)
         ])
     )
     write_pem_key(
