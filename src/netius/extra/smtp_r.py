@@ -109,7 +109,6 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         parser = email.parser.Parser()
         message = parser.parsestr(contents)
         received = connection.received_s()
-        received = email.header.Header(received, continuation_ws = "\t")
         message_id = message.get("Message-ID", message_id)
         message["Received"] = received
         message["Message-ID"] = message_id
