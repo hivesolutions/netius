@@ -3,5 +3,6 @@
 fs.data
 
 /dist/
+/build/
 /src/netius.egg-info/
 /scripts/build/builds/
