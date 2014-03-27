@@ -365,8 +365,8 @@ def rsa_exponents(prime_1, prime_2, number_bits, basic = True):
     return (public_exponent, private_exponent)
 
 def rsa_bits(modulus):
-    bits = math.log(modulus, 2)
-    return calc.ceil_integer(bits)
+    bits = math.log(modulus, 8)
+    return calc.ceil_integer(bits) * 8
 
 def rsa_sign(message, private_key):
     modulus = private_key["modulus"]
