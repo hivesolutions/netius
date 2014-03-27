@@ -57,13 +57,18 @@ It's possible to read information from both private and public RSA based keys fo
 following command from the bash:
 
 ```bash
-    python -m netius.sh.rsa read_private private.key
-    python -m netius.sh.rsa read_public public.pub
+python -m netius.sh.rsa read_private private.key
+python -m netius.sh.rsa read_public public.pub
 ```
 
-DKIM is a 
-    python -m netius.sh.dkim generate hive.pt
-    python -m netius.sh.dkim sign hello.mail dkim.key 20140327175143 hive.pt
+DKIM is an infra-structure for signing SMTP based message and provides a way to avoid unwanted
+SPAM tagging, netius provides a series of utilities for processing of DKIM, these are some
+examples of DKIM bash usage:
+
+```bash
+python -m netius.sh.dkim generate hive.pt
+python -m netius.sh.dkim sign hello.mail dkim.key 20140327175143 hive.pt
+```
 
 ## Compatability
 
