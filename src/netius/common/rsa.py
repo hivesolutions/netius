@@ -233,8 +233,8 @@ def rsa_private(number_bits):
     """
 
     while True:
-        prime_1, prime_2 = rsa_primes(number_bits)
-        public_exponent, private_exponent = rsa_exponents(prime_1, prime_2, number_bits)
+        prime_1, prime_2 = rsa_primes(number_bits // 2)
+        public_exponent, private_exponent = rsa_exponents(prime_1, prime_2, number_bits // 2)
         if private_exponent > 0: break
 
     modulus = prime_1 * prime_2
