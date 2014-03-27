@@ -111,3 +111,12 @@ def gcd(first, second):
     # iteration for those calculus
     next = abs(first % second)
     return gcd(second, next)
+
+def extended_gcd(self, first, second):
+    if second == 0: return (first, 1, 0)
+
+    q = abs(first % second)
+    r = long(first / second)
+    d, k, l = extended_gcd(second, q)
+
+    return (d, l, k - l * r)
