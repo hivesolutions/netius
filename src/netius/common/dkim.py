@@ -273,7 +273,7 @@ def dkim_generate(domain, suffix = None, number_bits = 1024):
     selector_full = "%s._domainkey.%s." % (selector, domain)
 
     private_key = rsa.rsa_private(number_bits)
-    rsa.assert_private(private_key)
+    rsa.assert_private(private_key, number_bits = number_bits)
     public_key = rsa.private_to_public(private_key)
 
     buffer = cStringIO.StringIO()

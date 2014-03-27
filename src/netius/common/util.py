@@ -138,9 +138,11 @@ def random_integer(number_bits):
     # number of bytes in length
     random_data = os.urandom(number_bytes)
 
-    # converts the random data int an integer
-    # value and returns it to the caller method
+    # converts the random data into an integer and then
+    # makes sure the last bit of the value is correctly
+    # filled with data, and returns it to the caller method
     random_integer = bytes_to_integer(random_data)
+    random_integer |= 1 << (number_bits - 1)
     return random_integer
 
 def host():

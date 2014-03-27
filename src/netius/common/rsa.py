@@ -194,7 +194,7 @@ def private_to_public(private_key):
     )
     return public_key
 
-def assert_private(private_key):
+def assert_private(private_key, number_bits = None):
     prime_1 = private_key["prime_1"]
     prime_2 = private_key["prime_2"]
     private_exponent = private_key["private_exponent"]
@@ -208,6 +208,11 @@ def assert_private(private_key):
     assert exponent_1 == private_key["exponent_1"]
     assert exponent_2 == private_key["exponent_2"]
     assert coefficient == private_key["coefficient"]
+
+    if number_bits:
+        assert number_bits // 2 == rsa_bits(private_key["prime_1"])
+        assert number_bits // 2 == rsa_bits(private_key["prime_2"])
+        assert number_bits == private_key["bits"]
 
     message = "Hello World"
     signature = rsa_sign("Hello World", private_key)
@@ -330,7 +335,7 @@ def rsa_exponents(prime_1, prime_2, number_bits, basic = True):
         # modulus (n value) note that if the this is the first attempt
         # to create a public exponent and the basic mode is active the
         # number chosen is the "magic" number (compatibility)
-        public_exponent = calc.prime(max(8, number_bits / 2))
+        public_exponent = calc.prime(max(8, number_bits // 2))
         if is_first and basic: public_exponent = 65537; is_first = False
 
         # checks if the exponent and the modulus are relative primes
@@ -365,8 +370,8 @@ def rsa_exponents(prime_1, prime_2, number_bits, basic = True):
     return (public_exponent, private_exponent)
 
 def rsa_bits(modulus):
-    bytes = math.log(modulus, 256)
-    return calc.ceil_integer(bytes) * 8
+    bits = math.log(modulus, 2)
+    return calc.ceil_integer(bits)
 
 def rsa_sign(message, private_key):
     modulus = private_key["modulus"]
