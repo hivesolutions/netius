@@ -185,6 +185,21 @@ def private_to_public(private_key):
     )
     return public_key
 
+def assert_private(private_key):
+    prime_1 = private_key["prime_1"]
+    prime_2 = private_key["prime_2"]
+    private_exponent = private_key["private_exponent"]
+
+    modulus = prime_1 * prime_2
+    exponent_1 = private_exponent % (prime_1 - 1)
+    exponent_2 = private_exponent % (prime_2 - 1)
+    coefficient = calc.modinv(prime_2, prime_1)
+
+    assert modulus == private_key["modulus"]
+    assert exponent_1 == private_key["exponent_1"]
+    assert exponent_2 == private_key["exponent_2"]
+    assert coefficient == private_key["coefficient"]
+
 def rsa_private(number_bits):
     """
     Generates a new "random" private with the requested number
@@ -209,7 +224,7 @@ def rsa_private(number_bits):
     modulus = prime_1 * prime_2
     exponent_1 = private_exponent % (prime_1 - 1)
     exponent_2 = private_exponent % (prime_2 - 1)
-    coefficient = (1 / prime_2) % prime_1
+    coefficient = calc.modinv(prime_2, prime_1)
 
     private_key = dict(
         version = 0,
@@ -298,8 +313,8 @@ def rsa_exponents(prime_1, prime_2, number_bits):
         if is_relative and is_relative_phi: break
 
     # retrieves the result of the extended euclid greatest common divisor
-    d, k, _l = calc.extended_gcd(public_exponent, phi_modulus)
-    private_exponent = k
+    d, l, _e = calc.egcd(public_exponent, phi_modulus)
+    private_exponent = l
 
     # in case the greatest common divisor between both is not one, the values
     # are not relative primes and an exception must be raised
@@ -320,14 +335,33 @@ def rsa_exponents(prime_1, prime_2, number_bits):
     # exponent values that may be used for rsa based cryptography
     return (public_exponent, private_exponent)
 
-def rsa_crypt(value, exponent, modulus):
-    if type(value) == types.IntType:
-        return rsa_crypt(long(value), exponent, modulus)
+def rsa_sign(message, private_key):
+    modulus = private_key["modulus"]
+    private_exponent = private_key["private_exponent"]
+    return rsa_crypt_s(message, private_exponent, modulus)
 
-    if not type(value) == types.LongType:
+def rsa_verify(signature, public_key):
+    modulus = public_key["modulus"]
+    public_exponent = public_key["public_exponent"]
+    return rsa_crypt_s(signature, public_exponent, modulus)
+
+def rsa_crypt_s(message, exponent, modulus):
+    modulus_l = calc.ceil_integer(math.log(modulus, 256))
+
+    message_i = util.bytes_to_integer(message)
+    message_crypt = rsa_crypt(message_i, exponent, modulus)
+    message_crypt_s = util.integer_to_bytes(message_crypt, modulus_l)
+
+    return message_crypt_s
+
+def rsa_crypt(number, exponent, modulus):
+    if type(number) == types.IntType:
+        return rsa_crypt(long(number), exponent, modulus)
+
+    if not type(number) == types.LongType:
         raise TypeError("you must pass a long or an int")
 
-    if value > 0 and math.floor(math.log(value, 2)) > math.floor(math.log(modulus, 2)):
+    if number > 0 and math.floor(math.log(number, 2)) > math.floor(math.log(modulus, 2)):
         raise OverflowError("the message is too long")
 
-    return pow(value, exponent, modulus)
+    return pow(number, exponent, modulus)
