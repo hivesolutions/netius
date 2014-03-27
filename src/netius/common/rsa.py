@@ -288,7 +288,7 @@ def rsa_primes(number_bits):
     # primes and returns it to the caller method
     return (prime_1, prime_2)
 
-def rsa_exponents(prime_1, prime_2, number_bits):
+def rsa_exponents(prime_1, prime_2, number_bits, basic = True):
     """
     Generates both the public and the private exponents for
     the rsa cryptography system taking as base the provided
@@ -301,6 +301,9 @@ def rsa_exponents(prime_1, prime_2, number_bits):
     @type number_bits: int
     @param number_bits: The number of bits that are going to be
     used for the generation of the values.
+    @type basic: bool
+    @param basic: If the basic approach to the generation of the
+    public exponent should be taken into account.
     @rtype: Tuple
     @return: The tuple containing the generated public and
     private keys (properly tested).
@@ -311,12 +314,20 @@ def rsa_exponents(prime_1, prime_2, number_bits):
     modulus = prime_1 * prime_2
     phi_modulus = (prime_1 - 1) * (prime_2 - 1)
 
+    # starts by setting the is first flag so that the first iteration
+    # of the public exponent generation cycle is taking into account
+    # the possible basic flag value for the public exponent
+    is_first = True
+
     # iterates continuously to find a valid public exponent, one
     # that satisfies the relative prime
     while True:
         # make sure e has enough bits so we ensure "wrapping" through
-        # modulus (n value)
+        # modulus (n value) note that if the this is the first attempt
+        # to create a public exponent and the basic mode is active the
+        # number chosen is the "magic" number (compatibility)
         public_exponent = calc.prime(max(8, number_bits / 2))
+        if is_first and basic: public_exponent = 65537; is_first = False
 
         # checks if the exponent and the modulus are relative primes
         # and also checks if the exponent and the phi modulus are relative
