@@ -109,7 +109,8 @@ def open_private_key(path):
         prime_2 = asn1[5],
         exponent_1 = asn1[6],
         exponent_2 = asn1[7],
-        coefficient = asn1[8]
+        coefficient = asn1[8],
+        bits = rsa_bits(asn1[1])
     )
     return private_key
 
@@ -122,7 +123,8 @@ def open_public_key(path):
     asn1 = asn.asn1_parse(asn.ASN1_RSA_PUBLIC_KEY, asn1[1][1:])[0]
     public_key = dict(
         modulus = asn1[0],
-        public_exponent = asn1[1]
+        public_exponent = asn1[1],
+        bits = rsa_bits(asn1[0])
     )
     return public_key
 
@@ -239,6 +241,7 @@ def rsa_private(number_bits):
     exponent_1 = private_exponent % (prime_1 - 1)
     exponent_2 = private_exponent % (prime_2 - 1)
     coefficient = calc.modinv(prime_2, prime_1)
+    bits = rsa_bits(modulus)
 
     private_key = dict(
         version = 0,
@@ -249,7 +252,8 @@ def rsa_private(number_bits):
         prime_2 = prime_2,
         exponent_1 = exponent_1,
         exponent_2 = exponent_2,
-        coefficient = coefficient
+        coefficient = coefficient,
+        bits = bits
     )
 
     return private_key
@@ -359,6 +363,10 @@ def rsa_exponents(prime_1, prime_2, number_bits, basic = True):
     # creates the tuple that contains both the public and the private
     # exponent values that may be used for rsa based cryptography
     return (public_exponent, private_exponent)
+
+def rsa_bits(modulus):
+    bits = math.log(modulus, 2)
+    return calc.ceil_integer(bits)
 
 def rsa_sign(message, private_key):
     modulus = private_key["modulus"]
