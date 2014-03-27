@@ -53,12 +53,17 @@ is sufficient and many services are available for instance:
 
 ## Cryptography
 
+It's possible to read information from both private and public RSA based keys for that use the
+following command from the bash:
+
 ```bash
-python -m netius.sh.rsa read_private private.key
-python -m netius.sh.rsa read_public public.pub
-python -m netius.sh.dkim generate hive.pt
-python -m netius.sh.dkim sign hello.mail dkim.key 20140327175143 hive.pt
+    python -m netius.sh.rsa read_private private.key
+    python -m netius.sh.rsa read_public public.pub
 ```
+
+DKIM is a 
+    python -m netius.sh.dkim generate hive.pt
+    python -m netius.sh.dkim sign hello.mail dkim.key 20140327175143 hive.pt
 
 ## Compatability
 
