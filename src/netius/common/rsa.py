@@ -279,19 +279,32 @@ def rsa_primes(number_bits):
     numbers to be returned.
     """
 
-    # generates a prime number to serve as p value
-    # or the first prime value
-    prime_1 = calc.prime(number_bits)
+    # calculates the total number of bits for the key as
+    # the double of the requested for the primes generation
+    total_bits = number_bits * 2
 
-    # iterates continuously trying to find a second prime
-    # number that is not equal to the first one
+    # constructs the clojure based function that is going to
+    # be used as the validator of the primes combination, this
+    # used for a trial an error based approach for the generation
+    # of the primes to be used in the private key
+    def rsa_acceptable(prime_1, prime_2):
+        if prime_1 == prime_2: return False
+        modulus_bits = rsa_bits(prime_1 * prime_2)
+        return modulus_bits == total_bits
+
+    # generates the "first" version of both prime values
+    # that is going to serve as the first iteration of
+    # each of the values, and start the is odd variable
+    prime_1 = calc.prime(number_bits)
+    prime_2 = calc.prime(number_bits)
+    is_odd = True
+
+    # iterates continuously trying to find a combination
+    # of prime numbers that is acceptable and valid
     while True:
-        # generates a prime number to serve as q value
-        # and verifies if the value of both primes is the
-        # same, in case it's not the value is considered
-        # to be valid and breaks the loop
-        prime_2 = calc.prime(number_bits)
-        if not prime_2 == prime_1: break
+        if rsa_acceptable(prime_1, prime_2): break
+        if is_odd: prime_1 = calc.prime(number_bits)
+        else: prime_2 = calc.prime(number_bits)
 
     # returns a tuple containing both of the generated
     # primes and returns it to the caller method
@@ -346,7 +359,9 @@ def rsa_exponents(prime_1, prime_2, number_bits, basic = True):
         is_relative_phi = calc.relatively_prime(public_exponent, phi_modulus)
         if is_relative and is_relative_phi: break
 
-    # retrieves the result of the extended euclid greatest common divisor
+    # retrieves the result of the extended euclid greatest common divisor,
+    # this value is going to be used as the basis for the calculus of the
+    # private exponent for the current operation
     d, l, _e = calc.egcd(public_exponent, phi_modulus)
     private_exponent = l
 
