@@ -134,7 +134,7 @@ def rfc822_parse(message, exclude = ()):
     body = "\r\n".join(body_lines)
     return (headers, body)
 
-def dkim_sign(message, selector, domain, private_key, identity = None):
+def dkim_sign(message, selector, domain, private_key, identity = None, separator = " : "):
     identity = identity or "@" + domain
 
     headers, body = rfc822_parse(message)
@@ -169,7 +169,7 @@ def dkim_sign(message, selector, domain, private_key, identity = None):
         ("q", "dns/txt"),
         ("s", selector),
         ("t", creation_s),
-        ("h", ":".join(sign_names)),
+        ("h", separator.join(sign_names)),
         ("bh", body_hash),
         ("b", ""),
     ]
@@ -183,7 +183,6 @@ def dkim_sign(message, selector, domain, private_key, identity = None):
         hash.update(":")
         hash.update(value)
 
-    # @todo: isto pode ser problematico por causa do folding !!!!
     hash.update(signature)
     digest = hash.digest()
 
@@ -215,8 +214,9 @@ def dkim_sign(message, selector, domain, private_key, identity = None):
     signature_i = rsa.rsa_crypt(base_i, exponent, modulus)
     signature_s = util.integer_to_bytes(signature_i, length = modulus_l)
 
-    signature += base64.b64encode("".join(signature_s))
-    return signature + "\r\n"
+    signature += base64.b64encode(signature_s)
+    _name, value = signature.split(": ", 1)
+    return value
 
 def dkim_headers(headers):
     # returns the headers exactly the way they were parsed
@@ -228,26 +228,38 @@ def dkim_body(body):
     # and adds only one line to the end of it as requested
     return re.sub("(\r\n)*$", "\r\n", body)
 
-def dkim_fold(header):
+def dkim_fold(header, length = 72):
     """
     Folds a header line into multiple line feed separated lines
-    at column 72.
+    at column length defined (defaults to 72).
+
+    This is required so that the header field is defined according
+    to the dkim rules and the default mime encoding.
+
+    @type header: String
+    @param header: The string value of the header that is going to
+    be folded into multiple lines.
+    @type length: int
+    @param length: The maximum length of a column until it gets
+    broken into multiple lines (in case it's possible).
+    @rtype: String
+    @return: The folded string value for the header after the correct
+    processing of the string value.
     """
 
-    #@todo: TENHO DE COMENTAR ISTO COMO DEVE DE SER !!!
-    i = header.rfind("\r\n ")
-    if i == -1: pre = ""
+    index = header.rfind("\r\n ")
+    if index == -1: pre = ""
     else:
-        i += 3
-        pre = header[:i]
-        header = header[i:]
+        index += 3
+        pre = header[:index]
+        header = header[index:]
 
-    while len(header) > 72:
-        i = header[:72].rfind(" ")
-        if i == -1: j = i
-        else: j = i + 1
-        pre += header[:i] + "\r\n "
-        header = header[j:]
+    while len(header) > length:
+        index = header[:length].rfind(" ")
+        if index == -1: _index = index
+        else: _index = index + 1
+        pre += header[:index] + "\r\n "
+        header = header[_index:]
 
     return pre + header
 
