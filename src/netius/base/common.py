@@ -706,7 +706,7 @@ class Base(observer.Observable):
         state_s = state_s.lower() if lower else state_s
         return state_s
 
-    def get_env(self, name, default = None, cast = str):
+    def get_env(self, name, default = None, cast = None):
         """
         Retrieves the value of the environment variable with the
         requested name, defaulting to the provided value in case
@@ -735,6 +735,7 @@ class Base(observer.Observable):
 
         if not name in config.CONFIGS: return default
         value = config.CONFIGS.get(name, default)
+        if not cast: return value
         try: value = int(value) == 1 if cast == bool else cast(value)
         except: value = value
         return value
