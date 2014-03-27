@@ -51,6 +51,15 @@ is sufficient and many services are available for instance:
 * SMTPServer - `python -m netius.servers.smtp`
 * RelaySMTPServer - `python -m netius.extra.smtp_r`
 
+## Cryptography
+
+```bash
+python -m netius.sh.rsa read_private private.key
+python -m netius.sh.rsa read_public public.pub
+python -m netius.sh.dkim generate hive.pt
+python -m netius.sh.dkim sign hello.mail dkim.key 20140327175143 hive.pt
+```
+
 ## Compatability
 
 Currently netius is compatible with pypy and a typical environment will benefit from a 1.5x to 2.5x
