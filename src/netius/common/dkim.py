@@ -41,11 +41,14 @@ import re
 
 def rfc822_parse(message, exclude = ()):
     """
-    Parse a message in RFC822 format.
+    Parse a message in rfc822 format.
 
-    @param message: The message in RFC822 format. Either CRLF or LF is an accepted line separator.
-    @return Returns a tuple of (headers, body) where headers is a list of (name, value) pairs.
-    The body is a CRLF-separated string.
+    @type message: String
+    @param message: The message in rfc822 format. Either CRLF or
+    LF is an accepted line separator.
+    @rtype: Tuple
+    @return Returns a tuple of (headers, body) where headers is
+    a list of (name, value) pairs. The body is a CRLF-separated string.
     """
 
     headers = []
