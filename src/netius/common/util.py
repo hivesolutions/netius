@@ -98,10 +98,10 @@ def integer_to_bytes(number, length = 0):
     number = abs(number)
 
     while number > 0:
-        bytes.append(chr(number % 256))
+        bytes.append(chr(number % 0xff))
         number >>= 8
 
-    remaining = len(bytes) - length
+    remaining = length - len(bytes)
     remaining = 0 if remaining < 0 else remaining
     for _index in xrange(remaining): bytes.append("\x00")
 
