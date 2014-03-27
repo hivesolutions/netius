@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import math
+import types
 import base64
 
 import netius
@@ -46,10 +48,6 @@ import util
 
 PRIVATE_TOKEN = "RSA PRIVATE KEY"
 PUBLIC_TOKEN = "PUBLIC KEY"
-
-RSAID_PKCS1 = "\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01"
-HASHID_SHA1 = "\x2b\x0e\x03\x02\x1a"
-HASHID_SHA256 = "\x60\x86\x48\x01\x65\x03\x04\x02\x01"
 
 def open_pem_key(path, token = PRIVATE_TOKEN):
     begin, end = pem_limiters(token)
@@ -127,7 +125,7 @@ def open_public_key(path):
     return public_key
 
 def write_private_key(path, private_key):
-    data = asn.asn_gen(
+    data = asn.asn1_gen(
         (asn.SEQUENCE, [
             (asn.INTEGER, private_key["version"]),
             (asn.INTEGER, private_key["modulus"]),
@@ -147,16 +145,16 @@ def write_private_key(path, private_key):
     )
 
 def write_public_key(path, public_key):
-    data = "\x00" + asn.asn_gen(
+    data = "\x00" + asn.asn1_gen(
         (asn.SEQUENCE, [
             (asn.INTEGER, public_key["modulus"]),
             (asn.INTEGER, public_key["public_exponent"])
         ])
     )
-    data = asn.asn_gen(
+    data = asn.asn1_gen(
         (asn.SEQUENCE, [
             (asn.SEQUENCE, [
-                (asn.OBJECT_IDENTIFIER, RSAID_PKCS1),
+                (asn.OBJECT_IDENTIFIER, asn.RSAID_PKCS1),
                 (asn.NULL, None)
             ]),
             (asn.BIT_STRING, data)
@@ -185,3 +183,15 @@ def private_to_public(private_key):
         public_exponent = private_key["public_exponent"]
     )
     return public_key
+
+def rsa_crypt(value, exponent, modulus):
+    if type(value) == types.IntType:
+        return rsa_crypt(long(value), exponent, modulus)
+
+    if not type(value) == types.LongType:
+        raise TypeError("you must pass a long or an int")
+
+    if value > 0 and math.floor(math.log(value, 2)) > math.floor(math.log(modulus, 2)):
+        raise OverflowError("the message is too long")
+
+    return pow(value, exponent, modulus)
