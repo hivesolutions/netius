@@ -40,6 +40,8 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import math
 import random
 
+import netius
+
 import util
 
 def prime(number_bits):
@@ -90,17 +92,18 @@ def gcd(first, second):
     This method uses the classic euclidean algorithm.
 
     @type first: int
-    @param first: The first prime number to obtain
-    the greatest common divisor.
+    @param first: The first number to obtain the greatest
+    common divisor using the euclidean algorithm.
     @type second: int
-    @param second: The second prime number to obtain
-    the greatest common divisor.
+    @param second: The second number to obtain the greatest
+    common divisor using the euclidean algorithm.
     @rtype: int
     @return: The greatest common divisor between both values.
+    @see: http://en.wikipedia.org/wiki/Euclidean_algorithm
     """
 
-    # in case the p value is smaller than
-    # the q value
+    # in case the p value is smaller than the q value
+    # reveses the order of the arguments and re-computes
     if first < second: return gcd(second, first)
 
     # in case the q value is zero
@@ -115,15 +118,54 @@ def gcd(first, second):
     next = abs(first % second)
     return gcd(second, next)
 
-def extended_gcd(first, second):
+def egcd(first, second):
+    """
+    Extended version of the greatest common divisor created
+    by Euclid. Computes additional coefficients of the
+    Bézout's identity.
+
+    @type first: int
+    @param first: The first number to obtain the greatest
+    common divisor using the euclidean algorithm.
+    @type second: int
+    @param second: The second number to obtain the greatest
+    common divisor using the euclidean algorithm.
+    @rtype: Tuple
+    @return: A tuple containing the various coefficients calculated
+    for this extended approach of the greatest common divisor.
+    @see: http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
+    """
+
     if second == 0: return (first, 1, 0)
 
     q = abs(first % second)
     r = long(first / second)
-    d, k, l = extended_gcd(second, q)
+    d, k, l = egcd(second, q)
 
     return (d, l, k - l * r)
 
+def modinv(first, second):
+    """
+    Uses the extended greatest common divisor algorithm to compute
+    the modulus of an inverted value against another.
+
+    The execution of this method is equivalent to (1 / first mod second)
+    using mathematical terms.
+
+    @type first: int
+    @param first: The first value, that is going to be inverted before
+    the modulus operation is performed.
+    @type second: int
+    @param second: The second value that is going to be used as the basis
+    for the modulus operation.
+    @rtype: int
+    @return: The result of the computation of inverted modulus according
+    to its mathematical definition.
+    """
+
+    d, l, _e = egcd(first, second)
+    if d != 1: raise netius.DataError("Modular inverse does not exist")
+    else: return l % second
 
 
 
@@ -132,7 +174,7 @@ def extended_gcd(first, second):
 def random_integer_interval(min_value, max_value):
     # sets the default minimum number of bits, even if the
     # range is too small
-    minimum_number_bits = 32
+    max_number_bits = 32
 
     # calculates the range of the random numbers
     # to generate
@@ -146,10 +188,10 @@ def random_integer_interval(min_value, max_value):
 
     # converts the range into bits, but verifies that there
     # is at least a minimum number of bits
-    range_bits = max(range_bytes * 8, minimum_number_bits * 2)
+    range_bits = max(range_bytes * 8, max_number_bits * 2)
 
     # generates the random number of bits to be used
-    number_bits = random.randint(minimum_number_bits, range_bits)
+    number_bits = random.randint(max_number_bits, range_bits)
 
     # generates the random integer with the number of bits generated
     # and applying modulo of the range
@@ -209,7 +251,6 @@ def jacobi_witness(x, n):
     if j == f: return False
     else: return True
 
-
 def jacobi(a, b):
     """
     Calculates the value of the jacobi symbol, using the
@@ -221,6 +262,7 @@ def jacobi(a, b):
     @param b: The b value.
     @rtype: int
     @return: The calculated jacobi symbol.
+    @see: http://en.wikipedia.org/wiki/Jacobi_symbol
     """
 
     if a % b == 0: return 0
@@ -238,13 +280,12 @@ def jacobi(a, b):
 
     return result
 
-
 def ceil_integer(value):
     """
     Retrieves the ceil of a value and then converts it
-    into an integer.
+    into a valid integer for integer computation.
     The conversion to integer ensures that the ceil
-    is compatible with certain operations.
+    is compatible with certain (integer) operations.
 
     @type value: int
     @param value: The value to apply the ceil.
