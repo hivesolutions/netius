@@ -83,14 +83,14 @@ ASN1_RSA_PRIVATE_KEY = [
 
 def asn1_parse(template, data):
     """
-    Parse a data structure according to ASN.1 template,
+    Parse a data structure according to asn.1 template,
     the provided template should respect the predefined
     structure. The provided data is going to be validated
     against the template format and a exception raised in
     case the data is not conformant.
 
     @type template: List/Tuple
-    @param template: A list of tuples comprising the ASN.1 template.
+    @param template: A list of tuples comprising the asn.1 template.
     @type: List
     @param data: A list of bytes to parse.
     """
@@ -167,7 +167,7 @@ def asn1_parse(template, data):
 
 def asn1_length(length):
     """
-    Returns a string representing a field length in ASN.1 format.
+    Returns a string representing a field length in asn.1 format.
     This value is computed taking into account the multiple byte
     representation of very large values.
 
@@ -176,7 +176,7 @@ def asn1_length(length):
     be used in the conversion to a string representation.
     @rtype: String
     @return: The string based representation of the provided length
-    integer value according to the ASN.1 specification.
+    integer value according to the asn.1 specification.
     """
 
     assert length >= 0
@@ -193,12 +193,12 @@ def asn_gen(node):
 
 def asn1_build(node):
     """
-    Builds an ASN.1 data structure based on pairs of (type, data),
+    Builds an asn.1 data structure based on pairs of (type, data),
     this function may be used as a generator of a buffer.
 
     @type node: Tuple
     @param node: The root node of the structure that is going to be
-    used as reference for the generation of the ASN.1 buffer.
+    used as reference for the generation of the asn.1 buffer.
     """
 
     tag, value = node

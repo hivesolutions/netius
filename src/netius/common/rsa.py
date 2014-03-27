@@ -44,16 +44,16 @@ import netius
 import asn
 import util
 
-BEGIN_PRIVATE = "-----BEGIN RSA PRIVATE KEY-----"
-END_PRIVATE = "-----END RSA PRIVATE KEY-----"
-BEGIN_PUBLIC = "-----BEGIN PUBLIC KEY-----"
-END_PUBLIC = "-----END PUBLIC KEY-----"
+PRIVATE_TOKEN = "RSA PRIVATE KEY"
+PUBLIC_TOKEN = "PUBLIC KEY"
 
 RSAID_PKCS1 = "\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01"
 HASHID_SHA1 = "\x2b\x0e\x03\x02\x1a"
 HASHID_SHA256 = "\x60\x86\x48\x01\x65\x03\x04\x02\x01"
 
-def open_pem_key(path, begin = BEGIN_PRIVATE, end = END_PRIVATE):
+def open_pem_key(path, token = PRIVATE_TOKEN):
+    begin, end = pem_limiters(token)
+
     file = open(path, "rb")
     try: data = file.read()
     finally: file.close()
@@ -73,10 +73,11 @@ def open_pem_key(path, begin = BEGIN_PRIVATE, end = END_PRIVATE):
 def write_pem_key(
     path,
     data,
-    begin = BEGIN_PRIVATE,
-    end = END_PRIVATE,
+    token = PRIVATE_TOKEN,
     width = 64
 ):
+    begin, end = pem_limiters(token)
+
     data = base64.b64encode(data)
 
     chunks = [chunk for chunk in util.chunks(data, width)]
@@ -96,8 +97,7 @@ def write_pem_key(
 def open_private_key(path):
     data = open_pem_key(
         path,
-        begin = BEGIN_PRIVATE,
-        end = END_PRIVATE
+        token = PRIVATE_TOKEN
     )
     asn1 = asn.asn1_parse(asn.ASN1_RSA_PRIVATE_KEY, data)[0]
     private_key = dict(
@@ -116,8 +116,7 @@ def open_private_key(path):
 def open_public_key(path):
     data = open_pem_key(
         path,
-        begin = BEGIN_PUBLIC,
-        end = END_PUBLIC
+        token = PUBLIC_TOKEN
     )
     asn1 = asn.asn1_parse(asn.ASN1_OBJECT, data)[0]
     asn1 = asn.asn1_parse(asn.ASN1_RSA_PUBLIC_KEY, asn1[1][1:])[0]
@@ -144,8 +143,7 @@ def write_private_key(path, private_key):
     write_pem_key(
         path,
         data,
-        begin = BEGIN_PRIVATE,
-        end = END_PRIVATE
+        token = PRIVATE_TOKEN
     )
 
 def write_public_key(path, public_key):
@@ -167,15 +165,19 @@ def write_public_key(path, public_key):
     write_pem_key(
         path,
         data,
-        begin = BEGIN_PUBLIC,
-        end = END_PUBLIC
+        token = PUBLIC_TOKEN
     )
 
-def pem_to_der(in_path, out_path, begin = BEGIN_PRIVATE, end = END_PRIVATE):
-    data = open_pem_key(in_path, begin = begin, end = end)
+def pem_to_der(in_path, out_path, token = PRIVATE_TOKEN):
+    data = open_pem_key(in_path, token = token)
     file = open(out_path, "wb")
     try: file.write(data)
     finally: file.close()
+
+def pem_limiters(token):
+    begin = "-----BEGIN " + token + "-----"
+    end = "-----END " + token + "-----"
+    return (begin, end)
 
 def private_to_public(private_key):
     public_key = dict(
