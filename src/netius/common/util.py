@@ -98,7 +98,7 @@ def integer_to_bytes(number, length = 0):
     number = abs(number)
 
     while number > 0:
-        bytes.append(chr(number % 0xff))
+        bytes.append(chr(number & 0xff))
         number >>= 8
 
     remaining = length - len(bytes)
