@@ -126,7 +126,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # search the current registry, trying to find a registry for the
         # domain of the sender and if it finds one signs the message using
         # the information provided by the registry
-        contents = self.dkim_contents()
+        contents = self.dkim_contents(contents, email = first)
 
         # generates a new smtp client for the sending of the message,
         # uses the current host for identification and then triggers
@@ -135,7 +135,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
             auto_close = True,
             host = self.host
         )
-        smtp_client.message(froms, tos, contents)
+        smtp_client.message(froms, tos, contents, mark = False)
 
     def message_id(self, connection, email = "user@localhost"):
         _user, domain = email.split("@", 1)
