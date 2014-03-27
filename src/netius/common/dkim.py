@@ -267,10 +267,10 @@ def dkim_fold(header, length = 72):
 def dkim_generate(domain, suffix = None, number_bits = 1024):
     date_time = datetime.datetime.utcnow()
 
-    identifier = date_time.strftime("%Y%m%d%H%M%S")
-    if suffix: identifier += "." + suffix
+    selector = date_time.strftime("%Y%m%d%H%M%S")
+    if suffix: selector += "." + suffix
 
-    identifier_full = "%s._domainkey.%s." % (identifier, domain)
+    selector_full = "%s._domainkey.%s." % (selector, domain)
 
     private_key = rsa.rsa_private(number_bits)
     rsa.assert_private(private_key)
@@ -286,11 +286,11 @@ def dkim_generate(domain, suffix = None, number_bits = 1024):
     public_data = rsa.asn_public_key(public_key)
     public_b64 = base64.b64encode(public_data)
 
-    dns_txt = "%s IN TXT \"k=rsa; p=%s\"" % (identifier_full, public_b64)
+    dns_txt = "%s IN TXT \"k=rsa; p=%s\"" % (selector_full, public_b64)
 
     return dict(
-        identifier = identifier,
-        identifier_full = identifier_full,
+        selector = selector,
+        selector_full = selector_full,
         private_pem = private_pem,
         dns_txt = dns_txt
     )
