@@ -37,9 +37,12 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import math
+import random
+
 import util
 
-def prime(self, number_bits):
+def prime(number_bits):
     """
     Generates a prime number with the given number of bits
     in length. This is a brute force based generation as a
@@ -71,10 +74,10 @@ def prime(self, number_bits):
     # to the caller method, may be used for exponent
     return integer
 
-def is_prime(self, number):
-    return self.random_primality(number, 5)
+def is_prime(number):
+    return random_primality(number, 5)
 
-def relatively_prime(self, first, second):
+def relatively_prime(first, second):
     # retrieves the greatest common divisor between the
     # two values and verifies if the value is one, for
     # such situations they are "relative primes"
@@ -112,7 +115,7 @@ def gcd(first, second):
     next = abs(first % second)
     return gcd(second, next)
 
-def extended_gcd(self, first, second):
+def extended_gcd(first, second):
     if second == 0: return (first, 1, 0)
 
     q = abs(first % second)
@@ -120,3 +123,136 @@ def extended_gcd(self, first, second):
     d, k, l = extended_gcd(second, q)
 
     return (d, l, k - l * r)
+
+
+
+
+
+
+def random_integer_interval(min_value, max_value):
+    # sets the default minimum number of bits, even if the
+    # range is too small
+    minimum_number_bits = 32
+
+    # calculates the range of the random numbers
+    # to generate
+    range = max_value - min_value
+
+    # converts the range into bits
+    range_bits = math.log(range, 2)
+
+    # converts the range into bytes
+    range_bytes = ceil_integer(range_bits / 8.0)
+
+    # converts the range into bits, but verifies that there
+    # is at least a minimum number of bits
+    range_bits = max(range_bytes * 8, minimum_number_bits * 2)
+
+    # generates the random number of bits to be used
+    number_bits = random.randint(minimum_number_bits, range_bits)
+
+    # generates the random integer with the number of bits generated
+    # and applying modulo of the range
+    random_base_value = util.random_integer(number_bits) % range
+
+    # creates the random value adding the minimum value to the
+    # random base value
+    random_value = random_base_value + min_value
+
+    # returns the random value
+    return random_value
+
+def random_primality(number, k):
+    # the property of the jacobi witness function
+    q = 0.5
+
+    # calculates t to ha
+    t = ceil_integer(k / math.log(1 / q, 2))
+
+    # iterates over the range of t value plus one
+    for _index in range(t + 1):
+        # generates a random number in the interval
+        random_number = random_integer_interval(1, number - 1)
+
+        # in case the random number is a jacobi witness
+        # then the number is not prime
+        if jacobi_witness(random_number, number):
+            # returns false (invalid)
+            return False
+
+    # returns true (valid)
+    return True
+
+def jacobi_witness(x, n):
+    """
+    Checks if the given x value is witness to n value
+    non primality.
+    This check is made according to euler's theorem.
+
+    @type x: int
+    @param x: The value to be checked for witness.
+    @type n: int
+    @param n: The value to be checked for primality.
+    @rtype: bool
+    @return: The result of the checking.
+    """
+
+    # calculates the j value from jacobi
+    j = jacobi(x, n) % n
+
+    # calculates the f value
+    f = pow(x, (n - 1) / 2, n)
+
+    # in case the j value and the f value are the same,
+    # returns invalid as it is not considered to be a valid
+    # witness, otherwise returns invalid (is a witness)
+    if j == f: return False
+    else: return True
+
+
+def jacobi(a, b):
+    """
+    Calculates the value of the jacobi symbol, using the
+    given a and b values.
+
+    @type a: int
+    @param a: The a value.
+    @type b: int
+    @param b: The b value.
+    @rtype: int
+    @return: The calculated jacobi symbol.
+    """
+
+    if a % b == 0: return 0
+
+    result = 1
+
+    while a > 1:
+        if a & 1:
+            if ((a - 1) * (b - 1) >> 2) & 1: result = -result
+
+            b, a = a, b % a
+        else:
+            if ((b ** 2 - 1) >> 3) & 1: result = -result
+            a >>= 1
+
+    return result
+
+
+def ceil_integer(value):
+    """
+    Retrieves the ceil of a value and then converts it
+    into an integer.
+    The conversion to integer ensures that the ceil
+    is compatible with certain operations.
+
+    @type value: int
+    @param value: The value to apply the ceil.
+    @rtype: int
+    @return: The ceil of the given value "casted" as an
+    integer.
+    """
+
+    value = math.ceil(value)
+    value = int(value)
+    return value
