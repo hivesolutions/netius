@@ -187,7 +187,7 @@ def asn1_length(length):
     result = chr(number | 0x80) + result
     return result
 
-def asn_gen(node):
+def asn1_gen(node):
     generator = asn1_build(node)
     return "".join(generator)
 
