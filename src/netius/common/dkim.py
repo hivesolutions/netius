@@ -44,6 +44,10 @@ import hashlib
 
 import netius
 
+import asn
+import rsa
+import util
+
 LINE_REGEX = re.compile(r"\r?\n")
 """ The regular expression that is going to be used in the
 separation of the various lines of the message for the proper
@@ -171,9 +175,48 @@ def dkim_sign(message, selector, domain, private_key, identity = None):
     ]
 
     signature = "DKIM-Signature: " + "; ".join("%s=%s" % field for field in sign_fields)
-    #sig = fold(signature)
+    signature = dkim_fold(signature)
 
-    print signature
+    hash = hashlib.sha256()
+    for name, value in sign_headers:
+        hash.update(name)
+        hash.update(":")
+        hash.update(value)
+
+    # @todo: isto pode ser problematico por causa do folding !!!!
+    hash.update(signature)
+    digest = hash.digest()
+
+    digest_info = asn.asn1_gen(
+        (asn.SEQUENCE, [
+            (asn.SEQUENCE, [
+                (asn.OBJECT_IDENTIFIER, asn.HASHID_SHA256),
+                (asn.NULL, None),
+            ]),
+            (asn.OCTET_STRING, digest),
+        ])
+    )
+
+    modulus = private_key["modulus"]
+    exponent = private_key["private_exponent"]
+    modulus_s = util.integer_to_bytes(modulus)
+    modulus_l = len(modulus_s)
+
+    digest_l = len(digest_info)
+    delta_l = modulus_l - digest_l - 3
+    delta_l = 0 if delta_l < 0 else delta_l
+
+    if digest_l + 3 > modulus_l:
+        raise netius.GeneratorError("Hash too large for modulus")
+
+    base = "\x00\x01" + "\xff" * delta_l + "\x00" + digest_info
+    base_i = util.bytes_to_integer(base)
+
+    signature_i = rsa.rsa_crypt(base_i, exponent, modulus)
+    signature_s = util.integer_to_bytes(signature_i, length = modulus_l)
+
+    signature += base64.b64encode("".join(signature_s))
+    return signature + "\r\n"
 
 def dkim_headers(headers):
     # returns the headers exactly the way they were parsed
@@ -185,12 +228,33 @@ def dkim_body(body):
     # and adds only one line to the end of it as requested
     return re.sub("(\r\n)*$", "\r\n", body)
 
-if __name__ == "__main__":
-    import rsa
+def dkim_fold(header):
+    """
+    Folds a header line into multiple line feed separated lines
+    at column 72.
+    """
 
+    #@todo: TENHO DE COMENTAR ISTO COMO DEVE DE SER !!!
+    i = header.rfind("\r\n ")
+    if i == -1: pre = ""
+    else:
+        i += 3
+        pre = header[:i]
+        header = header[i:]
+
+    while len(header) > 72:
+        i = header[:72].rfind(" ")
+        if i == -1: j = i
+        else: j = i + 1
+        pre += header[:i] + "\r\n "
+        header = header[j:]
+
+    return pre + header
+
+if __name__ == "__main__":
     file = open("C:/tobias.mail", "rb")
     try: contents = file.read()
     finally: file.close()
     private_key = rsa.open_private_key("c:/tobias.key")
 
-    dkim_sign(contents, "20140326153705", "webook.pt", private_key)
+    print dkim_sign(contents, "20140326153705", "webook.pt", private_key)
