@@ -82,7 +82,8 @@ def write_pem_key(
     chunks = [chunk for chunk in util.chunks(data, width)]
     data = "\n".join(chunks)
 
-    file = open(path, "wb")
+    is_file = not type(path) in types.StringTypes
+    file = path if is_file else open(path, "wb")
     try:
         file.write(begin)
         file.write("\n")
@@ -91,7 +92,7 @@ def write_pem_key(
         file.write(end)
         file.write("\n")
     finally:
-        file.close()
+        if not is_file: file.close()
 
 def open_private_key(path):
     data = open_pem_key(
