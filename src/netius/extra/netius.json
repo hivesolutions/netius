@@ -1,0 +1,9 @@
+{
+    "DKIM" : {
+        "webook.pt" : {
+            "key" : "C:/sandbox/dkim.key",
+            "selector" : "20140327183333.hive",
+            "domain" : "webook.pt"
+        }
+    }
+}

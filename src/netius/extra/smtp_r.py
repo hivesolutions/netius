@@ -42,6 +42,7 @@ import hashlib
 
 import email.parser
 
+import netius.common
 import netius.clients
 import netius.servers
 
@@ -53,6 +54,14 @@ class RelaySMTPServer(netius.servers.SMTPServer):
     The servers uses the default smtp client implementation
     to relay the messages.
     """
+
+    def __init__(self, *args, **kwargs):
+        netius.servers.SMTPServer.__init__(self, *args, **kwargs)
+        self.dkim = {}
+
+    def on_serve(self):
+        netius.servers.SMTPServer.on_serve(self)
+        self.dkim = self.get_env("DKIM", self.dkim)
 
     def on_header_smtp(self, connection, from_l, to_l):
         netius.servers.SMTPServer.on_header_smtp(self, connection, from_l, to_l)
@@ -113,6 +122,12 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         message["Message-ID"] = message_id
         contents = message.as_string()
 
+        # tries to sign the message using dkim, the server is going to
+        # search the current registry, trying to find a registry for the
+        # domain of the sender and if it finds one signs the message using
+        # the information provided by the registry
+        contents = self.dkim_contents()
+
         # generates a new smtp client for the sending of the message,
         # uses the current host for identification and then triggers
         # the message event to send the message to the target host
@@ -130,6 +145,21 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         identifier = identifier.upper()
         identifier = connection.identifier or identifier
         return "<%s@%s>" % (identifier, domain)
+
+    def dkim_contents(self, contents, email = "user@localhost"):
+        _user, domain = email.split("@", 1)
+        registry = self.dkim.get(domain, None)
+        if not registry: return contents
+
+        key_path = registry["key"]
+        selector = registry["selector"]
+        domain = registry["domain"]
+
+        contents = contents.lstrip()
+        private_key = netius.common.open_private_key(key_path)
+        signature = netius.common.dkim_sign(contents, selector, domain, private_key)
+
+        return "".join([signature, contents])
 
 if __name__ == "__main__":
     import logging
