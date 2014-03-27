@@ -37,14 +37,19 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import pprint
+
 import netius.common
 
 import base
 
 def read_private(path):
     private_key = netius.common.open_private_key(path)
-    import pprint
     pprint.pprint(private_key)
+
+def read_public(path):
+    public_key = netius.common.open_public_key(path)
+    pprint.pprint(public_key)
 
 if __name__ == "__main__":
     base.sh_call(globals(), locals())
