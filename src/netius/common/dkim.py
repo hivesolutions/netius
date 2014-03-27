@@ -38,6 +38,9 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import re
+import time
+import base64
+import hashlib
 
 import netius
 
@@ -127,5 +130,67 @@ def rfc822_parse(message, exclude = ()):
     body = "\r\n".join(body_lines)
     return (headers, body)
 
-def dkim_sign(message, selector, domain, private_key):
+def dkim_sign(message, selector, domain, private_key, identity = None):
+    identity = identity or "@" + domain
+
     headers, body = rfc822_parse(message)
+
+    if not identity.endswith(domain):
+        raise netius.GeneratorError("Identity must end with domain")
+
+    headers = dkim_headers(headers)
+    body = dkim_body(body)
+
+    include_headers = [name.lower() for name, _value in headers]
+    sign_headers = [header for header in headers if header[0].lower() in include_headers]
+    sign_names = [name for name, _value in sign_headers]
+
+    hash = hashlib.sha256()
+    hash.update(body)
+
+    body_digest = hash.digest()
+    body_hash = base64.b64encode(body_digest)
+
+    creation = time.time()
+    creation = int(creation)
+    creation_s = str(creation)
+
+    sign_fields = [
+        ("v", "1"),
+        ("a", "rsa-sha256"),
+        ("c", "simple/simple"),
+        ("d", domain),
+        ("i", identity),
+        ("l", len(body)),
+        ("q", "dns/txt"),
+        ("s", selector),
+        ("t", creation_s),
+        ("h", ":".join(sign_names)),
+        ("bh", body_hash),
+        ("b", ""),
+    ]
+
+    signature = "DKIM-Signature: " + "; ".join("%s=%s" % field for field in sign_fields)
+    #sig = fold(signature)
+
+    print signature
+
+def dkim_headers(headers):
+    # returns the headers exactly the way they were parsed
+    # as this is the simple strategy approach
+    return headers
+
+def dkim_body(body):
+    # remove the complete set of empty lines in the body
+    # and adds only one line to the end of it as requested
+    return re.sub("(\r\n)*$", "\r\n", body)
+
+if __name__ == "__main__":
+    import rsa
+
+    file = open("C:/tobias.mail", "rb")
+    try: contents = file.read()
+    finally: file.close()
+    private_key = rsa.open_private_key("c:/tobias.key")
+
+    dkim_sign(contents, "20140326153705", "webook.pt", private_key)
