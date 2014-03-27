@@ -56,8 +56,14 @@ separation of the various lines of the message for the proper
 parsing of it, notice the carriage return and new line support """
 
 SPACE_REGEX = re.compile(r"[\t ]")
+""" Regular expression used for the matching of all the characters
+considered valid for the spaces in the start of a continuation
+line for an header value as part of the rfc822 """
 
 HEADER_NAME_REGEX = re.compile(r"([\x21-\x7e]+?):")
+""" The regular expression to be used for the matching of the
+name part of the header, this should be used do decide if a line
+corresponds to an header line or not """
 
 def rfc822_parse(message, exclude = ()):
     """
