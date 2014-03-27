@@ -127,7 +127,23 @@ def open_public_key(path):
     return public_key
 
 def write_private_key(path, private_key):
-    data = asn.asn1_gen(
+    data = asn_private_key(private_key)
+    write_pem_key(
+        path,
+        data,
+        token = PRIVATE_TOKEN
+    )
+
+def write_public_key(path, public_key):
+    data = asn_public_key(public_key)
+    write_pem_key(
+        path,
+        data,
+        token = PUBLIC_TOKEN
+    )
+
+def asn_private_key(private_key):
+    return asn.asn1_gen(
         (asn.SEQUENCE, [
             (asn.INTEGER, private_key["version"]),
             (asn.INTEGER, private_key["modulus"]),
@@ -140,20 +156,15 @@ def write_private_key(path, private_key):
             (asn.INTEGER, private_key["coefficient"])
         ])
     )
-    write_pem_key(
-        path,
-        data,
-        token = PRIVATE_TOKEN
-    )
 
-def write_public_key(path, public_key):
+def asn_public_key(public_key):
     data = "\x00" + asn.asn1_gen(
         (asn.SEQUENCE, [
             (asn.INTEGER, public_key["modulus"]),
             (asn.INTEGER, public_key["public_exponent"])
         ])
     )
-    data = asn.asn1_gen(
+    return asn.asn1_gen(
         (asn.SEQUENCE, [
             (asn.SEQUENCE, [
                 (asn.OBJECT_IDENTIFIER, asn.RSAID_PKCS1),
@@ -161,11 +172,6 @@ def write_public_key(path, public_key):
             ]),
             (asn.BIT_STRING, data)
         ])
-    )
-    write_pem_key(
-        path,
-        data,
-        token = PUBLIC_TOKEN
     )
 
 def pem_to_der(in_path, out_path, token = PRIVATE_TOKEN):
