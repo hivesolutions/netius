@@ -41,9 +41,9 @@ import netius.common
 
 import base
 
-def generate(identifier, suffix = None, number_bits = 1024):
+def generate(domain, suffix = None, number_bits = 1024):
     number_bits = int(number_bits)
-    result = netius.common.dkim_generate(identifier, suffix = suffix, number_bits = number_bits)
+    result = netius.common.dkim_generate(domain, suffix = suffix, number_bits = number_bits)
     print result["dns_txt"]
     print result["private_pem"]
 
