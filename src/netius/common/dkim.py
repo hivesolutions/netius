@@ -85,7 +85,8 @@ def rfc822_parse(message, exclude = ()):
         if SPACE_REGEX.match(line[0]):
             headers[-1][1] += line + "\r\n"
 
-        # otherwise it's a "normal" header parsing step
+        # otherwise it's a "normal" header parsing step and the typical
+        # header regular expression match strategy is going to be used
         else:
             # tries to run the matching process for message header names
             # against the message line, to be able to "extract" the header
