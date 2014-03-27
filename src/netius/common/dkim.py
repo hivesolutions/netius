@@ -41,6 +41,8 @@ import re
 import time
 import base64
 import hashlib
+import datetime
+import cStringIO
 
 import netius
 
@@ -134,7 +136,7 @@ def rfc822_parse(message, exclude = ()):
     body = "\r\n".join(body_lines)
     return (headers, body)
 
-def dkim_sign(message, selector, domain, private_key, identity = None, separator = " : "):
+def dkim_sign(message, selector, domain, private_key, identity = None, separator = ":"):
     identity = identity or "@" + domain
 
     headers, body = rfc822_parse(message)
@@ -215,8 +217,7 @@ def dkim_sign(message, selector, domain, private_key, identity = None, separator
     signature_s = util.integer_to_bytes(signature_i, length = modulus_l)
 
     signature += base64.b64encode(signature_s)
-    _name, value = signature.split(": ", 1)
-    return value
+    return signature + "\r\n"
 
 def dkim_headers(headers):
     # returns the headers exactly the way they were parsed
@@ -263,10 +264,45 @@ def dkim_fold(header, length = 72):
 
     return pre + header
 
-if __name__ == "__main__":
-    file = open("C:/tobias.mail", "rb")
-    try: contents = file.read()
-    finally: file.close()
-    private_key = rsa.open_private_key("c:/tobias.key")
+def dkim_generate(domain, suffix = None, number_bits = 1024):
+    date_time = datetime.datetime.utcnow()
 
-    print dkim_sign(contents, "20140326153705", "webook.pt", private_key)
+    identifier = date_time.strftime("%Y%m%d%H%M%S")
+    if suffix: identifier += "." + suffix
+
+    identifier_full = "%s._domainkey.%s." % (identifier, domain)
+
+    private_key = rsa.rsa_private(number_bits)
+    rsa.assert_private(private_key)
+    public_key = rsa.private_to_public(private_key)
+
+    buffer = cStringIO.StringIO()
+    try:
+        rsa.write_private_key(buffer, private_key)
+        private_pem = buffer.getvalue()
+    finally:
+        buffer.close()
+
+    public_data = rsa.asn_public_key(public_key)
+    public_b64 = base64.b64encode(public_data)
+
+    dns_txt = "%s IN TXT \"k=rsa; p=%s\"" % (identifier_full, public_b64)
+
+    return dict(
+        identifier = identifier,
+        identifier_full = identifier_full,
+        private_pem = private_pem,
+        dns_txt = dns_txt
+    )
+
+if __name__ == "__main__":
+    result = dkim_generate("webook.pt", suffix = "hive", number_bits = 1024)
+
+    print result["dns_txt"]
+    print result["private_pem"]
+
+    #file = open("C:/tobias.mail", "rb")
+    #try: contents = file.read()
+    #finally: file.close()
+    #private_key = rsa.open_private_key("c:/tobias.key")
+    #print dkim_sign(contents, "20140326153706.hive", "webook.pt", private_key)
