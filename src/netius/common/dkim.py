@@ -65,10 +65,18 @@ def rfc822_parse(message, exclude = ()):
     a list of (name and value) pairs.
     """
 
-    headers = []
-    lines = LINE_REGEX.split(message)
-
+    # starts both the line index value and the list that will
+    # hold the ordered header values for the message
     index = 0
+    headers = []
+
+    # strips the message from any possible starting line characters
+    # this sometimes happens for message transmission
+    message = message.lstrip()
+
+    # splits the various lines of the message around the various
+    # pre-defined separator tokens
+    lines = LINE_REGEX.split(message)
 
     # iterates over all the lines to process the complete set of
     # headers currently defined for the message and determine the
