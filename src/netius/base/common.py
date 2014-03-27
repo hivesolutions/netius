@@ -49,6 +49,7 @@ import logging
 import hashlib
 import traceback
 
+import config
 import errors
 
 import netius.adapters
@@ -714,6 +715,10 @@ class Base(observer.Observable):
         An optional cast type may be provided in order to cast the
         value of the environment variable in to the target type.
 
+        Current implementation forwards the request to the current
+        configuration registry so that other data providers may
+        also be used in search for configuration.
+
         @type name: String
         @param name: The name of the environment variable that is
         meant to be retrieved from the current environment
@@ -728,8 +733,8 @@ class Base(observer.Observable):
         properly casted into the target value.
         """
 
-        if not name in os.environ: return default
-        value = os.environ.get(name, default)
+        if not name in config.CONFIGS: return default
+        value = config.CONFIGS.get(name, default)
         try: value = int(value) == 1 if cast == bool else cast(value)
         except: value = value
         return value
