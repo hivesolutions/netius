@@ -58,7 +58,8 @@ setuptools.setup(
         "netius.clients",
         "netius.common",
         "netius.extra",
-        "netius.servers"
+        "netius.servers",
+        "netius.sh"
     ],
     package_dir = {
         "" : os.path.normpath("src")
