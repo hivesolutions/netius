@@ -39,6 +39,17 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import re
 
+import netius
+
+LINE_REGEX = re.compile(r"\r?\n")
+""" The regular expression that is going to be used in the
+separation of the various lines of the message for the proper
+parsing of it, notice the carriage return and new line support """
+
+SPACE_REGEX = re.compile(r"[\t ]")
+
+HEADER_NAME_REGEX = re.compile(r"([\x21-\x7e]+?):")
+
 def rfc822_parse(message, exclude = ()):
     """
     Parse a message in rfc822 format. This format is similar to
@@ -55,25 +66,57 @@ def rfc822_parse(message, exclude = ()):
     """
 
     headers = []
-    lines = re.split("\r?\n", message)
-    i = 0
-    while i < len(lines):
-        if len(lines[i]) == 0:
-            # End of headers, return what we have plus the body, excluding the blank line.
-            i += 1
-            break
-        if re.match(r"[\x09\x20]", lines[i][0]):
-            headers[-1][1] += lines[i]+"\r\n"
+    lines = LINE_REGEX.split(message)
+
+    index = 0
+
+    # iterates over all the lines to process the complete set of
+    # headers currently defined for the message and determine the
+    # start (line) index for the message body
+    for line in lines:
+        # in case an empty/invalid line has been reached the
+        # end of headers have been found (must break the loop)
+        if not line: break
+
+        # verifies if this is a continuation line, these lines
+        # start with either a space or a tab character, for those
+        # situations the contents of the current line must be
+        # added to the previously parsed header
+        if SPACE_REGEX.match(line[0]):
+            headers[-1][1] += line + "\r\n"
+
+        # otherwise it's a "normal" header parsing step
         else:
-            m = re.match(r"([\x21-\x7e]+?):", lines[i])
-            if m is not None:
-                headers.append([m.group(1), lines[i][m.end(0):]+"\r\n"])
-            elif lines[i].startswith("From "):
-                pass
-            else:
-                raise MessageFormatError("Unexpected characters in RFC822 header: %s" % lines[i])
-        i += 1
-    return (headers, "\r\n".join(lines[i:]))
+            # tries to run the matching process for message header names
+            # against the message line, to be able to "extract" the header
+            match = HEADER_NAME_REGEX.match(line)
+
+            # in case there was a valid match for the header tag, processed
+            # it by separating the name from the value of the header and
+            # creating the proper header tuple adding it to the list of headers
+            if match:
+                name = match.group(1)
+                value = line[match.end(0):] + "\r\n"
+                headers.append([name, value])
+
+            # otherwise in case the line is a from line formatted
+            # using an old fashion strategy tolerates it (compatibility)
+            elif line.startswith("From "): pass
+
+            # as a fallback raises a parser error as no parsing of header
+            # was possible for the message (major problem)
+            else: raise netius.ParserError("Unexpected header value")
+
+        # increments the current line index counter, as one more
+        # line has been processed by the parser
+        index += 1
+
+    # joins the complete set of "remaining" body lines creating the string
+    # representing the body, and uses it to create the headers and body
+    # tuple that is going to be returned to the caller method
+    body_lines = lines[index + 1:]
+    body = "\r\n".join(body_lines)
+    return (headers, body)
 
 def dkim_sign(message, selector, domain, private_key):
     headers, body = rfc822_parse(message)
