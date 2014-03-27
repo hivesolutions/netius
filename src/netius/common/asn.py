@@ -99,8 +99,11 @@ def asn1_parse(template, data):
     @param data: A list of bytes to parse.
     """
 
-    result = []
+    # starts the index value at the zero value and the creates the
+    # the list that is going to hold the various partial values for
+    # generated during the parsing of the structure
     index = 0
+    result = []
 
     # iterates over the complete set of items in the current
     # template structure to "apply" them to the current values
