@@ -77,7 +77,7 @@ def prime(number_bits):
     return integer
 
 def is_prime(number):
-    return random_primality(number, 5)
+    return random_primality(number, 6)
 
 def relatively_prime(first, second):
     # retrieves the greatest common divisor between the
@@ -103,7 +103,7 @@ def gcd(first, second):
     """
 
     # in case the p value is smaller than the q value
-    # reveses the order of the arguments and re-computes
+    # reverses the order of the arguments and re-computes
     if first < second: return gcd(second, first)
 
     # in case the q value is zero
@@ -167,62 +167,68 @@ def modinv(first, second):
     if d != 1: raise netius.DataError("Modular inverse does not exist")
     else: return l % second
 
-
-
-
-
 def random_integer_interval(min_value, max_value):
     # sets the default minimum number of bits, even if the
-    # range is too small
+    # range is too small, (represents integer value)
     max_number_bits = 32
 
-    # calculates the range of the random numbers
-    # to generate
+    # calculates the range of the random numbers to generate,
+    # meaning the amount of numbers that may be generated for
+    # the currently defined domain and then converts this value
+    # into both bits and bytes (different math radix)
     range = max_value - min_value
-
-    # converts the range into bits
     range_bits = math.log(range, 2)
-
-    # converts the range into bytes
     range_bytes = ceil_integer(range_bits / 8.0)
 
     # converts the range into bits, but verifies that there
     # is at least a minimum number of bits
     range_bits = max(range_bytes * 8, max_number_bits * 2)
 
-    # generates the random number of bits to be used
+    # generates the random number of bits to be used in the
+    # number generation, taking into account that the value
+    # of it will never be greater that the maximum values
     number_bits = random.randint(max_number_bits, range_bits)
 
     # generates the random integer with the number of bits generated
-    # and applying modulo of the range
+    # and applying modulo of the range, then increments the minimum
+    # value to the generated value and returns it to the caller
     random_base_value = util.random_integer(number_bits) % range
-
-    # creates the random value adding the minimum value to the
-    # random base value
-    random_value = random_base_value + min_value
-
-    # returns the random value
-    return random_value
+    return random_base_value + min_value
 
 def random_primality(number, k):
-    # the property of the jacobi witness function
-    q = 0.5
+    """
+    Uses a probabilistic approach to the testing of primality
+    of a number. The resulting value has an error probability
+    of (2 ** -k), so a k value should be chosen taking a low
+    error as target.
 
-    # calculates t to ha
+    @type number: int
+    @param number: The value that is going to be tested for
+    primality.
+    @type k: int
+    @param k: The coefficient that is going to be used in the
+    test, the higher this value is the small the error is.
+    @see: http://en.wikipedia.org/wiki/Solovay%E2%80%93Strassen_primality_test
+    """
+
+    # calculates the upper range of values that are going
+    # to be used for the generation of numbers
+    q = 0.5
     t = ceil_integer(k / math.log(1 / q, 2))
 
-    # iterates over the range of t value plus one
+    # iterates over the range of t value plus one this is the
+    # range that is going to be used for primality testing
     for _index in range(t + 1):
-        # generates a random number in the interval
+
+        # generates a random number in the interval and verifies
+        # if the number is a jacobi witness to the number that
+        # is going to be verified
         random_number = random_integer_interval(1, number - 1)
+        is_witness = jacobi_witness(random_number, number)
+        if is_witness: return False
 
-        # in case the random number is a jacobi witness
-        # then the number is not prime
-        if jacobi_witness(random_number, number):
-            # returns false (invalid)
-            return False
-
-    # returns true (valid)
+    # returns valid as no jacobi witness has been found
+    # for the current number that is being verified
     return True
 
 def jacobi_witness(x, n):
@@ -230,24 +236,21 @@ def jacobi_witness(x, n):
     Checks if the given x value is witness to n value
     non primality.
     This check is made according to euler's theorem.
+    The provided value x is considered to be a witness
+    to n in case it is an euler's pseudo-prime with base x
 
     @type x: int
     @param x: The value to be checked for witness.
     @type n: int
     @param n: The value to be checked for primality.
     @rtype: bool
-    @return: The result of the checking.
+    @return: The result of the checking, if it passed
+    the test or not (is witness or not).
     """
 
-    # calculates the j value from jacobi
     j = jacobi(x, n) % n
-
-    # calculates the f value
     f = pow(x, (n - 1) / 2, n)
 
-    # in case the j value and the f value are the same,
-    # returns invalid as it is not considered to be a valid
-    # witness, otherwise returns invalid (is a witness)
     if j == f: return False
     else: return True
 
@@ -256,12 +259,16 @@ def jacobi(a, b):
     Calculates the value of the jacobi symbol, using the
     given a and b values.
 
+    The possible return values for jacobi symbols are:
+    -1, 0 or 1.
+
     @type a: int
-    @param a: The a value.
+    @param a: The a value of the jacobi symbol.
     @type b: int
-    @param b: The b value.
+    @param b: The b value of the jacobi symbol.
     @rtype: int
-    @return: The calculated jacobi symbol.
+    @return: The calculated jacobi symbol, possible values
+    are: -1, 0 or 1.
     @see: http://en.wikipedia.org/wiki/Jacobi_symbol
     """
 
@@ -272,7 +279,6 @@ def jacobi(a, b):
     while a > 1:
         if a & 1:
             if ((a - 1) * (b - 1) >> 2) & 1: result = -result
-
             b, a = a, b % a
         else:
             if ((b ** 2 - 1) >> 3) & 1: result = -result
@@ -288,10 +294,11 @@ def ceil_integer(value):
     is compatible with certain (integer) operations.
 
     @type value: int
-    @param value: The value to apply the ceil.
+    @param value: The value to apply the ceil and that
+    will latter be converted into a valid integer.
     @rtype: int
     @return: The ceil of the given value "casted" as an
-    integer.
+    integer to be able to be used in integer math.
     """
 
     value = math.ceil(value)
