@@ -47,5 +47,18 @@ def generate(domain, suffix = None, number_bits = 1024):
     print result["dns_txt"]
     print result["private_pem"]
 
+def sign(email_path, key_path, identifier, domain):
+    file = open(email_path, "rb")
+    try: contents = file.read()
+    finally: file.close()
+
+    contents = contents.lstrip()
+    private_key = netius.common.open_private_key(key_path)
+    signature = netius.common.dkim_sign(contents, identifier, domain, private_key)
+
+    file = open(email_path, "wb")
+    try: file.write(signature); file.write(contents)
+    finally: file.close()
+
 if __name__ == "__main__":
     base.sh_call(globals(), locals())
