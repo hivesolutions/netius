@@ -294,15 +294,3 @@ def dkim_generate(domain, suffix = None, number_bits = 1024):
         private_pem = private_pem,
         dns_txt = dns_txt
     )
-
-if __name__ == "__main__":
-    result = dkim_generate("webook.pt", suffix = "hive", number_bits = 1024)
-
-    print result["dns_txt"]
-    print result["private_pem"]
-
-    #file = open("C:/tobias.mail", "rb")
-    #try: contents = file.read()
-    #finally: file.close()
-    #private_key = rsa.open_private_key("c:/tobias.key")
-    #print dkim_sign(contents, "20140326153706.hive", "webook.pt", private_key)
