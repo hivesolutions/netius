@@ -62,6 +62,8 @@ class RelaySMTPServer(netius.servers.SMTPServer):
     def on_serve(self):
         netius.servers.SMTPServer.on_serve(self)
         self.dkim = self.get_env("DKIM", self.dkim)
+        dkim_l = len(self.dkim)
+        self.info("Starting Relay SMTP server with '%d' DKIM registers  ..." %  dkim_l)
 
     def on_header_smtp(self, connection, from_l, to_l):
         netius.servers.SMTPServer.on_header_smtp(self, connection, from_l, to_l)
@@ -148,12 +150,12 @@ class RelaySMTPServer(netius.servers.SMTPServer):
 
     def dkim_contents(self, contents, email = "user@localhost"):
         _user, domain = email.split("@", 1)
-        registry = self.dkim.get(domain, None)
-        if not registry: return contents
+        register = self.dkim.get(domain, None)
+        if not register: return contents
 
-        key_path = registry["key"]
-        selector = registry["selector"]
-        domain = registry["domain"]
+        key_path = register["key"]
+        selector = register["selector"]
+        domain = register["domain"]
 
         contents = contents.lstrip()
         private_key = netius.common.open_private_key(key_path)
