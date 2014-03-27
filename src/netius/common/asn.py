@@ -81,6 +81,10 @@ ASN1_RSA_PRIVATE_KEY = [
     ])
 ]
 
+RSAID_PKCS1 = "\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01"
+HASHID_SHA1 = "\x2b\x0e\x03\x02\x1a"
+HASHID_SHA256 = "\x60\x86\x48\x01\x65\x03\x04\x02\x01"
+
 def asn1_parse(template, data):
     """
     Parse a data structure according to asn.1 template,
