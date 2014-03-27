@@ -200,6 +200,13 @@ def assert_private(private_key):
     assert exponent_2 == private_key["exponent_2"]
     assert coefficient == private_key["coefficient"]
 
+    message = "Hello World"
+    signature = rsa_sign("Hello World", private_key)
+    result = rsa_verify(signature, private_key)
+    result = result.lstrip("\0")
+
+    assert result == message
+
 def rsa_private(number_bits):
     """
     Generates a new "random" private with the requested number
