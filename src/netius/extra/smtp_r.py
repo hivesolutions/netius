@@ -40,8 +40,6 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import uuid
 import hashlib
 
-import email.parser
-
 import netius.common
 import netius.clients
 import netius.servers
