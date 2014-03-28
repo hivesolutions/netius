@@ -19,6 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
 
+__author__ = "João Magalhães joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -35,11 +38,15 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import base
-import dkim
-import rsa
-import smtp
 
-from base import *
-from dkim import *
-from rsa import *
-from smtp import *
+import netius.clients
+
+def send(path, sender , receiver, host = None, port = 25):
+    file = open(path, "rb")
+    try: contents = file.read()
+    finally: file.close()
+    smtp_client = netius.clients.SMTPClient(auto_close = True)
+    smtp_client.message([sender], [receiver], contents, host = host, port = port)
+
+if __name__ == "__main__":
+    base.sh_call(globals(), locals())
