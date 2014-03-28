@@ -51,5 +51,10 @@ def read_public(path):
     public_key = netius.common.open_public_key(path)
     pprint.pprint(public_key)
 
+def private_to_public(private_path, public_path):
+    private_key = netius.common.open_private_key(private_path)
+    public_key = netius.common.private_to_public(private_key)
+    netius.common.write_public_key(public_path, public_key)
+
 if __name__ == "__main__":
     base.sh_call(globals(), locals())
