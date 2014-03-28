@@ -167,7 +167,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
             identity = email
         )
 
-        return "".join([signature, contents])
+        return signature + contents
 
 if __name__ == "__main__":
     import logging
