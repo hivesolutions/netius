@@ -38,6 +38,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import re
+import types
 
 import netius
 
@@ -55,6 +56,45 @@ HEADER_NAME_REGEX = re.compile(r"([\x21-\x7e]+?):")
 """ The regular expression to be used for the matching of the
 name part of the header, this should be used do decide if a line
 corresponds to an header line or not """
+
+class Headers(list):
+    """
+    Mutable structure that allow the access to header tuples
+    using both a list style strategy and a dictionary based
+    strategy, providing easy manipulation of the items.
+
+    The order of insertion is preserved so that it may be
+    respected if a re-construction of the message is required.
+    """
+
+    def __getitem__(self, key):
+        is_integer = type(key) == types.IntType
+        if is_integer: return list.__getitem__(self, key)
+        for key, value in self:
+            if not key == key: continue
+            return value
+        raise KeyError("not found")
+
+    def __setitem__(self, key, value):
+        is_integer = type(key) == types.IntType
+        if is_integer: return list.__setitem__(self, key, value)
+        self.append((key, value))
+
+    def __delitem__(self, key):
+        is_integer = type(key) == types.IntType
+        if is_integer: return list.__delitem__(self, key)
+        value = self.__getitem__(key)
+        item = (key, value)
+        self.remove(item)
+
+    def __contains__(self, item):
+        print item
+        is_string = type(item) in types.StringTypes
+        if not is_string: return list.__contains__(self, item)
+        for key, _value in self:
+            if not key == item: continue
+            return True
+        return False
 
 def rfc822_parse(message):
     """
@@ -74,7 +114,7 @@ def rfc822_parse(message):
     # starts both the line index value and the list that will
     # hold the ordered header values for the message
     index = 0
-    headers = []
+    headers = Headers()
 
     # strips the message from any possible starting line characters
     # this sometimes happens for message transmission
