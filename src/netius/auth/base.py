@@ -34,10 +34,15 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import adapters
-import auth
-import base
+class Auth(object):
+    """
+    The top level base authentication handler, should define
+    and implement generic authentication methods.
 
-from adapters import *
-from auth import *
-from base import *
+    The proper exceptions must be raised when the implementation
+    at this abstraction level is insufficient or insecure.
+    """
+
+    @classmethod
+    def auth(cls, *args, **kwargs):
+        pass
