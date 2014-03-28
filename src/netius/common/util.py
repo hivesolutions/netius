@@ -39,6 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import os
 import math
+import types
 import socket
 
 SIZE_UNITS_LIST = (
@@ -171,6 +172,8 @@ def host():
     if _HOST: print "cached"; return _HOST
     hostname = socket.gethostname()
     _HOST = socket.gethostbyname(hostname)
+    is_unicode = type(_HOST) == types.UnicodeType
+    if is_unicode: _HOST = _HOST.encode("utf-8")
     return _HOST
 
 def size_round_unit(
