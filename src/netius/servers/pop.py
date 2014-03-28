@@ -49,15 +49,25 @@ AUTH_STATE = 3
 
 SESSION_STATE = 4
 
+CHUNK_SIZE = 4096
+""" The size of the chunk to be used for the partial sending
+of the message to the client, this value will affect the
+memory used by the server and its network performance """
+
 CAPABILITIES = (
     "TOP",
     "USER",
     "STLS"
 )
+""" The capabilities that are going to be exposed to the client
+as the ones handled by the server, should only expose the ones
+that are properly handled by the server """
 
 AUTH_METHODS = (
     "PLAIN",
 )
+""" Authentication methods that are available to be "used" by
+the client, should be mapped into the proper auth handlers """
 
 class POPConnection(netius.Connection):
 
@@ -69,7 +79,7 @@ class POPConnection(netius.Connection):
         self.token_buf = []
         self.count = 0
         self.byte_c = 0
-        self.contents = str()
+        self.file = None
         self.sizes = ()
         self.keys = ()
         self.state = INTIAL_STATE
@@ -152,11 +162,17 @@ class POPConnection(netius.Connection):
         self.send_pop(message, lines = lines)
 
     def retr(self, index):
+        def callback(connection):
+            if not connection.file: return
+            file = connection.file
+            contents = file.read(CHUNK_SIZE)
+            if contents: self.send(contents, callback = callback);
+            else: self.send("\r\n.\r\n"); file.close(); connection.file = None
+
         self.owner.on_retr_pop(self, index)
-        contents = self.contents
-        size = len(contents)
-        message = "%d octets" % size
-        self.send_pop(message, lines = (contents,))
+        message = "%d octets" % self.size
+        self.send_pop(message, callback = callback)
+        callback(self)
 
     def dele(self, index):
         self.owner.on_dele_pop(self, index)
@@ -283,6 +299,10 @@ class POPServer(netius.StreamServer):
         netius.StreamServer.on_connection_c(self, connection)
         connection.ready()
 
+    def on_connection_d(self, connection):
+        netius.StreamServer.on_connection_d(self, connection)
+        if connection.file: file.close()
+
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
         connection.parse(data)
@@ -330,7 +350,8 @@ class POPServer(netius.StreamServer):
 
     def on_retr_pop(self, connection, index):
         key = connection.keys[index]
-        connection.contents = self.adapter.get(key)
+        connection.size = self.adapter.size(key)
+        connection.file = self.adapter.get_file(key)
 
     def on_dele_pop(self, connection, index):
         username = connection.username
