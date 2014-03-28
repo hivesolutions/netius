@@ -46,7 +46,7 @@ class MemoryAuth(base.Auth):
         register = registry.get(username, None)
         if not register: return False
         _password = register.get("password")
-        return password == _password 
+        return password == _password
 
     @classmethod
     def get_registry(cls):
@@ -54,7 +54,7 @@ class MemoryAuth(base.Auth):
         cls.registry = cls.load_registry()
         print cls.registry
         return cls.registry
-    
+
     @classmethod
-    def load_registry(cls):    
+    def load_registry(cls):
         return netius.conf("REGISTRY", {})

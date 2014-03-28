@@ -34,6 +34,8 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import netius
+
 class Auth(object):
     """
     The top level base authentication handler, should define
@@ -45,4 +47,4 @@ class Auth(object):
 
     @classmethod
     def auth(cls, *args, **kwargs):
-        pass
+        raise netius.NotImplemented("Missing implementation")

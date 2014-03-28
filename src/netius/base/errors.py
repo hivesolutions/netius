@@ -93,3 +93,16 @@ class SecurityError(NetiusError):
     """
 
     pass
+
+class NotImplemented(NetiusError):
+    """
+    Error caused by the non implementation of a certain
+    method/feature at a certain level. This may mean that
+    the wrong level of abstraction is being called or a
+    certain feature is pending development.
+
+    This kind of problems is considered to be development
+    as they may be related with programming.
+    """
+
+    pass
