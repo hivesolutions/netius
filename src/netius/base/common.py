@@ -760,6 +760,28 @@ class Base(observer.Observable):
         adapter = adapter_c(*args, **kwargs)
         return adapter
 
+    def get_auth(self, name = "memory", *args, **kwargs):
+        """
+        Gathers the proper authentication handler that is being
+        requested with the provided name. The retrieved auth
+        is a static class that should be used from its interface
+        based on class based methods.
+
+        The state of theses authentication (handlers) is based
+        on the "global" state of the environment (no instances).
+
+        @type name: String
+        @param name: The name of the authentication (handler)
+        class that should be retrieved.
+        @rtype: Auth
+        @return: An authentication based class that may be used
+        for the interaction of authentication methods.
+        """
+
+        name_f = name.title() + "Auth"
+        auth_c = getattr(netius.auth, name_f)
+        return auth_c
+
     def _pending(self, _socket):
         """
         Tries to perform the pending operations in the socket
