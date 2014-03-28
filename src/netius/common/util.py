@@ -61,6 +61,11 @@ DEFAULT_PLACES = 3
 to be used for the string representation in the round
 based conversion of size units to be performed """
 
+_HOST = None
+""" The globally cached value for the current hostname,
+this value is used to avoid an excessive blocking in the
+get host by name call, as it is a blocking call """
+
 def cstring(value):
     index = value.index("\0")
     if index == -1: return value
@@ -154,14 +159,19 @@ def host():
     No result type are guaranteed and a local address
     (eg: 127.0.0.1) may be returned instead.
 
+    The returned value is cached to avoid multiple
+    blocking calls from blocking the processor.
+
     @rtype: Strong
     @return: The string that contains the host address
     as defined by specification for the current machine.
     """
 
+    global _HOST
+    if _HOST: print "cached"; return _HOST
     hostname = socket.gethostname()
-    host = socket.gethostbyname(hostname)
-    return host
+    _HOST = socket.gethostbyname(hostname)
+    return _HOST
 
 def size_round_unit(
     size_value,

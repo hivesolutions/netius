@@ -348,13 +348,13 @@ class SMTPClient(netius.StreamClient):
 
     def __init__(
         self,
-        host = "smtp.localhost",
+        host = None,
         auto_close = False,
         *args,
         **kwargs
     ):
         netius.StreamClient.__init__(self, *args, **kwargs)
-        self.host = host
+        self.host = host if host else "[" + netius.common.host() + "]"
         self.auto_close = auto_close
 
     @classmethod
