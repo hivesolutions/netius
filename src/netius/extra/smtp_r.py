@@ -159,7 +159,13 @@ class RelaySMTPServer(netius.servers.SMTPServer):
 
         contents = contents.lstrip()
         private_key = netius.common.open_private_key(key_path)
-        signature = netius.common.dkim_sign(contents, selector, domain, private_key)
+        signature = netius.common.dkim_sign(
+            contents,
+            selector,
+            domain,
+            private_key,
+            identity = email
+        )
 
         return "".join([signature, contents])
 
