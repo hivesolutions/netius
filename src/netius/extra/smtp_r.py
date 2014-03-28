@@ -107,6 +107,12 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         self.relay(connection, froms, connection.remotes, data_s)
 
     def relay(self, connection, froms, tos, contents):
+        # verifies that the current connection has an authenticated user
+        # and if not raises an exception as the authentication is mandatory
+        # for the relaying of message under the "default" policy
+        if not connection.username:
+            raise netius.SecurityError("User is not authenticated")
+
         # retrieves the first email from the froms list as this is
         # the one that is going to be used for message id generation
         # and then generates a new "temporary" message id
