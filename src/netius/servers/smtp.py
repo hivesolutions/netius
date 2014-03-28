@@ -38,6 +38,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import time
+import base64
 import datetime
 
 import netius.common
@@ -55,7 +56,8 @@ TERMINATION_SIZE = 5
 this is going to be used in some parsing calculus """
 
 CAPABILITIES = (
-    "STARTTLS",
+    "AUTH PLAIN",
+    "STARTTLS"
 )
 """ The sequence defining the various capabilities that are
 available under the current smtp server implementation, the
@@ -148,6 +150,14 @@ class SMTPConnection(netius.Connection):
         message = "go ahead"
         self.send_smtp(220, message, callback = callback)
         self.state = HELO_STATE
+
+    def auth(self, method, data):
+        data_s = base64.b64decode(data)
+        _identifier, username, password = data_s.split("\0")
+        self.owner.on_auth_smtp(self, username, password)
+        message = "authentication successful"
+        self.send_smtp(235, message)
+        self.state = HEADER_STATE
 
     def data(self):
         self.assert_s(HEADER_STATE)
@@ -246,6 +256,11 @@ class SMTPConnection(netius.Connection):
     def on_starttls(self, message):
         self.starttls()
 
+    def on_auth(self, message):
+        method, data = message.split(" ", 1)
+        method = method.lower()
+        self.auth(method, data)
+
     def on_mail(self, message):
         self.from_l.append(message)
         self.ok()
@@ -278,9 +293,10 @@ class SMTPConnection(netius.Connection):
 
 class SMTPServer(netius.StreamServer):
 
-    def __init__(self, adapter_s = "memory", locals = ("localhost",), *args, **kwargs):
+    def __init__(self, adapter_s = "memory", auth_s = "dummy", locals = ("localhost",), *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.adapter_s = adapter_s
+        self.auth_s = auth_s
         self.locals = locals
 
     def serve(self, host = "smtp.localhost", port = 25, *args, **kwargs):
@@ -299,10 +315,12 @@ class SMTPServer(netius.StreamServer):
         netius.StreamServer.on_serve(self)
         if self.env: self.host = self.get_env("SMTP_HOST", self.host)
         if self.env: self.adapter_s = self.get_env("SMTP_ADAPTER", self.adapter_s)
+        if self.env: self.auth_s = self.get_env("SMTP_AUTH", self.auth_s)
         self.adapter = self.get_adapter(self.adapter_s)
+        self.auth = self.get_auth(self.auth_s)
         self.info(
-            "Starting SMTP server on '%s' using '%s' ..." %\
-            (self.host, self.adapter_s)
+            "Starting SMTP server on '%s' using '%s' and '%s' ..." %\
+            (self.host, self.adapter_s, self.auth_s)
         )
 
     def new_connection(self, socket, address, ssl = False):
@@ -316,6 +334,10 @@ class SMTPServer(netius.StreamServer):
 
     def on_line_smtp(self, connection, code, message):
         pass
+
+    def on_auth_smtp(self, connection, username, password):
+        self.auth.auth_assert(username, password)
+        connection.username = username
 
     def on_header_smtp(self, connection, from_l, to_l):
         # creates the list that will hold the various keys
