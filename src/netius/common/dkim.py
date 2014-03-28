@@ -55,7 +55,7 @@ import mime
 def dkim_sign(message, selector, domain, private_key, identity = None, separator = ":"):
     identity = identity or "@" + domain
 
-    headers, body = mime.rfc822_parse(message)
+    headers, body = mime.rfc822_parse(message, strip = False)
 
     if not identity.endswith(domain):
         raise netius.GeneratorError("Identity must end with domain")
@@ -100,7 +100,7 @@ def dkim_sign(message, selector, domain, private_key, identity = None, separator
     for name, value in sign_headers:
         hash.update(name)
         hash.update(":")
-        hash.update(value)
+        hash.update(value + "\r\n")
 
     hash.update(signature)
     digest = hash.digest()
