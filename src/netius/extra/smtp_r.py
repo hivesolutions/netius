@@ -39,6 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import uuid
 import hashlib
+import datetime
 
 import netius.common
 import netius.clients
@@ -111,6 +112,11 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         if not hasattr(connection, "username") or not connection.username:
             raise netius.SecurityError("User is not authenticated")
 
+        # retrieves the current date value formatted according to
+        # the smtp based specification string value, this value
+        # is going to be used for the replacement of the header
+        date = self.date()
+
         # retrieves the first email from the froms list as this is
         # the one that is going to be used for message id generation
         # and then generates a new "temporary" message id
@@ -123,6 +129,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         headers, body = netius.common.rfc822_parse(contents)
         received = connection.received_s()
         message_id = headers.get("Message-ID", message_id)
+        headers.set("Date", date)
         headers.set("Received", received)
         headers.set("Message-ID", message_id)
         contents = netius.common.rfc822_join(headers, body)
@@ -141,6 +148,10 @@ class RelaySMTPServer(netius.servers.SMTPServer):
             host = self.host
         )
         smtp_client.message(froms, tos, contents, mark = False)
+
+    def date(self):
+        date_time = datetime.datetime.utcnow()
+        return date_time.strftime("%a, %d %b %Y %H:%M:%S +0000")
 
     def message_id(self, connection, email = "user@localhost"):
         _user, domain = email.split("@", 1)
