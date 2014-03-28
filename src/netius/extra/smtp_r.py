@@ -119,16 +119,15 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         first = froms[0]
         message_id = self.message_id(connection, email = first)
 
-        # creates a new email parser and parses the provided contents
-        # as mime text and then appends the "new" message id to it
-        # converting then the result into a plain text value
-        parser = email.parser.Parser()
-        message = parser.parsestr(contents)
+        # parses the provided contents as mime text and then appends
+        # the various extra fields so that the relay operation is
+        # considered valid and then re-joins the message as a string
+        headers, body = netius.common.rfc822_parse(contents)
         received = connection.received_s()
-        message_id = message.get("Message-ID", message_id)
-        message["Received"] = received
-        message["Message-ID"] = message_id
-        contents = message.as_string()
+        message_id = headers.get("Message-ID", message_id)
+        headers.set("Received", received, append = True)
+        headers.set("Message-ID", message_id)
+        contents = netius.common.rfc822_join(headers, body)
 
         # tries to sign the message using dkim, the server is going to
         # search the current registry, trying to find a registry for the
