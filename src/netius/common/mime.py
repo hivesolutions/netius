@@ -70,25 +70,23 @@ class Headers(list):
     def __getitem__(self, key):
         is_integer = type(key) == types.IntType
         if is_integer: return list.__getitem__(self, key)
-        for key, value in self:
-            if not key == key: continue
+        for _key, value in self:
+            if not _key == key: continue
             return value
         raise KeyError("not found")
 
     def __setitem__(self, key, value):
         is_integer = type(key) == types.IntType
         if is_integer: return list.__setitem__(self, key, value)
-        self.append((key, value))
+        self.append([key, value])
 
     def __delitem__(self, key):
         is_integer = type(key) == types.IntType
         if is_integer: return list.__delitem__(self, key)
         value = self.__getitem__(key)
-        item = (key, value)
-        self.remove(item)
+        self.remove([key, value])
 
     def __contains__(self, item):
-        print item
         is_string = type(item) in types.StringTypes
         if not is_string: return list.__contains__(self, item)
         for key, _value in self:
@@ -96,7 +94,24 @@ class Headers(list):
             return True
         return False
 
-def rfc822_parse(message):
+    def item(self, key):
+        for item in self:
+            if not item[0] == key: continue
+            return item
+        raise KeyError("not found")
+
+    def get(self, key, default = None):
+        if not key in self: return default
+        return self[key]
+
+    def set(self, key, value, append = False):
+        if key in self and not append: self.item(key)[1] = value
+        else: self[key] = value
+
+    def join(self, separator = "\r\n"):
+        return separator.join(["%s: %s" % (key, value) for key, value in self])
+
+def rfc822_parse(message, strip = True):
     """
     Parse a message in rfc822 format. This format is similar to
     the mime one with only some small changes. The returning value
@@ -104,8 +119,14 @@ def rfc822_parse(message):
     the processed message as a standard encoded string.
 
     @type message: String
-    @param message: The message in rfc822 format, with both Carriage
+    @param message: The message in rfc822 format, with both carriage
     return and line feed support.
+    @type strip: bool
+    @param strip: If the initial white spaces in the first header line
+    should be removed and the proper abstract structure created with no
+    extra space values (no strict representation). This should not be
+    used when the strict representation of the headers is required
+    (eg: for cryptographic signing purposes).
     @rtype: Tuple
     @return Returns a tuple of headers and body where headers is
     a list of (name and value) pairs.
@@ -137,7 +158,7 @@ def rfc822_parse(message):
         # situations the contents of the current line must be
         # added to the previously parsed header
         if SPACE_REGEX.match(line[0]):
-            headers[-1][1] += line + "\r\n"
+            headers[-1][1] += "\r\n" + line
 
         # otherwise it's a "normal" header parsing step and the typical
         # header regular expression match strategy is going to be used
@@ -151,7 +172,8 @@ def rfc822_parse(message):
             # creating the proper header tuple adding it to the list of headers
             if match:
                 name = match.group(1)
-                value = line[match.end(0):] + "\r\n"
+                value = line[match.end(0):]
+                if strip: value = value.lstrip()
                 headers.append([name, value])
 
             # otherwise in case the line is a from line formatted
@@ -174,4 +196,5 @@ def rfc822_parse(message):
     return (headers, body)
 
 def rfc822_join(headers, body):
-    pass
+    headers_s = headers.join()
+    return headers_s + "\r\n\r\n" + body
