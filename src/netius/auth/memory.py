@@ -52,7 +52,6 @@ class MemoryAuth(base.Auth):
     def get_registry(cls):
         if hasattr(cls, "registry"): return cls.registry
         cls.registry = cls.load_registry()
-        print cls.registry
         return cls.registry
 
     @classmethod

@@ -35,7 +35,9 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import base
+import dummy
 import memory
 
 from base import *
+from dummy import *
 from memory import *

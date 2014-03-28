@@ -288,9 +288,10 @@ class POPConnection(netius.Connection):
 
 class POPServer(netius.StreamServer):
 
-    def __init__(self, adapter_s = "memory", *args, **kwargs):
+    def __init__(self, adapter_s = "memory", auth_s = "dummy", *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.adapter_s = adapter_s
+        self.auth_s = auth_s
 
     def serve(self, host = "pop.localhost", port = 110, *args, **kwargs):
         netius.StreamServer.serve(self, port = port, *args, **kwargs)
@@ -312,10 +313,12 @@ class POPServer(netius.StreamServer):
         netius.StreamServer.on_serve(self)
         if self.env: self.host = self.get_env("POP_HOST", self.host)
         if self.env: self.adapter_s = self.get_env("POP_ADAPTER", self.adapter_s)
+        if self.env: self.auth_s = self.get_env("POP_AUTH", self.auth_s)
         self.adapter = self.get_adapter(self.adapter_s)
+        self.auth = self.get_auth(self.auth_s)
         self.info(
-            "Starting POP server on '%s' using '%s' ..." %\
-            (self.host, self.adapter_s)
+            "Starting POP server on '%s' using '%s' and '%s' ..." %\
+            (self.host, self.adapter_s, self.auth_s)
         )
 
     def new_connection(self, socket, address, ssl = False):
@@ -331,6 +334,7 @@ class POPServer(netius.StreamServer):
         pass
 
     def on_auth_pop(self, connection, username, password):
+        self.auth.auth_assert(username, password)
         connection.username = username
 
     def on_stat_pop(self, connection):
