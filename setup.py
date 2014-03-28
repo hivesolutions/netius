@@ -43,7 +43,7 @@ import setuptools
 
 setuptools.setup(
     name = "netius",
-    version = "0.9.43",
+    version = "0.9.44",
     author = "Hive Solutions Lda.",
     author_email = "development@hive.pt",
     description = "Netius System",
@@ -54,6 +54,7 @@ setuptools.setup(
     packages = [
         "netius",
         "netius.adapters",
+        "netius.auth",
         "netius.base",
         "netius.clients",
         "netius.common",
