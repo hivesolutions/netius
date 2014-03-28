@@ -41,12 +41,30 @@ import base
 
 import netius.clients
 
-def send(path, sender, receiver, host = None, port = 25):
+def send(
+    path,
+    sender,
+    receiver,
+    host = None,
+    port = 25,
+    username = None,
+    password = None,
+    stls = True
+):
     file = open(path, "rb")
     try: contents = file.read()
     finally: file.close()
     smtp_client = netius.clients.SMTPClient(auto_close = True)
-    smtp_client.message([sender], [receiver], contents, host = host, port = port)
+    smtp_client.message(
+        [sender],
+        [receiver],
+        contents,
+        host = host,
+        port = port,
+        username = username,
+        password = password,
+        stls = stls
+    )
 
 if __name__ == "__main__":
     base.sh_call(globals(), locals())
