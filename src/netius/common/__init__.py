@@ -39,6 +39,7 @@ import calc
 import dhcp
 import dkim
 import http
+import mime
 import parser
 import pop
 import rsa
@@ -52,6 +53,7 @@ from calc import *
 from dhcp import *
 from dkim import *
 from http import *
+from mime import *
 from parser import *
 from pop import *
 from rsa import *
