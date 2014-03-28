@@ -41,7 +41,7 @@ import base
 
 import netius.clients
 
-def send(path, sender , receiver, host = None, port = 25):
+def send(path, sender, receiver, host = None, port = 25):
     file = open(path, "rb")
     try: contents = file.read()
     finally: file.close()
