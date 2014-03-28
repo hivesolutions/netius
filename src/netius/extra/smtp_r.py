@@ -123,7 +123,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         headers, body = netius.common.rfc822_parse(contents)
         received = connection.received_s()
         message_id = headers.get("Message-ID", message_id)
-        headers.set("Received", received, append = True)
+        headers.set("Received", received)
         headers.set("Message-ID", message_id)
         contents = netius.common.rfc822_join(headers, body)
 
