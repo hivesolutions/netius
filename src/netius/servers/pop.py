@@ -79,6 +79,7 @@ class POPConnection(netius.Connection):
         self.token_buf = []
         self.count = 0
         self.byte_c = 0
+        self.size = 0
         self.file = None
         self.sizes = ()
         self.keys = ()
@@ -91,6 +92,7 @@ class POPConnection(netius.Connection):
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
+        if self.file: self.file.close(); self.file = None
         self.parser.destroy()
 
     def parse(self, data):
@@ -166,7 +168,7 @@ class POPConnection(netius.Connection):
             if not connection.file: return
             file = connection.file
             contents = file.read(CHUNK_SIZE)
-            if contents: self.send(contents, callback = callback);
+            if contents: self.send(contents, delay = True, callback = callback);
             else: self.send("\r\n.\r\n"); file.close(); connection.file = None
 
         self.owner.on_retr_pop(self, index)
@@ -301,7 +303,7 @@ class POPServer(netius.StreamServer):
 
     def on_connection_d(self, connection):
         netius.StreamServer.on_connection_d(self, connection)
-        if connection.file: file.close()
+        if connection.file: connection.file.close(); connection.file = None
 
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
