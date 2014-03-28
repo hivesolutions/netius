@@ -34,14 +34,27 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import netius
+
 import base
 
 class MemoryAuth(base.Auth):
 
     @classmethod
     def auth(cls, username, password, *args, **kwargs):
-        pass
+        registry = cls.get_registry()
+        register = registry.get(username, None)
+        if not register: return False
+        _password = register.get("password")
+        return password == _password 
 
     @classmethod
     def get_registry(cls):
-        pass
+        if hasattr(cls, "registry"): return cls.registry
+        cls.registry = cls.load_registry()
+        print cls.registry
+        return cls.registry
+    
+    @classmethod
+    def load_registry(cls):    
+        return netius.conf("REGISTRY", {})
