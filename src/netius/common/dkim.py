@@ -39,6 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import re
 import time
+import types
 import base64
 import hashlib
 import datetime
@@ -183,6 +184,7 @@ def dkim_sign(message, selector, domain, private_key, identity = None, separator
     ]
 
     signature = "DKIM-Signature: " + "; ".join("%s=%s" % field for field in sign_fields)
+    if type(signature) == types.UnicodeType: signature = signature.encode("utf-8")
     signature = dkim_fold(signature)
 
     hash = hashlib.sha256()
@@ -222,8 +224,8 @@ def dkim_sign(message, selector, domain, private_key, identity = None, separator
     signature_i = rsa.rsa_crypt(base_i, exponent, modulus)
     signature_s = util.integer_to_bytes(signature_i, length = modulus_l)
 
-    signature += base64.b64encode(signature_s)
-    return signature + "\r\n"
+    signature += base64.b64encode(signature_s) + "\r\n"
+    return signature
 
 def dkim_headers(headers):
     # returns the headers exactly the way they were parsed
