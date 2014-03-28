@@ -110,7 +110,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # verifies that the current connection has an authenticated user
         # and if not raises an exception as the authentication is mandatory
         # for the relaying of message under the "default" policy
-        if not connection.username:
+        if not hasattr(connection, "username") or not connection.username:
             raise netius.SecurityError("User is not authenticated")
 
         # retrieves the first email from the froms list as this is
