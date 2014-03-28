@@ -38,7 +38,7 @@ def sh_call(globals = {}, locals = {}):
     import sys
 
     if not len(sys.argv) > 1:
-        print "invalid number of parameters (missing action)"
+        raise RuntimeError("invalid number of arguments (no method)")
 
     name = sys.argv[1]
 
