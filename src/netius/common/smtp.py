@@ -129,5 +129,5 @@ class SMTPParser(parser.Parser):
         # triggers the on line event so that the listeners are notified
         # about the end of the parsing of the smtp line and then
         # returns the count of the parsed bytes of the message
-        self.trigger("on_line", code, message, is_final)
+        self.trigger("on_line", code, message, is_final = is_final)
         return index + 1

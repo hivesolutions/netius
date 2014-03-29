@@ -217,7 +217,7 @@ class SMTPConnection(netius.Connection):
         # be closed if there's nothing remaining to be done
         self.queued()
 
-    def on_line(self, code, message):
+    def on_line(self, code, message, is_final = True):
         # "joins" the code and the message part of the message into the base
         # string and then uses this value to print some debug information
         base = "%s %s" % (code, message)
