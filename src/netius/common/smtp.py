@@ -123,8 +123,15 @@ class SMTPParser(parser.Parser):
 
         # verifies if the current line is a final line meaning that no more
         # lines are going to be sent as part of this response, a final line
-        # is one that does not have the continuation character in it
-        is_final = len(self.line_s) < 4 or not self.line_s[3] == "-"
+        # is one that does not have the continuation character in it as part
+        # of the first separator character in the line
+        line_l = len(self.line_s)
+        space_index = self.line_s.find(" ")
+        token_index = self.line_s.find("-")
+        if space_index == -1: space_index = line_l
+        if token_index == -1: token_index = line_l
+        is_continuation = token_index < space_index
+        is_final = not is_continuation
 
         # triggers the on line event so that the listeners are notified
         # about the end of the parsing of the smtp line and then
