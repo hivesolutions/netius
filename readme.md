@@ -71,6 +71,13 @@ python -m netius.sh.dkim generate hive.pt
 python -m netius.sh.dkim sign hello.mail dkim.key 20140327175143 hive.pt
 ```
 
+To be able to generate a password protected by a cryptographic hash and that is meant to be used
+under the netius authentication/authorization infra-structure use:
+
+```bash
+python -m netius.sh.auth generate your_password
+```
+
 ## Compatability
 
 Currently netius is compatible with pypy and a typical environment will benefit from a 1.5x to 2.5x
