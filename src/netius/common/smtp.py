@@ -37,7 +37,14 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import re
+
 import parser
+
+SEPARATOR_REGEX = re.compile(r" |\-")
+""" Regular expression that is going to be used to split
+the various response lines between the code and the message
+part, it should handle both normal and continuation lines """
 
 class SMTPParser(parser.Parser):
 
@@ -107,15 +114,20 @@ class SMTPParser(parser.Parser):
         # splits the provided line into the code and message parts in case
         # the split is not successful (not enough information) then an extra
         # value is added to the sequence of values for compatibility
-        values = self.line_s.split(" ", 1)
+        values = SEPARATOR_REGEX.split(self.line_s, 1)
         if not len(values) > 1: values.append("")
 
         # unpacks the set of values that have just been parsed into the code
         # and the message items as expected by the smtp specification
         code, message = values
 
+        # verifies if the current line is a final line meaning that no more
+        # lines are going to be sent as part of this response, a final line
+        # is one that does not have the continuation character in it
+        is_final = len(self.line_s) < 4 or not self.line_s[3] == "-"
+
         # triggers the on line event so that the listeners are notified
         # about the end of the parsing of the smtp line and then
         # returns the count of the parsed bytes of the message
-        self.trigger("on_line", code, message)
+        self.trigger("on_line", code, message, is_final)
         return index + 1

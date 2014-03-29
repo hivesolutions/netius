@@ -50,23 +50,25 @@ HELO_STATE = 1
 
 EHLO_STATE = 2
 
-STLS_STATE = 3
+CAPA_STATE = 3
 
-UPGRADE_STATE = 4
+STLS_STATE = 4
 
-AUTH_STATE = 5
+UPGRADE_STATE = 5
 
-FROM_STATE = 6
+AUTH_STATE = 6
 
-TO_STATE = 7
+FROM_STATE = 7
 
-DATA_STATE = 8
+TO_STATE = 8
 
-CONTENTS_STATE = 9
+DATA_STATE = 9
 
-QUIT_STATE = 10
+CONTENTS_STATE = 10
 
-FINAL_STATE = 11
+QUIT_STATE = 11
+
+FINAL_STATE = 12
 
 class SMTPConnection(netius.Connection):
 
@@ -84,6 +86,8 @@ class SMTPConnection(netius.Connection):
         self.state = HELO_STATE
         self.sindex = 0
         self.sequence = ()
+        self.capabilities = ()
+        self.messages = []
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
@@ -107,6 +111,7 @@ class SMTPConnection(netius.Connection):
         self.states = (
             self.helo_t,
             self.ehlo_t,
+            self.capa_t,
             self.stls_t,
             self.upgrade_t,
             self.auth_t,
@@ -145,6 +150,7 @@ class SMTPConnection(netius.Connection):
     def set_message_seq(self, ehlo = True):
         sequence = (
             EHLO_STATE if ehlo else HELO_STATE,
+            CAPA_STATE,
             AUTH_STATE,
             FROM_STATE,
             TO_STATE,
@@ -158,6 +164,7 @@ class SMTPConnection(netius.Connection):
     def set_message_stls_seq(self, ehlo = True):
         sequence = (
             EHLO_STATE if ehlo else HELO_STATE,
+            CAPA_STATE,
             STLS_STATE,
             UPGRADE_STATE,
             EHLO_STATE if ehlo else HELO_STATE,
@@ -170,6 +177,12 @@ class SMTPConnection(netius.Connection):
             FINAL_STATE
         )
         self.set_sequence(sequence)
+
+    def set_capabilities(self, capabilities):
+        if self.capabilities: return
+        self.capabilities = capabilities
+        if "STARTTLS" in self.capabilities:
+            self.set_message_stls_seq()
 
     def next_sequence(self):
         self.sindex += 1
@@ -184,19 +197,23 @@ class SMTPConnection(netius.Connection):
         self.send(data, delay = delay, callback = callback)
         self.owner.debug(base)
 
-    def on_line(self, code, message):
+    def on_line(self, code, message, is_final = True):
         # creates the base string from the provided code value and the
         # message associated with it, then logs the values into the
         # current debug logger support (for traceability)
         base = "%s %s" % (code, message)
         self.owner.debug(base)
 
-        # verifies if the provided code contains the separator character
-        # this should mean that this is a multiple line based response
-        # and for those situations no processing occurs immediately waiting
-        # instead for the last line (not dashed) to run the processing
-        is_multiple = "-" in code
-        if is_multiple: return
+        # adds the message part of the line to the buffer that holds the
+        # various messages "pending" for the current response, these values
+        # may latter be used for the processing of the response
+        self.messages.append(message)
+
+        # in case the currently parsed line is not a final one must return
+        # immediately to continue the processing of information for the
+        # current response, the various message should be accumulated under
+        # the message buffer to avoid any problem
+        if not is_final: return
 
         # runs the code based assertion so that if there's an expected
         # value set for the current connection it's correctly validated
@@ -211,6 +228,10 @@ class SMTPConnection(netius.Connection):
         # runs the calling of the next state based method according to the
         # currently defined state, this is the increments in calling
         self.call()
+
+        # erases the message buffer as it's not longer going to be used in
+        # the handling (as it is finished) nothing remaining
+        del self.messages[:]
 
     def call(self):
         # tries to retrieve the method for the current state in iteration
@@ -229,6 +250,12 @@ class SMTPConnection(netius.Connection):
     def ehlo_t(self):
         self.ehlo(self.host)
         self.next_sequence()
+
+    def capa_t(self):
+        capabilities = self.messages[1:]
+        self.set_capabilities(capabilities)
+        self.next_sequence()
+        self.call()
 
     def stls_t(self):
         self.starttls()
