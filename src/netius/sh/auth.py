@@ -38,22 +38,8 @@ import netius
 
 import base
 
-class MemoryAuth(base.Auth):
+def generate(password, type = "sha256", salt = "netius"):
+    print netius.Auth.generate(password, type = type, salt = salt)
 
-    @classmethod
-    def auth(cls, username, password, *args, **kwargs):
-        registry = cls.get_registry()
-        register = registry.get(username, None)
-        if not register: return False
-        _password = register.get("password")
-        return cls.verify(_password, password)
-
-    @classmethod
-    def get_registry(cls):
-        if hasattr(cls, "registry"): return cls.registry
-        cls.registry = cls.load_registry()
-        return cls.registry
-
-    @classmethod
-    def load_registry(cls):
-        return netius.conf("REGISTRY", {})
+if __name__ == "__main__":
+    base.sh_call(globals(), locals())

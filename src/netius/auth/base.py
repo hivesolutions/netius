@@ -34,6 +34,9 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import hashlib
+import binascii
+
 import netius
 
 class Auth(object):
@@ -53,3 +56,33 @@ class Auth(object):
     def auth_assert(cls, *args, **kwargs):
         result = cls.auth(*args, **kwargs)
         if not result: raise netius.SecurityError("Invalid authentication")
+
+    @classmethod
+    def verify(cls, encoded, decoded):
+        type, salt, digest, plain = cls.unpack(encoded)
+        if plain: return encoded == decoded
+        if salt: decoded += salt
+        type = type.lower()
+        hash = hashlib.new(type, decoded)
+        _digest = hash.hexdigest()
+        return _digest == digest
+
+    @classmethod
+    def generate(cls, password, type = "sha256", salt = "netius"):
+        if type == "plain" : return password
+        if salt: password += salt
+        hash = hashlib.new(type, password)
+        digest = hash.hexdigest()
+        if not salt: return "%s:%s" % (type, digest)
+        salt = binascii.hexlify(salt)
+        return "%s:%s:%s" % (type, salt, digest)
+
+    @classmethod
+    def unpack(cls, password):
+        count = password.count(":")
+        if count == 2: type, salt, digest = password.split(":")
+        elif count == 1: type, digest = password.split(":"); salt = None
+        else: plain = password; type = "plain"; salt = None; digest = None
+        if not type == "plain": plain = None
+        if salt: salt = binascii.unhexlify(salt)
+        return (type, salt, digest, plain)
