@@ -76,6 +76,7 @@ class Headers(list):
         raise KeyError("not found")
 
     def __setitem__(self, key, value):
+        value = self._normalize(value)
         is_integer = type(key) == types.IntType
         if is_integer: return list.__setitem__(self, key, value)
         self.append([key, value])
@@ -105,11 +106,18 @@ class Headers(list):
         return self[key]
 
     def set(self, key, value, append = False):
+        value = self._normalize(value)
         if key in self and not append: self.item(key)[1] = value
         else: self[key] = value
 
     def join(self, separator = "\r\n"):
         return separator.join(["%s: %s" % (key, value) for key, value in self])
+
+    def _normalize(self, value):
+        value_t = type(value)
+        if value_t == types.StringType: return value
+        if value_t == types.UnicodeType: return value.encode("utf-8")
+        return str(value)
 
 def rfc822_parse(message, strip = True):
     """

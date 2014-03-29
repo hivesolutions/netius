@@ -38,7 +38,6 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import time
-import types
 import base64
 import datetime
 
@@ -288,7 +287,6 @@ class SMTPConnection(netius.Connection):
         to_s = self.to_s()
         date_time = datetime.datetime.utcfromtimestamp(self.time)
         date_s = date_time.strftime("%a, %d %b %Y %H:%M:%S +0000")
-        if type(date_s) == types.UnicodeType: date_s = date_s.encode("utf-8")
         return "from %s " % self.chost +\
             "by %s (netius) with ESMTP id %s " % (self.host, self.identifier) +\
             "for %s; %s" % (to_s, date_s)
