@@ -109,7 +109,9 @@ class WSGIServer(http.HTTPServer):
             CONTENT_LENGTH = "" if parser.content_l == -1 else parser.content_l,
             SERVER_NAME = self.host,
             SERVER_PORT = self.port,
-            SERVER_PROTOCOL = parser.version_s
+            SERVER_PROTOCOL = parser.version_s,
+            SERVER_SOFTWARE = "%s/%s" % (netius.NAME, netius.VERSION),
+            REMOTE_ADDR = connection.address[0]
         )
 
         # updates the environment map with all the structures referring
