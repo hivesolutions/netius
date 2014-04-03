@@ -43,6 +43,11 @@ import netius
 
 import http
 
+SERVER_SOFTWARE = "%s/%s" % (netius.NAME, netius.VERSION)
+""" The server software string that is going to identify the
+current service that is running on the host, the values should
+include both the name and the version of it """
+
 class WSGIServer(http.HTTPServer):
     """
     Base class for the creation of a wsgi compliant server
@@ -110,7 +115,7 @@ class WSGIServer(http.HTTPServer):
             SERVER_NAME = self.host,
             SERVER_PORT = self.port,
             SERVER_PROTOCOL = parser.version_s,
-            SERVER_SOFTWARE = "%s/%s" % (netius.NAME, netius.VERSION),
+            SERVER_SOFTWARE = SERVER_SOFTWARE,
             REMOTE_ADDR = connection.address[0]
         )
 
