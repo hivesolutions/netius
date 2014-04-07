@@ -83,6 +83,12 @@ python -m netius.sh.auth generate your_password
 Currently netius is compatible with pypy and a typical environment will benefit from a 1.5x to 2.5x
 performance increase when compared with the cpython interpreter.
 
+## Debugging
+
+It's important to keep track of the memory leaks that may be created by any circular references or
+unclosed resources associated with a netius server. For that a special [document](leak.md) has been created
+documenting the various tools and strategies that may be used.
+
 ## Testing
 
 ### Edge triggered polling
