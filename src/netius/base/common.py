@@ -44,7 +44,6 @@ import copy
 import json
 import errno
 import heapq
-import socket
 import logging
 import hashlib
 import traceback

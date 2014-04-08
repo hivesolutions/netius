@@ -446,8 +446,9 @@ class Connection(observer.Observable):
                     # part of the data has been sent, note that if no
                     # data is provided the shutdown operation is performed
                     # instead to close the stream between both sockets
-                    if is_close: self.socket.shutdown(socket.SHUT_RDWR); count = 0
-                    else: count = self.socket.send(data)
+                    if is_close: self._shutdown(); count = 0
+                    elif data: count = self.socket.send(data)
+                    else: count = 0
                 except:
                     # sets the current connection write ready flag to false
                     # so that a new level notification must be received
@@ -490,6 +491,10 @@ class Connection(observer.Observable):
 
     def _recv(self, size):
         return self.socket.recv(size)
+
+    def _shutdown(self):
+        if self.ssl: self.socket._sslobj.shutdown()
+        else: self.socket.shutdown(socket.SHUT_RDWR)
 
     def _close_callback(self, connection):
         connection.close()
