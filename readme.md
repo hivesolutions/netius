@@ -78,7 +78,7 @@ under the netius authentication/authorization infra-structure use:
 python -m netius.sh.auth generate your_password
 ```
 
-## Compatability
+## Compatibility
 
 Currently netius is compatible with pypy and a typical environment will benefit from a 1.5x to 2.5x
 performance increase when compared with the cpython interpreter.
