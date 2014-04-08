@@ -238,8 +238,8 @@ class ProxyServer(http.HTTPServer):
 
         # creates the clojure function that will be used to close the
         # current client connection and that may or may not close the
-        # corresponding back-end connection (as define in specification)
-        def close(connection): connection.close()
+        # corresponding back-end connection (as defined in specification)
+        def close(connection): connection.close(flush = True)
 
         # verifies that the connection is meant to be kept alive, the
         # connection is meant to be kept alive when both the client and
