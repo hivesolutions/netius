@@ -376,8 +376,8 @@ class DatagramClient(Client):
                 data_o = data
                 callback = None
                 data, address = data
-                if type(data) == types.TupleType:
-                    data, callback = data
+                is_tuple = type(data) == types.TupleType
+                if is_tuple: data, callback = data
                 data_l = len(data)
 
                 try:

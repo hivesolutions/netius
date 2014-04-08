@@ -203,7 +203,7 @@ class Connection(observer.Observable):
         if destroy: self.destroy()
 
     def close_flush(self):
-        self.send("", callback = self._close_callback)
+        self.send(None, callback = self._close_callback)
 
     def upgrade(self, key_file = None, cer_file = None, server = True):
         # in case the current connection is already an ssl oriented one there's
@@ -432,17 +432,21 @@ class Connection(observer.Observable):
                 data = self.pending.pop()
                 data_o = data
                 callback = None
-                if type(data) == types.TupleType:
-                    data, callback = data
-                data_l = len(data)
+                is_tuple = type(data) == types.TupleType
+                if is_tuple: data, callback = data
+                is_close = data == None
+                data_l = 0 if is_close else len(data)
 
                 try:
                     # tries to send the data through the socket and
                     # retrieves the number of bytes that were correctly
                     # sent through the socket, this number may not be
                     # the same as the size of the data in case only
-                    # part of the data has been sent
-                    count = self.socket.send(data)
+                    # part of the data has been sent, note that if no
+                    # data is provided the shutdown operation is performed
+                    # instead to close the stream between both sockets
+                    if is_close: self.socket.shutdown(); count = 0
+                    else: count = self.socket.send(data)
                 except:
                     # sets the current connection write ready flag to false
                     # so that a new level notification must be received
