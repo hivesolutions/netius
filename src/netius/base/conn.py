@@ -333,6 +333,9 @@ class Connection(observer.Observable):
 
         In case the sending should be forced as delayed (next tick)
         the delay flag should be set and the sending will be delayed.
+        This is especially useful to avoid a stack overflow situation
+        because of extended callback calling, for example while sending
+        very large chunks of information (eg: multi megabyte files).
 
         An optional callback attribute may be sent and so that
         when the send is complete it's called with a reference
@@ -345,7 +348,7 @@ class Connection(observer.Observable):
         @param data: The buffer containing the data to be sent
         through this connection to the other endpoint.
         @type delay: bool
-        @param delay: If the send operation should be delay until
+        @param delay: If the send operation should be delayed until
         the next tick operation or if it should be performed as
         soon as possible (as defined in specification).
         @type callback: Function
