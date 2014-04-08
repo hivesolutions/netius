@@ -55,8 +55,13 @@ no pending structured opened and operations are limited """
 
 PENDING = 3
 """ The pending status used for transient states (eg created)
-connections under this state must be used carefully, this is
-also going to be used for operations like shutting down """
+connections under this state must be used carefully """
+
+SHUTDOWN = 4
+""" Transient state used for the situation where the underlying
+socket is shut down but the connection as a whole is still
+considered to be connected and still required some "house keeping"
+in order to be completely removed from the current system """
 
 CHUNK_SIZE = 4096
 """ The size of the chunk to be used while received
@@ -494,7 +499,7 @@ class Connection(observer.Observable):
         return self.socket.recv(size)
 
     def _shutdown(self):
-        self.status = PENDING
+        self.status = SHUTDOWN
         if self.ssl: self.socket._sslobj.shutdown()
         else: self.socket.shutdown(socket.SHUT_RDWR)
 
