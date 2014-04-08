@@ -246,7 +246,7 @@ class WSGIServer(http.HTTPServer):
         else: connection.send(data, delay = True, callback = self._send_part)
 
     def _close(self, connection):
-        self.delay(connection.close_flush)
+        connection.close(flush = True)
 
 if __name__ == "__main__":
     import logging
