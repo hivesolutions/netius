@@ -553,6 +553,7 @@ class StreamServer(Server):
                 data = _socket.recv(CHUNK_SIZE)
                 if data: self.on_data(connection, data)
                 else: connection.close(); break
+                print connection.status
                 if not connection.status == OPEN: break
                 if not connection.renable == True: break
                 if not connection.socket == _socket: break
