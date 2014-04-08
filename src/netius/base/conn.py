@@ -492,10 +492,24 @@ class Connection(observer.Observable):
     def _recv(self, size):
         return self.socket.recv(size)
 
-    def _shutdown(self, close = True):
+    def _shutdown(self, close = True, force = False):
+        # in case the status of the current connection is
+        # already closed returns immediately as it's not
+        # possible to shutdown a closed connection
         if self.status == CLOSED: return
+
+        # verifies the type of connection and taking that
+        # into account runs the proper shutdown operation
+        # either the ssl based shutdown that unwraps the
+        # current secure connection and send a graceful
+        # shutdown notification to the other peer, or the
+        # normal shutdown operation for the socket
         if self.ssl: self.socket._sslobj.shutdown()
-        else: self.socket.shutdown(socket.SHUT_RDWR)
+        elif force: self.socket.shutdown(socket.SHUT_RDWR)
+
+        # in case the close (connection) flag is active the
+        # current connection should be closed immediately
+        # following the successful shutdown of the socket
         if close: self.close()
 
     def _close_callback(self, connection):
