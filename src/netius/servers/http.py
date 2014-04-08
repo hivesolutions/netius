@@ -168,6 +168,15 @@ class HTTPConnection(netius.Connection):
         self.send_plain(buffer_s, delay = delay, callback = callback)
 
     def send_gzip(self, data, delay = False, callback = None, level = 6):
+        # verifies if the provided data buffer is valid and in
+        # in case it's not propagates the sending to the upper
+        # layer (chunked sending) for proper processing
+        if not data: self.send_chunked(
+            data,
+            delay = delay,
+            callback = callback
+        ); return
+
         # "calculates" if the current sending of gzip data is
         # the first one by verifying if the gzip object is set
         is_first = self.gzip == None
