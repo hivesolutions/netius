@@ -145,8 +145,10 @@ class APNClient(netius.StreamClient):
         netius.StreamClient.on_connect(self, connection)
 
         # creates the callback handler that closes the current
-        # client infra-structure after sending
-        def callback(connection): self.close()
+        # client infra-structure after sending, this will close
+        # the connection using a graceful approach to avoid any
+        # of the typical problems with the connection shutdown
+        def callback(connection): self.close(flush = True)
 
         # unpacks the various elements that are going to be
         # used in the sending of the message
@@ -163,13 +165,13 @@ class APNClient(netius.StreamClient):
         # creates the message structure using with the
         # message (string) as the alert and then converts
         # it into a json format (payload)
-        message_s = {
-           "aps" : {
-                "alert" : message,
-                "sound" : sound,
-                "badge" : badge
-            }
-        }
+        message_s = dict(
+           aps = dict(
+                alert = message,
+                sound = sound,
+                badge = badge
+            )
+        )
         payload = json.dumps(message_s)
 
         # sets the command with the zero value (simplified)
