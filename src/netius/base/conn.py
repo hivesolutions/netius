@@ -494,11 +494,9 @@ class Connection(observer.Observable):
 
     def _shutdown(self, close = True):
         if self.status == CLOSED: return
-        print "shutting down"
         if self.ssl: self.socket._sslobj.shutdown()
         else: self.socket.shutdown(socket.SHUT_RDWR)
         if close: self.close()
-        print self.status
 
     def _close_callback(self, connection):
         connection.close()
