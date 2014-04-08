@@ -492,7 +492,7 @@ class Connection(observer.Observable):
     def _recv(self, size):
         return self.socket.recv(size)
 
-    def _shutdown(self, close = True, force = False):
+    def _shutdown(self, close = False, force = False):
         # in case the status of the current connection is
         # already closed returns immediately as it's not
         # possible to shutdown a closed connection
@@ -513,6 +513,16 @@ class Connection(observer.Observable):
         if close: self.close()
 
     def _close_callback(self, connection):
+        """
+        The callback to the delayed (flush based) close operation
+        of the connection. This callback should be able to destroy
+        and close all the resources associated with the connection.
+
+        @type connection: Connection
+        @param connection: The connection associated with the callback
+        that is being called, this connection will be closed.
+        """
+
         connection.close()
 
     def _flush_write(self):
