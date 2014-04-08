@@ -414,6 +414,9 @@ class Connection(observer.Observable):
     def is_pending(self):
         return self.status == PENDING
 
+    def is_shutdown(self):
+        return self.status == SHUTDOWN
+
     def _send(self):
         # sets the write ready flag so that any further request to
         # write operation will be immediately performed
