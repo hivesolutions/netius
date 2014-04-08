@@ -128,6 +128,7 @@ non ready operations in a non blocking socket """
 
 SSL_SILENT_ERRORS = (
     ssl.SSL_ERROR_EOF,
+    ssl.SSL_ERROR_ZERO_RETURN
 )
 """ The list containing the errors that should be silenced
 while still making the connection dropped as they are expected
