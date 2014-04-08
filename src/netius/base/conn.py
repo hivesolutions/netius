@@ -39,6 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import uuid
 import types
+import socket
 import thread
 import threading
 
@@ -355,7 +356,7 @@ class Connection(observer.Observable):
         # calculates the size in bytes of the provided data so
         # that it may be used latter for the incrementing of
         # of the total size of pending bytes
-        data_l = len(data)
+        data_l = len(data) if data else 0
 
         # verifies that the connection is currently in the open
         # state and then verifies if a callback exists if that's
@@ -445,7 +446,7 @@ class Connection(observer.Observable):
                     # part of the data has been sent, note that if no
                     # data is provided the shutdown operation is performed
                     # instead to close the stream between both sockets
-                    if is_close: self.socket.shutdown(); count = 0
+                    if is_close: self.socket.shutdown(socket.SHUT_WR); count = 0
                     else: count = self.socket.send(data)
                 except:
                     # sets the current connection write ready flag to false
