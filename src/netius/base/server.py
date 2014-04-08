@@ -427,7 +427,8 @@ class DatagramServer(Server):
                     # sent through the socket, this number may not be
                     # the same as the size of the data in case only
                     # part of the data has been sent
-                    count = _socket.sendto(data, address)
+                    if data: count = _socket.sendto(data, address)
+                    else: count = 0
                 except:
                     # sets the current connection write ready flag to false
                     # so that a new level notification must be received
