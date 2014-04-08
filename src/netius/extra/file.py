@@ -336,11 +336,11 @@ class FileServer(netius.servers.HTTPServer):
         connection.flush(callback = callback)
 
     def _file_close(self, connection):
-        connection.close()
+        connection.close(flush = True)
 
     def _file_check_close(self, connection):
         if connection.parser.keep_alive: return
-        connection.close()
+        connection.close(flush = True)
 
 if __name__ == "__main__":
     import logging

@@ -171,7 +171,7 @@ class ProxyServer(http.HTTPServer):
         self.reads((connection.socket,), state = False)
 
     def _prx_close(self, connection):
-        connection.close()
+        connection.close(flush = True)
 
     def _prx_keep(self, connection):
         pass

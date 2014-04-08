@@ -229,8 +229,8 @@ class TorrentConnection(netius.Connection):
             if not self.is_open(): return
             delta = self.downloaded - downloaded
             rate = float(delta) / float(timeout)
-            if self.messages == messages: self.close(); return
-            if rate < SPEED_LIMIT: self.close(); return
+            if self.messages == messages: self.close(flush = True); return
+            if rate < SPEED_LIMIT: self.close(flush = True); return
             callable = self.is_alive()
             self.owner.delay(callable, timeout)
 

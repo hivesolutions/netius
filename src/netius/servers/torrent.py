@@ -449,7 +449,7 @@ class TorrentTask(netius.Observable):
 
     def disconnect_peers(self):
         connections = copy.copy(self.connections)
-        for connection in connections: connection.close()
+        for connection in connections: connection.close(flush = True)
 
     def connect_peer(self, peer):
         if not peer["new"]: return

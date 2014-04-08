@@ -300,7 +300,7 @@ class SMTPConnection(netius.Connection):
         self.next_sequence()
 
     def close_t(self):
-        self.close()
+        self.close(flush = True)
 
     def pass_t(self):
         pass
