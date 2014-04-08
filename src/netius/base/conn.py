@@ -446,7 +446,7 @@ class Connection(observer.Observable):
                     # part of the data has been sent, note that if no
                     # data is provided the shutdown operation is performed
                     # instead to close the stream between both sockets
-                    if is_close: self.socket.shutdown(socket.SHUT_WR); count = 0
+                    if is_close: self.socket.shutdown(socket.SHUT_RDWR); count = 0
                     else: count = self.socket.send(data)
                 except:
                     # sets the current connection write ready flag to false
