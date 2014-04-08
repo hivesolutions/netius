@@ -11,3 +11,4 @@ A simple yet powerfull utility that provides a mechanism to detect "pending" obj
 snapshot positions (time values) and that allows a powerful memory leak detection mechanism.
 
 * [Tutorial](http://smira.ru/wp-content/uploads/2011/08/heapy.html)
+* [Diagnosing Memory "Leaks" in Python](http://python.dzone.com/articles/diagnosing-memory-leaks-python)
