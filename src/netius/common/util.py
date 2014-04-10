@@ -222,7 +222,7 @@ def size_round_unit(
         # calculates the target number of decimal places taking
         # into account the size (in digits) of the current size
         # value, this may never be a negative number
-        log_value = size_value and math.log10(size_value) 
+        log_value = size_value and math.log10(size_value)
         digits = int(log_value) + 1
         places = places - digits
         places = places if places > 0 else 0
