@@ -262,9 +262,16 @@ class TorrentTask(netius.Observable):
         # torrent task with the ones that have been discovered
         self.extend_peers(peers)
 
+        # retrieves the reference to the peer id from the request
+        # that originated the current response and then converts it
+        # into the proper string representation
+        request = response.request
+        peer_id = request._get_peer_id()
+        peer_id = netius.str(peer_id)
+
         # prints a debug message about the peer loading that has just occurred, this
         # may be used for the purpose of development (and traceability)
-        self.owner.debug("Received %d peers from DHT peer" % len(peers))
+        self.owner.debug("Received %d peers from DHT '%s' peer" % (len(peers), peer_id))
 
     def on_tracker(self, client, parser, result):
         # extracts the data (string) contents of the http response and in case

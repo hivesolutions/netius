@@ -80,11 +80,15 @@ class Response(object):
     generated identifier.
     """
 
-    def __init__(self, data):
+    def __init__(self, data, request = None):
         self.data = data
+        self.request = request
 
     def parse(self):
         pass
+
+    def get_request(self):
+        return self.request
 
     def get_id(self):
         raise errors.NetiusError("Not implemented")
