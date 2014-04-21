@@ -276,10 +276,10 @@ class ProxyServer(http.HTTPServer):
 
         start, end = range
         data = parser.message[start:end]
-        data_s = "".join(data)
+        data_s = b"".join(data)
         data_l = len(data_s)
-        header = "%x\r\n" % data_l
-        chunk = header + data_s + "\r\n"
+        header = netius.bin("%x\r\n" % data_l)
+        chunk = header + data_s + b"\r\n"
 
         should_disable = self.throttle and connection.pending_s > self.max_pending
         if should_disable: _connection.disable_read()
