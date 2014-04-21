@@ -37,7 +37,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-from common import * #@UnusedWildImport
+from netius.base.common import * #@UnusedWildImport
 
 BUFFER_SIZE_S = None
 """ The size of both the send and receive buffers for
@@ -302,7 +302,7 @@ class DatagramServer(Server):
                 data, address = _socket.recvfrom(CHUNK_SIZE)
                 self.on_data(address, data)
                 if not self.renable == True: break
-        except ssl.SSLError, error:
+        except ssl.SSLError as error:
             error_v = error.args[0]
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
@@ -310,7 +310,7 @@ class DatagramServer(Server):
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
-        except socket.error, error:
+        except socket.error as error:
             error_v = error.args[0]
             if error_v in SILENT_ERRORS:
                 self.debug(error)
@@ -318,7 +318,7 @@ class DatagramServer(Server):
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
-        except BaseException, exception:
+        except BaseException as exception:
             self.warning(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.info(line)
@@ -326,7 +326,7 @@ class DatagramServer(Server):
     def on_write(self, _socket):
         try:
             self._send(_socket)
-        except ssl.SSLError, error:
+        except ssl.SSLError as error:
             error_v = error.args[0]
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
@@ -334,7 +334,7 @@ class DatagramServer(Server):
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
-        except socket.error, error:
+        except socket.error as error:
             error_v = error.args[0]
             if error_v in SILENT_ERRORS:
                 self.debug(error)
@@ -342,7 +342,7 @@ class DatagramServer(Server):
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
-        except BaseException, exception:
+        except BaseException as exception:
             self.warning(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.info(line)
@@ -358,7 +358,8 @@ class DatagramServer(Server):
         # checks if it's the same as the one defined in the
         # owner in case it's not then the operation is not
         # considered to be safe and must be delayed
-        tid = thread.get_ident()
+        cthread = threading.current_thread()
+        tid = cthread.ident or 0
         is_safe = tid == self.tid
 
         # in case the thread where this code is being executed
@@ -392,7 +393,8 @@ class DatagramServer(Server):
         if callback: data = (data, callback)
         data = (data, address)
 
-        tid = thread.get_ident()
+        cthread = threading.current_thread()
+        tid = cthread.ident or 0
         is_safe = tid == self.tid
 
         self.pending_lock.acquire()
@@ -503,7 +505,7 @@ class StreamServer(Server):
                 socket_c, address = _socket.accept()
                 try: self.on_socket_c(socket_c, address)
                 except: socket_c.close(); raise
-        except ssl.SSLError, error:
+        except ssl.SSLError as error:
             error_v = error.args[0]
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
@@ -511,7 +513,7 @@ class StreamServer(Server):
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
-        except socket.error, error:
+        except socket.error as error:
             error_v = error.args[0]
             if error_v in SILENT_ERRORS:
                 self.debug(error)
@@ -519,7 +521,7 @@ class StreamServer(Server):
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
-        except BaseException, exception:
+        except BaseException as exception:
             self.warning(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.info(line)
@@ -557,7 +559,7 @@ class StreamServer(Server):
                 if not connection.status == OPEN: break
                 if not connection.renable == True: break
                 if not connection.socket == _socket: break
-        except ssl.SSLError, error:
+        except ssl.SSLError as error:
             error_v = error.args[0]
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
@@ -567,7 +569,7 @@ class StreamServer(Server):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
                 connection.close()
-        except socket.error, error:
+        except socket.error as error:
             error_v = error.args[0]
             if error_v in SILENT_ERRORS:
                 self.debug(error)
@@ -577,7 +579,7 @@ class StreamServer(Server):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
                 connection.close()
-        except BaseException, exception:
+        except BaseException as exception:
             self.warning(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.info(line)
@@ -590,7 +592,7 @@ class StreamServer(Server):
 
         try:
             connection._send()
-        except ssl.SSLError, error:
+        except ssl.SSLError as error:
             error_v = error.args[0]
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
@@ -600,7 +602,7 @@ class StreamServer(Server):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
                 connection.close()
-        except socket.error, error:
+        except socket.error as error:
             error_v = error.args[0]
             if error_v in SILENT_ERRORS:
                 self.debug(error)
@@ -610,7 +612,7 @@ class StreamServer(Server):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
                 connection.close()
-        except BaseException, exception:
+        except BaseException as exception:
             self.warning(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.info(line)

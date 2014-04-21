@@ -40,10 +40,9 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import uuid
 import types
 import socket
-import thread
 import threading
 
-import observer
+from netius.base import observer
 
 OPEN = 1
 """ The open status value, meant to be used in situations
@@ -266,7 +265,8 @@ class Connection(observer.Observable):
         # checks if it's the same as the one defined in the
         # owner in case it's not then the operation is not
         # considered to be safe and must be delayed
-        tid = thread.get_ident()
+        cthread = threading.current_thread()
+        tid = cthread.ident or 0
         is_safe = tid == self.owner.tid
 
         # in case the thread where this code is being executed
@@ -356,6 +356,12 @@ class Connection(observer.Observable):
         to be send is completely sent to the socket.
         """
 
+        # verifies if the data type of the provided data string
+        # is byte string and in case it's not "runs" the proper
+        # encoding of the provided string, note that the default
+        # ascii based encoding is used to minimize the effort
+        data = data if type(data) == bytes else data.encode("ascii")
+
         # calculates the size in bytes of the provided data so
         # that it may be used latter for the incrementing of
         # of the total size of pending bytes
@@ -371,7 +377,8 @@ class Connection(observer.Observable):
         # retrieves the identifier of the current thread and then
         # verifies if it's the same as thread where the event loop
         # is being executed (safe execution) for options to be taken
-        tid = thread.get_ident()
+        cthread = threading.current_thread()
+        tid = cthread.ident or 0
         is_safe = tid == self.owner.tid
 
         # acquires the pending lock and then insets the
@@ -436,7 +443,7 @@ class Connection(observer.Observable):
                 data = self.pending.pop()
                 data_o = data
                 callback = None
-                is_tuple = type(data) == types.TupleType
+                is_tuple = type(data) == tuple
                 if is_tuple: data, callback = data
                 is_close = data == None
                 data_l = 0 if is_close else len(data)
