@@ -62,6 +62,16 @@ else: STRINGS = (str, unicode) #@UndefinedVariable
 if PYTHON_3: INTEGERS = (int,)
 else: INTEGERS = (int, long) #@UndefinedVariable
 
+def bin(value):
+    if not PYTHON_3: return value
+    if type(value) == bytes: return value
+    return value.encode("ascii")
+
+def str(value):
+    if not PYTHON_3: return value
+    if type(value) == str: return value
+    return value.decode("ascii", "ignore")
+
 def reduce(*args, **kwargs):
     if PYTHON_3: return functools.reduce(*args, **kwargs)
     return reduce(*args, **kwargs)

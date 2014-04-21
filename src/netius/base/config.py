@@ -77,7 +77,7 @@ def conf(name, default = None, cast = None):
 
 def conf_prefix(prefix):
     configs = dict()
-    for name, value in CONFIGS.iteritems():
+    for name, value in CONFIGS.items():
         if not name.startswith(prefix): continue
         configs[name] = value
     return configs
@@ -102,7 +102,7 @@ def load_file(path = None):
     finally: file.close()
 
     data_j = json.loads(data)
-    for key, value in data_j.iteritems():
+    for key, value in data_j.items():
         CONFIGS[key] = value
 
 def load_env():

@@ -110,7 +110,7 @@ class HTTPConnection(netius.Connection):
 
         buffer = []
         buffer.append("%s %s %s\r\n" % (method, path, version))
-        for key, value in headers.iteritems():
+        for key, value in headers.items():
             key = netius.common.header_up(key)
             buffer.append("%s: %s\r\n" % (key, value))
         buffer.append("\r\n")
@@ -147,7 +147,7 @@ class HTTPConnection(netius.Connection):
         self.owner.on_chunk_http(self, self.parser, range)
 
     def _apply_base(self, headers):
-        for key, value in BASE_HEADERS.iteritems():
+        for key, value in BASE_HEADERS.items():
             if key in headers: continue
             headers[key] = value
 

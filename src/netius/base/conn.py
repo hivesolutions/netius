@@ -41,6 +41,7 @@ import uuid
 import socket
 import threading
 
+from netius.base import legacy
 from netius.base import observer
 
 OPEN = 1
@@ -355,11 +356,11 @@ class Connection(observer.Observable):
         to be send is completely sent to the socket.
         """
 
-        # verifies if the data type of the provided data string
-        # is byte string and in case it's not "runs" the proper
-        # encoding of the provided string, note that the default
-        # ascii based encoding is used to minimize the effort
-        data = data if type(data) == bytes else data.encode("ascii")
+        # ensures that the data type of the current data string
+        # is the required one for the output operations (binary)
+        # in case it's not the required transformation operations
+        # should be performed so that the data format is compatible
+        data = legacy.bin(data)
 
         # calculates the size in bytes of the provided data so
         # that it may be used latter for the incrementing of

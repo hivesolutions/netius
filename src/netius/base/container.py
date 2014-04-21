@@ -114,7 +114,7 @@ class Container(Base):
             # so that the poll results are indexed by their owner
             # reference to be easily routed to the base services
             result = self.poll.poll_owner()
-            for base, values in result.iteritems():
+            for base, values in result.items():
                 reads, writes, errors = values
                 base.reads(reads)
                 base.writes(writes)

@@ -56,7 +56,7 @@ class ForwardProxyServer(netius.servers.ProxyServer):
         version_s = parser.version_s
 
         rejected = False
-        for rule in self.rules.itervalues():
+        for rule in self.rules.values():
             rejected = rule.match(path)
             if rejected: break
 
@@ -102,7 +102,7 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             self.conn_map[_connection] = connection
 
     def compile(self):
-        for key, rule in self.rules.iteritems():
+        for key, rule in self.rules.items():
             self.rules[key] = re.compile(rule)
 
 if __name__ == "__main__":

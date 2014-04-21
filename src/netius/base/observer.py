@@ -72,7 +72,7 @@ class Observable(object):
 
     def unbind_all(self):
         if not hasattr(self, "_events"): return
-        for methods in self.events.itervalues(): del methods[:]
+        for methods in self.events.values(): del methods[:]
         self.events.clear()
 
     def trigger(self, name, *args, **kwargs):

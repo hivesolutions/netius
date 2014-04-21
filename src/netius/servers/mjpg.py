@@ -39,6 +39,8 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import os
 
+import netius
+
 from netius.servers import http
 
 BOUNDARY = "mjpegboundary"
@@ -74,7 +76,7 @@ class MJPGServer(http.HTTPServer):
 
         buffer = []
         buffer.append("%s %s\r\n" % (version_s, status))
-        for key, value in headers.iteritems():
+        for key, value in headers.items():
             buffer.append("%s: %s\r\n" % (key, value))
         buffer.append("\r\n")
 
@@ -88,14 +90,14 @@ class MJPGServer(http.HTTPServer):
             data_l = len(data)
 
             buffer = []
-            buffer.append("--%s\r\n" % self.boundary)
-            buffer.append("Content-Type: image/jpeg\r\n")
-            buffer.append("Content-Length: %d\r\n" % data_l)
-            buffer.append("\r\n")
+            buffer.append(netius.bin("--%s\r\n" % self.boundary))
+            buffer.append(b"Content-Type: image/jpeg\r\n")
+            buffer.append(netius.bin("Content-Length: %d\r\n" % data_l))
+            buffer.append(b"\r\n")
             buffer.append(data)
-            buffer.append("\r\n")
+            buffer.append(b"\r\n")
 
-            buffer_d = "".join(buffer)
+            buffer_d = b"".join(buffer)
 
             def next(connection):
                 def callable():

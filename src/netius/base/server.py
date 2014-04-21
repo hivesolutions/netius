@@ -388,6 +388,7 @@ class DatagramServer(Server):
         self.unsub_read(self.socket)
 
     def send(self, data, address, delay = False, callback = None):
+        data = legacy.bin(data)
         data_l = len(data)
 
         if callback: data = (data, callback)

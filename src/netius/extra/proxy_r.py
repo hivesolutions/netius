@@ -57,7 +57,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         protocol = "https" if is_secure else "http"
 
         host = headers.get("host", None)
-        for _host, _prefix in self.hosts.iteritems():
+        for _host, _prefix in self.hosts.items():
             if not _host == host: continue
             prefix = _prefix
             url = prefix + path

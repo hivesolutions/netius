@@ -224,7 +224,7 @@ class DHCPRequest(object):
         data = struct.pack(format, *result)
         buffer.append(data)
 
-        for option, values in options.iteritems():
+        for option, values in options.items():
             method = cls.options_m[option - 1]
             if values: option_s = method(**values)
             else: option_s = method()

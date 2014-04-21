@@ -214,7 +214,7 @@ class ProxyServer(http.HTTPServer):
         # to it so that it contains all of them
         buffer = []
         buffer.append("%s %s %s\r\n" % (version_s, code_s, status_s))
-        for key, value in headers.iteritems():
+        for key, value in headers.items():
             key = netius.common.header_up(key)
             buffer.append("%s: %s\r\n" % (key, value))
         buffer.append("\r\n")

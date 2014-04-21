@@ -597,7 +597,7 @@ class Base(observer.Observable):
 
     def load_config(self, path = "config.json", **kwargs):
         kwargs = self.apply_config(path, kwargs)
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             setattr(self, key, value)
 
     def apply_config(self, path, kwargs):
@@ -610,7 +610,7 @@ class Base(observer.Observable):
         try: contents = json.load(file)
         finally: file.close()
 
-        for key, value in contents.iteritems():
+        for key, value in contents.items():
             kwargs[key] = value
 
         return kwargs
