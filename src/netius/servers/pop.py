@@ -93,7 +93,7 @@ class POPConnection(netius.Connection):
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
         if self.file: self.file.close(); self.file = None
-        self.parser.destroy()
+        if self.parser: self.parser.destroy()
 
     def parse(self, data):
         if self.state == AUTH_STATE: self.on_user(data)
