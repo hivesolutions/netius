@@ -69,22 +69,25 @@ class WSConnection(netius.Connection):
         if self.handshake:
             raise netius.NetiusError("Handshake already done")
 
-        buffer = "".join(self.buffer_l)
-        if not buffer[-4:] == "\r\n\r\n":
+        buffer = b"".join(self.buffer_l)
+        if not buffer[-4:] == b"\r\n\r\n":
             raise netius.DataError("Missing data for handshake")
 
-        lines = buffer.split("\r\n")
+        lines = buffer.split(b"\r\n")
         for line in lines[1:]:
-            values = line.split(":")
+            values = line.split(b":")
             values_l = len(values)
             if not values_l == 2: continue
 
             key, value = values
             key = key.strip()
+            key = netius.str(key)
             value = value.strip()
+            value = netius.str(value)
             self.headers[key] = value
 
         first = lines[0]
+        first = netius.str(first)
         self.method, self.path, self.version = first.split(" ")
 
         del self.buffer_l[:]
@@ -95,14 +98,16 @@ class WSConnection(netius.Connection):
         if not socket_key:
             raise netius.NetiusError("No socket key found in headers")
 
-        hash = hashlib.sha1(socket_key + WSServer.MAGIC_VALUE)
+        value = netius.bin(socket_key + WSServer.MAGIC_VALUE)
+        hash = hashlib.sha1(value)
         hash_digest = hash.digest()
         accept_key = base64.b64encode(hash_digest)
+        accept_key = netius.str(accept_key)
         return accept_key
 
     def get_buffer(self, delete = True):
-        if not self.buffer_l: return ""
-        buffer = "".join(self.buffer_l)
+        if not self.buffer_l: return b""
+        buffer = b"".join(self.buffer_l)
         if delete: del self.buffer_l[:]
         return buffer
 
@@ -110,54 +115,54 @@ class WSConnection(netius.Connection):
         data_l = len(data)
         encoded_l = list()
 
-        encoded_l.append(chr(129))
+        encoded_l.append(netius.chr(129))
 
         if data_l <= 125:
-            encoded_l.append(chr(data_l))
+            encoded_l.append(netius.chr(data_l))
 
         elif data_l >= 126 and data_l <= 65535:
-            encoded_l.append(chr(126))
-            encoded_l.append(chr((data_l >> 8) & 255))
-            encoded_l.append(chr(data_l & 255))
+            encoded_l.append(netius.chr(126))
+            encoded_l.append(netius.chr((data_l >> 8) & 255))
+            encoded_l.append(netius.chr(data_l & 255))
 
         else:
-            encoded_l.append(chr(127))
-            encoded_l.append(chr((data_l >> 56) & 255))
-            encoded_l.append(chr((data_l >> 48) & 255))
-            encoded_l.append(chr((data_l >> 40) & 255))
-            encoded_l.append(chr((data_l >> 32) & 255))
-            encoded_l.append(chr((data_l >> 24) & 255))
-            encoded_l.append(chr((data_l >> 16) & 255))
-            encoded_l.append(chr((data_l >> 8) & 255))
-            encoded_l.append(chr(data_l & 255))
+            encoded_l.append(netius.chr(127))
+            encoded_l.append(netius.chr((data_l >> 56) & 255))
+            encoded_l.append(netius.chr((data_l >> 48) & 255))
+            encoded_l.append(netius.chr((data_l >> 40) & 255))
+            encoded_l.append(netius.chr((data_l >> 32) & 255))
+            encoded_l.append(netius.chr((data_l >> 24) & 255))
+            encoded_l.append(netius.chr((data_l >> 16) & 255))
+            encoded_l.append(netius.chr((data_l >> 8) & 255))
+            encoded_l.append(netius.chr(data_l & 255))
 
         encoded_l.append(data)
-        encoded = "".join(encoded_l)
+        encoded = b"".join(encoded_l)
         return encoded
 
     def _decode(self, data):
         second_byte = data[1]
 
-        length = ord(second_byte) & 127
+        length = netius.ord(second_byte) & 127
 
         index_mask_f = 2
 
         if length == 126:
             length = 0
-            length += ord(data[2]) << 8
-            length += ord(data[3])
+            length += netius.ord(data[2]) << 8
+            length += netius.ord(data[3])
             index_mask_f = 4
 
         elif length == 127:
             length = 0
-            length += ord(data[2]) << 56
-            length += ord(data[3]) << 48
-            length += ord(data[4]) << 40
-            length += ord(data[5]) << 32
-            length += ord(data[6]) << 24
-            length += ord(data[7]) << 16
-            length += ord(data[8]) << 8
-            length += ord(data[9])
+            length += netius.ord(data[2]) << 56
+            length += netius.ord(data[3]) << 48
+            length += netius.ord(data[4]) << 40
+            length += netius.ord(data[5]) << 32
+            length += netius.ord(data[6]) << 24
+            length += netius.ord(data[7]) << 16
+            length += netius.ord(data[8]) << 8
+            length += netius.ord(data[9])
             index_mask_f = 10
 
         # calculates the size of the raw data part of the message and
@@ -182,13 +187,13 @@ class WSConnection(netius.Connection):
         # (decoding it consequently) to the created decoded array
         i = index_mask_f + 4
         for j in range(length):
-            decoded_a[j] = chr(ord(data[i]) ^ ord(masks[j % 4]))
+            decoded_a[j] = netius.chri(netius.ord(data[i]) ^ netius.ord(masks[j % 4]))
             i += 1
 
         # converts the decoded array of data into a string and
         # and returns the "partial" string containing the data that
         # remained pending to be parsed
-        decoded = str(decoded_a)
+        decoded = netius.to_bytes(decoded_a)
         return decoded, data[i:]
 
 class WSServer(netius.StreamServer):
