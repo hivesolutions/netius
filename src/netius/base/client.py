@@ -765,11 +765,25 @@ class StreamClient(Client):
         # rest of the method is dedicated to ssl tricks
         if not connection.ssl: return
 
+        # verifies if the current ssl object is a context oriented one
+        # (newest versions) or a legacy oriented one, that does not uses
+        # any kind of context object, this is relevant in order to make
+        # decisions on how the ssl object may be re-constructed
+        has_context = hasattr(_socket, "context")
+        has_sock = hasattr(_socket, "_sock")
+
         # creates the ssl object for the socket as it may have been
         # destroyed by the underlying ssl library (as an error) because
-        # the socket is of type non blocking and raises an error
-        _socket._sslobj = _socket._sslobj or ssl._ssl.sslwrap(
-            _socket._sock,
+        # the socket is of type non blocking and raises an error, note
+        # that the creation of the socket varies between ssl versions
+        if _socket._sslobj: return
+        if has_context: _socket._sslobj = _socket.context._wrap_socket(
+            _socket,
+            _socket.server_side,
+            _socket.server_hostname
+        )
+        else: _socket._sslobj = ssl._ssl.sslwrap(
+            _socket._sock if has_sock else _socket,
             False,
             _socket.keyfile,
             _socket.certfile,
