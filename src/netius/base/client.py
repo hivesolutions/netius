@@ -315,7 +315,8 @@ class DatagramClient(Client):
         # checks if it's the same as the one defined in the
         # owner in case it's not then the operation is not
         # considered to be safe and must be delayed
-        tid = thread.get_ident()
+        cthread = threading.current_thread()
+        tid = cthread.ident or 0
         is_safe = tid == self.tid
 
         # in case the thread where this code is being executed
@@ -351,7 +352,8 @@ class DatagramClient(Client):
         if callback: data = (data, callback)
         data = (data, address)
 
-        tid = thread.get_ident()
+        cthread = threading.current_thread()
+        tid = cthread.ident or 0
         is_safe = tid == self.tid
 
         self.pending_lock.acquire()
