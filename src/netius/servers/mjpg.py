@@ -87,6 +87,9 @@ class MJPGServer(http.HTTPServer):
             delay = self.get_delay(connection)
             data = self.get_image(connection)
 
+            if not data: self.warning("No image retrieved from provider")
+            if not data: data = b""
+
             data_l = len(data)
 
             buffer = []
