@@ -243,7 +243,7 @@ class HTTPParser(parser.Parser):
         else: return split[1]
 
     def get_message(self):
-        if not self.message_s: self.message_s = "".join(self.message)
+        if not self.message_s: self.message_s = b"".join(self.message)
         return self.message_s
 
     def get_message_b(self):
@@ -329,9 +329,9 @@ class HTTPParser(parser.Parser):
 
         self.buffer.append(data[:index])
         self.line_s = b"".join(self.buffer)[:-1]
+        self.line_s = netius.str(self.line_s)
         del self.buffer[:]
 
-        self.line_s = netius.str(self.line_s)
         values = self.line_s.split(" ", 2)
         if not len(values) == 3:
             raise netius.ParserError("Invalid status line '%s'" % self.line_s)
