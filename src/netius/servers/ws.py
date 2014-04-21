@@ -193,7 +193,7 @@ class WSConnection(netius.Connection):
         # converts the decoded array of data into a string and
         # and returns the "partial" string containing the data that
         # remained pending to be parsed
-        decoded = netius.to_bytes(decoded_a)
+        decoded = bytes(decoded_a)
         return decoded, data[i:]
 
 class WSServer(netius.StreamServer):

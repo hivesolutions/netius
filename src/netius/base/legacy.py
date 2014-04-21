@@ -62,17 +62,22 @@ else: STRINGS = (str, unicode) #@UndefinedVariable
 if PYTHON_3: INTEGERS = (int,)
 else: INTEGERS = (int, long) #@UndefinedVariable
 
+# saves a series of global symbols that are going to be
+# used latter for some of the legacy operations
+_ord = ord
+_chr = chr
+
 def ord(value):
     if PYTHON_3: return value
-    return __builtins__.ord(value)
+    return _ord(value)
 
 def chr(value):
     if PYTHON_3: return bytes([value])
-    return __builtins__.chr(value)
+    return _chr(value)
 
 def chri(value):
     if PYTHON_3: return value
-    return __builtins__.chr(value)
+    return _chr(value)
 
 def bin(value):
     if not PYTHON_3: return value
@@ -83,10 +88,6 @@ def str(value):
     if not PYTHON_3: return value
     if type(value) == str: return value
     return value.decode("ascii", "ignore")
-
-def to_bytes(value):
-    if PYTHON_3: return bytes(value)
-    else: return str(value)
 
 def reduce(*args, **kwargs):
     if PYTHON_3: return functools.reduce(*args, **kwargs)

@@ -50,7 +50,6 @@ import traceback
 
 import netius.adapters
 
-from netius.base import legacy
 from netius.base import config
 from netius.base import errors
 
