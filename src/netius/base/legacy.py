@@ -94,7 +94,7 @@ def reduce(*args, **kwargs):
     return reduce(*args, **kwargs)
 
 def urlparse(*args, **kwargs):
-    return _urlparse(*args, **kwargs)
+    return _urlparse.urlparse(*args, **kwargs)
 
 def urlencode(*args, **kwargs):
     if PYTHON_3: urllib.parse.urlencode(*args, **kwargs)
