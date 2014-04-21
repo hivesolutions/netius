@@ -82,8 +82,8 @@ class Pieces(netius.Observable):
 
         self.number_pieces = number_pieces
         self.number_blocks = number_blocks
-        self.bitfield = [True for _index in xrange(number_pieces)]
-        self.mask = [True for _index in xrange(number_pieces * number_blocks)]
+        self.bitfield = [True for _index in range(number_pieces)]
+        self.mask = [True for _index in range(number_pieces * number_blocks)]
 
     def piece(self, index):
         return self.bitfield[index]
@@ -118,7 +118,7 @@ class Pieces(netius.Observable):
     def update_block(self, index, mark = True):
         base = index * self.number_blocks
 
-        for block_index in xrange(self.number_blocks):
+        for block_index in range(self.number_blocks):
             state = self.mask[base + block_index]
             if state == True: break
 
@@ -130,7 +130,7 @@ class Pieces(netius.Observable):
         base = index * self.number_blocks
         piece_state = False
 
-        for block_index in xrange(self.number_blocks):
+        for block_index in range(self.number_blocks):
             state = self.mask[base + block_index]
             if state == False: continue
             piece_state = True
@@ -281,7 +281,7 @@ class TorrentTask(netius.Observable):
         # verifies if the provided peers part is not compact (already a dictionary)
         # if that's the case there's nothing remaining to be done, otherwise extra
         # processing must be done to
-        if type(peers) == types.DictType: self.extend_peers(peers)
+        if type(peers) == dict: self.extend_peers(peers)
 
         # need to normalize the peer structure by decoding the peers string into a
         # set of address port sub strings (as defined in torrent specification)
@@ -665,11 +665,11 @@ if __name__ == "__main__":
         speed_s = task.speed_s()
         left = task.left()
         percent = int(percent)
-        print task.info_string()
-        print "[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s)
+        print(task.info_string())
+        print("[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s))
 
     def on_complete(task):
-        print "Download completed"
+        print("Download completed")
 
     torrent_server = TorrentServer(level = logging.DEBUG)
     torrent_server.bind("start", on_start)
