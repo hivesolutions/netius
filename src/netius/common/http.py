@@ -531,14 +531,14 @@ class HTTPParser(parser.Parser):
         if is_start:
             # tries to find the separator of the initial value for
             # the chunk in case it's not found returns immediately
-            index = data.find("\n")
+            index = data.find(b"\n")
             if index == -1: return 0
 
             # some of the current data to the buffer and then re-joins
             # it as the header value, then removes the complete set of
             # contents from the buffer so that it may be re-used
             self.buffer.append(data[:index])
-            header = "".join(self.buffer)[:-1]
+            header = b"".join(self.buffer)[:-1]
             del self.buffer[:]
 
             # sets the new data buffer as the partial buffer of the data
@@ -548,7 +548,7 @@ class HTTPParser(parser.Parser):
             # splits the header value so that additional chunk information
             # is removed and then parsed the value as the original chunk
             # size (dimension) adding the two extra bytes to the length
-            header_s = header.split(";", 1)
+            header_s = header.split(b";", 1)
             size = header_s[0]
             self.chunk_d = int(size.strip(), base = 16)
             self.chunk_l = self.chunk_d + 2
