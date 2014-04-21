@@ -331,7 +331,7 @@ class HTTPParser(parser.Parser):
         self.line_s = b"".join(self.buffer)[:-1]
         del self.buffer[:]
 
-        self.line_s = self.line_s.decode("ascii")
+        self.line_s = netius.str(self.line_s)
         values = self.line_s.split(" ", 2)
         if not len(values) == 3:
             raise netius.ParserError("Invalid status line '%s'" % self.line_s)
@@ -395,9 +395,9 @@ class HTTPParser(parser.Parser):
 
             key, value = values
             key = key.strip().lower()
-            key = key.decode("ascii")
+            key = netius.str(key)
             value = value.strip()
-            value = value.decode("ascii")
+            value = netius.str(value)
             self.headers[key] = value
 
         # retrieves the size of the contents from the populated
