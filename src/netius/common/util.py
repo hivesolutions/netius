@@ -98,7 +98,7 @@ def ip4_to_addr(value):
     return first_a + second_a + third_a + fourth_a
 
 def string_to_bits(value):
-    return bin(netius.reduce(lambda x, y : (x << 8) + y, (ord(c) for c in value), 1))[3:]
+    return bin(netius.reduce(lambda x, y : (x << 8) + y, (netius.ord(c) for c in value), 1))[3:]
 
 def integer_to_bytes(number, length = 0):
     bytes = []
