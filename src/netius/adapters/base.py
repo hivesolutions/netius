@@ -37,8 +37,8 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import os
 import uuid
 import hashlib
-try: import StringIO
-except: import io; StringIO = io
+
+import netius
 
 class BaseAdapter(object):
     """
@@ -60,7 +60,7 @@ class BaseAdapter(object):
         return value
 
     def get_file(self, key, mode = "rb"):
-        return StringIO.StringIO()
+        return netius.StringIO()
 
     def delete(self, key, owner = "nobody"):
         pass

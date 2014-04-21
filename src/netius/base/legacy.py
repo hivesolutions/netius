@@ -40,6 +40,9 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import sys
 import urllib #@UnusedImport
 
+try: import cStringIO
+except: import io; cStringIO = io
+
 try: import urlparse as _urlparse
 except: import urllib.parse; _urlparse = urllib.parse
 
@@ -56,8 +59,11 @@ def urlparse(*args, **kwargs):
 
 def urlencode(*args, **kwargs):
     if PYTHON_3: urllib.parse.urlencode(*args, **kwargs)
-    else: return urllib.urlencode(*args, kwargs) #@UndefinedVariable
+    else: return urllib.urlencode(*args, **kwargs) #@UndefinedVariable
 
 def unquote(*args, **kwargs):
     if PYTHON_3: urllib.parse.unquote(*args, **kwargs)
-    else: return urllib.unquote(*args, kwargs) #@UndefinedVariable
+    else: return urllib.unquote(*args, **kwargs) #@UndefinedVariable
+
+def StringIO(*args, **kwargs):
+    return cStringIO.StringIO(*args, **kwargs)

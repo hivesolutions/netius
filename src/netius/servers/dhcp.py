@@ -39,8 +39,6 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import re
 import struct
-try: import cStringIO
-except: import io; cStringIO = io
 
 import netius.common
 
@@ -81,7 +79,7 @@ class DHCPRequest(object):
         cls.options_l = len(cls.options_m)
 
     def get_info(self):
-        buffer = cStringIO.StringIO()
+        buffer = netius.StringIO()
         buffer.write("op      := %d\n" % self.op)
         buffer.write("htype   := %d\n" % self.htype)
         buffer.write("hlen    := %d\n" % self.hlen)

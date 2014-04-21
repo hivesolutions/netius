@@ -37,9 +37,6 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-try: import cStringIO
-except: import io; cStringIO = io
-
 import netius
 
 from netius.common import parser
@@ -250,7 +247,7 @@ class HTTPParser(parser.Parser):
         return self.message_s
 
     def get_message_b(self):
-        buffer = cStringIO.StringIO()
+        buffer = netius.StringIO()
         for value in self.message: buffer.write(value)
         buffer.seek(0)
         return buffer

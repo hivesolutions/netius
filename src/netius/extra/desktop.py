@@ -37,9 +37,6 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-try: import cStringIO
-except: import io; cStringIO = io
-
 import netius.servers
 
 try: import PIL.ImageGrab
@@ -53,7 +50,7 @@ class DesktopServer(netius.servers.MJPGServer):
     def get_image(self, connection):
         if not PIL: return None
         image = PIL.ImageGrab.grab()
-        buffer = cStringIO.StringIO()
+        buffer = netius.StringIO()
         image.save(buffer, "JPEG")
         data = buffer.getvalue()
         return data

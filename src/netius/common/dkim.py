@@ -43,8 +43,6 @@ import types
 import base64
 import hashlib
 import datetime
-try: import cStringIO
-except: import io; cStringIO = io
 
 import netius
 
@@ -194,7 +192,7 @@ def dkim_generate(domain, suffix = None, number_bits = 1024):
     rsa.assert_private(private_key, number_bits = number_bits)
     public_key = rsa.private_to_public(private_key)
 
-    buffer = cStringIO.StringIO()
+    buffer = netius.StringIO()
     try:
         rsa.write_private_key(buffer, private_key)
         private_pem = buffer.getvalue()
