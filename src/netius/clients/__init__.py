@@ -34,18 +34,18 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import apn
-import dht
-import dns
-import http
-import raw
-import smtp
-import torrent
+from . import apn
+from . import dht
+from . import dns
+from . import http
+from . import raw
+from . import smtp
+from . import torrent
 
-from apn import *
-from dht import *
-from dns import *
-from http import *
-from raw import *
-from smtp import *
-from torrent import *
+from .apn import *
+from .dht import *
+from .dns import *
+from .http import *
+from .raw import *
+from .smtp import *
+from .torrent import *
