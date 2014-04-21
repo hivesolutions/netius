@@ -37,10 +37,10 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import http
-
 import netius.common
 import netius.clients
+
+from netius.servers import http
 
 BUFFER_RATIO = 1.5
 """ The ration for the calculus of the internal socket

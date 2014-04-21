@@ -454,7 +454,7 @@ class HTTPServer(netius.StreamServer):
         self._apply_connection(connection, headers)
 
     def _apply_base(self, headers):
-        for key, value in BASE_HEADERS.iteritems():
+        for key, value in BASE_HEADERS.items():
             if key in headers: continue
             headers[key] = value
 

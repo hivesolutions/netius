@@ -39,7 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import os
 
-import http
+from netius.servers import http
 
 BOUNDARY = "mjpegboundary"
 """ The defualt boundary string value to be used in
