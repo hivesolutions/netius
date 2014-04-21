@@ -68,7 +68,7 @@ _ord = ord
 _chr = chr
 
 def ord(value):
-    if PYTHON_3: return value
+    if PYTHON_3 and type(value) == int: return value
     return _ord(value)
 
 def chr(value):
