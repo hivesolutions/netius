@@ -75,7 +75,7 @@ class SMTPConnection(netius.Connection):
         self.keys = []
         self.from_l = []
         self.to_l = []
-        self.previous = str()
+        self.previous = bytes()
         self.state = INTIAL_STATE
 
     def open(self, *args, **kwargs):
@@ -153,6 +153,7 @@ class SMTPConnection(netius.Connection):
 
     def auth(self, method, data):
         data_s = base64.b64decode(data)
+        data_s = netius.str(data_s)
         _identifier, username, password = data_s.split("\0")
         self.owner.on_auth_smtp(self, username, password)
         message = "authentication successful"
@@ -164,7 +165,7 @@ class SMTPConnection(netius.Connection):
         self.owner.on_header_smtp(self, self.from_l, self.to_l)
         message = "go ahead"
         self.send_smtp(354, message)
-        self.previous = str()
+        self.previous = bytes()
         self.state = DATA_STATE
 
     def queued(self, index = -1):
@@ -199,9 +200,9 @@ class SMTPConnection(netius.Connection):
         # find the termination string in the final concatenated string
         data_l = len(data)
         remaining = TERMINATION_SIZE - data_l if TERMINATION_SIZE > data_l else 0
-        previous_v = self.previous[remaining * -1:] if remaining > 0 else ""
+        previous_v = self.previous[remaining * -1:] if remaining > 0 else b""
         buffer = previous_v + data[TERMINATION_SIZE * -1:]
-        is_final = not buffer.find("\r\n.\r\n") == -1
+        is_final = not buffer.find(b"\r\n.\r\n") == -1
 
         # updates the previous value string with the current buffer used for finding
         # the termination string, this value may be used in the next iteration
