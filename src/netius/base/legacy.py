@@ -56,7 +56,7 @@ to take some of the conversion decision for runtime """
 if PYTHON_3: UNICODE = None
 else: UNICODE = unicode #@UndefinedVariable
 
-if PYTHON_3: STRINGS = (str,)
+if PYTHON_3: STRINGS = (str, bytes)
 else: STRINGS = (str, unicode) #@UndefinedVariable
 
 if PYTHON_3: INTEGERS = (int,)
@@ -66,6 +66,9 @@ else: INTEGERS = (int, long) #@UndefinedVariable
 # used latter for some of the legacy operations
 _ord = ord
 _chr = chr
+
+try: _reduce = reduce #@UndefinedVariable
+except: _reduce = None
 
 def ord(value):
     if PYTHON_3 and type(value) == int: return value
@@ -82,12 +85,12 @@ def chri(value):
 def bin(value):
     if not PYTHON_3: return value
     if type(value) == bytes: return value
-    return value.encode("ascii")
+    return value.encode("latin-1")
 
 def str(value):
     if not PYTHON_3: return value
     if type(value) == str: return value
-    return value.decode("ascii", "ignore")
+    return value.decode("latin-1")
 
 def orderable(value):
     if not PYTHON_3: return value
@@ -95,7 +98,7 @@ def orderable(value):
 
 def reduce(*args, **kwargs):
     if PYTHON_3: return functools.reduce(*args, **kwargs)
-    return reduce(*args, **kwargs)
+    return _reduce(*args, **kwargs)
 
 def urlparse(*args, **kwargs):
     return _urlparse.urlparse(*args, **kwargs)
