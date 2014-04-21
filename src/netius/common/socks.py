@@ -227,11 +227,12 @@ class SOCKSParser(parser.Parser):
         return 7
 
     def _parse_user_id(self, data):
-        index = data.find("\0")
+        index = data.find(b"\0")
         if index == -1: return 0
 
         self.buffer.append(data[:index])
-        self.user_id = "".join(self.buffer)
+        self.user_id = b"".join(self.buffer)
+        self.user_id = netius.str(self.user_id)
         del self.buffer[:]
 
         if self.is_extended: self.state = DOMAIN_STATE
@@ -241,11 +242,12 @@ class SOCKSParser(parser.Parser):
         return index + 1
 
     def _parse_domain(self, data):
-        index = data.find("\0")
+        index = data.find(b"\0")
         if index == -1: return 0
 
         self.buffer.append(data[:index])
-        self.domain = "".join(self.buffer)
+        self.domain = b"".join(self.buffer)
+        self.domain = netius.str(self.domain)
         del self.buffer[:]
 
         self.state = FINISH_STATE
@@ -270,7 +272,7 @@ class SOCKSParser(parser.Parser):
 
         remaining = self.auth_count - len(self.buffer)
         self.buffer.append(data[:remaining])
-        data = "".join(self.buffer)
+        data = b"".join(self.buffer)
 
         format = "!%dB" % self.auth_count
         self.auth_methods = struct.unpack(format, data)
@@ -314,7 +316,7 @@ class SOCKSParser(parser.Parser):
 
         remaining = self.size - len(self.buffer)
         self.buffer.append(data[:remaining])
-        data = "".join(self.buffer)
+        data = b"".join(self.buffer)
 
         if self.type == IPV4:
             self.address, = struct.unpack("!I", data)
@@ -323,8 +325,8 @@ class SOCKSParser(parser.Parser):
             self.address = struct.unpack("!QQ", data)
             self.address_s = self.address
         else:
-            self.address = data
-            self.address_s = data
+            self.address = netius.str(data)
+            self.address_s = netius.str(data)
 
         self.state = PORT_STATE
 
