@@ -80,7 +80,7 @@ def bencode(root):
     # joins the complete set of values created by
     # generator that has been returned from the chunk
     # function using the provided root value
-    data = "".join([value for value in chunk(root)])
+    data = b"".join([value for value in chunk(root)])
     return data
 
 def bdecode(data):
@@ -88,6 +88,7 @@ def bdecode(data):
     # of chunks (characters) reversing it so that the
     # proper pop/push operations may be performed, as
     # pop is done from the back of the list
+    data = netius.str(data)
     chunks = list(data)
     chunks.reverse()
 
@@ -101,25 +102,27 @@ def chunk(item):
     chunk_t = type(item)
 
     if chunk_t == dict:
-        yield "d"
-        keys = item.keys(); keys.sort()
+        yield b"d"
+        keys = item.keys()
+        keys = list(keys)
+        keys.sort()
         for key in keys:
             value = item[key]
             for part in chunk(key): yield part
             for part in chunk(value): yield part
-        yield "e"
+        yield b"e"
 
     elif chunk_t == list:
-        yield "l"
+        yield b"l"
         for value in item:
             for part in chunk(value): yield part
-        yield "e"
+        yield b"e"
 
     elif chunk_t in netius.INTEGERS:
-        yield "i%de" % item
+        yield netius.bin("i%de" % item)
 
     elif chunk_t in netius.STRINGS:
-        yield "%d:%s" % (len(item), item)
+        yield netius.bin("%d:%s" % (len(item), item))
 
     else:
         raise netius.ParserError("Not possible to encode")
@@ -167,10 +170,14 @@ def dechunk(chunks):
             number += item
             item = chunks.pop()
 
-        line = ""
+        line = []
         number = int(number)
+
         for _index in range(number):
-            line += chunks.pop()
+            char = chunks.pop()
+            line.append(char)
+
+        line = "".join(line)
 
         return line
 
