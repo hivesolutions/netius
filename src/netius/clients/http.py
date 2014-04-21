@@ -555,7 +555,7 @@ if __name__ == "__main__":
         client.close()
 
     http_client = HTTPClient()
-    http_client.get("http://www.flickr.com/")
+    http_client.get("https://www.flickr.com/")
     http_client.bind("headers", on_headers)
     http_client.bind("partial", on_partial)
     http_client.bind("message", on_message)
