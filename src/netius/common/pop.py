@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import netius
+
 from netius.common import parser
 
 class POPParser(parser.Parser):
@@ -94,21 +96,22 @@ class POPParser(parser.Parser):
     def _parse_line(self, data):
         # tries to find the new line character in the currently received
         # data in case it's not found returns immediately with no data processed
-        index = data.find("\n")
+        index = data.find(b"\n")
         if index == -1: return 0
 
         # adds the partial data (until new line) to the current buffer and
         # then joins it retrieving the current line, then deletes the buffer
         # as it's not longer going to be used
         self.buffer.append(data[:index])
-        self.line_s = "".join(self.buffer)[:-1]
+        self.line_s = b"".join(self.buffer)[:-1]
+        self.line_s = netius.str(self.line_s)
         del self.buffer[:]
 
         # splits the provided line into the code and message parts in case
         # the split is not successful (not enough information) then an extra
         # value is added to the sequence of values for compatibility
         values = self.line_s.split(" ", 1)
-        if not len(values) > 1: values.append("")
+        if not len(values) > 1: values.append(b"")
 
         # unpacks the set of values that have just been parsed into the code
         # and the message items as expected by the pop specification

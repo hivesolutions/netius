@@ -256,7 +256,7 @@ class POPConnection(netius.Connection):
         # then verifies if it contains the token if that's the
         # case continues the parsing otherwise returns immediately
         self.token_buf.append(token)
-        index = token.find("\n")
+        index = token.find(b"\n")
         if index == -1: return
 
         # removes the extra characters from the token so that no
@@ -271,8 +271,9 @@ class POPConnection(netius.Connection):
         # and then decodes into as a base 64 string and splits it
         # around its own components so that the proper auth callback
         # may be called to validate the authentication
-        token = "".join(self.token_buf)
+        token = b"".join(self.token_buf)
         token_s = base64.b64decode(token)
+        token_s = netius.str(token_s)
         _identifier, username, password = token_s.split("\0")
 
         # calls the callback to the authentication and in case everything
