@@ -271,7 +271,7 @@ class TorrentTask(netius.Observable):
 
         # prints a debug message about the peer loading that has just occurred, this
         # may be used for the purpose of development (and traceability)
-        self.owner.debug("Received %d peers from DHT '%s' peer" % (len(peers), peer_id))
+        self.owner.debug("Received %d peers from DHT peer (%s)" % (len(peers), peer_id))
 
     def on_tracker(self, client, parser, result):
         # extracts the data (string) contents of the http response and in case
