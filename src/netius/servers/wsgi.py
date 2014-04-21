@@ -41,7 +41,7 @@ import sys
 
 import netius
 
-import http
+from netius.servers import http
 
 SERVER_SOFTWARE = "%s/%s" % (netius.NAME, netius.VERSION)
 """ The server software string that is going to identify the
@@ -136,7 +136,7 @@ class WSGIServer(http.HTTPServer):
         # to set them in the environment map to be used by the wsgi
         # infra-structure, not that their name is capitalized as defined
         # in the standard specification
-        for key, value in parser.headers.iteritems():
+        for key, value in parser.headers.items():
             key = "HTTP_" + key.replace("-", "_").upper()
             environ[key] = value
 
@@ -204,7 +204,7 @@ class WSGIServer(http.HTTPServer):
         # lines for the headers and sets them in the buffer list
         buffer = []
         buffer.append("%s %s\r\n" % (version_s, status))
-        for key, value in headers.iteritems():
+        for key, value in headers.items():
             buffer.append("%s: %s\r\n" % (key, value))
         buffer.append("\r\n")
 
@@ -227,7 +227,7 @@ class WSGIServer(http.HTTPServer):
         # tries to retrieve data from the current iterator and in
         # case the stop iteration is received sets the is final flag
         # so that no more data is sent through the connection
-        try: data = iterator.next()
+        try: data = next(iterator)
         except StopIteration: is_final = True
 
         # in case the connection is not meant to be kept alive must

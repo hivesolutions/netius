@@ -43,14 +43,15 @@ import types
 import base64
 import hashlib
 import datetime
-import cStringIO
+try: import cStringIO
+except: import io; cStringIO = io
 
 import netius
 
-import asn
-import rsa
-import util
-import mime
+from netius.common import asn
+from netius.common import rsa
+from netius.common import util
+from netius.common import mime
 
 def dkim_sign(message, selector, domain, private_key, identity = None, separator = ":"):
     identity = identity or "@" + domain

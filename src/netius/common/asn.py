@@ -41,7 +41,7 @@ import types
 
 import netius
 
-import util
+from netius.common import util
 
 INTEGER = 0x02
 BIT_STRING = 0x03

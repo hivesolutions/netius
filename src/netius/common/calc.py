@@ -42,7 +42,7 @@ import random
 
 import netius
 
-import util
+from netius.common import util
 
 def prime(number_bits):
     """
