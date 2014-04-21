@@ -67,7 +67,7 @@ current infra-structure, all of the services and clients
 may share this value """
 
 PLATFORM = ("%s %d.%d.%d.%s" % (
-    sys.subversion[0],
+    sys.subversion[0] if hasattr(sys, "subversion") else "cPython",
     sys.version_info[0],
     sys.version_info[1],
     sys.version_info[2],
@@ -347,8 +347,7 @@ class Base(observer.Observable):
         pass
 
     def load_logging(self, level = logging.DEBUG, format = LOG_FORMAT):
-        level_t = type(level)
-        if not level_t == types.IntType: level = logging.getLevelName(level)
+        level = self._level(level)
         formatter = logging.Formatter(format)
         identifier = self.get_id()
         self.handler_stream.setLevel(level)
@@ -373,7 +372,8 @@ class Base(observer.Observable):
 
         # retrieves the current thread identifier as the current
         # "tid" value to be used for thread control mechanisms
-        self.tid = thread.get_ident()
+        cthread = threading.current_thread()
+        self.tid = cthread.ident or 0
 
         # triggers the loading of the internal structures of
         # the base structure in case the loading has already
@@ -396,7 +396,7 @@ class Base(observer.Observable):
         # may be used for runtime debugging purposes (debug only data)
         cthread = threading.current_thread()
         name = cthread.getName()
-        ident = thread.get_ident()
+        ident = cthread.ident or 0
 
         # enters the main loop operation printing a message
         # to the logger indicating this start, this stage
@@ -644,9 +644,20 @@ class Base(observer.Observable):
     def critical(self, object):
         self.log(object, level = logging.CRITICAL)
 
-    def log(self, object, level = logging.INFO):
+    def log(self, *args, **kwargs):
+        if sys.version_info[0] >= 3: return self.log_python_3(*args, **kwargs)
+        else: return self.log_python_2(*args, **kwargs)
+
+    def log_python_3(self, object, level = logging.INFO):
         object_t = type(object)
-        try: message = unicode(object) if not object_t in types.StringTypes else object
+        try: message = str(object) if not object_t == str else object
+        except: message = str(object)
+        if not self.logger: return
+        self.logger.log(level, message)
+
+    def log_python_2(self, object, level = logging.INFO):
+        object_t = type(object)
+        try: message = unicode(object) if not object_t in types.StringTypes else object #@UndefinedVariable
         except: message = str(object).decode("utf-8", errors = "ignore")
         if not self.logger: return
         self.logger.log(level, message)
@@ -977,6 +988,29 @@ class Base(observer.Observable):
             if error_v in SSL_VALID_ERRORS:
                 _socket._pending = self._ssl_handshake
             else: raise
+
+    def _level(self, level):
+        """
+        Converts the provided logging level value into the best
+        representation of it, so that it may be used to update
+        a logger's level of representation.
+
+        This method takes into account the current interpreter
+        version so that no problem occur.
+
+        @type level: String/int
+        @param level: The level value that is meant to be converted
+        into the best representation possible.
+        @rtype: int
+        @return: The best representation of the level so that it may
+        be used freely for the setting of logging levels under the
+        current running interpreter.
+        """
+
+        if sys.version_info[0] >= 3: return level
+        level_t = type(level)
+        if level_t == int: return level
+        return logging.getLevelName(level)
 
 class BaseThread(threading.Thread):
     """
