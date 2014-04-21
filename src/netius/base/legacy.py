@@ -38,6 +38,10 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import sys
+import urllib #@UnusedImport
+
+try: import urlparse as _urlparse
+except: import urllib.parse; _urlparse = urllib.parse
 
 PYTHON_3 = sys.version_info[0] >= 3
 """ Global variable that defines if the current python
@@ -46,3 +50,10 @@ to take some of the conversion decision for runtime """
 
 if PYTHON_3: str = (str,)
 else: str = (str, unicode) #@UndefinedVariable
+
+def urlparse(*args, **kwargs):
+    return _urlparse(*args, **kwargs)
+
+def urlencode(*args, **kwargs):
+    if PYTHON_3: _urlparse.urlencode(*args, **kwargs)
+    else: return urllib.urlencode(*args, kwargs) #@UndefinedVariable

@@ -37,10 +37,6 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import urllib
-try: import urlparse
-except: import urllib.parse; urlparse = urllib.parse
-
 import netius.common
 
 BASE_HEADERS = {
@@ -386,14 +382,14 @@ class HTTPClient(netius.StreamClient):
         # encodes the provided parameters into the query string and then
         # adds these parameters to the end of the provided url, these
         # values are commonly named get parameters
-        query = urllib.urlencode(params)
+        query = netius.urlencode(params)
         if query: url = url + "?" + query
 
         # parses the provided url and retrieves the various parts of the
         # url that are going to be used in the creation of the connection
         # takes into account some default values in case their are not part
         # of the provided url (eg: port and the scheme)
-        parsed = urlparse.urlparse(url)
+        parsed = netius.urlparse(url)
         ssl = parsed.scheme == "https"
         host = parsed.hostname
         port = parsed.port or (ssl and 443 or 80)
