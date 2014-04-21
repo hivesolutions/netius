@@ -62,6 +62,18 @@ else: STRINGS = (str, unicode) #@UndefinedVariable
 if PYTHON_3: INTEGERS = (int,)
 else: INTEGERS = (int, long) #@UndefinedVariable
 
+def ord(value):
+    if PYTHON_3: return value
+    return __builtins__.ord(value)
+
+def chr(value):
+    if PYTHON_3: return bytes([value])
+    return __builtins__.chr(value)
+
+def chri(value):
+    if PYTHON_3: return value
+    return __builtins__.chr(value)
+
 def bin(value):
     if not PYTHON_3: return value
     if type(value) == bytes: return value
@@ -71,6 +83,10 @@ def str(value):
     if not PYTHON_3: return value
     if type(value) == str: return value
     return value.decode("ascii", "ignore")
+
+def to_bytes(value):
+    if PYTHON_3: return bytes(value)
+    else: return str(value)
 
 def reduce(*args, **kwargs):
     if PYTHON_3: return functools.reduce(*args, **kwargs)
