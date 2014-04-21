@@ -347,7 +347,7 @@ class DatagramClient(Client):
     def send(self, data, address, delay = False, callback = None):
         self.ensure_loop()
 
-        data = legacy.bin(data)
+        data = legacy.bytes(data)
         data_l = len(data)
 
         if callback: data = (data, callback)

@@ -56,7 +56,7 @@ class FsAdapter(base.BaseAdapter):
         owner_path = self._ensure(owner)
         file_path = os.path.join(self.base_path, key)
         link_path = os.path.join(owner_path, key)
-        value = netius.bin(value)
+        value = netius.bytes(value)
         file = open(file_path, "wb")
         try: file.write(value)
         finally: file.close()

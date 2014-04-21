@@ -98,7 +98,7 @@ class WSConnection(netius.Connection):
         if not socket_key:
             raise netius.NetiusError("No socket key found in headers")
 
-        value = netius.bin(socket_key + WSServer.MAGIC_VALUE)
+        value = netius.bytes(socket_key + WSServer.MAGIC_VALUE)
         hash = hashlib.sha1(value)
         hash_digest = hash.digest()
         accept_key = base64.b64encode(hash_digest)

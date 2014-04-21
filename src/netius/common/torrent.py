@@ -119,10 +119,10 @@ def chunk(item):
         yield b"e"
 
     elif chunk_t in netius.INTEGERS:
-        yield netius.bin("i%de" % item)
+        yield netius.bytes("i%de" % item)
 
     elif chunk_t in netius.STRINGS:
-        yield netius.bin("%d:%s" % (len(item), item))
+        yield netius.bytes("%d:%s" % (len(item), item))
 
     else:
         raise netius.ParserError("Not possible to encode")

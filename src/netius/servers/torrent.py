@@ -287,7 +287,7 @@ class TorrentTask(netius.Observable):
         else:
             peers = [peer for peer in netius.common.chunks(peers, 6)]
             for peer in peers:
-                peer = netius.bin(peer)
+                peer = netius.bytes(peer)
                 address, port = struct.unpack("!LH", peer)
                 ip = netius.common.addr_to_ip4(address)
                 peer = dict(ip = ip, port = port)
@@ -647,11 +647,11 @@ class TorrentServer(netius.ContainerServer):
 
     def _generate_id(self):
         random = str(uuid.uuid4())
-        random = netius.bin(random)
+        random = netius.bytes(random)
         hash = hashlib.sha1(random)
         digest = hash.hexdigest()
         id = "-%s-%s" % (ID_STRING, digest[:12])
-        id = netius.bin(id)
+        id = netius.bytes(id)
         return id
 
 if __name__ == "__main__":

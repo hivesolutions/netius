@@ -237,7 +237,7 @@ class DHCPRequest(object):
 
     @classmethod
     def _str(cls, data):
-        data = netius.bin(data)
+        data = netius.bytes(data)
         data_l = len(data)
         size_s = struct.pack("!B", data_l)
         return size_s + data
@@ -344,7 +344,7 @@ class DHCPRequest(object):
     def _option_proxy(cls, url = "http://localhost/proxy.pac"):
         length = len(url)
         length_o = netius.chr(length)
-        return b"\xfc" + length_o + netius.bin(url)
+        return b"\xfc" + length_o + netius.bytes(url)
 
     @classmethod
     def _option_end(cls):

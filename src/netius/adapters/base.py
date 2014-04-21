@@ -104,7 +104,7 @@ class BaseAdapter(object):
 
     def generate(self):
         identifier = str(uuid.uuid4())
-        identifier = netius.bin(identifier)
+        identifier = netius.bytes(identifier)
         hash = hashlib.sha256(identifier)
         key = hash.hexdigest()
         return key

@@ -361,7 +361,7 @@ class Connection(observer.Observable):
         # is the required one for the output operations (binary)
         # in case it's not the required transformation operations
         # should be performed so that the data format is compatible
-        data = legacy.bin(data) if data else data
+        data = legacy.bytes(data) if data else data
 
         # calculates the size in bytes of the provided data so
         # that it may be used latter for the incrementing of

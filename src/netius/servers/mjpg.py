@@ -93,9 +93,9 @@ class MJPGServer(http.HTTPServer):
             data_l = len(data)
 
             buffer = []
-            buffer.append(netius.bin("--%s\r\n" % self.boundary))
+            buffer.append(netius.bytes("--%s\r\n" % self.boundary))
             buffer.append(b"Content-Type: image/jpeg\r\n")
-            buffer.append(netius.bin("Content-Length: %d\r\n" % data_l))
+            buffer.append(netius.bytes("Content-Length: %d\r\n" % data_l))
             buffer.append(b"\r\n")
             buffer.append(data)
             buffer.append(b"\r\n")
