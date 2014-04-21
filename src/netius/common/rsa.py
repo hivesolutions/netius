@@ -38,7 +38,6 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import math
-import types
 import base64
 
 import netius
@@ -82,7 +81,7 @@ def write_pem_key(
     chunks = [chunk for chunk in util.chunks(data, width)]
     data = "\n".join(chunks)
 
-    is_file = not type(path) in types.StringTypes
+    is_file = not type(path) in netius.STRINGS
     file = path if is_file else open(path, "wb")
     try:
         file.write(begin)
@@ -408,10 +407,7 @@ def rsa_crypt_s(message, exponent, modulus):
     return message_crypt_s
 
 def rsa_crypt(number, exponent, modulus):
-    if type(number) == types.IntType:
-        return rsa_crypt(long(number), exponent, modulus)
-
-    if not type(number) == types.LongType:
+    if not type(number) in netius.INTEGERS:
         raise TypeError("you must pass a long or an int")
 
     if number > 0 and math.floor(math.log(number, 2)) > math.floor(math.log(modulus, 2)):

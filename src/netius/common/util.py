@@ -39,8 +39,9 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import os
 import math
-import types
 import socket
+
+import netius
 
 SIZE_UNITS_LIST = (
     "B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"
@@ -97,7 +98,7 @@ def ip4_to_addr(value):
     return first_a + second_a + third_a + fourth_a
 
 def string_to_bits(value):
-    return bin(reduce(lambda x, y : (x << 8) + y, (ord(c) for c in value), 1))[3:]
+    return bin(netius.reduce(lambda x, y : (x << 8) + y, (ord(c) for c in value), 1))[3:]
 
 def integer_to_bytes(number, length = 0):
     bytes = []
@@ -172,7 +173,7 @@ def host():
     if _HOST: return _HOST
     hostname = socket.gethostname()
     _HOST = socket.gethostbyname(hostname)
-    is_unicode = type(_HOST) == types.UnicodeType
+    is_unicode = type(_HOST) == netius.UNICODE
     if is_unicode: _HOST = _HOST.encode("utf-8")
     return _HOST
 

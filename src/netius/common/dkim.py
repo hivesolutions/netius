@@ -39,7 +39,6 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import re
 import time
-import types
 import base64
 import hashlib
 import datetime
@@ -92,7 +91,7 @@ def dkim_sign(message, selector, domain, private_key, identity = None, separator
     ]
 
     signature = "DKIM-Signature: " + "; ".join("%s=%s" % field for field in sign_fields)
-    if type(signature) == types.UnicodeType: signature = signature.encode("utf-8")
+    if type(signature) == netius.UNICODE: signature = signature.encode("utf-8")
     signature = dkim_fold(signature)
 
     hash = hashlib.sha256()

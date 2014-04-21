@@ -38,6 +38,8 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import sys
+import functools
+
 import urllib #@UnusedImport
 
 try: import cStringIO
@@ -51,8 +53,18 @@ PYTHON_3 = sys.version_info[0] >= 3
 interpreter is at least python 3 compliant, this is used
 to take some of the conversion decision for runtime """
 
-if PYTHON_3: str = (str,)
-else: str = (str, unicode) #@UndefinedVariable
+if PYTHON_3: UNICODE = None
+else: UNICODE = unicode #@UndefinedVariable
+
+if PYTHON_3: STRINGS = (str,)
+else: STRINGS = (str, unicode) #@UndefinedVariable
+
+if PYTHON_3: INTEGERS = (int,)
+else: INTEGERS = (int, long) #@UndefinedVariable
+
+def reduce(*args, **kwargs):
+    if PYTHON_3: return functools.reduce(*args, **kwargs)
+    return reduce(*args, **kwargs)
 
 def urlparse(*args, **kwargs):
     return _urlparse(*args, **kwargs)

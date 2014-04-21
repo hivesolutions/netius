@@ -38,7 +38,6 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import re
-import types
 import struct
 import hashlib
 
@@ -116,10 +115,10 @@ def chunk(item):
             for part in chunk(value): yield part
         yield "e"
 
-    elif chunk_t in (types.IntType, types.LongType):
+    elif chunk_t in netius.INTEGERS:
         yield "i%de" % item
 
-    elif chunk_t in types.StringTypes:
+    elif chunk_t in netius.STRINGS:
         yield "%d:%s" % (len(item), item)
 
     else:

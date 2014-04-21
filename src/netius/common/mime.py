@@ -38,7 +38,6 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import re
-import types
 
 import netius
 
@@ -88,7 +87,7 @@ class Headers(list):
         self.remove([key, value])
 
     def __contains__(self, item):
-        is_string = type(item) in types.StringTypes
+        is_string = type(item) in netius.STRINGS
         if not is_string: return list.__contains__(self, item)
         for key, _value in self:
             if not key == item: continue
@@ -115,8 +114,8 @@ class Headers(list):
 
     def _normalize(self, value):
         value_t = type(value)
-        if value_t == types.StringType: return value
-        if value_t == types.UnicodeType: return value.encode("utf-8")
+        if value_t == str: return value
+        if value_t == netius.UNICODE: return value.encode("utf-8")
         return str(value)
 
 def rfc822_parse(message, strip = True):
