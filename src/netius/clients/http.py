@@ -38,7 +38,8 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import urllib
-import urlparse
+try: import urlparse
+except: import urllib.parse; urlparse = urllib.parse
 
 import netius.common
 
@@ -545,11 +546,11 @@ class HTTPClient(netius.StreamClient):
 
 if __name__ == "__main__":
     def on_headers(client, parser, headers):
-        print parser.code_s + " " + parser.status_s
+        print(parser.code_s + " " + parser.status_s)
 
     def on_partial(client, parser, data):
         data = data or "[empty message]"
-        print data
+        print(data)
 
     def on_message(client, parser, message):
         client.close()

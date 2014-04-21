@@ -39,7 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import re
 
-import parser
+from netius.common import parser
 
 SEPARATOR_REGEX = re.compile(r" |\-")
 """ Regular expression that is going to be used to split

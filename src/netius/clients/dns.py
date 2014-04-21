@@ -370,7 +370,7 @@ if __name__ == "__main__":
         # in case the provided response is not valid
         # a timeout message is printed to indicate the
         # problem with the resolution
-        if not response: print "Timeout in resolution"; return
+        if not response: print("Timeout in resolution"); return
 
         # runs the final cleanup operation in the dns
         # client so that the system is able to exit
@@ -384,7 +384,7 @@ if __name__ == "__main__":
         first = response.answers[0]
         extra = first[4]
         address = extra[1]
-        print address
+        print(address)
 
     # runs the static version of a dns query, note that
     # the daemon flag is unset so that the global client

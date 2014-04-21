@@ -43,9 +43,9 @@ import base64
 
 import netius
 
-import asn
-import util
-import calc
+from netius.common import asn
+from netius.common import util
+from netius.common import calc
 
 PRIVATE_TOKEN = "RSA PRIVATE KEY"
 PUBLIC_TOKEN = "PUBLIC KEY"

@@ -73,7 +73,7 @@ def cstring(value):
     return value[:index]
 
 def chunks(sequence, count):
-    for index in xrange(0, len(sequence), count):
+    for index in range(0, len(sequence), count):
         yield sequence[index:index + count]
 
 def header_up(name):
@@ -169,7 +169,7 @@ def host():
     """
 
     global _HOST
-    if _HOST: print "cached"; return _HOST
+    if _HOST: return _HOST
     hostname = socket.gethostname()
     _HOST = socket.gethostbyname(hostname)
     is_unicode = type(_HOST) == types.UnicodeType
