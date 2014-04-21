@@ -71,7 +71,7 @@ class BaseAdapter(object):
         finally: file.close()
 
     def truncate(self, key, count):
-        file = self.get_file(key, mode = "r+")
+        file = self.get_file(key, mode = "rb+")
         try:
             offset = count * -1
             file.seek(offset, os.SEEK_END)
@@ -104,6 +104,7 @@ class BaseAdapter(object):
 
     def generate(self):
         identifier = str(uuid.uuid4())
+        identifier = netius.bin(identifier)
         hash = hashlib.sha256(identifier)
         key = hash.hexdigest()
         return key
