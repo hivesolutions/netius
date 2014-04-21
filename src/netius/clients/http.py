@@ -454,7 +454,7 @@ class HTTPClient(netius.StreamClient):
             def on_message(client, parser, message):
                 request["code"] = parser.code
                 request["status"] = parser.status
-                request["data"] = "".join(buffer)
+                request["data"] = b"".join(buffer)
                 if on_result: on_result(client, parser, request)
 
             # sets the proper callback references so that the newly created
