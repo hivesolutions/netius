@@ -56,7 +56,7 @@ to take some of the conversion decision for runtime """
 if PYTHON_3: UNICODE = None
 else: UNICODE = unicode #@UndefinedVariable
 
-if PYTHON_3: STRINGS = (str, bytes)
+if PYTHON_3: STRINGS = (str,)
 else: STRINGS = (str, unicode) #@UndefinedVariable
 
 if PYTHON_3: INTEGERS = (int,)

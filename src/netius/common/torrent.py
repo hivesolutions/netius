@@ -101,6 +101,10 @@ def bdecode(data):
 def chunk(item):
     chunk_t = type(item)
 
+    if chunk_t == bytes:
+        item = netius.str(item)
+        chunk_t = type(item)
+
     if chunk_t == dict:
         yield b"d"
         keys = item.keys()

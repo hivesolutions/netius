@@ -248,6 +248,7 @@ class TorrentTask(netius.Observable):
         # creating the proper peer dictionary for each of them
         chunks = [chunk for chunk in netius.common.chunks(nodes, 26)]
         for chunk in chunks:
+            chunk = netius.bytes(chunk)
             peer_id, address, port = struct.unpack("!20sLH", chunk)
             ip = netius.common.addr_to_ip4(address)
             peer = dict(id = peer_id, ip = ip, port = port)
