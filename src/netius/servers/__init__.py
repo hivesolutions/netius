@@ -34,26 +34,26 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import dhcp
-import echo
-import http
-import mjpg
-import pop
-import proxy
-import smtp
-import socks
-import torrent
-import ws
-import wsgi
+from . import dhcp
+from . import echo
+from . import http
+from . import mjpg
+from . import pop
+from . import proxy
+from . import smtp
+from . import socks
+from . import torrent
+from . import ws
+from . import wsgi
 
-from dhcp import *
-from echo import *
-from http import *
-from mjpg import *
-from pop import *
-from proxy import *
-from smtp import *
-from socks import *
-from torrent import *
-from ws import *
-from wsgi import *
+from .dhcp import *
+from .echo import *
+from .http import *
+from .mjpg import *
+from .pop import *
+from .proxy import *
+from .smtp import *
+from .socks import *
+from .torrent import *
+from .ws import *
+from .wsgi import *

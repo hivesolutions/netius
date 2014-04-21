@@ -34,30 +34,30 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import asn
-import calc
-import dhcp
-import dkim
-import http
-import mime
-import parser
-import pop
-import rsa
-import smtp
-import socks
-import torrent
-import util
+from . import asn
+from . import calc
+from . import dhcp
+from . import dkim
+from . import http
+from . import mime
+from . import parser
+from . import pop
+from . import rsa
+from . import smtp
+from . import socks
+from . import torrent
+from . import util
 
-from asn import *
-from calc import *
-from dhcp import *
-from dkim import *
-from http import *
-from mime import *
-from parser import *
-from pop import *
-from rsa import *
-from smtp import *
-from socks import *
-from torrent import *
-from util import *
+from .asn import *
+from .calc import *
+from .dhcp import *
+from .dkim import *
+from .http import *
+from .mime import *
+from .parser import *
+from .pop import *
+from .rsa import *
+from .smtp import *
+from .socks import *
+from .torrent import *
+from .util import *

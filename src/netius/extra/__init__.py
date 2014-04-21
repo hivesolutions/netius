@@ -34,18 +34,18 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import desktop
-import dhcp_s
-import file
-import hello
-import proxy_f
-import proxy_r
-import smtp_r
+from . import desktop
+from . import dhcp_s
+from . import file
+from . import hello
+from . import proxy_f
+from . import proxy_r
+from . import smtp_r
 
-from desktop import *
-from dhcp_s import *
-from file import *
-from hello import *
-from proxy_f import *
-from proxy_r import *
-from smtp_r import *
+from .desktop import *
+from .dhcp_s import *
+from .file import *
+from .hello import *
+from .proxy_f import *
+from .proxy_r import *
+from .smtp_r import *
