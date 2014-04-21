@@ -186,9 +186,9 @@ class TorrentConnection(netius.Connection):
         data = struct.pack(
             "!B19sQ20s20s",
             19,
-            "BitTorrent protocol",
+            b"BitTorrent protocol",
             1,
-            self.task.info["info_hash"],
+            self.task.info_hash,
             self.task.owner.peer_id
         )
         data and self.send(data)
