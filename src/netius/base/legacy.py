@@ -55,5 +55,9 @@ def urlparse(*args, **kwargs):
     return _urlparse(*args, **kwargs)
 
 def urlencode(*args, **kwargs):
-    if PYTHON_3: _urlparse.urlencode(*args, **kwargs)
+    if PYTHON_3: urllib.parse.urlencode(*args, **kwargs)
     else: return urllib.urlencode(*args, kwargs) #@UndefinedVariable
+
+def unquote(*args, **kwargs):
+    if PYTHON_3: urllib.parse.unquote(*args, **kwargs)
+    else: return urllib.unquote(*args, kwargs) #@UndefinedVariable
