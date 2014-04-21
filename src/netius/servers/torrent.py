@@ -646,6 +646,7 @@ class TorrentServer(netius.ContainerServer):
 
     def _generate_id(self):
         random = str(uuid.uuid4())
+        random = netius.bin(random)
         hash = hashlib.sha1(random)
         digest = hash.hexdigest()
         id = "-%s-%s" % (ID_STRING, digest[:12])
