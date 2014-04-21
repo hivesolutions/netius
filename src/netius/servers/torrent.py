@@ -89,7 +89,7 @@ class Pieces(netius.Observable):
 
     def block(self, index, begin):
         base = index * self.number_blocks
-        block_index = begin / BLOCK_SIZE
+        block_index = begin // BLOCK_SIZE
         return self.mask[base + block_index]
 
     def pop_block(self, bitfield, mark = True):
@@ -109,7 +109,7 @@ class Pieces(netius.Observable):
 
     def mark_block(self, index, begin, value = False):
         base = index * self.number_blocks
-        block_index = begin / BLOCK_SIZE
+        block_index = begin // BLOCK_SIZE
         self.mask[base + block_index] = value
         self.trigger("block", self, index, begin)
         self.update_piece(index)
@@ -548,7 +548,8 @@ class TorrentTask(netius.Observable):
             hash.update(data)
             pending -= count
         digest = hash.digest()
-        if digest ==  piece: return
+        piece = netius.bytes(piece)
+        if digest == piece: return
         raise netius.DataError("Verifying piece index '%d'" % index)
 
 class TorrentServer(netius.ContainerServer):
