@@ -104,11 +104,11 @@ def urlparse(*args, **kwargs):
     return _urlparse.urlparse(*args, **kwargs)
 
 def urlencode(*args, **kwargs):
-    if PYTHON_3: urllib.parse.urlencode(*args, **kwargs)
+    if PYTHON_3: return urllib.parse.urlencode(*args, **kwargs)
     else: return urllib.urlencode(*args, **kwargs) #@UndefinedVariable
 
 def unquote(*args, **kwargs):
-    if PYTHON_3: urllib.parse.unquote(*args, **kwargs)
+    if PYTHON_3: return urllib.parse.unquote(*args, **kwargs)
     else: return urllib.unquote(*args, **kwargs) #@UndefinedVariable
 
 def StringIO(*args, **kwargs):
