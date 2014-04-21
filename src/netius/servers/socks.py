@@ -78,7 +78,7 @@ class SOCKSConnection(netius.Connection):
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
-        self.parser.destroy()
+        if self.parser: self.parser.destroy()
 
     def send_response(self, status = GRANTED):
         data = struct.pack("!BBHI", 0, status, 0, 0)
