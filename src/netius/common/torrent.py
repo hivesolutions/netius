@@ -273,7 +273,7 @@ class TorrentParser(parser.Parser):
 
     def _join(self, data):
         self.buffer.append(data)
-        result = "".join(self.buffer)
+        result = b"".join(self.buffer)
         self.buffer = [result]
         self.buffer_l = len(result)
         return result
