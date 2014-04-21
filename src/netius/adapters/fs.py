@@ -37,7 +37,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import os
 import ctypes
 
-import base
+from netius.adapters import base
 
 class FsAdapter(base.BaseAdapter):
 

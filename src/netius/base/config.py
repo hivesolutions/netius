@@ -106,7 +106,7 @@ def load_file(path = None):
         CONFIGS[key] = value
 
 def load_env():
-    for key, value in os.environ.iteritems():
+    for key, value in os.environ.items():
         CONFIGS[key] = value
 
 load()

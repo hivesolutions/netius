@@ -36,7 +36,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import netius
 
-import base
+from netius.auth import base
 
 class MemoryAuth(base.Auth):
 

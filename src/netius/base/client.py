@@ -37,9 +37,9 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import request
+from netius.base import request
 
-from common import * #@UnusedWildImport
+from netius.base.common import * #@UnusedWildImport
 
 BUFFER_SIZE = None
 """ The size of the buffer that is going to be used in the
@@ -180,7 +180,7 @@ class DatagramClient(Client):
             while True:
                 data, address = _socket.recvfrom(CHUNK_SIZE)
                 self.on_data(address, data)
-        except ssl.SSLError, error:
+        except ssl.SSLError as error:
             error_v = error.args[0]
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
@@ -188,7 +188,7 @@ class DatagramClient(Client):
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
-        except socket.error, error:
+        except socket.error as error:
             error_v = error.args[0]
             if error_v in SILENT_ERRORS:
                 self.debug(error)
@@ -196,7 +196,7 @@ class DatagramClient(Client):
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
-        except BaseException, exception:
+        except BaseException as exception:
             self.warning(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.info(line)
@@ -204,7 +204,7 @@ class DatagramClient(Client):
     def on_write(self, _socket):
         try:
             self._send(_socket)
-        except ssl.SSLError, error:
+        except ssl.SSLError as error:
             error_v = error.args[0]
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
@@ -212,7 +212,7 @@ class DatagramClient(Client):
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
-        except socket.error, error:
+        except socket.error as error:
             error_v = error.args[0]
             if error_v in SILENT_ERRORS:
                 self.debug(error)
@@ -220,7 +220,7 @@ class DatagramClient(Client):
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
-        except BaseException, exception:
+        except BaseException as exception:
             self.warning(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.info(line)
@@ -590,7 +590,7 @@ class StreamClient(Client):
                 if not connection.status == OPEN: break
                 if not connection.renable == True: break
                 if not connection.socket == _socket: break
-        except ssl.SSLError, error:
+        except ssl.SSLError as error:
             error_v = error.args[0]
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
@@ -600,7 +600,7 @@ class StreamClient(Client):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
                 connection.close()
-        except socket.error, error:
+        except socket.error as error:
             error_v = error.args[0]
             if error_v in SILENT_ERRORS:
                 self.debug(error)
@@ -610,7 +610,7 @@ class StreamClient(Client):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
                 connection.close()
-        except BaseException, exception:
+        except BaseException as exception:
             self.warning(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.info(line)
@@ -632,7 +632,7 @@ class StreamClient(Client):
 
         try:
             connection._send()
-        except ssl.SSLError, error:
+        except ssl.SSLError as error:
             error_v = error.args[0]
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
@@ -642,7 +642,7 @@ class StreamClient(Client):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
                 connection.close()
-        except socket.error, error:
+        except socket.error as error:
             error_v = error.args[0]
             if error_v in SILENT_ERRORS:
                 self.debug(error)
@@ -652,7 +652,7 @@ class StreamClient(Client):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
                 connection.close()
-        except BaseException, exception:
+        except BaseException as exception:
             self.warning(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.info(line)
@@ -729,7 +729,7 @@ class StreamClient(Client):
         # fail and the connection should only be considered as
         # open when a write event is raised for the connection
         try: _socket.connect(connection.address)
-        except ssl.SSLError, error:
+        except ssl.SSLError as error:
             error_v = error.args[0]
             if not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
@@ -738,7 +738,7 @@ class StreamClient(Client):
                 self.trigger("error", self, connection, error)
                 connection.close()
                 return
-        except socket.error, error:
+        except socket.error as error:
             error_v = error.args[0]
             if not error_v in VALID_ERRORS:
                 self.warning(error)
@@ -747,7 +747,7 @@ class StreamClient(Client):
                 self.trigger("error", self, connection, error)
                 connection.close()
                 return
-        except BaseException, exception:
+        except BaseException as exception:
             self.warning(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.info(line)

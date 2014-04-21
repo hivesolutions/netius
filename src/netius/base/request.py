@@ -39,7 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import time
 
-import errors
+from netius.base import errors
 
 REQUEST_TIMEOUT = 10.0
 """ The timeout until a request is considered to be

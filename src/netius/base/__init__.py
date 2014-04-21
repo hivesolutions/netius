@@ -34,24 +34,24 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import client
-import common
-import config
-import conn
-import container
-import errors
-import observer
-import poll
-import request
-import server
+from . import client
+from . import common
+from . import config
+from . import conn
+from . import container
+from . import errors
+from . import observer
+from . import poll
+from . import request
+from . import server
 
-from client import *
-from common import *
-from config import *
-from conn import *
-from container import *
-from errors import *
-from observer import *
-from poll import *
-from request import *
-from server import *
+from .client import *
+from .common import *
+from .config import *
+from .conn import *
+from .container import *
+from .errors import *
+from .observer import *
+from .poll import *
+from .request import *
+from .server import *

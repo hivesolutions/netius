@@ -37,7 +37,8 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import os
 import uuid
 import hashlib
-import StringIO
+try: import StringIO
+except: import io; StringIO = io
 
 class BaseAdapter(object):
     """

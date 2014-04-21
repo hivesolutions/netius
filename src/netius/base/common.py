@@ -48,13 +48,13 @@ import logging
 import hashlib
 import traceback
 
-import config
-import errors
+from netius.base import config
+from netius.base import errors
 
 import netius.adapters
 
-from conn import * #@UnusedWildImport
-from poll import * #@UnusedWildImport
+from netius.base.conn import * #@UnusedWildImport
+from netius.base.poll import * #@UnusedWildImport
 
 NAME = "netius"
 """ The global infra-structure name to be used in the
@@ -408,7 +408,7 @@ class Base(observer.Observable):
         try: self.loop()
         except (KeyboardInterrupt, SystemExit):
             self.info("Finishing '%s' service on user request ..." % self.name)
-        except BaseException, exception:
+        except BaseException as exception:
             self.error(exception)
             lines = traceback.format_exc().splitlines()
             for line in lines: self.warning(line)
@@ -972,7 +972,7 @@ class Base(observer.Observable):
         try:
             _socket.do_handshake()
             _socket._pending = None
-        except ssl.SSLError, error:
+        except ssl.SSLError as error:
             error_v = error.args[0]
             if error_v in SSL_VALID_ERRORS:
                 _socket._pending = self._ssl_handshake
