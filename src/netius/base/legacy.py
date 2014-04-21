@@ -89,3 +89,7 @@ def unquote(*args, **kwargs):
 
 def StringIO(*args, **kwargs):
     return cStringIO.StringIO(*args, **kwargs)
+
+def BytesIO(*args, **kwargs):
+    if PYTHON_3: return cStringIO.BytesIO(*args, **kwargs)
+    else: cStringIO.StringIO(*args, **kwargs)
