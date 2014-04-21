@@ -45,4 +45,4 @@ interpreter is at least python 3 compliant, this is used
 to take some of the conversion decision for runtime """
 
 if PYTHON_3: str = (str,)
-else: str = (str, unicode)
+else: str = (str, unicode) #@UndefinedVariable
