@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import ssl
 import uuid
 import socket
 import threading
@@ -502,20 +503,28 @@ class Connection(observer.Observable):
     def _recv(self, size):
         return self.socket.recv(size)
 
-    def _shutdown(self, close = False, force = False):
+    def _shutdown(self, close = False, force = False, ignore = True):
         # in case the status of the current connection is
         # already closed returns immediately as it's not
         # possible to shutdown a closed connection
         if self.status == CLOSED: return
 
-        # verifies the type of connection and taking that
-        # into account runs the proper shutdown operation
-        # either the ssl based shutdown that unwraps the
-        # current secure connection and send a graceful
-        # shutdown notification to the other peer, or the
-        # normal shutdown operation for the socket
-        if self.ssl: self.socket._sslobj.shutdown()
-        elif force: self.socket.shutdown(socket.SHUT_RDWR)
+        try:
+            # verifies the type of connection and taking that
+            # into account runs the proper shutdown operation
+            # either the ssl based shutdown that unwraps the
+            # current secure connection and send a graceful
+            # shutdown notification to the other peer, or the
+            # normal shutdown operation for the socket
+            if self.ssl: self.socket._sslobj.shutdown()
+            elif force: self.socket.shutdown(socket.SHUT_RDWR)
+        except ssl.SSLError:
+            # ignores the ssl error that has just been raise, this
+            # assumes that the problem that has just occurred is not
+            # relevant as the socket is shutting down and if a problem
+            # occurs that must be related with the socket being closed
+            # on the other side of the connection
+            if not ignore: raise
 
         # in case the close (connection) flag is active the
         # current connection should be closed immediately
