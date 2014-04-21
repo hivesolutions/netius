@@ -316,7 +316,7 @@ class TorrentTask(netius.Observable):
         if is_dir: self.target_path = os.path.join(self.target_path, name)
         self.file = open(self.target_path, "wb")
         self.file.seek(size - 1)
-        self.file.write("\0")
+        self.file.write(b"\0")
         self.file.flush()
 
     def unload_file(self):
