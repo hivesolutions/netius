@@ -19,6 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
 
+__author__ = "João Magalhães joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,26 +37,9 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-from . import client
-from . import common
-from . import config
-from . import conn
-from . import container
-from . import errors
-from . import legacy
-from . import observer
-from . import poll
-from . import request
-from . import server
+import sys
 
-from .client import *
-from .common import *
-from .config import *
-from .conn import *
-from .container import *
-from .errors import *
-from .legacy import *
-from .observer import *
-from .poll import *
-from .request import *
-from .server import *
+PYTHON_3 = sys.version_info[0] >= 3
+""" Global variable that defines if the current python
+interpreter is at least python 3 compliant, this is used
+to take some of the conversion decision for runtime """

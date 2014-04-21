@@ -48,10 +48,11 @@ import logging
 import hashlib
 import traceback
 
+import netius.adapters
+
+from netius.base import legacy
 from netius.base import config
 from netius.base import errors
-
-import netius.adapters
 
 from netius.base.conn import * #@UnusedWildImport
 from netius.base.poll import * #@UnusedWildImport
@@ -645,7 +646,7 @@ class Base(observer.Observable):
         self.log(object, level = logging.CRITICAL)
 
     def log(self, *args, **kwargs):
-        if sys.version_info[0] >= 3: return self.log_python_3(*args, **kwargs)
+        if legacy.PYTHON_3: return self.log_python_3(*args, **kwargs)
         else: return self.log_python_2(*args, **kwargs)
 
     def log_python_3(self, object, level = logging.INFO):
@@ -1007,7 +1008,7 @@ class Base(observer.Observable):
         current running interpreter.
         """
 
-        if sys.version_info[0] >= 3: return level
+        if legacy.PYTHON_3: return level
         level_t = type(level)
         if level_t == int: return level
         return logging.getLevelName(level)
