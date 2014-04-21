@@ -92,4 +92,4 @@ def StringIO(*args, **kwargs):
 
 def BytesIO(*args, **kwargs):
     if PYTHON_3: return cStringIO.BytesIO(*args, **kwargs)
-    else: cStringIO.StringIO(*args, **kwargs)
+    else: return cStringIO.StringIO(*args, **kwargs)
