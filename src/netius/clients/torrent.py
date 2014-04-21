@@ -157,7 +157,7 @@ class TorrentConnection(netius.Connection):
     def next(self, count = None):
         if not self.choked == UNCHOKED: return
         if count == None: count = self.max_requests - self.pend_requests
-        for _index in xrange(count):
+        for _index in range(count):
             block = self.task.pop_block(self.bitfield)
             if not block: return
             index, begin = block

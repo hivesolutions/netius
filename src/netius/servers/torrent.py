@@ -42,7 +42,6 @@ import copy
 import math
 import uuid
 import time
-import types
 import struct
 import hashlib
 

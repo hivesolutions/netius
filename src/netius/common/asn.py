@@ -37,8 +37,6 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import types
-
 import netius
 
 from netius.common import util
@@ -112,7 +110,7 @@ def asn1_parse(template, data):
         # verifies if the data type for the current template
         # item to be parser is tuple and based on that defined
         # the current expected data type and children values
-        is_tuple = type(item) == types.TupleType
+        is_tuple = type(item) == tuple
         if is_tuple: dtype, children = item
         else: dtype = item; children = None
 

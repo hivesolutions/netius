@@ -109,7 +109,7 @@ def integer_to_bytes(number, length = 0):
 
     remaining = length - len(bytes)
     remaining = 0 if remaining < 0 else remaining
-    for _index in xrange(remaining): bytes.append("\x00")
+    for _index in range(remaining): bytes.append("\x00")
 
     bytes = reversed(bytes)
     return "".join(bytes)

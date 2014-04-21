@@ -355,7 +355,7 @@ class HTTPConnection(netius.Connection):
 
         # retrieves the current timestamp and then packs it into
         # a long based value and adds it to the current header
-        timestamp = long(time.time())
+        timestamp = int(time.time())
         timestamp = struct.pack("<L", timestamp)
         header.append(timestamp)
 

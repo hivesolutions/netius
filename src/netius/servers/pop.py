@@ -147,7 +147,7 @@ class POPConnection(netius.Connection):
         self.owner.on_list_pop(self)
         message = "%d messages (%d octets)" % (self.count, self.byte_c)
         lines = []
-        for index in xrange(self.count):
+        for index in range(self.count):
             size = self.sizes[index]
             line = "%d %d" % (index, size)
             lines.append(line)
@@ -157,7 +157,7 @@ class POPConnection(netius.Connection):
         self.owner.on_uidl_pop(self)
         message = "%d messages (%d octets)" % (self.count, self.byte_c)
         lines = []
-        for index in xrange(self.count):
+        for index in range(self.count):
             key = self.keys[index]
             line = "%d %s" % (index, key)
             lines.append(line)

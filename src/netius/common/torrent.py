@@ -101,7 +101,7 @@ def bdecode(data):
 def chunk(item):
     chunk_t = type(item)
 
-    if chunk_t == types.DictType:
+    if chunk_t == dict:
         yield "d"
         keys = item.keys(); keys.sort()
         for key in keys:
@@ -110,7 +110,7 @@ def chunk(item):
             for part in chunk(value): yield part
         yield "e"
 
-    elif chunk_t == types.ListType:
+    elif chunk_t == list:
         yield "l"
         for value in item:
             for part in chunk(value): yield part

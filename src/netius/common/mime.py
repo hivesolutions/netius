@@ -68,7 +68,7 @@ class Headers(list):
     """
 
     def __getitem__(self, key):
-        is_integer = type(key) == types.IntType
+        is_integer = type(key) == int
         if is_integer: return list.__getitem__(self, key)
         for _key, value in self:
             if not _key == key: continue
@@ -77,12 +77,12 @@ class Headers(list):
 
     def __setitem__(self, key, value):
         value = self._normalize(value)
-        is_integer = type(key) == types.IntType
+        is_integer = type(key) == int
         if is_integer: return list.__setitem__(self, key, value)
         self.append([key, value])
 
     def __delitem__(self, key):
-        is_integer = type(key) == types.IntType
+        is_integer = type(key) == int
         if is_integer: return list.__delitem__(self, key)
         value = self.__getitem__(key)
         self.remove([key, value])
