@@ -658,8 +658,8 @@ class Base(observer.Observable):
 
     def log_python_2(self, object, level = logging.INFO):
         object_t = type(object)
-        try: message = unicode(object) if not object_t in types.StringTypes else object #@UndefinedVariable
-        except: message = str(object).decode("utf-8", errors = "ignore")
+        try: message = unicode(object) if not object_t in legacy.str else object #@UndefinedVariable
+        except: message = unicode(object).decode("utf-8", "ignore")
         if not self.logger: return
         self.logger.log(level, message)
 

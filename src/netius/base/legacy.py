@@ -43,3 +43,6 @@ PYTHON_3 = sys.version_info[0] >= 3
 """ Global variable that defines if the current python
 interpreter is at least python 3 compliant, this is used
 to take some of the conversion decision for runtime """
+
+if PYTHON_3: str = (str,)
+else: str = (str, unicode)
