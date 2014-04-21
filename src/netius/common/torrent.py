@@ -44,7 +44,7 @@ import hashlib
 
 import netius
 
-import parser
+from netius.common import parser
 
 HANDSHAKE_SIZE = 68
 """ The typical size for an handshake message according
