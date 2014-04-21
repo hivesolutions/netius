@@ -37,6 +37,8 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import os
 import ctypes
 
+import netius
+
 from netius.adapters import base
 
 class FsAdapter(base.BaseAdapter):
@@ -54,6 +56,7 @@ class FsAdapter(base.BaseAdapter):
         owner_path = self._ensure(owner)
         file_path = os.path.join(self.base_path, key)
         link_path = os.path.join(owner_path, key)
+        value = netius.bin(value)
         file = open(file_path, "wb")
         try: file.write(value)
         finally: file.close()
