@@ -304,6 +304,7 @@ class Base(observer.Observable):
         target = 0
         if timeout: target = time.time() + timeout
         callable_o = (target, callable)
+        callable_o = legacy.orderable(callable_o)
 
         # in case the verify flag is set, must verify id the callable
         # is already inserted in the list of delayed operations in
@@ -315,6 +316,7 @@ class Base(observer.Observable):
         # callable and the loop id (lid) then inserts both the delayed
         # (original) callable tuple and the callable tuple in the lists
         callable_t = (target, callable, self._lid)
+        callable_t = legacy.orderable(callable_t)
         heapq.heappush(self._delayed, callable_t)
         heapq.heappush(self._delayed_o, callable_o)
 

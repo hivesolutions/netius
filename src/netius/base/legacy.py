@@ -89,6 +89,10 @@ def str(value):
     if type(value) == str: return value
     return value.decode("ascii", "ignore")
 
+def orderable(value):
+    if not PYTHON_3: return value
+    return Orderable(value)
+
 def reduce(*args, **kwargs):
     if PYTHON_3: return functools.reduce(*args, **kwargs)
     return reduce(*args, **kwargs)
@@ -110,3 +114,16 @@ def StringIO(*args, **kwargs):
 def BytesIO(*args, **kwargs):
     if PYTHON_3: return cStringIO.BytesIO(*args, **kwargs)
     else: return cStringIO.StringIO(*args, **kwargs)
+
+class Orderable(tuple):
+    """
+    Simple tuple type wrapper that provides a simple
+    first element ordering, that is compatible with
+    both the python 2 and python 3+ infra-structures.
+    """
+
+    def __cmp__(self, value):
+        return self[0].__cmp__(value[0])
+
+    def __lt__(self, value):
+        return self[0].__lt__(value[0])
