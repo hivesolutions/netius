@@ -66,6 +66,8 @@ else: INTEGERS = (int, long) #@UndefinedVariable
 # used latter for some of the legacy operations
 _ord = ord
 _chr = chr
+_str = str
+_bytes = bytes
 
 try: _reduce = reduce #@UndefinedVariable
 except: _reduce = None
@@ -75,21 +77,21 @@ def ord(value):
     return _ord(value)
 
 def chr(value):
-    if PYTHON_3: return bytes([value])
+    if PYTHON_3: return _bytes([value])
     return _chr(value)
 
 def chri(value):
     if PYTHON_3: return value
     return _chr(value)
 
-def bin(value):
+def bytes(value):
     if not PYTHON_3: return value
-    if type(value) == bytes: return value
+    if type(value) == _bytes: return value
     return value.encode("latin-1")
 
 def str(value):
     if not PYTHON_3: return value
-    if type(value) == str: return value
+    if type(value) == _str: return value
     return value.decode("latin-1")
 
 def orderable(value):
