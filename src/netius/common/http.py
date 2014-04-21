@@ -37,11 +37,12 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import cStringIO
+try: import cStringIO
+except: import io; cStringIO = io
 
 import netius
 
-import parser
+from netius.common import parser
 
 REQUEST = 1
 """ The http request message indicator, should be
@@ -326,13 +327,14 @@ class HTTPParser(parser.Parser):
         return size_o - size
 
     def _parse_line(self, data):
-        index = data.find("\n")
+        index = data.find(b"\n")
         if index == -1: return 0
 
         self.buffer.append(data[:index])
-        self.line_s = "".join(self.buffer)[:-1]
+        self.line_s = b"".join(self.buffer)[:-1]
         del self.buffer[:]
 
+        self.line_s = self.line_s.decode("ascii")
         values = self.line_s.split(" ", 2)
         if not len(values) == 3:
             raise netius.ParserError("Invalid status line '%s'" % self.line_s)
@@ -364,12 +366,12 @@ class HTTPParser(parser.Parser):
         # string to be used in the finding of the end of
         # header sequence (required for complete parsing)
         buffer_t = self.buffer + [data]
-        buffer_s = "".join(buffer_t)
+        buffer_s = b"".join(buffer_t)
 
         # tries to find the end of headers sequence in case
         # it's not found returns the zero value meaning that
         # the no bytes have been processed (delays parsing)
-        index = buffer_s.find("\r\n\r\n")
+        index = buffer_s.find(b"\r\n\r\n")
         if index == -1: return 0
 
         # retrieves the partial headers string from the buffer
@@ -388,15 +390,17 @@ class HTTPParser(parser.Parser):
         # splits the complete set of lines that compromise
         # the headers and then iterates over each of them
         # to set the key and value in the headers map
-        lines = self.headers_s.split("\r\n")
+        lines = self.headers_s.split(b"\r\n")
         for line in lines:
-            values = line.split(":", 1)
+            values = line.split(b":", 1)
             if not len(values) == 2:
                 raise netius.ParserError("Invalid header line")
 
             key, value = values
             key = key.strip().lower()
+            key = key.decode("ascii")
             value = value.strip()
+            value = value.decode("ascii")
             self.headers[key] = value
 
         # retrieves the size of the contents from the populated
