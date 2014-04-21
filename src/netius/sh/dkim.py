@@ -39,13 +39,13 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import netius.common
 
-import base
+from netius.sh import base
 
 def generate(domain, suffix = None, number_bits = 1024):
     number_bits = int(number_bits)
     result = netius.common.dkim_generate(domain, suffix = suffix, number_bits = number_bits)
-    print result["dns_txt"]
-    print result["private_pem"]
+    print(result["dns_txt"])
+    print(result["private_pem"])
 
 def sign(email_path, key_path, selector, domain):
     file = open(email_path, "rb")

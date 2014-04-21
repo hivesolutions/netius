@@ -41,7 +41,7 @@ import pprint
 
 import netius.common
 
-import base
+from netius.sh import base
 
 def read_private(path):
     private_key = netius.common.open_private_key(path)

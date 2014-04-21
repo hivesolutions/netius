@@ -36,10 +36,10 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import netius
 
-import base
+from netius.sh import base
 
 def generate(password, type = "sha256", salt = "netius"):
-    print netius.Auth.generate(password, type = type, salt = salt)
+    print(netius.Auth.generate(password, type = type, salt = salt))
 
 if __name__ == "__main__":
     base.sh_call(globals(), locals())
