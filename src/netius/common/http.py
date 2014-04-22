@@ -247,7 +247,7 @@ class HTTPParser(parser.Parser):
         return self.message_s
 
     def get_message_b(self):
-        buffer = netius.BytesIO()()
+        buffer = netius.BytesIO()
         for value in self.message: buffer.write(value)
         buffer.seek(0)
         return buffer
