@@ -44,5 +44,5 @@ import netius.common
 class CalcTest(unittest.TestCase):
 
     def test_jacobi_witness(self):
-        netius.common.jacobi_witness(x, n)
-        
+        result = netius.common.jacobi_witness(12, 2)
+        self.assertEqual(result, False)
