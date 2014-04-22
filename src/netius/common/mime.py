@@ -110,13 +110,14 @@ class Headers(list):
         else: self[key] = value
 
     def join(self, separator = "\r\n"):
-        return separator.join(["%s: %s" % (key, value) for key, value in self])
+        separator = netius.bytes(separator)
+        return separator.join([key + b": " + value for key, value in self])
 
     def _normalize(self, value):
         value_t = type(value)
-        if value_t == str: return value
+        if value_t == netius.BYTES: return value
         if value_t == netius.UNICODE: return value.encode("utf-8")
-        return str(value)
+        return netius.bytes(str(value))
 
 def rfc822_parse(message, strip = True):
     """
@@ -209,4 +210,4 @@ def rfc822_parse(message, strip = True):
 
 def rfc822_join(headers, body):
     headers_s = headers.join()
-    return headers_s + "\r\n\r\n" + body
+    return headers_s + b"\r\n\r\n" + body
