@@ -38,7 +38,6 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import os
-import sys
 import datetime
 import mimetypes
 
@@ -122,10 +121,11 @@ class FileServer(netius.servers.HTTPServer):
 
         is_valid = path_v.endswith("/")
         if not is_valid:
+            path_q = netius.quote(path_v)
             connection.send_response(
                 data = "Permanent redirect",
                 headers = dict(
-                    location = path_v + "/"
+                    location = path_q + "/"
                 ),
                 code = 301,
                 apply = True
