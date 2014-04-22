@@ -101,6 +101,9 @@ def string_to_bits(value):
     return bin(netius.reduce(lambda x, y : (x << 8) + y, (netius.ord(c) for c in value), 1))[3:]
 
 def integer_to_bytes(number, length = 0):
+    if not type(bytes) in netius.INTEGERS:
+        raise netius.DataError("Invalid data type")
+
     bytes = []
     number = abs(number)
 
@@ -113,11 +116,17 @@ def integer_to_bytes(number, length = 0):
     for _index in range(remaining): bytes.append("\x00")
 
     bytes = reversed(bytes)
-    return "".join(bytes)
+    bytes_s = "".join(bytes)
+    bytes_s = netius.bytes(bytes_s)
+
+    return bytes_s
 
 def bytes_to_integer(bytes):
+    if not type(bytes) in netius.BYTES:
+        raise netius.DataError("Invalid data type")
+
     number = 0
-    for byte in bytes: number = (number << 8) | ord(byte)
+    for byte in bytes: number = (number << 8) | netius.ord(byte)
     return number
 
 def random_integer(number_bits):
