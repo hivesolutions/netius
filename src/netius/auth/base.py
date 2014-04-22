@@ -71,10 +71,13 @@ class Auth(object):
     def generate(cls, password, type = "sha256", salt = "netius"):
         if type == "plain" : return password
         if salt: password += salt
+        password = netius.bytes(password)
         hash = hashlib.new(type, password)
         digest = hash.hexdigest()
         if not salt: return "%s:%s" % (type, digest)
+        salt = netius.bytes(salt)
         salt = binascii.hexlify(salt)
+        salt = netius.str(salt)
         return "%s:%s:%s" % (type, salt, digest)
 
     @classmethod
