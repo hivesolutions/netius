@@ -920,6 +920,7 @@ class Base(observer.Observable):
         identifier = str(uuid.uuid4())
         identifier = identifier.upper()
         if not hashed: return identifier
+        identifier = legacy.bytes(identifier)
         hash = hashlib.sha256(identifier)
         indetifier = hash.hexdigest()
         identifier = identifier.upper()

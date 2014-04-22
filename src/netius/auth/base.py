@@ -63,6 +63,7 @@ class Auth(object):
         if plain: return encoded == decoded
         if salt: decoded += salt
         type = type.lower()
+        decoded = netius.bytes(decoded)
         hash = hashlib.new(type, decoded)
         _digest = hash.hexdigest()
         return _digest == digest
