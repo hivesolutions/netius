@@ -98,6 +98,9 @@ def orderable(value):
     if not PYTHON_3: return value
     return Orderable(value)
 
+def is_str(value):
+    return type(value) == _str
+
 def is_unicode(value):
     if PYTHON_3: return type(value) == _str
     else: return type(value) == unicode #@UndefinedVariable
