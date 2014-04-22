@@ -664,7 +664,6 @@ class TorrentServer(netius.ContainerServer):
         hash = hashlib.sha1(random)
         digest = hash.hexdigest()
         id = "-%s-%s" % (ID_STRING, digest[:12])
-        id = netius.bytes(id)
         return id
 
 if __name__ == "__main__":

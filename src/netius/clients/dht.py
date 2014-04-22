@@ -106,7 +106,8 @@ class DHTRequest(netius.Request):
 
     def _get_peer_id(self):
         contact = DHTRequest.contact(self.host, self.port)
-        return self.peer_id + contact
+        peer_id = netius.bytes(self.peer_id)
+        return peer_id + contact
 
 class DHTResponse(netius.Response):
 

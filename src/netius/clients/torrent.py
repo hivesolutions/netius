@@ -189,7 +189,7 @@ class TorrentConnection(netius.Connection):
             b"BitTorrent protocol",
             1,
             self.task.info_hash,
-            self.task.owner.peer_id
+            netius.bytes(self.task.owner.peer_id)
         )
         data and self.send(data)
 
