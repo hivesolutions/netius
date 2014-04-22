@@ -122,7 +122,7 @@ def integer_to_bytes(number, length = 0):
     return bytes_s
 
 def bytes_to_integer(bytes):
-    if not type(bytes) in netius.BYTES:
+    if not type(bytes) == netius.BYTES:
         raise netius.DataError("Invalid data type")
 
     number = 0
