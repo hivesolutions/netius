@@ -51,6 +51,7 @@ from netius.common import util
 from netius.common import mime
 
 def dkim_sign(message, selector, domain, private_key, identity = None, separator = ":"):
+    separator = netius.bytes(separator)
     identity = identity or "@" + domain
 
     headers, body = mime.rfc822_parse(message, strip = False)
@@ -70,10 +71,14 @@ def dkim_sign(message, selector, domain, private_key, identity = None, separator
 
     body_digest = hash.digest()
     body_hash = base64.b64encode(body_digest)
+    body_hash = netius.str(body_hash)
 
     creation = time.time()
     creation = int(creation)
     creation_s = str(creation)
+
+    names = separator.join(sign_names)
+    names = netius.str(names)
 
     sign_fields = [
         ("v", "1"),
@@ -85,7 +90,7 @@ def dkim_sign(message, selector, domain, private_key, identity = None, separator
         ("q", "dns/txt"),
         ("s", selector),
         ("t", creation_s),
-        ("h", separator.join(sign_names)),
+        ("h", names),
         ("bh", body_hash),
         ("b", ""),
     ]
@@ -97,8 +102,8 @@ def dkim_sign(message, selector, domain, private_key, identity = None, separator
     hash = hashlib.sha256()
     for name, value in sign_headers:
         hash.update(name)
-        hash.update(":")
-        hash.update(value + "\r\n")
+        hash.update(b":")
+        hash.update(value + b"\r\n")
 
     hash.update(signature)
     digest = hash.digest()
@@ -125,13 +130,13 @@ def dkim_sign(message, selector, domain, private_key, identity = None, separator
     if digest_l + 3 > modulus_l:
         raise netius.GeneratorError("Hash too large for modulus")
 
-    base = "\x00\x01" + "\xff" * delta_l + "\x00" + digest_info
+    base = b"\x00\x01" + b"\xff" * delta_l + b"\x00" + digest_info
     base_i = util.bytes_to_integer(base)
 
     signature_i = rsa.rsa_crypt(base_i, exponent, modulus)
     signature_s = util.integer_to_bytes(signature_i, length = modulus_l)
 
-    signature += base64.b64encode(signature_s) + "\r\n"
+    signature += base64.b64encode(signature_s) + b"\r\n"
     return signature
 
 def dkim_headers(headers):
@@ -142,7 +147,7 @@ def dkim_headers(headers):
 def dkim_body(body):
     # remove the complete set of empty lines in the body
     # and adds only one line to the end of it as requested
-    return re.sub("(\r\n)*$", "\r\n", body)
+    return re.sub(b"(\r\n)*$", b"\r\n", body)
 
 def dkim_fold(header, length = 72):
     """
@@ -163,18 +168,18 @@ def dkim_fold(header, length = 72):
     processing of the string value.
     """
 
-    index = header.rfind("\r\n ")
-    if index == -1: pre = ""
+    index = header.rfind(b"\r\n ")
+    if index == -1: pre = b""
     else:
         index += 3
         pre = header[:index]
         header = header[index:]
 
     while len(header) > length:
-        index = header[:length].rfind(" ")
+        index = header[:length].rfind(b" ")
         if index == -1: _index = index
         else: _index = index + 1
-        pre += header[:index] + "\r\n "
+        pre += header[:index] + b"\r\n "
         header = header[_index:]
 
     return pre + header
