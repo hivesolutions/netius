@@ -213,10 +213,10 @@ def assert_private(private_key, number_bits = None):
         assert number_bits // 2 == rsa_bits(private_key["prime_2"])
         assert number_bits == private_key["bits"]
 
-    message = "Hello World"
-    signature = rsa_sign("Hello World", private_key)
+    message = b"Hello World"
+    signature = rsa_sign(b"Hello World", private_key)
     result = rsa_verify(signature, private_key)
-    result = result.lstrip("\0")
+    result = result.lstrip(b"\0")
 
     assert result == message
 
@@ -388,11 +388,13 @@ def rsa_bits(modulus):
     return calc.ceil_integer(bits)
 
 def rsa_sign(message, private_key):
+    message = netius.bytes(message)
     modulus = private_key["modulus"]
     private_exponent = private_key["private_exponent"]
     return rsa_crypt_s(message, private_exponent, modulus)
 
 def rsa_verify(signature, public_key):
+    signature = netius.bytes(signature)
     modulus = public_key["modulus"]
     public_exponent = public_key["public_exponent"]
     return rsa_crypt_s(signature, public_exponent, modulus)
