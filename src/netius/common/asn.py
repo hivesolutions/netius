@@ -116,7 +116,7 @@ def asn1_parse(template, data):
 
         # retrieves the value (as an ordinal) for the current
         # byte and increments the index for the parser
-        tag = ord(data[index])
+        tag = netius.ord(data[index])
         index += 1
 
         # in case the current type is not of the expect type,
@@ -128,7 +128,7 @@ def asn1_parse(template, data):
         # retrieves the ordinal value of the current byte as
         # the length of the value to be parsed and then increments
         # the pointer of the buffer reading process
-        length = ord(data[index])
+        length = netius.ord(data[index])
         index += 1
 
         # in case the last bit of the length byte is set the,
