@@ -38,6 +38,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import os
+import sys
 import datetime
 import mimetypes
 
@@ -84,6 +85,13 @@ class FileServer(netius.servers.HTTPServer):
             path_f = os.path.join(self.base_path, path)
             path_f = os.path.abspath(path_f)
             path_f = os.path.normpath(path_f)
+
+            # retrieves the current file system encoding and determines if it
+            # it's required to decode the path into an unicode string, if that's
+            # the case the normal decoding process is used using the currently
+            # defined file system encoding as defined in the specification
+            is_unicode = netius.is_unicode(path_f)
+            if not is_unicode: path_f = path_f.decode("utf-8")
 
             # verifies if the provided path starts with the contents of the
             # base path in case it does not it's a security issue and a proper
@@ -189,9 +197,14 @@ class FileServer(netius.servers.HTTPServer):
         )
 
     def on_normal_file(self, connection, path):
+        # encodes the current path in case it's currently represented by
+        # a string, this is going to avoid problems in the logging of the
+        # path that is being requested (unicode encoding problems)
+        path_s = path if netius.is_str(path) else path.encode("utf-8")
+
         # prints a debug message about the file that is going to be read
         # from the current file system to be sent to the connection
-        self.debug("Reading file '%s' from file system" % path)
+        self.debug("Reading file '%s' from file system" % path_s)
 
         # retrieves the parser from the connection and then uses it to
         # gather the range as a string to be used latter for conversion
