@@ -102,7 +102,7 @@ class FileServer(netius.servers.HTTPServer):
             is_dir = os.path.isdir(path_f)
             if is_dir: self.on_dir_file(connection, path_f)
             else: self.on_normal_file(connection, path_f)
-        except BaseException, exception:
+        except BaseException as exception:
             # handles the exception gracefully by sending the contents of
             # it to the client and identifying the problem correctly
             self.on_exception_file(connection, exception)
@@ -177,6 +177,9 @@ class FileServer(netius.servers.HTTPServer):
         buffer.append("</body>")
         buffer.append("</html>")
         data = "".join(buffer)
+
+        is_unicode = netius.is_unicode(data)
+        if is_unicode: data = data.encode("utf-8")
 
         connection.send_response(
             data = data,

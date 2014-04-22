@@ -98,6 +98,10 @@ def orderable(value):
     if not PYTHON_3: return value
     return Orderable(value)
 
+def is_unicode(value):
+    if PYTHON_3: return type(value) == _str
+    else: return type(value) == unicode #@UndefinedVariable
+
 def reduce(*args, **kwargs):
     if PYTHON_3: return functools.reduce(*args, **kwargs)
     return _reduce(*args, **kwargs)
