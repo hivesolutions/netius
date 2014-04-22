@@ -124,7 +124,7 @@ class DNSRequest(netius.Request):
         )
         buffer.append(query)
 
-        data = "".join(buffer)
+        data = b"".join(buffer)
 
         return data
 
@@ -145,13 +145,14 @@ class DNSRequest(netius.Request):
 
         parts = value.split(".")
         for part in parts:
+            part = netius.bytes(part)
             part_l = len(part)
             prefix = struct.pack("!B", part_l)
             part_s = prefix + part
             buffer.append(part_s)
 
-        buffer.append("\0")
-        data = "".join(buffer)
+        buffer.append(b"\0")
+        data = b"".join(buffer)
         return data
 
 class DNSResponse(netius.Response):
@@ -234,15 +235,15 @@ class DNSResponse(netius.Response):
 
         while True:
             initial = data[index]
-            if initial == "\0": index += 1; break
+            initial_i = netius.ord(initial)
 
-            initial_i = ord(initial)
+            if initial_i == 0: index += 1; break
             is_pointer = initial_i & 0xc0
 
             if is_pointer:
                 index, _data = self.parse_pointer(data, index)
                 buffer.append(_data)
-                data = ".".join(buffer)
+                data = b".".join(buffer)
                 return (index, data)
 
             _data = data[index + 1:index + initial_i + 1]
@@ -250,7 +251,7 @@ class DNSResponse(netius.Response):
             buffer.append(_data)
             index += initial_i + 1
 
-        data = ".".join(buffer)
+        data = b".".join(buffer)
         return (index, data)
 
     def parse_pointer(self, data, index):
