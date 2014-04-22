@@ -121,7 +121,7 @@ class WSGIServer(http.HTTPServer):
             CONTENT_TYPE = parser.headers.get("content-type", ""),
             CONTENT_LENGTH = "" if parser.content_l == -1 else parser.content_l,
             SERVER_NAME = self.host,
-            SERVER_PORT = self.port,
+            SERVER_PORT = str(self.port),
             SERVER_PROTOCOL = parser.version_s,
             SERVER_SOFTWARE = SERVER_SOFTWARE,
             REMOTE_ADDR = connection.address[0]
