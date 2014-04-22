@@ -1009,9 +1009,10 @@ class Base(observer.Observable):
         current running interpreter.
         """
 
-        if legacy.PYTHON_3: return level
         level_t = type(level)
         if level_t == int: return level
+        if hasattr(logging, "_checkLevel"):
+            return logging._checkLevel(level)
         return logging.getLevelName(level)
 
 class BaseThread(threading.Thread):
