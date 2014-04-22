@@ -79,17 +79,17 @@ def write_pem_key(
     data = base64.b64encode(data)
 
     chunks = [chunk for chunk in util.chunks(data, width)]
-    data = "\n".join(chunks)
+    data = b"\n".join(chunks)
 
     is_file = not type(path) in netius.STRINGS
     file = path if is_file else open(path, "wb")
     try:
         file.write(begin)
-        file.write("\n")
+        file.write(b"\n")
         file.write(data)
-        file.write("\n")
+        file.write(b"\n")
         file.write(end)
-        file.write("\n")
+        file.write(b"\n")
     finally:
         if not is_file: file.close()
 
@@ -159,7 +159,7 @@ def asn_private_key(private_key):
     )
 
 def asn_public_key(public_key):
-    data = "\x00" + asn.asn1_gen(
+    data = b"\x00" + asn.asn1_gen(
         (asn.SEQUENCE, [
             (asn.INTEGER, public_key["modulus"]),
             (asn.INTEGER, public_key["public_exponent"])
@@ -182,8 +182,8 @@ def pem_to_der(in_path, out_path, token = PRIVATE_TOKEN):
     finally: file.close()
 
 def pem_limiters(token):
-    begin = "-----BEGIN " + token + "-----"
-    end = "-----END " + token + "-----"
+    begin = netius.bytes("-----BEGIN " + token + "-----")
+    end = netius.bytes("-----END " + token + "-----")
     return (begin, end)
 
 def private_to_public(private_key):
