@@ -182,7 +182,7 @@ def host():
     if _HOST: return _HOST
     hostname = socket.gethostname()
     _HOST = socket.gethostbyname(hostname)
-    is_unicode = type(_HOST) == netius.UNICODE
+    is_unicode = type(_HOST) == netius.OLD_UNICODE
     if is_unicode: _HOST = _HOST.encode("utf-8")
     return _HOST
 
