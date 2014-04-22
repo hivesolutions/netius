@@ -159,8 +159,10 @@ class APNClient(netius.StreamClient):
         close = connection._close
 
         # converts the current token (in hexadecimal) to a
-        # string of binary data for the message
+        # string of binary data for the message, then ensures
+        # that it's represented by a bytes sequence
         token = binascii.unhexlify(token)
+        token = netius.bytes(token)
 
         # creates the message structure using with the
         # message (string) as the alert and then converts
@@ -173,6 +175,12 @@ class APNClient(netius.StreamClient):
             )
         )
         payload = json.dumps(message_s)
+
+        # verifies if the resulting payload object is unicode based
+        # and in case it is encodes it into a string representation
+        # so that it may be used for the packing of structure
+        is_unicode = netius.is_unicode(payload)
+        if is_unicode: payload = payload.encode("utf-8")
 
         # sets the command with the zero value (simplified)
         # then calculates the token and payload lengths
