@@ -139,7 +139,7 @@ def egcd(first, second):
     if second == 0: return (first, 1, 0)
 
     q = abs(first % second)
-    r = int(first / second)
+    r = first // second
     d, k, l = egcd(second, q)
 
     return (d, l, k - l * r)
