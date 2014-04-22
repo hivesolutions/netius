@@ -41,17 +41,17 @@ import re
 
 import netius
 
-LINE_REGEX = re.compile(r"\r?\n")
+LINE_REGEX = re.compile(b"\r?\n")
 """ The regular expression that is going to be used in the
 separation of the various lines of the message for the proper
 parsing of it, notice the carriage return and new line support """
 
-SPACE_REGEX = re.compile(r"[\t ]")
+SPACE_REGEX = re.compile(b"[\t ]")
 """ Regular expression used for the matching of all the characters
 considered valid for the spaces in the start of a continuation
 line for an header value as part of the rfc822 """
 
-HEADER_NAME_REGEX = re.compile(r"([\x21-\x7e]+?):")
+HEADER_NAME_REGEX = re.compile(b"([\x21-\x7e]+?):")
 """ The regular expression to be used for the matching of the
 name part of the header, this should be used do decide if a line
 corresponds to an header line or not """
@@ -160,12 +160,17 @@ def rfc822_parse(message, strip = True):
         # end of headers have been found (must break the loop)
         if not line: break
 
+        # retrieves the value for the current byte so that it's
+        # possible to try to match it against the various regular
+        # expression that are part of the parsing loop (line loop)
+        byte = netius.chr(line[0])
+
         # verifies if this is a continuation line, these lines
         # start with either a space or a tab character, for those
         # situations the contents of the current line must be
         # added to the previously parsed header
-        if SPACE_REGEX.match(line[0]):
-            headers[-1][1] += "\r\n" + line
+        if SPACE_REGEX.match(byte):
+            headers[-1][1] += b"\r\n" + line
 
         # otherwise it's a "normal" header parsing step and the typical
         # header regular expression match strategy is going to be used
@@ -185,7 +190,7 @@ def rfc822_parse(message, strip = True):
 
             # otherwise in case the line is a from line formatted
             # using an old fashion strategy tolerates it (compatibility)
-            elif line.startswith("From "): pass
+            elif line.startswith(b"From "): pass
 
             # as a fallback raises a parser error as no parsing of header
             # was possible for the message (major problem)
@@ -199,7 +204,7 @@ def rfc822_parse(message, strip = True):
     # representing the body, and uses it to create the headers and body
     # tuple that is going to be returned to the caller method
     body_lines = lines[index + 1:]
-    body = "\r\n".join(body_lines)
+    body = b"\r\n".join(body_lines)
     return (headers, body)
 
 def rfc822_join(headers, body):
