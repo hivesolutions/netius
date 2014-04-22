@@ -46,3 +46,6 @@ class CalcTest(unittest.TestCase):
     def test_jacobi_witness(self):
         result = netius.common.jacobi_witness(12, 2)
         self.assertEqual(result, True)
+
+        result = netius.common.jacobi_witness(3, 2)
+        self.assertEqual(result, False)
