@@ -162,6 +162,8 @@ class DHTClient(netius.DatagramClient):
     ):
         request = DHTRequest(
             peer_id,
+            host = host,
+            port = port,
             type = type,
             callback = callback,
             *args,
