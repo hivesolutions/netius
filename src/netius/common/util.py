@@ -101,7 +101,7 @@ def string_to_bits(value):
     return bin(netius.reduce(lambda x, y : (x << 8) + y, (netius.ord(c) for c in value), 1))[3:]
 
 def integer_to_bytes(number, length = 0):
-    if not type(bytes) in netius.INTEGERS:
+    if not type(number) in netius.INTEGERS:
         raise netius.DataError("Invalid data type")
 
     bytes = []
