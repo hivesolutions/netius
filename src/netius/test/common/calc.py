@@ -1,23 +1,26 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Hive Netius System
+# Hive Appier Framework
 # Copyright (C) 2008-2012 Hive Solutions Lda.
 #
-# This file is part of Hive Netius System.
+# This file is part of Hive Appier Framework.
 #
-# Hive Netius System is free software: you can redistribute it and/or modify
+# Hive Appier Framework is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# Hive Netius System is distributed in the hope that it will be useful,
+# Hive Appier Framework is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
+# along with Hive Appier Framework. If not, see <http://www.gnu.org/licenses/>.
+
+__author__ = "João Magalhães joamag@hive.pt>"
+""" The author(s) of the module """
 
 __version__ = "1.0.0"
 """ The version of the module """
@@ -34,8 +37,12 @@ __copyright__ = "Copyright (c) 2008-2012 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-from . import calc
-from . import util
+import unittest
 
-from .calc import *
-from .util import *
+import netius.common
+
+class CalcTest(unittest.TestCase):
+
+    def test_jacobi_witness(self):
+        netius.common.jacobi_witness(x, n)
+        
