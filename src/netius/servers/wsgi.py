@@ -257,6 +257,22 @@ class WSGIServer(http.HTTPServer):
         connection.close(flush = True)
 
     def _decode(self, value):
+        """
+        Decodes the provided quoted value, normalizing it according
+        to both the pep 333 and the pep 333.
+
+        Note that python 3 enforces the encapsulation of the string
+        value around a latin 1 encoded unicode string.
+
+        @type value: String
+        @param value: The quoted value that should be normalized and
+        decoded according to the wsgi 1.0/1.0.1 specifications.
+        @rtype: String
+        @return: The normalized version of the provided quoted value
+        that is ready to be provided as part of the environ map.
+        @see: http://python.org/dev/peps/pep-3333
+        """
+
         value = netius.unquote(value)
         is_unicode = netius.is_unicode(value)
         value = value.encode("utf-8") if is_unicode else value
