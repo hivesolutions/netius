@@ -45,4 +45,4 @@ class CalcTest(unittest.TestCase):
 
     def test_jacobi_witness(self):
         result = netius.common.jacobi_witness(12, 2)
-        self.assertEqual(result, False)
+        self.assertEqual(result, True)
