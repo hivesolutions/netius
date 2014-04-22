@@ -79,9 +79,9 @@ ASN1_RSA_PRIVATE_KEY = [
     ])
 ]
 
-RSAID_PKCS1 = "\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01"
-HASHID_SHA1 = "\x2b\x0e\x03\x02\x1a"
-HASHID_SHA256 = "\x60\x86\x48\x01\x65\x03\x04\x02\x01"
+RSAID_PKCS1 = b"\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01"
+HASHID_SHA1 = b"\x2b\x0e\x03\x02\x1a"
+HASHID_SHA256 = b"\x60\x86\x48\x01\x65\x03\x04\x02\x01"
 
 def asn1_parse(template, data):
     """
@@ -185,16 +185,16 @@ def asn1_length(length):
     """
 
     assert length >= 0
-    if length < 0x7f: return chr(length)
+    if length < 0x7f: return netius.chr(length)
 
     result = util.integer_to_bytes(length)
     number = len(result)
-    result = chr(number | 0x80) + result
+    result = netius.chr(number | 0x80) + result
     return result
 
 def asn1_gen(node):
     generator = asn1_build(node)
-    return "".join(generator)
+    return b"".join(generator)
 
 def asn1_build(node):
     """
@@ -209,30 +209,30 @@ def asn1_build(node):
     tag, value = node
 
     if tag == BIT_STRING:
-        yield chr(BIT_STRING) + asn1_length(len(value)) + value
+        yield netius.chr(BIT_STRING) + asn1_length(len(value)) + value
 
     elif tag == OCTET_STRING:
-        yield chr(OCTET_STRING) + asn1_length(len(value)) + value
+        yield netius.chr(OCTET_STRING) + asn1_length(len(value)) + value
 
     elif tag == INTEGER:
         value = util.integer_to_bytes(value)
-        yield chr(INTEGER) + asn1_length(len(value)) + value
+        yield netius.chr(INTEGER) + asn1_length(len(value)) + value
 
     elif tag == NULL:
         assert value is None
-        yield chr(NULL) + asn1_length(0)
+        yield netius.chr(NULL) + asn1_length(0)
 
     elif tag == OBJECT_IDENTIFIER:
-        yield chr(OBJECT_IDENTIFIER) + asn1_length(len(value)) + value
+        yield netius.chr(OBJECT_IDENTIFIER) + asn1_length(len(value)) + value
 
     elif tag == SEQUENCE:
         buffer = []
         for item in value:
             generator = asn1_build(item)
-            data = "".join(generator)
+            data = b"".join(generator)
             buffer.append(data)
-        result = "".join(buffer)
-        yield chr(SEQUENCE) + asn1_length(len(result)) + result
+        result = b"".join(buffer)
+        yield netius.chr(SEQUENCE) + asn1_length(len(result)) + result
 
     else:
         raise netius.GeneratorError("Unexpected tag in template 0x%02x" % tag)
