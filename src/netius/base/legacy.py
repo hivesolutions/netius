@@ -53,11 +53,14 @@ PYTHON_3 = sys.version_info[0] >= 3
 interpreter is at least python 3 compliant, this is used
 to take some of the conversion decision for runtime """
 
+if PYTHON_3: UNICODE = str
+else: UNICODE = unicode #@UndefinedVariable
+
+if PYTHON_3: OLD_UNICODE = None
+else: OLD_UNICODE = unicode #@UndefinedVariable
+
 if PYTHON_3: BYTES = (bytes,)
 else: BYTES = (str,) #@UndefinedVariable
-
-if PYTHON_3: UNICODE = None
-else: UNICODE = unicode #@UndefinedVariable
 
 if PYTHON_3: STRINGS = (str,)
 else: STRINGS = (str, unicode) #@UndefinedVariable
