@@ -55,11 +55,12 @@ class WSGIServer(http.HTTPServer):
     object as reference and a mount point.
     """
 
-    def __init__(self, app, mount = "", *args, **kwargs):
+    def __init__(self, app, mount = "", decode = True, *args, **kwargs):
         http.HTTPServer.__init__(self, *args, **kwargs)
         self.app = app
         self.mount = mount
         self.mount_l = len(mount)
+        self.decode = decode
 
     def on_connection_d(self, connection):
         http.HTTPServer.on_connection_d(self, connection)
@@ -94,6 +95,13 @@ class WSGIServer(http.HTTPServer):
         path = parser.get_path()
         query = parser.get_query()
         path_info = path[self.mount_l:]
+
+        # verifies if the path and query values should be encoded and if
+        # that's the case the decoding process should unquote the received
+        # path and then convert it into a valid string representation, this
+        # is especially relevant for the python 3 infra-structure, this is
+        # a tricky process but is required for the wsgi compliance
+        if self.decode: path_info = self._decode(path_info)
 
         # retrieves a possible forwarded protocol value from the request
         # headers and calculates the appropriate (final scheme value)
@@ -247,6 +255,13 @@ class WSGIServer(http.HTTPServer):
 
     def _close(self, connection):
         connection.close(flush = True)
+
+    def _decode(self, value):
+        value = netius.unquote(value)
+        is_unicode = netius.is_unicode(value)
+        value = value.encode("utf-8") if is_unicode else value
+        value = netius.str(value)
+        return value
 
 if __name__ == "__main__":
     import logging
