@@ -116,6 +116,10 @@ def urlencode(*args, **kwargs):
     if PYTHON_3: return urllib.parse.urlencode(*args, **kwargs)
     else: return urllib.urlencode(*args, **kwargs) #@UndefinedVariable
 
+def quote(*args, **kwargs):
+    if PYTHON_3: return urllib.parse.quote(*args, **kwargs)
+    else: return urllib.quote(*args, **kwargs) #@UndefinedVariable
+
 def unquote(*args, **kwargs):
     if PYTHON_3: return urllib.parse.unquote(*args, **kwargs)
     else: return urllib.unquote(*args, **kwargs) #@UndefinedVariable
