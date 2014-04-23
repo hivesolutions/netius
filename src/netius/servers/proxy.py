@@ -204,6 +204,11 @@ class ProxyServer(http.HTTPServer):
         status_s = parser.status_s
         version_s = parser.version_s
 
+        # applies the headers meaning that the headers are going to be
+        # processed so that they represent the proper proxy operation
+        # that is going to be done with the passing of the data
+        self._apply_headers(parser, headers)
+
         # resolves the client connection into the proper proxy connection
         # to be used to send the headers (and status line) to the client
         connection = self.conn_map[_connection]
@@ -356,3 +361,38 @@ class ProxyServer(http.HTTPServer):
         connection = self.conn_map[_connection]
         connection.close(flush = True)
         del self.conn_map[_connection]
+
+    def _apply_headers(self, parser, headers, upper = True):
+        if upper: self._headers_upper(headers)
+        self._apply_via(parser, headers)
+        self._apply_base(headers)
+
+    def _apply_via(self, parser, headers):
+        # retrieves the various elements of the parser that are going
+        # to be used for the creation of the via string value, and
+        # processes some of them to take them into the normal form
+        connection = parser.owner
+        version_s = parser.version_s
+        version_s = version_s.split("/", 1)[1]
+
+        # unpacks the current connectiont's address so that the host
+        # value is possible to be retrieved (as expected)
+        host, _port = connection.address
+
+        # retrieves the server value from the current headers, as it
+        # is going to be used for the creation of the partial via
+        # value (the technology part of the string)
+        server = headers.get("Server", None)
+
+        # creates the via string value taking into account if the server
+        # part of the string exists or not (different template)
+        if server: via_s = "%s %s (%s)" % (version_s, host, server)
+        else: via_s = "%s %s" % (version_s, host)
+
+        # tries to retrieve the current via string (may already exits)
+        # and appends the created string to the base string or creates
+        # a new one (as defined in the http specification)
+        via = headers.get("Via", "")
+        if via: via += ", "
+        via += via_s
+        headers["Via"] = via
