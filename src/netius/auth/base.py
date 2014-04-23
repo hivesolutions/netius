@@ -89,4 +89,5 @@ class Auth(object):
         else: plain = password; type = "plain"; salt = None; digest = None
         if not type == "plain": plain = None
         if salt: salt = binascii.unhexlify(salt)
+        if salt: salt = netius.str(salt)
         return (type, salt, digest, plain)
