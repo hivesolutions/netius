@@ -634,6 +634,25 @@ class Base(observer.Observable):
 
         return kwargs
 
+    def is_devel(self):
+        """
+        Verifies if the current running environment is meant to be used
+        for development purposes as opposed to a production environment.
+
+        The method should always be used in situations where some critical
+        and internal information is meant to be displayed in a development
+        environment but hidden in a production one.
+
+        This method should be used at runtime as opposed to the private
+        configuration based one.
+
+        @rtype: bool
+        @return: If the current environment is development oriented or
+        if it's considered to be a production one (invalid result).
+        """
+
+        return self.is_info()
+
     def is_debug(self):
         return self.logger.isEnabledFor(logging.DEBUG)
 
