@@ -112,3 +112,7 @@ Running `ab -n 20000 -c 5 -k http://srio.hive:8080/` whoud should get the follow
 * `WSGIServer` - 8.7 K req/sec
 
 These values have been verified under commit #7c2687b under python 2.6.6.
+
+## Build Automation
+
+[![Build Status](https://travis-ci.org/hivesolutions/appier.png?branch=master)](https://travis-ci.org/hivesolutions/netius)
