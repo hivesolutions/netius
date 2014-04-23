@@ -180,7 +180,7 @@ class FileServer(netius.servers.HTTPServer):
         buffer.append("</table>")
         buffer.append("<hr/>")
         buffer.append("<span>")
-        buffer.append("%s/%s" % netius.IDENTIFIER)
+        buffer.append(netius.IDENTIFIER)
         buffer.append("</span>")
         buffer.append("</body>")
         buffer.append("</html>")
