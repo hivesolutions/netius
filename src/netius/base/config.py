@@ -125,6 +125,6 @@ def _is_devel():
     development type level of traceability.
     """
 
-    return conf("LEVEL", "INFO") in ("DEBUG", "INFO")
+    return conf("LEVEL", "INFO") in ("DEBUG",)
 
 load()

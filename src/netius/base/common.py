@@ -651,7 +651,7 @@ class Base(observer.Observable):
         if it's considered to be a production one (invalid result).
         """
 
-        return self.is_info()
+        return self.is_debug()
 
     def is_debug(self):
         return self.logger.isEnabledFor(logging.DEBUG)
