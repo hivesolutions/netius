@@ -186,6 +186,22 @@ def host():
     if is_unicode: _HOST = _HOST.encode("utf-8")
     return _HOST
 
+def hostname():
+    """
+    The name as a simple string o the name of the current
+    local machine. This value may or may not be a fully
+    qualified domain name for the machine.
+
+    The result of this function call is unpredictable and
+    should not be trusted for critical operations.
+
+    @rtype: String
+    @return: The name as a string of the current local
+    machine, the definition of this value varies.
+    """
+
+    return socket.gethostname()
+
 def size_round_unit(
     size_value,
     minimum = DEFAULT_MINIMUM,
