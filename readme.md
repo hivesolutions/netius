@@ -115,4 +115,4 @@ These values have been verified under commit #7c2687b under python 2.6.6.
 
 ## Build Automation
 
-[![Build Status](https://travis-ci.org/hivesolutions/appier.png?branch=master)](https://travis-ci.org/hivesolutions/netius)
+[![Build Status](https://travis-ci.org/hivesolutions/netius.png?branch=master)](https://travis-ci.org/hivesolutions/netius)
