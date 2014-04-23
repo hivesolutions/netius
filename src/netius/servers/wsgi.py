@@ -43,7 +43,7 @@ import netius
 
 from netius.servers import http
 
-SERVER_SOFTWARE = "%s/%s" % (netius.NAME, netius.VERSION)
+SERVER_SOFTWARE = netius.IDENTIFIER
 """ The server software string that is going to identify the
 current service that is running on the host, the values should
 include both the name and the version of it """

@@ -507,7 +507,7 @@ class SMTPClient(netius.StreamClient):
     def user_agent(self, message):
         user_agent = message.get("User-Agent", None)
         if user_agent: return
-        message["User-Agent"] = "%s/%s" % (netius.NAME, netius.VERSION)
+        message["User-Agent"] = netius.IDENTIFIER
 
 if __name__ == "__main__":
     import email.mime.text

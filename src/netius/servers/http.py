@@ -44,7 +44,7 @@ import struct
 import netius.common
 
 BASE_HEADERS = {
-    "Server" : "%s/%s" % (netius.NAME, netius.VERSION)
+    "Server" : netius.IDENTIFIER
 }
 """ The map containing the complete set of headers
 that are meant to be applied to all the responses """

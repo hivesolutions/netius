@@ -65,17 +65,23 @@ VERSION = "1.0.3"
 current infra-structure, all of the services and clients
 may share this value """
 
-PLATFORM = ("%s %d.%d.%d.%s" % (
-    sys.subversion[0] if hasattr(sys, "subversion") else "cPython",
+PLATFORM = "%s %d.%d.%d.%s %s" % (
+    sys.subversion[0] if hasattr(sys, "subversion") else "CPython",
     sys.version_info[0],
     sys.version_info[1],
     sys.version_info[2],
-    sys.version_info[3]
-)).lower()
+    sys.version_info[3],
+    sys.platform
+)
 """ Extra system information containing some of the details
 of the technical platform that is running the system, this
 string should be exposed carefully to avoid extra information
 from being exposed to outside agents """
+
+IDENTIFIER = "%s/%s (%s)" % (NAME, VERSION, PLATFORM)
+""" The identifier that may be used to identify an user agent
+or service running under the current platform, this string
+should comply with the typical structure for such values """
 
 WSAEWOULDBLOCK = 10035
 """ The wsa would block error code meant to be used on

@@ -40,7 +40,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import netius.common
 
 BASE_HEADERS = {
-    "user-agent" : "%s/%s" % (netius.NAME, netius.VERSION)
+    "user-agent" : netius.IDENTIFIER
 }
 """ The map containing the complete set of headers
 that are meant to be applied to all the requests """
