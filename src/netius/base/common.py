@@ -78,10 +78,23 @@ of the technical platform that is running the system, this
 string should be exposed carefully to avoid extra information
 from being exposed to outside agents """
 
-IDENTIFIER = "%s/%s (%s)" % (NAME, VERSION, PLATFORM)
+IDENTIFIER_SHORT = "%s/%s" % (NAME, VERSION)
+""" The short version of the current environment's identifier
+meant to be used in production like environment as it hides some
+of the critical and internal information of the system """
+
+IDENTIFIER_LONG = "%s/%s (%s)" % (NAME, VERSION, PLATFORM)
+""" Longest version of the system identifier, to be used in the
+development like environment as it shows critical information
+about the system internals that may expose the system """
+
+IDENTIFIER = IDENTIFIER_LONG if config._is_devel() else IDENTIFIER_SHORT
 """ The identifier that may be used to identify an user agent
 or service running under the current platform, this string
-should comply with the typical structure for such values """
+should comply with the typical structure for such values,
+by default this value is set with the short version of the
+identifier (less information) but this may be changed at
+runtime if the current verbosity level is changed """
 
 WSAEWOULDBLOCK = 10035
 """ The wsa would block error code meant to be used on
