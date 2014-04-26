@@ -112,9 +112,10 @@ class WSConnection(netius.Connection):
         return buffer
 
     def _encode(self, data):
+        data = netius.bytes(data)
         data_l = len(data)
-        encoded_l = list()
 
+        encoded_l = list()
         encoded_l.append(netius.chr(129))
 
         if data_l <= 125:
