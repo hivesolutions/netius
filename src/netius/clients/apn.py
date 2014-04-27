@@ -161,6 +161,7 @@ class APNClient(netius.StreamClient):
         # converts the current token (in hexadecimal) to a
         # string of binary data for the message, then ensures
         # that it's represented by a bytes sequence
+        token = netius.bytes(token)
         token = binascii.unhexlify(token)
         token = netius.bytes(token)
 
