@@ -158,12 +158,11 @@ class APNClient(netius.StreamClient):
         badge = connection.badge
         close = connection._close
 
-        # converts the current token (in hexadecimal) to a
-        # string of binary data for the message, then ensures
-        # that it's represented by a bytes sequence
+        # converts the current token (in hexadecimal) to a set
+        # of binary string elements and uses that value to get
+        # a string of data from the string of hexadecimal data
         token = netius.bytes(token)
         token = binascii.unhexlify(token)
-        token = netius.bytes(token)
 
         # creates the message structure using with the
         # message (string) as the alert and then converts
