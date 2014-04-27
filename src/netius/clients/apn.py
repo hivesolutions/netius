@@ -148,7 +148,7 @@ class APNClient(netius.StreamClient):
         # client infra-structure after sending, this will close
         # the connection using a graceful approach to avoid any
         # of the typical problems with the connection shutdown
-        def callback(connection): self.close(flush = True)
+        def callback(connection): self.close()
 
         # unpacks the various elements that are going to be
         # used in the sending of the message
