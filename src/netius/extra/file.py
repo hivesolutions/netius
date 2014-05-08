@@ -51,9 +51,10 @@ to big nor to small (as both situations would create problems) """
 
 class FileServer(netius.servers.HTTPServer):
 
-    def __init__(self, base_path = "", *args, **kwargs):
+    def __init__(self, base_path = "", cors = False, *args, **kwargs):
         netius.servers.HTTPServer.__init__(self, *args, **kwargs)
         self.base_path = base_path
+        self.cors = cors
 
     def on_connection_d(self, connection):
         netius.servers.HTTPServer.on_connection_d(self, connection)
@@ -67,9 +68,10 @@ class FileServer(netius.servers.HTTPServer):
     def on_serve(self):
         netius.servers.HTTPServer.on_serve(self)
         if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)
+        if self.env: self.cors = self.get_env("CORS", self.cors, cast = bool)
         self.base_path = os.path.abspath(self.base_path)
-        self.base_path = os.path.normpath(self.base_path)
         self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
+        if self.cors: self.info("Cross origin resource sharing is enabled")
 
     def on_data_http(self, connection, parser):
         netius.servers.HTTPServer.on_data_http(self, connection, parser)
@@ -275,6 +277,7 @@ class FileServer(netius.servers.HTTPServer):
         headers = dict()
         headers["etag"] = etag
         headers["content-length"] = "%d" % data_size
+        if self.cors: headers["access-control-allow-origin"] = "*"
         if type: headers["content-type"] = type
         if is_partial: headers["content-range"] = content_range_s
         if not is_partial: headers["accept-ranges"] = "bytes"
