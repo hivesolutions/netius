@@ -39,7 +39,6 @@ from . import calc
 from . import dhcp
 from . import dkim
 from . import http
-from . import markdown
 from . import mime
 from . import parser
 from . import pop
@@ -54,7 +53,6 @@ from .calc import *
 from .dhcp import *
 from .dkim import *
 from .http import *
-from .markdown import *
 from .mime import *
 from .parser import *
 from .pop import *
