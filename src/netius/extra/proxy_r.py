@@ -45,8 +45,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
     def __init__(self, config = "proxy.json", regex = {}, hosts = {}, *args, **kwargs):
         netius.servers.ProxyServer.__init__(self, *args, **kwargs)
-        if not type(regex) == dict: regex = dict(regex)
-        if not type(hosts) == dict: hosts = dict(hosts)
+        if type(regex) == dict: regex = regex.items()
+        if type(hosts) == dict: hosts = hosts.items()
         self.load_config(path = config, regex = regex, hosts = hosts)
 
     def on_data_http(self, connection, parser):
@@ -138,7 +138,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     def rules_regex(self, url, parser):
         prefix = None
 
-        for regex, _prefix in self.regex.items():
+        for regex, _prefix in self.regex:
             match = regex.match(url)
             if not match: continue
             groups = match.groups()
@@ -164,7 +164,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # check for the presence of such rule, in case there's a match
         # the defined url prefix is going to be used instead
         host = headers.get("host", None)
-        for _host, _prefix in self.hosts.items():
+        for _host, _prefix in self.hosts:
             if not _host == host: continue
             prefix = _prefix
             break
