@@ -43,13 +43,13 @@ import setuptools
 
 setuptools.setup(
     name = "netius",
-    version = "1.0.13",
+    version = "1.1.0",
     author = "Hive Solutions Lda.",
     author_email = "development@hive.pt",
     description = "Netius System",
     license = "GNU General Public License (GPL), Version 3",
     keywords = "netius net infrastructure",
-    url = "http://netius.com",
+    url = "http://netius.hive.pt",
     zip_safe = False,
     packages = [
         "netius",
