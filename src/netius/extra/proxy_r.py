@@ -140,7 +140,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             match = regex.match(url)
             if not match: continue
             groups = match.groups()
-            if groups: _prefix = _prefix % groups
+            if groups: _prefix = _prefix.format(*groups)
             prefix = _prefix
             break
 
