@@ -45,6 +45,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
     def __init__(self, config = "proxy.json", regex = {}, hosts = {}, *args, **kwargs):
         netius.servers.ProxyServer.__init__(self, *args, **kwargs)
+        if not type(regex) == dict: regex = dict(regex)
+        if not type(hosts) == dict: hosts = dict(hosts)
         self.load_config(path = config, regex = regex, hosts = hosts)
 
     def on_data_http(self, connection, parser):
@@ -173,13 +175,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
 if __name__ == "__main__":
     import logging
-    regex = {
-        re.compile(r"https://host\.com") : "http://localhost",
-        re.compile(r"https://([a-zA-Z]*)\.host\.com") : "http://localhost/{0}"
-    }
-    hosts = {
-        "host.com" : "http://localhost"
-    }
+    regex = (
+        (re.compile(r"https://host\.com"), "http://localhost"),
+        (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}")
+    )
+    hosts = (
+        ("host.com", "http://localhost"),
+    )
     server = ReverseProxyServer(
         regex = regex,
         hosts = hosts,
