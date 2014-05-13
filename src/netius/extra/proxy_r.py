@@ -56,6 +56,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         is_secure = connection.ssl
         protocol = "https" if is_secure else "http"
 
+        # retrieves the host header from the received set of headers
+        # and then iterates over the complete set of defined host to
+        # check for the presence of such rule, in case there's a match
+        # the defined url prefix is going to be used instead
         host = headers.get("host", None)
         for _host, _prefix in self.hosts.items():
             if not _host == host: continue
@@ -63,6 +67,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             url = prefix + path
             break
 
+        # in case no prefix is defined at this stage there's no matching
+        # against the currently defined rules and so an error must be raised
+        # and propagated to the client connection (end user notification)
         if not prefix:
             self.debug("No valid proxy endpoint found for '%s'" % host)
             connection.send_response(
@@ -117,10 +124,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         connection.proxy_c = _connection
         self.conn_map[_connection] = connection
 
+    def rules(self):
+
+
 if __name__ == "__main__":
     import logging
     hosts = {
-        "host.com" : "http://localhost"
+        "host.com:9090" : "http://localhost:8080/render"
     }
     server = ReverseProxyServer(
         hosts = hosts,
