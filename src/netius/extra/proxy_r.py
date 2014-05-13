@@ -37,41 +37,38 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import re
+
 import netius.servers
 
 class ReverseProxyServer(netius.servers.ProxyServer):
 
-    def __init__(self, config = "proxy.json", hosts = {}, *args, **kwargs):
+    def __init__(self, config = "proxy.json", regex = {}, hosts = {}, *args, **kwargs):
         netius.servers.ProxyServer.__init__(self, *args, **kwargs)
-        self.load_config(path = config, hosts = hosts)
+        self.load_config(path = config, regex = regex, hosts = hosts)
 
     def on_data_http(self, connection, parser):
         netius.servers.ProxyServer.on_data_http(self, connection, parser)
 
-        prefix = None
         method = parser.method.upper()
         path = parser.path_s
         headers = parser.headers
         version_s = parser.version_s
         is_secure = connection.ssl
+        host = headers.get("host", None)
         protocol = "https" if is_secure else "http"
 
-        # retrieves the host header from the received set of headers
-        # and then iterates over the complete set of defined host to
-        # check for the presence of such rule, in case there's a match
-        # the defined url prefix is going to be used instead
-        host = headers.get("host", None)
-        for _host, _prefix in self.hosts.items():
-            if not _host == host: continue
-            prefix = _prefix
-            url = prefix + path
-            break
+        # constructs the url that is going to be used by the rule engine and
+        # then "forwards" both the url and the parser object to the rule engine
+        # in order to obtain the possible prefix value for url reconstruction
+        url = "%s://%s%s" % (protocol, host, path)
+        prefix = self.rules(url, parser)
 
         # in case no prefix is defined at this stage there's no matching
         # against the currently defined rules and so an error must be raised
         # and propagated to the client connection (end user notification)
         if not prefix:
-            self.debug("No valid proxy endpoint found for '%s'" % host)
+            self.debug("No valid proxy endpoint found")
             connection.send_response(
                 data = "No valid proxy endpoint found",
                 headers = dict(
@@ -84,6 +81,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 callback = self._prx_close
             )
             return
+
+        # re-calculates the url for the reverse connection based on the
+        # prefix value that has just been "resolved" using the rule engine
+        # this value should be constructed based on the original path
+        url = prefix + path
 
         # updates the various headers that are relates with the reverse
         # proxy operation this is required so that the request gets
@@ -124,15 +126,62 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         connection.proxy_c = _connection
         self.conn_map[_connection] = connection
 
-    def rules(self):
+    def rules(self, url, parser):
+        prefix = self.rules_regex(url, parser)
+        if prefix: return prefix
+        prefix = self.rules_host(url, parser)
+        if prefix: return prefix
+        return None
 
+    def rules_regex(self, url, parser):
+        prefix = None
+
+        for regex, _prefix in self.regex.items():
+            match = regex.match(url)
+            if not match: continue
+            groups = match.groups()
+            if groups: _prefix = _prefix % groups
+            prefix = _prefix
+            break
+
+        return prefix
+
+    def rules_host(self, url, parser):
+        # retrieves the reference to the headers map from the parser so
+        # that it may be used to retrieve the current host value and try
+        # to match it against any of the currently defined rules
+        headers = parser.headers
+
+        # starts the prefix value at the initial unset value, this value
+        # should be populated at the end of the iteration in case there's
+        # a valid march in the host based rules
+        prefix = None
+
+        # retrieves the host header from the received set of headers
+        # and then iterates over the complete set of defined host to
+        # check for the presence of such rule, in case there's a match
+        # the defined url prefix is going to be used instead
+        host = headers.get("host", None)
+        for _host, _prefix in self.hosts.items():
+            if not _host == host: continue
+            prefix = _prefix
+            break
+
+        # returns the final "resolved" prefix value (in case there's any)
+        # to the caller method, this should be used for url reconstruction
+        return prefix
 
 if __name__ == "__main__":
     import logging
+    regex = {
+        re.compile(r"https://host\.com") : "http://localhost",
+        re.compile(r"https://([a-zA-Z]*)\.host\.com") : "http://localhost/{0}"
+    }
     hosts = {
-        "host.com:9090" : "http://localhost:8080/render"
+        "host.com" : "http://localhost"
     }
     server = ReverseProxyServer(
+        regex = regex,
         hosts = hosts,
         level = logging.INFO
     )
