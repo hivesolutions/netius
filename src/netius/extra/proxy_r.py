@@ -46,7 +46,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     def __init__(self, config = "proxy.json", regex = {}, hosts = {}, *args, **kwargs):
         netius.servers.ProxyServer.__init__(self, *args, **kwargs)
         if type(regex) == dict: regex = regex.items()
-        if type(hosts) == dict: hosts = hosts.items()
+        if not type(hosts) == dict: hosts = dict(hosts)
         self.load_config(path = config, regex = regex, hosts = hosts)
 
     def on_data_http(self, connection, parser):
@@ -154,20 +154,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # to match it against any of the currently defined rules
         headers = parser.headers
 
-        # starts the prefix value at the initial unset value, this value
-        # should be populated at the end of the iteration in case there's
-        # a valid march in the host based rules
-        prefix = None
-
         # retrieves the host header from the received set of headers
-        # and then iterates over the complete set of defined host to
+        # and then verifies the complete set of defined hosts in order to
         # check for the presence of such rule, in case there's a match
         # the defined url prefix is going to be used instead
         host = headers.get("host", None)
-        for _host, _prefix in self.hosts:
-            if not _host == host: continue
-            prefix = _prefix
-            break
+        prefix = self.hosts.get(host, None)
 
         # returns the final "resolved" prefix value (in case there's any)
         # to the caller method, this should be used for url reconstruction
@@ -179,9 +171,9 @@ if __name__ == "__main__":
         (re.compile(r"https://host\.com"), "http://localhost"),
         (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}")
     )
-    hosts = (
-        ("host.com", "http://localhost"),
-    )
+    hosts = {
+        "host.com" : "http://localhost"
+    }
     server = ReverseProxyServer(
         regex = regex,
         hosts = hosts,
