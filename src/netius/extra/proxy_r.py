@@ -136,8 +136,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         return None
 
     def rules_regex(self, url, parser):
+        # sets the prefix value initialy for the invalid/unset value, this
+        # value is going to be populated once a valid match is found
         prefix = None
 
+        # iterates over the complete set of defined regex values to try
+        # to find a valid match and apply the groups value for format
+        # if the complete chain of regex is processed but there's no
+        # valid match the prefix value is considered to be unset
         for regex, _prefix in self.regex:
             match = regex.match(url)
             if not match: continue
@@ -146,6 +152,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             prefix = _prefix
             break
 
+        # returns the prefix value that has just been resolved through
+        # regex based validation, this value may be unset for mismatch
         return prefix
 
     def rules_host(self, url, parser):
