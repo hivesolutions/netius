@@ -91,10 +91,6 @@ VERSIONS_MAP = {
 """ Maps associating the standard http version string with the
 corresponding enumeration based values for each of them """
 
-EMPTY_METHODS = ("get", "connect")
-""" Set of http methods that are considered to have no payload
-and so no content length is required for any of these methods """
-
 CODE_STRINGS = {
     100 : "Continue",
     101 : "Switching Protocols",
@@ -413,6 +409,13 @@ class HTTPParser(parser.Parser):
         self.transfer_e = self.headers.get("transfer-encoding", None)
         self.chunked = self.transfer_e == "chunked"
 
+        # in case the current request is not chunked and the content length
+        # header is not defined the content length is set to zero because
+        # for normal requests with payload the content length is required
+        # and if it's omitted it means there's no payload present
+        if self.type == REQUEST and not self.chunked and\
+            self.content_l == -1: self.content_l = 0
+
         # verifies if the connection is meant to be kept alive by
         # verifying the current value of the connection header against
         # the expected keep alive string value
@@ -421,8 +424,8 @@ class HTTPParser(parser.Parser):
         self.keep_alive = self.connection_s == "keep-alive"
 
         # verifies if the current message has finished, for those
-        # situations an extra state change will be issued
-        has_finished = self.method in EMPTY_METHODS or self.content_l == 0
+        # situations an extra (finish) state change will be issued
+        has_finished = self.content_l == 0
 
         # updates the current state of parsing to the message state
         # as that the headers are followed by the message
