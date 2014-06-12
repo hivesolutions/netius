@@ -176,16 +176,16 @@ class Server(Base):
         # socket so that it can handle all of the expected operations
         self.sub_all(self.socket)
 
-        # "calculates" the proper "bind target", taking into account that this
+        # "calculates" the address "bind target", taking into account that this
         # server may be running under a unix based socket infra-structure and
         # if that's the case the target (file path) is also removed, avoiding
         # a duplicated usage of the socket (required for address re-usage)
-        bind_target = port if is_unix else (host, port)
-        if is_unix: os.remove(bind_target)
+        address = port if is_unix else (host, port)
+        if is_unix: os.remove(address)
 
-        # binds the socket to the provided target value (per spec) and then start the
-        # listening in the socket with the maximum backlog as possible
-        self.socket.bind(bind_target)
+        # binds the socket to the provided address value (per spec) and then
+        # starts the listening in the socket with the maximum backlog as possible
+        self.socket.bind(address)
         if type == TCP_TYPE: self.socket.listen(5)
 
         # creates the string that identifies it the current service connection
@@ -224,7 +224,7 @@ class Server(Base):
 
         # creates the socket that it's going to be used for the listening
         # of new connections (server socket) and sets it as non blocking
-        _socket = socket.socket(family, socket.SOCK_STREAM)
+        _socket = socket.socket(family, type)
         _socket.setblocking(0)
 
         # in case the server is meant to be used as ssl wraps the socket
@@ -271,7 +271,7 @@ class Server(Base):
 
         # creates the socket that it's going to be used for the listening
         # of new connections (server socket) and sets it as non blocking
-        _socket = socket.socket(family, socket.SOCK_DGRAM)
+        _socket = socket.socket(family, type)
         _socket.setblocking(0)
 
         # sets the various options in the service socket so that it becomes
