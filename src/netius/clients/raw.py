@@ -55,7 +55,7 @@ class RawClient(netius.StreamClient):
 
 if __name__ == "__main__":
     def on_connect(client, connection):
-        connection.send("GET / HTTP/1.1\r\n\r\n")
+        connection.send("GET / HTTP/1.0\r\n\r\n")
 
     def on_data(client, connection, data):
         print(data)
