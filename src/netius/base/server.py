@@ -110,11 +110,6 @@ class Server(Base):
         start = True,
         env = False
     ):
-        # ensures the proper default address value, taking into account
-        # the type of connection that is currently being used, this avoid
-        # problems with multiple stack based servers (ipv4 and ipv6)
-        if host == None: host = "::1" if ipv6 else "127.0.0.1"
-
         # processes the various default values taking into account if
         # the environment variables are meant to be processed for the
         # current context (default values are processed accordingly)
@@ -144,6 +139,11 @@ class Server(Base):
         # start the loading process of the base system so that the system should
         # be able to log some information that is going to be output
         self.load()
+
+        # ensures the proper default address value, taking into account
+        # the type of connection that is currently being used, this avoid
+        # problems with multiple stack based servers (ipv4 and ipv6)
+        if host == None: host = "::1" if ipv6 else "127.0.0.1"
 
         # populates the basic information on the currently running
         # server like the host the port and the (is) ssl flag to be
