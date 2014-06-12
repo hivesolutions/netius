@@ -517,6 +517,9 @@ class StreamClient(Client):
         if not host: raise errors.NetiusError("Invalid host for connect operation")
         if not port: raise errors.NetiusError("Invalid port for connect operation")
 
+        # ensures that a proper loop cycle is available for the current
+        # client, otherwise the connection operation would become stalled
+        # because there's no listening of events for it
         self.ensure_loop()
 
         # ensures that the proper socket family is defined in case the
@@ -524,6 +527,10 @@ class StreamClient(Client):
         # simplifies the process of created unix socket based clients
         family = socket.AF_UNIX if host == "unix" else family
 
+        # verifies the kind of socket that is going to be used for the
+        # connect operation that is going to be performed, note that the
+        # unix type should be used with case as it does not exist in every
+        # operative system and may raised an undefined exceptions
         is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX
         is_inet = family == socket.AF_INET
 
