@@ -482,7 +482,8 @@ class HTTPServer(netius.StreamServer):
     def _log_request(self, connection, parser):
         # unpacks the various values that are going to be part of
         # the log message to be printed in the debug
-        ip_address = connection.address[0]
+        is_tuple = type(connection.address) in (list, tuple)
+        ip_address = connection.address[0] if is_tuple else connection.address
         method = parser.method.upper()
         path = parser.get_path()
         version_s = parser.version_s

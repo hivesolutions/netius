@@ -519,6 +519,11 @@ class StreamClient(Client):
 
         self.ensure_loop()
 
+        # ensures that the proper socket family is defined in case the
+        # requested host value is unix socket oriented, this step greatly
+        # simplifies the process of created unix socket based clients
+        family = socket.AF_UNIX if host == "unix" else family
+
         is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX
         is_inet = family == socket.AF_INET
 
