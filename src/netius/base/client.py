@@ -504,16 +504,28 @@ class StreamClient(Client):
         connection_l = self.free_map.get(connection_t, [])
         if connection in connection_l: connection_l.remove(connection)
 
-    def connect(self, host, port, ssl = False, key_file = None, cer_file = None):
+    def connect(
+        self,
+        host,
+        port,
+        ssl = False,
+        key_file = None,
+        cer_file = None,
+        family = socket.AF_INET,
+        type = socket.SOCK_STREAM
+    ):
         if not host: raise errors.NetiusError("Invalid host for connect operation")
         if not port: raise errors.NetiusError("Invalid port for connect operation")
 
         self.ensure_loop()
 
+        is_unix = family == socket.AF_UNIX
+        is_inet = family == socket.AF_INET
+
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
 
-        _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        _socket = socket.socket(family, type)
         _socket.setblocking(0)
 
         if ssl: _socket = self._ssl_wrap(
@@ -523,9 +535,13 @@ class StreamClient(Client):
             server = False
         )
 
-        _socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        if is_inet: _socket.setsockopt(
+            socket.IPPROTO_TCP,
+            socket.TCP_NODELAY,
+            1
+        )
         if self.receive_buffer: _socket.setsockopt(
             socket.SOL_SOCKET,
             socket.SO_RCVBUF,
@@ -538,7 +554,7 @@ class StreamClient(Client):
         )
         self._socket_keepalive(_socket)
 
-        address = (host, port)
+        address = port if is_unix else (host, port)
 
         connection = self.new_connection(_socket, address, ssl = ssl)
 
