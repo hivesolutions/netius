@@ -328,6 +328,11 @@ class HTTPParser(parser.Parser):
         self.line_s = netius.str(self.line_s)
         del self.buffer[:]
 
+        # restores the final end of line sequence to the buffer, this
+        # allows "simple requests" to be parsed properly in under the
+        # next section of parsing headers (required for compliance)
+        self.buffer.append("\r\n")
+
         values = self.line_s.split(" ", 2)
         if not len(values) == 3:
             raise netius.ParserError("Invalid status line '%s'" % self.line_s)
@@ -385,10 +390,21 @@ class HTTPParser(parser.Parser):
         # to set the key and value in the headers map
         lines = self.headers_s.split(b"\r\n")
         for line in lines:
+            # verifies if the line contains any information if
+            # that's not the case the current cycle must be
+            # skipped as this may be an extra empty line
+            if not line: continue
+
+            # tries to split the line around the key to value
+            # separator in case there's no valid split (two
+            # values were not found) an exception must be raised
             values = line.split(b":", 1)
             if not len(values) == 2:
                 raise netius.ParserError("Invalid header line")
 
+            # unpacks the values an normalizes them, lowering the
+            # case of the key and stripping the values of any extra
+            # whitespace like value that may exist in them
             key, value = values
             key = key.strip().lower()
             key = netius.str(key)
