@@ -964,20 +964,20 @@ class Base(observer.Observable):
         identifier = identifier.upper()
         return indetifier
 
-    def _socket_keepalive(self, _socket):
-        hasattr(_socket, "TCP_KEEPIDLE") and\
+    def _socket_keepalive(self, _socket, is_inet = True):
+        is_inet and hasattr(_socket, "TCP_KEEPIDLE") and\
             self.socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPIDLE, #@UndefinedVariable
                 KEEPALIVE_TIMEOUT
             )
-        hasattr(_socket, "TCP_KEEPINTVL") and\
+        is_inet and hasattr(_socket, "TCP_KEEPINTVL") and\
             self.socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPINTVL, #@UndefinedVariable
                 KEEPALIVE_INTERVAL
             )
-        hasattr(_socket, "TCP_KEEPCNT") and\
+        is_inet and hasattr(_socket, "TCP_KEEPCNT") and\
             self.socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPCNT, #@UndefinedVariable
