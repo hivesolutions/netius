@@ -331,7 +331,7 @@ class HTTPParser(parser.Parser):
         # restores the final end of line sequence to the buffer, this
         # allows "simple requests" to be parsed properly in under the
         # next section of parsing headers (required for compliance)
-        self.buffer.append("\r\n")
+        self.buffer.append(b"\r\n")
 
         values = self.line_s.split(" ", 2)
         if not len(values) == 3:
