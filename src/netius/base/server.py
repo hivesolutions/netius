@@ -176,17 +176,23 @@ class Server(Base):
         # socket so that it can handle all of the expected operations
         self.sub_all(self.socket)
 
-        # binds the socket to the provided host and port and then start the
+        # "calculates" the proper "bind target", taking into account that this
+        # server may be running under a unix based socket infra-structure and
+        # if that's the case the target (file path) is also removed, avoiding
+        # a duplicated usage of the socket (required for address re-usage)
+        bind_target = port if is_unix else (host, port)
+        if is_unix: os.remove(bind_target)
+
+        # binds the socket to the provided target value (per spec) and then start the
         # listening in the socket with the maximum backlog as possible
-        target = port if is_unix else (host, port)
-        self.socket.bind(target)
+        self.socket.bind(bind_target)
         if type == TCP_TYPE: self.socket.listen(5)
 
         # creates the string that identifies it the current service connection
         # is using a secure channel (ssl) and then prints an info message about
         # the service that is going to be started
         ssl_s = ssl and " using ssl" or ""
-        self.info("Serving '%s' service on %s:%d%s ..." % (self.name, host, port, ssl_s))
+        self.info("Serving '%s' service on %s:%s%s ..." % (self.name, host, port, ssl_s))
 
         # calls the on serve callback handler so that underlying services may be
         # able to respond to the fact that the service is starting and some of
@@ -205,6 +211,10 @@ class Server(Base):
         family = socket.AF_INET,
         type = socket.SOCK_STREAM
     ):
+        # verifies if the provided family is of type internet and if that's
+        # the case the associated flag is set to valid for usage
+        is_inet = family == socket.AF_INET
+
         # retrieves the proper string based type for the current server socket
         # and the prints a series of log message about the socket to be created
         type_s = ssl and "ssl" or ""
@@ -231,9 +241,13 @@ class Server(Base):
         # options include the reuse address to be able to re-bind to the port
         # and address and the keep alive that drops connections after some time
         # avoiding the leak of connections (operative system managed)
-        _socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        if is_inet: _socket.setsockopt(
+            socket.IPPROTO_TCP,
+            socket.TCP_NODELAY,
+            1
+        )
         if self.receive_buffer_s: _socket.setsockopt(
             socket.SOL_SOCKET,
             socket.SO_RCVBUF,
