@@ -662,10 +662,16 @@ class StreamServer(Server):
 
     def on_socket_c(self, socket_c, address):
         if self.ssl: socket_c.pending = None
+        
+        is_inet = not self.host == "unix"
 
         socket_c.setblocking(0)
-        socket_c.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        if is_inet: socket_c.setsockopt(
+            socket.IPPROTO_TCP,
+            socket.TCP_NODELAY,
+            1
+        )
         if self.receive_buffer_c: socket_c.setsockopt(
             socket.SOL_SOCKET,
             socket.SO_RCVBUF,
