@@ -555,7 +555,6 @@ class StreamClient(Client):
         self._socket_keepalive(_socket)
 
         address = port if is_unix else (host, port)
-
         connection = self.new_connection(_socket, address, ssl = ssl)
 
         self._pending_lock.acquire()
