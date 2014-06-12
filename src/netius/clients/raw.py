@@ -52,3 +52,19 @@ class RawClient(netius.StreamClient):
     def on_connection_d(self, connection):
         netius.StreamClient.on_connection_d(self, connection)
         self.trigger("close", self, connection)
+
+if __name__ == "__main__":
+    def on_connect(client, connection):
+        connection.send("GET / HTTP/1.1\r\n\r\n")
+
+    def on_data(client, connection, data):
+        print(data)
+
+    def on_close(client, connection):
+        client.close()
+
+    raw_client = RawClient()
+    raw_client.connect("localhost", 8080)
+    raw_client.bind("connect", on_connect)
+    raw_client.bind("close", on_close)
+    raw_client.bind("data", on_data)
