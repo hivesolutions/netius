@@ -258,7 +258,7 @@ class Server(Base):
             socket.SO_SNDBUF,
             self.send_buffer_s
         )
-        self._socket_keepalive(_socket, is_inet = is_inet)
+        self._socket_keepalive(_socket)
 
         # returns the created tcp socket to the calling method so that it
         # may be used from this point on
@@ -663,7 +663,7 @@ class StreamServer(Server):
     def on_socket_c(self, socket_c, address):
         if self.ssl: socket_c.pending = None
 
-        is_inet = not self.host == "unix"
+        is_inet = socket_c.family == socket.AF_INET
 
         socket_c.setblocking(0)
         socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)

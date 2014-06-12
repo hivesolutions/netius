@@ -552,7 +552,7 @@ class StreamClient(Client):
             socket.SO_SNDBUF,
             self.send_buffer
         )
-        self._socket_keepalive(_socket, is_inet = is_inet)
+        self._socket_keepalive(_socket)
 
         address = port if is_unix else (host, port)
 
