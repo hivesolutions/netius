@@ -100,21 +100,28 @@ class Server(Base):
 
     def serve(
         self,
-        host = "127.0.0.1",
+        host = None,
         port = 9090,
         type = TCP_TYPE,
+        ipv6 = False,
         ssl = False,
         key_file = None,
         cer_file = None,
         start = True,
         env = False
     ):
+        # ensures the proper default address value, taking into account
+        # the type of connection that is currently being used, this avoid
+        # problems with multiple stack based servers (ipv4 and ipv6)
+        if host == None: host = "::1" if ipv6 else "127.0.0.1"
+
         # processes the various default values taking into account if
         # the environment variables are meant to be processed for the
         # current context (default values are processed accordingly)
         host = self.get_env("HOST", host) if env else host
         port =  self.get_env("PORT", port, cast = int) if env else port
         type = self.get_env("TYPE", type, cast = int) if env else type
+        ipv6 = self.get_env("IPV6", ipv6, cast = bool) if env else ipv6
         ssl = self.get_env("SSL", ssl, cast = bool) if env else ssl
         key_file = self.get_env("KEY_FILE", key_file) if env else key_file
         cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
@@ -160,7 +167,8 @@ class Server(Base):
 
         # checks the type of service that is meant to be created and
         # creates a service socket according to the defined service
-        family = socket.AF_UNIX if is_unix else socket.AF_INET
+        family = socket.AF_INET6 if ipv6 else socket.AF_INET
+        family = socket.AF_UNIX if is_unix else family
         if type == TCP_TYPE: self.socket = self.socket_tcp(ssl, key_file, cer_file, family)
         elif type == UDP_TYPE: self.socket = self.socket_udp()
         else: raise errors.NetiusError("Invalid server type provided '%d'" % type)
