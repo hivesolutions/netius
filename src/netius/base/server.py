@@ -153,9 +153,15 @@ class Server(Base):
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
 
+        # verifies if the type of server that is going to be created is
+        # unix or internet based, this allows the current infra-structure
+        # to work under a much more latency free unix sockets
+        is_unix = host == "unix"
+
         # checks the type of service that is meant to be created and
         # creates a service socket according to the defined service
-        if type == TCP_TYPE: self.socket = self.socket_tcp(ssl, key_file, cer_file)
+        family = socket.AF_UNIX if is_unix else socket.AF_INET
+        if type == TCP_TYPE: self.socket = self.socket_tcp(ssl, key_file, cer_file, family)
         elif type == UDP_TYPE: self.socket = self.socket_udp()
         else: raise errors.NetiusError("Invalid server type provided '%d'" % type)
 
@@ -172,7 +178,8 @@ class Server(Base):
 
         # binds the socket to the provided host and port and then start the
         # listening in the socket with the maximum backlog as possible
-        self.socket.bind((host, port))
+        target = port if is_unix else (host, port)
+        self.socket.bind(target)
         if type == TCP_TYPE: self.socket.listen(5)
 
         # creates the string that identifies it the current service connection
@@ -190,7 +197,14 @@ class Server(Base):
         # the servers gets ready to accept new connections (starts service)
         if start: self.start()
 
-    def socket_tcp(self, ssl, key_file, cer_file):
+    def socket_tcp(
+        self,
+        ssl = False,
+        key_file = None,
+        cer_file = None,
+        family = socket.AF_INET,
+        type = socket.SOCK_STREAM
+    ):
         # retrieves the proper string based type for the current server socket
         # and the prints a series of log message about the socket to be created
         type_s = ssl and "ssl" or ""
@@ -200,7 +214,7 @@ class Server(Base):
 
         # creates the socket that it's going to be used for the listening
         # of new connections (server socket) and sets it as non blocking
-        _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        _socket = socket.socket(family, socket.SOCK_STREAM)
         _socket.setblocking(0)
 
         # in case the server is meant to be used as ssl wraps the socket
@@ -236,14 +250,14 @@ class Server(Base):
         # may be used from this point on
         return _socket
 
-    def socket_udp(self):
+    def socket_udp(self, family = socket.AF_INET, type = socket.SOCK_DGRAM):
         # prints a small debug message about the udp socket that is going
         # to be created for the server's connection
         self.debug("Creating server's udp socket ...")
 
         # creates the socket that it's going to be used for the listening
         # of new connections (server socket) and sets it as non blocking
-        _socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        _socket = socket.socket(family, socket.SOCK_DGRAM)
         _socket.setblocking(0)
 
         # sets the various options in the service socket so that it becomes
