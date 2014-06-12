@@ -519,7 +519,7 @@ class StreamClient(Client):
 
         self.ensure_loop()
 
-        is_unix = family == socket.AF_UNIX
+        is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX
         is_inet = family == socket.AF_INET
 
         key_file = key_file or SSL_KEY_PATH
