@@ -78,11 +78,6 @@ under the netius authentication/authorization infra-structure use:
 python -m netius.sh.auth generate your_password
 ```
 
-## Compatibility
-
-Currently netius is compatible with PyPy and a typical environment will benefit from a 1.5x to 2.5x
-performance increase when compared with the cPython interpreter.
-
 ## IPv6
 
 Netius is compatible with IPv6 in order to activate this mode set the ``IPV6`` configuration variable
@@ -91,6 +86,11 @@ to a valid values (eg: 1 or True) and an IPv6 socket is used instead.
 ```python
 IPV6=1 MESSAGE="Hello Netius" python -m netius.extra.hello
 ```
+
+## Compatibility
+
+Currently netius is compatible with PyPy and a typical environment will benefit from a 1.5x to 2.5x
+performance increase when compared with the cPython interpreter.
 
 ## Debugging
 
