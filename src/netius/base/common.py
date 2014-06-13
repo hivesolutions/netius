@@ -965,7 +965,7 @@ class Base(observer.Observable):
         return indetifier
 
     def _socket_keepalive(self, _socket):
-        is_inet = _socket.family == socket.AF_INET
+        is_inet = _socket.family in (socket.AF_INET, socket.AF_INET6)
         is_inet and hasattr(_socket, "TCP_KEEPIDLE") and\
             self.socket.setsockopt(
                 socket.IPPROTO_TCP,

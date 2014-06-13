@@ -221,7 +221,7 @@ class Server(Base):
     ):
         # verifies if the provided family is of type internet and if that's
         # the case the associated flag is set to valid for usage
-        is_inet = family == socket.AF_INET
+        is_inet = family in (socket.AF_INET, socket.AF_INET6)
 
         # retrieves the proper string based type for the current server socket
         # and the prints a series of log message about the socket to be created
@@ -671,7 +671,7 @@ class StreamServer(Server):
     def on_socket_c(self, socket_c, address):
         if self.ssl: socket_c.pending = None
 
-        is_inet = socket_c.family == socket.AF_INET
+        is_inet = socket_c.family in (socket.AF_INET, socket.AF_INET6)
 
         socket_c.setblocking(0)
         socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)

@@ -532,7 +532,7 @@ class StreamClient(Client):
         # unix type should be used with case as it does not exist in every
         # operative system and may raised an undefined exceptions
         is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX
-        is_inet = family == socket.AF_INET
+        is_inet = family in (socket.AF_INET, socket.AF_INET6)
 
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
