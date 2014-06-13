@@ -1,4 +1,4 @@
-# Python 3 migration
+# Python 3
 
 The migration to Python 3 is not easy and as such a compatability layer was created under the name of
 [legacy.py](src/netius/base/legacy.py). This file should be the primary source of functionality related
