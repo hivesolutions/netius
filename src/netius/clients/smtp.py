@@ -325,7 +325,9 @@ class SMTPConnection(netius.Connection):
     def auth(self, username, password, method = "plain"):
         self.assert_s(AUTH_STATE)
         auth_value = "\0%s\0%s" % (username, password)
+        auth_value = netius.bytes(auth_value)
         auth_value = base64.b64encode(auth_value)
+        auth_value = netius.str(auth_value)
         message = "%s %s" % (method, auth_value)
         self.send_smtp("auth", message)
         self.set_expected(235)
