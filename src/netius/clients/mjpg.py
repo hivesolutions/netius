@@ -110,9 +110,6 @@ class MJPGClient(http.HTTPClient):
 if __name__ == "__main__":
     index = 0
 
-    def on_headers(client, parser, headers):
-        print(parser.code_s + " " + parser.status_s)
-
     def on_frame(client, parser, data):
         global index
         base_path = netius.conf("IMAGES_PATH", "images")
