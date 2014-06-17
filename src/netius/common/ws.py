@@ -39,7 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import netius
 
-def encode_ws(self, data):
+def encode_ws(data):
     data = netius.bytes(data)
     data_l = len(data)
 
@@ -69,7 +69,7 @@ def encode_ws(self, data):
     encoded = b"".join(encoded_l)
     return encoded
 
-def decode_ws(self, data):
+def decode_ws(data):
     # retrieves the reference to the second byte in the frame
     # this is the byte that is going to be used in the initial
     # calculus of the length for the current data frame
