@@ -96,7 +96,7 @@ class WSConnection(netius.Connection):
 
         first = lines[0]
         first = netius.str(first)
-        self.method, self.path, self.version = first.split(" ")
+        self.method, self.path, self.version = first.split(" ", 2)
 
         del self.buffer_l[:]
         self.handshake = True
