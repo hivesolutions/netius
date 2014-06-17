@@ -119,7 +119,7 @@ class ProxyServer(http.HTTPServer):
         self.container.stop()
 
     def cleanup(self):
-        netius.StreamServer.cleanup(self)
+        http.HTTPServer.cleanup(self)
         self.container = None
         self.http_client.destroy()
         self.raw_client.destroy()
