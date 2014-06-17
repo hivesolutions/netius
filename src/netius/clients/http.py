@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import base64
+
 import netius.common
 
 BASE_HEADERS = {
@@ -394,6 +396,18 @@ class HTTPClient(netius.StreamClient):
         host = parsed.hostname
         port = parsed.port or (ssl and 443 or 80)
         path = parsed.path or "/"
+        username = parsed.username
+        password = parsed.password
+
+        # in case both the username and the password values are defined the
+        # authorization header must be created and added to the default set
+        # of headers that are going to be included in the request
+        if username and password:
+            payload = "%s:%s" % (username, password)
+            payload = netius.bytes(payload)
+            authorization = base64.b64encode(payload)
+            authorization = netius.str(authorization)
+            headers["Authorization"] = "Basic %s" % authorization
 
         # in case there's a connection to be used must validate that the
         # connection is valid for the current context so that the host,
