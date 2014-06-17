@@ -47,6 +47,7 @@ from . import smtp
 from . import socks
 from . import torrent
 from . import util
+from . import ws
 
 from .asn import *
 from .calc import *
@@ -61,3 +62,4 @@ from .smtp import *
 from .socks import *
 from .torrent import *
 from .util import *
+from .ws import *

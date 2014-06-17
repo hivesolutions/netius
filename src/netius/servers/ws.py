@@ -40,7 +40,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import base64
 import hashlib
 
-import netius
+import netius.common
 
 class WSConnection(netius.Connection):
     """
@@ -62,12 +62,12 @@ class WSConnection(netius.Connection):
         self.headers = {}
 
     def send_ws(self, data):
-        encoded = self._encode(data)
+        encoded = netius.common.encode_ws(data)
         return self.send(encoded)
 
     def recv_ws(self, size = netius.CHUNK_SIZE):
         data = self.recv(size = size)
-        decoded = self._decode(data)
+        decoded = netius.common.decode_ws(data)
         return decoded
 
     def add_buffer(self, data):
@@ -119,102 +119,6 @@ class WSConnection(netius.Connection):
         if delete: del self.buffer_l[:]
         return buffer
 
-    def _encode(self, data):
-        data = netius.bytes(data)
-        data_l = len(data)
-
-        encoded_l = list()
-        encoded_l.append(netius.chr(129))
-
-        if data_l <= 125:
-            encoded_l.append(netius.chr(data_l))
-
-        elif data_l >= 126 and data_l <= 65535:
-            encoded_l.append(netius.chr(126))
-            encoded_l.append(netius.chr((data_l >> 8) & 255))
-            encoded_l.append(netius.chr(data_l & 255))
-
-        else:
-            encoded_l.append(netius.chr(127))
-            encoded_l.append(netius.chr((data_l >> 56) & 255))
-            encoded_l.append(netius.chr((data_l >> 48) & 255))
-            encoded_l.append(netius.chr((data_l >> 40) & 255))
-            encoded_l.append(netius.chr((data_l >> 32) & 255))
-            encoded_l.append(netius.chr((data_l >> 24) & 255))
-            encoded_l.append(netius.chr((data_l >> 16) & 255))
-            encoded_l.append(netius.chr((data_l >> 8) & 255))
-            encoded_l.append(netius.chr(data_l & 255))
-
-        encoded_l.append(data)
-        encoded = b"".join(encoded_l)
-        return encoded
-
-    def _decode(self, data):
-        # retrieves the reference to the second byte in the frame
-        # this is the byte that is going to be used in the initial
-        # calculus of the length for the current data frame
-        second_byte = data[1]
-
-        # retrieves the base length (simplified length) of the
-        # frame as the seven last bits of the second byte in frame
-        length = netius.ord(second_byte) & 127
-        index_mask_f = 2
-
-        # verifies if the length to be calculated is of type
-        # extended (length equals to 126) if that's the case
-        # two extra bytes must be taken into account on length
-        if length == 126:
-            length = 0
-            length += netius.ord(data[2]) << 8
-            length += netius.ord(data[3])
-            index_mask_f = 4
-
-        # check if the length to be calculated is of type extended
-        # payload length and if that's the case many more bytes
-        # (eight) must be taken into account for length calculus
-        elif length == 127:
-            length = 0
-            length += netius.ord(data[2]) << 56
-            length += netius.ord(data[3]) << 48
-            length += netius.ord(data[4]) << 40
-            length += netius.ord(data[5]) << 32
-            length += netius.ord(data[6]) << 24
-            length += netius.ord(data[7]) << 16
-            length += netius.ord(data[8]) << 8
-            length += netius.ord(data[9])
-            index_mask_f = 10
-
-        # calculates the size of the raw data part of the message and
-        # in case its smaller than the defined length of the data returns
-        # immediately indicating that there's not enough data to complete
-        # the decoding of the data (should be re-trying again latter)
-        raw_size = len(data) - index_mask_f - 4
-        if raw_size < length:
-            raise netius.DataError("Not enough data available for parsing")
-
-        # retrieves the masks part of the data that are going to be
-        # used in the decoding part of the process
-        masks = data[index_mask_f:index_mask_f + 4]
-
-        # allocates the array that is going to be used
-        # for the decoding of the data with the length
-        # that was computed as the data length
-        decoded_a = bytearray(length)
-
-        # starts the initial data index and then iterates over the
-        # range of decoded length applying the mask to the data
-        # (decoding it consequently) to the created decoded array
-        i = index_mask_f + 4
-        for j in range(length):
-            decoded_a[j] = netius.chri(netius.ord(data[i]) ^ netius.ord(masks[j % 4]))
-            i += 1
-
-        # converts the decoded array of data into a string and
-        # and returns the "partial" string containing the data that
-        # remained pending to be parsed
-        decoded = bytes(decoded_a)
-        return decoded, data[i:]
-
 class WSServer(netius.StreamServer):
     """
     Base class for the creation of websocket server, should
@@ -233,7 +137,7 @@ class WSServer(netius.StreamServer):
         if connection.handshake:
             while data:
                 buffer = connection.get_buffer()
-                try: decoded, data = connection._decode(buffer + data)
+                try: decoded, data = netius.common.decode_ws(buffer + data)
                 except: connection.add_buffer(data); break
                 self.on_data_ws(connection, decoded)
 
@@ -269,7 +173,7 @@ class WSServer(netius.StreamServer):
         )
 
     def send_ws(self, connection, data):
-        encoded = self._encode(data)
+        encoded = netius.common.encode_ws(data)
         connection.send(encoded)
 
     def on_data_ws(self, connection, data):
