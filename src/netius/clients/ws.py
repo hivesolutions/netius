@@ -41,3 +41,19 @@ import netius
 
 class WSClient(netius.StreamClient):
     pass
+
+if __name__ == "__main__":
+    def on_connect(client):
+        client.send_ws("Hello World")
+
+    def on_message(client, message):
+        client.close()
+
+    def on_close(client, connection):
+        client.close()
+
+    http_client = WSClient()
+    http_client.get("ws://localhost/")
+    http_client.bind("connect", on_connect)
+    http_client.bind("message", on_message)
+    http_client.bind("close", on_close)
