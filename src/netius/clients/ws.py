@@ -73,7 +73,7 @@ class WSConnection(netius.Connection):
 
         lines = buffer.split(b"\r\n")
         for line in lines[1:]:
-            values = line.split(b":")
+            values = line.split(b":", 1)
             values_l = len(values)
             if not values_l == 2: continue
 
@@ -120,10 +120,11 @@ class WSClient(netius.StreamClient):
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
         data = "GET %s HTTP/1.1\r\n" % connection.path +\
-            "Host: %s\r\n" % connection.address[0] +\
+            "Upgrade: websocket\r\n" +\
             "Connection: Upgrade\r\n" +\
+            "Host: %s\r\n" % connection.address[0] +\
+            "Origin: http://%s\r\n" % connection.address[0] +\
             "Sec-WebSocket-Key: %s\r\n" % connection.key +\
-            "Sec-WebSocket-Protocol: any\r\n" +\
             "Sec-WebSocket-Version: 13\r\n\r\n"
         connection.send(data)
 
@@ -201,7 +202,7 @@ if __name__ == "__main__":
         client.close()
 
     http_client = WSClient()
-    http_client.connect_ws("ws://localhost:9090/")
+    http_client.connect_ws("ws://echo.websocket.org/")
     http_client.bind("handshake", on_handshake)
     http_client.bind("message", on_message)
     http_client.bind("close", on_close)
