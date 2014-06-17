@@ -41,6 +41,9 @@ import netius
 
 class WSClient(netius.StreamClient):
 
+    def connect_ws(self, url):
+        pass
+
     def send_ws(self, data):
         pass
 
@@ -55,7 +58,7 @@ if __name__ == "__main__":
         client.close()
 
     http_client = WSClient()
-    http_client.get("ws://localhost/")
+    http_client.connect_ws("ws://localhost/")
     http_client.bind("connect", on_connect)
     http_client.bind("message", on_message)
     http_client.bind("close", on_close)
