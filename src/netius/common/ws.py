@@ -42,7 +42,7 @@ import random
 
 import netius
 
-def encode_ws(data, final = True, opcode = 0x01,  mask = True):
+def encode_ws(data, final = True, opcode = 0x01, mask = True):
     # converts the boolean based values of the frame into the
     # bit based partials that are going to be used in the build
     # of the final frame container element (as expected)
@@ -96,7 +96,7 @@ def decode_ws(data):
 
     # verifies if the current frame is a masked one and calculates
     # the number of mask bytes taking that into account
-    has_mask = second_byte & 128
+    has_mask = netius.ord(second_byte) & 128
     mask_bytes = 4 if has_mask else 0
 
     # retrieves the base length (simplified length) of the
