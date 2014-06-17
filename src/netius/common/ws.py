@@ -75,6 +75,11 @@ def decode_ws(data):
     # calculus of the length for the current data frame
     second_byte = data[1]
 
+    # verifies if the current frame is a masked one and calculates
+    # the number of mask bytes taking that into account
+    has_mask = second_byte & 128
+    mask_bytes = 4 if has_mask else 0
+
     # retrieves the base length (simplified length) of the
     # frame as the seven last bits of the second byte in frame
     length = netius.ord(second_byte) & 127
@@ -108,13 +113,18 @@ def decode_ws(data):
     # in case its smaller than the defined length of the data returns
     # immediately indicating that there's not enough data to complete
     # the decoding of the data (should be re-trying again latter)
-    raw_size = len(data) - index_mask_f - 4
+    raw_size = len(data) - index_mask_f - mask_bytes
     if raw_size < length:
         raise netius.DataError("Not enough data available for parsing")
 
+    # in case the frame data is not masked the complete set of contents
+    # may be returned immediately to the caller as there's no issue with
+    # avoiding the unmasking operation (as the data is not masked)
+    if not has_mask: return data[2:], b""
+
     # retrieves the masks part of the data that are going to be
     # used in the decoding part of the process
-    masks = data[index_mask_f:index_mask_f + 4]
+    masks = data[index_mask_f:index_mask_f + mask_bytes]
 
     # allocates the array that is going to be used
     # for the decoding of the data with the length
