@@ -57,7 +57,7 @@ class WSConnection(netius.Connection):
         self.headers = {}
 
     def send_ws(self, data):
-        encoded = netius.common.encode_ws(data)
+        encoded = netius.common.encode_ws(data, mask = True)
         return self.send(encoded)
 
     def add_buffer(self, data):
@@ -184,9 +184,9 @@ class WSClient(netius.StreamClient):
         connection.key = self._key()
         return connection
 
-    def _key(self):
+    def _key(self, size = 16):
         seed = str(uuid.uuid4())
-        seed = netius.bytes(seed)
+        seed = netius.bytes(seed)[:size]
         seed = base64.b64encode(seed)
         return netius.str(seed)
 
