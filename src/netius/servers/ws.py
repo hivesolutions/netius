@@ -83,7 +83,7 @@ class WSConnection(netius.Connection):
 
         lines = buffer.split(b"\r\n")
         for line in lines[1:]:
-            values = line.split(b":")
+            values = line.split(b":", 1)
             values_l = len(values)
             if not values_l == 2: continue
 
