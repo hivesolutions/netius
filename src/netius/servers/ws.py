@@ -73,6 +73,12 @@ class WSConnection(netius.Connection):
     def add_buffer(self, data):
         self.buffer_l.append(data)
 
+    def get_buffer(self, delete = True):
+        if not self.buffer_l: return b""
+        buffer = b"".join(self.buffer_l)
+        if delete: del self.buffer_l[:]
+        return buffer
+
     def do_handshake(self):
         if self.handshake:
             raise netius.NetiusError("Handshake already done")
@@ -112,12 +118,6 @@ class WSConnection(netius.Connection):
         accept_key = base64.b64encode(hash_digest)
         accept_key = netius.str(accept_key)
         return accept_key
-
-    def get_buffer(self, delete = True):
-        if not self.buffer_l: return b""
-        buffer = b"".join(self.buffer_l)
-        if delete: del self.buffer_l[:]
-        return buffer
 
 class WSServer(netius.StreamServer):
     """

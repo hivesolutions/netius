@@ -63,6 +63,12 @@ class WSConnection(netius.Connection):
     def add_buffer(self, data):
         self.buffer_l.append(data)
 
+    def get_buffer(self, delete = True):
+        if not self.buffer_l: return b""
+        buffer = b"".join(self.buffer_l)
+        if delete: del self.buffer_l[:]
+        return buffer
+
     def do_handshake(self):
         if self.handshake:
             raise netius.NetiusError("Handshake already done")
@@ -104,12 +110,6 @@ class WSConnection(netius.Connection):
 
         if not _accept_key == accept_key:
             raise netius.SecurityError("Invalid accept key provided")
-
-    def get_buffer(self, delete = True):
-        if not self.buffer_l: return b""
-        buffer = b"".join(self.buffer_l)
-        if delete: del self.buffer_l[:]
-        return buffer
 
 class WSClient(netius.StreamClient):
 
