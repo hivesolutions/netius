@@ -75,7 +75,7 @@ def encode_ws(data, final = True, opcode = 0x01,  mask = True):
         encoded_l.append(netius.chr((data_l >> 16) & 255))
         encoded_l.append(netius.chr((data_l >> 8) & 255))
         encoded_l.append(netius.chr(data_l & 255))
-    
+
     if mask:
         mask_bytes = struct.pack("!I", random.getrandbits(32))
         encoded_l.append(mask_bytes)
