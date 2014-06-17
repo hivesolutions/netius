@@ -554,9 +554,9 @@ if __name__ == "__main__":
     def on_close(client, connection):
         client.close()
 
-    http_client = HTTPClient()
-    http_client.get("https://www.flickr.com/")
-    http_client.bind("headers", on_headers)
-    http_client.bind("partial", on_partial)
-    http_client.bind("message", on_message)
-    http_client.bind("close", on_close)
+    client = HTTPClient()
+    client.get("https://www.flickr.com/")
+    client.bind("headers", on_headers)
+    client.bind("partial", on_partial)
+    client.bind("message", on_message)
+    client.bind("close", on_close)

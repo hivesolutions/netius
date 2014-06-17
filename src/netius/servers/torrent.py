@@ -685,6 +685,6 @@ if __name__ == "__main__":
     def on_complete(task):
         print("Download completed")
 
-    torrent_server = TorrentServer(level = logging.DEBUG)
-    torrent_server.bind("start", on_start)
-    torrent_server.serve(env = True)
+    server = TorrentServer(level = logging.DEBUG)
+    server.bind("start", on_start)
+    server.serve(env = True)

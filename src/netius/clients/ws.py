@@ -201,8 +201,8 @@ if __name__ == "__main__":
     def on_close(client, connection):
         client.close()
 
-    http_client = WSClient()
-    http_client.connect_ws("ws://echo.websocket.org/")
-    http_client.bind("handshake", on_handshake)
-    http_client.bind("message", on_message)
-    http_client.bind("close", on_close)
+    client = WSClient()
+    client.connect_ws("ws://echo.websocket.org/")
+    client.bind("handshake", on_handshake)
+    client.bind("message", on_message)
+    client.bind("close", on_close)

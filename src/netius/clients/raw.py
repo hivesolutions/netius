@@ -63,8 +63,8 @@ if __name__ == "__main__":
     def on_close(client, connection):
         client.close()
 
-    raw_client = RawClient()
-    raw_client.connect("localhost", 8080)
-    raw_client.bind("connect", on_connect)
-    raw_client.bind("close", on_close)
-    raw_client.bind("data", on_data)
+    client = RawClient()
+    client.connect("localhost", 8080)
+    client.bind("connect", on_connect)
+    client.bind("close", on_close)
+    client.bind("data", on_data)

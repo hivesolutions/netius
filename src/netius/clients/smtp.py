@@ -523,5 +523,5 @@ if __name__ == "__main__":
     mime["To"] = receiver
     contents = mime.as_string()
 
-    smtp_client = SMTPClient(auto_close = True)
-    smtp_client.message([sender], [receiver], contents)
+    client = SMTPClient(auto_close = True)
+    client.message([sender], [receiver], contents)
