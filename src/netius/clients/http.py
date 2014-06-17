@@ -393,7 +393,7 @@ class HTTPClient(netius.StreamClient):
         ssl = parsed.scheme == "https"
         host = parsed.hostname
         port = parsed.port or (ssl and 443 or 80)
-        path = parsed.path
+        path = parsed.path or "/"
 
         # in case there's a connection to be used must validate that the
         # connection is valid for the current context so that the host,

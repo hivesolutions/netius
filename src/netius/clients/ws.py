@@ -178,7 +178,7 @@ class WSClient(netius.StreamClient):
         ssl = parsed.scheme == "wss"
         host = parsed.hostname
         port = parsed.port or (ssl and 443 or 80)
-        path = parsed.path
+        path = parsed.path or "/"
         connection = self.connect(host, port, ssl = ssl)
         connection.path = path
         connection.key = self._key()
