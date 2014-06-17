@@ -37,15 +37,46 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import uuid
+import base64
+
 import netius
 
 class WSClient(netius.StreamClient):
 
+    def __init__(self, *args, **kwargs):
+        netius.StreamClient.__init__(self, *args, **kwargs)
+        self.key = self._key()
+
+    def on_connect(self, connection):
+        netius.StreamClient.on_connect(self, connection)
+        data = "GET %s HTTP/1.1\r\n" % connection.path +\
+            "Host: %s\r\n" % connection.address[0] +\
+            "Connection: Upgrade\r\n" +\
+            "Sec-WebSocket-Key: %s\r\n" % self.key +\
+            "Sec-WebSocket-Protocol: any\r\n" +\
+            "Sec-WebSocket-Version: 13\r\n\r\n"
+        connection.send(data)
+
+    def on_data(self, connection, data):
+        netius.StreamClient.on_data(self, connection, data)
+        print data
+
     def connect_ws(self, url):
-        pass
+        parsed = netius.urlparse(url)
+        ssl = parsed.scheme == "wss"
+        host = parsed.hostname
+        port = parsed.port or (ssl and 443 or 80)
+        path = parsed.path
+        connection = self.connect(host, port, ssl = ssl)
+        connection.path = path
 
     def send_ws(self, data):
         pass
+
+    def _key(self):
+        seed = str(uuid.uuid4())
+        return base64.b64encode(seed)
 
 if __name__ == "__main__":
     def on_connect(client):
@@ -58,7 +89,7 @@ if __name__ == "__main__":
         client.close()
 
     http_client = WSClient()
-    http_client.connect_ws("ws://localhost/")
+    http_client.connect_ws("ws://localhost:9090/")
     http_client.bind("connect", on_connect)
     http_client.bind("message", on_message)
     http_client.bind("close", on_close)
