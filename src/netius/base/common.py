@@ -264,7 +264,7 @@ class Base(observer.Observable):
         self.name = name or self.__class__.__name__
         self.handler_stream = logging.StreamHandler()
         self.handlers = handlers or (self.handler_stream,)
-        self.level = kwargs.get("level", logging.DEBUG)
+        self.level = kwargs.get("level", logging.INFO)
         self.tid = None
         self.logger = None
         self.poll_c = kwargs.get("poll", poll)
