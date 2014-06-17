@@ -1,0 +1,114 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Hive Netius System
+# Copyright (C) 2008-2014 Hive Solutions Lda.
+#
+# This file is part of Hive Netius System.
+#
+# Hive Netius System is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Hive Netius System is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
+
+__author__ = "João Magalhães joamag@hive.pt>"
+""" The author(s) of the module """
+
+__version__ = "1.0.0"
+""" The version of the module """
+
+__revision__ = "$LastChangedRevision$"
+""" The revision number of the module """
+
+__date__ = "$LastChangedDate$"
+""" The last change date of the module """
+
+__copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
+""" The copyright for the module """
+
+__license__ = "GNU General Public License (GPL), Version 3"
+""" The license for the module """
+
+from netius.clients import http
+
+class MJPGConnection(http.HTTPConnection):
+
+    def __init__(self, *args, **kwargs):
+        http.HTTPConnection.__init__(self, *args, **kwargs)
+        self.buffer_l = []
+
+    def add_buffer(self, data):
+        self.buffer_l.append(data)
+
+    def get_buffer(self, delete = True):
+        if not self.buffer_l: return b""
+        buffer = b"".join(self.buffer_l)
+        if delete: del self.buffer_l[:]
+        return buffer
+
+class MJPGClient(http.HTTPClient):
+
+    MAGIC_JPEG = b"\xff\xd8\xff\xe0"
+    """ The magic signature for the jpeg infra-structure, this
+    sequence of bytes is going to be used to detect new frames
+    coming from the http based stream """
+
+    EOI_JPEG = b"\xff\xd9"
+    """ The sequence of bytes that indicate the end of the current
+    image, when these bytes are detected on the stream the message
+    should be "flushed" to the current output (emit) """
+
+    def new_connection(self, socket, address, ssl = False):
+        return MJPGConnection(
+            owner = self,
+            socket = socket,
+            address = address,
+            ssl = ssl
+        )
+
+    def on_partial_http(self, connection, parser, data):
+        http.HTTPClient.on_partial_http(self, connection, parser, data)
+        eoi_index = data.find(MJPGClient.EOI_JPEG)
+        if eoi_index == -1: connection.buffer_l.append(data); return
+        connection.buffer_l.append(data[:eoi_index])
+        frame = b"".join(connection.buffer_l)
+        multipart_index = frame.find(b"\r\n\r\n")
+        frame = frame[multipart_index + 4:]
+        del connection.buffer_l[:]
+        connection.buffer_l.append(data[eoi_index:])
+        self.on_frame_mjpg(connection, parser, frame)
+
+    def on_frame_mjpg(self, connection, parser, data):
+        self.trigger("frame", self, parser, data)
+
+if __name__ == "__main__":
+    index = 0
+
+    def on_headers(client, parser, headers):
+        print(parser.code_s + " " + parser.status_s)
+
+    def on_frame(client, parser, data):
+        global index
+        import os
+        path = os.path.join("c:/tobias/%d.jpg" % index)
+        file = open(path, "wb")
+        try: file.write(data)
+        finally: file.close()
+        print("new frame")
+        index += 1
+
+    def on_close(client, connection):
+        client.close()
+
+    client = MJPGClient()
+    client.get("http://localhost:9090/")
+    client.bind("frame", on_frame)
+    client.bind("close", on_close)

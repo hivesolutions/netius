@@ -38,6 +38,7 @@ from . import apn
 from . import dht
 from . import dns
 from . import http
+from . import mjpg
 from . import raw
 from . import smtp
 from . import torrent
@@ -47,6 +48,7 @@ from .apn import *
 from .dht import *
 from .dns import *
 from .http import *
+from .mjpg import *
 from .raw import *
 from .smtp import *
 from .torrent import *
