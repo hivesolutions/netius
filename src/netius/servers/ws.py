@@ -43,6 +43,14 @@ import hashlib
 import netius
 
 class WSConnection(netius.Connection):
+    """
+    Connection based class for the websockets connection,
+    should be able to implement the required encoding
+    and decoding techniques in compliance with the websockets
+    level 13 specification.
+
+    @see: http://tools.ietf.org/html/rfc6455
+    """
 
     def __init__(self, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
