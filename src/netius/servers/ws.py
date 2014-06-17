@@ -150,18 +150,28 @@ class WSConnection(netius.Connection):
         return encoded
 
     def _decode(self, data):
+        # retrieves the reference to the second byte in the frame
+        # this is the byte that is going to be used in the initial
+        # calculus of the length for the current data frame
         second_byte = data[1]
 
+        # retrieves the base length (simplified length) of the
+        # frame as the seven last bits of the second byte in frame
         length = netius.ord(second_byte) & 127
-
         index_mask_f = 2
 
+        # verifies if the length to be calculated is of type
+        # extended (length equals to 126) if that's the case
+        # two extra bytes must be taken into account on length
         if length == 126:
             length = 0
             length += netius.ord(data[2]) << 8
             length += netius.ord(data[3])
             index_mask_f = 4
 
+        # check if the length to be calculated is of type extended
+        # payload length and if that's the case many more bytes
+        # (eight) must be taken into account for length calculus
         elif length == 127:
             length = 0
             length += netius.ord(data[2]) << 56

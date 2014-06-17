@@ -40,13 +40,15 @@ __license__ = "GNU General Public License (GPL), Version 3"
 import netius
 
 class WSClient(netius.StreamClient):
-    pass
+
+    def send_ws(self, data):
+        pass
 
 if __name__ == "__main__":
     def on_connect(client):
         client.send_ws("Hello World")
 
-    def on_message(client, message):
+    def on_message(client, data):
         client.close()
 
     def on_close(client, connection):
