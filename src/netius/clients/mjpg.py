@@ -80,14 +80,28 @@ class MJPGClient(http.HTTPClient):
 
     def on_partial_http(self, connection, parser, data):
         http.HTTPClient.on_partial_http(self, connection, parser, data)
+
+        # tries to find the end of image (eoi) indicator in the current
+        # received data, and in case it's not found add the (partial)
+        # data to the current buffer, to be latter processed
         eoi_index = data.find(MJPGClient.EOI_JPEG)
         if eoi_index == -1: connection.buffer_l.append(data); return
+
+        # adds the partial valid data of the current chunk to the buffer
+        # and then joins the current buffer as the frame data, removing
+        # the multipart header from it (to become a valid image)
         connection.buffer_l.append(data[:eoi_index])
         frame = b"".join(connection.buffer_l)
         multipart_index = frame.find(b"\r\n\r\n")
         frame = frame[multipart_index + 4:]
+
+        # clears the current buffer and adds the remaining part of the
+        # current chunk, that may be already part of a new image
         del connection.buffer_l[:]
         connection.buffer_l.append(data[eoi_index:])
+
+        # calls the proper event handler for the new frame data that has
+        # just been received, triggering the processing of the frame
         self.on_frame_mjpg(connection, parser, frame)
 
     def on_frame_mjpg(self, connection, parser, data):
