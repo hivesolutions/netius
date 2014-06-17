@@ -36,3 +36,8 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
+
+import netius
+
+class WSClient(netius.StreamClient):
+    pass
