@@ -60,7 +60,7 @@ class WSClient(netius.StreamClient):
 
     def on_data(self, connection, data):
         netius.StreamClient.on_data(self, connection, data)
-        print data
+        print(data)
 
     def connect_ws(self, url):
         parsed = netius.urlparse(url)
