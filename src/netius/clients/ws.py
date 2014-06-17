@@ -19,6 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
 
+__author__ = "João Magalhães joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -33,21 +36,3 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
-
-from . import apn
-from . import dht
-from . import dns
-from . import http
-from . import raw
-from . import smtp
-from . import torrent
-from . import ws
-
-from .apn import *
-from .dht import *
-from .dns import *
-from .http import *
-from .raw import *
-from .smtp import *
-from .torrent import *
-from .ws import *
