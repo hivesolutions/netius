@@ -37,6 +37,10 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import os
+
+import netius
+
 from netius.clients import http
 
 class MJPGConnection(http.HTTPConnection):
@@ -97,18 +101,20 @@ if __name__ == "__main__":
 
     def on_frame(client, parser, data):
         global index
-        import os
-        path = os.path.join("c:/tobias/%d.jpg" % index)
+        base_path = netius.conf("IMAGES_PATH", "images")
+        base_path = os.path.abspath(base_path)
+        base_path = os.path.normpath(base_path)
+        if not os.path.exists(base_path): os.makedirs(base_path)
+        path = os.path.join(base_path, "%08d.jpg" % index)
         file = open(path, "wb")
         try: file.write(data)
         finally: file.close()
-        print("new frame")
         index += 1
 
     def on_close(client, connection):
         client.close()
 
     client = MJPGClient()
-    client.get("http://localhost:9090/")
+    client.get("http://cascam.ou.edu/axis-cgi/mjpg/video.cgi?resolution=320x240")
     client.bind("frame", on_frame)
     client.bind("close", on_close)
