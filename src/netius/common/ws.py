@@ -37,25 +37,36 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import struct
+import random
+
 import netius
 
-def encode_ws(data):
+def encode_ws(data, final = True, opcode = 0x01,  mask = True):
+    # converts the boolean based values of the frame into the
+    # bit based partials that are going to be used in the build
+    # of the final frame container element (as expected)
+    final = 0x01 if final else 0x00
+    mask = 0x01 if mask else 0x00
+
     data = netius.bytes(data)
     data_l = len(data)
 
+    first_byte = (final << 7) + opcode
+
     encoded_l = list()
-    encoded_l.append(netius.chr(129))
+    encoded_l.append(netius.chr(first_byte))
 
     if data_l <= 125:
-        encoded_l.append(netius.chr(data_l))
+        encoded_l.append(netius.chr(data_l + (mask << 7)))
 
     elif data_l >= 126 and data_l <= 65535:
-        encoded_l.append(netius.chr(126))
+        encoded_l.append(netius.chr(126 + (mask << 7)))
         encoded_l.append(netius.chr((data_l >> 8) & 255))
         encoded_l.append(netius.chr(data_l & 255))
 
     else:
-        encoded_l.append(netius.chr(127))
+        encoded_l.append(netius.chr(127 + (mask << 7)))
         encoded_l.append(netius.chr((data_l >> 56) & 255))
         encoded_l.append(netius.chr((data_l >> 48) & 255))
         encoded_l.append(netius.chr((data_l >> 40) & 255))
@@ -64,6 +75,14 @@ def encode_ws(data):
         encoded_l.append(netius.chr((data_l >> 16) & 255))
         encoded_l.append(netius.chr((data_l >> 8) & 255))
         encoded_l.append(netius.chr(data_l & 255))
+    
+    if mask:
+        mask_bytes = struct.pack("!I", random.getrandbits(32))
+        encoded_l.append(mask_bytes)
+        encoded_a = bytearray(data_l)
+        for i in range(data_l):
+            encoded_a[i] = netius.chri(netius.ord(data[i]) ^ netius.ord(mask_bytes[i % 4]))
+        data = bytes(encoded_a)
 
     encoded_l.append(data)
     encoded = b"".join(encoded_l)
@@ -122,9 +141,9 @@ def decode_ws(data):
     # avoiding the unmasking operation (as the data is not masked)
     if not has_mask: return data[2:], b""
 
-    # retrieves the masks part of the data that are going to be
+    # retrieves the mask part of the data that are going to be
     # used in the decoding part of the process
-    masks = data[index_mask_f:index_mask_f + mask_bytes]
+    mask = data[index_mask_f:index_mask_f + mask_bytes]
 
     # allocates the array that is going to be used
     # for the decoding of the data with the length
@@ -136,7 +155,7 @@ def decode_ws(data):
     # (decoding it consequently) to the created decoded array
     i = index_mask_f + 4
     for j in range(length):
-        decoded_a[j] = netius.chri(netius.ord(data[i]) ^ netius.ord(masks[j % 4]))
+        decoded_a[j] = netius.chri(netius.ord(data[i]) ^ netius.ord(mask[j % 4]))
         i += 1
 
     # converts the decoded array of data into a string and
