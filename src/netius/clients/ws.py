@@ -76,6 +76,7 @@ class WSClient(netius.StreamClient):
 
     def _key(self):
         seed = str(uuid.uuid4())
+        seed = netius.bytes(seed)
         return base64.b64encode(seed)
 
 if __name__ == "__main__":
