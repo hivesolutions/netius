@@ -89,6 +89,12 @@ def encode_ws(data, final = True, opcode = 0x01, mask = True):
     return encoded
 
 def decode_ws(data):
+    # calculates the length of the data and runs the initial
+    # verification ensuring that such data is larger than the
+    # minimum value for a valid websockets frame
+    data_l = len(data)
+    assert_ws(data_l, 2)
+
     # retrieves the reference to the second byte in the frame
     # this is the byte that is going to be used in the initial
     # calculus of the length for the current data frame
@@ -108,6 +114,7 @@ def decode_ws(data):
     # extended (length equals to 126) if that's the case
     # two extra bytes must be taken into account on length
     if length == 126:
+        assert_ws(data_l, 4)
         length = 0
         length += netius.ord(data[2]) << 8
         length += netius.ord(data[3])
@@ -117,6 +124,7 @@ def decode_ws(data):
     # payload length and if that's the case many more bytes
     # (eight) must be taken into account for length calculus
     elif length == 127:
+        assert_ws(data_l, 10)
         length = 0
         length += netius.ord(data[2]) << 56
         length += netius.ord(data[3]) << 48
@@ -132,14 +140,13 @@ def decode_ws(data):
     # in case its smaller than the defined length of the data returns
     # immediately indicating that there's not enough data to complete
     # the decoding of the data (should be re-trying again latter)
-    raw_size = len(data) - index_mask_f - mask_bytes
-    if raw_size < length:
-        raise netius.DataError("Not enough data available for parsing")
+    raw_size = data_l - index_mask_f - mask_bytes
+    if raw_size < length: raise netius.DataError("Not enough data")
 
     # in case the frame data is not masked the complete set of contents
     # may be returned immediately to the caller as there's no issue with
     # avoiding the unmasking operation (as the data is not masked)
-    if not has_mask: return data[2:], b""
+    if not has_mask: return data[index_mask_f:], b""
 
     # retrieves the mask part of the data that are going to be
     # used in the decoding part of the process
@@ -163,3 +170,6 @@ def decode_ws(data):
     # remained pending to be parsed
     decoded = bytes(decoded_a)
     return decoded, data[i:]
+
+def assert_ws(data_l, size):
+    if data_l < size: raise netius.DataError("Not enough data")
