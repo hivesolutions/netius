@@ -84,6 +84,8 @@ class MJPGServer(http.HTTPServer):
         connection.send(data)
 
         def send(connection):
+            self.on_send_mjpg(connection)
+            
             delay = self.get_delay(connection)
             data = self.get_image(connection)
 
@@ -110,6 +112,9 @@ class MJPGServer(http.HTTPServer):
             connection.send(buffer_d, callback = next)
 
         send(connection)
+        
+    def on_send_mjpg(self, connection):
+        pass
 
     def get_delay(self, connection):
         return 1
