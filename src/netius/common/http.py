@@ -39,6 +39,7 @@ __license__ = "GNU General Public License (GPL), Version 3"
 
 import netius
 
+from netius.common import util
 from netius.common import parser
 
 REQUEST = 1
@@ -247,6 +248,14 @@ class HTTPParser(parser.Parser):
         for value in self.message: buffer.write(value)
         buffer.seek(0)
         return buffer
+
+    def get_headers(self):
+        headers = dict(self.headers)
+        for key, value in self.headers.items():
+            key_up = util.header_up(key)
+            del headers[key]
+            headers[key_up] = value
+        return headers
 
     def get_encodings(self):
         if not self.encodings == None: return self.encodings
@@ -618,3 +627,23 @@ class HTTPParser(parser.Parser):
             _params[key] = items
 
         return _params
+
+class HTTPResponse(object):
+
+    def __init__(self, data = None, code = 200, status = None, headers = None):
+        self.data = data
+        self.code = code
+        self.status = status
+        self.headers = headers
+
+    def read(self):
+        return self.data
+
+    def close(self):
+        pass
+
+    def getcode(self):
+        return self.code
+
+    def info(self):
+        return self.headers

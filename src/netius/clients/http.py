@@ -291,6 +291,10 @@ class HTTPClient(netius.StreamClient):
             on_result = on_result
         )
 
+    @classmethod
+    def to_response(cls, map):
+        return netius.common.HTTPResponse(**map)
+
     def get(
         self,
         url,
@@ -474,6 +478,7 @@ class HTTPClient(netius.StreamClient):
             def on_message(client, parser, message):
                 request["code"] = parser.code
                 request["status"] = parser.status
+                request["headers"] = parser.get_headers()
                 request["data"] = b"".join(buffer)
                 if on_result: on_result(client, parser, request)
 
