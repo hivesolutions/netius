@@ -639,6 +639,9 @@ class HTTPResponse(object):
     def read(self):
         return self.data
 
+    def readline(self):
+        return self.read()
+
     def close(self):
         pass
 
