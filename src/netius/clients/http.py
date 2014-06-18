@@ -359,8 +359,8 @@ class HTTPClient(netius.StreamClient):
         self,
         method,
         url,
-        params = {},
-        headers = {},
+        params = None,
+        headers = None,
         data = None,
         version = "HTTP/1.1",
         connection = None,
@@ -370,6 +370,12 @@ class HTTPClient(netius.StreamClient):
         on_data = None,
         on_result = None
     ):
+        # runs the defaulting operation on the provided parameters so that
+        # new instances are created for both occasions as expected, this
+        # avoids the typical problem with re-usage of default attributes
+        params = params or dict()
+        headers = headers or dict()
+
         # creates the message that is going to be used in the logging of
         # the current method request for debugging purposes, this may be
         # useful for a full record traceability of the request
