@@ -597,3 +597,24 @@ class HTTPParser(parser.Parser):
         # and then returns the same counter to the caller method
         count += data_s
         return count
+
+    def _parse_query(self, query):
+        # runs the "default" parsing of the query string from the system
+        # and then decodes the complete set of parameters properly
+        params = netius.parse_qs(query, keep_blank_values = True)
+        return self._decode_params(params)
+
+    def _decode_params(self, params):
+        _params = dict()
+
+        for key, value in params.items():
+            items = []
+            for item in value:
+                is_bytes = netius.is_bytes(item)
+                if is_bytes: item = item.decode("utf-8")
+                items.append(item)
+            is_bytes = netius.is_bytes(key)
+            if is_bytes: key = key.decode("utf-8")
+            _params[key] = items
+
+        return _params
