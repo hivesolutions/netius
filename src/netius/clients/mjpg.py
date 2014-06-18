@@ -87,10 +87,14 @@ class MJPGClient(http.HTTPClient):
         eoi_index = data.find(MJPGClient.EOI_JPEG)
         if eoi_index == -1: connection.buffer_l.append(data); return
 
+        # calculates the size of the end of image (eoi) token so that
+        # this value will be used for the calculus of the image data
+        eoi_size = len(MJPGClient.EOI_JPEG)
+
         # adds the partial valid data of the current chunk to the buffer
         # and then joins the current buffer as the frame data, removing
         # the multipart header from it (to become a valid image)
-        connection.buffer_l.append(data[:eoi_index])
+        connection.buffer_l.append(data[:eoi_index + eoi_size])
         frame = b"".join(connection.buffer_l)
         multipart_index = frame.find(b"\r\n\r\n")
         frame = frame[multipart_index + 4:]
@@ -98,7 +102,7 @@ class MJPGClient(http.HTTPClient):
         # clears the current buffer and adds the remaining part of the
         # current chunk, that may be already part of a new image
         del connection.buffer_l[:]
-        connection.buffer_l.append(data[eoi_index:])
+        connection.buffer_l.append(data[eoi_index + eoi_size:])
 
         # calls the proper event handler for the new frame data that has
         # just been received, triggering the processing of the frame
