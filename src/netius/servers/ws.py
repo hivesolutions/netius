@@ -62,7 +62,7 @@ class WSConnection(netius.Connection):
         self.headers = {}
 
     def send_ws(self, data):
-        encoded = netius.common.encode_ws(data)
+        encoded = netius.common.encode_ws(data, mask = False)
         return self.send(encoded)
 
     def recv_ws(self, size = netius.CHUNK_SIZE):
