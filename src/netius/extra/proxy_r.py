@@ -162,11 +162,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # to match it against any of the currently defined rules
         headers = parser.headers
 
-        # retrieves the host header from the received set of headers
-        # and then verifies the complete set of defined hosts in order to
-        # check for the presence of such rule, in case there's a match
-        # the defined url prefix is going to be used instead
+        # retrieves the host header from the received set of headers,
+        # removing the port definition part of the host and then verifies
+        # the complete set of defined hosts in order to check for the
+        # presence of such rule, in case there's a match the defined
+        # url prefix is going to be used instead
         host = headers.get("host", None)
+        if host: host = host.split(":", 1)[0]
         prefix = self.hosts.get(host, None)
 
         # returns the final "resolved" prefix value (in case there's any)
