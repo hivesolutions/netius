@@ -158,7 +158,7 @@ class HTTPConnection(netius.Connection):
         port = self.port
         data = self.data
 
-        if port == 80: host_s = host
+        if port in (80, 443): host_s = host
         else: host_s = "%s:%d" % (host, port)
 
         if not "connection" in headers:
