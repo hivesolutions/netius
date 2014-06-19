@@ -77,6 +77,11 @@ def chunks(sequence, count):
     for index in range(0, len(sequence), count):
         yield sequence[index:index + count]
 
+def header_down(name):
+    values = name.split("-")
+    values = [value.lower() for value in values]
+    return "-".join(values)
+
 def header_up(name):
     values = name.split("-")
     values = [value.title() for value in values]

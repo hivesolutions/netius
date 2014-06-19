@@ -121,11 +121,18 @@ class HTTPConnection(netius.Connection):
         self.send(buffer_data)
         data and self.send(data)
 
-    def set_headers(self, headers):
+    def set_headers(self, headers, normalize = True):
         self.headers = headers
+        if normalize: self.normalize_headers()
 
     def set_data(self, data):
         self.data = data
+
+    def normalize_headers(self):
+        for key, value in netius.eager(self.headers.items()):
+            del self.headers[key]
+            key = netius.common.header_down(key)
+            self.headers[key] = value
 
     def parse(self, data):
         return self.parser.parse(data)
@@ -417,7 +424,7 @@ class HTTPClient(netius.StreamClient):
             payload = netius.bytes(payload)
             authorization = base64.b64encode(payload)
             authorization = netius.str(authorization)
-            headers["Authorization"] = "Basic %s" % authorization
+            headers["authorization"] = "Basic %s" % authorization
 
         # in case there's a connection to be used must validate that the
         # connection is valid for the current context so that the host,
