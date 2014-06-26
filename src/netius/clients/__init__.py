@@ -41,6 +41,7 @@ from . import http
 from . import mjpg
 from . import raw
 from . import smtp
+from . import ssdp
 from . import torrent
 from . import ws
 
@@ -51,5 +52,6 @@ from .http import *
 from .mjpg import *
 from .raw import *
 from .smtp import *
+from .ssdp import *
 from .torrent import *
 from .ws import *
