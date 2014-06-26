@@ -43,7 +43,13 @@ class SSDPClient(netius.DatagramClient):
 
     def on_data(self, connection, data):
         netius.DatagramClient.on_data(self, connection, data)
-        print data
+        self.parser = netius.common.HTTPParser(self, type = netius.common.RESPONSE)
+        self.parser.bind("on_headers", self.on_headers_parser)
+        self.parser.parse(data)
+        self.parser.destroy()
+
+    def on_headers_parser(self):
+        print(self.parser.get_headers())
 
     def discover(self, target, *args, **kwargs):
         return self.method(
