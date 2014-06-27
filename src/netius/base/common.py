@@ -1058,6 +1058,9 @@ class BaseThread(threading.Thread):
     """
     The top level thread class that is meant to encapsulate
     a running base object and run it in a new context.
+
+    This base thread may be used to run a network loop allowing
+    a main thread to continue with execution logic.
     """
 
     def __init__(self, owner, daemon = False, *args, **kwargs):
