@@ -49,7 +49,8 @@ class SSDPClient(netius.DatagramClient):
         self.parser.destroy()
 
     def on_headers_parser(self):
-        print(self.parser.get_headers())
+        headers = self.parser.get_headers()
+        self.trigger("headers", self, self.parser, headers)
 
     def discover(self, target, *args, **kwargs):
         return self.method(
@@ -97,5 +98,11 @@ class SSDPClient(netius.DatagramClient):
         data and self.send(data, address)
 
 if __name__ == "__main__":
+
+    def on_headers(client, parser, headers):
+        import pprint
+        pprint.pprint(headers)
+
     client = SSDPClient()
-    client.discover("urn:schemas-upnp-org:device:InternetGatewayDevice:2")
+    client.discover("urn:schemas-upnp-org:device:InternetGatewayDevice:1")
+    client.bind("headers", on_headers)
