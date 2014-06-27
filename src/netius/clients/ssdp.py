@@ -100,8 +100,8 @@ class SSDPClient(netius.DatagramClient):
 if __name__ == "__main__":
 
     def on_headers(client, parser, headers):
-        import pprint
-        pprint.pprint(headers)
+        print(headers)
+        client.close()
 
     client = SSDPClient()
     client.discover("urn:schemas-upnp-org:device:InternetGatewayDevice:1")
