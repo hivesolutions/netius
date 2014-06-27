@@ -49,11 +49,8 @@ def http_static():
 def http_callback():
     def callback(connection, parser, request):
         print(request["data"])
+        client = connection.owner
+        client.close()
 
-    netius.clients.HTTPClient.get_s(
-        "https://www.flickr.com/",
-        on_result = callback
-    )
-    
-if __name__ == "__main__":
-    http_callback()
+    client = netius.clients.HTTPClient()
+    client.get("https://www.flickr.com/", on_result = callback)

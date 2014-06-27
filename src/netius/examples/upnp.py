@@ -63,7 +63,6 @@ def upnp_map(ext_port, int_port, host, protocol = "TCP", description = "netius")
     """ % (ext_port, protocol, int_port, host, description)
 
     def on_location(connection, parser, request):
-        client = connection.owner
         data = request["data"]
         document = xml.dom.minidom.parseString(data)
         nodes = document.getElementsByTagName("controlURL")
@@ -78,6 +77,7 @@ def upnp_map(ext_port, int_port, host, protocol = "TCP", description = "netius")
             data = message,
             async = False
         )
+        client = connection.owner
         client.close()
 
     def on_headers(client, parser, headers):
