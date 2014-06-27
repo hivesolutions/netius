@@ -479,15 +479,15 @@ class HTTPClient(netius.StreamClient):
                 data = None
             )
 
-            def on_partial(client, parser, data):
+            def on_partial(connection, parser, data):
                 buffer.append(data)
 
-            def on_message(client, parser, message):
+            def on_message(connection, parser, message):
                 request["code"] = parser.code
                 request["status"] = parser.status
                 request["headers"] = parser.get_headers()
                 request["data"] = b"".join(buffer)
-                if on_result: on_result(client, parser, request)
+                if on_result: on_result(connection, parser, request)
 
             # sets the proper callback references so that the newly created
             # clojure based methods are called for the current connection
