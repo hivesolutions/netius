@@ -52,7 +52,7 @@ def upnp_map(ext_port, int_port, host, protocol = "TCP", description = "netius")
     @see: http://www.upnp.org/specs/gw/UPnP-gw-WANIPConnection-v1-Service.pdf
     """
 
-    message = """"<?xml version="1.0"?>
+    message = """<?xml version="1.0"?>
         <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
             s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
             <s:Body>
