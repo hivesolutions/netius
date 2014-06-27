@@ -41,7 +41,7 @@ import xml.dom.minidom
 
 import netius.clients
 
-def map_port(ext_port, int_port, host, protocol = "TCP", description = "netius"):
+def upnp_map(ext_port, int_port, host, protocol = "TCP", description = "netius"):
 
     message = """"
     <?xml version="1.0"?>
@@ -90,6 +90,3 @@ def map_port(ext_port, int_port, host, protocol = "TCP", description = "netius")
     client = netius.clients.SSDPClient()
     client.bind("headers", on_headers)
     client.discover("urn:schemas-upnp-org:device:InternetGatewayDevice:1")
-
-if __name__ == "__main__":
-    map_port(8888, 4040, "172.16.0.25")

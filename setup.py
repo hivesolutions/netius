@@ -58,6 +58,7 @@ setuptools.setup(
         "netius.base",
         "netius.clients",
         "netius.common",
+        "netius.examples",
         "netius.extra",
         "netius.servers",
         "netius.sh",
