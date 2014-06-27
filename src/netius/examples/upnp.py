@@ -43,24 +43,22 @@ import netius.clients
 
 def upnp_map(ext_port, int_port, host, protocol = "TCP", description = "netius"):
 
-    message = """"
-    <?xml version="1.0"?>
-    <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
-        s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
-        <s:Body>
-            <u:AddPortMapping xmlns:u="urn:schemas-upnp-org:service:WANIPConnection:1">
-                <NewRemoteHost></NewRemoteHost>
-                <NewExternalPort>%d</NewExternalPort>
-                <NewProtocol>%s</NewProtocol>
-                <NewInternalPort>%d</NewInternalPort>
-                <NewInternalClient>%s</NewInternalClient>
-                <NewEnabled>1</NewEnabled>
-                <NewPortMappingDescription>%s</NewPortMappingDescription>
-                <NewLeaseDuration>0</NewLeaseDuration>
-            </u:AddPortMapping>
-        </s:Body>
-    </s:Envelope>
-    """ % (ext_port, protocol, int_port, host, description)
+    message = """"<?xml version="1.0"?>
+        <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
+            s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+            <s:Body>
+                <u:AddPortMapping xmlns:u="urn:schemas-upnp-org:service:WANIPConnection:1">
+                    <NewRemoteHost></NewRemoteHost>
+                    <NewExternalPort>%d</NewExternalPort>
+                    <NewProtocol>%s</NewProtocol>
+                    <NewInternalPort>%d</NewInternalPort>
+                    <NewInternalClient>%s</NewInternalClient>
+                    <NewEnabled>1</NewEnabled>
+                    <NewPortMappingDescription>%s</NewPortMappingDescription>
+                    <NewLeaseDuration>0</NewLeaseDuration>
+                </u:AddPortMapping>
+            </s:Body>
+    </s:Envelope>""" % (ext_port, protocol, int_port, host, description)
 
     def on_location(connection, parser, request):
         data = request["data"]
