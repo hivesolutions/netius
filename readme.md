@@ -80,7 +80,7 @@ python -m netius.sh.auth generate your_password
 
 ## IPv6
 
-Netius is compatible with IPv6 in order to activate this mode set the ``IPV6`` configuration variable
+Netius is compatible with IPv6 in order to activate this mode set the `IPV6` configuration variable
 to a valid values (eg: 1 or True) and an IPv6 socket is used instead.
 
 ```python
