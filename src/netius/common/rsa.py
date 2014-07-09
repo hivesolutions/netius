@@ -367,7 +367,7 @@ def rsa_exponents(prime_1, prime_2, number_bits, basic = True):
     # in case the greatest common divisor between both is not one, the values
     # are not relative primes and an exception must be raised
     if not d == 1: raise netius.GeneratorError(
-        "The public exponent '%d' and the phi modulus '%d' are not relative primes" %\
+        "The public exponent '%d' and the phi modulus '%d' are not relative primes" %
         (public_exponent, phi_modulus)
     )
 

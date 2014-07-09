@@ -318,7 +318,7 @@ class POPServer(netius.StreamServer):
         self.adapter = self.get_adapter(self.adapter_s)
         self.auth = self.get_auth(self.auth_s)
         self.info(
-            "Starting POP server on '%s' using '%s' and '%s' ..." %\
+            "Starting POP server on '%s' using '%s' and '%s' ..." %
             (self.host, self.adapter_s, self.auth_s)
         )
 

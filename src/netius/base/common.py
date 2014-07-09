@@ -561,21 +561,21 @@ class Base(observer.Observable):
 
     def on_connection_c(self, connection):
         self.debug(
-            "Connection '%s' from '%s' created ..." %\
+            "Connection '%s' from '%s' created ..." %
             (connection.id, connection.owner.name)
         )
         self.debug(
-            "There are '%d' connections for '%s' ..." %\
+            "There are '%d' connections for '%s' ..." %
             (len(connection.owner.connections), connection.owner.name)
         )
 
     def on_connection_d(self, connection):
         self.debug(
-            "Connection '%s' from '%s' deleted" %\
+            "Connection '%s' from '%s' deleted" %
             (connection.id, connection.owner.name)
         )
         self.debug(
-            "There are '%d' connections for '%s' ..." %\
+            "There are '%d' connections for '%s' ..." %
             (len(connection.owner.connections), connection.owner.name)
         )
 

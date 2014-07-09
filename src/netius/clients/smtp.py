@@ -365,7 +365,7 @@ class SMTPConnection(netius.Connection):
         valid = expected == code_i
         if valid: return
         raise netius.ParserError(
-            "Invalid response code expected '%d' received '%d'" %\
+            "Invalid response code expected '%d' received '%d'" %
             (expected, code_i)
         )
 
