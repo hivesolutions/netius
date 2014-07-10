@@ -130,7 +130,7 @@ documenting the various tools and strategies that may be used.
 ### Edge triggered polling
 
 Edge based polling is a bit tricky as it may easly end up in a dead lock of data.
-The best way to testing this kind of problem is to change the `POLL_TIMEOUT` value to a negative
+The best way to test this kind of problem is to change the `POLL_TIMEOUT` value to a negative
 value so that the loop blocks for data.
 
 ```bash
