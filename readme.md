@@ -36,6 +36,27 @@ netius.clients.HTTPClient.get_s(
 )
 ```
 
+### WSGI Server
+
+```python
+import netius.servers
+
+def app(environ, start_response):
+    status = "200 OK"
+    contents = "Hello World"
+    content_l = len(contents)
+    headers = (
+        ("Content-Length", content_l),
+        ("Content-type", "text/plain"),
+        ("Connection", "keep-alive")
+    )
+    start_response(status, headers)
+    yield contents
+
+server = netius.servers.WSGIServer(app = app)
+server.serve(env = True)
+```
+
 ## Examples
 
 A series of example are located in the examples.md page.
