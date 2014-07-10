@@ -59,7 +59,7 @@ server.serve(env = True)
 
 ## Examples
 
-A series of example are located in the examples.md page.
+A series of example are located in the [examples.md](examples.md) page.
 
 ## Running
 
