@@ -47,7 +47,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         netius.servers.ProxyServer.__init__(self, *args, **kwargs)
         if type(regex) == dict: regex = regex.items()
         if not type(hosts) == dict: hosts = dict(hosts)
-        self.load_config(path = config, regex = regex, hosts = hosts)
+        self.load_config(
+            path = config,
+            regex = regex,
+            hosts = hosts,
+            robin = dict()
+        )
 
     def on_data_http(self, connection, parser):
         netius.servers.ProxyServer.on_data_http(self, connection, parser)
@@ -136,7 +141,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         return None
 
     def rules_regex(self, url, parser):
-        # sets the prefix value initialy for the invalid/unset value, this
+        # sets the prefix value initially for the invalid/unset value, this
         # value is going to be populated once a valid match is found
         prefix = None
 
@@ -147,6 +152,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         for regex, _prefix in self.regex:
             match = regex.match(url)
             if not match: continue
+            _prefix = self.balancer(_prefix)
             groups = match.groups()
             if groups: _prefix = _prefix.format(*groups)
             prefix = _prefix
@@ -166,14 +172,28 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # removing the port definition part of the host and then verifies
         # the complete set of defined hosts in order to check for the
         # presence of such rule, in case there's a match the defined
-        # url prefix is going to be used instead
+        # url prefix is going to be used instead, the balancer operation
+        # is then used to "resolve" the final prefix value from sequence
         host = headers.get("host", None)
         if host: host = host.split(":", 1)[0]
         prefix = self.hosts.get(host, None)
+        prefix = self.balancer(prefix)
 
         # returns the final "resolved" prefix value (in case there's any)
         # to the caller method, this should be used for url reconstruction
         return prefix
+
+    def balancer(self, values):
+        is_sequence = type(values) in (list, tuple)
+        if not is_sequence: return values
+        return self.balancer_robin(values)
+
+    def balancer_robin(self, values):
+        index = self.robin.get(values, 0)
+        _prefix = values[index]
+        next = 0 if index + 1 == len(values) else index + 1
+        self.robin[values] = next
+        return _prefix
 
 if __name__ == "__main__":
     import logging
