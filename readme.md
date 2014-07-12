@@ -12,6 +12,27 @@ pip install netius
 
 ## Usage
 
+### WSGI Server
+
+```python
+import netius.servers
+
+def app(environ, start_response):
+    status = "200 OK"
+    contents = "Hello World"
+    content_l = len(contents)
+    headers = (
+        ("Content-Length", content_l),
+        ("Content-type", "text/plain"),
+        ("Connection", "keep-alive")
+    )
+    start_response(status, headers)
+    yield contents
+
+server = netius.servers.WSGIServer(app = app)
+server.serve(port = 8080)
+```
+
 ### HTTP Client
 
 #### Synchronous usage
@@ -40,27 +61,6 @@ netius.clients.HTTPClient.get_s(
     callback = on_message,
     on_data = on_partial
 )
-```
-
-### WSGI Server
-
-```python
-import netius.servers
-
-def app(environ, start_response):
-    status = "200 OK"
-    contents = "Hello World"
-    content_l = len(contents)
-    headers = (
-        ("Content-Length", content_l),
-        ("Content-type", "text/plain"),
-        ("Connection", "keep-alive")
-    )
-    start_response(status, headers)
-    yield contents
-
-server = netius.servers.WSGIServer(app = app)
-server.serve(env = True)
 ```
 
 ## Examples
