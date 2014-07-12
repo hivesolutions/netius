@@ -4,6 +4,10 @@ Series of network related libraries for the rapid creation of non blocking async
 The aim of this project is to create a platform for creation of customized servers and clients for
 specific and pre-defined purposes using simple inheritance techniques.
 
+Performance is considered to be one of the main priorities of the project as it should be possible
+to replace a native code stack with netius equivalents. Using PyPy should provide the extra speed
+required for this kind of use cases.
+
 ## Installation
 
 ```bash
