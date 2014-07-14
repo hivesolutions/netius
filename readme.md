@@ -5,8 +5,8 @@ The aim of this project is to create a platform for creation of customized serve
 specific and pre-defined purposes using simple inheritance techniques.
 
 Performance is considered to be one of the main priorities of the project as it should be possible
-to replace a native code stack with netius equivalents. Using PyPy should provide the extra speed
-required for this kind of use cases.
+to replace a native code stack with netius equivalents. [PyPy](http://pypy.org) should provide the
+extra speed required for these kind of (speed savy) use cases.
 
 ## Installation
 
