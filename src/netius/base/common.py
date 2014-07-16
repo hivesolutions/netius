@@ -43,6 +43,7 @@ import copy
 import json
 import errno
 import heapq
+import signal
 import logging
 import hashlib
 import traceback
@@ -417,6 +418,12 @@ class Base(observer.Observable):
         cthread = threading.current_thread()
         name = cthread.getName()
         ident = cthread.ident or 0
+
+        # creates the signal handler function that propagates the raising
+        # of the system exit exception (proper logic is executed) and then
+        # registers such handler for the (typical) sigterm signal
+        def handler(signum = None, frame = None): raise SystemExit()
+        signal.signal(signal.SIGTERM, handler)
 
         # enters the main loop operation printing a message
         # to the logger indicating this start, this stage
