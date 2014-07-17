@@ -401,6 +401,11 @@ class Base(observer.Observable):
         # been done nothing is done (avoids duplicated load)
         self.load()
 
+        # runs the binding of the system wide signals so that if
+        # any of such signals is raised it's properly handled and
+        # redirected to the proper logic through exceptions
+        self.bind_signals()
+
         # opens the polling mechanism so that its internal structures
         # become ready for the polling cycle, the inverse operation
         # (close) should be performed as part of the cleanup
@@ -418,12 +423,6 @@ class Base(observer.Observable):
         cthread = threading.current_thread()
         name = cthread.getName()
         ident = cthread.ident or 0
-
-        # creates the signal handler function that propagates the raising
-        # of the system exit exception (proper logic is executed) and then
-        # registers such handler for the (typical) sigterm signal
-        def handler(signum = None, frame = None): raise SystemExit()
-        signal.signal(signal.SIGTERM, handler)
 
         # enters the main loop operation printing a message
         # to the logger indicating this start, this stage
@@ -727,6 +726,14 @@ class Base(observer.Observable):
         self.poll_c = poll_c
         self.poll = self.poll_c()
         return self.poll
+
+    def bind_signals(self):
+        # creates the signal handler function that propagates the raising
+        # of the system exit exception (proper logic is executed) and then
+        # registers such handler for the (typical) sigterm signal
+        def handler(signum = None, frame = None): raise SystemExit()
+        try: signal.signal(signal.SIGTERM, handler)
+        except: self.debug("Failed to register SIGTERM handler")
 
     def get_id(self):
         return NAME + "-" + str(self._uuid)
