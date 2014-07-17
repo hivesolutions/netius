@@ -357,6 +357,11 @@ class Base(observer.Observable):
         # this is going to be called once per base system
         self.welcome()
 
+        # runs the binding of the system wide signals so that if
+        # any of such signals is raised it's properly handled and
+        # redirected to the proper logic through exceptions
+        self.bind_signals()
+
         # sets the private loading flag ensuring that no extra load operations
         # will be done after this first call to the loading (no duplicates)
         self._loaded = True
@@ -380,6 +385,14 @@ class Base(observer.Observable):
             if not handler: continue
             self.logger.addHandler(handler)
 
+    def bind_signals(self):
+        # creates the signal handler function that propagates the raising
+        # of the system exit exception (proper logic is executed) and then
+        # registers such handler for the (typical) sigterm signal
+        def handler(signum = None, frame = None): raise SystemExit()
+        try: signal.signal(signal.SIGTERM, handler)
+        except: self.debug("Failed to register SIGTERM handler")
+
     def start(self):
         # re-builds the polling structure with the new name this
         # is required so that it's possible to change the polling
@@ -400,11 +413,6 @@ class Base(observer.Observable):
         # the base structure in case the loading has already
         # been done nothing is done (avoids duplicated load)
         self.load()
-
-        # runs the binding of the system wide signals so that if
-        # any of such signals is raised it's properly handled and
-        # redirected to the proper logic through exceptions
-        self.bind_signals()
 
         # opens the polling mechanism so that its internal structures
         # become ready for the polling cycle, the inverse operation
@@ -726,14 +734,6 @@ class Base(observer.Observable):
         self.poll_c = poll_c
         self.poll = self.poll_c()
         return self.poll
-
-    def bind_signals(self):
-        # creates the signal handler function that propagates the raising
-        # of the system exit exception (proper logic is executed) and then
-        # registers such handler for the (typical) sigterm signal
-        def handler(signum = None, frame = None): raise SystemExit()
-        try: signal.signal(signal.SIGTERM, handler)
-        except: self.debug("Failed to register SIGTERM handler")
 
     def get_id(self):
         return NAME + "-" + str(self._uuid)
