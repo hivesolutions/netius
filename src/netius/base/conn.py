@@ -518,8 +518,8 @@ class Connection(observer.Observable):
             # normal shutdown operation for the socket
             if self.ssl: self.socket._sslobj.shutdown()
             elif force: self.socket.shutdown(socket.SHUT_RDWR)
-        except ssl.SSLError:
-            # ignores the ssl error that has just been raise, this
+        except (IOError, ssl.SSLError):
+            # ignores the io/ssl error that has just been raise, this
             # assumes that the problem that has just occurred is not
             # relevant as the socket is shutting down and if a problem
             # occurs that must be related with the socket being closed
