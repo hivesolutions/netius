@@ -57,6 +57,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     def on_data_http(self, connection, parser):
         netius.servers.ProxyServer.on_data_http(self, connection, parser)
 
+        # retrieves the various parts/configuration values of the parser, that
+        # are going to be used in the processing/routing of the proxy request,
+        # note that some of these values need to be transformed to be used
         method = parser.method.upper()
         path = parser.path_s
         headers = parser.headers
