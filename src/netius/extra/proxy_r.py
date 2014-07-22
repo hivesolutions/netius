@@ -233,7 +233,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         prefix = queue.smallest()
 
         sorter = queue[prefix]
-        if sorter[0] == 0: sorter[1] = time.time() * -1
         sorter[0] += 1
         queue[prefix] = sorter
 
@@ -249,6 +248,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         prefix, queue = state
         sorter = queue[prefix]
         sorter[0] -= 1
+        if sorter[0] == 0: sorter[1] = time.time() * -1
         queue[prefix] = sorter
 
     def _on_prx_message(self, client, parser, message):
