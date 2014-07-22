@@ -162,7 +162,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if resolved[0]: return resolved
         resolved = self.rules_host(url, parser)
         if resolved[0]: return resolved
-        return None
+        return None, None
 
     def rules_regex(self, url, parser):
         # sets the prefix and state values initially for the invalid/unset value,
