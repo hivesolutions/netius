@@ -313,7 +313,7 @@ if __name__ == "__main__":
         (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}")
     )
     hosts = {
-        "host.com" : "http://hive.pt"
+        "host.com" : "http://localhost"
     }
     auth = {
         "host.com" : "extras/htpasswd"
