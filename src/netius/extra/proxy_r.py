@@ -38,7 +38,9 @@ __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
 import re
+import time
 
+import netius.common
 import netius.servers
 
 class ReverseProxyServer(netius.servers.ProxyServer):
@@ -48,7 +50,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         config = "proxy.json",
         regex = {},
         hosts = {},
-        balancer = "smart",
+        strategy = "smart",
         *args,
         **kwargs
     ):
@@ -59,11 +61,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             path = config,
             regex = regex,
             hosts = hosts,
-            balancer = balancer,
-            robin = dict()
+            strategy = strategy,
+            robin = dict(),
+            smart = netius.common.PriorityDict()
         )
-        self.balancer_m = getattr(self, "balancer_" + self.balancer)
-        self.prefix_m = dict()
+        self.balancer_m = getattr(self, "balancer_" + self.strategy)
+        self.releaser_m = getattr(self, "releaser_" + self.strategy)
 
     def on_data_http(self, connection, parser):
         netius.servers.ProxyServer.on_data_http(self, connection, parser)
@@ -81,9 +84,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         # constructs the url that is going to be used by the rule engine and
         # then "forwards" both the url and the parser object to the rule engine
-        # in order to obtain the possible prefix value for url reconstruction
+        # in order to obtain the possible prefix value for url reconstruction,
+        # a state value is also retrieved, this value will be used latter for
+        # the releasing part of the balancing strategy operation
         url = "%s://%s%s" % (protocol, host, path)
-        prefix = self.rules(url, parser)
+        prefix, state = self.rules(url, parser)
 
         # in case no prefix is defined at this stage there's no matching
         # against the currently defined rules and so an error must be raised
@@ -123,13 +128,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         connection.proxy_c = None
         if proxy_c in self.conn_map: del self.conn_map[proxy_c]
 
-        # retrieves the counter (of operations) for the selected prefix and
-        # increments the value by one, meaning that one more operation is
-        # being performed for the current prefix, this is required to maintain
-        # a metric that may be used latter for performance improvements
-        count = self.prefix_m.get(prefix, 0)
-        self.prefix_m[prefix] = count + 1
-
         # calls the proper (http) method in the client this should acquire
         # a new connection and starts the process of sending the request
         # to the associated http server (request handling)
@@ -142,9 +140,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             connection = proxy_c
         )
 
-        # sets the prefix attribute in the connection so that it's possible
-        # to retrieve it latter for tagging evaluation
-        _connection.prefix = prefix
+        # sets the state attribute in the connection so that it's possible
+        # to retrieve it latter for tagging evaluation, this is required for
+        # advanced load balancing techniques to be performed
+        _connection.state = state
 
         # prints a debug message about the connection becoming a waiting
         # connection meaning that the connection with the client host has
@@ -159,16 +158,17 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         self.conn_map[_connection] = connection
 
     def rules(self, url, parser):
-        prefix = self.rules_regex(url, parser)
-        if prefix: return prefix
-        prefix = self.rules_host(url, parser)
-        if prefix: return prefix
+        resolved = self.rules_regex(url, parser)
+        if resolved[0]: return resolved
+        resolved = self.rules_host(url, parser)
+        if resolved[0]: return resolved
         return None
 
     def rules_regex(self, url, parser):
-        # sets the prefix value initially for the invalid/unset value, this
-        # value is going to be populated once a valid match is found
+        # sets the prefix and state values initially for the invalid/unset value,
+        # these values are going to be populated once a valid match is found
         prefix = None
+        state = None
 
         # iterates over the complete set of defined regex values to try
         # to find a valid match and apply the groups value for format
@@ -177,15 +177,16 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         for regex, _prefix in self.regex:
             match = regex.match(url)
             if not match: continue
-            _prefix = self.balancer(_prefix)
+            _prefix, _state = self.balancer(_prefix)
             groups = match.groups()
             if groups: _prefix = _prefix.format(*groups)
             prefix = _prefix
+            state = _state
             break
 
-        # returns the prefix value that has just been resolved through
-        # regex based validation, this value may be unset for mismatch
-        return prefix
+        # returns the prefix and state values that have just been resolved
+        # through regex based validation, this value may be unset for a mismatch
+        return prefix, state
 
     def rules_host(self, url, parser):
         # retrieves the reference to the headers map from the parser so
@@ -202,40 +203,63 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         host = headers.get("host", None)
         if host: host = host.split(":", 1)[0]
         prefix = self.hosts.get(host, None)
-        prefix = self.balancer(prefix)
+        resolved = self.balancer(prefix)
 
         # returns the final "resolved" prefix value (in case there's any)
         # to the caller method, this should be used for url reconstruction
-        return prefix
+        # note that the state value is also returned and should be store in
+        # the current handling connection so that it may latter be used
+        return resolved
 
     def balancer(self, values):
         is_sequence = type(values) in (list, tuple)
-        if not is_sequence: return values
+        if not is_sequence: return values, None
         return self.balancer_m(values)
 
     def balancer_robin(self, values):
         index = self.robin.get(values, 0)
-        _prefix = values[index]
+        prefix = values[index]
         next = 0 if index + 1 == len(values) else index + 1
         self.robin[values] = next
-        return _prefix
+        return prefix, None
 
     def balancer_smart(self, values):
-        for value in values:
-            count = self.prefix_m.get(value, 0)
-            if count == 0: return value
-        return self.balancer_robin(values)
+        queue = self.smart.get(values, None)
+        if not queue:
+            queue = netius.common.PriorityDict()
+            for value in values: queue[value] = [0, 0]
+            self.smart[values] = queue
+
+        prefix = queue.smallest()
+
+        sorter = queue[prefix]
+        if sorter[0] == 0: sorter[1] = time.time() * -1
+        sorter[0] += 1
+        queue[prefix] = sorter
+
+        return prefix, (prefix, queue)
+
+    def releaser(self, state):
+        self.releaser_m(state)
+
+    def releaser_robin(self, state):
+        pass
+
+    def releaser_smart(self, state):
+        prefix, queue = state
+        sorter = queue[prefix]
+        sorter[0] -= 1
+        queue[prefix] = sorter
 
     def _on_prx_message(self, client, parser, message):
         _connection = parser.owner
-        prefix = _connection.prefix
-        self.prefix_m[prefix] -= 1
-        _connection.prefix = None
+        state = _connection.state if hasattr(_connection, "state") else None
+        if state: self.releaser(state); _connection.state = None
         netius.servers.ProxyServer._on_prx_message(self, client, parser, message)
 
     def _on_prx_close(self, client, _connection):
-        prefix = _connection.prefix if hasattr(_connection, "prefix") else None
-        if prefix: self.prefix_m[prefix] -= 1; _connection.prefix = None
+        state = _connection.state if hasattr(_connection, "state") else None
+        if state: self.releaser(state); _connection.state = None
         netius.servers.ProxyServer._on_prx_close(self, client, _connection)
 
 if __name__ == "__main__":
