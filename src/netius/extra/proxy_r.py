@@ -50,6 +50,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         config = "proxy.json",
         regex = {},
         hosts = {},
+        auth = {},
         strategy = "smart",
         *args,
         **kwargs
@@ -61,6 +62,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             path = config,
             regex = regex,
             hosts = hosts,
+            auth = auth,
             strategy = strategy,
             robin = dict(),
             smart = netius.common.PriorityDict()
@@ -107,6 +109,48 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 callback = self._prx_close
             )
             return
+
+        # verifies if the current host requires come kind of special authorization
+        # process using the default basic http authorization process
+        auth = self.auth.get(host.split(":", 1)[0], None)
+        if auth:
+            # tries to retrieve the authorization header for the current request
+            # and in case it's not defined "raises" a non authorized response
+            authorization = headers.get("authorization", None)
+            if not authorization:
+                connection.send_response(
+                    data = "Not authorized",
+                    headers = {
+                        "Connection" : "close",
+                        "wWW-authenticate" : "Basic realm=\"insert realm\""
+                    },
+                    version = version_s,
+                    code = 401,
+                    code_s = "Not Authorized",
+                    apply = True,
+                    callback = self._prx_close
+                )
+                return
+
+            # runs the authorization process for the requested auth value (file path)
+            # and using the current parser for the connection handling, this should
+            # return a valid response in case the authorization is valid and an invalid
+            # value otherwise, in case there's a failure a not authorized value is returned
+            result = self.authorize(auth, parser)
+            if not result:
+                connection.send_response(
+                    data = "Not authorized",
+                    headers = {
+                        "connection" : "close",
+                        "wWW-authenticate" : "Basic realm=\"insert realm\""
+                    },
+                    version = version_s,
+                    code = 401,
+                    code_s = "Not Authorized",
+                    apply = True,
+                    callback = self._prx_close
+                )
+                return
 
         # re-calculates the url for the reverse connection based on the
         # prefix value that has just been "resolved" using the rule engine
@@ -269,11 +313,15 @@ if __name__ == "__main__":
         (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}")
     )
     hosts = {
-        "host.com" : "http://localhost"
+        "host.com" : "http://hive.pt"
+    }
+    auth = {
+        "host.com" : "extras/htpasswd"
     }
     server = ReverseProxyServer(
         regex = regex,
         hosts = hosts,
+        auth = auth,
         level = logging.INFO
     )
     server.serve(env = True)

@@ -37,9 +37,11 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import os
 import time
 import zlib
 import struct
+import base64
 
 import netius.common
 
@@ -422,6 +424,7 @@ class HTTPServer(netius.StreamServer):
     def __init__(self, encoding = "plain", *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.encoding_s = encoding
+        self._htcache = {}
 
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
@@ -446,6 +449,47 @@ class HTTPServer(netius.StreamServer):
         is_debug = self.is_debug()
         is_debug and self._log_request(connection, parser)
         connection.resolve_encoding(parser)
+
+    def authorize(self, path, parser):
+        # retrieves the headers from the parser structure and uses
+        # them to retrieve the authorization header value returning
+        # an invalid value in case no header is defined
+        headers = parser.headers
+        authorization = headers.get("authorization", None)
+        if not authorization: return False
+
+        # splits the authorization token between the realm and the
+        # token value (decoding it afterwards) and then unpacks the
+        # token into the username and password components (for validation)
+        _realm, token = authorization.split(" ", 1)
+        token = base64.b64decode(token)
+        _username, _password = token.split(":", 1)
+
+        # runs the retrieval process of the htpasswd file using the requested
+        # path (note that this is cached retrieval) and then verifies if the
+        # password for the requested user is valid according to the file
+        htpasswd = self.get_htpasswd(path)
+        password = htpasswd.get(_username, None)
+        return not password == None and _password == password
+
+    def get_htpasswd(self, path, cache = True):
+        path = os.path.expanduser(path)
+        path = os.path.abspath(path)
+        path = os.path.normpath(path)
+
+        result = self._htcache.get(path, None)
+        if cache and not result == None: return result
+
+        htpasswd = dict()
+        contents = self.get_file(path, cache = cache)
+        for line in contents.split("\n"):
+            line = line.strip()
+            if not line: continue
+            username, password = line.split(":", 1)
+            htpasswd[username] = password
+
+        if cache: self._htcache[path] = htpasswd
+        return htpasswd
 
     def _apply_all(self, parser, connection, headers, upper = True):
         if upper: self._headers_upper(headers)

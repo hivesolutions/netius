@@ -69,7 +69,7 @@ setuptools.setup(
         "" : os.path.normpath("src")
     },
     package_data = {
-        "netius" : ["base/extras/*", "servers/extras/*"]
+        "netius" : ["base/extras/*", "extra/extras/*", "servers/extras/*"]
     },
     classifiers = [
         "Development Status :: 3 - Alpha",

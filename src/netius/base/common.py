@@ -278,6 +278,7 @@ class Base(observer.Observable):
         self._lid = 0
         self._running = False
         self._loaded = False
+        self._cache = {}
         self._delayed = []
         self._delayed_o = []
         self.set_state(STATE_STOP)
@@ -315,6 +316,30 @@ class Base(observer.Observable):
         # returns the selected polling mechanism class to the caller method
         # as expected by the current method
         return selected
+
+    def get_file(self, path, cache = False):
+        # runs the complete set of normalization processes for the path so
+        # that the final path to be used in retrieval is canonical, providing
+        # a better mechanisms for both loading and cache processes
+        path = os.path.expanduser(path)
+        path = os.path.abspath(path)
+        path = os.path.normpath(path)
+
+        # tries to retrieve the contents of the file using a caches approach
+        # and returns such value in case the cache flag is enabled
+        result = self._cache.get(path, None)
+        if cache and not result == None: return result
+
+        # as the cache retrieval has not been successful there's a need to
+        # load the file from the secondary storage (file system)
+        file = open(path, "rb")
+        try: contents = file.read()
+        finally: file.close
+
+        # verifies if the cache mode/flag is enabled and if that's the case
+        # store the complete file contents in memory under the dictionary
+        if cache: self._cache[path] = contents
+        return contents
 
     def delay(self, callable, timeout = None, verify = False):
         # creates the original target value with a zero value (forced
