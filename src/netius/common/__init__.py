@@ -45,6 +45,7 @@ from . import pop
 from . import rsa
 from . import smtp
 from . import socks
+from . import structures
 from . import torrent
 from . import util
 from . import ws
@@ -60,6 +61,7 @@ from .pop import *
 from .rsa import *
 from .smtp import *
 from .socks import *
+from .structures import *
 from .torrent import *
 from .util import *
 from .ws import *
