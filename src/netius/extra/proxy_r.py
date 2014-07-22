@@ -43,7 +43,15 @@ import netius.servers
 
 class ReverseProxyServer(netius.servers.ProxyServer):
 
-    def __init__(self, config = "proxy.json", regex = {}, hosts = {}, *args, **kwargs):
+    def __init__(
+        self,
+        config = "proxy.json",
+        regex = {},
+        hosts = {},
+        balancer = "smart",
+        *args,
+        **kwargs
+    ):
         netius.servers.ProxyServer.__init__(self, *args, **kwargs)
         if type(regex) == dict: regex = regex.items()
         if not type(hosts) == dict: hosts = dict(hosts)
@@ -51,8 +59,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             path = config,
             regex = regex,
             hosts = hosts,
+            balancer = balancer,
             robin = dict()
         )
+        self.balancer_m = getattr(self, "balancer_" + self.balancer)
+        self.prefix_m = dict()
 
     def on_data_http(self, connection, parser):
         netius.servers.ProxyServer.on_data_http(self, connection, parser)
@@ -112,6 +123,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         connection.proxy_c = None
         if proxy_c in self.conn_map: del self.conn_map[proxy_c]
 
+        # retrieves the counter (of operations) for the selected prefix and
+        # increments the value by one, meaning that one more operation is
+        # being performed for the current prefix, this is required to maintain
+        # a metric that may be used latter for performance improvements
+        count = self.prefix_m.get(prefix, 0)
+        self.prefix_m[prefix] = count + 1
+
         # calls the proper (http) method in the client this should acquire
         # a new connection and starts the process of sending the request
         # to the associated http server (request handling)
@@ -123,6 +141,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             version = version_s,
             connection = proxy_c
         )
+
+        # sets the prefix attribute in the connection so that it's possible
+        # to retrieve it latter for tagging evaluation
+        _connection.prefix = prefix
 
         # prints a debug message about the connection becoming a waiting
         # connection meaning that the connection with the client host has
@@ -189,7 +211,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     def balancer(self, values):
         is_sequence = type(values) in (list, tuple)
         if not is_sequence: return values
-        return self.balancer_robin(values)
+        return self.balancer_m(values)
 
     def balancer_robin(self, values):
         index = self.robin.get(values, 0)
@@ -197,6 +219,24 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         next = 0 if index + 1 == len(values) else index + 1
         self.robin[values] = next
         return _prefix
+
+    def balancer_smart(self, values):
+        for value in values:
+            count = self.prefix_m.get(value, 0)
+            if count == 0: return value
+        return self.balancer_robin(values)
+
+    def _on_prx_message(self, client, parser, message):
+        _connection = parser.owner
+        prefix = _connection.prefix
+        self.prefix_m[prefix] -= 1
+        _connection.prefix = None
+        netius.servers.ProxyServer._on_prx_message(self, client, parser, message)
+
+    def _on_prx_close(self, client, _connection):
+        prefix = _connection.prefix if hasattr(_connection, "prefix") else None
+        if prefix: self.prefix_m[prefix] -= 1; _connection.prefix = None
+        netius.servers.ProxyServer._on_prx_close(self, client, _connection)
 
 if __name__ == "__main__":
     import logging
