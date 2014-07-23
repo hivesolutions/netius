@@ -34,12 +34,7 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-from . import base
-from . import dummy
-from . import memory
-from . import passwd
+from netius.auth import base
 
-from .base import *
-from .dummy import *
-from .memory import *
-from .passwd import *
+class PasswdAuth(base.Auth):
+    pass

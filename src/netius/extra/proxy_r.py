@@ -121,7 +121,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 connection.send_response(
                     data = "Not authorized",
                     headers = {
-                        "Connection" : "close",
+                        "connection" : "close",
                         "wWW-authenticate" : "Basic realm=\"insert realm\""
                     },
                     version = version_s,
