@@ -463,9 +463,12 @@ class HTTPServer(netius.StreamServer):
         token = base64.b64decode(token)
         username, password = token.split(":", 1)
 
-        # runs the process of authentication using the (typical) passwd
-        # based approach, returning the resulting boolean to the caller
-        return netius.PasswdAuth.auth(username, password, path = path)
+        # verifies if the provided value is string based and taking that
+        # into account runs the authentication process either using the
+        # static passwd based approach or on the provided instance
+        is_str = type(path) in netius.STRINGS
+        if is_str: return netius.PasswdAuth.auth(username, password, path = path)
+        else: return path.auth(username, password)
 
     def _apply_all(self, parser, connection, headers, upper = True):
         if upper: self._headers_upper(headers)

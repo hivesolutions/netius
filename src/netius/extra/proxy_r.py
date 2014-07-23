@@ -316,7 +316,7 @@ if __name__ == "__main__":
         "host.com" : "http://localhost"
     }
     auth = {
-        "host.com" : "extras/htpasswd"
+        "host.com" : netius.PasswdAuth("extras/htpasswd")
     }
     server = ReverseProxyServer(
         regex = regex,
