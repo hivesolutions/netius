@@ -125,6 +125,7 @@ class Server(Base):
         # account if the environment variable is currently set or not
         # please note that some side effects may arise from this set
         if env: self.level = self.get_env("LEVEL", self.level)
+        if env: self.logging = self.get_env("LOGGING", self.logging)
         if env: self.poll_name = self.get_env("POLL", self.poll_name)
         if env: self.poll_timeout = self.get_env(
             "POLL_TIMEOUT",
