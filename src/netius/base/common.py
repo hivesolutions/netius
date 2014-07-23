@@ -426,16 +426,16 @@ class Base(observer.Observable):
 
             # "clones" the configuration dictionary and then removes the base
             # values so that they do not interfere with the building
-            _config = dict(config)
-            if "level" in _config: del _config["level"]
-            if "name" in _config: del _config["name"]
+            config = dict(config)
+            if "level" in config: del config["level"]
+            if "name" in config: del config["name"]
 
             # retrieves the proper building, skipping the current loop in case
             # it does not exits and then builds the new handler instance, setting
             # the proper level and formatter and then adding it to the set
             if not hasattr(log, name + "_handler"): continue
             builder = getattr(log, name + "_handler")
-            handler = builder(**_config)
+            handler = builder(**config)
             handler.setLevel(_level)
             handler.setFormatter(formatter)
             self.handlers.append(handler)
