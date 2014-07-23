@@ -40,6 +40,10 @@ from netius.auth import base
 
 class PasswdAuth(base.Auth):
 
+    def __init__(self, path = None, *args, **kwargs):
+        base.Auth.__init__(self, *args, **kwargs)
+        self.path = path
+
     @classmethod
     def auth(cls, username, password, path = "passwd", *args, **kwargs):
         passwd = cls.get_passwd(path)
@@ -59,7 +63,7 @@ class PasswdAuth(base.Auth):
         if cache and not result == None: return result
 
         htpasswd = dict()
-        contents = cls.get_file(path, cache = cache)
+        contents = cls.get_file(path, cache = cache, encoding = "utf-8")
         for line in contents.split("\n"):
             line = line.strip()
             if not line: continue
@@ -68,3 +72,6 @@ class PasswdAuth(base.Auth):
 
         if cache: cls._pwcache[path] = htpasswd
         return htpasswd
+
+    def auth_i(self, username, password, *args, **kwargs):
+        return self.__class__.auth(username, password, self.path, *args, **kwargs)

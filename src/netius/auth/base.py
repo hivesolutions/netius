@@ -49,6 +49,11 @@ class Auth(object):
     at this abstraction level is insufficient or insecure.
     """
 
+    def __init__(self, *args, **kwargs):
+        object.__init__(self, *args, **kwargs)
+        self.auth = self.auth_i
+        self.auth_assert = self.auth_assert_i
+
     @classmethod
     def auth(cls, *args, **kwargs):
         raise netius.NotImplemented("Missing implementation")
@@ -95,7 +100,7 @@ class Auth(object):
         return (type, salt, digest, plain)
 
     @classmethod
-    def get_file(cls, path, cache = False):
+    def get_file(cls, path, cache = False, encoding = None):
         """
         Retrieves the (file) contents for the file located "under"
         the provided path, these contents are returned as a normal
@@ -104,12 +109,18 @@ class Auth(object):
         In case the cache flag is set these contents are store in
         memory so that they be latter retrieved much faster.
 
+        If the optional encoding value is provide the final value is
+        decoded according to the defined encoding.
+
         @type path: String
         @param path: The path as string to the file for which the
         contents are going to be retrieved.
         @type cache: bool
         @param cache: If the contents should be stored in memory and
         associated with the current path for latter access.
+        @type encoding: String
+        @param encoding: The string that identifies the encoding that
+        is going to be used for the decoding of the final string value.
         @rtype: String
         @return: The contents (as a string) of the file located under
         the provided path (from the file system).
@@ -137,7 +148,18 @@ class Auth(object):
         try: contents = file.read()
         finally: file.close
 
+        # in case an encoding value has been passed the contents must be properly
+        # decoded so that the "final" contents string is defined
+        if encoding: contents = contents.decode(encoding)
+
         # verifies if the cache mode/flag is enabled and if that's the case
         # store the complete file contents in memory under the dictionary
         if cache: cls._cache[path] = contents
         return contents
+
+    def auth_i(self, *args, **kwargs):
+        return self.__class__.auth(*args, **kwargs)
+
+    def auth_assert_i(self, *args, **kwargs):
+        result = self.auth_i(*args, **kwargs)
+        if not result: raise netius.SecurityError("Invalid authentication")
