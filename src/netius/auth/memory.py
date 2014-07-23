@@ -40,9 +40,13 @@ from netius.auth import base
 
 class MemoryAuth(base.Auth):
 
+    def __init__(self, registry = None, *args, **kwargs):
+        base.Auth.__init__(self, *args, **kwargs)
+        self.registry = registry
+
     @classmethod
-    def auth(cls, username, password, *args, **kwargs):
-        registry = cls.get_registry()
+    def auth(cls, username, password, registry = None, *args, **kwargs):
+        registry = registry or cls.get_registry()
         register = registry.get(username, None)
         if not register: return False
         _password = register.get("password")
@@ -57,3 +61,12 @@ class MemoryAuth(base.Auth):
     @classmethod
     def load_registry(cls):
         return netius.conf("REGISTRY", {})
+
+    def auth_i(self, username, password, *args, **kwargs):
+        return self.__class__.auth(
+            username,
+            password,
+            registry = self.registry,
+            *args,
+            **kwargs
+        )

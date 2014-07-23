@@ -74,4 +74,10 @@ class PasswdAuth(base.Auth):
         return htpasswd
 
     def auth_i(self, username, password, *args, **kwargs):
-        return self.__class__.auth(username, password, self.path, *args, **kwargs)
+        return self.__class__.auth(
+            username,
+            password,
+            path = self.path,
+            *args,
+            **kwargs
+        )
