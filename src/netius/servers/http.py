@@ -461,6 +461,7 @@ class HTTPServer(netius.StreamServer):
         # token into the username and password components (for validation)
         _realm, token = authorization.split(" ", 1)
         token = base64.b64decode(token)
+        token = netius.str(token)
         username, password = token.split(":", 1)
 
         # verifies if the provided value is string based and taking that
