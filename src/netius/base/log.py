@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import inspect
+
 import logging.handlers
 
 def rotating_handler(
@@ -67,11 +69,19 @@ def smtp_handler(
     address = (host, port)
     if username and password: credentials = (username, password)
     else: credentials = None
+    has_secure = in_signature(logging.handlers.SMTPHandler.__init__, "secure")
+    if has_secure: kwargs = dict(secure = () if stls else None)
+    else: kwargs = dict()
     return logging.handlers.SMTPHandler(
         address,
         sender,
         receivers,
         subject,
         credentials = credentials,
-        secure = () if stls else None
+        **kwargs
     )
+
+def in_signature(callable, name):
+    spec = inspect.getargspec(callable)
+    args = spec[0]; kwargs = spec[2]
+    return (args and name in args) or (kwargs and "secure" in kwargs)
