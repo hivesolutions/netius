@@ -19,6 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Hive Netius System. If not, see <http://www.gnu.org/licenses/>.
 
+__author__ = "João Magalhães <joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,28 +37,41 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-from . import client
-from . import common
-from . import config
-from . import conn
-from . import container
-from . import errors
-from . import legacy
-from . import log
-from . import observer
-from . import poll
-from . import request
-from . import server
+import logging.handlers
 
-from .client import *
-from .common import *
-from .config import *
-from .conn import *
-from .container import *
-from .errors import *
-from .legacy import *
-from .log import *
-from .observer import *
-from .poll import *
-from .request import *
-from .server import *
+def rotating_handler(
+    path = "netius.log",
+    max_bytes = 1048576,
+    max_log = 5,
+    encoding = None,
+    delay = False
+):
+    return logging.handlers.RotatingFileHandler(
+        path,
+        maxBytes = max_bytes,
+        backupCount = max_log,
+        encoding = encoding,
+        delay = delay
+    )
+
+def smtp_handler(
+    host = "localhost",
+    port = 25,
+    sender = "no-reply@netius.com",
+    receivers = [],
+    subject = "Netius logging",
+    username = None,
+    password = None,
+    stls = False
+):
+    address = (host, port)
+    if username and password: credentials = (username, password)
+    else: credentials = None
+    return logging.handlers.SMTPHandler(
+        address,
+        sender,
+        receivers,
+        subject,
+        credentials = credentials,
+        secure = () if stls else None
+    )

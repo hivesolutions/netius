@@ -50,6 +50,7 @@ import traceback
 
 import netius.adapters
 
+from netius.base import log
 from netius.base import config
 from netius.base import errors
 
@@ -268,6 +269,7 @@ class Base(observer.Observable):
         self.level = kwargs.get("level", logging.INFO)
         self.tid = None
         self.logger = None
+        self.logging = None
         self.poll_c = kwargs.get("poll", poll)
         self.poll = self.poll_c()
         self.poll_name = self.poll.name()
@@ -376,6 +378,7 @@ class Base(observer.Observable):
         level = self._level(level)
         formatter = logging.Formatter(format)
         identifier = self.get_id()
+        self.extra_logging(level, formatter)
         self.handler_stream.setLevel(level)
         self.handler_stream.setFormatter(formatter)
         self.logger = logging.getLogger(identifier)
@@ -384,6 +387,62 @@ class Base(observer.Observable):
         for handler in self.handlers:
             if not handler: continue
             self.logger.addHandler(handler)
+
+    def extra_logging(self, level, formatter):
+        """
+        Loads the complete set of logging handlers defined in the
+        current logging value, should be a map of definitions.
+
+        This handlers will latter be used for piping the various
+        logging messages to certain output channels.
+
+        The creation of the handler is done using a special keyword
+        arguments strategy so that python and configuration files
+        are properly set as compatible.
+
+        @type level: String/int
+        @param level: The base severity level for which the new handler
+        will be configured in case no extra level definition is set.
+        @type formatter: Formatter
+        @param formatter: The logging formatter instance to be set in
+        the handler for formatting messages to the output.
+        """
+
+        # verifies if the logging attribute of the current instance is
+        # defined and in case it's not returns immediately, otherwise
+        # starts by converting the currently defined set of handlers into
+        # a list so that it may be correctly manipulated (add handlers)
+        if not self.logging: return
+        self.handlers = list(self.handlers)
+
+        # iterates over the complete set of handler configuration in the
+        # logging to create the associated handler instances
+        for config in self.logging:
+            # gathers the base information on the current handler configuration
+            # running also the appropriate transformation on the level
+            name = config.get("name", None)
+            _level = config.get("level", level)
+            _level = self._level(_level)
+
+            # "clones" the configuration dictionary and then removes the base
+            # values so that they do not interfere with the building
+            _config = dict(config)
+            if "level" in _config: del _config["level"]
+            if "name" in _config: del _config["name"]
+
+            # retrieves the proper building, skipping the current loop in case
+            # it does not exits and then builds the new handler instance, setting
+            # the proper level and formatter and then adding it to the set
+            if not hasattr(log, name + "_handler"): continue
+            builder = getattr(log, name + "_handler")
+            handler = builder(**_config)
+            handler.setLevel(_level)
+            handler.setFormatter(formatter)
+            self.handlers.append(handler)
+
+        # restores the handlers structure back to the "original" tuple form
+        # so that no expected data types are violated
+        self.handlers = tuple(self.handlers)
 
     def bind_signals(self):
         # creates the signal handler function that propagates the raising
