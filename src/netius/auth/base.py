@@ -34,6 +34,7 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import os
 import hashlib
 import binascii
 
@@ -92,3 +93,51 @@ class Auth(object):
         if salt: salt = binascii.unhexlify(salt)
         if salt: salt = netius.str(salt)
         return (type, salt, digest, plain)
+
+    @classmethod
+    def get_file(cls, path, cache = False):
+        """
+        Retrieves the (file) contents for the file located "under"
+        the provided path, these contents are returned as a normal
+        string based byte buffer.
+
+        In case the cache flag is set these contents are store in
+        memory so that they be latter retrieved much faster.
+
+        @type path: String
+        @param path: The path as string to the file for which the
+        contents are going to be retrieved.
+        @type cache: bool
+        @param cache: If the contents should be stored in memory and
+        associated with the current path for latter access.
+        @rtype: String
+        @return: The contents (as a string) of the file located under
+        the provided path (from the file system).
+        """
+
+        # runs the complete set of normalization processes for the path so
+        # that the final path to be used in retrieval is canonical, providing
+        # a better mechanisms for both loading and cache processes
+        path = os.path.expanduser(path)
+        path = os.path.abspath(path)
+        path = os.path.normpath(path)
+
+        # verifies if the cache attribute already exists under the current class
+        # and in case it does not creates the initial cache dictionary
+        if not hasattr(cls, "_cache"): cls._cache = dict()
+
+        # tries to retrieve the contents of the file using a caches approach
+        # and returns such value in case the cache flag is enabled
+        result = cls._cache.get(path, None)
+        if cache and not result == None: return result
+
+        # as the cache retrieval has not been successful there's a need to
+        # load the file from the secondary storage (file system)
+        file = open(path, "rb")
+        try: contents = file.read()
+        finally: file.close
+
+        # verifies if the cache mode/flag is enabled and if that's the case
+        # store the complete file contents in memory under the dictionary
+        if cache: cls._cache[path] = contents
+        return contents

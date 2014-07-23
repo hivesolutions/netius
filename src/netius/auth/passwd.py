@@ -34,7 +34,37 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import os
+
 from netius.auth import base
 
 class PasswdAuth(base.Auth):
-    pass
+
+    @classmethod
+    def auth(cls, username, password, path = "passwd", *args, **kwargs):
+        passwd = cls.get_passwd(path)
+        _password = passwd.get(username, None)
+        if not _password: return False
+        return cls.verify(_password, password)
+
+    @classmethod
+    def get_passwd(cls, path, cache = True):
+        path = os.path.expanduser(path)
+        path = os.path.abspath(path)
+        path = os.path.normpath(path)
+
+        if not hasattr(cls, "_pwcache"): cls._pwcache = dict()
+
+        result = cls._pwcache.get(path, None) if hasattr(cls, "_pwcache") else None
+        if cache and not result == None: return result
+
+        htpasswd = dict()
+        contents = cls.get_file(path, cache = cache)
+        for line in contents.split("\n"):
+            line = line.strip()
+            if not line: continue
+            username, password = line.split(":", 1)
+            htpasswd[username] = password
+
+        if cache: cls._pwcache[path] = htpasswd
+        return htpasswd

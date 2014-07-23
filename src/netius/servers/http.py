@@ -37,7 +37,6 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
-import os
 import time
 import zlib
 import struct
@@ -463,33 +462,11 @@ class HTTPServer(netius.StreamServer):
         # token into the username and password components (for validation)
         _realm, token = authorization.split(" ", 1)
         token = base64.b64decode(token)
-        _username, _password = token.split(":", 1)
+        username, password = token.split(":", 1)
 
-        # runs the retrieval process of the htpasswd file using the requested
-        # path (note that this is cached retrieval) and then verifies if the
-        # password for the requested user is valid according to the file
-        htpasswd = self.get_htpasswd(path)
-        password = htpasswd.get(_username, None)
-        return not password == None and _password == password
-
-    def get_htpasswd(self, path, cache = True):
-        path = os.path.expanduser(path)
-        path = os.path.abspath(path)
-        path = os.path.normpath(path)
-
-        result = self._htcache.get(path, None)
-        if cache and not result == None: return result
-
-        htpasswd = dict()
-        contents = self.get_file(path, cache = cache)
-        for line in contents.split("\n"):
-            line = line.strip()
-            if not line: continue
-            username, password = line.split(":", 1)
-            htpasswd[username] = password
-
-        if cache: self._htcache[path] = htpasswd
-        return htpasswd
+        # runs the process of authentication using the (typical) passwd
+        # based approach, returning the resulting boolean to the caller
+        return netius.PasswdAuth.auth(username, password, path = path)
 
     def _apply_all(self, parser, connection, headers, upper = True):
         if upper: self._headers_upper(headers)
