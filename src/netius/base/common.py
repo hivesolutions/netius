@@ -278,7 +278,6 @@ class Base(observer.Observable):
         self._lid = 0
         self._running = False
         self._loaded = False
-        self._cache = {}
         self._delayed = []
         self._delayed_o = []
         self.set_state(STATE_STOP)

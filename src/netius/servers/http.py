@@ -423,7 +423,6 @@ class HTTPServer(netius.StreamServer):
     def __init__(self, encoding = "plain", *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.encoding_s = encoding
-        self._htcache = {}
 
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
