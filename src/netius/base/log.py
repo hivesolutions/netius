@@ -41,6 +41,11 @@ import inspect
 
 import logging.handlers
 
+SILENT = logging.CRITICAL + 1
+""" The "artificial" silent level used to silent a logger
+or an handler, this is used as an utility for debugging
+purposes more that a real feature for production systems """  
+
 def rotating_handler(
     path = "netius.log",
     max_bytes = 1048576,
