@@ -8,4 +8,5 @@ python:
   - "pypy"
   - "pypy3"
 script: python setup.py test
-slack: hivesolutions:kmB6iU8BspjNz9SahqmLutnc
+notifications:
+  slack: hivesolutions:838m5XXohsuxjWI0mSzghWOK
