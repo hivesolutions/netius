@@ -44,6 +44,19 @@ import netius.common
 import netius.servers
 
 class ReverseProxyServer(netius.servers.ProxyServer):
+    """
+    Reverse HTTP proxy implementation based on the more generalized
+    infra-structure of proxy server.
+
+    Supports multiple scheduling strategies, being the "smart" one
+    the most efficient for most of the possible scenarios.
+
+    Conditional re-usage of connections based on boolean flag is possible,
+    but care should be taken when using re-usage so that no multiple
+    rules are applied for the same connection (eg: https://host.com/hive,
+    https://host.com/colony as different rules), this would pose a serious
+    problems if the back-end servers are different for each rule.
+    """
 
     def __init__(
         self,
@@ -52,6 +65,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         hosts = {},
         auth = {},
         strategy = "smart",
+        reuse = True,
         *args,
         **kwargs
     ):
@@ -64,10 +78,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             hosts = hosts,
             auth = auth,
             strategy = strategy,
+            reuse = reuse,
             robin = dict(),
             smart = netius.common.PriorityDict()
         )
         self.balancer_m = getattr(self, "balancer_" + self.strategy)
+        self.acquirer_m = getattr(self, "acquirer_" + self.strategy)
         self.releaser_m = getattr(self, "releaser_" + self.strategy)
 
     def on_data_http(self, connection, parser):
@@ -84,13 +100,20 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         host = headers.get("host", None)
         protocol = "https" if is_secure else "http"
 
+        # tries to extract the various attributes of the current connection
+        # that are going to be used for the routing operation, this attributes
+        # should avoid a new rule set application and provide connection re-usage
+        prefix = connection.prefix if hasattr(connection, "prefix") else None
+        state = connection.state if hasattr(connection, "state") else None
+        reusable = hasattr(connection, "proxy_c")
+
         # constructs the url that is going to be used by the rule engine and
         # then "forwards" both the url and the parser object to the rule engine
         # in order to obtain the possible prefix value for url reconstruction,
         # a state value is also retrieved, this value will be used latter for
-        # the releasing part of the balancing strategy operation
+        # the acquiring and releasing parts of the balancing strategy operation
         url = "%s://%s%s" % (protocol, host, path)
-        prefix, state = self.rules(url, parser)
+        if not self.reuse or not reusable: prefix, state = self.rules(url, parser)
 
         # in case no prefix is defined at this stage there's no matching
         # against the currently defined rules and so an error must be raised
@@ -152,6 +175,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 )
                 return
 
+        # runs the acquire operation for the current state, this should
+        # update the current scheduling algorithm internal structures so
+        # that they properly handle the new handle operation, an inverse
+        # release operation should be performed at the end of the handling
+        self.acquirer(state)
+
         # re-calculates the url for the reverse connection based on the
         # prefix value that has just been "resolved" using the rule engine
         # this value should be constructed based on the original path
@@ -163,10 +192,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # would occur in the operation of handling the request
         headers["x-forwarded-proto"] = protocol
 
-        # verifies if the current connection contains already contains
-        # a proxy connection if that's the case that must be unset from the
-        # connection and from the connection map internal structures at
-        # least until the http client returns from the method call
+        # verifies if the current connection already contains a valid
+        # a proxy connection if that's the case that must be unset from
+        # the connection and from the connection map internal structures
+        # at least until the http client returns from the method call
         proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
         proxy_c = proxy_c or None
         connection.proxy_c = None
@@ -184,6 +213,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             connection = proxy_c
         )
 
+        print _connection
+
         # sets the state attribute in the connection so that it's possible
         # to retrieve it latter for tagging evaluation, this is required for
         # advanced load balancing techniques to be performed
@@ -199,6 +230,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # the reverse mapping using the connection map of the current server
         _connection.waiting = True
         connection.proxy_c = _connection
+        connection.prefix = prefix
+        connection.state = state
         self.conn_map[_connection] = connection
 
     def rules(self, url, parser):
@@ -276,11 +309,20 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         prefix = queue.smallest()
 
+        return prefix, (prefix, queue)
+
+    def acquirer(self, state):
+        self.acquirer_m(state)
+
+    def acquirer_robin(self, state):
+        pass
+
+    def acquirer_smart(self, state):
+        if not state: return
+        prefix, queue = state
         sorter = queue[prefix]
         sorter[0] += 1
         queue[prefix] = sorter
-
-        return prefix, (prefix, queue)
 
     def releaser(self, state):
         self.releaser_m(state)
