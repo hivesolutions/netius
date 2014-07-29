@@ -365,7 +365,7 @@ class ProxyServer(http.HTTPServer):
     def _apply_headers(self, parser, headers, upper = True):
         if upper: self._headers_upper(headers)
         self._apply_via(parser, headers)
-        self._apply_base(headers)
+        self._apply_base(headers, override = True)
 
     def _apply_via(self, parser, headers):
         # retrieves the various elements of the parser that are going

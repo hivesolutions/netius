@@ -155,9 +155,9 @@ class HTTPConnection(netius.Connection):
         self.trigger("chunk", self, self.parser, range)
         self.owner.on_chunk_http(self, self.parser, range)
 
-    def _apply_base(self, headers):
+    def _apply_base(self, headers, override = False):
         for key, value in BASE_HEADERS.items():
-            if key in headers: continue
+            if not override and key in headers: continue
             headers[key] = value
 
     def _apply_dynamic(self, headers):
