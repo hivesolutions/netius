@@ -477,9 +477,9 @@ class HTTPServer(netius.StreamServer):
         self._apply_parser(parser, headers)
         self._apply_connection(connection, headers)
 
-    def _apply_base(self, headers, override = False):
+    def _apply_base(self, headers, replace = False):
         for key, value in BASE_HEADERS.items():
-            if not override and key in headers: continue
+            if not replace and key in headers: continue
             headers[key] = value
 
     def _apply_parser(self, parser, headers):
