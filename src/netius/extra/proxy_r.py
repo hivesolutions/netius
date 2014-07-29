@@ -213,8 +213,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             connection = proxy_c
         )
 
-        print _connection
-
         # sets the state attribute in the connection so that it's possible
         # to retrieve it latter for tagging evaluation, this is required for
         # advanced load balancing techniques to be performed
