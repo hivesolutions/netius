@@ -158,7 +158,7 @@ class Connection(observer.Observable):
         self.connecting = False
 
         # unsets the upgrading flag as the connection could not be
-        # under the upgrading stat anymore as the closing process
+        # under the upgrading state anymore as the closing process
         # for the connection has been started (not ready for upgrade)
         self.upgrading = False
 
