@@ -583,7 +583,7 @@ class StreamServer(Server):
 
             # verifies if there's any pending operations in the
             # socket (eg: ssl handshaking) and performs them trying
-            # to finish them, in they are still pending at the current
+            # to finish them, if they are still pending at the current
             # state returns immediately (waits for next loop)
             if self._pending(_socket): return
 
