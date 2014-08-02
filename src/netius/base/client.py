@@ -600,7 +600,7 @@ class StreamClient(Client):
             # if the current connection state is upgrading the proper
             # upgrading operations must be performed for example ssl
             # handshaking and then the proper callbacks may be called
-            # as a consequence of that note that if there's pending
+            # as a consequence of that, note that if there's pending
             # operations at the end of this call no data will be received
             # and processed as a consequence
             if connection.upgrading: self._upgradef(connection)
