@@ -590,21 +590,21 @@ class StreamClient(Client):
         if not connection.status == OPEN: return
         if not connection.renable == True: return
 
-        # in case the connection is under the connecting state
-        # the socket must be verified for errors and in case
-        # there's none the connection must proceed, for example
-        # the ssl connection handshake must be performed/retried
-        if connection.connecting: self._connectf(connection)
-
-        # if the current connection state is upgrading the proper
-        # upgrading operations must be performed for example ssl
-        # handshaking and then the proper callbacks may be called
-        # as a consequence of that note that if there's pending
-        # operations at the end of this call no data will be received
-        # and processed as a consequence
-        if connection.upgrading: self._upgradef(connection)
-
         try:
+            # in case the connection is under the connecting state
+            # the socket must be verified for errors and in case
+            # there's none the connection must proceed, for example
+            # the ssl connection handshake must be performed/retried
+            if connection.connecting: self._connectf(connection)
+
+            # if the current connection state is upgrading the proper
+            # upgrading operations must be performed for example ssl
+            # handshaking and then the proper callbacks may be called
+            # as a consequence of that note that if there's pending
+            # operations at the end of this call no data will be received
+            # and processed as a consequence
+            if connection.upgrading: self._upgradef(connection)
+
             # verifies if there's any pending operations in the
             # socket (eg: ssl handshaking) and performs them trying
             # to finish them, in they are still pending at the current

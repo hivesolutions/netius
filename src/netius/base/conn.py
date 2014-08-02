@@ -157,6 +157,11 @@ class Connection(observer.Observable):
         # to the original not connecting state
         self.connecting = False
 
+        # unsets the upgrading flag as the connection could not be
+        # under the upgrading stat anymore as the closing process
+        # for the connection has been started (not ready for upgrade)
+        self.upgrading = False
+
         # unsets the write ready flag so that no more write operations
         # are performed as requested by specification (mandatory) this
         # should avoid extra erroneous write operations

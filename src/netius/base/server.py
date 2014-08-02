@@ -576,11 +576,11 @@ class StreamServer(Server):
         if not connection.status == OPEN: return
         if not connection.renable == True: return
 
-        # verifies if the connection is currently under the upgrading
-        # status if that's the case runs the upgrade finish operation
-        if connection.upgrading: self._upgradef(connection)
-
         try:
+            # verifies if the connection is currently under the upgrading
+            # status if that's the case runs the upgrade finish operation
+            if connection.upgrading: self._upgradef(connection)
+
             # verifies if there's any pending operations in the
             # socket (eg: ssl handshaking) and performs them trying
             # to finish them, in they are still pending at the current
