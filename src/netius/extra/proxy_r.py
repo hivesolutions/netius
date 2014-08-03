@@ -54,8 +54,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     Conditional re-usage of connections based on boolean flag is possible,
     but care should be taken when using re-usage so that no multiple
     rules are applied for the same connection (eg: https://host.com/hive,
-    https://host.com/colony as different rules), this would pose a serious
-    problems if the back-end servers are different for each rule.
+    https://host.com/colony as different rules), this would pose serious
+    problems if the back-end servers are different for each rule or if
+    the way the final back-end url is created is different for each rule.
     """
 
     def __init__(
