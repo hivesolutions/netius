@@ -118,8 +118,8 @@ class HTTPConnection(netius.Connection):
         buffer.append("\r\n")
         buffer_data = "".join(buffer)
 
-        self.send(buffer_data)
-        data and self.send(data)
+        self.send(buffer_data, force = True)
+        data and self.send(data, force = True)
 
     def set_headers(self, headers, normalize = True):
         self.headers = headers
@@ -509,6 +509,11 @@ class HTTPClient(netius.StreamClient):
         if on_data: connection.bind("partial", on_data)
         if callback: connection.bind("message", callback)
 
+        # runs the sending of the initial request, even though the
+        # connection may not be open yet, if that's the case this
+        # initial data will be queued for latter delivery (on connect)
+        connection.send_request()
+
         # in case the current request is not meant to be handled as
         # asynchronous tries to start the current event loop (blocking
         # the current workflow) then returns the proper value to the
@@ -523,7 +528,7 @@ class HTTPClient(netius.StreamClient):
     def on_acquire(self, connection):
         netius.StreamClient.on_acquire(self, connection)
         self.trigger("acquire", self, connection)
-        connection.send_request()
+        connection.ensure_write()
 
     def on_release(self, connection):
         netius.StreamClient.on_release(self, connection)
