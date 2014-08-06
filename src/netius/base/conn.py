@@ -332,7 +332,7 @@ class Connection(observer.Observable):
         self.renable = False
         self.owner.unsub_read(self.socket)
 
-    def send(self, data, delay = False, callback = None):
+    def send(self, data, delay = False, force = False, callback = None):
         """
         The main send call to be used by a proxy connection and
         from different threads.
@@ -357,6 +357,11 @@ class Connection(observer.Observable):
         @param delay: If the send operation should be delayed until
         the next tick operation or if it should be performed as
         soon as possible (as defined in specification).
+        @type force: bool
+        @param force: If the sending of the data should be "forced",
+        meaning that even if the connection is not open the data
+        is added to the current pending queue. Useful for client
+        connections wanting to write ahead.
         @type callback: Function
         @param callback: Function to be called when the data set
         to be send is completely sent to the socket.
@@ -377,7 +382,7 @@ class Connection(observer.Observable):
         # state and then verifies if a callback exists if that's
         # the case the data tuple must be created with the data
         # and the callback as the contents (standard process)
-        if not self.status == OPEN: return
+        if not self.status == OPEN and not force: return
         if callback: data = (data, callback)
 
         # retrieves the identifier of the current thread and then
