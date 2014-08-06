@@ -271,7 +271,7 @@ class WSGIServer(http.HTTPServer):
 
         # unsets the iterator attribute in the connection object so that
         # it may no longer be used by any chunk of logic code
-        setattr(connection, "iterator", None)
+        connection.iterator = None
 
     def _release_environ(self, connection):
         # tries to retrieve the map of environment for the current
@@ -287,7 +287,7 @@ class WSGIServer(http.HTTPServer):
         # removes the complete set of key to value association in the
         # map and unset the environ value in the current connection
         environ.clear()
-        setattr(connection, "environ", None)
+        connection.environ = None
 
     def _decode(self, value):
         """
