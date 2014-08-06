@@ -57,6 +57,23 @@ allowed in the sending buffer, this maximum value
 avoids the starvation of the producer to consumer
 relation that could cause memory problems """
 
+class ProxyConnection(http.HTTPConnection):
+
+    def open(self, *args, **kwargs):
+        http.HTTPConnection.open(self, *args, **kwargs)
+        self.parser.bind("on_headers", self.on_headers)
+        self.parser.bind("on_partial", self.on_partial)
+        self.parser.bind("on_chunk", self.on_chunk)
+
+    def on_headers(self):
+        self.owner.on_headers(self, self.parser)
+
+    def on_partial(self, data):
+        self.owner.on_partial(self, self.parser, data)
+
+    def on_chunk(self, range):
+        self.owner.on_chunk(self, self.parser, range)
+
 class ProxyServer(http.HTTPServer):
 
     def __init__(self, throttle = True, max_pending = MAX_PENDING, *args, **kwargs):
@@ -162,6 +179,39 @@ class ProxyServer(http.HTTPServer):
         if self.env: self.throttle = self.get_env("THROTTLE", self.throttle, cast = bool)
         if self.throttle: self.info("Throttling connections in the proxy ...")
         else: self.info("Not throttling connections in the proxy ...")
+
+    def on_headers(self, connection, parser):
+        pass
+
+    def on_partial(self, connection, parser, data):
+        proxy_c = connection.proxy_c
+
+        should_disable = self.throttle and proxy_c.pending_s > self.max_pending
+        if should_disable: connection.disable_read()
+        proxy_c.send(data, force = True, callback = self._throttle)
+
+    def on_chunk(self, connection, parser, range):
+        start, end = range
+        data = parser.message[start:end]
+        data_s = b"".join(data)
+        data_l = len(data_s)
+        header = netius.bytes("%x\r\n" % data_l)
+        chunk = header + data_s + b"\r\n"
+
+        proxy_c = connection.proxy_c
+
+        should_disable = self.throttle and proxy_c.pending_s > self.max_pending
+        if should_disable: connection.disable_read()
+        proxy_c.send(chunk, force = True, callback = self._prx_throttle)
+
+    def new_connection(self, socket, address, ssl = False):
+        return ProxyConnection(
+            owner = self,
+            socket = socket,
+            address = address,
+            ssl = ssl,
+            encoding = self.encoding
+        )
 
     def _throttle(self, _connection):
         if _connection.pending_s > self.min_pending: return
