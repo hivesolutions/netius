@@ -223,7 +223,7 @@ STATE_STRINGS = (
 the various states for the base service, this may be used to
 create an integer to string resolution mechanism """
 
-KEEPALIVE_TIMEOUT = 300
+KEEPALIVE_TIMEOUT = 1200
 """ The amount of time in seconds that a connection is set as
 idle until a new refresh token is sent to it to make sure that
 it's still online and not disconnected, make sure that this
