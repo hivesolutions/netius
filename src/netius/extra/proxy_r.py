@@ -87,8 +87,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         self.acquirer_m = getattr(self, "acquirer_" + self.strategy)
         self.releaser_m = getattr(self, "releaser_" + self.strategy)
 
-    def on_data_http(self, connection, parser):
-        netius.servers.ProxyServer.on_data_http(self, connection, parser)
+    def on_headers(self, connection, parser):
+        netius.servers.ProxyServer.on_headers(self, connection, parser)
 
         # retrieves the various parts/configuration values of the parser, that
         # are going to be used in the processing/routing of the proxy request,
@@ -209,7 +209,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             method,
             url,
             headers = headers,
-            data = parser.get_message(),
             version = version_s,
             connection = proxy_c
         )
@@ -354,7 +353,7 @@ if __name__ == "__main__":
         (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}")
     )
     hosts = {
-        "host.com" : "http://localhost"
+        "host.com" : "http://hive.pt"
     }
     auth = {
         "host.com" : netius.PasswdAuth("extras/htpasswd")

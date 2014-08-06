@@ -48,8 +48,8 @@ class ForwardProxyServer(netius.servers.ProxyServer):
         self.load_config(path = config, rules = rules)
         self.compile()
 
-    def on_data_http(self, connection, parser):
-        netius.servers.ProxyServer.on_data_http(self, connection, parser)
+    def on_headers(self, connection, parser):
+        netius.servers.ProxyServer.on_headers(self, connection, parser)
 
         method = parser.method.upper()
         path = parser.path_s
@@ -90,7 +90,6 @@ class ForwardProxyServer(netius.servers.ProxyServer):
                 method,
                 path,
                 headers = parser.headers,
-                data = parser.get_message(),
                 version = version_s,
                 connection = proxy_c
             )
