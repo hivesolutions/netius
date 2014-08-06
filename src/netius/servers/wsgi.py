@@ -151,10 +151,12 @@ class WSGIServer(http.HTTPServer):
         # runs the app logic with the provided environment map and starts
         # response clojure and then iterates over the complete set of values
         # in the returned iterator to send the messages to the other end
-        # note that the iterator is set in the connection for latter retrieval
+        # note that the iterator and the environment map are set in the
+        # connection for latter retrieval (required for processing/closing)
         sequence = self.app(environ, start_response)
         iterator = iter(sequence)
         connection.iterator = iterator
+        connection.environ = environ
 
         # triggers the start of the connection iterator flushing operation
         # by calling the send part method for the current connection, this
@@ -253,8 +255,21 @@ class WSGIServer(http.HTTPServer):
         if is_final: connection.flush(callback = callback)
         else: connection.send(data, delay = True, callback = self._send_part)
 
+        # in case this is the final "iteration" in part sending the
+        # map of environment must be destroyed properly, avoiding any
+        # possible memory leak for the current handling
+        if is_final: self._release(connection)
+
     def _close(self, connection):
         connection.close(flush = True)
+        self._release(connection)
+
+    def _release(self, connection):
+        if not hasattr(connection, "environ"): return
+        environ = connection.environ
+        input = environ["wsgi.input"]
+        input.close()
+        environ.clear()
 
     def _decode(self, value):
         """
