@@ -280,12 +280,12 @@ class WSGIServer(http.HTTPServer):
         if not environ: return
 
         # retrieves the input stream (buffer) and closes it as there's
-        # not going to be any further operation in it (avoid leak)
+        # not going to be any further operation in it (avoids leak)
         input = environ["wsgi.input"]
         input.close()
 
-        # removes the complete set of key to value association in the
-        # map and unset the environ value in the current connection
+        # removes the complete set of key to value associations in the
+        # map and unsets the environ value in the current connection
         environ.clear()
         connection.environ = None
 
