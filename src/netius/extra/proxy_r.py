@@ -203,7 +203,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if proxy_c in self.conn_map: del self.conn_map[proxy_c]
 
         # calls the proper (http) method in the client this should acquire
-        # a new connection and starts the process of sending the request
+        # a new connection and start the process of sending the request
         # to the associated http server (request handling)
         _connection = self.http_client.method(
             method,
