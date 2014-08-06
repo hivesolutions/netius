@@ -179,6 +179,8 @@ class HTTPParser(parser.Parser):
 
         parser.Parser.destroy(self)
 
+        self.clear()
+
         self.states = ()
         self.state_l = 0
 

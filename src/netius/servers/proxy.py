@@ -61,6 +61,7 @@ class ProxyConnection(http.HTTPConnection):
 
     def open(self, *args, **kwargs):
         http.HTTPConnection.open(self, *args, **kwargs)
+        self.parser.store = False
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_partial", self.on_partial)
         self.parser.bind("on_chunk", self.on_chunk)
