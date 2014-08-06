@@ -65,21 +65,10 @@ class WSGIServer(http.HTTPServer):
     def on_connection_d(self, connection):
         http.HTTPServer.on_connection_d(self, connection)
 
-        # verifies if there's an iterator object currently defined
-        # in the connection so that it may be close in case that's
-        # required, this is mandatory to avoid any memory leak
-        iterator = hasattr(connection, "iterator") and connection.iterator
-        if not iterator: return
-
-        # verifies if the close attributes is defined in the iterator
-        # and if that's the case calls the close method in order to
-        # avoid any memory leak caused by the generator
-        has_close = hasattr(iterator, "close")
-        if has_close: iterator.close()
-
-        # unsets the iterator attribute in the connection object so that
-        # it may no longer be used by any chunk of logic code
-        setattr(connection, "iterator", None)
+        # tries to run the releasing operation on the current connection
+        # so that the proper destruction of objects is performed avoiding
+        # leaving any extra memory leak (would create problems)
+        self._release(connection)
 
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
@@ -262,14 +251,43 @@ class WSGIServer(http.HTTPServer):
 
     def _close(self, connection):
         connection.close(flush = True)
-        self._release(connection)
 
     def _release(self, connection):
-        if not hasattr(connection, "environ"): return
-        environ = connection.environ
+        self._release_iterator(connection)
+        self._release_environ(connection)
+
+    def _release_iterator(self, connection):
+        # verifies if there's an iterator object currently defined
+        # in the connection so that it may be close in case that's
+        # required, this is mandatory to avoid any memory leak
+        iterator = hasattr(connection, "iterator") and connection.iterator
+        if not iterator: return
+
+        # verifies if the close attributes is defined in the iterator
+        # and if that's the case calls the close method in order to
+        # avoid any memory leak caused by the generator
+        has_close = hasattr(iterator, "close")
+        if has_close: iterator.close()
+
+        # unsets the iterator attribute in the connection object so that
+        # it may no longer be used by any chunk of logic code
+        setattr(connection, "iterator", None)
+
+    def _release_environ(self, connection):
+        # tries to retrieve the map of environment for the current
+        # connection and in case it does not exists returns immediately
+        environ = hasattr(connection, "environ") and connection.environ
+        if not environ: return
+
+        # retrieves the input stream (buffer) and closes it as there's
+        # not going to be any further operation in it (avoid leak)
         input = environ["wsgi.input"]
         input.close()
+
+        # removes the complete set of key to value association in the
+        # map and unset the environ value in the current connection
         environ.clear()
+        setattr(connection, "environ", None)
 
     def _decode(self, value):
         """
