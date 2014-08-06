@@ -460,6 +460,11 @@ class HTTPClient(netius.StreamClient):
         connection.set_headers(headers)
         connection.set_data(data)
 
+        # runs the sending of the initial request, even though the
+        # connection may not be open yet, if that's the case this
+        # initial data will be queued for latter delivery (on connect)
+        connection.send_request()
+
         # verifies if the current request to be done should create
         # a request structure representing it, this is the case when
         # the request is synchronous and no handled is defined and
@@ -508,11 +513,6 @@ class HTTPClient(netius.StreamClient):
         if on_headers: connection.bind("headers", on_headers)
         if on_data: connection.bind("partial", on_data)
         if callback: connection.bind("message", callback)
-
-        # runs the sending of the initial request, even though the
-        # connection may not be open yet, if that's the case this
-        # initial data will be queued for latter delivery (on connect)
-        connection.send_request()
 
         # in case the current request is not meant to be handled as
         # asynchronous tries to start the current event loop (blocking
