@@ -93,6 +93,10 @@ class Connection(observer.Observable):
         observer.Observable.__del__(self)
         self.owner.debug("Connection '%s' deleted from memory" % self.id)
 
+    def destroy(self):
+        observer.Observable.destroy(self)
+        del self.pending[:]
+
     def open(self, connect = False):
         # in case the current status of the connection is already open
         # it does not make sense to proceed with the opening of the
