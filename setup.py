@@ -41,21 +41,13 @@ import os
 import glob
 import setuptools
 
-try:
-    import pypandoc
-    contents = pypandoc.convert("readme.md", "rst")
-    file = open("readme.rst", "wb")
-    try: file.write(contents)
-    finally: file.close()
-except (IOError, ImportError):
-    pass
-
 setuptools.setup(
     name = "netius",
-    version = "1.3.11",
+    version = "1.3.12",
     author = "Hive Solutions Lda.",
     author_email = "development@hive.pt",
     description = "Netius System",
+    long_description = open(os.path.join("readme.rst")).read(),
     license = "GNU General Public License (GPL), Version 3",
     keywords = "netius net infrastructure",
     url = "http://netius.hive.pt",
@@ -78,7 +70,8 @@ setuptools.setup(
         "" : os.path.normpath("src")
     },
     package_data = {
-        "netius" : ["base/extras/*", "extra/extras/*", "servers/extras/*"]
+        "netius" : ["base/extras/*", "extra/extras/*", "servers/extras/*"],
+        "" : ["readme.rst"]
     },
     classifiers = [
         "Development Status :: 3 - Alpha",
