@@ -41,6 +41,15 @@ import os
 import glob
 import setuptools
 
+try:
+    import pypandoc
+    contents = pypandoc.convert("readme.md", "rst")
+    file = open("readme.rst", "wb")
+    try: file.write(contents)
+    finally: file.close()
+except (IOError, ImportError):
+    pass
+
 setuptools.setup(
     name = "netius",
     version = "1.3.11",
