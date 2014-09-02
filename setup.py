@@ -43,11 +43,10 @@ import setuptools
 
 setuptools.setup(
     name = "netius",
-    version = "1.3.12",
+    version = "1.3.13",
     author = "Hive Solutions Lda.",
     author_email = "development@hive.pt",
     description = "Netius System",
-    long_description = open(os.path.join("readme.rst")).read(),
     license = "GNU General Public License (GPL), Version 3",
     keywords = "netius net infrastructure",
     url = "http://netius.hive.pt",
@@ -70,8 +69,7 @@ setuptools.setup(
         "" : os.path.normpath("src")
     },
     package_data = {
-        "netius" : ["base/extras/*", "extra/extras/*", "servers/extras/*"],
-        "" : ["readme.rst"]
+        "netius" : ["base/extras/*", "extra/extras/*", "servers/extras/*"]
     },
     classifiers = [
         "Development Status :: 3 - Alpha",
