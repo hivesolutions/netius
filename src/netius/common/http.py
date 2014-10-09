@@ -48,7 +48,9 @@ FILE_LIMIT = 5242880
 """ The limit value (in bytes) from which the back-end
 message storage mechanism will start using a file system
 stored file instead of an in memory object, this way it's
-possible to avoid memory starvation problems """
+possible to avoid memory starvation problems, this is a
+default value for the parser and may be overriden using
+the dedicated parameter value in the constructor """
 
 REQUEST = 1
 """ The http request message indicator, should be
@@ -156,11 +158,17 @@ class HTTPParser(parser.Parser):
     parsing. But the object itself is not thread safe.
     """
 
-    def __init__(self, owner, type = REQUEST, store = False):
+    def __init__(
+        self,
+        owner,
+        type = REQUEST,
+        store = False,
+        file_limit = FILE_LIMIT
+    ):
         parser.Parser.__init__(self, owner)
 
         self.build()
-        self.reset(type = type, store = store)
+        self.reset(type = type, store = store, file_limit = file_limit)
 
     def build(self):
         """
@@ -193,7 +201,7 @@ class HTTPParser(parser.Parser):
         self.states = ()
         self.state_l = 0
 
-    def reset(self, type = REQUEST, store = False):
+    def reset(self, type = REQUEST, store = False, file_limit = FILE_LIMIT):
         """
         Initializes the state of the parser setting the values
         for the various internal structures to the original value.
@@ -206,11 +214,16 @@ class HTTPParser(parser.Parser):
         @param store: If the complete message body should be stored
         in memory as the message gets loaded, this option may create
         some serious performance issues.
+        @type file_limit: int
+        @param file_limit: The maximum content for the payload message
+        from which a in file buffer will be used instead of the one that
+        is stored in memory (avoid memory starvation).
         """
 
         self.close()
         self.type = type
         self.store = store
+        self.file_limit = file_limit
         self.state = LINE_STATE
         self.buffer = []
         self.headers = {}
@@ -241,7 +254,7 @@ class HTTPParser(parser.Parser):
 
     def clear(self, force = False):
         if not force and self.state == LINE_STATE: return
-        self.reset(self.type, self.store)
+        self.reset(self.type, self.store, self.file_limit)
 
     def close(self):
         if hasattr(self, "message") and self.message: self.message = []
@@ -490,7 +503,7 @@ class HTTPParser(parser.Parser):
         # verifies if a back-end file object should be used to store
         # the file contents, this is done by checking the store flag
         # and verifying that the file limit value has been reached
-        use_file = self.store and self.content_l > FILE_LIMIT
+        use_file = self.store and self.content_l > self.file_limit
         if use_file: self.message_f = tempfile.NamedTemporaryFile(mode = "w+b")
 
         # retrieves the type of transfer encoding that is going to be
