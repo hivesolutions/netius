@@ -37,10 +37,18 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "GNU General Public License (GPL), Version 3"
 """ The license for the module """
 
+import tempfile
+
 import netius
 
 from netius.common import util
 from netius.common import parser
+
+FILE_LIMIT = 1048576
+""" The limit value (in bytes) from which the back-end
+message storage mechanism will start using a file system
+stored file instead of an in memory object, this way it's
+possible to avoid memory starvation problems """
 
 REQUEST = 1
 """ The http request message indicator, should be
@@ -180,6 +188,7 @@ class HTTPParser(parser.Parser):
         parser.Parser.destroy(self)
 
         self.clear()
+        self.close()
 
         self.states = ()
         self.state_l = 0
@@ -199,6 +208,7 @@ class HTTPParser(parser.Parser):
         some serious performance issues.
         """
 
+        self.close()
         self.type = type
         self.store = store
         self.state = LINE_STATE
@@ -218,6 +228,7 @@ class HTTPParser(parser.Parser):
         self.status_s = None
         self.connection_s = None
         self.message_s = None
+        self.message_f = None
         self.content_l = -1
         self.message_l = 0
         self.transfer_e = None
@@ -231,6 +242,11 @@ class HTTPParser(parser.Parser):
     def clear(self, force = False):
         if not force and self.state == LINE_STATE: return
         self.reset(self.type, self.store)
+
+    def close(self):
+        if not hasattr(self, "message_f"): return
+        if not self.message_f: return
+        self.message_f.close()
 
     def get_path(self):
         split = self.path_s.split("?", 1)
@@ -246,10 +262,28 @@ class HTTPParser(parser.Parser):
         return self.message_s
 
     def get_message_b(self):
-        buffer = netius.BytesIO()
-        for value in self.message: buffer.write(value)
-        buffer.seek(0)
-        return buffer
+        """
+        Retrieves a new buffer associated with the currently
+        loaded message, the first time this method is called a
+        new in memory object will be created for the storage.
+
+        In case the current parsing operation is using a file like
+        object for the handling this object is returned instead.
+
+        The call of this method is only considered to be safe after
+        the complete message has been received and processed, otherwise
+        and invalid message file structure may be created.
+
+        @rtype: File
+        @return: The file like object that may be used to percolate
+        over the various parts of the current message contents.
+        """
+
+        if self.message_f: return self.message_f
+        self.message_f = netius.BytesIO()
+        for value in self.message: self.message_f.write(value)
+        self.message_f.seek(0)
+        return self.message_f
 
     def get_headers(self):
         headers = dict(self.headers)
@@ -429,6 +463,12 @@ class HTTPParser(parser.Parser):
         self.content_l = self.headers.get("content-length", -1)
         self.content_l = self.content_l and int(self.content_l)
 
+        # verifies if a back-end file object should be used to store
+        # the file contents, this is done by checking the store flag
+        # and verifying that the file limit value has been reached
+        use_file = self.store and self.content_l > FILE_LIMIT
+        if use_file: self.message_f = tempfile.NamedTemporaryFile(mode = "wb")
+
         # retrieves the type of transfer encoding that is going to be
         # used in the processing of this request in case it's of type
         # chunked sets the current chunked flag indicating that the
@@ -473,10 +513,10 @@ class HTTPParser(parser.Parser):
     def _parse_normal(self, data):
         # retrieves the size of the data that has just been
         # received and then in case the store flag is set
-        # adds the data to the message buffer and increments
+        # stores the data in the proper buffer and increments
         # the message length counter with the size of the data
         data_l = len(data)
-        if self.store: self.message.append(data)
+        if self.store: self._store_data(data)
         self.message_l += data_l
 
         # verifies if the complete message has already been
@@ -614,6 +654,10 @@ class HTTPParser(parser.Parser):
         # and then decodes the complete set of parameters properly
         params = netius.parse_qs(query, keep_blank_values = True)
         return self._decode_params(params)
+
+    def _store_data(self, data):
+        if self.message_f: self.message_f.write(data)
+        else: self.message.append(data)
 
     def _decode_params(self, params):
         _params = dict()
