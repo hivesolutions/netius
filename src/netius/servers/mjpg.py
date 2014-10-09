@@ -105,8 +105,7 @@ class MJPGServer(http.HTTPServer):
             buffer_d = b"".join(buffer)
 
             def next(connection):
-                def callable():
-                    send(connection)
+                def callable(): send(connection)
                 self.delay(callable, delay)
 
             connection.send(buffer_d, callback = next)
