@@ -257,8 +257,29 @@ class HTTPParser(parser.Parser):
         else: return split[1]
 
     def get_message(self):
-        if not self.message_s: self.message_s = b"".join(self.message)
-        return self.message_s
+        """
+        Gathers the complete set of message contents for the current
+        request/response in parsing. The proper gathering strategy will
+        depend on the current strategy (eg: in memory vs file strategies).
+
+        The result of this process is cached meaning that further calls
+        to this method will return the same result.
+
+        This method should be used carefully as it may create some memory
+        performance issues when retrieving large message values.
+
+        @rtype: String
+        @return: The message for the current parsing process as a linear
+        string value that may be used as a simple buffer.
+        """
+
+        if self.message_s: return self.message_s
+        if self.message_f: self.message_s = self.get_message_f()
+        else: self.message_s = b"".join(self.message)
+
+    def get_message_f(self):
+        self.message_f.seek(0)
+        return self.message_f.read()
 
     def get_message_b(self):
         """
