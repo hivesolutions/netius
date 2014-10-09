@@ -255,6 +255,7 @@ class WSGIServer(http.HTTPServer):
     def _release(self, connection):
         self._release_iterator(connection)
         self._release_environ(connection)
+        self._release_parser(connection)
 
     def _release_iterator(self, connection):
         # verifies if there's an iterator object currently defined
@@ -288,6 +289,12 @@ class WSGIServer(http.HTTPServer):
         # map and unsets the environ value in the current connection
         environ.clear()
         connection.environ = None
+
+    def _release_parser(self, connection):
+        # closes the current file objects in the parser, note that the
+        # parser still remains active, this operation only clears the
+        # current memory structures associated with the parser
+        connection.parser.close()
 
     def _decode(self, value):
         """

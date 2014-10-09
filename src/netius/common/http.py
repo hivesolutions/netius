@@ -244,9 +244,8 @@ class HTTPParser(parser.Parser):
         self.reset(self.type, self.store)
 
     def close(self):
-        if not hasattr(self, "message_f"): return
-        if not self.message_f: return
-        self.message_f.close()
+        if hasattr(self, "message") and self.message: self.message = []
+        if hasattr(self, "message_f") and self.message_f: self.message_f.close()
 
     def get_path(self):
         split = self.path_s.split("?", 1)
@@ -268,20 +267,23 @@ class HTTPParser(parser.Parser):
         new in memory object will be created for the storage.
 
         In case the current parsing operation is using a file like
-        object for the handling this object is returned instead.
+        object for the handling this object it is returned instead.
 
         The call of this method is only considered to be safe after
         the complete message has been received and processed, otherwise
         and invalid message file structure may be created.
+
+        Note that the returned object will always be set at the
+        beginning of the file, so some care should be taken in usage.
 
         @rtype: File
         @return: The file like object that may be used to percolate
         over the various parts of the current message contents.
         """
 
-        if self.message_f: return self.message_f
-        self.message_f = netius.BytesIO()
-        for value in self.message: self.message_f.write(value)
+        if not self.message_f:
+            self.message_f = netius.BytesIO()
+            for value in self.message: self.message_f.write(value)
         self.message_f.seek(0)
         return self.message_f
 
@@ -467,7 +469,7 @@ class HTTPParser(parser.Parser):
         # the file contents, this is done by checking the store flag
         # and verifying that the file limit value has been reached
         use_file = self.store and self.content_l > FILE_LIMIT
-        if use_file: self.message_f = tempfile.NamedTemporaryFile(mode = "wb")
+        if use_file: self.message_f = tempfile.NamedTemporaryFile(mode = "w+b")
 
         # retrieves the type of transfer encoding that is going to be
         # used in the processing of this request in case it's of type
