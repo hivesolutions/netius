@@ -62,4 +62,4 @@ class HTTPParserTest(unittest.TestCase):
         self.assertEqual(parser.method, "get")
         self.assertEqual(parser.content_l, 11)
         self.assertEqual(message, b"Hello World")
-        self.assertEqual(headers["server"], "Service/1.0.0")
+        self.assertEqual(headers["Server"], "Test Service/1.0.0")
