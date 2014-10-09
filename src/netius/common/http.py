@@ -588,9 +588,11 @@ class HTTPParser(parser.Parser):
                 self.chunk_e = len(self.message)
                 self.trigger("on_chunk", (self.chunk_s, self.chunk_e))
 
-            # in case the message is not meant to be stored deletes
-            # the contents of the message buffer
-            if not self.store: del self.message[:]
+            # in case the message is not meant to be stored or in
+            # case the file storage mode is active (spares memory),
+            # deletes the contents of the message buffer as it's not
+            # going to be used to access the request data as a whole
+            if not self.store or self.message_f: del self.message[:]
 
             # returns the number of bytes that have been parsed by
             # the current end of chunk operation to the caller method
@@ -637,9 +639,13 @@ class HTTPParser(parser.Parser):
         data = data[:self.chunk_l - 2]
         data_s = len(data)
 
-        # adds the partial data to the message list and then decrement
-        # the (remaining) chunk length by the size of the read data
-        if data: self.message.append(data)
+        # adds the partial data to the message list and runs the store operation
+        # just in case the storage of the data in file is required, then decrements
+        # the (remaining) chunk length by the size of the read data, note that
+        # the message buffer is used even if the store flag is not set, so that
+        # it's possible to refer the chunk as a tuple of start and end indexes when
+        # triggering the chunk parsed (on chunk) event (performance gains)
+        if data: self.message.append(data); self._store_data(data, memory = False)
         self.chunk_l -= data_s
 
         # in case there's data parsed the partial data event
@@ -657,9 +663,9 @@ class HTTPParser(parser.Parser):
         params = netius.parse_qs(query, keep_blank_values = True)
         return self._decode_params(params)
 
-    def _store_data(self, data):
+    def _store_data(self, data, memory = True):
         if self.message_f: self.message_f.write(data)
-        else: self.message.append(data)
+        elif memory: self.message.append(data)
 
     def _decode_params(self, params):
         _params = dict()
