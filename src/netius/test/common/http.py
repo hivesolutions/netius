@@ -96,6 +96,19 @@ class HTTPParserTest(unittest.TestCase):
         self.assertEqual(headers["Server"], "Test Service/1.0.0")
         self.assertEqual(headers["Transfer-Encoding"], "chunked")
 
+    def test_file(self):
+        parser = netius.common.HTTPParser(
+            self,
+            type = netius.common.REQUEST,
+            store = True,
+            file_limit = -1
+        )
+        parser.parse(CHUNKED_REQUEST)
+        message = parser.get_message()
+        self.assertEqual(message, b"Hello World")
+        self.assertNotEqual(parser.message_f, None)
+        self.assertNotEqual(parser.message_f.read, None)
+
     def test_clear(self):
         parser = netius.common.HTTPParser(
             self,

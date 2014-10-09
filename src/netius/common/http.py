@@ -503,7 +503,7 @@ class HTTPParser(parser.Parser):
         # verifies if a back-end file object should be used to store
         # the file contents, this is done by checking the store flag
         # and verifying that the file limit value has been reached
-        use_file = self.store and self.content_l > self.file_limit
+        use_file = self.store and self.content_l >= self.file_limit
         if use_file: self.message_f = tempfile.NamedTemporaryFile(mode = "w+b")
 
         # retrieves the type of transfer encoding that is going to be
