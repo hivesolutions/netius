@@ -655,7 +655,7 @@ class HTTPParser(parser.Parser):
             # plus one byte respecting to the newline character
             count += index + 1
 
-        # retrieve the partial data that is valid according to the
+        # retrieves the partial data that is valid according to the
         # calculated chunk length and then calculates the size of
         # "that" partial data string value
         data = data[:self.chunk_l - 2]
