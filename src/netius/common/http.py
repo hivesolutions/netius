@@ -680,7 +680,8 @@ class HTTPParser(parser.Parser):
         # the message buffer is used even if the store flag is not set, so that
         # it's possible to refer the chunk as a tuple of start and end indexes when
         # triggering the chunk parsed (on chunk) event (performance gains)
-        if data: self.message.append(data); self._store_data(data, memory = False)
+        if data: self.message.append(data)
+        if data and self.store: self._store_data(data, memory = False)
         self.chunk_l -= data_s
 
         # in case there's data parsed the partial data event

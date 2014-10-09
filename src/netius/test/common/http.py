@@ -109,6 +109,17 @@ class HTTPParserTest(unittest.TestCase):
         self.assertNotEqual(parser.message_f, None)
         self.assertNotEqual(parser.message_f.read, None)
 
+    def test_no_store(self):
+        parser = netius.common.HTTPParser(
+            self,
+            type = netius.common.REQUEST,
+            store = False,
+            file_limit = -1
+        )
+        parser.parse(CHUNKED_REQUEST)
+        message = parser.get_message()
+        self.assertEqual(message, b"")
+
     def test_clear(self):
         parser = netius.common.HTTPParser(
             self,
