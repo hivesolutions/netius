@@ -44,7 +44,7 @@ import netius
 from netius.common import util
 from netius.common import parser
 
-FILE_LIMIT = 1048576
+FILE_LIMIT = 5242880
 """ The limit value (in bytes) from which the back-end
 message storage mechanism will start using a file system
 stored file instead of an in memory object, this way it's
@@ -276,6 +276,7 @@ class HTTPParser(parser.Parser):
         if self.message_s: return self.message_s
         if self.message_f: self.message_s = self.get_message_f()
         else: self.message_s = b"".join(self.message)
+        return self.message_s
 
     def get_message_f(self):
         self.message_f.seek(0)
@@ -611,8 +612,8 @@ class HTTPParser(parser.Parser):
 
             # in case the message is not meant to be stored or in
             # case the file storage mode is active (spares memory),
-            # deletes the contents of the message buffer as it's not
-            # going to be used to access the request data as a whole
+            # deletes the contents of the message buffer as they're
+            # not going to be used to access request's data as a whole
             if not self.store or self.message_f: del self.message[:]
 
             # returns the number of bytes that have been parsed by
@@ -685,6 +686,7 @@ class HTTPParser(parser.Parser):
         return self._decode_params(params)
 
     def _store_data(self, data, memory = True):
+        if not self.store: raise netius.ParserError("Store is not possible")
         if self.message_f: self.message_f.write(data)
         elif memory: self.message.append(data)
 
