@@ -475,8 +475,9 @@ class DatagramServer(Server):
                     self.wready = False
 
                     # ensures that the write event is going to be triggered
-                    # this is required for so that the remaining pending
-                    # data is going to be correctly written
+                    # this is required so that the remaining pending data is
+                    # going to be correctly written on a new write event,
+                    # triggered when the connection is ready for more writing
                     self.ensure_write()
 
                     # in case there's an exception must add the data
