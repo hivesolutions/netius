@@ -80,7 +80,7 @@ More examples can be found in the [examples.md](examples.md) page.
 
 ## Sample servers
 
-The servers that come with netius out-of-the-box, tested through the command line:
+The servers that come with netius out-of-the-box, can be tested through the command line:
 
 * WSGIServer - `python -m netius.servers.wsgi`
 * HelloServer - `MESSAGE="Hello Netius" python -m netius.extra.hello`
@@ -125,8 +125,8 @@ IPV6=1 MESSAGE="Hello Netius" python -m netius.extra.hello
 
 ## Compatibility
 
-Netius has no dependencies, and is therefore cross-platform. It is compatible with [PyPy](http://pypy.org),
-with which it can benefit of performance increases up to 1.5x - 2.5x faster in most environments, when
+Netius has no dependencies, and is therefore cross-platform. It's compatible with [PyPy](http://pypy.org),
+with which it benefits of performance increases up to 1.5x - 2.5x faster in most environments, when
 compared with running it with the cPython interpreter.
 
 ## Debugging
