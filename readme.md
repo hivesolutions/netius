@@ -1,12 +1,19 @@
 # [Netius](http://netius.hive.pt)
 
-Series of network related libraries for the rapid creation of non blocking async server and clients.
-The aim of this project is to create a platform for creation of customized servers and clients for
-specific and pre-defined purposes using simple inheritance techniques.
+Netius is a series of Python network libraries that can be used for rapid creation of asynchronous 
+non-blocking servers and clients. It has no dependencies, it's cross-platform, and brings some sample
+netius-powered servers out of the box, namely a production-ready WSGI server.
 
-Performance is considered to be one of the main priorities of the project as it should be possible
-to replace a native code stack with netius equivalents. [PyPy](http://pypy.org) should provide the
-extra speed required for these kind of (speed savy) use cases.
+Simplicity and performance are the main drivers of this project. The codebase adheres to very strict 
+code standards, and is extensively commented; and as far as performance is concerned, it aims to 
+be up to par with equivalent native implementations, where [PyPy](http://pypy.org) can be used to 
+provide the extra boost to raise performance up to these standards.
+
+Bear in mind that although netius is non-blocking, it will naturally still block if the operations 
+performed within the event loop are blocking, like reading or writing a file, which are both blocking 
+operations in the Python standard library. Running multiple netius instances in parallel, and having 
+a fast server like [nginx](http://nginx.org) act as their reverse proxy, is one way of minimising the 
+perceptibility of such blockages.
 
 ## Installation
 
@@ -67,14 +74,13 @@ netius.clients.HTTPClient.get_s(
 )
 ```
 
-## Examples
+### Other examples
 
-A series of example are located in the [examples.md](examples.md) page.
+More examples can be found in the [examples.md](examples.md) page.
 
-## Running
+## Sample servers
 
-In order to run the default servers of the netius infra-structure the out-of-box installation
-is sufficient and many services are available for instance:
+The servers that come with netius out-of-the-box, tested through the command line:
 
 * WSGIServer - `python -m netius.servers.wsgi`
 * HelloServer - `MESSAGE="Hello Netius" python -m netius.extra.hello`
@@ -84,8 +90,8 @@ is sufficient and many services are available for instance:
 
 ## Cryptography
 
-It's possible to read information from both private and public RSA based keys for that use the
-following command from the bash:
+Netius has some built-in cryptography utilities. The following are some 
+examples of RSA key operations that can be tested through the command line:
 
 ```bash
 python -m netius.sh.rsa read_private private.key
@@ -93,17 +99,16 @@ python -m netius.sh.rsa read_public public.pub
 python -m netius.sh.rsa private_to_public private.key public.pub
 ```
 
-DKIM is an infra-structure for signing SMTP based message and provides a way to avoid unwanted
-SPAM tagging, netius provides a series of utilities for processing of DKIM, these are some
-examples of DKIM bash usage:
+DKIM is an infra-structure for signing SMTP based messages which provides a way to avoid unwanted
+SPAM tagging. Netius provides a series of utilities for DKIM processing, here are some examples:
 
 ```bash
 python -m netius.sh.dkim generate hive.pt
 python -m netius.sh.dkim sign hello.mail dkim.key 20140327175143 hive.pt
 ```
 
-To be able to generate a password protected by a cryptographic hash and that is meant to be used
-under the netius authentication/authorization infra-structure use:
+To generate a password protected by a cryptographic hash to be used with the netius 
+authentication/authorization infra-structure use:
 
 ```bash
 python -m netius.sh.auth generate your_password
@@ -111,8 +116,8 @@ python -m netius.sh.auth generate your_password
 
 ## IPv6
 
-Netius is compatible with IPv6 in order to activate this mode set the `IPV6` configuration variable
-to a valid values (eg: 1 or True) and an IPv6 socket is used instead.
+Netius is compatible with IPv6. To activate this mode set the `IPV6` configuration variable
+to a valid value (eg: 1 or True), and an IPv6 socket will be used instead.
 
 ```python
 IPV6=1 MESSAGE="Hello Netius" python -m netius.extra.hello
@@ -120,38 +125,38 @@ IPV6=1 MESSAGE="Hello Netius" python -m netius.extra.hello
 
 ## Compatibility
 
-Currently netius is compatible with PyPy and a typical environment will benefit from a 1.5x to 2.5x
-performance increase when compared with the cPython interpreter.
+Netius has no dependencies, and is therefore cross-platform. It is compatible with [PyPy](http://pypy.org),
+with which it can benefit of performance increases up to 1.5x - 2.5x faster in most environments, when
+compared with running it with the cPython interpreter.
 
 ## Debugging
 
 It's important to keep track of the memory leaks that may be created by any circular references or
-unclosed resources associated with a netius server. For that a [special document](leak.md) has been created
-documenting the various tools and strategies that may be used.
+unclosed resources associated with a netius server. For that purpose, a [special document](leak.md) has 
+been created, documenting the various tools and strategies that may be used to detect such leaks.
 
 ## Testing
 
 ### Edge triggered polling
 
-Edge based polling is a bit tricky as it may easly end up in a dead lock of data.
-The best way to test this kind of problem is to change the `POLL_TIMEOUT` value to a negative
-value so that the loop blocks for data.
+Edge based polling is a bit tricky as it may easily end up in a data deadlock. The best way to test this 
+kind of problem is to change the `POLL_TIMEOUT` value to a negative value so that the loop blocks for data:
 
 ```bash
 LEVEL=DEBUG POLL_TIMEOUT=-1 BASE_PATH=/ python -m netius.extra.file
 ```
 
-The try to extract a really large file from this server (eg: 1.0 GB) and see if it is able to serve it
+Then try to extract a really large file from this server (eg: 1.0 GB) and see if it is able to serve it
 without any problems.
 
 ## Benchmarks
 
-Running `ab -n 20000 -c 5 -k http://srio.hive:8080/` whoud should get the following results:
+Running `ab -n 20000 -c 5 -k http://localhost:8080/` should achieve the following results:
 
 * `HelloServer` - 9.6 K req/sec
 * `WSGIServer` - 8.7 K req/sec
 
-These values have been verified under commit #7c2687b under python 2.6.6.
+These values have been verified for commit #7c2687b running in Python 2.6.6.
 
 ## Build Automation
 
