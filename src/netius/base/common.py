@@ -128,6 +128,7 @@ based on this list testing them for acceptance first """
 SILENT_ERRORS = (
     errno.ECONNABORTED,
     errno.ECONNRESET,
+    errno.EPIPE,
     WSAECONNABORTED,
     WSAECONNRESET
 )
