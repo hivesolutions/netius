@@ -1,8 +1,8 @@
 # [Netius](http://netius.hive.pt)
 
-Netius is a series of Python network libraries that can be used for rapid creation of asynchronous 
-non-blocking servers and clients. It has no dependencies, it's cross-platform, and brings some sample
-netius-powered servers out of the box, namely a production-ready WSGI server.
+Netius is a Python network library that can be used for the rapid creation of asynchronous non-blocking 
+servers and clients. It has no dependencies, it's cross-platform, and brings some sample netius-powered 
+servers out of the box, namely a production-ready WSGI server.
 
 Simplicity and performance are the main drivers of this project. The codebase adheres to very strict 
 code standards, and is extensively commented; and as far as performance is concerned, it aims to 
