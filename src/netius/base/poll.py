@@ -351,7 +351,7 @@ class KqueuePoll(Poll):
             filter = select.KQ_FILTER_READ, #@UndefinedVariable
             flags = select.KQ_EV_DELETE #@UndefinedVariable
         )
-        self.kqueue.control([event], 0, 0)
+        self.kqueue.control([event], 1, 0)
         del self.fd_m[socket_fd]
         del self.read_o[socket]
         del self.error_o[socket]
@@ -364,7 +364,7 @@ class KqueuePoll(Poll):
             filter = select.KQ_FILTER_WRITE, #@UndefinedVariable
             flags = select.KQ_EV_DELETE #@UndefinedVariable
         )
-        self.kqueue.control([event], 0, 0)
+        self.kqueue.control([event], 1, 0)
         del self.write_o[socket]
 
     def unsub_error(self, socket):
