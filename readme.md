@@ -162,6 +162,10 @@ LEVEL=DEBUG POLL_TIMEOUT=-1 BASE_PATH=/ python -m netius.extra.file
 Then try to extract a really large file from this server (eg: 1.0 GB) and see if it is able to serve it
 without any problems.
 
+## Licensing
+
+Netius is currently licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/).
+
 ## Build Automation
 
 [![Build Status](https://travis-ci.org/hivesolutions/netius.png?branch=master)](https://travis-ci.org/hivesolutions/netius)
