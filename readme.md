@@ -92,6 +92,12 @@ The servers that come with netius out-of-the-box, can be tested through the comm
 
 More examples can be found in the [examples.md](examples.md) page.
 
+## Compatibility
+
+Netius has no dependencies, and is therefore cross-platform. It's compatible with [PyPy](http://pypy.org),
+with which it benefits of performance increases up to 1.5x - 2.5x faster in most environments, when
+compared with running it with the cPython interpreter.
+
 ## Benchmarks
 
 Running `ab -n 20000 -c 5 -k http://localhost:8080/` should achieve the following results:
@@ -101,7 +107,9 @@ Running `ab -n 20000 -c 5 -k http://localhost:8080/` should achieve the followin
 
 These values have been verified for commit #7c2687b running in Python 2.6.6.
 
-## Cryptography
+## Advanced topics
+
+### Cryptography
 
 Netius has some built-in cryptography utilities. The following are some 
 examples of RSA key operations that can be tested through the command line:
@@ -127,7 +135,7 @@ authentication/authorization infra-structure use:
 python -m netius.sh.auth generate your_password
 ```
 
-## IPv6
+### IPv6
 
 Netius is compatible with IPv6. To activate this mode set the `IPV6` configuration variable
 to a valid value (eg: 1 or True), and an IPv6 socket will be used instead.
@@ -136,21 +144,15 @@ to a valid value (eg: 1 or True), and an IPv6 socket will be used instead.
 IPV6=1 MESSAGE="Hello Netius" python -m netius.extra.hello
 ```
 
-## Compatibility
-
-Netius has no dependencies, and is therefore cross-platform. It's compatible with [PyPy](http://pypy.org),
-with which it benefits of performance increases up to 1.5x - 2.5x faster in most environments, when
-compared with running it with the cPython interpreter.
-
-## Debugging
+### Debugging
 
 It's important to keep track of the memory leaks that may be created by any circular references or
 unclosed resources associated with a netius server. For that purpose, a [special document](leak.md) has 
 been created, documenting the various tools and strategies that may be used to detect such leaks.
 
-## Testing
+### Testing
 
-### Edge triggered polling
+#### Edge triggered polling
 
 Edge based polling is a bit tricky as it may easily end up in a data deadlock. The best way to test this 
 kind of problem is to change the `POLL_TIMEOUT` value to a negative value so that the loop blocks for data:
