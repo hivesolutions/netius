@@ -311,7 +311,7 @@ class KqueuePoll(Poll):
                 socket and result[index].append(socket)
             elif event.filter == select.KQ_FILTER_WRITE: #@UndefinedVariable
                 socket = self.fd_m.get(event.udata, None)
-                index = 2 if event.flags & select.KQ_EV_EOF else 1 
+                index = 2 if event.flags & select.KQ_EV_EOF else 1
                 socket and result[index].append(socket)
 
         return result
