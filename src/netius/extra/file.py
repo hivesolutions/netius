@@ -141,6 +141,7 @@ class FileServer(netius.servers.HTTPServer):
 
         buffer = list()
         buffer.append("<html>")
+        buffer.append("<meta charset=\"utf-8\" />")
         buffer.append("<title>Index of %s</title>" % path_v)
         buffer.append("<body>")
         buffer.append("<h1>Index of %s</h1>" % path_v)
@@ -156,9 +157,11 @@ class FileServer(netius.servers.HTTPServer):
         buffer.append("</thead>")
         buffer.append("<tbody>")
         for item in items:
+            item_s = item.encode("utf-8")
+
             path_f = os.path.join(path, item)
             is_dir = os.path.isdir(path_f)
-            item_s = item + "/" if is_dir else item
+            item_s = item_s + "/" if is_dir else item_s
 
             _time = os.path.getmtime(path_f)
             date_time = datetime.datetime.utcfromtimestamp(_time)
@@ -168,15 +171,15 @@ class FileServer(netius.servers.HTTPServer):
             size_s = netius.common.size_round_unit(size, space = True)
             size_s = "-" if is_dir else size_s
 
-            type, _encoding = mimetypes.guess_type(path_f, strict = True)
-            type = type or "-"
-            type = "Directory" if is_dir else type
+            type_s, _encoding = mimetypes.guess_type(path_f, strict = True)
+            type_s = type or "-"
+            type_s = "Directory" if is_dir else type
 
             buffer.append("<tr>")
             buffer.append("<td><a href=\"%s\">%s</td>" % (item_s, item_s))
             buffer.append("<td>%s</td>" % time_s)
             buffer.append("<td>%s</td>" % size_s)
-            buffer.append("<td>%s</td>" % type)
+            buffer.append("<td>%s</td>" % type_s)
             buffer.append("</tr>")
         buffer.append("</tbody>")
         buffer.append("</table>")
