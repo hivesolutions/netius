@@ -25,6 +25,10 @@ pip install netius
 
 Or download the source from [GitHub](https://github.com/hivesolutions/netius).
 
+Netius has no dependencies, and is therefore cross-platform. It's compatible with [PyPy](http://pypy.org),
+with which it benefits of performance increases up to 1.5x - 2.5x faster in most environments, when
+compared with running it with the cPython interpreter.
+
 ## Usage
 
 ### WSGI Server
@@ -91,12 +95,6 @@ The servers that come with netius out-of-the-box, can be tested through the comm
 ### Other examples
 
 More examples can be found in the [examples.md](examples.md) page.
-
-## Compatibility
-
-Netius has no dependencies, and is therefore cross-platform. It's compatible with [PyPy](http://pypy.org),
-with which it benefits of performance increases up to 1.5x - 2.5x faster in most environments, when
-compared with running it with the cPython interpreter.
 
 ## Benchmarks
 
