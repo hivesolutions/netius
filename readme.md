@@ -21,6 +21,8 @@ perceptibility of such blockages.
 pip install netius
 ```
 
+Or download the source from [GitHub](https://github.com/hivesolutions/netius).
+
 ## Usage
 
 ### WSGI Server
