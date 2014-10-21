@@ -72,7 +72,7 @@ setuptools.setup(
         "netius" : ["base/extras/*", "extra/extras/*", "servers/extras/*"]
     },
     classifiers = [
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Topic :: Utilities",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
