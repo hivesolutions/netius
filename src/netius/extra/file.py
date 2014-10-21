@@ -157,7 +157,8 @@ class FileServer(netius.servers.HTTPServer):
         buffer.append("</thead>")
         buffer.append("<tbody>")
         for item in items:
-            item_s = item.encode("utf-8")
+            if netius.PYTHON_3: item_s = item
+            else: item_s = item.encode("utf-8")
 
             path_f = os.path.join(path, item)
             is_dir = os.path.isdir(path_f)
