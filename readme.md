@@ -92,6 +92,15 @@ The servers that come with netius out-of-the-box, can be tested through the comm
 
 More examples can be found in the [examples.md](examples.md) page.
 
+## Benchmarks
+
+Running `ab -n 20000 -c 5 -k http://localhost:8080/` should achieve the following results:
+
+* `HelloServer` - 9.6 K req/sec
+* `WSGIServer` - 8.7 K req/sec
+
+These values have been verified for commit #7c2687b running in Python 2.6.6.
+
 ## Cryptography
 
 Netius has some built-in cryptography utilities. The following are some 
@@ -152,15 +161,6 @@ LEVEL=DEBUG POLL_TIMEOUT=-1 BASE_PATH=/ python -m netius.extra.file
 
 Then try to extract a really large file from this server (eg: 1.0 GB) and see if it is able to serve it
 without any problems.
-
-## Benchmarks
-
-Running `ab -n 20000 -c 5 -k http://localhost:8080/` should achieve the following results:
-
-* `HelloServer` - 9.6 K req/sec
-* `WSGIServer` - 8.7 K req/sec
-
-These values have been verified for commit #7c2687b running in Python 2.6.6.
 
 ## Build Automation
 
