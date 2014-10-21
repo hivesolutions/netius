@@ -76,11 +76,7 @@ netius.clients.HTTPClient.get_s(
 )
 ```
 
-### Other examples
-
-More examples can be found in the [examples.md](examples.md) page.
-
-## Sample servers
+### Test servers
 
 The servers that come with netius out-of-the-box, can be tested through the command line:
 
@@ -89,6 +85,10 @@ The servers that come with netius out-of-the-box, can be tested through the comm
 * FileServer - `BASE_PATH=/ python -m netius.extra.file`
 * SMTPServer - `python -m netius.servers.smtp`
 * RelaySMTPServer - `python -m netius.extra.smtp_r`
+
+### Other examples
+
+More examples can be found in the [examples.md](examples.md) page.
 
 ## Cryptography
 
