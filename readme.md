@@ -1,6 +1,6 @@
 # [![Netius](res/logo.png)](http://netius.hive.pt)
 
-**Readable, simple and fast assynchronous non-blocking network apps**
+**Readable, simple and fast asynchronous non-blocking network apps**
 
 Netius is a Python network library that can be used for the rapid creation of asynchronous non-blocking 
 servers and clients. It has no dependencies, it's cross-platform, and brings some sample netius-powered 
