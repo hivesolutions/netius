@@ -61,14 +61,17 @@ class FileThread(common.Thread):
         elif type == WRITE_ACTION: self.read(*work[2:])
         else: netius.NotImplemented("Undefined file action '%d'" % action)
 
-    def open(self, mode, callback):
-        pass
+    def open(self, path, mode, callback):
+        file = open(path)
+        callback(file)
 
-    def read(self, count, callback):
-        pass
+    def read(self, file, count, callback):
+        result = file.read(count)
+        callback(result)
 
-    def write(self, buffer, callback):
-        pass
+    def write(self, file, buffer, callback):
+        file.write(buffer)
+        callback()
 
 class FilePool(common.ThreadPool):
 
