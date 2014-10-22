@@ -44,6 +44,7 @@ READ_ACTION = 2
 WRITE_ACTION = 3
 
 import netius
+import ctypes
 
 from netius.pool import common
 
@@ -89,3 +90,8 @@ class FilePool(common.ThreadPool):
     def write(self, file, buffer, callback = None):
         work = (FILE_WORK, WRITE_ACTION, file, buffer, callback)
         self.push(work)
+
+    def eventfd(self, init_val = 0, flags = 0):
+        try: self.libc = self.libc or ctypes.cdll.LoadLibrary("libc.so.6")
+        except: return None
+        return self.libc.eventfd(init_val, flags)
