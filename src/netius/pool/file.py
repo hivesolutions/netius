@@ -37,7 +37,52 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+FILE_WORK = 10
+
+OPEN_ACTION = 1
+READ_ACTION = 2
+WRITE_ACTION = 3
+
+import netius
+
 from netius.pool import common
 
+class FileThread(common.Thread):
+
+    def execute(self, work):
+        type = work[0]
+        if not type == FILE_WORK: netius.NotImplemented(
+            "Cannot execute type '%d'" % type
+        )
+
+        action = work[1]
+        if type == OPEN_ACTION: self.open(*work[2:])
+        elif type == READ_ACTION: self.read(*work[2:])
+        elif type == WRITE_ACTION: self.read(*work[2:])
+        else: netius.NotImplemented("Undefined file action '%d'" % action)
+
+    def open(self, mode, callback):
+        pass
+
+    def read(self, count, callback):
+        pass
+
+    def write(self, buffer, callback):
+        pass
+
 class FilePool(common.ThreadPool):
-    pass
+
+    def __init__(self, base = FileThread, count = 10):
+        common.ThreadPool.__init__(self, base = base, count = count)
+
+    def open(self, path, mode = "r", callback = None):
+        work = (FILE_WORK, OPEN_ACTION, path, mode, callback)
+        self.push(work)
+
+    def read(self, file, count = -1, callback = None):
+        work = (FILE_WORK, READ_ACTION, file, count, callback)
+        self.push(work)
+
+    def write(self, file, buffer, callback = None):
+        work = (FILE_WORK, WRITE_ACTION, file, buffer, callback)
+        self.push(work)
