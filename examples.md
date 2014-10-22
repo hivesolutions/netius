@@ -1,6 +1,6 @@
 # Examples
 
-Here are some random examples on the netius usage.
+The following are some example usages of netius: 
 
 ## SMTP Client
 
