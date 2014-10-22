@@ -43,8 +43,11 @@ OPEN_ACTION = 1
 READ_ACTION = 2
 WRITE_ACTION = 3
 
-import netius
+import os
 import ctypes
+import threading
+
+import netius
 
 from netius.pool import common
 
@@ -62,36 +65,57 @@ class FileThread(common.Thread):
         elif type == WRITE_ACTION: self.read(*work[2:])
         else: netius.NotImplemented("Undefined file action '%d'" % action)
 
-    def open(self, path, mode, callback):
+    def open(self, path, mode, data):
         file = open(path)
-        callback(file)
+        self.owner.push_event((OPEN_ACTION, file, data))
 
-    def read(self, file, count, callback):
+    def read(self, file, count, data):
         result = file.read(count)
-        callback(result)
+        self.owner.push_event((READ_ACTION, result, data))
 
-    def write(self, file, buffer, callback):
+    def write(self, file, buffer, data):
         file.write(buffer)
-        callback()
+        self.owner.push_event((WRITE_ACTION, data))
 
 class FilePool(common.ThreadPool):
 
     def __init__(self, base = FileThread, count = 10):
         common.ThreadPool.__init__(self, base = base, count = count)
+        self.events = []
+        self.event_lock = threading.RLock()
+        self._eventfd = None
 
-    def open(self, path, mode = "r", callback = None):
-        work = (FILE_WORK, OPEN_ACTION, path, mode, callback)
+    def open(self, path, mode = "r", data = None):
+        work = (FILE_WORK, OPEN_ACTION, path, mode, data)
         self.push(work)
 
-    def read(self, file, count = -1, callback = None):
-        work = (FILE_WORK, READ_ACTION, file, count, callback)
+    def read(self, file, count = -1, data = None):
+        work = (FILE_WORK, READ_ACTION, file, count, data)
         self.push(work)
 
-    def write(self, file, buffer, callback = None):
-        work = (FILE_WORK, WRITE_ACTION, file, buffer, callback)
+    def write(self, file, buffer, data = None):
+        work = (FILE_WORK, WRITE_ACTION, file, buffer, data)
         self.push(work)
+
+    def push_event(self, event):
+        self.event_lock.acquire()
+        try: self.events.append(event)
+        finally: self.event_lock.release()
+        self.notify()
+
+    def pop_event(self):
+        self.event_lock.acquire()
+        try: event = self.events.pop(0)
+        finally: self.event_lock.release()
+        return event
+
+    def notify(self):
+        if not self._eventfd: return
+        os.write(self._eventfd, ctypes.c_ulonglong(1))
 
     def eventfd(self, init_val = 0, flags = 0):
+        if self._eventfd: return self._eventfd
         try: self.libc = self.libc or ctypes.cdll.LoadLibrary("libc.so.6")
         except: return None
-        return self.libc.eventfd(init_val, flags)
+        self._eventfd = self.libc.eventfd(init_val, flags)
+        return self._eventfd
