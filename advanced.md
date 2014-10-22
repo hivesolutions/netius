@@ -1,11 +1,11 @@
 # Advanced Topics
 
-This page presents advanced information in a mildy unstructured manner. It is used as both a reference
+This page presents advanced information in a not so structured manner. It is used as both a reference
 for external and internal developers, and therefore rewards flexibility over structure.
 
 ## Examples
 
-Here are some random examples on the netius usage.
+Multiple netius examples can be found in the [Examples](examples.md) page.
 
 ### SMTP Client
 
