@@ -10,7 +10,7 @@ Multiple netius examples can be found in the [Examples](examples.md) page.
 ## Python 3
 
 The migration to Python 3 is not easy and as such a compatability layer was created under the name of
-[legacy.py](src/netius/base/legacy.py). This file should be the primary source of functionality related
+[legacy.py](../src/netius/base/legacy.py). This file should be the primary source of functionality related
 with the compatability between Python 2 and Python 3 and all the code regarding the transition should
 be store there and used from there.
 
