@@ -94,7 +94,7 @@ The servers that come with netius out-of-the-box, can be tested through the comm
 
 ### Advanced topics
 
-More information can be found in the [Advanced Topics](advanced.md) page.
+More information can be found in the [Advanced Topics](doc/advanced.md) page.
 
 ## Licensing
 
