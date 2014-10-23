@@ -7,38 +7,6 @@ for external and internal developers, and therefore rewards flexibility over str
 
 Multiple netius examples can be found in the [Examples](examples.md) page.
 
-### SMTP Client
-
-#### Gmail
-
-```python
-smtp_client = SMTPClient(auto_close = True)
-smtp_client.message(
-    [sender],
-    [receiver],
-    contents,
-    host = "smtp.gmail.com",
-    port = 587,
-    username = "username@gmail.com",
-    password = "password",
-    stls = True
-)
-```
-
-#### Localhost
-
-```python 
-smtp_client = SMTPClient(auto_close = True)
-smtp_client.message(
-    [sender],
-    [receiver],
-    contents,
-    host = "localhost",
-    port = 25,
-    stls = True
-)
-```
-
 ## Python 3
 
 The migration to Python 3 is not easy and as such a compatability layer was created under the name of
