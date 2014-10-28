@@ -66,7 +66,7 @@ class FileAsyncServer(_file.FileServer):
 
         def callback(data, *args, **kwargs):
             if connection.file == None: return
-            if issubclass(data, BaseException): return
+            if isinstance(data, BaseException): return
             data_l = len(data) if data else 0
             connection.bytes_p -= data_l
             is_final = not data or connection.bytes_p == 0
