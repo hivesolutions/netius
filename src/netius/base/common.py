@@ -684,7 +684,12 @@ class Base(observer.Observable):
         # the file pool, (primary communication mechanism)
         eventfd = self.fpool.eventfd()
         if not eventfd: return
-        if self.poll: self.poll.sub_read(eventfd)
+        if not self.poll: return
+        self.poll.sub_read(eventfd)
+
+        # echoes a debug message indicating that a new read event
+        # subscription has been created for the event fd of the file pool
+        self.debug("Subscribed for read operations on event fd")
 
     def fstop(self):
         # verifies if there's an available file pool and
@@ -703,7 +708,12 @@ class Base(observer.Observable):
         # from it under the current polling system
         eventfd = self.fpool.eventfd()
         if not eventfd: return
-        if self.poll: self.poll.sub_read(eventfd)
+        if not self.poll: return
+        self.poll.unsub_read(eventfd)
+
+        # echoes a debug message indicating that a new read event
+        # unsubscription has been created for the event fd of the file pool
+        self.debug("Unsubscribed for read operations on event fd")
 
     def on_connection_c(self, connection):
         self.debug(
