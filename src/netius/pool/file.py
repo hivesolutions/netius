@@ -41,8 +41,9 @@ FILE_WORK = 10
 
 ERROR_ACTION = -1
 OPEN_ACTION = 1
-READ_ACTION = 2
-WRITE_ACTION = 3
+CLOSE_ACTION = 2
+READ_ACTION = 3
+WRITE_ACTION = 4
 
 import os
 import ctypes
@@ -64,6 +65,10 @@ class FileThread(common.Thread):
         file = open(path)
         self.owner.push_event((OPEN_ACTION, file, data))
 
+    def close(self, file, data):
+        file.close()
+        self.owner.push_event((CLOSE_ACTION, file, data))
+
     def read(self, file, count, data):
         result = file.read(count)
         self.owner.push_event((READ_ACTION, result, data))
@@ -80,6 +85,7 @@ class FileThread(common.Thread):
 
         action = work[1]
         if action == OPEN_ACTION: self.open(*work[2:])
+        elif action == CLOSE_ACTION: self.close(*work[2:])
         elif action == READ_ACTION: self.read(*work[2:])
         elif action == WRITE_ACTION: self.read(*work[2:])
         else: netius.NotImplemented("Undefined file action '%d'" % action)

@@ -657,11 +657,17 @@ class Base(observer.Observable):
         self.fensure()
         return self.fpool.open(*args, **kwargs)
 
+    def fclose(self, *args, **kwargs):
+        self.fensure()
+        return self.fpool.close(*args, **kwargs)
+
     def fread(self, *args, **kwargs):
-        self.fensure(); return self.fpool.read(*args, **kwargs)
+        self.fensure()
+        return self.fpool.read(*args, **kwargs)
 
     def fwrite(self, *args, **kwargs):
-        self.fensure(); return self.fpool.write(*args, **kwargs)
+        self.fensure()
+        return self.fpool.write(*args, **kwargs)
 
     def fensure(self):
         if self.fpool: return
