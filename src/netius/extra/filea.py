@@ -39,6 +39,8 @@ __license__ = "Apache License, Version 2.0"
 
 from netius.extra import file as _file
 
+BUFFER_SIZE = _file.BUFFER_SIZE * 16
+
 class FileAsyncServer(_file.FileServer):
     """
     Simple implementation of a file server that uses the async
@@ -51,8 +53,8 @@ class FileAsyncServer(_file.FileServer):
     def _file_send(self, connection):
         file = connection.file
         range = connection.range
-        is_larger = _file.BUFFER_SIZE > connection.bytes_p
-        buffer_s = connection.bytes_p if is_larger else _file.BUFFER_SIZE
+        is_larger = BUFFER_SIZE > connection.bytes_p
+        buffer_s = connection.bytes_p if is_larger else BUFFER_SIZE
 
         def callback(data, *args, **kwargs):
             data_l = len(data) if data else 0
