@@ -48,6 +48,7 @@ import logging
 import hashlib
 import traceback
 
+import netius.pool
 import netius.adapters
 
 from netius.base import log
@@ -580,6 +581,32 @@ class Base(observer.Observable):
         # closes the current poll mechanism so that no more issues arise
         # from an open poll system (memory leaks, etc.)
         self.poll.close()
+
+    def fopen(self, *args, **kwargs):
+        self.fensure()
+        return self.fpool.open(data = "", *args, **kwargs)
+
+    def fread(self, *args, **kwargs):
+        self.fensure(); return self.fpool.read(*args, **kwargs)
+
+    def fwrite(self, *args, **kwargs):
+        self.fensure(); return self.fpool.write(*args, **kwargs)
+        
+    def fticket(self):
+        pass
+
+    def fensure(self):
+        if self.pool: return
+        self.fstart()
+
+    def fstart(self):
+        if self.fpool: return
+        self.fpool = netius.pool.FilePool()
+        self.fpool.start()  #@todo tenho de me lembrar de fechar isto
+
+    def fstop(self):
+        if not self.fpool: return
+        self.fpool.stop()
 
     def loop(self):
         # iterates continuously while the running flag
