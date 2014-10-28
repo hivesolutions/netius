@@ -610,6 +610,10 @@ class Base(observer.Observable):
         self.fpool = netius.pool.FilePool()
         self.fpool.start()
 
+        # prints a debug message stating that a new file pool is
+        # being created for the handling of message events
+        self.debug("Started new file pool, for async file handling")
+
         # tries to retrieve the file descriptor of the event virtual
         # object that is notified for each operation associated with
         # the file pool, (primary communication mechanism)
@@ -624,6 +628,10 @@ class Base(observer.Observable):
         # all of the thread will be joined under it
         if not self.fpool: return
         self.fpool.stop()
+
+        # prints a debug message notifying the user that no more
+        # async file handling is possible using the file pool
+        self.debug("Stopped existing file pool, no more async handling")
 
         # tries to retrieve the event file descriptor for
         # the file pool an in case it exists unsubscribes
