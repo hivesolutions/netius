@@ -272,6 +272,7 @@ class Base(observer.Observable):
         self.tid = None
         self.logger = None
         self.logging = None
+        self.fpool = None
         self.poll_c = kwargs.get("poll", poll)
         self.poll = self.poll_c()
         self.poll_name = self.poll.name()
@@ -569,6 +570,11 @@ class Base(observer.Observable):
         del self._delayed[:]
         del self._delayed_o[:]
 
+        # verifies if there's a valid (and open) file pool, if that's
+        # the case starts the stop process for it so that there's no
+        # leaking of file descriptors and other structures
+        if self.fpool: self.fstop()
+
         # creates a copy of the connections list because this structure
         # is going to be changed in the closing of the connection object
         connections = copy.copy(self.connections)
@@ -584,31 +590,47 @@ class Base(observer.Observable):
 
     def fopen(self, *args, **kwargs):
         self.fensure()
-        return self.fpool.open(data = "", *args, **kwargs)
-    
-    #@tenho de por support para callbacks aqui 1!!
+        return self.fpool.open(*args, **kwargs)
 
     def fread(self, *args, **kwargs):
         self.fensure(); return self.fpool.read(*args, **kwargs)
 
     def fwrite(self, *args, **kwargs):
         self.fensure(); return self.fpool.write(*args, **kwargs)
-        
-    def fticket(self):
-        pass
 
     def fensure(self):
-        if self.pool: return
+        if self.fpool: return
         self.fstart()
 
     def fstart(self):
+        # verifies if there's an already open file pool for
+        # the current system and if that's not the case creates
+        # a new one and starts it's thread cycle
         if self.fpool: return
         self.fpool = netius.pool.FilePool()
-        self.fpool.start()  #@todo tenho de me lembrar de fechar isto
+        self.fpool.start()
+
+        # tries to retrieve the file descriptor of the event virtual
+        # object that is notified for each operation associated with
+        # the file pool, (primary communication mechanism)
+        eventfd = self.fpool.eventfd()
+        if not eventfd: return
+        if self.poll: self.poll.sub_read(eventfd)
 
     def fstop(self):
+        # verifies if there's an available file pool and
+        # if that's the case initializes the stopping of
+        # such system, note that this is blocking call as
+        # all of the thread will be joined under it
         if not self.fpool: return
         self.fpool.stop()
+
+        # tries to retrieve the event file descriptor for
+        # the file pool an in case it exists unsubscribes
+        # from it under the current polling system
+        eventfd = self.fpool.eventfd()
+        if not eventfd: return
+        if self.poll: self.poll.sub_read(eventfd)
 
     def loop(self):
         # iterates continuously while the running flag
@@ -644,6 +666,11 @@ class Base(observer.Observable):
         # that the current process is updating a new tick in loop
         self.set_state(STATE_TICK)
 
+        # runs the verification/processing of the complete set of file
+        # events that have been raised meanwhile, this allows for the
+        # processing of various file driven operations
+        self.files()
+
         # "calculates" the new loop id by incrementing one value
         # to the previous one, note that the value is calculated
         # in a modulus way so that no overflow occurs
@@ -661,6 +688,14 @@ class Base(observer.Observable):
 
     def errors(self, errors, state = True):
         if state: self.set_state(STATE_ERRROR)
+
+    def files(self):
+        if not self.fpool: return
+        events = self.fpool.pop_all()
+        for event in events:
+            callback = event[-1]
+            if not callback: continue
+            callback(*event[1:-1])
 
     def on_connection_c(self, connection):
         self.debug(
