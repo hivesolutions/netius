@@ -651,7 +651,7 @@ class Base(observer.Observable):
 
     def files(self):
         if not self.fpool: return
-        events = self.fpool.pop_all()
+        events = self.fpool.pop_all(denotify = True)
         for event in events:
             callback = event[-1]
             if not callback: continue

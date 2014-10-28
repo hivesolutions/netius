@@ -110,11 +110,12 @@ class FilePool(common.ThreadPool):
         finally: self.event_lock.release()
         return event
 
-    def pop_all(self):
+    def pop_all(self, denotify = False):
         self.event_lock.acquire()
         try:
             events = list(self.events)
             self.events[:] = []
+            if events and denotify: self.denotify()
         finally:
             self.event_lock.release()
         return events
