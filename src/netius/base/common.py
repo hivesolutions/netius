@@ -607,7 +607,7 @@ class Base(observer.Observable):
             # of connection for each of the three operations returning
             # the resulting active sets for the callbacks
             reads, writes, errors = self.poll.poll()
-            
+
             if reads: print reads
             if writes: print writes
             if errors: print errors

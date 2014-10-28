@@ -121,11 +121,11 @@ class FilePool(common.ThreadPool):
 
     def notify(self):
         if not self._eventfd: return
-        os.write(self._eventfd, ctypes.c_ulonglong(1))
+        os.write(self._eventfd.fileno(), ctypes.c_ulonglong(1))
 
     def denotify(self):
         if not self._eventfd: return
-        os.write(self._eventfd, ctypes.c_ulonglong(0))
+        os.write(self._eventfd.fileno(), ctypes.c_ulonglong(0))
 
     def eventfd(self, init_val = 0, flags = 0):
         if self._eventfd: return self._eventfd

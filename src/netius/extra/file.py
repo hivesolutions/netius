@@ -92,7 +92,7 @@ class FileServer(netius.servers.HTTPServer):
                     print result
                 self.fread(file, data = read_callback)
 
-            self.fopen("c:/hello.txt", data = tobias)
+            self.fopen("/hello.txt", data = tobias)
 
             # retrieves the current file system encoding and determines if it
             # it's required to decode the path into an unicode string, if that's
