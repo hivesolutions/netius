@@ -60,9 +60,9 @@ class FileThread(common.Thread):
         )
 
         action = work[1]
-        if type == OPEN_ACTION: self.open(*work[2:])
-        elif type == READ_ACTION: self.read(*work[2:])
-        elif type == WRITE_ACTION: self.read(*work[2:])
+        if action == OPEN_ACTION: self.open(*work[2:])
+        elif action == READ_ACTION: self.read(*work[2:])
+        elif action == WRITE_ACTION: self.read(*work[2:])
         else: netius.NotImplemented("Undefined file action '%d'" % action)
 
     def open(self, path, mode, data):
@@ -108,6 +108,15 @@ class FilePool(common.ThreadPool):
         try: event = self.events.pop(0)
         finally: self.event_lock.release()
         return event
+
+    def pop_all(self):
+        self.event_lock.acquire()
+        try:
+            events = list(self.events)
+            self.events[:] = []
+        finally:
+            self.event_lock.release()
+        return events
 
     def notify(self):
         if not self._eventfd: return
