@@ -40,6 +40,13 @@ __license__ = "Apache License, Version 2.0"
 from netius.extra import file as _file
 
 class FileAsyncServer(_file.FileServer):
+    """
+    Simple implementation of a file server that uses the async
+    file pool infra-structure.
+
+    This is a test implementation and should never be used for
+    production work that required mature and stable codebase.
+    """
 
     def _file_send(self, connection):
         file = connection.file
