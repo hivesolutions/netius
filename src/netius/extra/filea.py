@@ -40,6 +40,9 @@ __license__ = "Apache License, Version 2.0"
 from netius.extra import file as _file
 
 BUFFER_SIZE = _file.BUFFER_SIZE * 16
+""" Re-creates the buffer size of the file buffer so that it
+handles more data for each chunk, this is required to avoid
+extreme amounts of overhead in the file pool """
 
 class FileAsyncServer(_file.FileServer):
     """
