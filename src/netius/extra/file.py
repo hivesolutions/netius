@@ -230,7 +230,7 @@ class FileServer(netius.servers.HTTPServer):
 
         # retrieves the last modified timestamp for the resource path and
         # uses it to create the etag for the resource to be served
-        modified = os.path.getmtime(path)
+        modified = os.path.getmtime(path) if os.path.isfile(path) else None
         etag = "netius-%.2f" % modified
 
         # retrieves the header that describes the previous version in the
