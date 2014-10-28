@@ -608,10 +608,6 @@ class Base(observer.Observable):
             # the resulting active sets for the callbacks
             reads, writes, errors = self.poll.poll()
 
-            if reads: print "reads:" + str(reads)
-            if writes: print "writes: " +  str(writes)
-            if errors: print "errors: " + str(errors)
-
             # calls the various callbacks with the selections lists,
             # these are the main entry points for the logic to be executed
             # each of this methods should be implemented in the underlying
