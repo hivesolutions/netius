@@ -588,58 +588,6 @@ class Base(observer.Observable):
         # from an open poll system (memory leaks, etc.)
         self.poll.close()
 
-    def fopen(self, *args, **kwargs):
-        self.fensure()
-        return self.fpool.open(*args, **kwargs)
-
-    def fread(self, *args, **kwargs):
-        self.fensure(); return self.fpool.read(*args, **kwargs)
-
-    def fwrite(self, *args, **kwargs):
-        self.fensure(); return self.fpool.write(*args, **kwargs)
-
-    def fensure(self):
-        if self.fpool: return
-        self.fstart()
-
-    def fstart(self):
-        # verifies if there's an already open file pool for
-        # the current system and if that's not the case creates
-        # a new one and starts it's thread cycle
-        if self.fpool: return
-        self.fpool = netius.pool.FilePool()
-        self.fpool.start()
-
-        # prints a debug message stating that a new file pool is
-        # being created for the handling of message events
-        self.debug("Started new file pool, for async file handling")
-
-        # tries to retrieve the file descriptor of the event virtual
-        # object that is notified for each operation associated with
-        # the file pool, (primary communication mechanism)
-        eventfd = self.fpool.eventfd()
-        if not eventfd: return
-        if self.poll: self.poll.sub_read(eventfd)
-
-    def fstop(self):
-        # verifies if there's an available file pool and
-        # if that's the case initializes the stopping of
-        # such system, note that this is blocking call as
-        # all of the thread will be joined under it
-        if not self.fpool: return
-        self.fpool.stop()
-
-        # prints a debug message notifying the user that no more
-        # async file handling is possible using the file pool
-        self.debug("Stopped existing file pool, no more async handling")
-
-        # tries to retrieve the event file descriptor for
-        # the file pool an in case it exists unsubscribes
-        # from it under the current polling system
-        eventfd = self.fpool.eventfd()
-        if not eventfd: return
-        if self.poll: self.poll.sub_read(eventfd)
-
     def loop(self):
         # iterates continuously while the running flag
         # is set, once it becomes unset the loop breaks
@@ -704,6 +652,58 @@ class Base(observer.Observable):
             callback = event[-1]
             if not callback: continue
             callback(*event[1:-1])
+
+    def fopen(self, *args, **kwargs):
+        self.fensure()
+        return self.fpool.open(*args, **kwargs)
+
+    def fread(self, *args, **kwargs):
+        self.fensure(); return self.fpool.read(*args, **kwargs)
+
+    def fwrite(self, *args, **kwargs):
+        self.fensure(); return self.fpool.write(*args, **kwargs)
+
+    def fensure(self):
+        if self.fpool: return
+        self.fstart()
+
+    def fstart(self):
+        # verifies if there's an already open file pool for
+        # the current system and if that's not the case creates
+        # a new one and starts it's thread cycle
+        if self.fpool: return
+        self.fpool = netius.pool.FilePool()
+        self.fpool.start()
+
+        # prints a debug message stating that a new file pool is
+        # being created for the handling of message events
+        self.debug("Started new file pool, for async file handling")
+
+        # tries to retrieve the file descriptor of the event virtual
+        # object that is notified for each operation associated with
+        # the file pool, (primary communication mechanism)
+        eventfd = self.fpool.eventfd()
+        if not eventfd: return
+        if self.poll: self.poll.sub_read(eventfd)
+
+    def fstop(self):
+        # verifies if there's an available file pool and
+        # if that's the case initializes the stopping of
+        # such system, note that this is blocking call as
+        # all of the thread will be joined under it
+        if not self.fpool: return
+        self.fpool.stop()
+
+        # prints a debug message notifying the user that no more
+        # async file handling is possible using the file pool
+        self.debug("Stopped existing file pool, no more async handling")
+
+        # tries to retrieve the event file descriptor for
+        # the file pool an in case it exists unsubscribes
+        # from it under the current polling system
+        eventfd = self.fpool.eventfd()
+        if not eventfd: return
+        if self.poll: self.poll.sub_read(eventfd)
 
     def on_connection_c(self, connection):
         self.debug(
