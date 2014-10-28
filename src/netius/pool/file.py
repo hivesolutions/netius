@@ -103,6 +103,10 @@ class FilePool(common.ThreadPool):
         work = (FILE_WORK, OPEN_ACTION, path, mode, data)
         self.push(work)
 
+    def close(self, file, data = None):
+        work = (FILE_WORK, CLOSE_ACTION, file, data)
+        self.push(work)
+
     def read(self, file, count = -1, data = None):
         work = (FILE_WORK, READ_ACTION, file, count, data)
         self.push(work)
