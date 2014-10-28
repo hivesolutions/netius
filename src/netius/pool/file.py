@@ -128,7 +128,7 @@ class FilePool(common.ThreadPool):
         try:
             events = list(self.events)
             self.events[:] = []
-            #if events and denotify: self.denotify()
+            if events and denotify: self.denotify()
         finally:
             self.event_lock.release()
         return events
