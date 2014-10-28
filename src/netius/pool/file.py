@@ -127,5 +127,14 @@ class FilePool(common.ThreadPool):
         if self._eventfd: return self._eventfd
         try: self._libc = self._libc or ctypes.cdll.LoadLibrary("libc.so.6")
         except: return None
-        self._eventfd = self._libc.eventfd(init_val, flags)
+        fileno = self._libc.eventfd(init_val, flags)
+        self._eventfd = EventFile(fileno)
         return self._eventfd
+
+class EventFile(object):
+
+    def __init__(self, fileno):
+        self._fileno =  fileno
+
+    def fileno(self):
+        return self._fileno
