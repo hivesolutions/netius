@@ -75,7 +75,7 @@ class FileThread(common.Thread):
 
     def write(self, file, buffer, data):
         file.write(buffer)
-        self.owner.push_event((WRITE_ACTION, data))
+        self.owner.push_event((WRITE_ACTION, len(buffer), data))
 
     def _execute(self, work):
         type = work[0]

@@ -326,12 +326,6 @@ class FileServer(netius.servers.HTTPServer):
         )
 
     def on_exception_file(self, connection, exception):
-        import traceback
-        import sys
-        print "Exception in user code:"
-        print '-'*60
-        traceback.print_exc(file=sys.stdout)
-        print '-'*60
         connection.send_response(
             data = "Problem handling request - %s" % str(exception),
             headers = dict(

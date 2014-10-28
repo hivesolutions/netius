@@ -60,6 +60,7 @@ class FileAsyncServer(_file.FileServer):
         buffer_s = connection.bytes_p if is_larger else BUFFER_SIZE
 
         def callback(data, *args, **kwargs):
+            if connection.file == None: return
             data_l = len(data) if data else 0
             connection.bytes_p -= data_l
             is_final = not data or connection.bytes_p == 0
