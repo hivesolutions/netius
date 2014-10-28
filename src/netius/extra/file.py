@@ -44,7 +44,7 @@ import mimetypes
 import netius.common
 import netius.servers
 
-BUFFER_SIZE = 409600
+BUFFER_SIZE = 4096
 """ The size of the buffer that is going to be used when
 sending the file to the client, this should not be neither
 to big nor to small (as both situations would create problems) """
