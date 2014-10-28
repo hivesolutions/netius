@@ -83,6 +83,7 @@ class FilePool(common.ThreadPool):
         common.ThreadPool.__init__(self, base = base, count = count)
         self.events = []
         self.event_lock = threading.RLock()
+        self._libc = None
         self._eventfd = None
 
     def open(self, path, mode = "r", data = None):
@@ -124,7 +125,7 @@ class FilePool(common.ThreadPool):
 
     def eventfd(self, init_val = 0, flags = 0):
         if self._eventfd: return self._eventfd
-        try: self.libc = self.libc or ctypes.cdll.LoadLibrary("libc.so.6")
+        try: self._libc = self._libc or ctypes.cdll.LoadLibrary("libc.so.6")
         except: return None
-        self._eventfd = self.libc.eventfd(init_val, flags)
+        self._eventfd = self._libc.eventfd(init_val, flags)
         return self._eventfd
