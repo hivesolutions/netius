@@ -2,19 +2,19 @@
 
 **Fast and readable async non-blocking network apps**
 
-Netius is a Python network library that can be used for the rapid creation of asynchronous non-blocking 
-servers and clients. It has no dependencies, it's cross-platform, and brings some sample netius-powered 
+Netius is a Python network library that can be used for the rapid creation of asynchronous non-blocking
+servers and clients. It has no dependencies, it's cross-platform, and brings some sample netius-powered
 servers out of the box, namely a production-ready WSGI server.
 
-Simplicity and performance are the main drivers of this project. The codebase adheres to very strict 
-code standards, and is extensively commented; and as far as performance is concerned, it aims to 
-be up to par with equivalent native implementations, where [PyPy](http://pypy.org) can be used to 
+Simplicity and performance are the main drivers of this project. The codebase adheres to very strict
+code standards, and is extensively commented; and as far as performance is concerned, it aims to
+be up to par with equivalent native implementations, where [PyPy](http://pypy.org) can be used to
 provide the extra boost to raise performance up to these standards.
 
-Bear in mind that although netius is non-blocking, it will naturally still block if the operations 
-performed within the event loop are blocking, like reading or writing a file, which are both blocking 
-operations in the Python standard library. Running multiple netius instances in parallel, and having 
-a fast server like [nginx](http://nginx.org) act as their reverse proxy, is one way of minimising the 
+Bear in mind that although netius is non-blocking, it will naturally still block if the operations
+performed within the event loop are blocking, like reading or writing a file, which are both blocking
+operations in the Python standard library. Running multiple netius instances in parallel, and having
+a fast server like [nginx](http://nginx.org) act as their reverse proxy, is one way of minimising the
 perceptibility of such blockages.
 
 ## Installation
