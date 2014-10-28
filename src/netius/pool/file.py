@@ -56,10 +56,15 @@ from netius.pool import common
 class FileThread(common.Thread):
 
     def execute(self, work):
+        type = work[0]
+        if not type == FILE_WORK: netius.NotImplemented(
+            "Cannot execute type '%d'" % type
+        )
+
         try:
             self._execute(work)
         except BaseException as exception:
-            self.owner.push_event((ERROR_ACTION, exception))
+            self.owner.push_event((ERROR_ACTION, exception, work[-1]))
 
     def open(self, path, mode, data):
         file = open(path)
@@ -78,11 +83,6 @@ class FileThread(common.Thread):
         self.owner.push_event((WRITE_ACTION, len(buffer), data))
 
     def _execute(self, work):
-        type = work[0]
-        if not type == FILE_WORK: netius.NotImplemented(
-            "Cannot execute type '%d'" % type
-        )
-
         action = work[1]
         if action == OPEN_ACTION: self.open(*work[2:])
         elif action == CLOSE_ACTION: self.close(*work[2:])
