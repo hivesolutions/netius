@@ -51,6 +51,11 @@ class FileAsyncServer(_file.FileServer):
 
     This is a test implementation and should never be used for
     production work that required mature and stable codebase.
+
+    Using this kind of server (file pool based) is not recommended
+    for system that don't provide some system of event fd (windows)
+    as it would provide very slow performance or even stall the
+    event loop as no notification occurs on events.
     """
 
     def on_connection_d(self, connection):
