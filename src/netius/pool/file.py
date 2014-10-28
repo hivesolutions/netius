@@ -133,6 +133,7 @@ class FilePool(common.ThreadPool):
         except: return None
         fileno = self._libc.eventfd(init_val, flags)
         self._eventfd = EventFile(fileno)
+        print self._eventfd.fileno()
         return self._eventfd
 
 class EventFile(object):
