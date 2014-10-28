@@ -228,9 +228,13 @@ class FileServer(netius.servers.HTTPServer):
         range_s = parser.headers.get("range", None)
         is_partial = True if range_s else False
 
+        # resolves the path so that the real path is used (no symbolic links)
+        # this is required to avoid possible problems with modification values
+        path = os.path.realpath(path)
+
         # retrieves the last modified timestamp for the resource path and
         # uses it to create the etag for the resource to be served
-        modified = os.path.getmtime(path) if os.path.isfile(path) else None
+        modified = os.path.getmtime(path)
         etag = "netius-%.2f" % modified
 
         # retrieves the header that describes the previous version in the
