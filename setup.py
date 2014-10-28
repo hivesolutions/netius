@@ -48,7 +48,7 @@ setuptools.setup(
     author_email = "development@hive.pt",
     description = "Netius System",
     license = "Apache License, Version 2.0",
-    keywords = "netius net infrastructure",
+    keywords = "netius net infrastructure wsgi",
     url = "http://netius.hive.pt",
     zip_safe = False,
     packages = [
