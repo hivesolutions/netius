@@ -37,9 +37,7 @@ __license__ = "Apache License, Version 2.0"
 from . import adapters
 from . import auth
 from . import base
-from . import pool
 
 from .adapters import *
 from .auth import *
 from .base import *
-from .pool import *
