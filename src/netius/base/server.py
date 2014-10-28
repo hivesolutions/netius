@@ -572,6 +572,10 @@ class StreamServer(Server):
         pass
 
     def on_read(self, _socket):
+        # tries to retrieve the connection from the provided socket
+        # object (using the associative map) in case there no connection
+        # or the connection is not ready for return the control flow is
+        # returned to the caller method (nothing to be done)
         connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
