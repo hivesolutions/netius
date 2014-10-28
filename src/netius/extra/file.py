@@ -87,13 +87,6 @@ class FileServer(netius.servers.HTTPServer):
             path_f = os.path.abspath(path_f)
             path_f = os.path.normpath(path_f)
 
-            def tobias(file, *args, **kwargs):
-                def read_callback(result, *args, **kwargs):
-                    print result
-                self.fread(file, data = read_callback)
-
-            self.fopen("/hello.txt", data = tobias)
-
             # retrieves the current file system encoding and determines if it
             # it's required to decode the path into an unicode string, if that's
             # the case the normal decoding process is used using the currently

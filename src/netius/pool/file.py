@@ -39,6 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 FILE_WORK = 10
 
+ERROR_ACTION = -1
 OPEN_ACTION = 1
 READ_ACTION = 2
 WRITE_ACTION = 3
@@ -54,16 +55,10 @@ from netius.pool import common
 class FileThread(common.Thread):
 
     def execute(self, work):
-        type = work[0]
-        if not type == FILE_WORK: netius.NotImplemented(
-            "Cannot execute type '%d'" % type
-        )
-
-        action = work[1]
-        if action == OPEN_ACTION: self.open(*work[2:])
-        elif action == READ_ACTION: self.read(*work[2:])
-        elif action == WRITE_ACTION: self.read(*work[2:])
-        else: netius.NotImplemented("Undefined file action '%d'" % action)
+        try:
+            self._execute(work)
+        except BaseException as exception:
+            self.owner.push_event((ERROR_ACTION, exception))
 
     def open(self, path, mode, data):
         file = open(path)
@@ -76,6 +71,18 @@ class FileThread(common.Thread):
     def write(self, file, buffer, data):
         file.write(buffer)
         self.owner.push_event((WRITE_ACTION, data))
+
+    def _execute(self, work):
+        type = work[0]
+        if not type == FILE_WORK: netius.NotImplemented(
+            "Cannot execute type '%d'" % type
+        )
+
+        action = work[1]
+        if action == OPEN_ACTION: self.open(*work[2:])
+        elif action == READ_ACTION: self.read(*work[2:])
+        elif action == WRITE_ACTION: self.read(*work[2:])
+        else: netius.NotImplemented("Undefined file action '%d'" % action)
 
 class FilePool(common.ThreadPool):
 
