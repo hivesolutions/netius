@@ -63,7 +63,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.4.4"
+VERSION = "1.4.5"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -585,6 +585,8 @@ class Base(observer.Observable):
     def fopen(self, *args, **kwargs):
         self.fensure()
         return self.fpool.open(data = "", *args, **kwargs)
+    
+    #@tenho de por support para callbacks aqui 1!!
 
     def fread(self, *args, **kwargs):
         self.fensure(); return self.fpool.read(*args, **kwargs)
