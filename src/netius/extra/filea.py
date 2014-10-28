@@ -53,6 +53,11 @@ class FileAsyncServer(_file.FileServer):
     production work that required mature and stable codebase.
     """
 
+    def on_connection_d(self, connection):
+        file = hasattr(connection, "file") and connection.file
+        if file: self.fclose(file); connection.file = None
+        _file.FileServer.on_connection_d(self, connection)
+
     def _file_send(self, connection):
         file = connection.file
         range = connection.range
