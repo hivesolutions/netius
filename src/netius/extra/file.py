@@ -171,7 +171,8 @@ class FileServer(netius.servers.HTTPServer):
             else: item_s = item.encode("utf-8")
 
             path_f = os.path.join(path, item)
-            path_f = os.path.realpath(path_f)
+            if not os.path.exists(path_f): continue
+
             is_dir = os.path.isdir(path_f)
             item_s = item_s + "/" if is_dir else item_s
 
@@ -228,10 +229,6 @@ class FileServer(netius.servers.HTTPServer):
         parser = connection.parser
         range_s = parser.headers.get("range", None)
         is_partial = True if range_s else False
-
-        # resolves the path so that the real path is used (no symbolic links)
-        # this is required to avoid possible problems with modification values
-        path = os.path.realpath(path)
 
         # retrieves the last modified timestamp for the resource path and
         # uses it to create the etag for the resource to be served
