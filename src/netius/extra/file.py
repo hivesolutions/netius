@@ -171,6 +171,7 @@ class FileServer(netius.servers.HTTPServer):
             else: item_s = item.encode("utf-8")
 
             path_f = os.path.join(path, item)
+            path_f = os.path.realpath(path_f)
             is_dir = os.path.isdir(path_f)
             item_s = item_s + "/" if is_dir else item_s
 
