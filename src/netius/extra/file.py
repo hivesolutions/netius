@@ -50,6 +50,16 @@ sending the file to the client, this should not be neither
 to big nor to small (as both situations would create problems) """
 
 class FileServer(netius.servers.HTTPServer):
+    """
+    Simple implementation of a file server that is able to list files
+    for directories taking into account the base path values.
+
+    This is a synchronous implementation meaning that the server loop
+    will block for the various i/o operations to be performed.
+
+    Current implementation supports byte ranges so that partial retrieval
+    of a file is possible.
+    """
 
     def __init__(self, base_path = "", cors = False, *args, **kwargs):
         netius.servers.HTTPServer.__init__(self, *args, **kwargs)
