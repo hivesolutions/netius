@@ -145,7 +145,7 @@ class DNSRequest(netius.Request):
 
         parts = value.split(".")
         for part in parts:
-            part = netius.bytes(part)
+            part = netius.legacy.bytes(part)
             part_l = len(part)
             prefix = struct.pack("!B", part_l)
             part_s = prefix + part
@@ -235,7 +235,7 @@ class DNSResponse(netius.Response):
 
         while True:
             initial = data[index]
-            initial_i = netius.ord(initial)
+            initial_i = netius.legacy.ord(initial)
 
             if initial_i == 0: index += 1; break
             is_pointer = initial_i & 0xc0

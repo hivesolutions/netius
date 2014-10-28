@@ -461,13 +461,13 @@ class HTTPServer(netius.StreamServer):
         # token into the username and password components (for validation)
         _realm, token = authorization.split(" ", 1)
         token = base64.b64decode(token)
-        token = netius.str(token)
+        token = netius.legacy.str(token)
         username, password = token.split(":", 1)
 
         # verifies if the provided value is string based and taking that
         # into account runs the authentication process either using the
         # static passwd based approach or on the provided instance
-        is_str = type(path) in netius.STRINGS
+        is_str = type(path) in netius.legacy.STRINGS
         if is_str: return netius.PasswdAuth.auth(username, password, path = path)
         else: return path.auth(username, password)
 

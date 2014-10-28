@@ -45,13 +45,13 @@ from . import ssdp
 from . import torrent
 from . import ws
 
-from .apn import *
-from .dht import *
-from .dns import *
-from .http import *
-from .mjpg import *
-from .raw import *
-from .smtp import *
-from .ssdp import *
-from .torrent import *
-from .ws import *
+from .apn import APNConnection, APNClient
+from .dht import DHTRequest, DHTResponse, DHTClient
+from .dns import DNSRequest, DNSResponse, DNSClient
+from .http import HTTPConnection, HTTPClient
+from .mjpg import MJPGConnection, MJPGClient
+from .raw import RawClient
+from .smtp import SMTPConnection, SMTPClient
+from .ssdp import SSDPClient
+from .torrent import TorrentConnection, TorrentClient
+from .ws import WSConnection, WSClient

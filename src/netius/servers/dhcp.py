@@ -79,7 +79,7 @@ class DHCPRequest(object):
         cls.options_l = len(cls.options_m)
 
     def get_info(self):
-        buffer = netius.StringIO()
+        buffer = netius.legacy.StringIO()
         buffer.write("op      := %d\n" % self.op)
         buffer.write("htype   := %d\n" % self.htype)
         buffer.write("hlen    := %d\n" % self.hlen)
@@ -140,11 +140,11 @@ class DHCPRequest(object):
         index = 0
         while True:
             byte = self.options[index]
-            if netius.ord(byte) == 0xff: break
+            if netius.legacy.ord(byte) == 0xff: break
 
             type = byte
-            type_i = netius.ord(type)
-            length = netius.ord(self.options[index + 1])
+            type_i = netius.legacy.ord(type)
+            length = netius.legacy.ord(self.options[index + 1])
             payload = self.options[index + 2:index + length + 2]
 
             self.options_p[type_i] = payload
@@ -161,7 +161,7 @@ class DHCPRequest(object):
     def get_type(self):
         payload = self.options_p.get(53, None)
         if not payload: return 0x00
-        type = netius.ord(payload)
+        type = netius.legacy.ord(payload)
         return type
 
     def get_type_s(self):
@@ -237,7 +237,7 @@ class DHCPRequest(object):
 
     @classmethod
     def _str(cls, data):
-        data = netius.bytes(data)
+        data = netius.legacy.bytes(data)
         data_l = len(data)
         size_s = struct.pack("!B", data_l)
         return size_s + data
@@ -343,8 +343,8 @@ class DHCPRequest(object):
     @classmethod
     def _option_proxy(cls, url = "http://localhost/proxy.pac"):
         length = len(url)
-        length_o = netius.chr(length)
-        return b"\xfc" + length_o + netius.bytes(url)
+        length_o = netius.legacy.chr(length)
+        return b"\xfc" + length_o + netius.legacy.bytes(url)
 
     @classmethod
     def _option_end(cls):

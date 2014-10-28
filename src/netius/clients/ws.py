@@ -85,13 +85,13 @@ class WSConnection(netius.Connection):
 
             key, value = values
             key = key.strip()
-            key = netius.str(key)
+            key = netius.legacy.str(key)
             value = value.strip()
-            value = netius.str(value)
+            value = netius.legacy.str(value)
             self.headers[key] = value
 
         first = lines[0]
-        first = netius.str(first)
+        first = netius.legacy.str(first)
         self.version, self.code, self.code_s = first.split(" ", 2)
 
         del self.buffer_l[:]
@@ -102,11 +102,11 @@ class WSConnection(netius.Connection):
         if not accept_key:
             raise netius.NetiusError("No accept key found in headers")
 
-        value = netius.bytes(self.key + WSClient.MAGIC_VALUE)
+        value = netius.legacy.bytes(self.key + WSClient.MAGIC_VALUE)
         hash = hashlib.sha1(value)
         hash_digest = hash.digest()
         _accept_key = base64.b64encode(hash_digest)
-        _accept_key = netius.str(_accept_key)
+        _accept_key = netius.legacy.str(_accept_key)
 
         if not _accept_key == accept_key:
             raise netius.SecurityError("Invalid accept key provided")
@@ -174,7 +174,7 @@ class WSClient(netius.StreamClient):
         )
 
     def connect_ws(self, url):
-        parsed = netius.urlparse(url)
+        parsed = netius.legacy.urlparse(url)
         ssl = parsed.scheme == "wss"
         host = parsed.hostname
         port = parsed.port or (ssl and 443 or 80)
@@ -186,9 +186,9 @@ class WSClient(netius.StreamClient):
 
     def _key(self, size = 16):
         seed = str(uuid.uuid4())
-        seed = netius.bytes(seed)[:size]
+        seed = netius.legacy.bytes(seed)[:size]
         seed = base64.b64encode(seed)
-        return netius.str(seed)
+        return netius.legacy.str(seed)
 
 if __name__ == "__main__":
     def on_handshake(client, connection):

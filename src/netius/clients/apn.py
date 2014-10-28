@@ -161,7 +161,7 @@ class APNClient(netius.StreamClient):
         # converts the current token (in hexadecimal) to a set
         # of binary string elements and uses that value to get
         # a string of data from the string of hexadecimal data
-        token = netius.bytes(token)
+        token = netius.legacy.bytes(token)
         token = binascii.unhexlify(token)
 
         # creates the message structure using with the
@@ -179,7 +179,7 @@ class APNClient(netius.StreamClient):
         # verifies if the resulting payload object is unicode based
         # and in case it is encodes it into a string representation
         # so that it may be used for the packing of structure
-        is_unicode = netius.is_unicode(payload)
+        is_unicode = netius.legacy.is_unicode(payload)
         if is_unicode: payload = payload.encode("utf-8")
 
         # sets the command with the zero value (simplified)

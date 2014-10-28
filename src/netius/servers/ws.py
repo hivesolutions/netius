@@ -95,13 +95,13 @@ class WSConnection(netius.Connection):
 
             key, value = values
             key = key.strip()
-            key = netius.str(key)
+            key = netius.legacy.str(key)
             value = value.strip()
-            value = netius.str(value)
+            value = netius.legacy.str(value)
             self.headers[key] = value
 
         first = lines[0]
-        first = netius.str(first)
+        first = netius.legacy.str(first)
         self.method, self.path, self.version = first.split(" ", 2)
 
         del self.buffer_l[:]
@@ -112,11 +112,11 @@ class WSConnection(netius.Connection):
         if not socket_key:
             raise netius.NetiusError("No socket key found in headers")
 
-        value = netius.bytes(socket_key + WSServer.MAGIC_VALUE)
+        value = netius.legacy.bytes(socket_key + WSServer.MAGIC_VALUE)
         hash = hashlib.sha1(value)
         hash_digest = hash.digest()
         accept_key = base64.b64encode(hash_digest)
-        accept_key = netius.str(accept_key)
+        accept_key = netius.legacy.str(accept_key)
         return accept_key
 
 class WSServer(netius.StreamServer):

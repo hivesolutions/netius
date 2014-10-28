@@ -57,7 +57,7 @@ class MemoryAdapter(base.BaseAdapter):
         if not key in self.map: netius.NetiusError("Key not found")
         item = self.map[key]
         value = item["value"]
-        file = netius.StringIO(value)
+        file = netius.legacy.StringIO(value)
         close = self._build_close(file, key)
         file._close = file.close
         file.close = close

@@ -47,15 +47,16 @@ from . import poll
 from . import request
 from . import server
 
-from .client import *
-from .common import *
-from .config import *
-from .conn import *
-from .container import *
-from .errors import *
-from .legacy import *
-from .log import *
-from .observer import *
-from .poll import *
-from .request import *
-from .server import *
+from .client import Client, DatagramClient, StreamClient
+from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
+    IDENTIFIER, UDP_TYPE, TCP_TYPE, Base, BaseThread
+from .config import conf, conf_prefix, conf_s
+from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
+from .container import Container, ContainerServer
+from .errors import NetiusError, DataError, ParserError, GeneratorError,\
+    SecurityError, NotImplemented
+from .log import SILENT, rotating_handler, smtp_handler
+from .observer import Observable
+from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
+from .request import Request, Response
+from .server import Server, DatagramServer, StreamServer

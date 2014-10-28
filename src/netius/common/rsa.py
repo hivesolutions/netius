@@ -81,7 +81,7 @@ def write_pem_key(
     chunks = [chunk for chunk in util.chunks(data, width)]
     data = b"\n".join(chunks)
 
-    is_file = not type(path) in netius.STRINGS
+    is_file = not type(path) in netius.legacy.STRINGS
     file = path if is_file else open(path, "wb")
     try:
         file.write(begin)
@@ -182,8 +182,8 @@ def pem_to_der(in_path, out_path, token = PRIVATE_TOKEN):
     finally: file.close()
 
 def pem_limiters(token):
-    begin = netius.bytes("-----BEGIN " + token + "-----")
-    end = netius.bytes("-----END " + token + "-----")
+    begin = netius.legacy.bytes("-----BEGIN " + token + "-----")
+    end = netius.legacy.bytes("-----END " + token + "-----")
     return (begin, end)
 
 def private_to_public(private_key):
@@ -388,13 +388,13 @@ def rsa_bits(modulus):
     return calc.ceil_integer(bits)
 
 def rsa_sign(message, private_key):
-    message = netius.bytes(message)
+    message = netius.legacy.bytes(message)
     modulus = private_key["modulus"]
     private_exponent = private_key["private_exponent"]
     return rsa_crypt_s(message, private_exponent, modulus)
 
 def rsa_verify(signature, public_key):
-    signature = netius.bytes(signature)
+    signature = netius.legacy.bytes(signature)
     modulus = public_key["modulus"]
     public_exponent = public_key["public_exponent"]
     return rsa_crypt_s(signature, public_exponent, modulus)
@@ -409,7 +409,7 @@ def rsa_crypt_s(message, exponent, modulus):
     return message_crypt_s
 
 def rsa_crypt(number, exponent, modulus):
-    if not type(number) in netius.INTEGERS:
+    if not type(number) in netius.legacy.INTEGERS:
         raise TypeError("you must pass a long or an int")
 
     if number > 0 and math.floor(math.log(number, 2)) > math.floor(math.log(modulus, 2)):

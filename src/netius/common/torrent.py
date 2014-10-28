@@ -88,7 +88,7 @@ def bdecode(data):
     # of chunks (characters) reversing it so that the
     # proper pop/push operations may be performed, as
     # pop is done from the back of the list
-    data = netius.str(data)
+    data = netius.legacy.str(data)
     chunks = list(data)
     chunks.reverse()
 
@@ -102,7 +102,7 @@ def chunk(item):
     chunk_t = type(item)
 
     if chunk_t == bytes:
-        item = netius.str(item)
+        item = netius.legacy.str(item)
         chunk_t = type(item)
 
     if chunk_t == dict:
@@ -122,11 +122,11 @@ def chunk(item):
             for part in chunk(value): yield part
         yield b"e"
 
-    elif chunk_t in netius.INTEGERS:
-        yield netius.bytes("i%de" % item)
+    elif chunk_t in netius.legacy.INTEGERS:
+        yield netius.legacy.bytes("i%de" % item)
 
-    elif chunk_t in netius.STRINGS:
-        yield netius.bytes("%d:%s" % (len(item), item))
+    elif chunk_t in netius.legacy.STRINGS:
+        yield netius.legacy.bytes("%d:%s" % (len(item), item))
 
     else:
         raise netius.ParserError("Not possible to encode")

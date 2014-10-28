@@ -40,8 +40,8 @@ from . import memory
 from . import mongo
 from . import null
 
-from .base import *
-from .fs import *
-from .memory import *
-from .mongo import *
-from .null import *
+from .base import BaseAdapter
+from .fs import FsAdapter
+from .memory import MemoryAdapter
+from .mongo import MongoAdapter
+from .null import NullAdapter

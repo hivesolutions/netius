@@ -316,7 +316,7 @@ class WSGIServer(http.HTTPServer):
         value = netius.unquote(value)
         is_unicode = netius.is_unicode(value)
         value = value.encode("utf-8") if is_unicode else value
-        value = netius.str(value)
+        value = netius.legacy.str(value)
         return value
 
 if __name__ == "__main__":

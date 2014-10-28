@@ -103,10 +103,10 @@ def ip4_to_addr(value):
     return first_a + second_a + third_a + fourth_a
 
 def string_to_bits(value):
-    return bin(netius.reduce(lambda x, y : (x << 8) + y, (netius.ord(c) for c in value), 1))[3:]
+    return bin(netius.legacy.reduce(lambda x, y : (x << 8) + y, (netius.legacy.ord(c) for c in value), 1))[3:]
 
 def integer_to_bytes(number, length = 0):
-    if not type(number) in netius.INTEGERS:
+    if not type(number) in netius.legacy.INTEGERS:
         raise netius.DataError("Invalid data type")
 
     bytes = []
@@ -122,16 +122,16 @@ def integer_to_bytes(number, length = 0):
 
     bytes = reversed(bytes)
     bytes_s = "".join(bytes)
-    bytes_s = netius.bytes(bytes_s)
+    bytes_s = netius.legacy.bytes(bytes_s)
 
     return bytes_s
 
 def bytes_to_integer(bytes):
-    if not type(bytes) == netius.BYTES:
+    if not type(bytes) == netius.legacy.BYTES:
         raise netius.DataError("Invalid data type")
 
     number = 0
-    for byte in bytes: number = (number << 8) | netius.ord(byte)
+    for byte in bytes: number = (number << 8) | netius.legacy.ord(byte)
     return number
 
 def random_integer(number_bits):
@@ -187,7 +187,7 @@ def host():
     if _HOST: return _HOST
     hostname = socket.gethostname()
     _HOST = socket.gethostbyname(hostname)
-    is_unicode = type(_HOST) == netius.OLD_UNICODE
+    is_unicode = type(_HOST) == netius.legacy.OLD_UNICODE
     if is_unicode: _HOST = _HOST.encode("utf-8")
     return _HOST
 

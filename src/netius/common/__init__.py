@@ -50,14 +50,15 @@ from . import torrent
 from . import util
 from . import ws
 
-from .asn import *
-from .calc import *
-from .dhcp import *
-from .dkim import *
-from .http import *
-from .mime import *
-from .parser import *
-from .pop import *
+from .asn import asn1_parse, asn1_length, asn1_gen, asn1_build
+from .calc import prime, is_prime, relatively_prime, gcd, egcd, modinv,\
+    random_integer_interval, random_primality, jacobi_witness, jacobi, ceil_integer
+from .dhcp import OPTIONS_DHCP, TYPES_DHCP, VERBS_DHCP, AddressPool
+from .dkim import dkim_sign, dkim_headers, dkim_body, dkim_fold, dkim_generate
+from .http import HTTPParser, HTTPResponse
+from .mime import rfc822_parse, rfc822_join
+from .parser import Parser
+from .pop import POPParser
 from .rsa import *
 from .smtp import *
 from .socks import *

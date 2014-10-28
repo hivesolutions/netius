@@ -104,7 +104,7 @@ class POPParser(parser.Parser):
         # as it's not longer going to be used
         self.buffer.append(data[:index])
         self.line_s = b"".join(self.buffer)[:-1]
-        self.line_s = netius.str(self.line_s)
+        self.line_s = netius.legacy.str(self.line_s)
         del self.buffer[:]
 
         # splits the provided line into the code and message parts in case

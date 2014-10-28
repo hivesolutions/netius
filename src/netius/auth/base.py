@@ -69,7 +69,7 @@ class Auth(object):
         if plain: return encoded == decoded
         if salt: decoded += salt
         type = type.lower()
-        decoded = netius.bytes(decoded)
+        decoded = netius.legacy.bytes(decoded)
         hash = hashlib.new(type, decoded)
         _digest = hash.hexdigest()
         return _digest == digest
@@ -78,13 +78,13 @@ class Auth(object):
     def generate(cls, password, type = "sha256", salt = "netius"):
         if type == "plain" : return password
         if salt: password += salt
-        password = netius.bytes(password)
+        password = netius.legacy.bytes(password)
         hash = hashlib.new(type, password)
         digest = hash.hexdigest()
         if not salt: return "%s:%s" % (type, digest)
-        salt = netius.bytes(salt)
+        salt = netius.legacy.bytes(salt)
         salt = binascii.hexlify(salt)
-        salt = netius.str(salt)
+        salt = netius.legacy.str(salt)
         return "%s:%s:%s" % (type, salt, digest)
 
     @classmethod
@@ -94,9 +94,9 @@ class Auth(object):
         elif count == 1: type, digest = password.split(":"); salt = None
         else: plain = password; type = "plain"; salt = None; digest = None
         if not type == "plain": plain = None
-        if salt: salt = netius.bytes(salt)
+        if salt: salt = netius.legacy.bytes(salt)
         if salt: salt = binascii.unhexlify(salt)
-        if salt: salt = netius.str(salt)
+        if salt: salt = netius.legacy.str(salt)
         return (type, salt, digest, plain)
 
     @classmethod

@@ -87,7 +87,7 @@ class Headers(list):
         self.remove([key, value])
 
     def __contains__(self, item):
-        is_string = type(item) in netius.STRINGS
+        is_string = type(item) in netius.legacy.STRINGS
         if not is_string: return list.__contains__(self, item)
         for key, _value in self:
             if not key == item: continue
@@ -110,14 +110,14 @@ class Headers(list):
         else: self[key] = value
 
     def join(self, separator = "\r\n"):
-        separator = netius.bytes(separator)
+        separator = netius.legacy.bytes(separator)
         return separator.join([key + b": " + value for key, value in self])
 
     def _normalize(self, value):
         value_t = type(value)
-        if value_t == netius.BYTES: return value
-        if value_t == netius.UNICODE: return value.encode("utf-8")
-        return netius.bytes(str(value))
+        if value_t == netius.legacy.BYTES: return value
+        if value_t == netius.legacy.UNICODE: return value.encode("utf-8")
+        return netius.legacy.bytes(str(value))
 
 def rfc822_parse(message, strip = True):
     """
@@ -164,7 +164,7 @@ def rfc822_parse(message, strip = True):
         # retrieves the value for the current byte so that it's
         # possible to try to match it against the various regular
         # expression that are part of the parsing loop (line loop)
-        byte = netius.chr(line[0])
+        byte = netius.legacy.chr(line[0])
 
         # verifies if this is a continuation line, these lines
         # start with either a space or a tab character, for those

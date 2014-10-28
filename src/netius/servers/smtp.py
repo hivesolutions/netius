@@ -153,7 +153,7 @@ class SMTPConnection(netius.Connection):
 
     def auth(self, method, data):
         data_s = base64.b64decode(data)
-        data_s = netius.str(data_s)
+        data_s = netius.legacy.str(data_s)
         _identifier, username, password = data_s.split("\0")
         self.owner.on_auth_smtp(self, username, password)
         message = "authentication successful"

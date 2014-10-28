@@ -196,7 +196,7 @@ class ProxyServer(http.HTTPServer):
         data = parser.message[start:end]
         data_s = b"".join(data)
         data_l = len(data_s)
-        header = netius.bytes("%x\r\n" % data_l)
+        header = netius.legacy.bytes("%x\r\n" % data_l)
         chunk = header + data_s + b"\r\n"
 
         proxy_c = connection.proxy_c
@@ -334,7 +334,7 @@ class ProxyServer(http.HTTPServer):
         data = parser.message[start:end]
         data_s = b"".join(data)
         data_l = len(data_s)
-        header = netius.bytes("%x\r\n" % data_l)
+        header = netius.legacy.bytes("%x\r\n" % data_l)
         chunk = header + data_s + b"\r\n"
 
         should_disable = self.throttle and connection.pending_s > self.max_pending

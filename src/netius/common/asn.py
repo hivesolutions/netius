@@ -116,7 +116,7 @@ def asn1_parse(template, data):
 
         # retrieves the value (as an ordinal) for the current
         # byte and increments the index for the parser
-        tag = netius.ord(data[index])
+        tag = netius.legacy.ord(data[index])
         index += 1
 
         # in case the current type is not of the expect type,
@@ -128,7 +128,7 @@ def asn1_parse(template, data):
         # retrieves the ordinal value of the current byte as
         # the length of the value to be parsed and then increments
         # the pointer of the buffer reading process
-        length = netius.ord(data[index])
+        length = netius.legacy.ord(data[index])
         index += 1
 
         # in case the last bit of the length byte is set the,
@@ -185,11 +185,11 @@ def asn1_length(length):
     """
 
     assert length >= 0
-    if length < 0x7f: return netius.chr(length)
+    if length < 0x7f: return netius.legacy.chr(length)
 
     result = util.integer_to_bytes(length)
     number = len(result)
-    result = netius.chr(number | 0x80) + result
+    result = netius.legacy.chr(number | 0x80) + result
     return result
 
 def asn1_gen(node):
@@ -209,21 +209,21 @@ def asn1_build(node):
     tag, value = node
 
     if tag == BIT_STRING:
-        yield netius.chr(BIT_STRING) + asn1_length(len(value)) + value
+        yield netius.legacy.chr(BIT_STRING) + asn1_length(len(value)) + value
 
     elif tag == OCTET_STRING:
-        yield netius.chr(OCTET_STRING) + asn1_length(len(value)) + value
+        yield netius.legacy.chr(OCTET_STRING) + asn1_length(len(value)) + value
 
     elif tag == INTEGER:
         value = util.integer_to_bytes(value)
-        yield netius.chr(INTEGER) + asn1_length(len(value)) + value
+        yield netius.legacy.chr(INTEGER) + asn1_length(len(value)) + value
 
     elif tag == NULL:
         assert value is None
-        yield netius.chr(NULL) + asn1_length(0)
+        yield netius.legacy.chr(NULL) + asn1_length(0)
 
     elif tag == OBJECT_IDENTIFIER:
-        yield netius.chr(OBJECT_IDENTIFIER) + asn1_length(len(value)) + value
+        yield netius.legacy.chr(OBJECT_IDENTIFIER) + asn1_length(len(value)) + value
 
     elif tag == SEQUENCE:
         buffer = []
@@ -232,7 +232,7 @@ def asn1_build(node):
             data = b"".join(generator)
             buffer.append(data)
         result = b"".join(buffer)
-        yield netius.chr(SEQUENCE) + asn1_length(len(result)) + result
+        yield netius.legacy.chr(SEQUENCE) + asn1_length(len(result)) + result
 
     else:
         raise netius.GeneratorError("Unexpected tag in template 0x%02x" % tag)

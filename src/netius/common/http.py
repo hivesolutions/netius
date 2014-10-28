@@ -317,7 +317,7 @@ class HTTPParser(parser.Parser):
         """
 
         if not self.message_f:
-            self.message_f = netius.BytesIO()
+            self.message_f = netius.legacy.BytesIO()
             for value in self.message: self.message_f.write(value)
         self.message_f.seek(0)
         return self.message_f
@@ -407,7 +407,7 @@ class HTTPParser(parser.Parser):
 
         self.buffer.append(data[:index])
         self.line_s = b"".join(self.buffer)[:-1]
-        self.line_s = netius.str(self.line_s)
+        self.line_s = netius.legacy.str(self.line_s)
         del self.buffer[:]
 
         # restores the final end of line sequence to the buffer, this
@@ -489,9 +489,9 @@ class HTTPParser(parser.Parser):
             # whitespace like value that may exist in them
             key, value = values
             key = key.strip().lower()
-            key = netius.str(key)
+            key = netius.legacy.str(key)
             value = value.strip()
-            value = netius.str(value)
+            value = netius.legacy.str(value)
             self.headers[key] = value
 
         # retrieves the size of the contents from the populated
@@ -696,7 +696,7 @@ class HTTPParser(parser.Parser):
     def _parse_query(self, query):
         # runs the "default" parsing of the query string from the system
         # and then decodes the complete set of parameters properly
-        params = netius.parse_qs(query, keep_blank_values = True)
+        params = netius.legacy.parse_qs(query, keep_blank_values = True)
         return self._decode_params(params)
 
     def _store_data(self, data, memory = True):
@@ -710,10 +710,10 @@ class HTTPParser(parser.Parser):
         for key, value in params.items():
             items = []
             for item in value:
-                is_bytes = netius.is_bytes(item)
+                is_bytes = netius.legacy.is_bytes(item)
                 if is_bytes: item = item.decode("utf-8")
                 items.append(item)
-            is_bytes = netius.is_bytes(key)
+            is_bytes = netius.legacy.is_bytes(key)
             if is_bytes: key = key.decode("utf-8")
             _params[key] = items
 

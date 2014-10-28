@@ -48,7 +48,8 @@ from . import wsgi
 
 from .dhcp import *
 from .echo import *
-from .http import *
+from .http import PLAIN_ENCODING, CHUNKED_ENCODING, GZIP_ENCODING, HTTPConnection,\
+    HTTPServer
 from .mjpg import *
 from .pop import *
 from .proxy import *

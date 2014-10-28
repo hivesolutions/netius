@@ -51,7 +51,7 @@ from netius.common import util
 from netius.common import mime
 
 def dkim_sign(message, selector, domain, private_key, identity = None, separator = ":"):
-    separator = netius.bytes(separator)
+    separator = netius.legacy.bytes(separator)
     identity = identity or "@" + domain
 
     headers, body = mime.rfc822_parse(message, strip = False)
@@ -71,14 +71,14 @@ def dkim_sign(message, selector, domain, private_key, identity = None, separator
 
     body_digest = hash.digest()
     body_hash = base64.b64encode(body_digest)
-    body_hash = netius.str(body_hash)
+    body_hash = netius.legacy.str(body_hash)
 
     creation = time.time()
     creation = int(creation)
     creation_s = str(creation)
 
     names = separator.join(sign_names)
-    names = netius.str(names)
+    names = netius.legacy.str(names)
 
     sign_fields = [
         ("v", "1"),
@@ -96,7 +96,8 @@ def dkim_sign(message, selector, domain, private_key, identity = None, separator
     ]
 
     signature = "DKIM-Signature: " + "; ".join("%s=%s" % field for field in sign_fields)
-    if type(signature) == netius.UNICODE: signature = signature.encode("utf-8")
+    if type(signature) == netius.legacy.UNICODE:
+        signature = signature.encode("utf-8")
     signature = dkim_fold(signature)
 
     hash = hashlib.sha256()
@@ -196,11 +197,11 @@ def dkim_generate(domain, suffix = None, number_bits = 1024):
     rsa.assert_private(private_key, number_bits = number_bits)
     public_key = rsa.private_to_public(private_key)
 
-    buffer = netius.BytesIO()
+    buffer = netius.legacy.BytesIO()
     try:
         rsa.write_private_key(buffer, private_key)
         private_pem = buffer.getvalue()
-        private_pem = netius.str(private_pem)
+        private_pem = netius.legacy.str(private_pem)
     finally:
         buffer.close()
 

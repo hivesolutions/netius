@@ -39,7 +39,7 @@ from . import dummy
 from . import memory
 from . import passwd
 
-from .base import *
-from .dummy import *
-from .memory import *
-from .passwd import *
+from .base import Auth
+from .dummy import DummyAuth
+from .memory import MemoryAuth
+from .passwd import PasswdAuth

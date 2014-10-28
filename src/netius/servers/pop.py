@@ -273,7 +273,7 @@ class POPConnection(netius.Connection):
         # may be called to validate the authentication
         token = b"".join(self.token_buf)
         token_s = base64.b64decode(token)
-        token_s = netius.str(token_s)
+        token_s = netius.legacy.str(token_s)
         _identifier, username, password = token_s.split("\0")
 
         # calls the callback to the authentication and in case everything

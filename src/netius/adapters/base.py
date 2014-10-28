@@ -60,7 +60,7 @@ class BaseAdapter(object):
         return value
 
     def get_file(self, key, mode = "rb"):
-        return netius.StringIO()
+        return netius.legacy.StringIO()
 
     def delete(self, key, owner = "nobody"):
         pass
@@ -104,7 +104,7 @@ class BaseAdapter(object):
 
     def generate(self):
         identifier = str(uuid.uuid4())
-        identifier = netius.bytes(identifier)
+        identifier = netius.legacy.bytes(identifier)
         hash = hashlib.sha256(identifier)
         key = hash.hexdigest()
         return key

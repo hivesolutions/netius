@@ -50,7 +50,7 @@ class DesktopServer(netius.servers.MJPGServer):
     def get_image(self, connection):
         if not PIL: return None
         image = PIL.ImageGrab.grab()
-        buffer = netius.BytesIO()
+        buffer = netius.legacy.BytesIO()
         image.save(buffer, "JPEG")
         data = buffer.getvalue()
         return data

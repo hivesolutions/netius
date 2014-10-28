@@ -129,7 +129,7 @@ class HTTPConnection(netius.Connection):
         self.data = data
 
     def normalize_headers(self):
-        for key, value in netius.eager(self.headers.items()):
+        for key, value in netius.legacy.eager(self.headers.items()):
             del self.headers[key]
             key = netius.common.header_down(key)
             self.headers[key] = value
@@ -401,14 +401,14 @@ class HTTPClient(netius.StreamClient):
         # encodes the provided parameters into the query string and then
         # adds these parameters to the end of the provided url, these
         # values are commonly named get parameters
-        query = netius.urlencode(params)
+        query = netius.legacy.urlencode(params)
         if query: url = url + "?" + query
 
         # parses the provided url and retrieves the various parts of the
         # url that are going to be used in the creation of the connection
         # takes into account some default values in case their are not part
         # of the provided url (eg: port and the scheme)
-        parsed = netius.urlparse(url)
+        parsed = netius.legacy.urlparse(url)
         ssl = parsed.scheme == "https"
         host = parsed.hostname
         port = parsed.port or (ssl and 443 or 80)
@@ -421,9 +421,9 @@ class HTTPClient(netius.StreamClient):
         # of headers that are going to be included in the request
         if username and password:
             payload = "%s:%s" % (username, password)
-            payload = netius.bytes(payload)
+            payload = netius.legacy.bytes(payload)
             authorization = base64.b64encode(payload)
-            authorization = netius.str(authorization)
+            authorization = netius.legacy.str(authorization)
             headers["authorization"] = "Basic %s" % authorization
 
         # in case there's a connection to be used must validate that the

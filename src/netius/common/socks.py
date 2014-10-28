@@ -232,7 +232,7 @@ class SOCKSParser(parser.Parser):
 
         self.buffer.append(data[:index])
         self.user_id = b"".join(self.buffer)
-        self.user_id = netius.str(self.user_id)
+        self.user_id = netius.legacy.str(self.user_id)
         del self.buffer[:]
 
         if self.is_extended: self.state = DOMAIN_STATE
@@ -247,7 +247,7 @@ class SOCKSParser(parser.Parser):
 
         self.buffer.append(data[:index])
         self.domain = b"".join(self.buffer)
-        self.domain = netius.str(self.domain)
+        self.domain = netius.legacy.str(self.domain)
         del self.buffer[:]
 
         self.state = FINISH_STATE
@@ -325,8 +325,8 @@ class SOCKSParser(parser.Parser):
             self.address = struct.unpack("!QQ", data)
             self.address_s = self.address
         else:
-            self.address = netius.str(data)
-            self.address_s = netius.str(data)
+            self.address = netius.legacy.str(data)
+            self.address_s = netius.legacy.str(data)
 
         self.state = PORT_STATE
 

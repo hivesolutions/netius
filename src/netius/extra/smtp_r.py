@@ -157,7 +157,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         _user, domain = email.split("@", 1)
         domain = self.host or domain
         identifier = str(uuid.uuid4())
-        identifier = netius.bytes(identifier)
+        identifier = netius.legacy.bytes(identifier)
         identifier = hashlib.sha1(identifier).hexdigest()
         identifier = identifier.upper()
         identifier = connection.identifier or identifier

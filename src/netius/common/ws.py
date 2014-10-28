@@ -49,39 +49,39 @@ def encode_ws(data, final = True, opcode = 0x01, mask = True):
     final = 0x01 if final else 0x00
     mask = 0x01 if mask else 0x00
 
-    data = netius.bytes(data)
+    data = netius.legacy.bytes(data)
     data_l = len(data)
 
     first_byte = (final << 7) + opcode
 
     encoded_l = list()
-    encoded_l.append(netius.chr(first_byte))
+    encoded_l.append(netius.legacy.chr(first_byte))
 
     if data_l <= 125:
-        encoded_l.append(netius.chr(data_l + (mask << 7)))
+        encoded_l.append(netius.legacy.chr(data_l + (mask << 7)))
 
     elif data_l >= 126 and data_l <= 65535:
-        encoded_l.append(netius.chr(126 + (mask << 7)))
-        encoded_l.append(netius.chr((data_l >> 8) & 255))
-        encoded_l.append(netius.chr(data_l & 255))
+        encoded_l.append(netius.legacy.chr(126 + (mask << 7)))
+        encoded_l.append(netius.legacy.chr((data_l >> 8) & 255))
+        encoded_l.append(netius.legacy.chr(data_l & 255))
 
     else:
-        encoded_l.append(netius.chr(127 + (mask << 7)))
-        encoded_l.append(netius.chr((data_l >> 56) & 255))
-        encoded_l.append(netius.chr((data_l >> 48) & 255))
-        encoded_l.append(netius.chr((data_l >> 40) & 255))
-        encoded_l.append(netius.chr((data_l >> 32) & 255))
-        encoded_l.append(netius.chr((data_l >> 24) & 255))
-        encoded_l.append(netius.chr((data_l >> 16) & 255))
-        encoded_l.append(netius.chr((data_l >> 8) & 255))
-        encoded_l.append(netius.chr(data_l & 255))
+        encoded_l.append(netius.legacy.chr(127 + (mask << 7)))
+        encoded_l.append(netius.legacy.chr((data_l >> 56) & 255))
+        encoded_l.append(netius.legacy.chr((data_l >> 48) & 255))
+        encoded_l.append(netius.legacy.chr((data_l >> 40) & 255))
+        encoded_l.append(netius.legacy.chr((data_l >> 32) & 255))
+        encoded_l.append(netius.legacy.chr((data_l >> 24) & 255))
+        encoded_l.append(netius.legacy.chr((data_l >> 16) & 255))
+        encoded_l.append(netius.legacy.chr((data_l >> 8) & 255))
+        encoded_l.append(netius.legacy.chr(data_l & 255))
 
     if mask:
         mask_bytes = struct.pack("!I", random.getrandbits(32))
         encoded_l.append(mask_bytes)
         encoded_a = bytearray(data_l)
         for i in range(data_l):
-            encoded_a[i] = netius.chri(netius.ord(data[i]) ^ netius.ord(mask_bytes[i % 4]))
+            encoded_a[i] = netius.legacy.chri(netius.legacy.ord(data[i]) ^ netius.legacy.ord(mask_bytes[i % 4]))
         data = bytes(encoded_a)
 
     encoded_l.append(data)
@@ -102,12 +102,12 @@ def decode_ws(data):
 
     # verifies if the current frame is a masked one and calculates
     # the number of mask bytes taking that into account
-    has_mask = netius.ord(second_byte) & 128
+    has_mask = netius.legacy.ord(second_byte) & 128
     mask_bytes = 4 if has_mask else 0
 
     # retrieves the base length (simplified length) of the
     # frame as the seven last bits of the second byte in frame
-    length = netius.ord(second_byte) & 127
+    length = netius.legacy.ord(second_byte) & 127
     index_mask_f = 2
 
     # verifies if the length to be calculated is of type
@@ -116,8 +116,8 @@ def decode_ws(data):
     if length == 126:
         assert_ws(data_l, 4)
         length = 0
-        length += netius.ord(data[2]) << 8
-        length += netius.ord(data[3])
+        length += netius.legacy.ord(data[2]) << 8
+        length += netius.legacy.ord(data[3])
         index_mask_f = 4
 
     # check if the length to be calculated is of type extended
@@ -126,14 +126,14 @@ def decode_ws(data):
     elif length == 127:
         assert_ws(data_l, 10)
         length = 0
-        length += netius.ord(data[2]) << 56
-        length += netius.ord(data[3]) << 48
-        length += netius.ord(data[4]) << 40
-        length += netius.ord(data[5]) << 32
-        length += netius.ord(data[6]) << 24
-        length += netius.ord(data[7]) << 16
-        length += netius.ord(data[8]) << 8
-        length += netius.ord(data[9])
+        length += netius.legacy.ord(data[2]) << 56
+        length += netius.legacy.ord(data[3]) << 48
+        length += netius.legacy.ord(data[4]) << 40
+        length += netius.legacy.ord(data[5]) << 32
+        length += netius.legacy.ord(data[6]) << 24
+        length += netius.legacy.ord(data[7]) << 16
+        length += netius.legacy.ord(data[8]) << 8
+        length += netius.legacy.ord(data[9])
         index_mask_f = 10
 
     # calculates the size of the raw data part of the message and
@@ -162,7 +162,7 @@ def decode_ws(data):
     # (decoding it consequently) to the created decoded array
     i = index_mask_f + 4
     for j in range(length):
-        decoded_a[j] = netius.chri(netius.ord(data[i]) ^ netius.ord(mask[j % 4]))
+        decoded_a[j] = netius.legacy.chri(netius.legacy.ord(data[i]) ^ netius.legacy.ord(mask[j % 4]))
         i += 1
 
     # converts the decoded array of data into a string and

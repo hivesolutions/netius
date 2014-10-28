@@ -248,7 +248,7 @@ class TorrentTask(netius.Observable):
         # creating the proper peer dictionary for each of them
         chunks = [chunk for chunk in netius.common.chunks(nodes, 26)]
         for chunk in chunks:
-            chunk = netius.bytes(chunk)
+            chunk = netius.legacy.bytes(chunk)
             peer_id, address, port = struct.unpack("!20sLH", chunk)
             ip = netius.common.addr_to_ip4(address)
             peer = dict(id = peer_id, ip = ip, port = port)
@@ -294,7 +294,7 @@ class TorrentTask(netius.Observable):
         else:
             peers = [peer for peer in netius.common.chunks(peers, 6)]
             for peer in peers:
-                peer = netius.bytes(peer)
+                peer = netius.legacy.bytes(peer)
                 address, port = struct.unpack("!LH", peer)
                 ip = netius.common.addr_to_ip4(address)
                 peer = dict(ip = ip, port = port)
@@ -560,7 +560,7 @@ class TorrentTask(netius.Observable):
             hash.update(data)
             pending -= count
         digest = hash.digest()
-        piece = netius.bytes(piece)
+        piece = netius.legacy.bytes(piece)
         if digest == piece: return
         raise netius.DataError("Verifying piece index '%d'" % index)
 
@@ -660,7 +660,7 @@ class TorrentServer(netius.ContainerServer):
 
     def _generate_id(self):
         random = str(uuid.uuid4())
-        random = netius.bytes(random)
+        random = netius.legacy.bytes(random)
         hash = hashlib.sha1(random)
         digest = hash.hexdigest()
         id = "-%s-%s" % (ID_STRING, digest[:12])
