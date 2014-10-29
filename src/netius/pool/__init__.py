@@ -37,5 +37,5 @@ __license__ = "Apache License, Version 2.0"
 from . import common
 from . import file
 
-from .common import *
-from .file import *
+from .common import Thread, ThreadPool
+from .file import FileThread, FilePool

@@ -37,15 +37,17 @@ __license__ = "Apache License, Version 2.0"
 from . import desktop
 from . import dhcp_s
 from . import file
+from . import filea
 from . import hello
 from . import proxy_f
 from . import proxy_r
 from . import smtp_r
 
-from .desktop import *
-from .dhcp_s import *
-from .file import *
-from .hello import *
-from .proxy_f import *
-from .proxy_r import *
-from .smtp_r import *
+from .desktop import DesktopServer
+from .dhcp_s import DHCPServerS
+from .file import FileServer
+from .filea import FileAsyncServer
+from .hello import HelloServer
+from .proxy_f import ForwardProxyServer
+from .proxy_r import ReverseProxyServer
+from .smtp_r import RelaySMTPServer

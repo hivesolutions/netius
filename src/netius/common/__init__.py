@@ -53,7 +53,10 @@ from . import ws
 from .asn import asn1_parse, asn1_length, asn1_gen, asn1_build
 from .calc import prime, is_prime, relatively_prime, gcd, egcd, modinv,\
     random_integer_interval, random_primality, jacobi_witness, jacobi, ceil_integer
-from .dhcp import OPTIONS_DHCP, TYPES_DHCP, VERBS_DHCP, AddressPool
+from .dhcp import SUBNET_DHCP, ROUTER_DHCP, DNS_DHCP, NAME_DHCP, BROADCAST_DHCP,\
+    REQUESTED_DHCP, LEASE_DHCP, DISCOVER_DHCP, OFFER_DHCP, REQUEST_DHCP, DECLINE_DHCP,\
+    ACK_DHCP, NAK_DHCP, IDENTIFIER_DHCP, RENEWAL_DHCP, REBIND_DHCP, PROXY_DHCP,\
+    END_DHCP, OPTIONS_DHCP, TYPES_DHCP, VERBS_DHCP, AddressPool
 from .dkim import dkim_sign, dkim_headers, dkim_body, dkim_fold, dkim_generate
 from .http import REQUEST, RESPONSE, HTTP_09, HTTP_10, HTTP_11, VERSIONS_MAP,\
     CODE_STRINGS, HTTPParser, HTTPResponse
