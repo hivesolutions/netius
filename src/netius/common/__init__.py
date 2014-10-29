@@ -55,7 +55,8 @@ from .calc import prime, is_prime, relatively_prime, gcd, egcd, modinv,\
     random_integer_interval, random_primality, jacobi_witness, jacobi, ceil_integer
 from .dhcp import OPTIONS_DHCP, TYPES_DHCP, VERBS_DHCP, AddressPool
 from .dkim import dkim_sign, dkim_headers, dkim_body, dkim_fold, dkim_generate
-from .http import REQUEST, RESPONSE, HTTP_09, HTTP_10, HTTP_11, HTTPParser, HTTPResponse
+from .http import REQUEST, RESPONSE, HTTP_09, HTTP_10, HTTP_11, VERSIONS_MAP,\
+    CODE_STRINGS, HTTPParser, HTTPResponse
 from .mime import rfc822_parse, rfc822_join
 from .parser import Parser
 from .pop import POPParser
