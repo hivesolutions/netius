@@ -55,11 +55,12 @@ from .calc import prime, is_prime, relatively_prime, gcd, egcd, modinv,\
     random_integer_interval, random_primality, jacobi_witness, jacobi, ceil_integer
 from .dhcp import OPTIONS_DHCP, TYPES_DHCP, VERBS_DHCP, AddressPool
 from .dkim import dkim_sign, dkim_headers, dkim_body, dkim_fold, dkim_generate
-from .http import HTTPParser, HTTPResponse
+from .http import REQUEST, RESPONSE, HTTP_09, HTTP_10, HTTP_11, HTTPParser, HTTPResponse
 from .mime import rfc822_parse, rfc822_join
 from .parser import Parser
 from .pop import POPParser
-from .rsa import *
+from .rsa import open_pem_key, write_pem_key, open_private_key, open_public_key,\
+    write_private_key, write_public_key, asn_private_key, asn_public_key, pem_to_der
 from .smtp import *
 from .socks import *
 from .structures import *
