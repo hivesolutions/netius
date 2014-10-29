@@ -91,7 +91,7 @@ class FileServer(netius.servers.HTTPServer):
             # the correct file name/path to be used in the reading from the
             # current file system, so that it's possible to handle the data
             path = parser.get_path()
-            path = netius.unquote(path)
+            path = netius.legacy.unquote(path)
             path = path.lstrip("/")
             path_f = os.path.join(self.base_path, path)
             path_f = os.path.abspath(path_f)
@@ -101,7 +101,7 @@ class FileServer(netius.servers.HTTPServer):
             # it's required to decode the path into an unicode string, if that's
             # the case the normal decoding process is used using the currently
             # defined file system encoding as defined in the specification
-            is_unicode = netius.is_unicode(path_f)
+            is_unicode = netius.legacy.is_unicode(path_f)
             if not is_unicode: path_f = path_f.decode("utf-8")
 
             # verifies if the provided path starts with the contents of the
@@ -129,11 +129,11 @@ class FileServer(netius.servers.HTTPServer):
     def on_dir_file(self, connection, path):
         parser = connection.parser
         path_v = parser.get_path()
-        path_v = netius.unquote(path_v)
+        path_v = netius.legacy.unquote(path_v)
 
         is_valid = path_v.endswith("/")
         if not is_valid:
-            path_q = netius.quote(path_v)
+            path_q = netius.legacy.quote(path_v)
             connection.send_response(
                 data = "Permanent redirect",
                 headers = dict(
@@ -167,7 +167,7 @@ class FileServer(netius.servers.HTTPServer):
         buffer.append("</thead>")
         buffer.append("<tbody>")
         for item in items:
-            if netius.PYTHON_3: item_s = item
+            if netius.legacy.PYTHON_3: item_s = item
             else: item_s = item.encode("utf-8")
 
             path_f = os.path.join(path, item)
@@ -204,7 +204,7 @@ class FileServer(netius.servers.HTTPServer):
         buffer.append("</html>")
         data = "".join(buffer)
 
-        is_unicode = netius.is_unicode(data)
+        is_unicode = netius.legacy.is_unicode(data)
         if is_unicode: data = data.encode("utf-8")
 
         connection.send_response(
@@ -218,7 +218,7 @@ class FileServer(netius.servers.HTTPServer):
         # encodes the current path in case it's currently represented by
         # a string, this is going to avoid problems in the logging of the
         # path that is being requested (unicode encoding problems)
-        path_s = path if netius.is_str(path) else path.encode("utf-8")
+        path_s = path if netius.legacy.is_str(path) else path.encode("utf-8")
 
         # prints a debug message about the file that is going to be read
         # from the current file system to be sent to the connection

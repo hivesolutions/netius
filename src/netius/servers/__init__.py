@@ -53,7 +53,7 @@ from .http import PLAIN_ENCODING, CHUNKED_ENCODING, GZIP_ENCODING, HTTPConnectio
 from .mjpg import MJPGServer
 from .pop import POPConnection, POPServer
 from .proxy import ProxyConnection, ProxyServer
-from .smtp import SMTPConnection, SMTPServer
+from .smtp import TERMINATION_SIZE, SMTPConnection, SMTPServer
 from .socks import SOCKSConnection, SOCKSServer
 from .torrent import Pieces, TorrentTask, TorrentServer
 from .ws import WSConnection, WSServer
