@@ -53,7 +53,8 @@ DATA_STATE = 4
 
 TERMINATION_SIZE = 5
 """ The size of the termination sequence of the smtp message
-this is going to be used in some parsing calculus """
+this is going to be used in some parsing calculus, this value
+should be exposed so that it may be re-used by other modules """
 
 CAPABILITIES = (
     "AUTH PLAIN",
