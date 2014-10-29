@@ -53,5 +53,5 @@ from .mjpg import MJPGConnection, MJPGClient
 from .raw import RawClient
 from .smtp import SMTPConnection, SMTPClient
 from .ssdp import SSDPClient
-from .torrent import TorrentConnection, TorrentClient
+from .torrent import CHOKED, UNCHOKED, TorrentConnection, TorrentClient
 from .ws import WSConnection, WSClient

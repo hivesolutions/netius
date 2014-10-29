@@ -46,15 +46,15 @@ from . import torrent
 from . import ws
 from . import wsgi
 
-from .dhcp import *
-from .echo import *
+from .dhcp import DHCPRequest, DHCPServer
+from .echo import EchoServer
 from .http import PLAIN_ENCODING, CHUNKED_ENCODING, GZIP_ENCODING, HTTPConnection,\
     HTTPServer
-from .mjpg import *
-from .pop import *
-from .proxy import *
-from .smtp import *
-from .socks import *
-from .torrent import *
-from .ws import *
-from .wsgi import *
+from .mjpg import MJPGServer
+from .pop import POPConnection, POPServer
+from .proxy import ProxyConnection, ProxyServer
+from .smtp import SMTPConnection, SMTPServer
+from .socks import SOCKSConnection, SOCKSServer
+from .torrent import Pieces, TorrentTask, TorrentServer
+from .ws import WSConnection, WSServer
+from .wsgi import WSGIServer

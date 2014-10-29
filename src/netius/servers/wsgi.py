@@ -313,8 +313,8 @@ class WSGIServer(http.HTTPServer):
         @see: http://python.org/dev/peps/pep-3333
         """
 
-        value = netius.unquote(value)
-        is_unicode = netius.is_unicode(value)
+        value = netius.legacy.unquote(value)
+        is_unicode = netius.legacy.is_unicode(value)
         value = value.encode("utf-8") if is_unicode else value
         value = netius.legacy.str(value)
         return value
