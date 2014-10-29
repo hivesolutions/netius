@@ -37,5 +37,5 @@ __license__ = "Apache License, Version 2.0"
 from . import http
 from . import upnp
 
-from .http import *
-from .upnp import *
+from .http import http_static, http_callback
+from .upnp import upnp_map
