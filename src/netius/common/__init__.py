@@ -67,6 +67,8 @@ from .rsa import open_pem_key, write_pem_key, open_private_key, open_public_key,
 from .smtp import SMTPParser
 from .socks import SOCKSParser
 from .structures import PriorityDict
-from .torrent import *
-from .util import *
-from .ws import *
+from .torrent import info_hash, bencode, bdecode, chunk, dechunk, TorrentParser
+from .util import cstring, chunks, header_down, header_up, addr_to_ip4, ip4_to_addr,\
+    string_to_bits, integer_to_bytes, bytes_to_integer, random_integer, host, hostname,\
+    size_round_unit
+from .ws import encode_ws, assert_ws
