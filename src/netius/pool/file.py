@@ -51,7 +51,7 @@ import threading
 
 import netius
 
-from netius.pool import common
+from . import common
 
 class FileThread(common.Thread):
 

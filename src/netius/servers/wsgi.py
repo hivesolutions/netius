@@ -41,7 +41,7 @@ import sys
 
 import netius
 
-from netius.servers import http
+from . import http
 
 SERVER_SOFTWARE = netius.IDENTIFIER
 """ The server software string that is going to identify the

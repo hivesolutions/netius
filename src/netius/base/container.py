@@ -37,9 +37,9 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from netius.base import server
+from . import server
 
-from netius.base.common import * #@UnusedWildImport
+from .common import * #@UnusedWildImport
 
 class Container(Base):
 

@@ -39,7 +39,7 @@ import ctypes
 
 import netius
 
-from netius.adapters import base
+from . import base
 
 class FsAdapter(base.BaseAdapter):
 

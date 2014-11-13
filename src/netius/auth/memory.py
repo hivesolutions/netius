@@ -36,7 +36,7 @@ __license__ = "Apache License, Version 2.0"
 
 import netius
 
-from netius.auth import base
+from . import base
 
 class MemoryAuth(base.Auth):
 

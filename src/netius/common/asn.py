@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import netius
 
-from netius.common import util
+from . import util
 
 INTEGER = 0x02
 BIT_STRING = 0x03

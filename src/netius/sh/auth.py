@@ -36,7 +36,7 @@ __license__ = "Apache License, Version 2.0"
 
 import netius
 
-from netius.sh import base
+from . import base
 
 def generate(password, type = "sha256", salt = "netius"):
     print(netius.Auth.generate(password, type = type, salt = salt))

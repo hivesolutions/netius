@@ -41,7 +41,7 @@ import re
 
 import netius
 
-from netius.common import parser
+from . import parser
 
 SEPARATOR_REGEX = re.compile(r" |\-")
 """ Regular expression that is going to be used to split

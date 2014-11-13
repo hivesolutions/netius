@@ -41,8 +41,8 @@ import tempfile
 
 import netius
 
-from netius.common import util
-from netius.common import parser
+from . import util
+from . import parser
 
 FILE_LIMIT = 5242880
 """ The limit value (in bytes) from which the back-end

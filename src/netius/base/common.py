@@ -51,12 +51,12 @@ import traceback
 import netius.pool
 import netius.adapters
 
-from netius.base import log
-from netius.base import config
-from netius.base import errors
+from . import log
+from . import config
+from . import errors
 
-from netius.base.conn import * #@UnusedWildImport
-from netius.base.poll import * #@UnusedWildImport
+from .conn import * #@UnusedWildImport
+from .poll import * #@UnusedWildImport
 
 NAME = "netius"
 """ The global infra-structure name to be used in the

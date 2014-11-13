@@ -44,7 +44,7 @@ import email.parser
 
 import netius.common
 
-from netius.clients import dns
+from . import dns
 
 HELO_STATE = 1
 

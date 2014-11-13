@@ -45,10 +45,10 @@ import datetime
 
 import netius
 
-from netius.common import asn
-from netius.common import rsa
-from netius.common import util
-from netius.common import mime
+from . import asn
+from . import rsa
+from . import util
+from . import mime
 
 def dkim_sign(message, selector, domain, private_key, identity = None, separator = ":"):
     separator = netius.legacy.bytes(separator)

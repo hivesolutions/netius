@@ -41,7 +41,7 @@ import os
 
 import netius
 
-from netius.servers import http
+from . import http
 
 BOUNDARY = "mjpegboundary"
 """ The defualt boundary string value to be used in

@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import netius.common
 
-from netius.sh import base
+from . import base
 
 def generate(domain, suffix = None, number_bits = 1024):
     number_bits = int(number_bits)

@@ -40,7 +40,7 @@ __license__ = "Apache License, Version 2.0"
 import netius.common
 import netius.clients
 
-from netius.servers import http
+from . import http
 
 BUFFER_RATIO = 1.5
 """ The ration for the calculus of the internal socket

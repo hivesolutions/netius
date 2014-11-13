@@ -37,7 +37,7 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from netius.extra import file as _file
+from . import file as _file
 
 BUFFER_SIZE = _file.BUFFER_SIZE * 16
 """ Re-creates the buffer size of the file buffer so that it

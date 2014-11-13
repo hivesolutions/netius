@@ -41,7 +41,7 @@ import struct
 
 import netius.common
 
-from netius.common import parser
+from . import parser
 
 IPV4 = 0x01
 

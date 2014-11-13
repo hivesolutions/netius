@@ -41,7 +41,7 @@ import os
 
 import netius
 
-from netius.clients import http
+from . import http
 
 class MJPGConnection(http.HTTPConnection):
 

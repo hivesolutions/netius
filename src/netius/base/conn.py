@@ -42,8 +42,8 @@ import uuid
 import socket
 import threading
 
-from netius.base import legacy
-from netius.base import observer
+from . import legacy
+from . import observer
 
 OPEN = 1
 """ The open status value, meant to be used in situations

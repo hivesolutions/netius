@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import time
 
-from netius.base import errors
+from . import errors
 
 REQUEST_TIMEOUT = 10.0
 """ The timeout until a request is considered to be

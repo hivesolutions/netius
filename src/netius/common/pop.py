@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import netius
 
-from netius.common import parser
+from . import parser
 
 class POPParser(parser.Parser):
 
