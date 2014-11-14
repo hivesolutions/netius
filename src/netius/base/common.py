@@ -689,6 +689,7 @@ class Base(observer.Observable):
         # object that is notified for each operation associated with
         # the file pool, (primary communication mechanism)
         eventfd = self.fpool.eventfd()
+        if not eventfd: self.warning("Running file pool without eventfd")
         if not eventfd: return
         if not self.poll: return
         self.poll.sub_read(eventfd)
