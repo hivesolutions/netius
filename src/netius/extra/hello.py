@@ -40,6 +40,16 @@ __license__ = "Apache License, Version 2.0"
 import netius.servers
 
 class HelloServer(netius.servers.HTTPServer):
+    """
+    Simple Hello (World) HTTP server meant to be used for benchmarks
+    and other operations that require a simple in-memory HTTP server.
+
+    Most of the implementation on the server is done in the upper
+    layers from which this server class inherits.
+
+    Performance should always be considered critical when changing
+    or adding new features to this server implementation.
+    """
 
     def __init__(self, message = "Hello World", *args, **kwargs):
         netius.servers.HTTPServer.__init__(self, *args, **kwargs)
