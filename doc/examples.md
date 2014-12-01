@@ -1,6 +1,6 @@
 # Examples
 
-The following are some example usages of netius: 
+The following are some example usages of netius:
 
 ## SMTP Client
 
@@ -22,7 +22,7 @@ smtp_client.message(
 
 ### Localhost
 
-```python 
+```python
 smtp_client = SMTPClient(auto_close = True)
 smtp_client.message(
     [sender],

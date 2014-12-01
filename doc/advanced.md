@@ -36,7 +36,7 @@ These values have been verified for commit #7c2687b running in Python 2.6.6.
 
 ## Cryptography
 
-Netius has some built-in cryptography utilities. The following are some 
+Netius has some built-in cryptography utilities. The following are some
 examples of RSA key operations that can be tested through the command line:
 
 ```bash
@@ -53,7 +53,7 @@ python -m netius.sh.dkim generate hive.pt
 python -m netius.sh.dkim sign hello.mail dkim.key 20140327175143 hive.pt
 ```
 
-To generate a password protected by a cryptographic hash to be used with the netius 
+To generate a password protected by a cryptographic hash to be used with the netius
 authentication/authorization infra-structure use:
 
 ```bash
@@ -72,14 +72,14 @@ IPV6=1 MESSAGE="Hello Netius" python -m netius.extra.hello
 ## Debugging
 
 It's important to keep track of the memory leaks that may be created by any circular references or
-unclosed resources associated with a netius server. For that purpose, a [special document](leak.md) has 
+unclosed resources associated with a netius server. For that purpose, a [special document](leak.md) has
 been created, documenting the various tools and strategies that may be used to detect such leaks.
 
 ## Testing
 
 ### Edge triggered polling
 
-Edge based polling is a bit tricky as it may easily end up in a data deadlock. The best way to test this 
+Edge based polling is a bit tricky as it may easily end up in a data deadlock. The best way to test this
 kind of problem is to change the `POLL_TIMEOUT` value to a negative value so that the loop blocks for data:
 
 ```bash
