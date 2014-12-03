@@ -98,7 +98,7 @@ More information can be found in the [Advanced Topics](doc/advanced.md) page.
 
 ## License
 
-Netius is licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/).
+Netius is currently licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/).
 
 ## Build Automation
 
