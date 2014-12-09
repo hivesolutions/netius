@@ -75,7 +75,7 @@ class DHCPServerS(netius.servers.DHCPServer):
         type = request.get_type()
         if type == 0x01: yiaddr = self._reserve(request)
         elif type == 0x03: yiaddr = self._confirm(request)
-        return  yiaddr
+        return yiaddr
 
     def _build(self, options):
         lease = options.get("lease", {})
@@ -116,7 +116,7 @@ if __name__ == "__main__":
         name = dict(name = "hive"),
         lease = dict(time = 3600),
         renewal = dict(time = 1800),
-        rebind =  dict(time = 2700),
+        rebind = dict(time = 2700),
         proxy = dict(url = "http://172.16.0.25:8080/proxy.pac")
     )
     server = DHCPServerS(

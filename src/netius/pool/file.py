@@ -156,7 +156,7 @@ class FilePool(common.ThreadPool):
 class EventFile(object):
 
     def __init__(self, fileno):
-        self._fileno =  fileno
+        self._fileno = fileno
 
     def fileno(self):
         return self._fileno

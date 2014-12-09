@@ -114,7 +114,7 @@ class Server(Base):
         # the environment variables are meant to be processed for the
         # current context (default values are processed accordingly)
         host = self.get_env("HOST", host) if env else host
-        port =  self.get_env("PORT", port, cast = int) if env else port
+        port = self.get_env("PORT", port, cast = int) if env else port
         type = self.get_env("TYPE", type, cast = int) if env else type
         ipv6 = self.get_env("IPV6", ipv6, cast = bool) if env else ipv6
         ssl = self.get_env("SSL", ssl, cast = bool) if env else ssl

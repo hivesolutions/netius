@@ -195,7 +195,7 @@ class SOCKSParser(parser.Parser):
 
         if self.type == IPV4: address = struct.pack("!I", self.address)
         elif self.type == IPV6: address = struct.pack("!QQ", self.address)
-        else: address = struct.pack("!B", self.size) +  self.address
+        else: address = struct.pack("!B", self.size) + self.address
 
         return address
 

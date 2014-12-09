@@ -162,7 +162,7 @@ def dechunk(chunks):
         number = ""
 
         while not item == "e":
-            number  += item
+            number += item
             item = chunks.pop()
 
         return int(number)

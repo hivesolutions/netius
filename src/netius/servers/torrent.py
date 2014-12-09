@@ -680,7 +680,7 @@ if __name__ == "__main__":
         left = task.left()
         percent = int(percent)
         print(task.info_string())
-        print("[%d%%] - %d bytes (%s/s)" % ( percent, left, speed_s))
+        print("[%d%%] - %d bytes (%s/s)" % (percent, left, speed_s))
 
     def on_complete(task):
         print("Download completed")
