@@ -168,7 +168,7 @@ class POPConnection(netius.Connection):
             if not connection.file: return
             file = connection.file
             contents = file.read(CHUNK_SIZE)
-            if contents: self.send(contents, delay = True, callback = callback);
+            if contents: self.send(contents, delay = True, callback = callback)
             else: self.send("\r\n.\r\n"); file.close(); connection.file = None
         self.owner.on_retr_pop(self, index)
         message = "%d octets" % self.size
