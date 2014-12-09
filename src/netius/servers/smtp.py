@@ -44,12 +44,22 @@ import datetime
 import netius.common
 
 INTIAL_STATE = 1
+""" The initial state for the smtp communication
+meaning that no message have been exchanged between
+the server and the client parties """
 
 HELO_STATE = 2
+""" State where the initial negotiation/identification
+processes takes place, it's under this stage that the
+start tls may take place to upgrade the connection """
 
 HEADER_STATE = 3
+""" Secondary state where the header information for
+the message to be sent is defined """
 
 DATA_STATE = 4
+""" Final stage of the smtp session where the message
+contents are sent over the connection """
 
 TERMINATION_SIZE = 5
 """ The size of the termination sequence of the smtp message
