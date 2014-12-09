@@ -69,11 +69,12 @@ class FTPConnection(netius.Connection):
     def parse(self, data):
         return self.parser.parse(data)
 
-    def send_ftp(self, code, message = "", lines = (), delay = False, callback = None):
+    def send_ftp(self, code, message = "", lines = (), simple = False, delay = False, callback = None):
         if lines: self.send_ftp_lines(
             code,
             message = message,
             lines = lines,
+            simple = simple,
             delay = delay,
             callback = callback
         )
@@ -90,14 +91,16 @@ class FTPConnection(netius.Connection):
         self.send(data, delay = delay, callback = callback)
         self.owner.debug(base)
 
-    def send_ftp_lines(self, code, message = "", lines = (), delay = False, callback = None):
+    def send_ftp_lines(self, code, message = "", lines = (), simple = False, delay = False, callback = None):
         lines = list(lines)
-        lines.insert(0, message)
+        if not simple: lines.insert(0, message)
         body = lines[:-1]
         tail = lines[-1]
-        base = "%d %s" % (code, message)
-        lines_s = ["%d-%s" % (code, line) for line in body]
+        base = "%d-%s" % (code, message) if simple else "%d %s" % (code, message)
+        lines_s = [" %s" % line for line in body] if simple else\
+            ["%d-%s" % (code, line) for line in body]
         lines_s.append("%d %s" % (code, tail))
+        if simple: lines_s.insert(0, base)
         data = "\r\n".join(lines_s) + "\r\n"
         self.send(data, delay = delay, callback = callback)
         self.owner.debug(base)
@@ -146,10 +149,13 @@ class FTPConnection(netius.Connection):
         self.send_ftp(215, message = netius.VERSION)
 
     def on_feat(self, message):
-        self.send_ftp(211, "features", lines = CAPABILITIES)  #@todo este gajo ainda esta estranho !!!
+        self.send_ftp(211, "features", lines = list(CAPABILITIES) + ["end"], simple = True)  #@todo este gajo ainda esta estranho !!!
+
+    def on_opts(self, message):
+        self.ok()
 
     def on_pwd(self, message):
-        self.send_ftp(257, self.cwd)
+        self.send_ftp(257, "\"%s\"" % self.cwd)
 
     def on_type(self, message):
         #self.mode = self.MODES.get("message", "ascii")
@@ -158,13 +164,32 @@ class FTPConnection(netius.Connection):
 
     def on_pasv(self, message):
         self.passive = True
-        self.send_ftp(227, "entered passive mode")
+        self.data_server = FTPDataServer(self, self.owner.container)
+        self.data_server.serve(port = 88, start = False)  #@not sing the container !!!
+        self.send_ftp(227, "entered passive mode (127,0,0,1,0,88)")
 
     def on_port(self, message):
         self.ok()
 
     def on_list(self, message):
-        self.ok()
+        pass
+        #self.ok()
+
+class FTPDataServer(netius.StreamServer):
+
+    def __init__(self, connection, container, *args, **kwargs):
+        netius.StreamServer.__init__(self, *args, **kwargs)
+        self.connection = connection
+        self.container = container
+        self.container.add_base(self)
+
+    def on_connection_c(self, connection):
+        netius.StreamServer.on_connection_c(self, connection)
+        print("cenas")
+
+    def on_data(self, connection, data):
+        netius.StreamServer.on_data(self, connection, data)
+        print(data)
 
 class FTPServer(netius.StreamServer):
 
@@ -172,6 +197,21 @@ class FTPServer(netius.StreamServer):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.base_path = base_path
         self.auth_s = auth_s
+        self.container = netius.Container(*args, **kwargs)
+        self.container.add_base(self)
+
+    def start(self):
+        # starts the container this should trigger the start of the
+        # event loop in the container and the proper listening of all
+        # the connections in the current environment
+        self.container.start(self)
+
+    def stop(self):
+        # verifies if there's a container object currently defined in
+        # the object and in case it does exist propagates the stop call
+        # to the container so that the proper stop operation is performed
+        if not self.container: return
+        self.container.stop()
 
     def serve(self, host = "ftp.localhost", port = 21, *args, **kwargs):
         netius.StreamServer.serve(self, port = port, *args, **kwargs)
