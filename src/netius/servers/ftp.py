@@ -83,6 +83,7 @@ class FTPConnection(netius.Connection):
         self.host = host
         self.mode = mode
         self.data_server = None
+        self.remaining = None
         self.cwd = "/"
         self.username = "anonymous"
         self.password = "anonymous"
@@ -149,7 +150,8 @@ class FTPConnection(netius.Connection):
     def flush_ftp(self):
         if not self.remaining: return
         method = getattr(self, "flush_" + self.remaining)
-        method()
+        try: method()
+        finally: self.remaining = None
 
     def flush_list(self):
         self.send_ftp(150, "directory list sending")
@@ -159,8 +161,7 @@ class FTPConnection(netius.Connection):
     def flush_retr(self):
         self.send_ftp(150, "file sending")
 
-        relative_path = os.path.join(self.base_path, self.cwd[1:])
-        full_path = os.path.join(relative_path, self.file_name)
+        full_path = self._get_path(self.file_name)
 
         self.bytes_p = os.path.getsize(full_path)
         self.file = open(full_path, "rb")
@@ -242,16 +243,33 @@ class FTPConnection(netius.Connection):
 
     def on_cwd(self, message):
         is_absolute = message.startswith("/")
-        if is_absolute: self.cwd = message
-        else: self.cwd += message if self.cwd.endswith("/") else "/" + message
+        if is_absolute: cwd = message
+        else: cwd += message if self.cwd.endswith("/") else "/" + message
+
+        full_path = self._get_path(extra = message)
+        is_dir = os.path.isdir(full_path)
+        if not is_dir: self.send_ftp(550, "failed to change directory"); return
+
+        self.cwd = cwd
         self.ok()
+
+    def on_size(self, message):
+        full_path = self._get_path(extra = message)
+        if os.path.isdir(full_path): size = 0
+        else: size = os.path.getsize(full_path)
+        self.send_ftp(213, "%d" % size)
+
+    def on_quit(self, message):
+        self.send_ftp(221, "exiting connection")
 
     def on_list(self, message):
         self.remaining = "list"
+        self.data_server.flush_ftp()
 
     def on_retr(self, message):
         self.remaining = "retr"
         self.file_name = message
+        self.data_server.flush_ftp()
 
     def _file_send(self, connection):
         file = self.file
@@ -262,11 +280,8 @@ class FTPConnection(netius.Connection):
         self.bytes_p -= data_l
         is_final = not data or self.bytes_p == 0
         callback = self._file_finish if is_final else self._file_send
-        self.data_server.send_ftp(
-            data,
-            delay = True,
-            callback = callback
-        )
+        print(repr(data))
+        self.data_server.send_ftp(data, delay = True, callback = callback)
 
     def _file_finish(self, connection):
         self.file.close()
@@ -275,7 +290,7 @@ class FTPConnection(netius.Connection):
         self.on_flush_retr(connection)
 
     def _data_open(self):
-        if self.data_server: return
+        if self.data_server: self._data_close()
         self.data_server = FTPDataServer(self, self.owner)
         self.data_server.serve(
             host = self.owner.host,
@@ -291,11 +306,9 @@ class FTPConnection(netius.Connection):
         self.data_server = None
 
     def _list(self):
-        # gathers the current relative (full) path for the state using
-        # the current working directory value and normalizing it
-        relative_path = os.path.join(self.base_path, self.cwd[1:])
-        relative_path = os.path.abspath(relative_path)
-        relative_path = os.path.normpath(relative_path)
+        # retrieves the current value for the relative path, this
+        # should take into account the current working directory
+        relative_path = self._get_path()
 
         # lists the directory for the current relative path, this
         # should get a list of files contained in it, in case there's
@@ -330,6 +343,25 @@ class FTPConnection(netius.Connection):
         permissions = str(oct(mode.st_mode)[-3:])
         return is_dir + "".join([PERMISSIONS.get(int(item), item) for item in permissions])
 
+    def _get_path(self, extra = None):
+        # tries to decide on own to resolve the base and extra parts
+        # of the path taking into account a possible absolute extra
+        # value, the current working directory is only used in case
+        # the provided extra value is not absolute
+        is_absolute = extra.startswith("/") if extra else False
+        base = extra if is_absolute else self.cwd[1:]
+        extra = "" if is_absolute else extra or ""
+
+        # gathers the current relative (full) path for the state using
+        # the current working directory value and normalizing it, note
+        # that in case an extra (relative) path is provided it's joined
+        # with the base path to provide the "new" full path
+        relative_path = os.path.join(self.base_path, base)
+        relative_path = os.path.join(relative_path, extra)
+        relative_path = os.path.abspath(relative_path)
+        relative_path = os.path.normpath(relative_path)
+        return relative_path
+
 class FTPDataServer(netius.StreamServer):
 
     def __init__(self, connection, container, *args, **kwargs):
@@ -343,11 +375,15 @@ class FTPDataServer(netius.StreamServer):
         netius.StreamServer.on_connection_c(self, connection)
         if self.accepted: connection.close(); return
         self.accepted = connection
-        self.connection.flush_ftp()
+        self.flush_ftp()
 
     def send_ftp(self, data, delay = False, force = False, callback = None):
         if not self.accepted: raise netius.DataError("No connection accepted")
         return self.accepted.send(data, delay = delay, force = force, callback = callback)
+
+    def flush_ftp(self):
+        if not self.accepted: return
+        self.connection.flush_ftp()
 
     def close_ftp(self):
         if self.accepted: self.accepted.close(); self.accepted = None
