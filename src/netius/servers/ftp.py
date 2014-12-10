@@ -382,7 +382,7 @@ class FTPConnection(netius.Connection):
         # value, the current working directory is only used in case
         # the provided extra value is not absolute
         is_absolute = extra.startswith("/") if extra else False
-        base = extra if is_absolute else self.cwd[1:]
+        base = extra[1:] if is_absolute else self.cwd[1:]
         extra = "" if is_absolute else extra or ""
 
         # gathers the current relative (full) path for the state using
