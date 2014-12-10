@@ -153,7 +153,7 @@ class FTPConnection(netius.Connection):
         self.send_ftp(150, "file sending")
 
         relative_path = os.path.join(self.base_path, self.cwd[1:])
-        full_path = os.path.join(relative_path, self.file)
+        full_path = os.path.join(relative_path, self.file_name)
 
         file = open(full_path, "rb")
         try: data = file.read()
@@ -245,7 +245,7 @@ class FTPConnection(netius.Connection):
 
     def on_retr(self, message):
         self.remaining = "retr"
-        self.file = message
+        self.file_name = message
 
     def _data_open(self):
         if self.data_server: return
