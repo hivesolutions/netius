@@ -107,6 +107,7 @@ class Server(Base):
         ssl = False,
         key_file = None,
         cer_file = None,
+        load = True,
         start = True,
         env = False
     ):
@@ -137,9 +138,9 @@ class Server(Base):
         # stage as the next steps is to configure the service socket
         self.set_state(STATE_CONFIG)
 
-        # start the loading process of the base system so that the system should
+        # starts the loading process of the base system so that the system should
         # be able to log some information that is going to be output
-        self.load()
+        if load: self.load()
 
         # ensures the proper default address value, taking into account
         # the type of connection that is currently being used, this avoid
