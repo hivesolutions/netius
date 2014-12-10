@@ -60,6 +60,15 @@ PERMISSIONS = {
 """ Map that defines the association between the octal based
 values for the permissions and the associated string values """
 
+TYPES = {
+    "A" : "ascii",
+    "E" : "ebcdic",
+    "I" : "binary",
+    "L" : "local"
+}
+""" The map that associated the various type command arguments
+with the more rich data mode transfer types """
+
 class FTPConnection(netius.Connection):
 
     def __init__(self, base_path = "", host = "ftp.localhost", mode = "ascii", *args, **kwargs):
@@ -205,8 +214,7 @@ class FTPConnection(netius.Connection):
         self.send_ftp(257, "\"%s\"" % self.cwd)
 
     def on_type(self, message):
-        # self.mode = self.MODES.get("message", "ascii")
-        self.mode = "binary" #@todo must thing about putting this into an integer
+        self.mode = TYPES.get("message", "ascii")
         self.ok()
 
     def on_pasv(self, message):
@@ -250,11 +258,24 @@ class FTPConnection(netius.Connection):
         self.data_server = None
 
     def _list(self):
+        # gathers the current relative (full) path for the state using
+        # the current working directory value and normalizing it
         relative_path = os.path.join(self.base_path, self.cwd[1:])
         relative_path = os.path.abspath(relative_path)
         relative_path = os.path.normpath(relative_path)
-        entries = os.listdir(relative_path)
+
+        # lists the directory for the current relative path, this
+        # should get a list of files contained in it, in case there's
+        # an error in such listing an empty string is returned
+        try: entries = os.listdir(relative_path)
+        except: return ""
+
+        # allocates space for the list that will hold the various lines
+        # for the complete set of tiles in the directory
         lines = []
+
+        # iterates over the complete set of entries in the current
+        # working directory to create their respective listing line
         for entry in entries:
             file_path = os.path.join(relative_path, entry)
             try: mode = os.stat(file_path)
@@ -266,6 +287,9 @@ class FTPConnection(netius.Connection):
             line = "%s    1 %-8s %-8s %8lu %s %s" %\
                 (permissions, "ftp", "ftp", mode.st_size, date_s, entry)
             lines.append(line)
+
+        # returns the final list string result as the joining of the
+        # various lines for each of the files (as expected)
         return "\r\n".join(lines)
 
     def _to_unix(self, mode):
