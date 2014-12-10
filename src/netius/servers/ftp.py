@@ -164,7 +164,7 @@ class FTPConnection(netius.Connection):
 
     def on_pasv(self, message):
         self.passive = True
-        self.data_server = FTPDataServer(self, self.owner.container)
+        self.data_server = FTPDataServer(self, self.owner)
         self.data_server.serve(port = 88, start = False)  #@not sing the container !!!
         self.send_ftp(227, "entered passive mode (127,0,0,1,0,88)")
 
@@ -191,42 +191,27 @@ class FTPDataServer(netius.StreamServer):
         netius.StreamServer.on_data(self, connection, data)
         print(data)
 
-class FTPServer(netius.StreamServer):
+class FTPServer(netius.ContainerServer):
 
     def __init__(self, base_path = "", auth_s = "dummy", *args, **kwargs):
-        netius.StreamServer.__init__(self, *args, **kwargs)
+        netius.ContainerServer.__init__(self, *args, **kwargs)
         self.base_path = base_path
         self.auth_s = auth_s
-        self.container = netius.Container(*args, **kwargs)
-        self.container.add_base(self)
-
-    def start(self):
-        # starts the container this should trigger the start of the
-        # event loop in the container and the proper listening of all
-        # the connections in the current environment
-        self.container.start(self)
-
-    def stop(self):
-        # verifies if there's a container object currently defined in
-        # the object and in case it does exist propagates the stop call
-        # to the container so that the proper stop operation is performed
-        if not self.container: return
-        self.container.stop()
 
     def serve(self, host = "ftp.localhost", port = 21, *args, **kwargs):
-        netius.StreamServer.serve(self, port = port, *args, **kwargs)
+        netius.ContainerServer.serve(self, port = port, *args, **kwargs)
         self.host = host
 
     def on_connection_c(self, connection):
-        netius.StreamServer.on_connection_c(self, connection)
+        netius.ContainerServer.on_connection_c(self, connection)
         connection.ready()
 
     def on_data(self, connection, data):
-        netius.StreamServer.on_data(self, connection, data)
+        netius.ContainerServer.on_data(self, connection, data)
         connection.parse(data)
 
     def on_serve(self):
-        netius.StreamServer.on_serve(self)
+        netius.ContainerServer.on_serve(self)
         if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)
         if self.env: self.host = self.get_env("FTP_HOST", self.host)
         if self.env: self.auth_s = self.get_env("FTP_AUTH", self.auth_s)
