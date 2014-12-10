@@ -39,6 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import os
 import stat
+import datetime
 
 import netius.common
 
@@ -50,11 +51,11 @@ CAPABILITIES = (
 that are available under the current ftp server implementation """
 
 PERMISSIONS = {
-    "7" : "rwx",
-    "6" : "rw-",
-    "5" : "r-x",
-    "4" : "r--",
-    "0" : "---"
+    7 : "rwx",
+    6 : "rw-",
+    5 : "r-x",
+    4 : "r--",
+    0 : "---"
 }
 """ Map that defines the association between the octal based
 values for the permissions and the associated string values """
@@ -131,8 +132,8 @@ class FTPConnection(netius.Connection):
 
     def flush_ftp(self):
         if not self.remaining: return
-        if self.remaining == "list": self.flush_list()
-        elif self.remaining == "retr": self.flush_retr()
+        method = getattr(self, "flush_" + self.remaining)
+        method()
 
     def flush_list(self):
         self.send_ftp(150, "directory list sending")
@@ -152,11 +153,11 @@ class FTPConnection(netius.Connection):
         self.data_server.send_ftp(data, callback = self.on_flush_retr)
 
     def on_flush_list(self, connection):
-        self.data_server.close_ftp()
+        self._pasv_close()
         self.send_ftp(226, "directory send ok")
 
     def on_flush_retr(self, connection):
-        self.data_server.close_ftp()
+        self._pasv_close()
         self.send_ftp(226, "file send ok")
 
     def on_line(self, code, message, is_final = True):
@@ -209,7 +210,7 @@ class FTPConnection(netius.Connection):
         self.ok()
 
     def on_pasv(self, message):
-        data_server = self._pasv()
+        data_server = self._pasv_open()
         port_h = (data_server.port & 0xff00) >> 8
         port_l = data_server.port & 0x00ff
         address_s = "127,0,0,1,%d,%d" % (port_h, port_l)
@@ -220,6 +221,7 @@ class FTPConnection(netius.Connection):
 
     def on_cdup(self, message):
         self.cwd = self.cwd.rsplit("/", 1)[0]
+        if not self.cwd: self.cwd = "/"
         self.ok()
 
     def on_cwd(self, message):
@@ -235,11 +237,17 @@ class FTPConnection(netius.Connection):
         self.remaining = "retr"
         self.file = message
 
-    def _pasv(self):
+    def _pasv_open(self):
+        if self.data_server: return
         port = 88 #@todo must get an available port from the current infra-structure !!!
         self.data_server = FTPDataServer(self, self.owner)
         self.data_server.serve(port = port, load = False, start = False)
         return self.data_server
+
+    def _pasv_close(self):
+        if not self.data_server: return
+        self.data_server.close_ftp()
+        self.data_server = None
 
     def _list(self):
         relative_path = os.path.join(self.base_path, self.cwd[1:])
@@ -249,17 +257,21 @@ class FTPConnection(netius.Connection):
         lines = []
         for entry in entries:
             file_path = os.path.join(relative_path, entry)
-            mode = os.stat(file_path)
-            permissions = self._to_unix(mode)   #@todo the date is still missing !!!
-            line = "%s    1 %-8s %-8s %8lu Apr  1  2014 %s" %\
-                (permissions, "ftp", "ftp", mode[stat.ST_SIZE], entry)
+            try: mode = os.stat(file_path)
+            except: continue
+            permissions = self._to_unix(mode)
+            timstamp = mode.st_mtime
+            date_time = datetime.datetime.fromtimestamp(timstamp)
+            date_s = date_time.strftime("%b %d  %Y")
+            line = "%s    1 %-8s %-8s %8lu %s %s" %\
+                (permissions, "ftp", "ftp", mode.st_size, date_s, entry)
             lines.append(line)
         return "\r\n".join(lines)
 
     def _to_unix(self, mode):
         is_dir = "d" if stat.S_ISDIR(mode.st_mode) else "-"
         permissions = str(oct(mode.st_mode)[-3:])
-        return is_dir + "".join([PERMISSIONS.get(item, item) for item in permissions])
+        return is_dir + "".join([PERMISSIONS.get(int(item), item) for item in permissions])
 
 class FTPDataServer(netius.StreamServer):
 
@@ -317,7 +329,9 @@ class FTPServer(netius.ContainerServer):
             owner = self,
             socket = socket,
             address = address,
-            ssl = ssl
+            ssl = ssl,
+            base_path = self.base_path,
+            host = self.host
         )
 
     def on_line_ftp(self, connection, code, message):
