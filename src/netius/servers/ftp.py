@@ -221,7 +221,9 @@ class FTPConnection(netius.Connection):
         data_server = self._data_open()
         port_h = (data_server.port & 0xff00) >> 8
         port_l = data_server.port & 0x00ff
-        address_s = "127,0,0,1,%d,%d" % (port_h, port_l)
+        address = self.socket.getsockname()[0]
+        address = address.replace(".", ",")
+        address_s = "%s,%d,%d" % (address, port_h, port_l)
         self.send_ftp(227, "entered passive mode (%s)" % address_s)
 
     def on_port(self, message):
@@ -248,7 +250,12 @@ class FTPConnection(netius.Connection):
     def _data_open(self):
         if self.data_server: return
         self.data_server = FTPDataServer(self, self.owner)
-        self.data_server.serve(port = 0, load = False, start = False)
+        self.data_server.serve(
+            host = self.owner.host,
+            port = 0,
+            load = False,
+            start = False
+        )
         return self.data_server
 
     def _data_close(self):
