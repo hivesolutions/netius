@@ -153,11 +153,11 @@ class FTPConnection(netius.Connection):
         self.data_server.send_ftp(data, callback = self.on_flush_retr)
 
     def on_flush_list(self, connection):
-        self._pasv_close()
+        self._data_close()
         self.send_ftp(226, "directory send ok")
 
     def on_flush_retr(self, connection):
-        self._pasv_close()
+        self._data_close()
         self.send_ftp(226, "file send ok")
 
     def on_line(self, code, message, is_final = True):
@@ -210,7 +210,7 @@ class FTPConnection(netius.Connection):
         self.ok()
 
     def on_pasv(self, message):
-        data_server = self._pasv_open()
+        data_server = self._data_open()
         port_h = (data_server.port & 0xff00) >> 8
         port_l = data_server.port & 0x00ff
         address_s = "127,0,0,1,%d,%d" % (port_h, port_l)
@@ -237,14 +237,14 @@ class FTPConnection(netius.Connection):
         self.remaining = "retr"
         self.file = message
 
-    def _pasv_open(self):
+    def _data_open(self):
         if self.data_server: return
         port = 88 #@todo must get an available port from the current infra-structure !!!
         self.data_server = FTPDataServer(self, self.owner)
         self.data_server.serve(port = port, load = False, start = False)
         return self.data_server
 
-    def _pasv_close(self):
+    def _data_close(self):
         if not self.data_server: return
         self.data_server.close_ftp()
         self.data_server = None
