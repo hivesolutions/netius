@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2014 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import os
+
 import netius.common
 
 CAPABILITIES = (
@@ -52,7 +54,7 @@ class FTPConnection(netius.Connection):
         self.base_path = base_path
         self.host = host
         self.mode = mode
-        self.passive = False
+        self.data_server = None
         self.cwd = "/"
         self.username = "anonymous"
         self.password = "anonymous"
@@ -65,6 +67,7 @@ class FTPConnection(netius.Connection):
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
         if self.parser: self.parser.destroy()
+        if self.data_server: self.data_server.close_ftp()
 
     def parse(self, data):
         return self.parser.parse(data)
@@ -116,14 +119,26 @@ class FTPConnection(netius.Connection):
     def flush_ftp(self):
         if not self.remaining: return
         if self.remaining == "list": self.flush_list()
+        elif self.remaining == "list": self.flush_retr()
 
     def flush_list(self):
-        line = "%s   1 %-10s %-10s %10lu Jan  1  1980 %s\r\n" %\
+        self.send_ftp(150, "directory list sending")
+        list_data = self._list()
+        self.data_server.send_ftp(list_data, callback = self.on_flush_list)
+
+    def flush_retr(self):
+        self.send_ftp(150, "directory list sending")
+        line = "%s    1 %-8s %-8s %8lu Apr  1  2014 %s\r\n" %\
             ("-rwxr--r--", "owner", "group", 640, "tobias.txt")
-        self.data_server.send_ftp(line, self.on_flush_list)
+        self.data_server.send_ftp(line, callback = self.on_flush_list)
 
     def on_flush_list(self, connection):
+        self.data_server.close_ftp()
         self.send_ftp(226, "directory send ok")
+
+    def on_flush_retr(self, connection):
+        self.data_server.close_ftp()
+        self.send_ftp(226, "file send ok")
 
     def on_line(self, code, message, is_final = True):
         # "joins" the code and the message part of the message into the base
@@ -161,7 +176,7 @@ class FTPConnection(netius.Connection):
         self.send_ftp(215, message = netius.VERSION)
 
     def on_feat(self, message):
-        self.send_ftp(211, "features", lines = list(CAPABILITIES) + ["end"], simple = True)  #@todo este gajo ainda esta estranho !!!
+        self.send_ftp(211, "features", lines = list(CAPABILITIES) + ["end"], simple = True)
 
     def on_opts(self, message):
         self.ok()
@@ -175,16 +190,44 @@ class FTPConnection(netius.Connection):
         self.ok()
 
     def on_pasv(self, message):
-        self.passive = True
-        self.data_server = FTPDataServer(self, self.owner)
-        self.data_server.serve(port = 88, load = False, start = False)  #@not sing the container !!!
-        self.send_ftp(227, "entered passive mode (127,0,0,1,0,88)")
+        data_server = self._pasv()
+        port_h = (data_server.port & 0xff00) >> 8
+        port_l = data_server.port & 0x00ff
+        address_s = "127,0,0,1,%d,%d" % (port_h, port_l)
+        self.send_ftp(227, "entered passive mode (%s)" % address_s)
 
     def on_port(self, message):
         self.ok()
 
+    def on_cdup(self, message):
+        self.ok()
+
+    def on_cwd(self, message):
+        self.ok()
+
     def on_list(self, message):
         self.remaining = "list"
+
+    def on_retr(self, message):
+        self.remaining = "retr"
+        self.file = "tobias.txt"
+
+    def _pasv(self):
+        port = 88 #@todo must get an available port from the current infra-structure !!!
+        self.data_server = FTPDataServer(self, self.owner)
+        self.data_server.serve(port = port, load = False, start = False)
+        return self.data_server
+
+    def _list(self):
+        full_path = os.path.join(self.base_path, self.cwd)
+        full_path = os.path.normpath(full_path)
+        entries = os.listdir(full_path)
+        lines = []
+        for entry in entries:
+            line = "%s    1 %-8s %-8s %8lu Apr  1  2014 %s" %\
+                ("-rwxr--r--", "owner", "group", 640, entry)
+            lines.append(line)
+        return "\r\n".join(lines)
 
 class FTPDataServer(netius.StreamServer):
 
@@ -204,6 +247,10 @@ class FTPDataServer(netius.StreamServer):
     def send_ftp(self, data, callback = None):
         if not self.accepted: raise netius.DataError("No connection accepted")
         return self.accepted.send(data, callback = callback)
+
+    def close_ftp(self):
+        if self.accepted: self.accepted.close(); self.accepted = None
+        self.cleanup()
 
 class FTPServer(netius.ContainerServer):
 
