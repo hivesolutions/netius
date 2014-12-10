@@ -244,7 +244,7 @@ class FTPConnection(netius.Connection):
     def on_cwd(self, message):
         is_absolute = message.startswith("/")
         if is_absolute: cwd = message
-        else: cwd += message if self.cwd.endswith("/") else "/" + message
+        else: cwd = self.cwd + (message if self.cwd.endswith("/") else "/" + message)
 
         full_path = self._get_path(extra = message)
         is_dir = os.path.isdir(full_path)
