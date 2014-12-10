@@ -113,6 +113,18 @@ class FTPConnection(netius.Connection):
         message = "ok"
         self.send_ftp(200, message)
 
+    def flush_ftp(self):
+        if not self.remaining: return
+        if self.remaining == "list": self.flush_list()
+
+    def flush_list(self):
+        line = "%s   1 %-10s %-10s %10lu Jan  1  1980 %s\r\n" %\
+            ("-rwxr--r--", "owner", "group", 640, "tobias.txt")
+        self.data_server.send_ftp(line, self.on_flush_list)
+
+    def on_flush_list(self, connection):
+        self.send_ftp(226, "directory send ok")
+
     def on_line(self, code, message, is_final = True):
         # "joins" the code and the message part of the message into the base
         # string and then uses this value to print some debug information
@@ -158,22 +170,21 @@ class FTPConnection(netius.Connection):
         self.send_ftp(257, "\"%s\"" % self.cwd)
 
     def on_type(self, message):
-        #self.mode = self.MODES.get("message", "ascii")
+        # self.mode = self.MODES.get("message", "ascii")
         self.mode = "binary" #@todo must thing about putting this into an integer
         self.ok()
 
     def on_pasv(self, message):
         self.passive = True
         self.data_server = FTPDataServer(self, self.owner)
-        self.data_server.serve(port = 88, start = False)  #@not sing the container !!!
+        self.data_server.serve(port = 88, load = False, start = False)  #@not sing the container !!!
         self.send_ftp(227, "entered passive mode (127,0,0,1,0,88)")
 
     def on_port(self, message):
         self.ok()
 
     def on_list(self, message):
-        pass
-        #self.ok()
+        self.remaining = "list"
 
 class FTPDataServer(netius.StreamServer):
 
@@ -181,15 +192,18 @@ class FTPDataServer(netius.StreamServer):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.connection = connection
         self.container = container
+        self.accepted = None
         self.container.add_base(self)
 
     def on_connection_c(self, connection):
         netius.StreamServer.on_connection_c(self, connection)
-        print("cenas")
+        if self.accepted: connection.close(); return
+        self.accepted = connection
+        self.connection.flush_ftp()
 
-    def on_data(self, connection, data):
-        netius.StreamServer.on_data(self, connection, data)
-        print(data)
+    def send_ftp(self, data, callback = None):
+        if not self.accepted: raise netius.DataError("No connection accepted")
+        return self.accepted.send(data, callback = callback)
 
 class FTPServer(netius.ContainerServer):
 
