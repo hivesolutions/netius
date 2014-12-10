@@ -147,11 +147,25 @@ class FTPConnection(netius.Connection):
         message = "ok"
         self.send_ftp(200, message)
 
+    def not_ok(self):
+        message = "not ok"
+        self.send_ftp(500, message)
+
     def flush_ftp(self):
         if not self.remaining: return
         method = getattr(self, "flush_" + self.remaining)
         try: method()
         finally: self.remaining = None
+
+    def data_ftp(self, data):
+        self.file.write(data)
+
+    def closed_ftp(self):
+        has_file = hasattr(self, "file") and not self.file == None
+        if not has_file: return
+        self.file.close()
+        self.file = None
+        self.send_ftp(226, "file receive ok")
 
     def flush_list(self):
         self.send_ftp(150, "directory list sending")
@@ -160,13 +174,16 @@ class FTPConnection(netius.Connection):
 
     def flush_retr(self):
         self.send_ftp(150, "file sending")
-
         full_path = self._get_path(self.file_name)
-
         self.bytes_p = os.path.getsize(full_path)
         self.file = open(full_path, "rb")
-
         self._file_send(self)
+
+    def flush_stor(self):
+        self.send_ftp(150, "file receiving")
+
+        full_path = self._get_path(self.file_name)
+        self.file = open(full_path, "wb")
 
     def on_flush_list(self, connection):
         self._data_close()
@@ -236,6 +253,18 @@ class FTPConnection(netius.Connection):
     def on_port(self, message):
         self.ok()
 
+    def on_dele(self, message):
+        full_path = self._get_path(extra = message)
+        try: os.remove(full_path)
+        except: self.not_ok()
+        else: self.ok()
+
+    def on_mkd(self, message):
+        full_path = self._get_path(extra = message)
+        try: os.makedirs(full_path)
+        except: self.not_ok()
+        else: self.ok()
+
     def on_cdup(self, message):
         self.cwd = self.cwd.rsplit("/", 1)[0]
         if not self.cwd: self.cwd = "/"
@@ -271,6 +300,11 @@ class FTPConnection(netius.Connection):
         self.file_name = message
         self.data_server.flush_ftp()
 
+    def on_stor(self, message):
+        self.remaining = "stor"
+        self.file_name = message
+        self.data_server.flush_ftp()
+
     def _file_send(self, connection):
         file = self.file
         is_larger = BUFFER_SIZE > self.bytes_p
@@ -280,7 +314,6 @@ class FTPConnection(netius.Connection):
         self.bytes_p -= data_l
         is_final = not data or self.bytes_p == 0
         callback = self._file_finish if is_final else self._file_send
-        print(repr(data))
         self.data_server.send_ftp(data, delay = True, callback = callback)
 
     def _file_finish(self, connection):
@@ -376,6 +409,14 @@ class FTPDataServer(netius.StreamServer):
         if self.accepted: connection.close(); return
         self.accepted = connection
         self.flush_ftp()
+
+    def on_connection_d(self, connection):
+        netius.StreamServer.on_connection_d(self, connection)
+        self.connection.closed_ftp()
+
+    def on_data(self, connection, data):
+        netius.StreamServer.on_data(self, connection, data)
+        self.connection.data_ftp(data)
 
     def send_ftp(self, data, delay = False, force = False, callback = None):
         if not self.accepted: raise netius.DataError("No connection accepted")
