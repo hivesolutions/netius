@@ -43,6 +43,11 @@ import datetime
 
 import netius.common
 
+BUFFER_SIZE = 4096
+""" The size of the buffer that is going to be used when
+sending the file to the client, this should not be neither
+to big nor to small (as both situations would create problems) """
+
 CAPABILITIES = (
     "PASV",
     "UTF8"
@@ -91,6 +96,8 @@ class FTPConnection(netius.Connection):
         netius.Connection.close(self, *args, **kwargs)
         if self.parser: self.parser.destroy()
         if self.data_server: self.data_server.close_ftp()
+        file = hasattr(self, "file") and self.file
+        if file: file.close()
 
     def parse(self, data):
         return self.parser.parse(data)
@@ -155,11 +162,10 @@ class FTPConnection(netius.Connection):
         relative_path = os.path.join(self.base_path, self.cwd[1:])
         full_path = os.path.join(relative_path, self.file_name)
 
-        file = open(full_path, "rb")
-        try: data = file.read()
-        finally: file.close()
+        self.bytes_p = os.path.getsize(full_path)
+        self.file = open(full_path, "rb")
 
-        self.data_server.send_ftp(data, callback = self.on_flush_retr)
+        self._file_send(self)
 
     def on_flush_list(self, connection):
         self._data_close()
@@ -247,6 +253,27 @@ class FTPConnection(netius.Connection):
         self.remaining = "retr"
         self.file_name = message
 
+    def _file_send(self, connection):
+        file = self.file
+        is_larger = BUFFER_SIZE > self.bytes_p
+        buffer_s = self.bytes_p if is_larger else BUFFER_SIZE
+        data = file.read(buffer_s)
+        data_l = len(data) if data else 0
+        self.bytes_p -= data_l
+        is_final = not data or self.bytes_p == 0
+        callback = self._file_finish if is_final else self._file_send
+        self.data_server.send_ftp(
+            data,
+            delay = True,
+            callback = callback
+        )
+
+    def _file_finish(self, connection):
+        self.file.close()
+        self.file = None
+        self.bytes_p = None
+        self.on_flush_retr(connection)
+
     def _data_open(self):
         if self.data_server: return
         self.data_server = FTPDataServer(self, self.owner)
@@ -318,9 +345,9 @@ class FTPDataServer(netius.StreamServer):
         self.accepted = connection
         self.connection.flush_ftp()
 
-    def send_ftp(self, data, callback = None):
+    def send_ftp(self, data, delay = False, force = False, callback = None):
         if not self.accepted: raise netius.DataError("No connection accepted")
-        return self.accepted.send(data, callback = callback)
+        return self.accepted.send(data, delay = delay, force = force, callback = callback)
 
     def close_ftp(self):
         if self.accepted: self.accepted.close(); self.accepted = None
