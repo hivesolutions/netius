@@ -70,6 +70,10 @@ class Container(Base):
         self.logger = owner.logger
         self._loaded = True
 
+        # sets the owner of the current container as the owner of the poll
+        # this avoids problems with the cleanup operation for the poll
+        owner.poll_owner = True
+
         # runs the starting operation in the complete set of base structures
         # registered under the container, this is the required operation in
         # order to propagate the changed in the container to the bases
@@ -153,6 +157,9 @@ class Container(Base):
     def apply_base(self, base):
         base.tid = self.tid
         base.poll = self.poll
+        base.level = self.level
+        base.logger = self.logger
+        base.poll_owner = base == self.owner
 
     def trigger_all(self, name, *args, **kwargs):
         for base in self.bases: base.trigger(name, base, *args, **kwargs)

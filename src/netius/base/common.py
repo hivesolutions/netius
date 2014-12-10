@@ -277,6 +277,7 @@ class Base(observer.Observable):
         self.poll = self.poll_c()
         self.poll_name = self.poll.name()
         self.poll_timeout = kwargs.get("poll_timeout", POLL_TIMEOUT)
+        self.poll_owner = True
         self.connections = []
         self.connections_m = {}
         self._uuid = uuid.uuid4()
@@ -587,8 +588,10 @@ class Base(observer.Observable):
         for connection in connections: connection.close()
 
         # closes the current poll mechanism so that no more issues arise
-        # from an open poll system (memory leaks, etc.)
-        self.poll.close()
+        # from an open poll system (memory leaks, etc.), note that this is
+        # only performed in case the current base instance is the owner of
+        # the poll that is going to be closed (works with containers)
+        if self.poll_owner: self.poll.close()
 
     def loop(self):
         # iterates continuously while the running flag

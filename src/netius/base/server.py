@@ -77,7 +77,7 @@ class Server(Base):
     def cleanup(self):
         Base.cleanup(self)
 
-        # unsubscribes the current socket from all the position in
+        # unsubscribes the current socket from all the positions in
         # the current polling mechanism, required for coherence
         self.unsub_all(self.socket)
 
