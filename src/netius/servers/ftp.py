@@ -38,6 +38,7 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import os
+import stat
 
 import netius.common
 
@@ -45,13 +46,25 @@ CAPABILITIES = (
     "PASV",
     "UTF8"
 )
+""" The sequence defining the complete set of capabilities
+that are available under the current ftp server implementation """
+
+PERMISSIONS = {
+    "7" : "rwx",
+    "6" : "rw-",
+    "5" : "r-x",
+    "4" : "r--",
+    "0" : "---"
+}
+""" Map that defines the association between the octal based
+values for the permissions and the associated string values """
 
 class FTPConnection(netius.Connection):
 
     def __init__(self, base_path = "", host = "ftp.localhost", mode = "ascii", *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
         self.parser = None
-        self.base_path = base_path
+        self.base_path = os.path.abspath(base_path)
         self.host = host
         self.mode = mode
         self.data_server = None
@@ -119,7 +132,7 @@ class FTPConnection(netius.Connection):
     def flush_ftp(self):
         if not self.remaining: return
         if self.remaining == "list": self.flush_list()
-        elif self.remaining == "list": self.flush_retr()
+        elif self.remaining == "retr": self.flush_retr()
 
     def flush_list(self):
         self.send_ftp(150, "directory list sending")
@@ -127,10 +140,16 @@ class FTPConnection(netius.Connection):
         self.data_server.send_ftp(list_data, callback = self.on_flush_list)
 
     def flush_retr(self):
-        self.send_ftp(150, "directory list sending")
-        line = "%s    1 %-8s %-8s %8lu Apr  1  2014 %s\r\n" %\
-            ("-rwxr--r--", "owner", "group", 640, "tobias.txt")
-        self.data_server.send_ftp(line, callback = self.on_flush_list)
+        self.send_ftp(150, "file sending")
+
+        relative_path = os.path.join(self.base_path, self.cwd[1:])
+        full_path = os.path.join(relative_path, self.file)
+
+        file = open(full_path, "rb")
+        try: data = file.read()
+        finally: file.close()
+
+        self.data_server.send_ftp(data, callback = self.on_flush_retr)
 
     def on_flush_list(self, connection):
         self.data_server.close_ftp()
@@ -200,9 +219,13 @@ class FTPConnection(netius.Connection):
         self.ok()
 
     def on_cdup(self, message):
+        self.cwd = self.cwd.rsplit("/", 1)[0]
         self.ok()
 
     def on_cwd(self, message):
+        is_absolute = message.startswith("/")
+        if is_absolute: self.cwd = message
+        else: self.cwd += message if self.cwd.endswith("/") else "/" + message
         self.ok()
 
     def on_list(self, message):
@@ -210,7 +233,7 @@ class FTPConnection(netius.Connection):
 
     def on_retr(self, message):
         self.remaining = "retr"
-        self.file = "tobias.txt"
+        self.file = message
 
     def _pasv(self):
         port = 88 #@todo must get an available port from the current infra-structure !!!
@@ -219,15 +242,24 @@ class FTPConnection(netius.Connection):
         return self.data_server
 
     def _list(self):
-        full_path = os.path.join(self.base_path, self.cwd)
-        full_path = os.path.normpath(full_path)
-        entries = os.listdir(full_path)
+        relative_path = os.path.join(self.base_path, self.cwd[1:])
+        relative_path = os.path.abspath(relative_path)
+        relative_path = os.path.normpath(relative_path)
+        entries = os.listdir(relative_path)
         lines = []
         for entry in entries:
+            file_path = os.path.join(relative_path, entry)
+            mode = os.stat(file_path)
+            permissions = self._to_unix(mode)   #@todo the date is still missing !!!
             line = "%s    1 %-8s %-8s %8lu Apr  1  2014 %s" %\
-                ("-rwxr--r--", "owner", "group", 640, entry)
+                (permissions, "ftp", "ftp", mode[stat.ST_SIZE], entry)
             lines.append(line)
         return "\r\n".join(lines)
+
+    def _to_unix(self, mode):
+        is_dir = "d" if stat.S_ISDIR(mode.st_mode) else "-"
+        permissions = str(oct(mode.st_mode)[-3:])
+        return is_dir + "".join([PERMISSIONS.get(item, item) for item in permissions])
 
 class FTPDataServer(netius.StreamServer):
 
