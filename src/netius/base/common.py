@@ -346,6 +346,8 @@ class Base(observer.Observable):
         heapq.heappush(self._delayed_o, callable_o)
 
     def load(self):
+        # in case the current structure is considered/marked as already loaded
+        # there's no need to continue with the loading execution (returns immediately)
         if self._loaded: return
 
         # calls the boot hook responsible for the initialization of the various
