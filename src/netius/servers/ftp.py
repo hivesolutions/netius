@@ -247,9 +247,8 @@ class FTPConnection(netius.Connection):
 
     def _data_open(self):
         if self.data_server: return
-        port = 88 #@todo must get an available port from the current infra-structure !!!
         self.data_server = FTPDataServer(self, self.owner)
-        self.data_server.serve(port = port, load = False, start = False)
+        self.data_server.serve(port = 0, load = False, start = False)
         return self.data_server
 
     def _data_close(self):

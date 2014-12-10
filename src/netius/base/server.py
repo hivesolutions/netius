@@ -198,6 +198,11 @@ class Server(Base):
         self.socket.bind(address)
         if type == TCP_TYPE: self.socket.listen(5)
 
+        # in case the selected port is zero based, meaning that a randomly selected
+        # port has been assigned by the bind operation the new port must be retrieved
+        # and set for the current server instance as the new port (for future reference)
+        if self.port == 0: self.port = self.socket.getsockname()[1]
+
         # creates the string that identifies it the current service connection
         # is using a secure channel (ssl) and then prints an info message about
         # the service that is going to be started
