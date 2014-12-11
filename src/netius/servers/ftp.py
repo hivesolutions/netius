@@ -296,6 +296,9 @@ class FTPConnection(netius.Connection):
         modified_s = modified_d.strftime("%Y%m%d%H%M%S")
         self.send_ftp(213, modified_s)
 
+    def on_noop(self, message):
+        self.ok()
+
     def on_quit(self, message):
         self.send_ftp(221, "exiting connection")
 
