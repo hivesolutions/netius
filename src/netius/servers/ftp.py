@@ -265,6 +265,23 @@ class FTPConnection(netius.Connection):
         except: self.not_ok()
         else: self.ok()
 
+    def on_rmd(self, message):
+        full_path = self._get_path(extra = message)
+        try: os.rmdir(full_path)
+        except: self.not_ok()
+        else: self.ok()
+
+    def on_rnfr(self, message):
+        self.source_path = self._get_path(extra = message)
+        self.ok()
+
+    def on_rnto(self, message):
+        self.target_path = self._get_path(extra = message)
+        try: os.rename(self.source_path, self.target_path)
+        except: self.not_ok()
+        else: self.ok()
+        finally: self.source_path = self.target_path = None
+
     def on_cdup(self, message):
         self.cwd = self.cwd.rsplit("/", 1)[0]
         if not self.cwd: self.cwd = "/"
