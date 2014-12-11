@@ -226,7 +226,7 @@ class FTPConnection(netius.Connection):
         self.ok()
 
     def on_syst(self, message):
-        self.send_ftp(215, message = netius.VERSION)
+        self.send_ftp(215, message = "UNIX Type: L8 (%s)" % netius.VERSION)
 
     def on_feat(self, message):
         self.send_ftp(211, "features", lines = list(CAPABILITIES) + ["end"], simple = True)
@@ -287,6 +287,14 @@ class FTPConnection(netius.Connection):
         if os.path.isdir(full_path): size = 0
         else: size = os.path.getsize(full_path)
         self.send_ftp(213, "%d" % size)
+
+    def on_mdtm(self, message):
+        full_path = self._get_path(extra = message)
+        if os.path.isdir(full_path): modified = 0
+        else: modified = os.path.getmtime(full_path)
+        modified_d = datetime.datetime.utcfromtimestamp(modified)
+        modified_s = modified_d.strftime("%Y%m%d%H%M%S")
+        self.send_ftp(213, modified_s)
 
     def on_quit(self, message):
         self.send_ftp(221, "exiting connection")
@@ -361,7 +369,7 @@ class FTPConnection(netius.Connection):
             except: continue
             permissions = self._to_unix(mode)
             timstamp = mode.st_mtime
-            date_time = datetime.datetime.fromtimestamp(timstamp)
+            date_time = datetime.datetime.utcfromtimestamp(timstamp)
             date_s = date_time.strftime("%b %d  %Y")
             line = "%s    1 %-8s %-8s %8lu %s %s" %\
                 (permissions, "ftp", "ftp", mode.st_size, date_s, entry)
