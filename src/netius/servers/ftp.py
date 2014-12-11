@@ -169,7 +169,7 @@ class FTPConnection(netius.Connection):
 
     def flush_list(self):
         self.send_ftp(150, "directory list sending")
-        list_data = self._list() + "\r\n"
+        list_data = self._list()
         self.data_server.send_ftp(list_data, callback = self.on_flush_list)
 
     def flush_retr(self):
@@ -371,13 +371,13 @@ class FTPConnection(netius.Connection):
             timstamp = mode.st_mtime
             date_time = datetime.datetime.utcfromtimestamp(timstamp)
             date_s = date_time.strftime("%b %d  %Y")
-            line = "%s    1 %-8s %-8s %8lu %s %s" %\
+            line = "%s    1 %-8s %-8s %8lu %s %s\r\n" %\
                 (permissions, "ftp", "ftp", mode.st_size, date_s, entry)
             lines.append(line)
 
         # returns the final list string result as the joining of the
         # various lines for each of the files (as expected)
-        return "\r\n".join(lines)
+        return "".join(lines)
 
     def _to_unix(self, mode):
         is_dir = "d" if stat.S_ISDIR(mode.st_mode) else "-"
