@@ -169,7 +169,7 @@ class FTPConnection(netius.Connection):
 
     def flush_list(self):
         self.send_ftp(150, "directory list sending")
-        list_data = self._list()
+        list_data = self._list() + "\r\n"
         self.data_server.send_ftp(list_data, callback = self.on_flush_list)
 
     def flush_retr(self):
