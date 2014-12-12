@@ -60,6 +60,9 @@ class WSConnection(netius.Connection):
         encoded = netius.common.encode_ws(data, mask = True)
         return self.send(encoded, callback = callback)
 
+    def receive_ws(self, decoded):
+        pass
+
     def add_buffer(self, data):
         self.buffer_l.append(data)
 
@@ -136,6 +139,13 @@ class WSClient(netius.StreamClient):
                 buffer = connection.get_buffer()
                 try: decoded, data = netius.common.decode_ws(buffer + data)
                 except netius.DataError: connection.add_buffer(data); break
+
+                # calls the callback method in the connection notifying
+                # it about the new (decoded) data that has been received
+                connection.receive_ws(decoded)
+
+                # calls the proper callback handler for the data
+                # that has been received with the decoded data
                 self.on_data_ws(connection, decoded)
 
         else:
