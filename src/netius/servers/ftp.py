@@ -459,6 +459,15 @@ class FTPDataServer(netius.StreamServer):
         self.cleanup()
 
 class FTPServer(netius.ContainerServer):
+    """
+    Abstract ftp server implementation that handles authentication
+    and file system based file serving.
+
+    Note that the ftp server does not support multiple user handling
+    and runs only as the user running the current process.
+
+    @see: http://tools.ietf.org/html/rfc959
+    """
 
     def __init__(self, base_path = "", auth_s = "dummy", *args, **kwargs):
         netius.ContainerServer.__init__(self, *args, **kwargs)
