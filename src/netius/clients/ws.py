@@ -56,9 +56,9 @@ class WSConnection(netius.Connection):
         self.buffer_l = []
         self.headers = {}
 
-    def send_ws(self, data):
+    def send_ws(self, data, callback = None):
         encoded = netius.common.encode_ws(data, mask = True)
-        return self.send(encoded)
+        return self.send(encoded, callback = callback)
 
     def add_buffer(self, data):
         self.buffer_l.append(data)
