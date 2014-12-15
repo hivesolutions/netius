@@ -87,6 +87,7 @@ netius.clients.HTTPClient.get_s(
 The servers that come with netius out-of-the-box, can be tested through the command line:
 
 * WSGIServer - `python -m netius.servers.wsgi`
+* FTPServer - `pyython -m netius.server.ftp`
 * HelloServer - `MESSAGE="Hello Netius" python -m netius.extra.hello`
 * FileServer - `BASE_PATH=/ python -m netius.extra.file`
 * SMTPServer - `python -m netius.servers.smtp`
