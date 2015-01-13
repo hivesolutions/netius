@@ -84,10 +84,13 @@ class WSConnection(netius.Connection):
             raise netius.NetiusError("Handshake already done")
 
         buffer = b"".join(self.buffer_l)
-        if not buffer[-4:] == b"\r\n\r\n":
-            raise netius.DataError("Missing data for handshake")
+        end_index = buffer.find(b"\r\n\r\n")
+        if end_index == -1: raise netius.DataError("Missing data for handshake")
 
-        lines = buffer.split(b"\r\n")
+        data = buffer[:end_index + 4]
+        remaining = buffer[end_index + 4:]
+
+        lines = data.split(b"\r\n")
         for line in lines[1:]:
             values = line.split(b":", 1)
             values_l = len(values)
@@ -106,6 +109,8 @@ class WSConnection(netius.Connection):
 
         del self.buffer_l[:]
         self.handshake = True
+
+        if remaining: self.add_buffer(remaining)
 
     def accept_key(self):
         socket_key = self.headers.get("Sec-WebSocket-Key", None)
@@ -134,35 +139,46 @@ class WSServer(netius.StreamServer):
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
 
-        if connection.handshake:
-            while data:
+        # iterates while there's still data pending to be parsed from the
+        # current message received using the http or ws protocols
+        while data:
+            if connection.handshake:
+                # retrieves the current (pending) buffer of data for the
+                # connection and tries to run the decoder of websockets
+                # frame on the complete set of data pending in case there's
+                # a problem the (pending) data is added to the buffer
                 buffer = connection.get_buffer()
                 try: decoded, data = netius.common.decode_ws(buffer + data)
                 except netius.DataError: connection.add_buffer(data); break
                 self.on_data_ws(connection, decoded)
 
-        else:
-            # adds the current data to the internal connection
-            # buffer to be processed latter, by the handshake
-            connection.add_buffer(data)
+            else:
+                # adds the current data to the internal connection
+                # buffer to be processed latter, by the handshake
+                connection.add_buffer(data)
 
-            # tries to run the handshake operation for the
-            # current connection in case it fails due to an
-            # handshake error must delay the execution to the
-            # next iteration (not enough data)
-            try: connection.do_handshake()
-            except netius.DataError: return
+                # tries to run the handshake operation for the
+                # current connection in case it fails due to an
+                # handshake error must delay the execution to the
+                # next iteration (not enough data)
+                try: connection.do_handshake()
+                except netius.DataError: return
 
-            # retrieves (and computes) the accept key value for
-            # the current request and sends it as the handshake
-            # response to the client side
-            accept_key = connection.accept_key()
-            response = self._handshake_response(accept_key)
-            connection.send(response)
+                # retrieves (and computes) the accept key value for
+                # the current request and sends it as the handshake
+                # response to the client side
+                accept_key = connection.accept_key()
+                response = self._handshake_response(accept_key)
+                connection.send(response)
 
-            # calls the on handshake event handler for the current
-            # connection to notify the current object
-            self.on_handshake(connection)
+                # calls the on handshake event handler for the current
+                # connection to notify the current object
+                self.on_handshake(connection)
+
+                # retrieves the current buffer value as the data that is still
+                # pending to be parsed from the current connection, this is
+                # required so that the complete client buffer is flushed
+                data = connection.get_buffer()
 
     def new_connection(self, socket, address, ssl = False):
         return WSConnection(
