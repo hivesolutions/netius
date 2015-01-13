@@ -148,7 +148,8 @@ class WSServer(netius.StreamServer):
                 # frame on the complete set of data pending in case there's
                 # a problem the (pending) data is added to the buffer
                 buffer = connection.get_buffer()
-                try: decoded, data = netius.common.decode_ws(buffer + data)
+                data = buffer + data
+                try: decoded, data = netius.common.decode_ws(data)
                 except netius.DataError: connection.add_buffer(data); break
                 self.on_data_ws(connection, decoded)
 
