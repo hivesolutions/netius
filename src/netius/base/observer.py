@@ -59,7 +59,8 @@ class Observable(object):
     def destroy(self):
         self.unbind_all()
 
-    def bind(self, name, method):
+    def bind(self, name, method, oneshot = False):
+        if oneshot: method.oneshot = oneshot
         methods = self.events.get(name, [])
         methods.append(method)
         self.events[name] = methods
@@ -78,4 +79,12 @@ class Observable(object):
     def trigger(self, name, *args, **kwargs):
         methods = self.events.get(name, None)
         if not methods: return
-        for method in methods: method(*args, **kwargs)
+        oneshots = None
+        for method in methods:
+            method(*args, **kwargs)
+            if not hasattr(method, "oneshot"): continue
+            if not method.oneshot: continue
+            oneshots = [] if oneshots == None else oneshots
+            oneshots.append(method)
+        if not oneshots: return
+        for oneshot in oneshots: self.unbind(name, oneshot)
