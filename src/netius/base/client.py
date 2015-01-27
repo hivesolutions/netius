@@ -182,7 +182,7 @@ class DatagramClient(Client):
                 data, address = _socket.recvfrom(CHUNK_SIZE)
                 self.on_data(address, data)
         except ssl.SSLError as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
             elif not error_v in SSL_VALID_ERRORS:
@@ -190,7 +190,7 @@ class DatagramClient(Client):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
         except socket.error as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
             elif not error_v in VALID_ERRORS:
@@ -206,7 +206,7 @@ class DatagramClient(Client):
         try:
             self._send(_socket)
         except ssl.SSLError as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
             elif not error_v in SSL_VALID_ERRORS:
@@ -214,7 +214,7 @@ class DatagramClient(Client):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
         except socket.error as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
             elif not error_v in VALID_ERRORS:
@@ -623,7 +623,7 @@ class StreamClient(Client):
                 if not connection.renable == True: break
                 if not connection.socket == _socket: break
         except ssl.SSLError as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
                 connection.close()
@@ -633,7 +633,7 @@ class StreamClient(Client):
                 for line in lines: self.info(line)
                 connection.close()
         except socket.error as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
                 connection.close()
@@ -665,7 +665,7 @@ class StreamClient(Client):
         try:
             connection._send()
         except ssl.SSLError as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
                 connection.close()
@@ -675,7 +675,7 @@ class StreamClient(Client):
                 for line in lines: self.info(line)
                 connection.close()
         except socket.error as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
                 connection.close()
@@ -762,7 +762,7 @@ class StreamClient(Client):
         # open when a write event is raised for the connection
         try: _socket.connect(connection.address)
         except ssl.SSLError as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()
@@ -771,7 +771,7 @@ class StreamClient(Client):
                 connection.close()
                 return
         except socket.error as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if not error_v in VALID_ERRORS:
                 self.warning(error)
                 lines = traceback.format_exc().splitlines()

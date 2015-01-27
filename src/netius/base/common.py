@@ -1194,7 +1194,7 @@ class Base(observer.Observable):
             _socket.do_handshake()
             _socket._pending = None
         except ssl.SSLError as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SSL_VALID_ERRORS:
                 _socket._pending = self._ssl_handshake
             else: raise

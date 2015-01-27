@@ -346,7 +346,7 @@ class DatagramServer(Server):
                 self.on_data(address, data)
                 if not self.renable == True: break
         except ssl.SSLError as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
             elif not error_v in SSL_VALID_ERRORS:
@@ -354,7 +354,7 @@ class DatagramServer(Server):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
         except socket.error as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
             elif not error_v in VALID_ERRORS:
@@ -370,7 +370,7 @@ class DatagramServer(Server):
         try:
             self._send(_socket)
         except ssl.SSLError as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
             elif not error_v in SSL_VALID_ERRORS:
@@ -378,7 +378,7 @@ class DatagramServer(Server):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
         except socket.error as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
             elif not error_v in VALID_ERRORS:
@@ -551,7 +551,7 @@ class StreamServer(Server):
                 try: self.on_socket_c(socket_c, address)
                 except: socket_c.close(); raise
         except ssl.SSLError as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
             elif not error_v in SSL_VALID_ERRORS:
@@ -559,7 +559,7 @@ class StreamServer(Server):
                 lines = traceback.format_exc().splitlines()
                 for line in lines: self.info(line)
         except socket.error as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
             elif not error_v in VALID_ERRORS:
@@ -609,7 +609,7 @@ class StreamServer(Server):
                 if not connection.renable == True: break
                 if not connection.socket == _socket: break
         except ssl.SSLError as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
                 connection.close()
@@ -619,7 +619,7 @@ class StreamServer(Server):
                 for line in lines: self.info(line)
                 connection.close()
         except socket.error as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
                 connection.close()
@@ -642,7 +642,7 @@ class StreamServer(Server):
         try:
             connection._send()
         except ssl.SSLError as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
                 connection.close()
@@ -652,7 +652,7 @@ class StreamServer(Server):
                 for line in lines: self.info(line)
                 connection.close()
         except socket.error as error:
-            error_v = error.args[0]
+            error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
                 connection.close()
