@@ -61,10 +61,11 @@ class FileServer(netius.servers.HTTPServer):
     of a file is possible.
     """
 
-    def __init__(self, base_path = "", cors = False, *args, **kwargs):
+    def __init__(self, base_path = "", cors = False, cache = 0, *args, **kwargs):
         netius.servers.HTTPServer.__init__(self, *args, **kwargs)
         self.base_path = base_path
         self.cors = cors
+        self.cache = 0
 
     def on_connection_d(self, connection):
         netius.servers.HTTPServer.on_connection_d(self, connection)
@@ -79,9 +80,11 @@ class FileServer(netius.servers.HTTPServer):
         netius.servers.HTTPServer.on_serve(self)
         if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)
         if self.env: self.cors = self.get_env("CORS", self.cors, cast = bool)
+        if self.env: self.cache = self.get_env("CACHE", self.cache, cast = int)
         self.base_path = os.path.abspath(self.base_path)
         self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
         if self.cors: self.info("Cross origin resource sharing is enabled")
+        if self.cache: self.info("Resource cache set with '%d' seconds" % self.cache)
 
     def on_data_http(self, connection, parser):
         netius.servers.HTTPServer.on_data_http(self, connection, parser)
