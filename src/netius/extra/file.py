@@ -82,9 +82,10 @@ class FileServer(netius.servers.HTTPServer):
         if self.env: self.cors = self.get_env("CORS", self.cors, cast = bool)
         if self.env: self.cache = self.get_env("CACHE", self.cache, cast = int)
         self.base_path = os.path.abspath(self.base_path)
+        self.cache_d = datetime.timedelta(seconds = self.cache)
         self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
         if self.cors: self.info("Cross origin resource sharing is enabled")
-        if self.cache: self.info("Resource cache set with '%d' seconds" % self.cache)
+        if self.cache: self.info("Resource cache set with %d seconds" % self.cache)
 
     def on_data_http(self, connection, parser):
         netius.servers.HTTPServer.on_data_http(self, connection, parser)
@@ -300,6 +301,16 @@ class FileServer(netius.servers.HTTPServer):
         if type: headers["content-type"] = type
         if is_partial: headers["content-range"] = content_range_s
         if not is_partial: headers["accept-ranges"] = "bytes"
+
+        # in case there's a valid cache defined must populate the proper header
+        # fields so that cache is applied to the request
+        if self.cache:
+            current = datetime.datetime.utcnow()
+            target = current + self.cache_d
+            target_s = target.strftime("%a, %d %b %Y %H:%M:%S GMT")
+            cache_s = "public, max-age=%d" % self.cache
+            headers["expires"] = target_s
+            headers["cache-control"] = cache_s
 
         # "calculates" the proper returning code taking into account if the
         # current data to be sent is partial or not
