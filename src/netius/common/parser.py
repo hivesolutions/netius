@@ -41,6 +41,8 @@ import netius
 
 class Parser(netius.Observable):
 
+    FIELDS = ()
+
     def __init__(self, owner):
         netius.Observable.__init__(self)
         self.owner = owner
@@ -51,3 +53,18 @@ class Parser(netius.Observable):
     def destroy(self):
         netius.Observable.destroy(self)
         self.owner = None
+
+    def get_sate(self):
+        cls = self.__class__
+        fields = cls.FIELDS
+        state = dict()
+        for field in fields:
+            state[field] = getattr(self, field)
+        return state
+
+    def set_sate(self, state):
+        cls = self.__class__
+        fields = cls.FIELDS
+        for field in fields:
+            value = state[field]
+            setattr(self, field, value)
