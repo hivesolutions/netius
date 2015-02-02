@@ -73,11 +73,6 @@ class WSGIServer(http.HTTPServer):
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
 
-        # method created as a clojure that handles the starting of
-        # response as defined in the wsgi standards
-        def start_response(status, headers):
-            return self._start_response(connection, status, headers)
-
         # retrieves the path for the current request and then retrieves
         # the query string part for it also, after that computes the
         # path info value as the substring of the path without the mount
@@ -137,6 +132,25 @@ class WSGIServer(http.HTTPServer):
             key = "HTTP_" + key.replace("-", "_").upper()
             environ[key] = value
 
+        # verifies if the connection already has an iterator associated with
+        # it, if that's the case the connection is already in use and the current
+        # request processing must be delayed for future processing, this is
+        # typically associated with http pipelining
+        if hasattr(connection, "iterator") and connection.iterator:
+            if not hasattr(connection, "queue"): connection.queue = []
+            connection.queue.append(environ)
+            return
+
+        # calls the proper on environment callback so that the current request
+        # is handled and processed (flush operation)
+        self.on_environ(connection, environ)
+
+    def on_environ(self, connection, environ):
+        # method created as a clojure that handles the starting of
+        # response as defined in the wsgi standards
+        def start_response(status, headers):
+            return self._start_response(connection, status, headers)
+
         # runs the app logic with the provided environment map and starts
         # response clojure and then iterates over the complete set of values
         # in the returned iterator to send the messages to the other end
@@ -152,6 +166,19 @@ class WSGIServer(http.HTTPServer):
         # should start reading data from the iterator and sending it to the
         # connection associated (recursive approach)
         self._send_part(connection)
+
+    def _next_queue(self, connection):
+        # verifies if the current connection already contains a reference to
+        # the queue structure that handles the queuing/pipelining of requests
+        # if it does not or the queue is empty returns immediately, as there's
+        # nothing currently pending to be done/processed
+        if not hasattr(connection, "queue"): return
+        if not connection.queue: return
+
+        # retrieves the current/first element in the connection queue to for
+        # the processing and then runs the proper callback for the environ
+        environ = connection.queue.pop(0)
+        self.on_environ(connection, environ)
 
     def _start_response(self, connection, status, headers):
         # retrieves the parser object from the connection and uses
@@ -256,6 +283,7 @@ class WSGIServer(http.HTTPServer):
         self._release_iterator(connection)
         self._release_environ(connection)
         self._release_parser(connection)
+        self._next_queue(connection)
 
     def _release_iterator(self, connection):
         # verifies if there's an iterator object currently defined
