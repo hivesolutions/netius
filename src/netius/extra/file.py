@@ -75,6 +75,7 @@ class FileServer(netius.servers.HTTPServer):
         setattr(connection, "file", None)
         setattr(connection, "range", None)
         setattr(connection, "bytes_p", None)
+        setattr(connection, "queue", None)
 
     def on_serve(self):
         netius.servers.HTTPServer.on_serve(self)
@@ -89,6 +90,16 @@ class FileServer(netius.servers.HTTPServer):
 
     def on_data_http(self, connection, parser):
         netius.servers.HTTPServer.on_data_http(self, connection, parser)
+
+        # verifies if the current connection contains a reference to the
+        # file object, in case it exists there's a file currently being
+        # handled by the connection and so the current data processing
+        # must be delayed until the file is processed (inserted in queue)
+        if hasattr(connection, "file") and connection.file:
+            if not hasattr(connection, "queue"): connection.queue = []
+            state = parser.get_sate()
+            connection.queue.append(state)
+            return
 
         try:
             # retrieves the requested path from the parser and the constructs
@@ -123,15 +134,14 @@ class FileServer(netius.servers.HTTPServer):
             # instead a normal file and handles each of the cases properly by
             # redirecting the request to the proper handlers
             is_dir = os.path.isdir(path_f)
-            if is_dir: self.on_dir_file(connection, path_f)
-            else: self.on_normal_file(connection, path_f)
+            if is_dir: self.on_dir_file(connection, parser, path_f)
+            else: self.on_normal_file(connection, parser, path_f)
         except BaseException as exception:
             # handles the exception gracefully by sending the contents of
             # it to the client and identifying the problem correctly
             self.on_exception_file(connection, exception)
 
-    def on_dir_file(self, connection, path):
-        parser = connection.parser
+    def on_dir_file(self, connection, parser, path):
         path_v = parser.get_path()
         path_v = netius.legacy.unquote(path_v)
 
@@ -218,7 +228,7 @@ class FileServer(netius.servers.HTTPServer):
             callback = self._file_check_close
         )
 
-    def on_normal_file(self, connection, path):
+    def on_normal_file(self, connection, parser, path):
         # encodes the current path in case it's currently represented by
         # a string, this is going to avoid problems in the logging of the
         # path that is being requested (unicode encoding problems)
@@ -228,9 +238,8 @@ class FileServer(netius.servers.HTTPServer):
         # from the current file system to be sent to the connection
         self.debug("Reading file '%s' from file system" % path_s)
 
-        # retrieves the parser from the connection and then uses it to
-        # gather the range as a string to be used latter for conversion
-        parser = connection.parser
+        # uses the parser from the connection to be able to gather the
+        # range as a string to be used latter for conversion
         range_s = parser.headers.get("range", None)
         is_partial = True if range_s else False
 
@@ -358,6 +367,22 @@ class FileServer(netius.servers.HTTPServer):
             apply = True
         )
 
+    def _next_queue(self, connection):
+        # verifies if the current connection already contains a reference to
+        # the queue structure that handles the queuing/pipelining of requests
+        # if it does not or the queue is empty returns immediately, as there's
+        # nothing currently pending to be done/processed
+        if not hasattr(connection, "queue"): return
+        if not connection.queue: return
+
+        # retrieves the state (of the parser) as the payload of the next element
+        # in the queue and then uses it to construct a mock parser object that is
+        # going to be used to simulate an on data call to the file server
+        state = connection.queue.pop(0)
+        parser = netius.common.HTTPParser(connection.parser.owner)
+        parser.set_sate(state)
+        self.on_data_http(connection, parser)
+
     def _file_send(self, connection):
         file = connection.file
         range = connection.range
@@ -382,6 +407,7 @@ class FileServer(netius.servers.HTTPServer):
         is_keep_alive = connection.parser.keep_alive
         callback = None if is_keep_alive else self._file_close
         connection.flush(callback = callback)
+        self._next_queue(connection)
 
     def _file_close(self, connection):
         connection.close(flush = True)
