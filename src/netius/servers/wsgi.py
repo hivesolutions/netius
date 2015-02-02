@@ -70,9 +70,9 @@ class WSGIServer(http.HTTPServer):
         # leaving any extra memory leak (would create problems)
         self._release(connection)
 
-        # disables the current queue of pipelined requests for the connection
-        # as these requests are not going to be handled anymore
-        setattr(connection, "queue", None)
+        # runs the extra release queue operation for the connection so that
+        # the (possible) associated queue is properly release (no leaks)
+        self._release_queue(connection)
 
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
@@ -329,6 +329,29 @@ class WSGIServer(http.HTTPServer):
         # parser still remains active, this operation only clears the
         # current memory structures associated with the parser
         connection.parser.close()
+
+    def _release_queue(self, connection):
+        # tries to retrieve a possible defined queue for the provided
+        # connection in case it does not exist returns immediately as
+        # there's no queue element to be release/cleared
+        queue = hasattr(connection, "queue") and connection.queue
+        if not queue: return
+
+        # iterates over the complete set of queue elements (environ
+        # based maps) to clear their elements properly
+        for environ in queue:
+            # retrieves the reference to the input buffer file and
+            # closes it (avoiding possible extra accesses and leaks)
+            input = environ["wsgi.input"]
+            input.close()
+
+            # empties the map key references so that no more access
+            # to the map is possible (avoids leaks)
+            environ.clear()
+
+        # removes the complete set of elements from the queue while
+        # maintaining the original list reference/instance
+        del queue[:]
 
     def _decode(self, value):
         """
