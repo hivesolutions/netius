@@ -128,7 +128,7 @@ class FileServer(netius.servers.HTTPServer):
             # verifies if the requested file exists in case it does not
             # raises an error indicating the problem so that the user is
             # notified about the failure to find the appropriate file
-            if not os.path.exists(path_f): self.on_no_file(connection)
+            if not os.path.exists(path_f): self.on_no_file(connection); return
 
             # verifies if the currently resolved path refers an directory or
             # instead a normal file and handles each of the cases properly by
