@@ -47,6 +47,12 @@ class Parser(netius.Observable):
         netius.Observable.__init__(self)
         self.owner = owner
 
+    @classmethod
+    def mock(cls, owner, state):
+        mock = cls(owner)
+        mock.set_state(state)
+        return mock
+
     def build(self):
         netius.Observable.build(self)
 
@@ -54,7 +60,7 @@ class Parser(netius.Observable):
         netius.Observable.destroy(self)
         self.owner = None
 
-    def get_sate(self):
+    def get_state(self):
         cls = self.__class__
         fields = cls.FIELDS
         state = dict()
@@ -62,7 +68,7 @@ class Parser(netius.Observable):
             state[field] = getattr(self, field)
         return state
 
-    def set_sate(self, state):
+    def set_state(self, state):
         cls = self.__class__
         fields = cls.FIELDS
         for field in fields:

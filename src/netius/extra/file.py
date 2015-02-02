@@ -97,7 +97,7 @@ class FileServer(netius.servers.HTTPServer):
         # must be delayed until the file is processed (inserted in queue)
         if hasattr(connection, "file") and connection.file:
             if not hasattr(connection, "queue"): connection.queue = []
-            state = parser.get_sate()
+            state = parser.get_state()
             connection.queue.append(state)
             return
 
@@ -379,8 +379,7 @@ class FileServer(netius.servers.HTTPServer):
         # in the queue and then uses it to construct a mock parser object that is
         # going to be used to simulate an on data call to the file server
         state = connection.queue.pop(0)
-        parser = netius.common.HTTPParser(connection.parser.owner)
-        parser.set_sate(state)
+        parser = netius.common.HTTPParser.mock(connection.parser.owner, state)
         self.on_data_http(connection, parser)
 
     def _file_send(self, connection):
