@@ -387,7 +387,11 @@ class HTTPParser(parser.Parser):
                 continue
 
             elif self.state == FINISH_STATE:
-                break
+                # must clear the current parser state, so that it may
+                # start the parsing of a new message and then continues
+                # the loop trying to find new contents for parsing
+                self.clear()
+                continue
 
             else:
                 raise netius.ParserError("Invalid state '%d'" % self.state)
