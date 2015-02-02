@@ -380,7 +380,8 @@ class FileServer(netius.servers.HTTPServer):
         # going to be used to simulate an on data call to the file server
         state = connection.queue.pop(0)
         parser = netius.common.HTTPParser.mock(connection.parser.owner, state)
-        self.on_data_http(connection, parser)
+        try: self.on_data_http(connection, parser)
+        finally: parser.destroy()
 
     def _file_send(self, connection):
         file = connection.file
