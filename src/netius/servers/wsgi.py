@@ -70,6 +70,10 @@ class WSGIServer(http.HTTPServer):
         # leaving any extra memory leak (would create problems)
         self._release(connection)
 
+        # disables the current queue of pipelined requests for the connection
+        # as these requests are not going to be handled anymore
+        setattr(connection, "queue", None)
+
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
 
@@ -273,8 +277,11 @@ class WSGIServer(http.HTTPServer):
 
         # in case this is the final "iteration" in part sending the
         # map of environment must be destroyed properly, avoiding any
-        # possible memory leak for the current handling
-        if is_final: self._release(connection)
+        # possible memory leak for the current handling and then the
+        # queue of pipelined requests must be flushed/processed
+        if not is_final: return
+        self._release(connection)
+        self._next_queue(connection)
 
     def _close(self, connection):
         connection.close(flush = True)
@@ -283,7 +290,6 @@ class WSGIServer(http.HTTPServer):
         self._release_iterator(connection)
         self._release_environ(connection)
         self._release_parser(connection)
-        self._next_queue(connection)
 
     def _release_iterator(self, connection):
         # verifies if there's an iterator object currently defined
