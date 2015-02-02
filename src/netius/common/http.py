@@ -387,9 +387,11 @@ class HTTPParser(parser.Parser):
                 continue
 
             elif self.state == FINISH_STATE:
+
                 # must clear the current parser state, so that it may
-                # start the parsing of a new message and then continues
-                # the loop trying to find new contents for parsing
+                # start the parsing of a new message and then continue
+                # the loop trying to find new contents for parsing, this
+                # critical for http pipelining support
                 self.clear()
                 continue
 
