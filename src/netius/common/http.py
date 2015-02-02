@@ -158,6 +158,39 @@ class HTTPParser(parser.Parser):
     parsing. But the object itself is not thread safe.
     """
 
+    FIELDS = (
+        "type",
+        "store",
+        "file_limit",
+        "state",
+        "buffer",
+        "headers",
+        "message",
+        "method",
+        "version",
+        "code",
+        "keep_alive",
+        "line_s",
+        "headers_s",
+        "method_s",
+        "path_s",
+        "version_s",
+        "code_s",
+        "status_s",
+        "connection_s",
+        "message_s",
+        "message_f",
+        "content_l",
+        "message_l",
+        "transfer_e",
+        "encodings",
+        "chunked",
+        "chunk_d",
+        "chunk_l",
+        "chunk_s",
+        "chunk_e"
+    )
+
     def __init__(
         self,
         owner,
