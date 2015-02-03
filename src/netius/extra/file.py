@@ -156,6 +156,7 @@ class FileServer(netius.servers.HTTPServer):
                 code = 301,
                 apply = True
             )
+            return
 
         items = os.listdir(path)
         items.sort()
