@@ -235,7 +235,6 @@ class WSGIServer(http.HTTPServer):
         buffer = []
         buffer.append("%s %s\r\n" % (version_s, status))
         for key, value in headers.items():
-            value = netius.legacy.str(value)
             buffer.append("%s: %s\r\n" % (key, value))
         buffer.append("\r\n")
 
