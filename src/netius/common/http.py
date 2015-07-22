@@ -552,6 +552,12 @@ class HTTPParser(parser.Parser):
         self.transfer_e = self.headers.get("transfer-encoding", None)
         self.chunked = self.transfer_e == "chunked"
 
+        # in case the current response in parsing has the no content
+        # code (no payload present) the content length is set to the
+        # zero value in case it has not already been populated
+        if self.type == RESPONSE and self.code == 204 and\
+            self.content_l == -1: self.content_l = 0
+
         # in case the current request is not chunked and the content length
         # header is not defined the content length is set to zero because
         # for normal requests with payload the content length is required
