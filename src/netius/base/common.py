@@ -286,6 +286,7 @@ class Base(observer.Observable):
         self._loaded = False
         self._delayed = []
         self._delayed_o = []
+        self._ssl_init()
         self.set_state(STATE_STOP)
 
     def __del__(self):
@@ -1159,6 +1160,11 @@ class Base(observer.Observable):
                 socket.SO_REUSEPORT, #@UndefinedVariable
                 1
             )
+
+    def _ssl_init(self):
+        has_context = hasattr(ssl, "SSLContext")
+        if not has_context: self._ssl_context = None
+        self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
 
     def _ssl_upgrade(self, _socket, key_file = None, cer_file = None, server = True):
         socket_ssl = self._ssl_wrap(
