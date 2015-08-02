@@ -1162,9 +1162,54 @@ class Base(observer.Observable):
             )
 
     def _ssl_init(self):
+        # initializes the values of both the "main" context for ssl
+        # and the map that associated an hostname and a context, both
+        # are going to be used (if possible) at runtime for proper
+        # resolution of both key and certificated files
+        self._ssl_context = None
+        self._ssl_contexts = dict()
+
+        # verifies if the current ssl module contains a reference to
+        # the ssl context class symbol if not, the control flow is
+        # returned to the caller method as it's not possible to created
+        # any kind of context information for ssl
         has_context = hasattr(ssl, "SSLContext")
-        if not has_context: self._ssl_context = None
+        if not has_context: return
+
+        # creates the main/default ssl context setting the default key
+        # and certificate information in such context, then verifies
+        # if the callback registration method is defined and if it is
+        # defined registers a callback for when the hostname information
+        # is available, so that proper concrete context may be set
         self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        self._ssl_certs(self._ssl_context)
+        has_callback = hasattr(self._ssl_context, "set_servername_callback")
+        if has_callback: self._ssl_context.set_servername_callback(self._ssl_callback)
+
+        # retrieves the reference to the map containing the various key
+        # and certificate paths for the various defined host names and
+        # uses them to create the complete set of ssl context objects
+        contexts = self.get_env("SSL_CONTEXTS", {})
+        for hostname, values in legacy.iteritems(contexts):
+            context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+            key_file = values.get("key_file", None)
+            cer_file = values.get("cer_file", None)
+            self._ssl_certs(context, key_file = key_file, cer_file = cer_file)
+            self._ssl_contexts[hostname] = context
+
+    def _ssl_callback(self, socket, hostname, context):
+        context = self._ssl_contexts.get(hostname, context)
+        socket.context = context
+
+    def _ssl_certs(self, context, key_file = None, cer_file = None):
+        dir_path = os.path.dirname(__file__)
+        root_path = os.path.join(dir_path, "../")
+        root_path = os.path.normpath(root_path)
+        base_path = os.path.join(root_path, "base")
+        extras_path = os.path.join(base_path, "extras")
+        key_file = key_file or os.path.join(extras_path, "net.key")
+        cer_file = cer_file or os.path.join(extras_path, "net.cer")
+        context.load_cert_chain(cer_file, keyfile = key_file)
 
     def _ssl_upgrade(self, _socket, key_file = None, cer_file = None, server = True):
         socket_ssl = self._ssl_wrap(
@@ -1185,7 +1230,11 @@ class Base(observer.Observable):
         key_file = key_file or os.path.join(extras_path, "net.key")
         cer_file = cer_file or os.path.join(extras_path, "net.cer")
 
-        socket_ssl = ssl.wrap_socket(
+        socket_ssl = self._ssl_context.wrap_socket(
+            _socket,
+            server_side = server,
+            do_handshake_on_connect = False
+        ) if self._ssl_context else ssl.wrap_socket(
             _socket,
             keyfile = key_file,
             certfile = cer_file,
