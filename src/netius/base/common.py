@@ -1161,7 +1161,7 @@ class Base(observer.Observable):
                 1
             )
 
-    def _ssl_init(self):
+    def _ssl_init(self, strict = True):
         # initializes the values of both the "main" context for ssl
         # and the map that associated an hostname and a context, both
         # are going to be used (if possible) at runtime for proper
@@ -1180,11 +1180,14 @@ class Base(observer.Observable):
         # and certificate information in such context, then verifies
         # if the callback registration method is defined and if it is
         # defined registers a callback for when the hostname information
-        # is available, so that proper concrete context may be set
+        # is available, so that proper concrete context may be set, note
+        # that in case the strict mode is enabled (default) the context
+        # is unset for situation where no callback registration is possible
         self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
         self._ssl_certs(self._ssl_context)
         has_callback = hasattr(self._ssl_context, "set_servername_callback")
         if has_callback: self._ssl_context.set_servername_callback(self._ssl_callback)
+        elif strict: self._ssl_context = None
 
         # retrieves the reference to the map containing the various key
         # and certificate paths for the various defined host names and
@@ -1229,6 +1232,12 @@ class Base(observer.Observable):
 
         key_file = key_file or os.path.join(extras_path, "net.key")
         cer_file = cer_file or os.path.join(extras_path, "net.cer")
+
+        if self._ssl_context: self._ssl_certs(
+            self._ssl_context,
+            key_file = key_file,
+            cer_file = cer_file
+        )
 
         socket_ssl = self._ssl_context.wrap_socket(
             _socket,
