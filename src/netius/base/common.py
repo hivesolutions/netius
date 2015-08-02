@@ -1161,7 +1161,7 @@ class Base(observer.Observable):
                 1
             )
 
-    def _ssl_init(self, strict = True):
+    def _ssl_init(self, strict = True, env = True):
         # initializes the values of both the "main" context for ssl
         # and the map that associated an hostname and a context, both
         # are going to be used (if possible) at runtime for proper
@@ -1192,7 +1192,7 @@ class Base(observer.Observable):
         # retrieves the reference to the map containing the various key
         # and certificate paths for the various defined host names and
         # uses them to create the complete set of ssl context objects
-        contexts = self.get_env("SSL_CONTEXTS", {})
+        contexts = self.get_env("SSL_CONTEXTS", {}) if env else {}
         for hostname, values in legacy.iteritems(contexts):
             context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
             key_file = values.get("key_file", None)
