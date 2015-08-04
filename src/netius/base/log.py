@@ -90,5 +90,5 @@ def in_signature(callable, name):
     has_full = hasattr(inspect, "getfullargspec")
     if has_full: spec = inspect.getfullargspec(callable)
     else: spec = inspect.getargspec(callable)
-    args, kwargs = spec[:2]
+    args, _varargs, kwargs = spec[:3]
     return (args and name in args) or (kwargs and "secure" in kwargs)
