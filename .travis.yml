@@ -23,4 +23,3 @@ deploy:
   distributions: sdist bdist_wheel
   on:
     tags: true
-before_deploy: python setup.py register
