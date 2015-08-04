@@ -8,6 +8,7 @@ python:
   - "3.4"
   - "pypy"
   - "pypy3"
+  - "nightly"
 install:
   - pip install -r requirements.txt
   - pip install coveralls
@@ -22,4 +23,5 @@ deploy:
     secure: gzWBCLnONawEYAtR3S/PlxizOXuNxA0wOQQExxS6TempCNGX1Z7DwixDxt6V7LDFI38ow/XsEOUu8L6MHLCWGbUqbwZz6kS9w2RPT1Jtzi8wwCx25K6LDxmBgg0qIDJ9F8tfJd2SnZme3vtEfgglA3MMNFPI5vNA8e1qmZGzvBE=    
   distributions: sdist bdist_wheel
   on:
+    python: "2.7"
     tags: true
