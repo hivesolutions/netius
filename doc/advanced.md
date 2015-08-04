@@ -25,6 +25,16 @@ regarding problems and solutions for Python 3 and WSGI.
 * [Python3/WSGI](http://wsgi.readthedocs.org/en/latest/python3.html)
 * [WSGI 2.0](http://wsgi.readthedocs.org/en/latest/proposals-2.0.html)
 
+## Configuration
+```json
+"SSL_CONTEXTS" : {
+    "localhost" : {
+        "key_file" : "/secret.key",
+        "cer_file" : "/secret.cer"
+    }
+}
+```
+
 ## Benchmarks
 
 Running `ab -n 20000 -c 5 -k http://localhost:8080/` should achieve the following results:
