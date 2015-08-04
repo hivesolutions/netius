@@ -26,6 +26,7 @@ regarding problems and solutions for Python 3 and WSGI.
 * [WSGI 2.0](http://wsgi.readthedocs.org/en/latest/proposals-2.0.html)
 
 ## Configuration
+
 ```json
 "SSL_CONTEXTS" : {
     "localhost" : {
