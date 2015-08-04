@@ -15,3 +15,9 @@ script: coverage run --source=netius setup.py test
 after_success: coveralls
 notifications:
   slack: hivesolutions:838m5XXohsuxjWI0mSzghWOK
+deploy:
+  provider: pypi
+  user: joamag
+  password: $pypi_password
+  on:
+    tags: true
