@@ -87,6 +87,8 @@ def smtp_handler(
     )
 
 def in_signature(callable, name):
-    spec = inspect.getargspec(callable)
-    args = spec[0]; kwargs = spec[2]
+    has_full = hasattr(inspect, "getfullargspec")
+    if has_full: spec = inspect.getfullargspec(callable)
+    else: spec = inspect.getargspec(callable)
+    args, kwargs = spec[:2]
     return (args and name in args) or (kwargs and "secure" in kwargs)
