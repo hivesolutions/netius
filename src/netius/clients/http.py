@@ -500,7 +500,7 @@ class HTTPClient(netius.StreamClient):
                 headers = parser.get_headers()
                 data = b"".join(buffer)
                 encoding = headers.get("Content-Encoding", None)
-                decoder = getattr(cls, "decode_%s") if encoding else None
+                decoder = getattr(cls, "decode_%s" % encoding) if encoding else None
                 if decoder: data = decoder(data)
                 request["code"] = parser.code
                 request["status"] = parser.status
