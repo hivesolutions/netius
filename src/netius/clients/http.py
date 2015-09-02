@@ -171,6 +171,8 @@ class HTTPConnection(netius.Connection):
 
         if not "connection" in headers:
             headers["connection"] = "keep-alive"
+        if not "accept-encoding" in headers:
+            headers["accept-encoding"] = "gzip"
         if not "content-length" in headers:
             headers["content-length"] = len(data) if data else 0
         if not "host" in headers:
@@ -306,6 +308,20 @@ class HTTPClient(netius.StreamClient):
     @classmethod
     def decode_gzip(cls, data):
         return zlib.decompress(data, zlib.MAX_WBITS | 16)
+
+    @classmethod
+    def set_request(cls, parser, buffer, request = None):
+        if request == None: request = dict()
+        headers = parser.get_headers()
+        data = b"".join(buffer)
+        encoding = headers.get("Content-Encoding", None)
+        decoder = getattr(cls, "decode_%s" % encoding) if encoding else None
+        if decoder: data = decoder(data)
+        request["code"] = parser.code
+        request["status"] = parser.status
+        request["headers"] = headers
+        request["data"] = data
+        return request
 
     def get(
         self,
@@ -488,24 +504,13 @@ class HTTPClient(netius.StreamClient):
             # they may be used for the correct construction of the request
             # structure that is going to be send in the callback
             buffer = []
-            request = dict(
-                code = None,
-                data = None
-            )
+            request = dict(code = None, data = None)
 
             def on_partial(connection, parser, data):
                 buffer.append(data)
 
             def on_message(connection, parser, message):
-                headers = parser.get_headers()
-                data = b"".join(buffer)
-                encoding = headers.get("Content-Encoding", None)
-                decoder = getattr(cls, "decode_%s" % encoding) if encoding else None
-                if decoder: data = decoder(data)
-                request["code"] = parser.code
-                request["status"] = parser.status
-                request["headers"] = headers
-                request["data"] = data
+                cls.set_request(parser, buffer, request = request)
                 if on_result: on_result(connection, parser, request)
 
             # sets the proper callback references so that the newly created
@@ -592,14 +597,19 @@ class HTTPClient(netius.StreamClient):
         self.trigger("chunk", self, parser, range)
 
 if __name__ == "__main__":
+    buffer = []
+
     def on_headers(client, parser, headers):
         print(parser.code_s + " " + parser.status_s)
 
     def on_partial(client, parser, data):
         data = data or "[empty message]"
-        print(data)
+        buffer.append(data)
 
     def on_message(client, parser, message):
+        request = HTTPClient.set_request(parser, buffer)
+        print(request["headers"])
+        print(request["data"])
         client.close()
 
     def on_close(client, connection):
