@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2015 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import zlib
 import base64
 
 import netius.common
@@ -302,6 +303,10 @@ class HTTPClient(netius.StreamClient):
     def to_response(cls, map):
         return netius.common.HTTPResponse(**map)
 
+    @classmethod
+    def gzip_to_plain(cls, data):
+        return zlib.decompress(data, zlib.MAX_WBITS | 16)
+
     def get(
         self,
         url,
@@ -381,6 +386,10 @@ class HTTPClient(netius.StreamClient):
         on_data = None,
         on_result = None
     ):
+        # extracts the reference to the upper class element associated
+        # with the current instance, to be used for operations
+        cls = self.__class__
+
         # runs the defaulting operation on the provided parameters so that
         # new instances are created for both occasions as expected, this
         # avoids the typical problem with re-usage of default attributes
@@ -488,10 +497,14 @@ class HTTPClient(netius.StreamClient):
                 buffer.append(data)
 
             def on_message(connection, parser, message):
+                headers = parser.get_headers()
+                data = b"".join(buffer)
+                encoding = headers.get("Content-Encoding", None)
+                if encoding == "gzip": data = cls.gzip_to_plain(data)
                 request["code"] = parser.code
                 request["status"] = parser.status
-                request["headers"] = parser.get_headers()
-                request["data"] = b"".join(buffer)
+                request["headers"] = headers
+                request["data"] = data
                 if on_result: on_result(connection, parser, request)
 
             # sets the proper callback references so that the newly created
