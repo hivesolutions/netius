@@ -603,13 +603,13 @@ if __name__ == "__main__":
         print(parser.code_s + " " + parser.status_s)
 
     def on_partial(client, parser, data):
-        data = data or "[empty message]"
-        buffer.append(data)
+        data = data
+        data and buffer.append(data)
 
     def on_message(client, parser, message):
         request = HTTPClient.set_request(parser, buffer)
         print(request["headers"])
-        print(request["data"])
+        print(request["data"] or b"[empty data]")
         client.close()
 
     def on_close(client, connection):
