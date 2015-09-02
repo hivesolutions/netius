@@ -304,7 +304,7 @@ class HTTPClient(netius.StreamClient):
         return netius.common.HTTPResponse(**map)
 
     @classmethod
-    def gzip_to_plain(cls, data):
+    def decode_gzip(cls, data):
         return zlib.decompress(data, zlib.MAX_WBITS | 16)
 
     def get(
@@ -500,7 +500,8 @@ class HTTPClient(netius.StreamClient):
                 headers = parser.get_headers()
                 data = b"".join(buffer)
                 encoding = headers.get("Content-Encoding", None)
-                if encoding == "gzip": data = cls.gzip_to_plain(data)
+                decoder = getattr(cls, "decode_%s") if encoding else None
+                if decoder: data = decoder(data)
                 request["code"] = parser.code
                 request["status"] = parser.status
                 request["headers"] = headers
