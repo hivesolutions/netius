@@ -172,7 +172,7 @@ class HTTPConnection(netius.Connection):
         if not "connection" in headers:
             headers["connection"] = "keep-alive"
         if not "accept-encoding" in headers:
-            headers["accept-encoding"] = "gzip"
+            headers["accept-encoding"] = "gzip, deflate"
         if not "content-length" in headers:
             headers["content-length"] = len(data) if data else 0
         if not "host" in headers:
@@ -308,6 +308,11 @@ class HTTPClient(netius.StreamClient):
     @classmethod
     def decode_gzip(cls, data):
         return zlib.decompress(data, zlib.MAX_WBITS | 16)
+
+    @classmethod
+    def decode_deflate(cls, data):
+        try: return zlib.decompress(data)
+        except: return zlib.decompress(data, -zlib.MAX_WBITS)
 
     @classmethod
     def set_request(cls, parser, buffer, request = None):
