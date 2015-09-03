@@ -85,6 +85,19 @@ class HTTPClientTest(unittest.TestCase):
     def test_headers(self):
         result = netius.clients.HTTPClient.method_s(
             "GET",
+            "http://httpbin.org/headers",
+            async = False
+        )
+        payload = json.loads(result["data"].decode("utf-8"))
+        headers = payload["headers"]
+        self.assertEqual(result["code"], 200)
+        self.assertEqual(headers["Host"], "httpbin.org")
+        self.assertEqual(headers["Content-Length"], "0")
+        self.assertEqual(headers["Accept-Encoding"], "gzip, deflate")
+        self.assertEqual(headers["User-Agent"].startswith("netius"), True)
+        
+        result = netius.clients.HTTPClient.method_s(
+            "GET",
             "http://httpbin.org/image/png",
             async = False
         )
