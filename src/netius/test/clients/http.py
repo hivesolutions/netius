@@ -52,7 +52,7 @@ class HTTPClientTest(unittest.TestCase):
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
-        self.assertNotEqual(json.loads(result["data"]), None)
+        self.assertNotEqual(json.loads(result["data"].decode("utf-8")), None)
 
         result = netius.clients.HTTPClient.method_s(
             "GET",
@@ -61,7 +61,7 @@ class HTTPClientTest(unittest.TestCase):
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
-        self.assertNotEqual(json.loads(result["data"]), None)
+        self.assertNotEqual(json.loads(result["data"].decode("utf-8")), None)
 
     def test_compression(self):
         result = netius.clients.HTTPClient.method_s(
@@ -71,7 +71,7 @@ class HTTPClientTest(unittest.TestCase):
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
-        self.assertNotEqual(json.loads(result["data"]), None)
+        self.assertNotEqual(json.loads(result["data"].decode("utf-8")), None)
 
         result = netius.clients.HTTPClient.method_s(
             "GET",
@@ -80,4 +80,4 @@ class HTTPClientTest(unittest.TestCase):
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
-        self.assertNotEqual(json.loads(result["data"]), None)
+        self.assertNotEqual(json.loads(result["data"].decode("utf-8")), None)
