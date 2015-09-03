@@ -821,6 +821,12 @@ class StreamClient(Client):
             _socket.ca_certs
         )
 
+        # verifies if the ssl object class is defined in the ssl module
+        # and if that's the case an extra wrapping operations is performed
+        # in order to comply with new indirection/abstraction methods
+        if not hasattr(ssl, "SSLObject"): return
+        _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
+
     def _ssl_handshake(self, _socket):
         Client._ssl_handshake(self, _socket)
 
