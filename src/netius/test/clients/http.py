@@ -81,3 +81,14 @@ class HTTPClientTest(unittest.TestCase):
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
         self.assertNotEqual(json.loads(result["data"].decode("utf-8")), None)
+
+    def test_headers(self):
+        result = netius.clients.HTTPClient.method_s(
+            "GET",
+            "http://httpbin.org/image/png",
+            async = False
+        )
+        self.assertEqual(result["code"], 200)
+        self.assertNotEqual(len(result["data"]), 0)
+        self.assertEqual(result["headers"]["Connection"], "keep-alive")
+        self.assertEqual(result["headers"]["Content-Type"], "image/png")
