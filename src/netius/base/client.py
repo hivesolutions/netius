@@ -822,7 +822,7 @@ class StreamClient(Client):
         )
 
         # verifies if the ssl object class is defined in the ssl module
-        # and if that's the case an extra wrapping operations is performed
+        # and if that's the case an extra wrapping operation is performed
         # in order to comply with new indirection/abstraction methods
         if not hasattr(ssl, "SSLObject"): return
         _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
