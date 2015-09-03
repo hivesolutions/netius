@@ -95,7 +95,7 @@ class HTTPClientTest(unittest.TestCase):
         self.assertEqual(headers["Content-Length"], "0")
         self.assertEqual(headers["Accept-Encoding"], "gzip, deflate")
         self.assertEqual(headers["User-Agent"].startswith("netius"), True)
-        
+
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "http://httpbin.org/image/png",
