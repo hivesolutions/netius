@@ -55,8 +55,10 @@ class HTTPConnection(netius.Connection):
         self.parser = None
         self.version = "HTTP/1.1"
         self.method = "GET"
+        self.encodings = "gzip, deflate"
         self.url = None
         self.ssl = False
+        self.parsed = False
         self.host = None
         self.port = None
         self.path = None
@@ -87,8 +89,8 @@ class HTTPConnection(netius.Connection):
         ssl = False,
         parsed = None
     ):
-        self.method = method.upper()
         self.version = version
+        self.method = method.upper()
         self.url = url
         self.base = base
         self.host = host
@@ -121,6 +123,9 @@ class HTTPConnection(netius.Connection):
 
         self.send(buffer_data, force = True)
         data and self.send(data, force = True)
+
+    def set_encodings(self, encodings):
+        self.encodings = encodings
 
     def set_headers(self, headers, normalize = True):
         self.headers = headers
@@ -171,12 +176,12 @@ class HTTPConnection(netius.Connection):
 
         if not "connection" in headers:
             headers["connection"] = "keep-alive"
-        if not "accept-encoding" in headers:
-            headers["accept-encoding"] = "gzip, deflate"
         if not "content-length" in headers:
             headers["content-length"] = len(data) if data else 0
         if not "host" in headers:
             headers["host"] = host_s
+        if not "accept-encoding" in headers and self.encodings:
+            headers["accept-encoding"] = self.encodings
 
 class HTTPClient(netius.StreamClient):
     """
@@ -400,6 +405,7 @@ class HTTPClient(netius.StreamClient):
         headers = None,
         data = None,
         version = "HTTP/1.1",
+        encodings = "gzip, deflate",
         connection = None,
         async = True,
         callback = None,
@@ -487,6 +493,7 @@ class HTTPClient(netius.StreamClient):
             ssl = ssl,
             parsed = parsed
         )
+        connection.set_encodings(encodings)
         connection.set_headers(headers)
         connection.set_data(data)
 

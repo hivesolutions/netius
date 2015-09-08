@@ -210,6 +210,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             url,
             headers = headers,
             version = version_s,
+            encodings = None,
             connection = proxy_c
         )
 
