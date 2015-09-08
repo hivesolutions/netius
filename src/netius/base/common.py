@@ -756,8 +756,9 @@ class Base(observer.Observable):
         )
         return info
 
-    def info_string(self, full = False):
-        info = self.info_dict(full = full)
+    def info_string(self, full = False, safe = True):
+        try: info = self.info_dict(full = full)
+        except: info = dict()
         info_s = json.dumps(
             info,
             ensure_ascii = False,
@@ -863,10 +864,16 @@ class Base(observer.Observable):
     def critical(self, object):
         self.log(object, level = logging.CRITICAL)
 
-    def log_stack(self, method = None):
+    def log_stack(self, method = None, info = True):
         if not method: method = self.info
         lines = traceback.format_exc().splitlines()
         for line in lines: method(line)
+        if info: self.log_info(method = method)
+
+    def log_info(self, method = None):
+        if not method: method = self.info
+        info_string = self.info_string(full = True)
+        for line in info_string.split("\n"): method(line)
 
     def log(self, *args, **kwargs):
         if legacy.PYTHON_3: return self.log_python_3(*args, **kwargs)
