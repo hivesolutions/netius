@@ -187,20 +187,17 @@ class DatagramClient(Client):
                 self.debug(error)
             elif not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
-                lines = traceback.format_exc().splitlines()
-                for line in lines: self.info(line)
+                self.log_stack()
         except socket.error as error:
             error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
             elif not error_v in VALID_ERRORS:
                 self.warning(error)
-                lines = traceback.format_exc().splitlines()
-                for line in lines: self.info(line)
+                self.log_stack()
         except BaseException as exception:
             self.warning(exception)
-            lines = traceback.format_exc().splitlines()
-            for line in lines: self.info(line)
+            self.log_stack()
 
     def on_write(self, _socket):
         try:
@@ -211,20 +208,17 @@ class DatagramClient(Client):
                 self.debug(error)
             elif not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
-                lines = traceback.format_exc().splitlines()
-                for line in lines: self.info(line)
+                self.log_stack()
         except socket.error as error:
             error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
             elif not error_v in VALID_ERRORS:
                 self.warning(error)
-                lines = traceback.format_exc().splitlines()
-                for line in lines: self.info(line)
+                self.log_stack()
         except BaseException as exception:
             self.warning(exception)
-            lines = traceback.format_exc().splitlines()
-            for line in lines: self.info(line)
+            self.log_stack()
 
     def on_error(self, _socket):
         pass
@@ -629,8 +623,7 @@ class StreamClient(Client):
                 connection.close()
             elif not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
-                lines = traceback.format_exc().splitlines()
-                for line in lines: self.info(line)
+                self.log_stack()
                 connection.close()
         except socket.error as error:
             error_v = error.args[0] if error.args else None
@@ -639,13 +632,11 @@ class StreamClient(Client):
                 connection.close()
             elif not error_v in VALID_ERRORS:
                 self.warning(error)
-                lines = traceback.format_exc().splitlines()
-                for line in lines: self.info(line)
+                self.log_stack()
                 connection.close()
         except BaseException as exception:
             self.warning(exception)
-            lines = traceback.format_exc().splitlines()
-            for line in lines: self.info(line)
+            self.log_stack()
             connection.close()
 
     def on_write(self, _socket):
@@ -671,8 +662,7 @@ class StreamClient(Client):
                 connection.close()
             elif not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
-                lines = traceback.format_exc().splitlines()
-                for line in lines: self.info(line)
+                self.log_stack()
                 connection.close()
         except socket.error as error:
             error_v = error.args[0] if error.args else None
@@ -681,13 +671,11 @@ class StreamClient(Client):
                 connection.close()
             elif not error_v in VALID_ERRORS:
                 self.warning(error)
-                lines = traceback.format_exc().splitlines()
-                for line in lines: self.info(line)
+                self.log_stack()
                 connection.close()
         except BaseException as exception:
             self.warning(exception)
-            lines = traceback.format_exc().splitlines()
-            for line in lines: self.info(line)
+            self.log_stack()
             connection.close()
 
     def on_error(self, _socket):
@@ -765,8 +753,7 @@ class StreamClient(Client):
             error_v = error.args[0] if error.args else None
             if not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
-                lines = traceback.format_exc().splitlines()
-                for line in lines: self.info(line)
+                self.log_stack()
                 self.trigger("error", self, connection, error)
                 connection.close()
                 return
@@ -774,15 +761,13 @@ class StreamClient(Client):
             error_v = error.args[0] if error.args else None
             if not error_v in VALID_ERRORS:
                 self.warning(error)
-                lines = traceback.format_exc().splitlines()
-                for line in lines: self.info(line)
+                self.log_stack()
                 self.trigger("error", self, connection, error)
                 connection.close()
                 return
         except BaseException as exception:
             self.warning(exception)
-            lines = traceback.format_exc().splitlines()
-            for line in lines: self.info(line)
+            self.log_stack()
             self.trigger("error", self, connection, exception)
             connection.close()
             raise

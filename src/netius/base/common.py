@@ -510,12 +510,10 @@ class Base(observer.Observable):
             self.info("Finishing '%s' service on user request ..." % self.name)
         except BaseException as exception:
             self.error(exception)
-            lines = traceback.format_exc().splitlines()
-            for line in lines: self.warning(line)
+            self.log_stack(method = self.warning)
         except:
             self.critical("Critical level loop exception raised")
-            lines = traceback.format_exc().splitlines()
-            for line in lines: self.error(line)
+            self.log_stack(method = self.error)
         finally:
             self.trigger("stop", self)
             self.debug("Finished '%s' service main loop" % self.name)
@@ -758,6 +756,17 @@ class Base(observer.Observable):
         )
         return info
 
+    def info_string(self, full = False):
+        info = self.info_dict(full = full)
+        info_s = json.dumps(
+            info,
+            ensure_ascii = False,
+            indent = 4,
+            separators = (",", " : "),
+            sort_keys = True
+        )
+        return info_s
+
     def new_connection(self, socket, address, ssl = False):
         """
         Creates a new connection for the provided socket
@@ -853,6 +862,11 @@ class Base(observer.Observable):
 
     def critical(self, object):
         self.log(object, level = logging.CRITICAL)
+
+    def log_stack(self, method = None):
+        if not method: method = self.info
+        lines = traceback.format_exc().splitlines()
+        for line in lines: method(line)
 
     def log(self, *args, **kwargs):
         if legacy.PYTHON_3: return self.log_python_3(*args, **kwargs)
