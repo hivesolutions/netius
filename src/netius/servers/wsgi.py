@@ -249,9 +249,8 @@ class WSGIServer(http.HTTPServer):
         is_final = False
         data = None
 
-        # extracts both the parser and the iterator from the connection
-        # object so that they may be used for the current set of operations
-        parser = connection.parser
+        # extracts both the iterator from the connection object so that
+        # it may be used for the current set of operations
         iterator = connection.iterator
 
         # tries to retrieve data from the current iterator and in
@@ -260,31 +259,33 @@ class WSGIServer(http.HTTPServer):
         try: data = next(iterator)
         except StopIteration: is_final = True
 
-        # in case the connection is not meant to be kept alive must
-        # must set the callback of the flush operation to the close
-        # function so that the connection is closed, this callback
-        # method is only going to be used if this is the final iteration
-        if parser.keep_alive: callback = None
-        else: callback = self._close
-
         # in case the final flag is set runs the flush operation in the
         # connection setting the proper callback method for it so that
         # the connection state is defined in the proper way (closed or
         # kept untouched) otherwise sends the retrieved data setting the
         # callback to the current method so that more that is sent
-        if is_final: connection.flush(callback = callback)
+        if is_final: connection.flush(callback = self._final)
         else: connection.send(data, delay = True, callback = self._send_part)
-
-        # in case this is the final "iteration" in part sending the
-        # map of environment must be destroyed properly, avoiding any
-        # possible memory leak for the current handling and then the
-        # queue of pipelined requests must be flushed/processed
-        if not is_final: return
-        self._release(connection)
-        self._next_queue(connection)
 
     def _close(self, connection):
         connection.close(flush = True)
+
+    def _final(self, connection):
+        # retrieves the parser of the current connection and then determines
+        # if the current connection is meant to be kept alive
+        parser = connection.parser
+        keep_alive = parser.keep_alive
+
+        # the map of environment must be destroyed properly, avoiding
+        # any possible memory leak for the current handling and then the
+        # queue of pipelined requests must be flushed/processed
+        self._release(connection)
+        self._next_queue(connection)
+
+        # in case the connection is not meant to be kept alive must
+        # must call the proper underlying close operation (expected)
+        if keep_alive: return
+        self._close(connection)
 
     def _release(self, connection):
         self._release_iterator(connection)
