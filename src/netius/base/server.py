@@ -90,12 +90,14 @@ class Server(Base):
         # and not able to be used for any kind of communication
         self.socket = None
 
-    def info_dict(self):
-        info = Base.info_dict(self)
-        info["host"] = self.host
-        info["port"] = self.port
-        info["type"] = self.type
-        info["ssl"] = self.ssl
+    def info_dict(self, full = False):
+        info = Base.info_dict(self, full = full)
+        info.update(
+            host = self.host,
+            port = self.port,
+            type = self.type,
+            ssl = self.ssl
+        )
         return info
 
     def serve(

@@ -142,6 +142,15 @@ class ProxyServer(http.HTTPServer):
         self.http_client.destroy()
         self.raw_client.destroy()
 
+    def info_dict(self, full = False):
+        info = http.HTTPServer.info_dict(self, full = full)
+        info.update(
+            throttle = self.throttle,
+            max_pending = self.max_pending,
+            min_pending = self.min_pending
+        )
+        return info
+
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
 

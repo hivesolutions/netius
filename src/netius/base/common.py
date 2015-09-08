@@ -749,12 +749,13 @@ class Base(observer.Observable):
             (len(connection.owner.connections), connection.owner.name)
         )
 
-    def info_dict(self):
-        info = dict()
-        info["loaded"] = self._loaded
-        info["connections"] = len(self.connections)
-        info["state"] = self.get_state_s()
-        info["poll"] = self.get_poll_name()
+    def info_dict(self, full = False):
+        info = dict(
+            loaded = self._loaded,
+            connections = len(self.connections),
+            state = self.get_state_s(),
+            poll = self.get_poll_name()
+        )
         return info
 
     def new_connection(self, socket, address, ssl = False):
