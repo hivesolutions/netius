@@ -267,25 +267,25 @@ class WSGIServer(http.HTTPServer):
         if is_final: connection.flush(callback = self._final)
         else: connection.send(data, delay = True, callback = self._send_part)
 
-    def _close(self, connection):
-        connection.close(flush = True)
-
     def _final(self, connection):
         # retrieves the parser of the current connection and then determines
         # if the current connection is meant to be kept alive
         parser = connection.parser
         keep_alive = parser.keep_alive
 
+        # in case the connection is not meant to be kept alive must
+        # must call the proper underlying close operation (expected)
+        if not keep_alive: self._close(connection); return
+
         # the map of environment must be destroyed properly, avoiding
         # any possible memory leak for the current handling and then the
-        # queue of pipelined requests must be flushed/processed
+        # queue of pipelined requests must be flushed/processed, this
+        # allows the connection to be re-used for new/pending requests
         self._release(connection)
         self._next_queue(connection)
 
-        # in case the connection is not meant to be kept alive must
-        # must call the proper underlying close operation (expected)
-        if keep_alive: return
-        self._close(connection)
+    def _close(self, connection):
+        connection.close(flush = True)
 
     def _release(self, connection):
         self._release_iterator(connection)
