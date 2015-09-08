@@ -101,6 +101,7 @@ class HTTPConnection(netius.Connection):
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
         if self.parser: self.parser.destroy()
+        if self.gzip: self.gzip.flush(zlib.Z_FINISH)
 
     def send(self, data, delay = False, callback = None):
         if self.current == PLAIN_ENCODING:
