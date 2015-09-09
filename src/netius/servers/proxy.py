@@ -395,11 +395,11 @@ class ProxyServer(http.HTTPServer):
         # constructs the message string that is going to be
         # sent as part of the response from the proxy indicating
         # the unexpected error, then in case the connection is
-        # still under the (initial) waiting state send the same
-        # message to the final client (setting the callback to
-        # the closing of the proxy), in case the connection is no
-        # longer in the waiting state the closing of the proxy
-        # is performed immediately (sending message is not possible)
+        # still under the (initial) waiting state sends the same
+        # message to the final client connection (indicating error)
+        # note that the recovery from the error (disconnect should
+        # be handled by the error manager, and that should imply
+        # a closing operation on the original/proxy connection)
         error_m = str(error) or "Unknown proxy relay error"
         if _connection.waiting: connection.send_response(
             data = error_m,
@@ -408,10 +408,12 @@ class ProxyServer(http.HTTPServer):
             ),
             code = 500,
             code_s = "Internal Error",
-            apply = True,
-            callback = self._prx_close
+            apply = True
         )
-        else: self._prx_close(_connection)
+
+        # sets the connection as not waiting, so that no more
+        # messages are sent as part of the closing chain
+        _connection.waiting = False
 
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
