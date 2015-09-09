@@ -148,8 +148,8 @@ class ProxyServer(http.HTTPServer):
             throttle = self.throttle,
             max_pending = self.max_pending,
             min_pending = self.min_pending,
-            http_client = self.http_client.info_dict(),
-            raw_client = self.raw_client.info_dict()
+            http_client = self.http_client.info_dict(full = full),
+            raw_client = self.raw_client.info_dict(full = full)
         )
         return info
 
