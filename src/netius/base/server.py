@@ -674,8 +674,8 @@ class StreamServer(Server):
         # verifies a series of pre-conditions on the socket so
         # that it's ensured to be in a valid state before it's
         # set as a new connection for the server (validation)
-        if socket_c._closed: return
-        if self.ssl and not socket_c._sslobj: return
+        if socket_c._closed: socket_c.close(); return
+        if self.ssl and not socket_c._sslobj: socket_c.close(); return
 
         # in case the ssl mode is enabled, "patches" the socket
         # object with an extra pending reference, that is going
