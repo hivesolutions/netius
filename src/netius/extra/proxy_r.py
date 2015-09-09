@@ -358,6 +358,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if state: self.releaser(state); _connection.state = None
         netius.servers.ProxyServer._on_prx_close(self, client, _connection)
 
+    def _on_prx_error(self, client, _connection, error):
+        state = _connection.state if hasattr(_connection, "state") else None
+        if state: self.releaser(state); _connection.state = None
+        netius.servers.ProxyServer._on_prx_error(self, client, _connection, error)
+
 if __name__ == "__main__":
     import logging
     regex = (
