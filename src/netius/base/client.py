@@ -447,6 +447,14 @@ class StreamClient(Client):
         if self.pendings: self._connects()
         self._delays()
 
+    def info_dict(self, full = False):
+        info = Client.info_dict(self, full = full)
+        if full: info.update(
+            pendings = len(self.pendings),
+            free_conn = sum([len(value) for value in legacy.values(self.free_map)])
+        )
+        return info
+
     def acquire_c(
         self,
         host,
