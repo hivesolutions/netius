@@ -83,6 +83,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             robin = dict(),
             smart = netius.common.PriorityDict()
         )
+        self.busy_c = 0
         self.balancer_m = getattr(self, "balancer_" + self.strategy)
         self.acquirer_m = getattr(self, "acquirer_" + self.strategy)
         self.releaser_m = getattr(self, "releaser_" + self.strategy)
@@ -91,7 +92,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         info = netius.servers.ProxyServer.info_dict(self, full = full)
         info.update(
             reuse = self.reuse,
-            strategy = self.strategy
+            strategy = self.strategy,
+            busy_c = self.busy_c
         )
         return info
 
@@ -319,6 +321,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         return prefix, (prefix, queue)
 
     def acquirer(self, state):
+        self.busy_c += 1
         self.acquirer_m(state)
 
     def acquirer_robin(self, state):
@@ -332,6 +335,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         queue[prefix] = sorter
 
     def releaser(self, state):
+        self.busy_c -= 1
         self.releaser_m(state)
 
     def releaser_robin(self, state):
