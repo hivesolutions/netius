@@ -229,6 +229,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # advanced load balancing techniques to be performed
         _connection.state = state
 
+        # sets the current connection as busy, as it's waiting for a message
+        # to be returned from the the back-end side, then increments the number
+        # of currently busy connections (as expected)
+        _connection.busy = True
+        self.busy_conn += 1
+
         # prints a debug message about the connection becoming a waiting
         # connection meaning that the connection with the client host has
         # not been yet established (no data has been  received)
@@ -321,7 +327,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         return prefix, (prefix, queue)
 
     def acquirer(self, state):
-        self.busy_conn += 1
         self.acquirer_m(state)
 
     def acquirer_robin(self, state):
@@ -351,13 +356,17 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
     def _on_prx_message(self, client, parser, message):
         _connection = parser.owner
+        busy = _connection.busy if hasattr(_connection, "busy") else False
         state = _connection.state if hasattr(_connection, "state") else None
-        self.releaser(state); _connection.state = None
+        if busy: self.busy_conn -= 1; _connection.busy = False
+        if state: self.releaser(state); _connection.state = None
         netius.servers.ProxyServer._on_prx_message(self, client, parser, message)
 
     def _on_prx_close(self, client, _connection):
+        busy = _connection.busy if hasattr(_connection, "busy") else False
         state = _connection.state if hasattr(_connection, "state") else None
-        self.releaser(state); _connection.state = None
+        if busy: self.busy_conn -= 1; _connection.busy = False
+        if state: self.releaser(state); _connection.state = None
         netius.servers.ProxyServer._on_prx_close(self, client, _connection)
 
 if __name__ == "__main__":
