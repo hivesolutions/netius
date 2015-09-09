@@ -671,10 +671,25 @@ class StreamServer(Server):
         pass
 
     def on_socket_c(self, socket_c, address):
+        # verifies a series of pre-conditions on the socket so
+        # that it's ensured to be in a valid state before it's
+        # set as a new connection for the server (validation)
+        if socket_c._closed: return
+        if self.ssl and not socket_c._sslobj: return
+
+        # in case the ssl mode is enabled, "patches" the socket
+        # object with an extra pending reference, that is going
+        # to be to store pending callable operations in it
         if self.ssl: socket_c.pending = None
 
+        # verifies if the socket is of type internet (either ipv4
+        # of ipv6), this is going to be used for conditional setting
+        # of some of the socket options
         is_inet = socket_c.family in (socket.AF_INET, socket.AF_INET6)
 
+        # sets the socket as non blocking and then updated a series
+        # of options in it, some of them taking into account if the
+        # socket if of type internet (timeout values)
         socket_c.setblocking(0)
         socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         if is_inet: socket_c.setsockopt(
@@ -693,8 +708,15 @@ class StreamServer(Server):
             self.send_buffer_c
         )
 
+        # in case the ssl mode is enabled for the server, runs
+        # the initial try for the handshaking process, note that
+        # this is an async process and further tries to the
+        # handshake may come after this one
         if self.ssl: self._ssl_handshake(socket_c)
 
+        # the process creation is considered completed and a new
+        # connection is created for it and opened, from this time
+        # on a new connection is considered accepted/created for server
         connection = self.new_connection(socket_c, address, ssl = self.ssl)
         connection.open()
 
