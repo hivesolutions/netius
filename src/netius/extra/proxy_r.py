@@ -154,7 +154,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                     data = "Not authorized",
                     headers = {
                         "connection" : "close",
-                        "wWW-authenticate" : "Basic realm=\"insert realm\""
+                        "WWW-authenticate" : "Basic realm=\"insert realm\""
                     },
                     version = version_s,
                     code = 401,
@@ -174,7 +174,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                     data = "Not authorized",
                     headers = {
                         "connection" : "close",
-                        "wWW-authenticate" : "Basic realm=\"insert realm\""
+                        "WWW-authenticate" : "Basic realm=\"insert realm\""
                     },
                     version = version_s,
                     code = 401,
@@ -359,19 +359,15 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 if __name__ == "__main__":
     import logging
     regex = (
-        (re.compile(r"https://host\.com"), "http://localhost"),
+        (re.compile(r"https://host\.com"), "http://localhost:8080"),
         (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}")
     )
     hosts = {
-        "host.com" : "http://localhost"
-    }
-    auth = {
-        "host.com" : netius.PasswdAuth("extras/htpasswd")
+        "host.com" : "http://localhost:8080"
     }
     server = ReverseProxyServer(
         regex = regex,
         hosts = hosts,
-        auth = auth,
         level = logging.INFO
     )
     server.serve(env = True)
