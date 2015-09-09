@@ -83,7 +83,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             robin = dict(),
             smart = netius.common.PriorityDict()
         )
-        self.occupied = 0
         self.balancer_m = getattr(self, "balancer_" + self.strategy)
         self.acquirer_m = getattr(self, "acquirer_" + self.strategy)
         self.releaser_m = getattr(self, "releaser_" + self.strategy)
@@ -91,8 +90,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     def info_dict(self, full = False):
         info = netius.servers.ProxyServer.info_dict(self, full = full)
         info.update(
-            strategy = self.strategy,
-            occupied = self.occupied
+            reuse = self.reuse,
+            strategy = self.strategy
         )
         return info
 
@@ -320,7 +319,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         return prefix, (prefix, queue)
 
     def acquirer(self, state):
-        self.occupied += 1
         self.acquirer_m(state)
 
     def acquirer_robin(self, state):
@@ -335,12 +333,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
     def releaser(self, state):
         self.releaser_m(state)
-        self.occupied -= 1
 
     def releaser_robin(self, state):
         pass
 
     def releaser_smart(self, state):
+        if not state: return
         prefix, queue = state
         sorter = queue[prefix]
         sorter[0] -= 1
@@ -350,12 +348,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     def _on_prx_message(self, client, parser, message):
         _connection = parser.owner
         state = _connection.state if hasattr(_connection, "state") else None
-        if state: self.releaser(state); _connection.state = None
+        self.releaser(state); _connection.state = None
         netius.servers.ProxyServer._on_prx_message(self, client, parser, message)
 
     def _on_prx_close(self, client, _connection):
         state = _connection.state if hasattr(_connection, "state") else None
-        if state: self.releaser(state); _connection.state = None
+        self.releaser(state); _connection.state = None
         netius.servers.ProxyServer._on_prx_close(self, client, _connection)
 
 if __name__ == "__main__":
