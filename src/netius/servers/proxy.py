@@ -386,13 +386,22 @@ class ProxyServer(http.HTTPServer):
         del self.conn_map[_connection]
 
     def _on_prx_error(self, client, _connection, error):
-        error_m = str(error) or "Unknown proxy relay error"
+        # retrieves the front-end connection associated with
+        # the proxy connection, this value is going to be
+        # if sending the message to the final client
         connection = self.conn_map.get(_connection, None)
         if not connection: return
 
-        if not _connection.waiting: return
-
-        connection.send_response(
+        # constructs the message string that is going to be
+        # sent as part of the response from the proxy indicating
+        # the unexpected error, then in case the connection is
+        # still under the (initial) waiting state send the same
+        # message to the final client (setting the callback to
+        # the closing of the proxy), in case the connection is no
+        # longer in the waiting state the closing of the proxy
+        # is performed immediately (sending message is not possible)
+        error_m = str(error) or "Unknown proxy relay error"
+        if _connection.waiting: connection.send_response(
             data = error_m,
             headers = dict(
                 connection = "close"
@@ -402,6 +411,7 @@ class ProxyServer(http.HTTPServer):
             apply = True,
             callback = self._prx_close
         )
+        else: self._prx_close(_connection)
 
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
