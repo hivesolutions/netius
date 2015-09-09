@@ -351,13 +351,15 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
     def _on_prx_message(self, client, parser, message):
         _connection = parser.owner
-        state = _connection.state if hasattr(_connection, "state") else None
-        self.releaser(state); _connection.state = None
+        has_state = hasattr(_connection, "state")
+        state = _connection.state if has_state else None
+        if has_state: self.releaser(state); _connection.state = None
         netius.servers.ProxyServer._on_prx_message(self, client, parser, message)
 
     def _on_prx_close(self, client, _connection):
-        state = _connection.state if hasattr(_connection, "state") else None
-        self.releaser(state); _connection.state = None
+        has_state = hasattr(_connection, "state")
+        state = _connection.state if has_state else None
+        if has_state: self.releaser(state); _connection.state = None
         netius.servers.ProxyServer._on_prx_close(self, client, _connection)
 
 if __name__ == "__main__":
