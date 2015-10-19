@@ -101,7 +101,7 @@ class HTTPConnection(netius.Connection):
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
         if self.parser: self.parser.destroy()
-        if self.gzip: self.gzip.flush(zlib.Z_FINISH)
+        if self.gzip: self._close_gzip(safe = True)
 
     def send(self, data, delay = False, callback = None):
         if self.current == PLAIN_ENCODING:
@@ -392,6 +392,20 @@ class HTTPConnection(netius.Connection):
         # joins the tail buffer into a single string and returns it
         # to the caller method as the tail value
         return "".join(tail)
+
+    def _close_gzip(self, safe = True):
+        # in case the gzip object is not defined returns the control
+        # to the caller method immediately (nothing to be done)
+        if not self.gzip: return
+
+        try:
+            # runs the flush operation for the the final finish stage
+            # (note that an exception may be raised)
+            self.gzip.flush(zlib.Z_FINISH)
+        except:
+            # in case the safe flag is not set re-raises the exception
+            # to the caller stack (as expected by the callers)
+            if not safe: raise
 
     def _unsigned(self, number):
         """
