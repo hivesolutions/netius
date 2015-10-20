@@ -109,10 +109,11 @@ class Server(Base):
         ssl = False,
         key_file = None,
         cer_file = None,
+        setuid = None,
+        backlog = 5,
         load = True,
         start = True,
-        env = False,
-        backlog = 5
+        env = False
     ):
         # processes the various default values taking into account if
         # the environment variables are meant to be processed for the
@@ -124,6 +125,7 @@ class Server(Base):
         ssl = self.get_env("SSL", ssl, cast = bool) if env else ssl
         key_file = self.get_env("KEY_FILE", key_file) if env else key_file
         cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
+        setuid = self.get_env("SETUID", setuid, cast = int) if env else setuid
         backlog = self.get_env("BACKLOG", backlog, cast = int) if env else backlog
 
         # runs the various extra variable initialization taking into
@@ -202,6 +204,10 @@ class Server(Base):
         # defaulting to the typical maximum backlog as possible if not provided
         self.socket.bind(address)
         if type == TCP_TYPE: self.socket.listen(backlog)
+
+        # in case the set user id value the user of the current process should
+        # be changed so that it represents the new (possibly unprivileged user)
+        if setuid: os.setuid(setuid)
 
         # in case the selected port is zero based, meaning that a randomly selected
         # port has been assigned by the bind operation the new port must be retrieved
