@@ -269,6 +269,7 @@ class Base(observer.Observable):
         self.handler_stream = logging.StreamHandler()
         self.handlers = handlers or (self.handler_stream,)
         self.level = kwargs.get("level", logging.INFO)
+        self.diag = kwargs.get("diag", True)
         self.tid = None
         self.logger = None
         self.logging = None
@@ -278,6 +279,7 @@ class Base(observer.Observable):
         self.poll_name = self.poll.name()
         self.poll_timeout = kwargs.get("poll_timeout", POLL_TIMEOUT)
         self.poll_owner = True
+        self.diag_app = None
         self.connections = []
         self.connections_m = {}
         self._uuid = uuid.uuid4()
@@ -360,6 +362,10 @@ class Base(observer.Observable):
         # loads the various parts of the base system, under this calls each
         # of the systems should have it's internal structures started
         self.load_logging(self.level)
+
+        # loads the diagnostics application handlers that allows external
+        # interaction with the service for diagnostics/debugging
+        self.load_diag()
 
         # calls the welcome handle this is meant to be used to print some
         # information about the finishing of the loading of the infra-structure
@@ -450,6 +456,20 @@ class Base(observer.Observable):
         # restores the handlers structure back to the "original" tuple form
         # so that no expected data types are violated
         self.handlers = tuple(self.handlers)
+
+    def load_diag(self):
+        try: from . import diag
+        except: return
+        if not self.diag: return
+        self.diag_app = diag.DiagApp(self)
+        self.diag_app.serve(
+            server = "netius",
+            host = "127.0.0.1",
+            port = 5050,
+            diag = False,
+            threaded = True,
+            conf = False
+        )
 
     def bind_signals(self):
         # creates the signal handler function that propagates the raising
