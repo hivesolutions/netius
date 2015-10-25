@@ -52,6 +52,7 @@ import netius.pool
 import netius.adapters
 
 from . import log
+from . import diag
 from . import config
 from . import errors
 
@@ -458,9 +459,14 @@ class Base(observer.Observable):
         self.handlers = tuple(self.handlers)
 
     def load_diag(self):
-        try: from . import diag
-        except: return
         if not self.diag: return
+        if not diag.loaded:
+            self.debug("Failed to load diag, import problem")
+            return
+
+        # creates the application object that is going to be
+        # used for serving the diagnostics app and then starts
+        # the "serving" of it under a new thread
         self.diag_app = diag.DiagApp(self)
         self.diag_app.serve(
             server = "netius",
