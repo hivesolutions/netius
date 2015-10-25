@@ -19,6 +19,9 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+__author__ = "João Magalhães <joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,31 +37,14 @@ __copyright__ = "Copyright (c) 2008-2015 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from . import client
-from . import common
-from . import config
-from . import conn
-from . import container
-from . import diag
-from . import errors
-from . import legacy
-from . import log
-from . import observer
-from . import poll
-from . import request
-from . import server
+import appier
 
-from .client import Client, DatagramClient, StreamClient
-from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
-    IDENTIFIER, UDP_TYPE, TCP_TYPE, Base, BaseThread
-from .config import conf, conf_prefix, conf_s
-from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
-from .container import Container, ContainerServer
-from .diag import DiagApp
-from .errors import NetiusError, DataError, ParserError, GeneratorError,\
-    SecurityError, NotImplemented
-from .log import SILENT, rotating_handler, smtp_handler
-from .observer import Observable
-from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
-from .request import Request, Response
-from .server import Server, DatagramServer, StreamServer
+class DiagApp(appier.APIApp):
+
+    def __init__(self, system):
+        appier.APIApp.__init__(self, name = "diag")
+        self.system = system
+
+    @appier.route("/info", "GET")
+    def info(self):
+        return self.system.info_dict()
