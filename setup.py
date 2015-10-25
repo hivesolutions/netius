@@ -59,6 +59,7 @@ setuptools.setup(
         "netius.common",
         "netius.examples",
         "netius.extra",
+        "netius.mock",
         "netius.pool",
         "netius.servers",
         "netius.sh",
