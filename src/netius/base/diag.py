@@ -46,7 +46,7 @@ class DiagApp(appier.APIApp):
         self.system = system
 
     @appier.route("/info", "GET")
-    def info(self):
+    def system_info(self):
         full = self.field("full", True, cast = bool)
         return self.system.info_dict(full = full)
 
