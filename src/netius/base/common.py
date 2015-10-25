@@ -774,6 +774,9 @@ class Base(observer.Observable):
             state = self.get_state_s(),
             poll = self.get_poll_name()
         )
+        if full: info.update(
+            _lid = self._lid
+        )
         return info
 
     def info_string(self, full = False, safe = True):
