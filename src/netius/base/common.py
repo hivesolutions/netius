@@ -788,6 +788,22 @@ class Base(observer.Observable):
         )
         return info_s
 
+    def connections_dict(self, full = False):
+        connections = []
+        for connection in self.connections:
+            info = connection.info_dict(full = full)
+            connections.append(info)
+        return connections
+
+    def connection_dict(self, id, full = False):
+        connection = None
+        for _connection in self.connections:
+            if not _connection.id == id: continue
+            connection = _connection
+            break
+        if not connection: return None
+        return connection.info_dict(full = full)
+
     def new_connection(self, socket, address, ssl = False):
         """
         Creates a new connection for the provided socket

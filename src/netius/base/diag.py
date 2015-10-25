@@ -47,4 +47,15 @@ class DiagApp(appier.APIApp):
 
     @appier.route("/info", "GET")
     def info(self):
-        return self.system.info_dict()
+        full = self.field("full", True, cast = bool)
+        return self.system.info_dict(full = full)
+
+    @appier.route("/connections", "GET")
+    def list_connections(self):
+        full = self.field("full", True, cast = bool)
+        return self.system.connections_dict(full = full)
+
+    @appier.route("/connections/<str:id>", "GET")
+    def show_connection(self, id):
+        full = self.field("full", True, cast = bool)
+        return self.system.connection_dict(id, full = full)

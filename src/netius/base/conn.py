@@ -424,6 +424,19 @@ class Connection(observer.Observable):
     def recv(self, size = CHUNK_SIZE):
         return self._recv(size = size)
 
+    def info_dict(self, full = False):
+        return dict(
+            status = self.status,
+            id = self.id,
+            connecting = self.connecting,
+            upgrading = self.upgrading,
+            address = self.address,
+            ssl = self.ssl,
+            renable = self.renable,
+            wready = self.wready,
+            pending_s = self.pending_s
+        )
+
     def is_open(self):
         return self.status == OPEN
 
