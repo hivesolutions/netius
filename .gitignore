@@ -1,5 +1,7 @@
 *.pyc
 
+session.shelve*
+
 fs.data
 
 /dist
