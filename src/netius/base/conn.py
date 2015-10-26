@@ -88,6 +88,8 @@ class Connection(observer.Observable):
         self.ssl = ssl
         self.renable = True
         self.wready = False
+        self.in_bytes = 0
+        self.out_bytes = 0
         self.pending_s = 0
         self.pending = []
         self.pending_lock = threading.RLock()
