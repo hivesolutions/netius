@@ -370,13 +370,26 @@ class DatagramClient(Client):
         self.pending_lock.acquire()
         try:
             while True:
+                # in case there's no pending data to be sent to the
+                # server side breaks the current loop (queue empty)
                 if not self.pending: break
+
+                # retrieves the current data from the pending list
+                # of data to be sent and then saves the original data
+                # object (for latter usage), sets the callback as not
+                # defined and then unpacks the data into data and address
                 data = self.pending.pop()
                 data_o = data
                 callback = None
                 data, address = data
+
+                # verifies if the data type of the data is a tuple and
+                # if that's the case unpacks it as data and callback
                 is_tuple = type(data) == tuple
                 if is_tuple: data, callback = data
+
+                # retrieves the length (in bytes) of the data that is
+                # going to be sent to the server
                 data_l = len(data)
 
                 try:
