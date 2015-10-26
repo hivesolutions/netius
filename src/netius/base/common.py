@@ -270,7 +270,7 @@ class Base(observer.Observable):
         self.handler_stream = logging.StreamHandler()
         self.handlers = handlers or (self.handler_stream,)
         self.level = kwargs.get("level", logging.INFO)
-        self.diag = kwargs.get("diag", True)
+        self.diag = kwargs.get("diag", False)
         self.tid = None
         self.logger = None
         self.logging = None
