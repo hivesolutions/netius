@@ -44,6 +44,7 @@ import socket
 import datetime
 import threading
 
+from . import config
 from . import legacy
 from . import observer
 
@@ -63,7 +64,7 @@ CHUNK_SIZE = 4096
 """ The size of the chunk to be used while received
 data from the service socket """
 
-class Connection(observer.Observable):
+class BaseConnection(observer.Observable):
     """
     Abstract connection object that should encapsulate
     a socket object enabling it to be accessed in much
@@ -79,7 +80,6 @@ class Connection(observer.Observable):
         observer.Observable.__init__(self)
         self.status = PENDING
         self.id = str(uuid.uuid4())
-        self.creation = time.time()
         self.connecting = False
         self.upgrading = False
         self.owner = owner
@@ -88,8 +88,6 @@ class Connection(observer.Observable):
         self.ssl = ssl
         self.renable = True
         self.wready = False
-        self.in_bytes = 0
-        self.out_bytes = 0
         self.pending_s = 0
         self.pending = []
         self.pending_lock = threading.RLock()
@@ -441,11 +439,6 @@ class Connection(observer.Observable):
             wready = self.wready,
             pending_s = self.pending_s
         )
-        if self.creation:
-            creation_d = datetime.datetime.utcfromtimestamp(self.creation)
-            delta = datetime.datetime.utcnow() - creation_d
-            delta_s = self.owner._format_delta(delta)
-            info["uptime"] = delta_s
         return info
 
     def is_open(self):
@@ -591,3 +584,40 @@ class Connection(observer.Observable):
         """
 
         self.owner.writes((self.socket,), state = False)
+
+class DiagConnection(BaseConnection):
+
+    def __init__(self, *args, **kwargs):
+        BaseConnection.__init__(self, *args, **kwargs)
+        self.creation = time.time()
+        self.in_bytes = 0
+        self.out_bytes = 0
+
+    def recv(self, *args, **kwargs):
+        result = BaseConnection.recv(self, *args, **kwargs)
+        self.in_bytes += len(result)
+        return result
+
+    def send(self, data, *args, **kwargs):
+        result = BaseConnection.send(self, data, *args, **kwargs)
+        self.out_bytes += len(data)
+        return result
+
+    def info_dict(self, full = False):
+        info = BaseConnection.info_dict(self, full = full)
+        info.update(
+            uptime = self._uptime(),
+            in_bytes = self.in_bytes,
+            out_bytes = self.out_bytes
+        )
+        return info
+
+    def _uptime(self):
+        creation_d = datetime.datetime.utcfromtimestamp(self.creation)
+        delta = datetime.datetime.utcnow() - creation_d
+        delta_s = self.owner._format_delta(delta)
+        return delta_s
+
+is_diag = config.conf("DIAG", False, cast = bool)
+if is_diag: Connection = DiagConnection
+else: Connection = BaseConnection

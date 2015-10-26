@@ -618,7 +618,7 @@ class StreamServer(Server):
             # when there's a failure to read more data it should raise an
             # exception that should be handled properly
             while True:
-                data = _socket.recv(CHUNK_SIZE)
+                data = connection.recv(CHUNK_SIZE)
                 if data: self.on_data(connection, data)
                 else: connection.close(); break
                 if not connection.status == OPEN: break
