@@ -590,23 +590,29 @@ class DiagConnection(BaseConnection):
     def __init__(self, *args, **kwargs):
         BaseConnection.__init__(self, *args, **kwargs)
         self.creation = time.time()
+        self.recvs = 0
+        self.sends = 0
         self.in_bytes = 0
         self.out_bytes = 0
 
     def recv(self, *args, **kwargs):
         result = BaseConnection.recv(self, *args, **kwargs)
         self.in_bytes += len(result)
+        self.recvs += 1
         return result
 
     def send(self, data, *args, **kwargs):
         result = BaseConnection.send(self, data, *args, **kwargs)
         self.out_bytes += len(data)
+        self.sends += 1
         return result
 
     def info_dict(self, full = False):
         info = BaseConnection.info_dict(self, full = full)
         info.update(
             uptime = self._uptime(),
+            recvs = self.recvs,
+            sends = self.sends,
             in_bytes = self.in_bytes,
             out_bytes = self.out_bytes
         )
