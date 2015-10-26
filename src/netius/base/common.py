@@ -468,7 +468,7 @@ class Base(observer.Observable):
         # if that's not the case fails gracefully and returns the
         # control flow to the caller method
         if not diag.loaded:
-            self.debug("Failed to load diagnostics, import problem")
+            self.info("Failed to load diagnostics, import problem")
             return
 
         # retrieves the various server related value for the diagnostics
