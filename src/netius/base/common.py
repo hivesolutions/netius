@@ -53,7 +53,6 @@ import netius.adapters
 
 from . import log
 from . import diag
-from . import config
 from . import errors
 
 from .conn import * #@UnusedWildImport
