@@ -38,8 +38,10 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import ssl
+import time
 import uuid
 import socket
+import datetime
 import threading
 
 from . import legacy
@@ -77,6 +79,7 @@ class Connection(observer.Observable):
         observer.Observable.__init__(self)
         self.status = PENDING
         self.id = str(uuid.uuid4())
+        self.creation = time.time()
         self.connecting = False
         self.upgrading = False
         self.owner = owner
@@ -425,7 +428,7 @@ class Connection(observer.Observable):
         return self._recv(size = size)
 
     def info_dict(self, full = False):
-        return dict(
+        info = dict(
             status = self.status,
             id = self.id,
             connecting = self.connecting,
@@ -436,6 +439,12 @@ class Connection(observer.Observable):
             wready = self.wready,
             pending_s = self.pending_s
         )
+        if self.creation:
+            creation_d = datetime.datetime.utcfromtimestamp(self.creation)
+            delta = datetime.datetime.utcnow() - creation_d
+            delta_s = self.owner._format_delta(delta)
+            info["uptime"] = delta_s
+        return info
 
     def is_open(self):
         return self.status == OPEN

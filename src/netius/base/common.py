@@ -1368,6 +1368,26 @@ class Base(observer.Observable):
             return logging._checkLevel(level)
         return logging.getLevelName(level)
 
+    def _format_delta(self, time_delta, count = 2):
+        days = time_delta.days
+        hours, remainder = divmod(time_delta.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        delta_s = ""
+        if days > 0:
+            delta_s += "%dd " % days
+            count -= 1
+        if count == 0: return delta_s.strip()
+        if hours > 0:
+            delta_s += "%dh " % hours
+            count -= 1
+        if count == 0: return delta_s.strip()
+        if minutes > 0:
+            delta_s += "%dm " % minutes
+            count -= 1
+        if count == 0: return delta_s.strip()
+        delta_s += "%ds" % seconds
+        return delta_s.strip()
+
 class BaseThread(threading.Thread):
     """
     The top level thread class that is meant to encapsulate
