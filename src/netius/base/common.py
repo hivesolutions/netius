@@ -458,20 +458,33 @@ class Base(observer.Observable):
         # so that no expected data types are violated
         self.handlers = tuple(self.handlers)
 
-    def load_diag(self):
+    def load_diag(self, env = True):
+        # verifies if the diagnostics "feature" has been requested
+        # for the current infra-structure and if that's not the case
+        # returns the control flow immediately to the caller
         if not self.diag: return
+
+        # verifies if the diag module has been correctly loaded and
+        # if that's not the case fails gracefully and returns the
+        # control flow to the caller method
         if not diag.loaded:
-            self.debug("Failed to load diag, import problem")
+            self.debug("Failed to load diagnostics, import problem")
             return
+
+        # retrieves the various server related value for the diagnostics
+        # server, taking into account if the env flag is set
+        server = self.get_env("DIAG_SERVER", "netius") if env else "netius"
+        host = self.get_env("DIAG_HOST", "127.0.0.1") if env else "127.0.0.1"
+        port = self.get_env("DIAG_PORT", 5050, cast = int) if env else 5050
 
         # creates the application object that is going to be
         # used for serving the diagnostics app and then starts
         # the "serving" of it under a new thread
         self.diag_app = diag.DiagApp(self)
         self.diag_app.serve(
-            server = "netius",
-            host = "127.0.0.1",
-            port = 5050,
+            server = server,
+            host = host,
+            port = port,
             diag = False,
             threaded = True,
             conf = False
