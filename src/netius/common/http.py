@@ -400,14 +400,14 @@ class HTTPParser(parser.Parser):
         size = len(data)
         size_o = size
 
-        print("measured data as %d" % size)
+        print("----------------")
+        print("original size := %d" % size)
         import sys
         sys.stdout.flush()
 
         # iterates continuously to try to process all that
         # data that has been sent for processing
         while size > 0:
-            print("-------------")
             print("size := %d" % size)
             print("message_l := %d" % self.message_l)
             import sys
@@ -460,6 +460,7 @@ class HTTPParser(parser.Parser):
         if size > 0: self.buffer.append(data)
 
         print("exit parse")
+        print("----------------")
         import sys
         sys.stdout.flush()
 
