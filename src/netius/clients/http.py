@@ -77,6 +77,24 @@ class HTTPConnection(netius.Connection):
         netius.Connection.close(self, *args, **kwargs)
         if self.parser: self.parser.destroy()
 
+    def info_dict(self, full = False):
+        info = netius.Connection.info_dict(self, full = full)
+        info.update(
+            version = self.version,
+            method = self.method,
+            encoding = self.encodings,
+            url = self.url,
+            parsed = self.parsed,
+            host = self.host,
+            port = self.port,
+            path = self.path,
+            headers = self.headers
+        )
+        if full: info.update(
+            parser = self.parser.info_dict()
+        )
+        return info
+
     def set_http(
         self,
         version = "HTTP/1.1",

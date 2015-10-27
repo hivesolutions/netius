@@ -123,16 +123,6 @@ class HTTPConnection(netius.Connection):
                 callback = callback
             )
 
-    def flush(self, callback = None):
-        if self.current == GZIP_ENCODING:
-            self._flush_gzip(callback = callback)
-        elif self.current == CHUNKED_ENCODING:
-            self._flush_chunked(callback = callback)
-        elif self.current == PLAIN_ENCODING:
-            self._flush_plain(callback = callback)
-
-        self.current = self.encoding
-
     def info_dict(self, full = False):
         info = netius.Connection.info_dict(self, full = full)
         info.update(
@@ -143,6 +133,16 @@ class HTTPConnection(netius.Connection):
             parser = self.parser.info_dict()
         )
         return info
+
+    def flush(self, callback = None):
+        if self.current == GZIP_ENCODING:
+            self._flush_gzip(callback = callback)
+        elif self.current == CHUNKED_ENCODING:
+            self._flush_chunked(callback = callback)
+        elif self.current == PLAIN_ENCODING:
+            self._flush_plain(callback = callback)
+
+        self.current = self.encoding
 
     def send_plain(self, data, delay = False, callback = None):
         netius.Connection.send(
