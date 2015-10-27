@@ -137,8 +137,19 @@ class Container(Base):
                 full = full, parent = True
             )
             else: connections = base.connections_dict(full = full)
-            all[base.name_s] = connections
+            all[base.name] = connections
         return all
+
+    def connection_dict(self, id, full = False):
+        connection = None
+        for base in self.bases:
+            for _connection in base.connections:
+                if not _connection.id == id: continue
+                connection = _connection
+                break
+            if connection: break
+        if not connection: return None
+        return connection.info_dict(full = full)
 
     def on_start(self, service):
         self.apply_all()
