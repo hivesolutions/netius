@@ -46,7 +46,7 @@ BUFFER_RATIO = 1.5
 """ The ration for the calculus of the internal socket
 buffer size from the maximum pending buffer size """
 
-MIN_RATIO = 0.8
+MIN_RATIO = 0.4
 """ The ration for the calculus of the minimum pending
 value this is going to be used to re-enable the operation
 and start the filling of the buffer again """
@@ -203,10 +203,13 @@ class ProxyServer(http.HTTPServer):
         pass
 
     def on_partial(self, connection, parser, data):
+        import sys
+        print("on_partial")
+        sys.stdout.flush()
         proxy_c = connection.proxy_c
 
         should_disable = self.throttle and proxy_c.pending_s > self.max_pending
-        if should_disable: print("going do disable read"); connection.disable_read()
+        if should_disable: print("going do disable read"); sys.stdout.flush(); connection.disable_read()
         proxy_c.send(data, force = True, callback = self._throttle)
 
     def on_chunk(self, connection, parser, range):
