@@ -350,12 +350,12 @@ class BaseConnection(observer.Observable):
         because of extended callback calling, for example while sending
         very large chunks of information (eg: multi megabyte files).
 
-        An optional callback attribute may be sent and so that
-        when the send is complete it's called with a reference
-        to the data object.
+        An optional callback attribute may be sent, so that when the
+        send is complete it's called with a reference to the data object.
 
         Calling this method should be done with care as this can
-        create dead lock or socket corruption situations.
+        create dead lock or socket corruption situations, extreme
+        knowledge of the internals of the system is required.
 
         @type data: String
         @param data: The buffer containing the data to be sent
@@ -399,9 +399,11 @@ class BaseConnection(observer.Observable):
         tid = cthread.ident or 0
         is_safe = tid == self.owner.tid
 
-        # acquires the pending lock and then insets the
-        # data into the list of pending information to
-        # sent to the client end point
+        # acquires the pending lock and then inserts the data into
+        # the list of pending information to sent to the client end
+        # point, notice that it's inserted at the beginning of the list
+        # as the pop operation is performed at the end of list, meaning
+        # that the fifo strategy is maintained
         self.pending_lock.acquire()
         try: self.pending.insert(0, data)
         finally: self.pending_lock.release()
