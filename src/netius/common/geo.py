@@ -66,6 +66,7 @@ class GeoResolver(object):
 
     @classmethod
     def _simplify(self, result, locale = "en"):
+        if not result: return result
         for value in netius.legacy.values(result):
             if not "names" in value: continue
             names = value["names"]
