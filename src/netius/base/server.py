@@ -497,7 +497,7 @@ class DatagramServer(Server):
 
                     # verifies if the current situation is that of a non
                     # closed socket and valid data, and if that's the case
-                    # and no data has been set the socket is considered to
+                    # and no data has been sent the socket is considered to
                     # be in a would block situation and and such an error
                     # is raised indicating the issue (is going to be caught
                     # as a normal would block exception)
