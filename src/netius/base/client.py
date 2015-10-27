@@ -601,7 +601,7 @@ class StreamClient(Client):
         print("on_read")
         import sys
         sys.stdout.flush()
-        
+
         # retrieves the connection object associated with the
         # current socket that is going to be read in case there's
         # no connection available or the status is not open

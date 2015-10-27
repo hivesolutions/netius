@@ -626,7 +626,13 @@ class HTTPParser(parser.Parser):
         # stores the data in the proper buffer and increments
         # the message length counter with the size of the data
         data_l = len(data)
+        print("going to store data")
+        import sys
+        sys.stdout.flush()
         if self.store: self._store_data(data)
+        print("stored_data data")
+        import sys
+        sys.stdout.flush()
         self.message_l += data_l
 
         # verifies if the complete message has already been
@@ -635,6 +641,10 @@ class HTTPParser(parser.Parser):
         # currently defined message length
         has_finished = not self.content_l == -1 and\
             self.message_l == self.content_l
+
+        print("has_finished := %s && message_l := %s" % (str(has_finished), str(self.message_l)))
+        import sys
+        sys.stdout.flush()
 
         # triggers the partial data received event and then
         # in case the complete message has not been received
