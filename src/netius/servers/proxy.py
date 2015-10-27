@@ -46,7 +46,7 @@ BUFFER_RATIO = 1.5
 """ The ration for the calculus of the internal socket
 buffer size from the maximum pending buffer size """
 
-MIN_RATIO = 0.4
+MIN_RATIO = 0.8
 """ The ration for the calculus of the minimum pending
 value this is going to be used to re-enable the operation
 and start the filling of the buffer again """
