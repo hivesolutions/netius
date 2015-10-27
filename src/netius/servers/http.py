@@ -133,6 +133,17 @@ class HTTPConnection(netius.Connection):
 
         self.current = self.encoding
 
+    def info_dict(self, full = False):
+        info = netius.Connection.info_dict(self, full = full)
+        info.update(
+            encoding = self.encoding,
+            current = self.current
+        )
+        if full: info.update(
+            parser = self.parser.info_dict()
+        )
+        return info
+
     def send_plain(self, data, delay = False, callback = None):
         netius.Connection.send(
             self,
