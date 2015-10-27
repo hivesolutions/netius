@@ -598,21 +598,14 @@ class StreamClient(Client):
         self.delay(acquire)
 
     def on_read(self, _socket):
-        print("on_read")
-        import sys
-        sys.stdout.flush()
-
         # retrieves the connection object associated with the
         # current socket that is going to be read in case there's
         # no connection available or the status is not open
         # must return the control flow immediately to the caller
         connection = self.connections_m.get(_socket, None)
         if not connection: return
-        print("connection := %s\n" % str(connection.id))
-        import sys
-        sys.stdout.flush()
-        if not connection.status == OPEN: print("not open\n"); return
-        if not connection.renable == True: print("not read enable\n"); return
+        if not connection.status == OPEN: return
+        if not connection.renable == True: return
 
         try:
             # in case the connection is under the connecting state
@@ -639,9 +632,6 @@ class StreamClient(Client):
             # when there's a failure to read more data it should raise an
             # exception that should be handled properly
             while True:
-                print("receive")
-                import sys
-                sys.stdout.flush()
                 data = connection.recv(CHUNK_SIZE)
                 if data: self.on_data(connection, data)
                 else: connection.close(); break
@@ -667,18 +657,9 @@ class StreamClient(Client):
                 self.log_stack()
                 connection.close()
         except BaseException as exception:
-            print(exception)
-            print("----------------------")
-            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            import sys
-            sys.stdout.flush()
             self.warning(exception)
             self.log_stack()
             connection.close()
-        
-        print("exit on_read")
-        import sys
-        sys.stdout.flush()
 
     def on_write(self, _socket):
         # retrieves the connection associated with the socket that

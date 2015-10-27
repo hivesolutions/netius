@@ -203,13 +203,10 @@ class ProxyServer(http.HTTPServer):
         pass
 
     def on_partial(self, connection, parser, data):
-        import sys
-        print("on_partial")
-        sys.stdout.flush()
         proxy_c = connection.proxy_c
 
         should_disable = self.throttle and proxy_c.pending_s > self.max_pending
-        if should_disable: print("going do disable read"); sys.stdout.flush(); connection.disable_read()
+        if should_disable: connection.disable_read()
         proxy_c.send(data, force = True, callback = self._throttle)
 
     def on_chunk(self, connection, parser, range):
@@ -236,9 +233,6 @@ class ProxyServer(http.HTTPServer):
         )
 
     def _throttle(self, _connection):
-        print("throttle")
-        import sys
-        sys.stdout.flush()
         if _connection.pending_s > self.min_pending: return
         connection = self.conn_map[_connection]
         if not connection.renable == False: return

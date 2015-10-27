@@ -386,10 +386,6 @@ class HTTPParser(parser.Parser):
 
         parser.Parser.parse(self, data)
 
-        print("init parsing")
-        import sys
-        sys.stdout.flush()
-
         # in case the current state of the parser is finished, must
         # reset the state to the start position as the parser is
         # re-starting (probably a new data sequence)
@@ -400,18 +396,9 @@ class HTTPParser(parser.Parser):
         size = len(data)
         size_o = size
 
-        print("----------------")
-        print("original size := %d" % size)
-        import sys
-        sys.stdout.flush()
-
         # iterates continuously to try to process all that
         # data that has been sent for processing
         while size > 0:
-            print("size := %d" % size)
-            print("message_l := %d" % self.message_l)
-            import sys
-            sys.stdout.flush()
 
             # iterates while the current state is valid for
             # parsing as there are only parsing methods for
@@ -423,13 +410,7 @@ class HTTPParser(parser.Parser):
                 # of valid parsed bytes in case this value is
                 # zero the parsing iteration is broken
                 method = self.states[self.state - 1]
-                print("calling %s" % str(method))
-                import sys
-                sys.stdout.flush()
                 count = method(data)
-                print("count := %d" % count)
-                import sys
-                sys.stdout.flush()
                 if count == 0: break
 
                 # decrements the size of the data buffer by the
@@ -458,11 +439,6 @@ class HTTPParser(parser.Parser):
         # must add it to the buffer so that it may be used
         # latter in the next parsing of the message
         if size > 0: self.buffer.append(data)
-
-        print("exit parse")
-        print("----------------")
-        import sys
-        sys.stdout.flush()
 
         # returns the number of read (processed) bytes of the
         # data that has been sent to the parser
@@ -626,13 +602,7 @@ class HTTPParser(parser.Parser):
         # stores the data in the proper buffer and increments
         # the message length counter with the size of the data
         data_l = len(data)
-        print("going to store data")
-        import sys
-        sys.stdout.flush()
         if self.store: self._store_data(data)
-        print("stored_data data")
-        import sys
-        sys.stdout.flush()
         self.message_l += data_l
 
         # verifies if the complete message has already been
@@ -642,15 +612,10 @@ class HTTPParser(parser.Parser):
         has_finished = not self.content_l == -1 and\
             self.message_l == self.content_l
 
-        print("data_l")
-        print("has_finished := %s && message_l := %s" % (str(has_finished), str(self.message_l)))
-        import sys
-        sys.stdout.flush()
-
         # triggers the partial data received event and then
         # in case the complete message has not been received
         # returns immediately the length of processed data
-        self.trigger("on_partial", data); print("returned from partial"); import sys; sys.stdout.flush()
+        self.trigger("on_partial", data)
         if not has_finished: return data_l
 
         # updates the current state to the finish state and then
