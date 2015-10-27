@@ -597,13 +597,13 @@ class DiagConnection(BaseConnection):
 
     def recv(self, *args, **kwargs):
         result = BaseConnection.recv(self, *args, **kwargs)
-        self.in_bytes += len(result)
+        self.in_bytes += len(result) if result else 0
         self.recvs += 1
         return result
 
     def send(self, data, *args, **kwargs):
         result = BaseConnection.send(self, data, *args, **kwargs)
-        self.out_bytes += len(data)
+        self.out_bytes += len(data) if data else 0
         self.sends += 1
         return result
 
