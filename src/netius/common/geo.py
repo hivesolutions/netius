@@ -57,10 +57,21 @@ class GeoResolver(object):
     that is going to be used in the geo ip resolution """
 
     @classmethod
-    def resolve(cls, address):
+    def resolve(cls, address, simplified = True):
         db = cls._get_db()
         if not db: return None
-        return db.get(address)
+        result = db.get(address)
+        if simplified: result = cls._simplify(result)
+        return result
+
+    @classmethod
+    def _simplify(self, result, locale = "en"):
+        for value in netius.legacy.values(result):
+            if not "names" in value: continue
+            names = value["names"]
+            value["name"] = names.get(locale, None)
+            del value["names"]
+        return result
 
     @classmethod
     def _get_db(cls):
