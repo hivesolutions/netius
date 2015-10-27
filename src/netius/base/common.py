@@ -457,6 +457,33 @@ class Base(observer.Observable):
         # so that no expected data types are violated
         self.handlers = tuple(self.handlers)
 
+    def level_logging(self, level):
+        """
+        Changes the verbosity level of the current logging infra-structure
+        into the provided level of verbosity.
+
+        The provided value may be an integer (internal value) or a string
+        representation of the requested verbosity level.
+
+        @type level: int/String
+        @param level: The (logging) for which the logging infra-structure
+        must be changed, either an integer or string value.
+        """
+
+        # converts the provided logging level value (either string or
+        # integer value) into the appropriate normalized value that can
+        # be used internally for logging level setting
+        level = self._level(level)
+
+        # sets the (new) level value value for both the base stream
+        # handler and also for the logger itself
+        self.handler_stream.setLevel(level)
+        self.logger.setLevel(level)
+
+        # iterates over the complete set of attached handlers to
+        # update their respective logging level
+        for handler in self.handlers: handler.setLevel(level)
+
     def load_diag(self, env = True):
         # verifies if the diagnostics "feature" has been requested
         # for the current infra-structure and if that's not the case

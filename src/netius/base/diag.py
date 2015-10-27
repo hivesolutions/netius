@@ -54,12 +54,18 @@ class DiagApp(appier.APIApp):
         self.system = system
 
     @appier.route("/logger", "GET")
-    def logger_info(self):
+    def show_logger(self):
         level = self.system.logger.level
         level = logging.getLevelName(level)
         return dict(
             level = level
         )
+
+    @appier.route("/logger/set", "GET")
+    def set_logger(self):
+        level = self.field("level", "DEBUG")
+        self.system.level_logging(level)
+        return self.show_logger()
 
     @appier.route("/info", "GET")
     def system_info(self):
