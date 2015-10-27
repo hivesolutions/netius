@@ -39,6 +39,7 @@ from . import calc
 from . import dhcp
 from . import dkim
 from . import ftp
+from . import geo
 from . import http
 from . import mime
 from . import parser
@@ -60,6 +61,7 @@ from .dhcp import SUBNET_DHCP, ROUTER_DHCP, DNS_DHCP, NAME_DHCP, BROADCAST_DHCP,
     END_DHCP, OPTIONS_DHCP, TYPES_DHCP, VERBS_DHCP, AddressPool
 from .dkim import dkim_sign, dkim_headers, dkim_body, dkim_fold, dkim_generate
 from .ftp import FTPParser
+from .geo import GeoResolver
 from .http import REQUEST, RESPONSE, HTTP_09, HTTP_10, HTTP_11, VERSIONS_MAP,\
     CODE_STRINGS, HTTPParser, HTTPResponse
 from .mime import rfc822_parse, rfc822_join

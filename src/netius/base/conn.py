@@ -614,7 +614,8 @@ class DiagConnection(BaseConnection):
             recvs = self.recvs,
             sends = self.sends,
             in_bytes = self.in_bytes,
-            out_bytes = self.out_bytes
+            out_bytes = self.out_bytes,
+            geo = self._resolve(self.address)
         )
         return info
 
@@ -623,6 +624,11 @@ class DiagConnection(BaseConnection):
         delta = datetime.datetime.utcnow() - creation_d
         delta_s = self.owner._format_delta(delta)
         return delta_s
+
+    def _resolve(self, address):
+        import netius.common
+        ip, _port = address
+        return netius.common.GeoResolver.resolve(ip)
 
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Connection = DiagConnection
