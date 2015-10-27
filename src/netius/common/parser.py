@@ -74,3 +74,7 @@ class Parser(netius.Observable):
         for field in fields:
             value = state[field]
             setattr(self, field, value)
+
+    def info_dict(self):
+        info = self.get_state()
+        return info
