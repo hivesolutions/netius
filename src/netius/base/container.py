@@ -129,6 +129,17 @@ class Container(Base):
         self._lid = (self._lid + 1) % 2147483647
         for base in self.bases: base.ticks()
 
+    def connections_dict(self, full = False):
+        all = dict()
+        for base in self.bases:
+            is_owner = base == self.owner
+            if is_owner: connections = base.connections_dict(
+                full = full, parent = True
+            )
+            else: connections = base.connections_dict(full = full)
+            all[base.name_s] = connections
+        return all
+
     def on_start(self, service):
         self.apply_all()
         self.trigger_all("start")

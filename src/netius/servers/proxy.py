@@ -153,6 +153,10 @@ class ProxyServer(http.HTTPServer):
         )
         return info
 
+    def connections_dict(self, full = False, parent = False):
+        if parent: return http.HTTPServer.connections_dict(self, full = full)
+        return self.container.connections_dict(full = full)
+
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
 
