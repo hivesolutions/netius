@@ -669,6 +669,7 @@ class StreamClient(Client):
         except BaseException as exception:
             print(exception)
             print("----------------------")
+            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             import sys
             sys.stdout.flush()
             self.warning(exception)
