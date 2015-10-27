@@ -253,7 +253,7 @@ class ProxyServer(http.HTTPServer):
         if not proxy_c.renable == False: return
 
         proxy_c.enable_read()
-        self.raw_client.reads((proxy_c.socket,), state = False)
+        self.http_client.reads((proxy_c.socket,), state = False)
 
     def _raw_throttle(self, connection):
         if connection.pending_s > self.min_pending: return
