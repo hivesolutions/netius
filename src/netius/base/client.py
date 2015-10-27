@@ -598,14 +598,18 @@ class StreamClient(Client):
         self.delay(acquire)
 
     def on_read(self, _socket):
+        print("on_read")
+        import sys
+        sys.stdout.flush()
+        
         # retrieves the connection object associated with the
         # current socket that is going to be read in case there's
         # no connection available or the status is not open
         # must return the control flow immediately to the caller
         connection = self.connections_m.get(_socket, None)
         if not connection: return
-        if not connection.status == OPEN: return
-        if not connection.renable == True: return
+        if not connection.status == OPEN: print("not open\n"); return
+        if not connection.renable == True: print("not read enable\n"); return
 
         try:
             # in case the connection is under the connecting state
@@ -632,6 +636,9 @@ class StreamClient(Client):
             # when there's a failure to read more data it should raise an
             # exception that should be handled properly
             while True:
+                print("receive")
+                import sys
+                sys.stdout.flush()
                 data = connection.recv(CHUNK_SIZE)
                 if data: self.on_data(connection, data)
                 else: connection.close(); break
