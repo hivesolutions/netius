@@ -253,7 +253,7 @@ EXTRAS_PATH = os.path.join(BASE_PATH, "extras")
 SSL_KEY_PATH = os.path.join(EXTRAS_PATH, "net.key")
 SSL_CER_PATH = os.path.join(EXTRAS_PATH, "net.cer")
 
-class Base(observer.Observable):
+class AbstractBase(observer.Observable):
     """
     Base network structure to be used by all the network
     capable infra-structures (eg: servers and clients).
@@ -264,7 +264,7 @@ class Base(observer.Observable):
 
     def __init__(self, name = None, handlers = None, *args, **kwargs):
         observer.Observable.__init__(self, *args, **kwargs)
-        poll = Base.test_poll()
+        poll = AbstractBase.test_poll()
         self.name = name or self.__class__.__name__
         self.handler_stream = logging.StreamHandler()
         self.handlers = handlers or (self.handler_stream,)
@@ -987,7 +987,7 @@ class Base(observer.Observable):
         # runs the testing of the poll again and verifies if the polling
         # class has changed in case it did not returns the current poll
         # instance as expected by the current infra-structure
-        poll_c = Base.test_poll(preferred = self.poll_name)
+        poll_c = AbstractBase.test_poll(preferred = self.poll_name)
         if poll_c == self.poll_c: return self.poll
 
         # updates the polling class with the new value and re-creates
@@ -1414,6 +1414,35 @@ class Base(observer.Observable):
         delta_s += "%ds" % seconds
         return delta_s.strip()
 
+class DiagBase(AbstractBase):
+
+    def __init__(self, *args, **kwargs):
+        AbstractBase.__init__(self, *args, **kwargs)
+        self.reads_c = 0
+        self.writes_c = 0
+        self.errors_c = 0
+
+    def reads(self, *args, **kwargs):
+        AbstractBase.reads(self, *args, **kwargs)
+        self.reads_c += 1
+
+    def writes(self, *args, **kwargs):
+        AbstractBase.writes(self, *args, **kwargs)
+        self.writes_c += 1
+
+    def errors(self, *args, **kwargs):
+        AbstractBase.errors(self, *args, **kwargs)
+        self.errors_c += 1
+
+    def info_dict(self, full = False):
+        info = AbstractBase.info_dict(self, full = full)
+        info.update(
+            reads_c = self.reads_c,
+            writes_c = self.writes_c,
+            errors_c = self.errors_c
+        )
+        return info
+
 class BaseThread(threading.Thread):
     """
     The top level thread class that is meant to encapsulate
@@ -1433,3 +1462,7 @@ class BaseThread(threading.Thread):
         if not self.owner: return
         self.owner.start()
         self.owner = None
+
+is_diag = config.conf("DIAG", False, cast = bool)
+if is_diag: Base = DiagBase
+else: Base = AbstractBase

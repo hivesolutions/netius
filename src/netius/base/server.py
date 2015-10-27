@@ -324,17 +324,17 @@ class DatagramServer(Server):
         self.pending_lock = threading.RLock()
 
     def reads(self, reads, state = True):
-        if state: self.set_state(STATE_READ)
+        Server.reads(self, reads, state = state)
         for read in reads:
             self.on_read(read)
 
     def writes(self, writes, state = True):
-        if state: self.set_state(STATE_WRITE)
+        Server.writes(self, writes, state = state)
         for write in writes:
             self.on_write(write)
 
     def errors(self, errors, state = True):
-        if state: self.set_state(STATE_ERRROR)
+        Server.errors(self, errors, state = state)
         for error in errors:
             self.on_error(error)
 
@@ -543,19 +543,19 @@ class DatagramServer(Server):
 class StreamServer(Server):
 
     def reads(self, reads, state = True):
-        if state: self.set_state(STATE_READ)
+        Server.reads(self, reads, state = state)
         for read in reads:
             if read == self.socket: self.on_read_s(read)
             else: self.on_read(read)
 
     def writes(self, writes, state = True):
-        if state: self.set_state(STATE_WRITE)
+        Server.writes(self, writes, state = state)
         for write in writes:
             if write == self.socket: self.on_write_s(write)
             else: self.on_write(write)
 
     def errors(self, errors, state = True):
-        if state: self.set_state(STATE_ERRROR)
+        Server.errors(self, errors, state = state)
         for error in errors:
             if error == self.socket: self.on_error_s(error)
             else: self.on_error(error)

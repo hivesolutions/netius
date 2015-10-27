@@ -90,17 +90,17 @@ class Client(Base):
         cls._client.close()
 
     def reads(self, reads, state = True):
-        if state: self.set_state(STATE_READ)
+        Base.reads(self, reads, state = state)
         for read in reads:
             self.on_read(read)
 
     def writes(self, writes, state = True):
-        if state: self.set_state(STATE_WRITE)
+        Base.writes(self, writes, state = state)
         for write in writes:
             self.on_write(write)
 
     def errors(self, errors, state = True):
-        if state: self.set_state(STATE_ERRROR)
+        Base.errors(self, errors, state = state)
         for error in errors:
             self.on_error(error)
 
