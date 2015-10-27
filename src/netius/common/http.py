@@ -407,6 +407,7 @@ class HTTPParser(parser.Parser):
         # iterates continuously to try to process all that
         # data that has been sent for processing
         while size > 0:
+            print("-------------")
             print("size := %d" % size)
             import sys
             sys.stdout.flush()
