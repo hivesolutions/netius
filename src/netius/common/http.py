@@ -385,6 +385,8 @@ class HTTPParser(parser.Parser):
         """
 
         parser.Parser.parse(self, data)
+        
+        print("init parsing")
 
         # in case the current state of the parser is finished, must
         # reset the state to the start position as the parser is
@@ -395,6 +397,8 @@ class HTTPParser(parser.Parser):
         # and saves it under the size original variable
         size = len(data)
         size_o = size
+        
+        print("measured data as %d" % size)
 
         # iterates continuously to try to process all that
         # data that has been sent for processing
@@ -409,7 +413,9 @@ class HTTPParser(parser.Parser):
                 # of valid parsed bytes in case this value is
                 # zero the parsing iteration is broken
                 method = self.states[self.state - 1]
+                print("calling %s" % str(method))
                 count = method(data)
+                print("count := %d" % count)
                 if count == 0: break
 
                 # decrements the size of the data buffer by the

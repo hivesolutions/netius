@@ -159,6 +159,7 @@ class HTTPConnection(netius.Connection):
             self.headers[key] = value
 
     def parse(self, data):
+        print("going to parse")
         return self.parser.parse(data)
 
     def on_data(self):
@@ -586,6 +587,7 @@ class HTTPClient(netius.StreamClient):
 
     def on_data(self, connection, data):
         netius.StreamClient.on_data(self, connection, data)
+        print("received %d bytes" % data)
         connection.parse(data)
 
     def on_connection_d(self, connection):
