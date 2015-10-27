@@ -44,6 +44,10 @@ import netius.clients
 
 class GeoResolver(object):
 
+    DB_NAME = "GeoLite2-City.mmdb"
+    """ The name of the file that contains the geo ip
+    information database (to be used in execution) """
+
     DOWNLOAD_URL = "http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz"
     """ The url to the compressed version of the geo ip
     city database used for resolution """
@@ -55,6 +59,7 @@ class GeoResolver(object):
     @classmethod
     def resolve(cls, address):
         db = cls._get_db()
+        if not db: return None
         return db.get(address)
 
     @classmethod
@@ -62,12 +67,13 @@ class GeoResolver(object):
         if cls._db: return cls._db
         try: import maxminddb
         except: return None
-        if not os.path.exists("GeoLite2-City.mmdb"): cls._download_db()
-        cls._db = maxminddb.open_database("GeoLite2-City.mmdb")
+        if not os.path.exists(cls.DB_NAME): cls._download_db()
+        if not os.path.exists(cls.DB_NAME): return None
+        cls._db = maxminddb.open_database(cls.DB_NAME)
         return cls._db
 
     @classmethod
-    def _download_db(cls, path = "GeoLite2-City.mmdb"):
+    def _download_db(cls, path = DB_NAME):
         path_gz = path + ".gz"
         result = netius.clients.HTTPClient.method_s(
             "GET",

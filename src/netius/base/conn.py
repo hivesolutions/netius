@@ -614,9 +614,10 @@ class DiagConnection(BaseConnection):
             recvs = self.recvs,
             sends = self.sends,
             in_bytes = self.in_bytes,
-            out_bytes = self.out_bytes,
-            geo = self._resolve(self.address)
+            out_bytes = self.out_bytes
         )
+        geo = self._resolve(self.address)
+        if geo: info["geo"] = geo
         return info
 
     def _uptime(self):
