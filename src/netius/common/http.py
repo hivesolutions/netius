@@ -387,6 +387,8 @@ class HTTPParser(parser.Parser):
         parser.Parser.parse(self, data)
         
         print("init parsing")
+        import sys
+        sys.stdout.flush()
 
         # in case the current state of the parser is finished, must
         # reset the state to the start position as the parser is
@@ -399,6 +401,8 @@ class HTTPParser(parser.Parser):
         size_o = size
         
         print("measured data as %d" % size)
+        import sys
+        sys.stdout.flush()
 
         # iterates continuously to try to process all that
         # data that has been sent for processing
