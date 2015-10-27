@@ -39,8 +39,9 @@ __license__ = "Apache License, Version 2.0"
 
 import struct
 
-import netius.common
+import netius
 
+from . import util
 from . import parser
 
 IPV4 = 0x01
@@ -218,7 +219,7 @@ class SOCKSParser(parser.Parser):
 
         request = data[:7]
         self.command, self.port, self.address = struct.unpack("!BHI", request)
-        self.address_s = netius.common.addr_to_ip4(self.address)
+        self.address_s = util.addr_to_ip4(self.address)
 
         self.is_extended = self.address_s.startswith("0.0.0.")
 
@@ -320,7 +321,7 @@ class SOCKSParser(parser.Parser):
 
         if self.type == IPV4:
             self.address, = struct.unpack("!I", data)
-            self.address_s = netius.common.addr_to_ip4(self.address)
+            self.address_s = util.addr_to_ip4(self.address)
         elif self.type == IPV6:
             self.address = struct.unpack("!QQ", data)
             self.address_s = self.address
