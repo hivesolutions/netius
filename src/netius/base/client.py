@@ -675,6 +675,10 @@ class StreamClient(Client):
             self.warning(exception)
             self.log_stack()
             connection.close()
+        
+        print("exit on_read")
+        import sys
+        sys.stdout.flush()
 
     def on_write(self, _socket):
         # retrieves the connection associated with the socket that
