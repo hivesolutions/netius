@@ -159,6 +159,7 @@ class HTTPParser(parser.Parser):
     """
 
     FIELDS = (
+        "_pid",
         "type",
         "store",
         "file_limit",

@@ -41,7 +41,7 @@ import netius
 
 class Parser(netius.Observable):
 
-    FIELDS = ()
+    FIELDS = ("_pid",)
 
     def __init__(self, owner):
         netius.Observable.__init__(self)
