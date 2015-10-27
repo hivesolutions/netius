@@ -607,6 +607,9 @@ class StreamClient(Client):
         # no connection available or the status is not open
         # must return the control flow immediately to the caller
         connection = self.connections_m.get(_socket, None)
+        print("connection := %s\n" % str(connection.id))
+        import sys
+        sys.stdout.flush()
         if not connection: return
         if not connection.status == OPEN: print("not open\n"); return
         if not connection.renable == True: print("not read enable\n"); return
