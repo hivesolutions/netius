@@ -61,7 +61,7 @@ class DiagApp(appier.APIApp):
             level = level
         )
 
-    @appier.route("/logger/set", "GET")
+    @appier.route("/logger/set", ("GET", "POST"))
     def set_logger(self):
         level = self.field("level", "DEBUG")
         self.system.level_logging(level)
