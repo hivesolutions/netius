@@ -404,6 +404,8 @@ class HTTPParser(parser.Parser):
         # data that has been sent for processing
         while size > 0:
             print("size := %d" % size)
+            import sys
+            sys.stdout.flush()
             
             # iterates while the current state is valid for
             # parsing as there are only parsing methods for
@@ -416,8 +418,12 @@ class HTTPParser(parser.Parser):
                 # zero the parsing iteration is broken
                 method = self.states[self.state - 1]
                 print("calling %s" % str(method))
+                import sys
+                sys.stdout.flush()
                 count = method(data)
                 print("count := %d" % count)
+                import sys
+                sys.stdout.flush()
                 if count == 0: break
 
                 # decrements the size of the data buffer by the
@@ -446,6 +452,10 @@ class HTTPParser(parser.Parser):
         # must add it to the buffer so that it may be used
         # latter in the next parsing of the message
         if size > 0: self.buffer.append(data)
+        
+        print("exit parse")
+        import sys
+        sys.stdout.flush()
 
         # returns the number of read (processed) bytes of the
         # data that has been sent to the parser
