@@ -642,6 +642,7 @@ class HTTPParser(parser.Parser):
         has_finished = not self.content_l == -1 and\
             self.message_l == self.content_l
 
+        print("data_l")
         print("has_finished := %s && message_l := %s" % (str(has_finished), str(self.message_l)))
         import sys
         sys.stdout.flush()
@@ -649,7 +650,7 @@ class HTTPParser(parser.Parser):
         # triggers the partial data received event and then
         # in case the complete message has not been received
         # returns immediately the length of processed data
-        self.trigger("on_partial", data)
+        self.trigger("on_partial", data); print("returned from partial"); import sys; sys.stdout.flush()
         if not has_finished: return data_l
 
         # updates the current state to the finish state and then
