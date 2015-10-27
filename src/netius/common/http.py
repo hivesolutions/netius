@@ -403,6 +403,8 @@ class HTTPParser(parser.Parser):
         # iterates continuously to try to process all that
         # data that has been sent for processing
         while size > 0:
+            print("size := %d" % size)
+            
             # iterates while the current state is valid for
             # parsing as there are only parsing methods for
             # the range of valid states
