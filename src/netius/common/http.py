@@ -385,7 +385,7 @@ class HTTPParser(parser.Parser):
         """
 
         parser.Parser.parse(self, data)
-        
+
         print("init parsing")
         import sys
         sys.stdout.flush()
@@ -399,7 +399,7 @@ class HTTPParser(parser.Parser):
         # and saves it under the size original variable
         size = len(data)
         size_o = size
-        
+
         print("measured data as %d" % size)
         import sys
         sys.stdout.flush()
@@ -409,9 +409,10 @@ class HTTPParser(parser.Parser):
         while size > 0:
             print("-------------")
             print("size := %d" % size)
+            print("message_l := %d" % self.message_l)
             import sys
             sys.stdout.flush()
-            
+
             # iterates while the current state is valid for
             # parsing as there are only parsing methods for
             # the range of valid states
@@ -457,7 +458,7 @@ class HTTPParser(parser.Parser):
         # must add it to the buffer so that it may be used
         # latter in the next parsing of the message
         if size > 0: self.buffer.append(data)
-        
+
         print("exit parse")
         import sys
         sys.stdout.flush()
