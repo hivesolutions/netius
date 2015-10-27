@@ -40,6 +40,7 @@ __license__ = "Apache License, Version 2.0"
 import ssl
 import time
 import uuid
+import errno
 import socket
 import datetime
 import threading
@@ -493,6 +494,15 @@ class BaseConnection(observer.Observable):
                     if is_close: self._shutdown(); count = 0
                     elif data: count = self.socket.send(data)
                     else: count = 0
+
+                    # verifies if the current situation is that of a non
+                    # closed socket and valid data, and if that's the case
+                    # and no data has been set the socket is considered to
+                    # be in a would block situation and and such an error
+                    # is raised indicating the issue (is going to be caught
+                    # as a normal would block exception)
+                    if not is_close and data and count == 0:
+                        raise socket.error(errno.EWOULDBLOCK)
                 except:
                     # sets the current connection write ready flag to false
                     # so that a new level notification must be received

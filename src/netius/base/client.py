@@ -400,6 +400,14 @@ class DatagramClient(Client):
                     # part of the data has been sent
                     if data: count = _socket.sendto(data, address)
                     else: count = 0
+
+                    # verifies if the current situation is that of a non
+                    # closed socket and valid data, and if that's the case
+                    # and no data has been set the socket is considered to
+                    # be in a would block situation and and such an error
+                    # is raised indicating the issue (is going to be caught
+                    # as a normal would block exception)
+                    if data and count == 0: raise socket.error(errno.EWOULDBLOCK)
                 except:
                     # sets the current connection write ready flag to false
                     # so that a new level notification must be received
