@@ -186,10 +186,6 @@ class DatagramClient(Client):
             error_v = error.args[0] if error.args else None
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
-                
-                
-                self.log_stack()
-                
             elif not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
                 self.log_stack()
@@ -197,9 +193,6 @@ class DatagramClient(Client):
             error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
-                
-                self.log_stack()
-                
             elif not error_v in VALID_ERRORS:
                 self.warning(error)
                 self.log_stack()
@@ -214,11 +207,6 @@ class DatagramClient(Client):
             error_v = error.args[0] if error.args else None
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
-                
-                
-                
-                self.log_stack()
-                
             elif not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
                 self.log_stack()
@@ -226,9 +214,6 @@ class DatagramClient(Client):
             error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
-                
-                self.log_stack()
-                
             elif not error_v in VALID_ERRORS:
                 self.warning(error)
                 self.log_stack()
@@ -657,9 +642,6 @@ class StreamClient(Client):
             error_v = error.args[0] if error.args else None
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
-                
-                self.log_stack()
-                
                 connection.close()
             elif not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
@@ -669,9 +651,6 @@ class StreamClient(Client):
             error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
-                
-                self.log_stack()
-                
                 connection.close()
             elif not error_v in VALID_ERRORS:
                 self.warning(error)
@@ -702,10 +681,6 @@ class StreamClient(Client):
             error_v = error.args[0] if error.args else None
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
-                
-                self.log_stack()
-                
-                
                 connection.close()
             elif not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
@@ -715,10 +690,6 @@ class StreamClient(Client):
             error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.debug(error)
-                
-                
-                self.log_stack()
-                
                 connection.close()
             elif not error_v in VALID_ERRORS:
                 self.warning(error)
