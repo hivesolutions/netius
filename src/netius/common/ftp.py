@@ -69,6 +69,8 @@ class FTPParser(parser.Parser):
         been "parsed" in the current parse operation.
         """
 
+        parser.Parser.parse(self, data)
+
         # retrieves the size of the data that has been sent for parsing
         # and saves it under the size original variable
         size = len(data)

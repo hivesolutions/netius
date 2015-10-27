@@ -383,6 +383,8 @@ class HTTPParser(parser.Parser):
         been "parsed" in the current parse operation.
         """
 
+        parser.Parser.parse(self, data)
+
         # in case the current state of the parser is finished, must
         # reset the state to the start position as the parser is
         # re-starting (probably a new data sequence)

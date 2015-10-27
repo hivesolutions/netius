@@ -46,6 +46,7 @@ class Parser(netius.Observable):
     def __init__(self, owner):
         netius.Observable.__init__(self)
         self.owner = owner
+        self._pid = 0
 
     @classmethod
     def mock(cls, owner, state):
@@ -59,6 +60,7 @@ class Parser(netius.Observable):
     def destroy(self):
         netius.Observable.destroy(self)
         self.owner = None
+        self._pid = 0
 
     def get_state(self):
         cls = self.__class__
@@ -78,3 +80,6 @@ class Parser(netius.Observable):
     def info_dict(self):
         info = self.get_state()
         return info
+
+    def parse(self, data):
+        self._pid = (self._pid + 1) % 2147483647
