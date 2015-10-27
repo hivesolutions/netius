@@ -42,7 +42,7 @@ import setuptools
 
 setuptools.setup(
     name = "netius",
-    version = "1.5.52",
+    version = "1.5.53",
     author = "Hive Solutions Lda.",
     author_email = "development@hive.pt",
     description = "Netius System",
