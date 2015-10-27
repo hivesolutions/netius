@@ -587,7 +587,7 @@ class HTTPClient(netius.StreamClient):
 
     def on_data(self, connection, data):
         netius.StreamClient.on_data(self, connection, data)
-        print("received %d bytes" % data)
+        print("on_data %d bytes" % len(data))
         connection.parse(data)
 
     def on_connection_d(self, connection):
