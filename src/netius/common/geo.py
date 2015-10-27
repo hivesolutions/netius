@@ -52,6 +52,10 @@ class GeoResolver(object):
     """ The url to the compressed version of the geo ip
     city database used for resolution """
 
+    VALID = ("continent", "country", "city", "location")
+    """ The sequence of names that are considered to be valid
+    under the simplified representation model """
+
     _db = None
     """ The reference to the internal database reference object
     that is going to be used in the geo ip resolution """
@@ -65,9 +69,10 @@ class GeoResolver(object):
         return result
 
     @classmethod
-    def _simplify(self, result, locale = "en"):
+    def _simplify(self, result, locale = "en", valid = VALID):
         if not result: return result
-        for value in netius.legacy.values(result):
+        for name, value in netius.legacy.items(result):
+            if not name in valid: del result[name]
             if not "names" in value: continue
             names = value["names"]
             value["name"] = names.get(locale, None)
