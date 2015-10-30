@@ -41,7 +41,6 @@ import os
 import sys
 import copy
 import json
-import errno
 import heapq
 import signal
 import logging
