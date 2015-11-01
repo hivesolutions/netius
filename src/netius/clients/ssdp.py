@@ -40,6 +40,16 @@ __license__ = "Apache License, Version 2.0"
 import netius.common
 
 class SSDPClient(netius.DatagramClient):
+    """
+    Client implementation of the SSDP protocol meant to be
+    used under the UPnP standard for discovery and control of
+    internet activated devices.
+
+    Using this implementation it should be possible to discover
+    and control devices like routes, media centers, etc.
+
+    @see: https://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol
+    """
 
     def on_data(self, connection, data):
         netius.DatagramClient.on_data(self, connection, data)
