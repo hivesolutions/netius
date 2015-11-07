@@ -62,6 +62,11 @@ GZIP_ENCODING = 3
 kind of encoding will always used chunked encoding so
 that the content may be send in parts """
 
+DEFLATE_ENCODING = 4
+""" The deflate based encoding used to compress data, this
+kind of encoding will always used chunked encoding so
+that the content may be send in parts """
+
 Z_PARTIAL_FLUSH = 1
 """ The zlib constant value representing the partial flush
 of the current zlib stream, this value has to be defined
@@ -70,7 +75,8 @@ locally as it is not defines under the zlib module """
 ENCODING_MAP = dict(
     plain = 1,
     chunked = 2,
-    gzip = 3
+    gzip = 3,
+    deflate = 4
 )
 """ The map associating the various types of encoding with
 the corresponding integer value for each of them this is used
@@ -119,6 +125,12 @@ class HTTPConnection(netius.Connection):
                 delay = delay,
                 callback = callback
             )
+        elif self.current == DEFLATE_ENCODING:
+            self.send_gzip(
+                data,
+                delay = delay,
+                callback = callback
+            )
 
     def info_dict(self, full = False):
         info = netius.Connection.info_dict(self, full = full)
@@ -132,7 +144,9 @@ class HTTPConnection(netius.Connection):
         return info
 
     def flush(self, callback = None):
-        if self.current == GZIP_ENCODING:
+        if self.current == DEFLATE_ENCODING:
+            self._flush_gzip(callback = callback)
+        elif self.current == GZIP_ENCODING:
             self._flush_gzip(callback = callback)
         elif self.current == CHUNKED_ENCODING:
             self._flush_chunked(callback = callback)
@@ -192,12 +206,12 @@ class HTTPConnection(netius.Connection):
         is_first = self.gzip == None
 
         # in case this is the first sending a new compress object
-        # is created with the requested compress level
-        if is_first: self.gzip = zlib.compressobj(
-            level,
-            zlib.DEFLATED,
-            zlib.MAX_WBITS | 16
-        )
+        # is created with the requested compress level, notice that
+        # the special deflate case is handled differently
+        if is_first:
+            is_deflate = self.is_deflate()
+            wbits = -zlib.MAX_WBITS if is_deflate else zlib.MAX_WBITS | 16
+            self.gzip = zlib.compressobj(level, zlib.DEFLATED, wbits)
 
         # increments the size value for the current data that
         # is going to be sent by the length of the data string
@@ -283,6 +297,17 @@ class HTTPConnection(netius.Connection):
             else:
                 self.current = GZIP_ENCODING
 
+        # if the target encoding is the compressed deflate style the
+        # current request must be verified have the version larger
+        # than the 1.1 and the deflate encoding must be accepted
+        elif self.encoding == DEFLATE_ENCODING:
+            if parser.version < netius.common.HTTP_11:
+                self.current = PLAIN_ENCODING
+            elif not "deflate" in parser.get_encodings():
+                self.current = CHUNKED_ENCODING
+            else:
+                self.current = DEFLATE_ENCODING
+
     def set_encoding(self, encoding):
         self.current = encoding
 
@@ -292,11 +317,20 @@ class HTTPConnection(netius.Connection):
     def set_gzip(self):
         self.current = GZIP_ENCODING
 
+    def set_deflate(self):
+        self.current = DEFLATE_ENCODING
+
     def is_chunked(self):
         return self.current > PLAIN_ENCODING
 
     def is_gzip(self):
         return self.current == GZIP_ENCODING
+
+    def is_deflate(self):
+        return self.current == DEFLATE_ENCODING
+
+    def is_compressed(self):
+        return self.current > CHUNKED_ENCODING
 
     def on_data(self):
         self.owner.on_data_http(self, self.parser)
@@ -345,27 +379,6 @@ class HTTPConnection(netius.Connection):
             # in case the safe flag is not set re-raises the exception
             # to the caller stack (as expected by the callers)
             if not safe: raise
-
-    def _unsigned(self, number):
-        """
-        Converts the given number to unsigned assuming
-        a 32 bit value required for some of the gzip
-        based operations.
-
-        @type number: int
-        @param number: The number to be converted to unsigned.
-        @rtype: int
-        @return: The given number converted to unsigned.
-        """
-
-        # in case the number is positive or zero
-        # (no need to convert) returns the provided
-        # number immediately to the caller method
-        if number >= 0: return number
-
-        # runs the modulus in the number
-        # to convert it to unsigned
-        return number + 4294967296
 
 class HTTPServer(netius.StreamServer):
     """
@@ -444,12 +457,15 @@ class HTTPServer(netius.StreamServer):
     def _apply_connection(self, connection, headers):
         is_chunked = connection.is_chunked()
         is_gzip = connection.is_gzip()
+        is_deflate = connection.is_deflate()
 
         if is_chunked:
             headers["Transfer-Encoding"] = "chunked"
             if "Content-Length" in headers: del headers["Content-Length"]
 
         if is_gzip: headers["Content-Encoding"] = "gzip"
+
+        if is_deflate: headers["Content-Encoding"] = "deflate"
 
     def _headers_upper(self, headers):
         for key, value in headers.items():
