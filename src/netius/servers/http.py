@@ -90,7 +90,6 @@ class HTTPConnection(netius.Connection):
         self.encoding = encoding
         self.current = encoding
         self.gzip = None
-        self.size = 0
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
@@ -212,10 +211,6 @@ class HTTPConnection(netius.Connection):
             is_deflate = self.is_deflate()
             wbits = -zlib.MAX_WBITS if is_deflate else zlib.MAX_WBITS | 16
             self.gzip = zlib.compressobj(level, zlib.DEFLATED, wbits)
-
-        # increments the size value for the current data that
-        # is going to be sent by the length of the data string
-        self.size += len(data)
 
         # compresses the provided data string and removes the
         # initial data contents of the compressed data because
@@ -359,7 +354,6 @@ class HTTPConnection(netius.Connection):
         # resets the gzip values to the original ones so that new
         # requests will starts the information from the beginning
         self.gzip = None
-        self.size = 0
 
         # runs the flush operation for the underlying chunked encoding
         # layer so that the client is correctly notified about the
@@ -373,8 +367,10 @@ class HTTPConnection(netius.Connection):
 
         try:
             # runs the flush operation for the the final finish stage
-            # (note that an exception may be raised)
+            # (note that an exception may be raised) and then unsets
+            # the gzip object (meaning no more interaction)
             self.gzip.flush(zlib.Z_FINISH)
+            self.gzip = None
         except:
             # in case the safe flag is not set re-raises the exception
             # to the caller stack (as expected by the callers)
