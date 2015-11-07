@@ -37,9 +37,7 @@ __copyright__ = "Copyright (c) 2008-2015 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-import time
 import zlib
-import struct
 import base64
 
 import netius.common
@@ -86,7 +84,6 @@ class HTTPConnection(netius.Connection):
         self.encoding = encoding
         self.current = encoding
         self.gzip = None
-        self.crc32 = 0
         self.size = 0
 
     def open(self, *args, **kwargs):
@@ -196,12 +193,11 @@ class HTTPConnection(netius.Connection):
 
         # in case this is the first sending a new compress object
         # is created with the requested compress level
-        if is_first: self.gzip = zlib.compressobj(level)
-
-        # re-computes the crc 32 value from the provided data
-        # string and the previous crc 32 value in case it does
-        # exists (otherwise starts from zero)
-        self.crc32 = zlib.crc32(data, self.crc32)
+        if is_first: self.gzip = zlib.compressobj(
+            level,
+            zlib.DEFLATED,
+            zlib.MAX_WBITS | 16
+        )
 
         # increments the size value for the current data that
         # is going to be sent by the length of the data string
@@ -214,14 +210,6 @@ class HTTPConnection(netius.Connection):
         # is not valid a sync flush operation is performed
         data_c = self.gzip.compress(data)
         if not data_c: data_c = self.gzip.flush(Z_PARTIAL_FLUSH)
-        data_c = data_c[2:] if is_first else data_c
-
-        # in case this is the first send operation, need to
-        # create and send the header of the gzip contents and
-        # then send them through the current connection
-        if is_first:
-            header = self._header_gzip()
-            self.send_chunked(header, delay = delay)
 
         # sends the compressed data to the client endpoint setting
         # the correct callback values as requested
@@ -332,77 +320,17 @@ class HTTPConnection(netius.Connection):
         # the data pending to be sent to the client and then sends
         # it using the chunked encoding strategy
         data_c = self.gzip.flush(zlib.Z_FINISH)
-        data_c = data_c[:-4]
         self.send_chunked(data_c)
-
-        # retrieves the tail value of the gzip encoding (includes
-        # crc information) and also sends it using chunked strategy
-        tail = self._tail_gzip()
-        self.send_chunked(tail)
 
         # resets the gzip values to the original ones so that new
         # requests will starts the information from the beginning
         self.gzip = None
-        self.crc32 = 0
         self.size = 0
 
         # runs the flush operation for the underlying chunked encoding
         # layer so that the client is correctly notified about the
         # end of the current request (normal operation)
         self._flush_chunked(callback = callback)
-
-    def _header_gzip(self):
-        # creates the buffer list that is going to be used in
-        # the storage of the various header parts
-        header = []
-
-        # writes the magic header and the compression method
-        # that is going to be used for the gzip compression
-        header.append("\x1f\x8b")
-        header.append("\x08")
-
-        # writes the flag values, for this situation there's
-        # no file name to be added and so unset flag values
-        # are going o be sent (nothing to be declared)
-        header.append("\x00")
-
-        # retrieves the current timestamp and then packs it into
-        # a long based value and adds it to the current header
-        timestamp = int(time.time())
-        timestamp = struct.pack("<L", timestamp)
-        header.append(timestamp)
-
-        # writes some extra heading values, includes information
-        # about the operative system, etc.
-        header.append("\x02")
-        header.append("\xff")
-
-        # joins the current header value into a single string and
-        # then returns it to the caller method to be sent
-        return "".join(header)
-
-    def _tail_gzip(self):
-        # creates the list that is going to be used as the buffer
-        # for the construction of the gzip tail value
-        tail = []
-
-        # converts the current crc 32 value into an unsigned value
-        # and then packs it as a little endian based long value
-        # and then adds it to the tail buffer
-        crc32 = self._unsigned(self.crc32)
-        crc32 = struct.pack("<L", crc32)
-        tail.append(crc32)
-
-        # converts the current response size into an unsigned value
-        # and then packs it into a little endian value and adds it
-        # to the tail buffer to be part of the tail value
-        size = self._unsigned(self.size)
-        size = struct.pack("<L", size)
-        tail.append(size)
-
-        # joins the tail buffer into a single string and returns it
-        # to the caller method as the tail value
-        return "".join(tail)
 
     def _close_gzip(self, safe = True):
         # in case the gzip object is not defined returns the control
