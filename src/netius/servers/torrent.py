@@ -74,6 +74,10 @@ class Pieces(netius.Observable):
     divided into pieces and blocks as a hierarchy, this class is
     responsible for the management of the data structures of such
     data storage model.
+
+    A piece is considered to be the basic unit of a torrent file
+    and each piece is composed by multiple blocks, note that the
+    number of blocks is fixed for all the pieces of a file.
     """
 
     def __init__(self, number_pieces, number_blocks):
@@ -160,7 +164,7 @@ class TorrentTask(netius.Observable):
 
     Each of the download operations should be able to be described
     by this task object (for latter reference).
-    
+
     This should be considered the main interface to interact from
     a developer point of view, as such the methods should represent
     a proper easily described interface.
