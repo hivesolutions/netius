@@ -160,6 +160,10 @@ class TorrentTask(netius.Observable):
 
     Each of the download operations should be able to be described
     by this task object (for latter reference).
+    
+    This should be considered the main interface to interact from
+    a developer point of view, as such the methods should represent
+    a proper easily described interface.
     """
 
     def __init__(self, owner, target_path, torrent_path = None, info_hash = None):
