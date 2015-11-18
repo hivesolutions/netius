@@ -483,15 +483,15 @@ class AbstractBase(observer.Observable):
         for handler in self.handlers: handler.setLevel(level)
 
     def load_diag(self, env = True):
-        # runs the import operations for the diag module, note that
-        # this must be performed locally no avoid any unwanted behaviour
-        # or collision with a runtime process (would pose issues)
-        from . import diag
-
         # verifies if the diagnostics "feature" has been requested
         # for the current infra-structure and if that's not the case
         # returns the control flow immediately to the caller
         if not self.diag: return
+
+        # runs the import operations for the diag module, note that
+        # this must be performed locally no avoid any unwanted behaviour
+        # or collision with a runtime process (would pose issues)
+        from . import diag
 
         # verifies if the diag module has been correctly loaded and
         # if that's not the case fails gracefully and returns the
