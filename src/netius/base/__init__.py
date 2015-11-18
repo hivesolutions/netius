@@ -39,7 +39,6 @@ from . import common
 from . import config
 from . import conn
 from . import container
-from . import diag
 from . import errors
 from . import legacy
 from . import log
@@ -54,7 +53,6 @@ from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
 from .config import conf, conf_prefix, conf_s
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
-from .diag import DiagApp
 from .errors import NetiusError, DataError, ParserError, GeneratorError,\
     SecurityError, NotImplemented
 from .log import SILENT, rotating_handler, smtp_handler
