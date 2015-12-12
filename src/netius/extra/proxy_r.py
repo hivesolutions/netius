@@ -110,6 +110,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         is_secure = connection.ssl
         host = headers.get("host", None)
         protocol = headers.get("x-forwarded-proto", None)
+        print(headers)
         print(protocol)
         print("---------------")
         protocol = protocol or ("https" if is_secure else "http")
