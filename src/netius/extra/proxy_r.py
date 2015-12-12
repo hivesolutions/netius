@@ -109,7 +109,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         version_s = parser.version_s
         is_secure = connection.ssl
         host = headers.get("host", None)
-        protocol = "https" if is_secure else "http"
+        protocol = headers.get("x-forwarded-proto", None)
+        protocol = protocol or ("https" if is_secure else "http")
 
         # tries to extract the various attributes of the current connection
         # that are going to be used for the routing operation, this attributes
