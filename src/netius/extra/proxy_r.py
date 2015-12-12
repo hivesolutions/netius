@@ -113,7 +113,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         # tries to extract the various attributes of the current connection
         # that are going to be used for the routing operation, this attributes
-        # should avoid a new rule set application and provide connection re-usage
+        # should avoid a new rule setting operation (expensive) and provide
+        # connection, prefix and state re-usage whenever possible, note that
+        # under some situation the prefix may change for the same connection
+        # and so the connection re-usage is not possible
         prefix = connection.prefix if hasattr(connection, "prefix") else None
         state = connection.state if hasattr(connection, "state") else None
         reusable = hasattr(connection, "proxy_c")
