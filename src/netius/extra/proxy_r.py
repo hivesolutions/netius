@@ -205,7 +205,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # proxy operation this is required so that the request gets
         # properly handled by the reverse server, otherwise some problems
         # would occur in the operation of handling the request
-        headers = dict(headers)
         headers["x-forwarded-proto"] = protocol
 
         # verifies if the current connection already contains a valid
