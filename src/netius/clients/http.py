@@ -301,10 +301,10 @@ class HTTPClient(netius.StreamClient):
         on_data = None,
         on_result = None
     ):
-        http_client = async and cls.get_client_s(
+        http_client = cls.get_client_s(
             thread = True,
             daemon = daemon
-        ) or HTTPClient(
+        ) if async else HTTPClient(
             thread = False,
             auto_close = True
         )
