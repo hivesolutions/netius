@@ -640,6 +640,10 @@ class AbstractBase(observer.Observable):
         del self._delayed[:]
         del self._delayed_o[:]
 
+        # runs the destroy operation on the ssl component of the base
+        # element so that no more ssl is available/used (avoids leaks)
+        self._ssl_destroy()
+
         # verifies if there's a valid (and open) file pool, if that's
         # the case starts the stop process for it so that there's no
         # leaking of file descriptors and other structures
@@ -1308,6 +1312,10 @@ class AbstractBase(observer.Observable):
             cer_file = values.get("cer_file", None)
             self._ssl_certs(context, key_file = key_file, cer_file = cer_file)
             self._ssl_contexts[hostname] = context
+
+    def _ssl_destroy(self):
+        self._ssl_context = None
+        self._ssl_contexts = dict()
 
     def _ssl_callback(self, socket, hostname, context):
         context = self._ssl_contexts.get(hostname, context)
