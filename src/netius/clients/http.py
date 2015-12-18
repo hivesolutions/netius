@@ -299,14 +299,17 @@ class HTTPClient(netius.StreamClient):
         callback = None,
         on_headers = None,
         on_data = None,
-        on_result = None
+        on_result = None,
+        **kwargs
     ):
         http_client = cls.get_client_s(
             thread = True,
-            daemon = daemon
+            daemon = daemon,
+            **kwargs
         ) if async else HTTPClient(
             thread = False,
-            auto_close = True
+            auto_close = True,
+            **kwargs
         )
 
         return http_client.method(
