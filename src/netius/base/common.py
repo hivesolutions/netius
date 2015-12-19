@@ -286,6 +286,7 @@ class AbstractBase(observer.Observable):
         self._loaded = False
         self._delayed = []
         self._delayed_o = []
+        self._extra_handlers = []
         self._ssl_init()
         self.set_state(STATE_STOP)
 
@@ -379,6 +380,20 @@ class AbstractBase(observer.Observable):
         # will be done after this first call to the loading (no duplicates)
         self._loaded = True
 
+    def unload(self):
+        # verifies if the current structure is considered/marked as already
+        # "unloaded", if that's the case returns the control flow immediately
+        # as there's nothing pending to be (undone)
+        if not self._loaded: return
+
+        # triggers the operation that will start the unloading process of the
+        # logging infra-structure of the current system
+        self.unload_logging()
+
+        # marks the current system as unloaded as the complete set of operations
+        # meant to start the unloading process have been finished
+        self._loaded = False
+
     def boot(self):
         pass
 
@@ -398,6 +413,12 @@ class AbstractBase(observer.Observable):
         for handler in self.handlers:
             if not handler: continue
             self.logger.addHandler(handler)
+
+    def unload_logging(self):
+        # iterates over the complete set of (built) extra handlers
+        # and runs the close operation for each of them, as they are
+        # no longer considered required for logging purposes
+        for handler in self._extra_handlers: handler.close()
 
     def extra_logging(self, level, formatter):
         """
@@ -450,6 +471,7 @@ class AbstractBase(observer.Observable):
             handler.setLevel(_level)
             handler.setFormatter(formatter)
             self.handlers.append(handler)
+            self._extra_handlers.append(handler)
 
         # restores the handlers structure back to the "original" tuple form
         # so that no expected data types are violated
@@ -634,11 +656,19 @@ class AbstractBase(observer.Observable):
         return self.poll.unsub_error(socket)
 
     def cleanup(self):
+        # runs the unload operation for the current base container this should
+        # unset/unload some of the components for this base infra-structure
+        self.unload()
+
         # destroys the current information on the delays that are is longer
         # going to be executed as the poll/system is closing, this is required
         # in order to avoid any possible memory leak with clojures/cycles
         del self._delayed[:]
         del self._delayed_o[:]
+
+        # closes the stream based handler for the logging, this should avoid
+        # any extra memory to be leaked from logging operations
+        self.handler_stream.close()
 
         # runs the destroy operation on the ssl component of the base
         # element so that no more ssl is available/used (avoids leaks)
@@ -663,6 +693,12 @@ class AbstractBase(observer.Observable):
         # only performed in case the current base instance is the owner of
         # the poll that is going to be closed (works with containers)
         if self.poll_owner: self.poll.close()
+
+        # deletes some of the internal data structures created for the instance
+        # and that are considered as no longer required
+        self.connections_m.clear()
+        del self.connections[:]
+        del self._extra_handlers[:]
 
     def loop(self):
         # iterates continuously while the running flag
