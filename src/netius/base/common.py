@@ -400,10 +400,10 @@ class AbstractBase(observer.Observable):
     def welcome(self):
         pass
 
-    def load_logging(self, level = logging.DEBUG, format = LOG_FORMAT):
+    def load_logging(self, level = logging.DEBUG, format = LOG_FORMAT, unique = False):
         level = self._level(level)
         formatter = logging.Formatter(format)
-        identifier = self.get_id()
+        identifier = self.get_id(unique = unique)
         self.extra_logging(level, formatter)
         self.handler_stream.setLevel(level)
         self.handler_stream.setFormatter(formatter)
@@ -415,6 +415,12 @@ class AbstractBase(observer.Observable):
             self.logger.addHandler(handler)
 
     def unload_logging(self):
+        # iterates over the complete set of handlers in the current
+        # base element and removes them from the current logger
+        for handler in self.handlers:
+            if not handler: continue
+            self.logger.removeHandler(handler)
+
         # iterates over the complete set of (built) extra handlers
         # and runs the close operation for each of them, as they are
         # no longer considered required for logging purposes
@@ -1040,8 +1046,10 @@ class AbstractBase(observer.Observable):
         self.poll = self.poll_c()
         return self.poll
 
-    def get_id(self):
-        return NAME + "-" + str(self._uuid)
+    def get_id(self, unique = True):
+        base = NAME + "-" + self.name
+        if not unique: return base
+        return base + "-" + str(self._uuid)
 
     def get_poll(self):
         return self.poll
