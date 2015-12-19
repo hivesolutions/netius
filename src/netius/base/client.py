@@ -463,6 +463,12 @@ class StreamClient(Client):
         self.free_map = {}
         self._pending_lock = threading.RLock()
 
+    def cleanup(self):
+        Client.cleanup(self)
+        del self.pendings[:]
+        self.free_map.clear()
+        self._pending_lock = None
+
     def ticks(self):
         self.set_state(STATE_TICK)
         self._lid = (self._lid + 1) % 2147483647
