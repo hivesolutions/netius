@@ -401,13 +401,35 @@ class AbstractBase(observer.Observable):
         pass
 
     def load_logging(self, level = logging.DEBUG, format = LOG_FORMAT, unique = False):
+        # normalizes the provided level value so that it represents
+        # a proper and understandable value, then starts the formatter
+        # that is going to be used and retrieves the (possibly unique)
+        # identifier to be used in the logger retrieval/identification
         level = self._level(level)
         formatter = logging.Formatter(format)
         identifier = self.get_id(unique = unique)
+        
+        # start the extra logging infrastructure (extra handlers)
+        # and initializes the stream handlers with the proper level
+        # and formatter values (as expected)
         self.extra_logging(level, formatter)
         self.handler_stream.setLevel(level)
         self.handler_stream.setFormatter(formatter)
+        
+        # retrieves the logger that is going to be according to the
+        # decided identifier and then verifies that the counter value
+        # is properly updated deciding also if the logger instance is
+        # a new one or if instead it refers an already initialized/old
+        # instance that doesn't need a new initialization process
         self.logger = logging.getLogger(identifier)
+        counter = self.logger._counter if hasattr(self.logger, "_counter") else 0
+        is_new = counter == 0
+        self.logger._counter = counter + 1
+        if not is_new: return
+        
+        # starts the new logger instance by setting no parent to it,
+        # updating the verbosity level of it and then registering the
+        # complete set of handlers for it (as expected)
         self.logger.parent = None
         self.logger.setLevel(level)
         for handler in self.handlers:
@@ -420,6 +442,13 @@ class AbstractBase(observer.Observable):
         for handler in self.handlers:
             if not handler: continue
             self.logger.removeHandler(handler)
+            
+        # updates the counter value for the logger and validates
+        # that no more "clients" are using the logger so that it
+        # may be properly destroyed (as expected)
+        self.logger._counter -= 1
+        is_old = self.logger._counter == 0
+        if not is_old: return
 
         # iterates over the complete set of (built) extra handlers
         # and runs the close operation for each of them, as they are
