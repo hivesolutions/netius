@@ -348,7 +348,7 @@ class AbstractBase(observer.Observable):
         heapq.heappush(self._delayed, callable_t)
         heapq.heappush(self._delayed_o, callable_o)
 
-    def load(self):
+    def load(self, full = False):
         # in case the current structure is considered/marked as already loaded
         # there's no need to continue with the loading execution (returns immediately)
         if self._loaded: return
@@ -380,7 +380,7 @@ class AbstractBase(observer.Observable):
         # will be done after this first call to the loading (no duplicates)
         self._loaded = True
 
-    def unload(self):
+    def unload(self, full = False):
         # verifies if the current structure is considered/marked as already
         # "unloaded", if that's the case returns the control flow immediately
         # as there's nothing pending to be (undone)
@@ -388,7 +388,7 @@ class AbstractBase(observer.Observable):
 
         # triggers the operation that will start the unloading process of the
         # logging infra-structure of the current system
-        self.unload_logging()
+        if full: self.unload_logging()
 
         # marks the current system as unloaded as the complete set of operations
         # meant to start the unloading process have been finished
