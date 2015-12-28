@@ -440,8 +440,8 @@ class SMTPServer(netius.StreamServer):
 
     def _emails(self, sequence, prefix = "to"):
         prefix_l = len(prefix)
-        base = prefix_l + 2
-        emails = [item[base:-1] for item in sequence]
+        base = prefix_l + 1
+        emails = [item[base:].strip()[1:-1] for item in sequence]
         return emails
 
     def _users(self, emails):
