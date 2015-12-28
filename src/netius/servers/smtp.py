@@ -61,13 +61,24 @@ DATA_STATE = 4
 """ Final stage of the smtp session where the message
 contents are sent over the connection """
 
+USERNAME_STATE = 5
+""" The username state where the server is waiting for
+a base64 username string to be sent and stored, this
+state is only used for the login base authentication """
+
+PASSWORD_STATE = 6
+""" The password state where the server is waiting for
+a base64 password string to be sent and stored, after
+this step proper authentication is possible under the
+login type of authentication """
+
 TERMINATION_SIZE = 5
 """ The size of the termination sequence of the smtp message
 this is going to be used in some parsing calculus, this value
 should be exposed so that it may be re-used by other modules """
 
 CAPABILITIES = (
-    "AUTH PLAIN",
+    "AUTH PLAIN LOGIN",
     "STARTTLS"
 )
 """ The sequence defining the various capabilities that are
@@ -100,6 +111,8 @@ class SMTPConnection(netius.Connection):
 
     def parse(self, data):
         if self.state == DATA_STATE: self.on_raw_data(data)
+        elif self.state == USERNAME_STATE: self.on_username(data)
+        elif self.state == PASSWORD_STATE: self.on_password(data)
         else: return self.parser.parse(data)
 
     def send_smtp(self, code, message = "", lines = (), delay = False, callback = None):
@@ -178,6 +191,11 @@ class SMTPConnection(netius.Connection):
         self.send_smtp(235, message)
         self.state = HEADER_STATE
 
+    def auth_login(self, data):
+        message = "VXNlcm5hbWU6"
+        self.send_smtp(334 , message)
+        self.state = USERNAME_STATE
+
     def data(self):
         self.assert_s(HEADER_STATE)
         self.owner.on_header_smtp(self, self.from_l, self.to_l)
@@ -205,6 +223,23 @@ class SMTPConnection(netius.Connection):
     def not_implemented(self):
         message = "not implemented"
         self.send_smtp(550, message)
+
+    def on_username(self, data):
+        data_s = base64.b64decode(data)
+        data_s = netius.legacy.str(data_s)
+        self.username = data_s
+        message = "UGFzc3dvcmQ6"
+        self.send_smtp(334 , message)
+        self.state = PASSWORD_STATE
+
+    def on_password(self, data):
+        data_s = base64.b64decode(data)
+        data_s = netius.legacy.str(data_s)
+        self.password = data_s
+        self.owner.on_auth_smtp(self, self.username, self.password)
+        message = "authentication successful"
+        self.send_smtp(235, message)
+        self.state = HEADER_STATE
 
     def on_raw_data(self, data):
         # calls the proper callback handler for data in the owner indicating
