@@ -227,7 +227,7 @@ class SMTPConnection(netius.Connection):
     def on_username(self, data):
         data_s = base64.b64decode(data)
         data_s = netius.legacy.str(data_s)
-        self.username = data_s
+        self._username = data_s
         message = "UGFzc3dvcmQ6"
         self.send_smtp(334 , message)
         self.state = PASSWORD_STATE
@@ -235,8 +235,10 @@ class SMTPConnection(netius.Connection):
     def on_password(self, data):
         data_s = base64.b64decode(data)
         data_s = netius.legacy.str(data_s)
-        self.password = data_s
-        self.owner.on_auth_smtp(self, self.username, self.password)
+        self._password = data_s
+        self.owner.on_auth_smtp(self, self._username, self._password)
+        delattr(self, "_username")
+        delattr(self, "_password")
         message = "authentication successful"
         self.send_smtp(235, message)
         self.state = HEADER_STATE
