@@ -340,7 +340,7 @@ class SMTPConnection(netius.Connection):
         raise netius.ParserError("Invalid state")
 
     def to_s(self):
-        return ", ".join(["<%s>" % email[4:-1] for email in self.to_l])
+        return ", ".join(["<%s>" % email[3:].strip()[1:-1] for email in self.to_l])
 
     def received_s(self):
         to_s = self.to_s()
