@@ -163,6 +163,13 @@ class SMTPConnection(netius.Connection):
         self.state = HELO_STATE
 
     def auth(self, method, data):
+        method_name = "auth_%s" % method
+        has_method = hasattr(self, method_name)
+        if not has_method: raise netius.NotImplemented("Method not implemented")
+        method = getattr(self, method_name)
+        method(data)
+
+    def auth_plain(self, data):
         data_s = base64.b64decode(data)
         data_s = netius.legacy.str(data_s)
         _identifier, username, password = data_s.split("\0")
@@ -271,7 +278,7 @@ class SMTPConnection(netius.Connection):
     def on_auth(self, message):
         message_s = message.split(" ", 1)
         is_tuple = len(message_s) == 2
-        if is_tuple: method, data = message
+        if is_tuple: method, data = message_s
         else: method = message; data = ""
         method = method.lower()
         self.auth(method, data)
