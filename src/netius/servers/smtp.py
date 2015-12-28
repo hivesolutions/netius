@@ -269,7 +269,10 @@ class SMTPConnection(netius.Connection):
         self.starttls()
 
     def on_auth(self, message):
-        method, data = message.split(" ", 1)
+        message_s = message.split(" ", 1)
+        is_tuple = len(message_s) == 2
+        if is_tuple: method, data = message
+        else: method = message; data = ""
         method = method.lower()
         self.auth(method, data)
 
