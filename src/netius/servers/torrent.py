@@ -130,7 +130,7 @@ class Pieces(netius.Observable):
         if not is_last_block: return BLOCK_SIZE
         piece_size = self.piece_size(index)
         modulus = piece_size % BLOCK_SIZE
-        if modulus == 0: return self.piece_length
+        if modulus == 0: return BLOCK_SIZE
         return modulus
 
     def pop_block(self, bitfield, mark = True):
