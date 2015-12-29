@@ -80,16 +80,33 @@ class Pieces(netius.Observable):
     number of blocks is fixed for all the pieces of a file.
     """
 
-    def __init__(self, number_pieces, number_blocks):
+    def __init__(self, length, number_pieces, number_blocks):
         netius.Observable.__init__(self)
 
+        self.length = length
+        self.piece_length = number_blocks * BLOCK_SIZE
         self.number_pieces = number_pieces
         self.number_blocks = number_blocks
+        self.final_blocks = self.piece_blocks(self.number_pieces - 1)
         self.bitfield = [True for _index in netius.legacy.xrange(number_pieces)]
-        self.mask = [True for _index in netius.legacy.xrange(number_pieces * number_blocks)]
+        self.mask = [True for _index in netius.legacy.xrange(self.total_blocks)]
 
     def piece(self, index):
         return self.bitfield[index]
+
+    def piece_blocks(self, index):
+        is_last = index == self.number_pieces - 1
+        if not is_last: return self.number_blocks
+        piece_size = self.piece_size(index)
+        number_blocks = math.ceil(piece_size / float(BLOCK_SIZE))
+        return int(number_blocks)
+
+    def piece_size(self, index):
+        is_last = index == self.number_pieces - 1
+        if not is_last: return self.number_blocks * BLOCK_SIZE
+        modulus = self.length % self.piece_length
+        if modulus == 0: return self.piece_length
+        return modulus
 
     def block(self, index, begin):
         base = index * self.number_blocks
@@ -120,8 +137,9 @@ class Pieces(netius.Observable):
 
     def update_block(self, index, mark = True):
         base = index * self.number_blocks
+        block_count = self.piece_blocks(index)
 
-        for block_index in netius.legacy.xrange(self.number_blocks):
+        for block_index in netius.legacy.xrange(block_count):
             state = self.mask[base + block_index]
             if state == True: break
 
@@ -131,15 +149,17 @@ class Pieces(netius.Observable):
 
     def update_piece(self, index):
         # calculates the base index value for the block sequence
-        # of the current piece (going to be used in access) and
-        # defines the initial piece state as false (not marked)
+        # of the current piece (going to be used in access), then
+        # determines the total number of block for piece to update
+        # and then sets the initial piece state as false (not marked)
         base = index * self.number_blocks
+        block_count = self.piece_blocks(index)
         piece_state = False
 
         # iterates over the complete set of blocks for the current
         # piece trying to determine if it has already been completely
         # unmarked (all the blocks unmarked accordingly)
-        for block_index in netius.legacy.xrange(self.number_blocks):
+        for block_index in netius.legacy.xrange(block_count):
             state = self.mask[base + block_index]
             if state == False: continue
             piece_state = True
@@ -180,7 +200,8 @@ class Pieces(netius.Observable):
 
     @property
     def total_blocks(self):
-        return self.number_pieces * self.number_blocks
+        base_blocks = (self.number_pieces - 1) * self.number_blocks
+        return base_blocks + self.final_blocks
 
     @property
     def marked_blocks(self):
@@ -271,6 +292,7 @@ class TorrentTask(netius.Observable):
 
     def on_piece(self, pieces, index):
         self.verify_piece(index)
+        self.confirm_piece(index)
         self.trigger("piece", self, index)
 
     def on_complete(self, pieces):
@@ -382,10 +404,11 @@ class TorrentTask(netius.Observable):
         self.file = None
 
     def load_pieces(self):
+        length = self.info["length"]
         number_pieces = self.info["number_pieces"]
         number_blocks = self.info["number_blocks"]
-        self.requested = Pieces(number_pieces, number_blocks)
-        self.stored = Pieces(number_pieces, number_blocks)
+        self.requested = Pieces(length, number_pieces, number_blocks)
+        self.stored = Pieces(length, number_pieces, number_blocks)
         self.stored.bind("block", self.on_block)
         self.stored.bind("piece", self.on_piece)
         self.stored.bind("complete", self.on_complete)
@@ -427,10 +450,8 @@ class TorrentTask(netius.Observable):
         self.file.write(data)
         self.file.flush()
 
-        # increments the amount of downloaded bytes for the task and then
         # marks the current block as stored so that no other equivalent
         # operation is performed (avoiding duplicated operations)
-        self.downloaded += len(data)
         self.stored.mark_block(index, begin)
 
     def set_dht(self, peer_t, port):
@@ -530,7 +551,7 @@ class TorrentTask(netius.Observable):
             "pieces      := %d/%d\n" % (self.stored.marked_pieces, self.stored.total_pieces) +\
             "blocks      := %d/%d\n" % (self.stored.marked_blocks, self.stored.total_blocks) +\
             "percent     := %.2f % %\n" % self.percent() +\
-            "left        := %d bytes\n" % self.left() +\
+            "left        := %d/%d bytes\n" % (self.left(), self.info["length"]) +\
             "speed       := %s/s" % self.speed_s()
 
     def left(self):
@@ -580,6 +601,10 @@ class TorrentTask(netius.Observable):
         file = open(self.target_path, "rb")
         try: self._verify_piece(index, file)
         finally: file.close()
+
+    def confirm_piece(self, index):
+        piece_size = self.stored.piece_size(index)
+        self.downloaded += piece_size
 
     def extend_peers(self, peers):
         for peer in peers: self.add_peer(peer)
