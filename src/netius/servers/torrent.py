@@ -68,6 +68,15 @@ THRESHOLD_END = 10485760
 under the ending stage, from this stage on a new strategy for the
 download may apply as it is more difficult to get blocks """
 
+MAX_MISSING = 16
+""" The maximum number of unmarked values to be displayed in missing,
+this controls the size of the missing lists, note that this is only
+a default value, that may be overriden at runtime """
+
+PEER_PATHS = ("peers.txt", "~/peers.txt", "\\peers.txt")
+""" The sequence defining the various paths that are going to be search
+trying to find the (static) peers file with format host:ip in each line """
+
 class Pieces(netius.Observable):
     """
     Class that represents the logical structure of a file that is
@@ -113,6 +122,17 @@ class Pieces(netius.Observable):
         block_index = begin // BLOCK_SIZE
         return self.mask[base + block_index]
 
+    def block_size(self, index, begin):
+        block_index = begin // BLOCK_SIZE
+        is_last_piece = index == self.number_pieces - 1
+        if not is_last_piece: return BLOCK_SIZE
+        is_last_block = block_index == self.final_blocks - 1
+        if not is_last_block: return BLOCK_SIZE
+        piece_size = self.piece_size(index)
+        modulus = piece_size % BLOCK_SIZE
+        if modulus == 0: return self.piece_length
+        return modulus
+
     def pop_block(self, bitfield, mark = True):
         index = 0
         result = self._and(bitfield, self.bitfield)
@@ -123,7 +143,8 @@ class Pieces(netius.Observable):
         if index == len(result): return None
 
         begin = self.update_block(index, mark = mark)
-        return (index, begin)
+        length = self.block_size(index, begin)
+        return (index, begin, length)
 
     def push_block(self, index, begin):
         self.mark_block(index, begin, value = True)
@@ -208,6 +229,17 @@ class Pieces(netius.Observable):
         return counter
 
     @property
+    def missing_pieces(self, max_missing = MAX_MISSING):
+        missing_count = self.total_pieces - self.marked_pieces
+        if missing_count > max_missing: return []
+        missing = []
+        for index in netius.legacy.xrange(self.total_pieces):
+            bit = self.bitfield[index]
+            if bit == False: continue
+            missing.append(index)
+        return missing
+
+    @property
     def total_blocks(self):
         base_blocks = (self.number_pieces - 1) * self.number_blocks
         return base_blocks + self.final_blocks
@@ -219,6 +251,17 @@ class Pieces(netius.Observable):
             if bit == True: continue
             counter += 1
         return counter
+
+    @property
+    def missing_blocks(self, max_missing = MAX_MISSING):
+        missing_count = self.total_blocks - self.marked_blocks
+        if missing_count > max_missing: return []
+        missing = []
+        for index in netius.legacy.xrange(self.total_blocks):
+            bit = self.mask[index]
+            if bit == False: continue
+            missing.append(index)
+        return missing
 
     def _and(self, first, second):
         result = []
@@ -264,6 +307,7 @@ class TorrentTask(netius.Observable):
         self.pieces_tracker()
         self.peers_dht()
         self.peers_tracker()
+        self.peers_file()
 
         self.load_file()
         self.load_pieces()
@@ -506,37 +550,54 @@ class TorrentTask(netius.Observable):
         announce = self.info.get("announce", None)
         announce_list = self.info.get("announce-list", [[announce]])
         for tracker in announce_list:
-            # retrieves the first element of the tracker structure as the
-            # url of it and then verifies that it references an http based
-            # tracker (as that's the only one supported)
-            tracker_url = tracker[0]
-            is_http = tracker_url.startswith(("http://", "https://"))
-            if not is_http: continue
+            # iterates over the complete set of tracker urls to try to retrieve
+            # the various trackers from each of them
+            for tracker_url in tracker:
+                # retrieves the first element of the tracker structure as the
+                # url of it and then verifies that it references an http based
+                # tracker (as that's the only one supported)
+                is_http = tracker_url.startswith(("http://", "https://"))
+                if not is_http: continue
 
-            # runs the get http retrieval call (blocking call) so that it's
-            # possible to retrieve the contents for the announce of the tracker
-            # this is an asynchronous call and the on tracker callback will be
-            # called at the end of the process with the message
-            self.owner.http_client.get(
-                tracker_url,
-                params = dict(
-                    info_hash = self.info_hash,
-                    peer_id = self.owner.peer_id,
-                    port = 6881,
-                    uploaded = self.uploaded,
-                    downloaded = self.downloaded,
-                    left = self.left(),
-                    compact = 1,
-                    no_peer_id = 0,
-                    event = "started",
-                    numwant = 50
-                ),
-                on_result = self.on_tracker
-            )
+                # runs the get http retrieval call (blocking call) so that it's
+                # possible to retrieve the contents for the announce of the tracker
+                # this is an asynchronous call and the on tracker callback will be
+                # called at the end of the process with the message
+                self.owner.http_client.get(
+                    tracker_url,
+                    params = dict(
+                        info_hash = self.info_hash,
+                        peer_id = self.owner.peer_id,
+                        port = 6881,
+                        uploaded = self.uploaded,
+                        downloaded = self.downloaded,
+                        left = self.left(),
+                        compact = 1,
+                        no_peer_id = 0,
+                        event = "started",
+                        numwant = 50,
+                        key = self.owner.get_id()
+                    ),
+                    on_result = self.on_tracker
+                )
 
-            # prints a debug message about the request for peer that was just
-            # performed in order to provide some debugging information
-            self.owner.debug("Requested peers using '%s'" % tracker_url)
+                # prints a debug message about the request for peer that was just
+                # performed in order to provide some debugging information
+                self.owner.debug("Requested peers using '%s'" % tracker_url)
+
+    def peers_file(self):
+        for path in PEER_PATHS:
+            path = os.path.expanduser(path)
+            path = os.path.normpath(path)
+            if not os.path.exists(path): continue
+            file = open(path, "r")
+            for line in file:
+                line = line.strip()
+                host, port = line.split(":", 1)
+                port = int(port)
+                peer = dict(ip = host, port = port)
+                print(peer)
+                self.add_peer(peer)
 
     def connect_peers(self):
         for peer in self.peers: self.connect_peer(peer)
@@ -548,6 +609,7 @@ class TorrentTask(netius.Observable):
     def connect_peer(self, peer):
         if not peer["new"]: return
         peer["new"] = False
+        self.owner.debug("Connecting to peer '%s:%d'" % (peer["ip"], peer["port"]))
         connection = self.owner.client.peer(self, peer["ip"], peer["port"])
         self.connections.append(connection)
         connection.bind("close", self.on_close)
@@ -562,6 +624,8 @@ class TorrentTask(netius.Observable):
             "unchoked    := %d\n" % self.unchoked +\
             "pieces      := %d/%d\n" % (self.stored.marked_pieces, self.stored.total_pieces) +\
             "blocks      := %d/%d\n" % (self.stored.marked_blocks, self.stored.total_blocks) +\
+            "pieces miss := %s\n" % self.stored.missing_pieces +\
+            "blocks miss := %s\n" % self.stored.missing_blocks +\
             "percent     := %.2f % %\n" % self.percent() +\
             "left        := %d/%d bytes\n" % (self.left(), self.info["length"]) +\
             "speed       := %s/s" % self.speed_s()

@@ -160,9 +160,10 @@ class TorrentConnection(netius.Connection):
         for _index in range(count):
             block = self.task.pop_block(self.bitfield)
             if not block: return
-            index, begin = block
-            self.request(index, begin = begin)
-            self.add_request(block)
+            index, begin, length = block
+            self.request(index, begin = begin, length = length)
+            block_t = (index, begin)
+            self.add_request(block_t)
 
     def add_request(self, block):
         self.requests.append(block)
