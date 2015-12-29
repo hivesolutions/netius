@@ -747,7 +747,7 @@ if __name__ == "__main__":
     import logging
 
     def on_start(server):
-        task = server.download("\\tobias", "\\file.torrent", close = True)
+        task = server.download("\\", "\\file.torrent", close = True)
         task.bind("piece", on_piece)
         task.bind("complete", on_complete)
 
