@@ -128,6 +128,15 @@ class Pieces(netius.Observable):
     def push_block(self, index, begin):
         self.mark_block(index, begin, value = True)
 
+    def mark_piece(self, index, value = False):
+        base = index * self.number_blocks
+        block_count = self.piece_blocks(index)
+
+        for block_index in netius.legacy.xrange(block_count):
+            self.mask[base + block_index] = value
+
+        self.bitfield[index] = value
+
     def mark_block(self, index, begin, value = False):
         base = index * self.number_blocks
         block_index = begin // BLOCK_SIZE
@@ -291,9 +300,12 @@ class TorrentTask(netius.Observable):
         self.trigger("block", self, index, begin)
 
     def on_piece(self, pieces, index):
-        self.verify_piece(index)
-        self.confirm_piece(index)
-        self.trigger("piece", self, index)
+        try: self.verify_piece(index)
+        except netius.DataError:
+            self.refute_piece(index)
+        else:
+            self.confirm_piece(index)
+            self.trigger("piece", self, index)
 
     def on_complete(self, pieces):
         self.trigger("complete", self)
@@ -605,6 +617,10 @@ class TorrentTask(netius.Observable):
     def confirm_piece(self, index):
         piece_size = self.stored.piece_size(index)
         self.downloaded += piece_size
+
+    def refute_piece(self, index):
+        self.requested.mark_piece(index, value = True)
+        self.stored.mark_piece(index, value = True)
 
     def extend_peers(self, peers):
         for peer in peers: self.add_peer(peer)
