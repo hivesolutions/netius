@@ -145,17 +145,25 @@ class Pieces(netius.Observable):
             piece_state = True
             break
 
-        # updates the state of the current piece in the
-        # bit field, note that the false value indicates
-        # that the piece is no longer pending download
+        # updates the state of the current piece in the bit field,
+        # note that the false value indicates that the piece is
+        # no longer pending download (completely retrieved)
         self.bitfield[index] = piece_state
         if piece_state == True: return
 
+        # triggers the piece event indicating that a new piece has
+        # been completely retrieve from the torrent network
         self.trigger("piece", self, index)
 
+        # iterates over the complete set of bit values in the (pieces)
+        # bit field to verify if the file has been completely downloaded
+        # in case it did not returns the control flow to caller
         for bit in self.bitfield:
             if bit == True: return
 
+        # triggers the complete event to any of the handlers indicating
+        # that the current torrent file has been completely downloaded
+        # and no more pieces are pending download
         self.trigger("complete", self)
 
     def _and(self, first, second):
