@@ -628,7 +628,7 @@ class TorrentTask(netius.Observable):
         piece_length = self.info["info"]["piece length"]
         file = open(self.target_path, "rb")
         file.seek(index * piece_length)
-        pending = piece_length
+        pending = self.stored.piece_size(index)
         hash = hashlib.sha1()
         while True:
             if pending == 0: break
@@ -747,7 +747,7 @@ if __name__ == "__main__":
     import logging
 
     def on_start(server):
-        task = server.download("\\", "\\file.torrent", close = True)
+        task = server.download("\\tobias", "\\file.torrent", close = True)
         task.bind("piece", on_piece)
         task.bind("complete", on_complete)
 
