@@ -85,8 +85,8 @@ class Pieces(netius.Observable):
 
         self.number_pieces = number_pieces
         self.number_blocks = number_blocks
-        self.bitfield = [True for _index in range(number_pieces)]
-        self.mask = [True for _index in range(number_pieces * number_blocks)]
+        self.bitfield = [True for _index in netius.legacy.xrange(number_pieces)]
+        self.mask = [True for _index in netius.legacy.xrange(number_pieces * number_blocks)]
 
     def piece(self, index):
         return self.bitfield[index]
@@ -121,7 +121,7 @@ class Pieces(netius.Observable):
     def update_block(self, index, mark = True):
         base = index * self.number_blocks
 
-        for block_index in range(self.number_blocks):
+        for block_index in netius.legacy.xrange(self.number_blocks):
             state = self.mask[base + block_index]
             if state == True: break
 
@@ -130,15 +130,24 @@ class Pieces(netius.Observable):
         return begin
 
     def update_piece(self, index):
+        # calculates the base index value for the block sequence
+        # of the current piece (going to be used in access) and
+        # defines the initial piece state as false (downloaded)
         base = index * self.number_blocks
         piece_state = False
 
-        for block_index in range(self.number_blocks):
+        # iterates over the complete set of blocks for the current
+        # piece trying to determine if it has already been completely
+        # downloaded (all the blocks retrieved accordingly)
+        for block_index in netius.legacy.xrange(self.number_blocks):
             state = self.mask[base + block_index]
             if state == False: continue
             piece_state = True
             break
 
+        # updates the state of the current piece in the
+        # bit field, note that the false value indicates
+        # that the piece is no longer pending download
         self.bitfield[index] = piece_state
         if piece_state == True: return
 
@@ -487,6 +496,7 @@ class TorrentTask(netius.Observable):
             "choked      := %d\n" % (len(self.connections) - self.unchoked) +\
             "unchoked    := %d\n" % self.unchoked +\
             "percent     := %.2f % %\n" % self.percent() +\
+            "left        := %d bytes\n" % self.left() +\
             "speed       := %s/s" % self.speed_s()
 
     def left(self):
