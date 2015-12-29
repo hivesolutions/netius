@@ -132,13 +132,13 @@ class Pieces(netius.Observable):
     def update_piece(self, index):
         # calculates the base index value for the block sequence
         # of the current piece (going to be used in access) and
-        # defines the initial piece state as false (downloaded)
+        # defines the initial piece state as false (not marked)
         base = index * self.number_blocks
         piece_state = False
 
         # iterates over the complete set of blocks for the current
         # piece trying to determine if it has already been completely
-        # downloaded (all the blocks retrieved accordingly)
+        # unmarked (all the blocks unmarked accordingly)
         for block_index in netius.legacy.xrange(self.number_blocks):
             state = self.mask[base + block_index]
             if state == False: continue
@@ -146,25 +146,49 @@ class Pieces(netius.Observable):
             break
 
         # updates the state of the current piece in the bit field,
-        # note that the false value indicates that the piece is
-        # no longer pending download (completely retrieved)
+        # note that the false value indicates that the piece has been
+        # unmarked (and this is considered the objective)
         self.bitfield[index] = piece_state
         if piece_state == True: return
 
         # triggers the piece event indicating that a new piece has
-        # been completely retrieve from the torrent network
+        # been completely unmarked according to rules
         self.trigger("piece", self, index)
 
         # iterates over the complete set of bit values in the (pieces)
-        # bit field to verify if the file has been completely downloaded
+        # bit field to verify if the file has been completely unmarked
         # in case it did not returns the control flow to caller
         for bit in self.bitfield:
             if bit == True: return
 
         # triggers the complete event to any of the handlers indicating
-        # that the current torrent file has been completely downloaded
-        # and no more pieces are pending download
+        # that the current torrent file has been completely unmarked
+        # and then no more pieces are pending to be unmarked
         self.trigger("complete", self)
+
+    @property
+    def total_pieces(self):
+        return self.number_pieces
+
+    @property
+    def marked_pieces(self):
+        counter = 0
+        for bit in self.bitfield:
+            if bit == True: continue
+            counter += 1
+        return counter
+
+    @property
+    def total_blocks(self):
+        return self.number_pieces * self.number_blocks
+
+    @property
+    def marked_blocks(self):
+        counter = 0
+        for bit in self.mask:
+            if bit == True: continue
+            counter += 1
+        return counter
 
     def _and(self, first, second):
         result = []
@@ -503,6 +527,8 @@ class TorrentTask(netius.Observable):
             "connections := %d\n" % len(self.connections) +\
             "choked      := %d\n" % (len(self.connections) - self.unchoked) +\
             "unchoked    := %d\n" % self.unchoked +\
+            "pieces      := %d/%d\n" % (self.stored.marked_pieces, self.stored.total_pieces) +\
+            "blocks      := %d/%d\n" % (self.stored.marked_blocks, self.stored.total_blocks) +\
             "percent     := %.2f % %\n" % self.percent() +\
             "left        := %d bytes\n" % self.left() +\
             "speed       := %s/s" % self.speed_s()
