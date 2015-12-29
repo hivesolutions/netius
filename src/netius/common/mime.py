@@ -105,6 +105,7 @@ class Headers(list):
         return self[key]
 
     def set(self, key, value, append = False):
+        key = self._normalize(key)
         value = self._normalize(value)
         if key in self and not append: self.item(key)[1] = value
         else: self[key] = value

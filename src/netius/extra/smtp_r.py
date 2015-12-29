@@ -97,7 +97,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # joins the current relay buffer to create the full message
         # data and then removes the (non required) termination value
         # from it to avoid any possible problems with extra size
-        data_s = "".join(connection.relay)
+        data_s = b"".join(connection.relay)
         data_s = data_s[:netius.servers.TERMINATION_SIZE * -1]
 
         # retrieves the list of "froms" for the connection and then
