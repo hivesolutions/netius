@@ -445,19 +445,64 @@ class TorrentTask(netius.Observable):
         return struct
 
     def load_file(self):
+        if self._is_single(): return self.load_single()
+        else: return self.load_multiple()
+
+    def load_single(self):
+        # retrieves the length of the current (single file) and
+        # the name of the associated file
         size = self.info["length"]
         name = self.info["info"]["name"]
+
+        # determines if the target path is a directory and if that's
+        # the case ensures proper naming using the (base file name)
         is_dir = os.path.isdir(self.target_path)
         if is_dir: self.target_path = os.path.join(self.target_path, name)
+
+        # opens the file object for the target part in write mode
+        # and then populates the file with empty information for
+        # the requested size value (as expected under single mode=
         self.file = open(self.target_path, "wb")
         self.file.seek(size - 1)
         self.file.write(b"\0")
         self.file.flush()
 
+    def load_multiple(self):
+        files = self.info["files"]
+        name = self.info["info"]["name"]
+
+        is_dir = os.path.isdir(self.target_path)
+        if is_dir: self.target_path = os.path.join(self.target_path, name)
+        if not os.path.exists(self.target_path): os.makedirs(self.target_path)
+
+        self.files = []
+
+        for file_m in files:
+            file_path = file_m["path"]
+            file_size = file_m["length"]
+            file_path = os.path.join(self.target_path, *file_path)
+            file = open(file_path, "wb")
+            file.seek(file_size - 1)
+            file.write(b"\0")
+            file.flush()
+            file_t = (file, file_m)
+            self.files.append(file_t)
+
     def unload_file(self):
+        if self._is_single(): return self.unload_single()
+        else: return self.unload_multiple()
+
+    def unload_single(self):
         if not self.file: return
         self.file.close()
         self.file = None
+
+    def unload_multiple(self):
+        if not self.files: return
+        for file_t in self.files:
+            file, _file_m = file_t
+            file.close()
+        del self.files[:]
 
     def load_pieces(self):
         length = self.info["length"]
@@ -479,13 +524,16 @@ class TorrentTask(netius.Observable):
         info = self.info.get("info", {})
         pieces = info.get("pieces", "")
         length = info.get("length", None)
+        files = info.get("files", [])
         piece_length = info.get("piece length", 1)
         number_blocks = math.ceil(float(piece_length) / float(BLOCK_SIZE))
         number_blocks = int(number_blocks)
         pieces_l = [piece for piece in netius.common.chunks(pieces, 20)]
         pieces_count = len(pieces_l)
+        files_length = sum(file["length"] for file in files)
         self.info["pieces"] = pieces_l
-        self.info["length"] = length or pieces_count * piece_length
+        self.info["length"] = length or files_length or pieces_count * piece_length
+        self.info["files"] = files
         self.info["number_pieces"] = pieces_count
         self.info["number_blocks"] = number_blocks
 
@@ -498,17 +546,78 @@ class TorrentTask(netius.Observable):
         if not block: return
 
         # retrieves the size of a piece and uses that value together
-        # with the block begin offset value to seek the proper file position
-        # and then writes the received data under that position, flushing
-        # the file contents afterwards to avoid file corruption
+        # with the block begin offset to calculate the final file offset
+        # value to be passed to the write data operations (for handling)
         piece_length = self.info["info"]["piece length"]
-        self.file.seek(index * piece_length + begin)
-        self.file.write(data)
-        self.file.flush()
+        offset = index * piece_length + begin
+        self.write_data(data, offset)
 
         # marks the current block as stored so that no other equivalent
         # operation is performed (avoiding duplicated operations)
         self.stored.mark_block(index, begin)
+
+    def write_data(self, data, offset):
+        if self._is_single(): return self.write_single(data, offset)
+        else: return self.write_multiple(data, offset)
+
+    def write_single(self, data, offset):
+        # seek the proper file position (according to passed offset)
+        # and then writes the received data under that position,
+        # flushing the file contents afterwards to avoid file corruption
+        self.file.seek(offset)
+        self.file.write(data)
+        self.file.flush()
+
+    def write_multiple(self, data, offset):
+        # starts both the initial file offset position and
+        # the initial pending bytes to be written to files
+        file_offset = 0
+        pending = len(data)
+
+        # iterates over the complete set of file to write the
+        # partial contents to each of the corresponding files
+        # note that a data chunk may span multiple files
+        for file_t in self.files:
+            # unpacks the file tuple into the file stream and
+            # the meta information map, and uses it to retrieve
+            # the total size in bytes for the current file
+            file, file_m = file_t
+            file_size = file_m["length"]
+
+            # calculates the possible start offset of the data
+            # chunk and verifies that it's valid, less that the
+            # size of the current file, otherwise skips the current
+            # iteration, must go further
+            start = offset - file_offset
+            file_offset += file_size
+            if start >= file_size: continue
+
+            # calculates the end internal offset value as the
+            # minimum value between the file size and the start
+            # offset plus pending number of bytes, then uses
+            # this end offset value to calculate the total number
+            # of bytes to be written to the current file
+            end = min(file_size, start + pending)
+            count = end - start
+
+            # seeks the current file to the internal start offset
+            # value and writes the partial data to the stream,
+            # flushing then the file (avoiding corruption)
+            file.seek(start)
+            file.write(data[:count])
+            file.flush()
+
+            # updates the data chunk with the remaining data
+            # taking into account the written amount of bytes
+            # and updates the pending (bytes) and offset values
+            data = data[count:]
+            pending -= count
+            offset += count
+
+            # verifies if there's no more data pending and if
+            # that's the case break the current loop as no more
+            # files are going to be affected
+            if pending == 0: break
 
     def set_dht(self, peer_t, port):
         # tries to retrieve the peer associated with the provided peer tuple
@@ -596,7 +705,6 @@ class TorrentTask(netius.Observable):
                 host, port = line.split(":", 1)
                 port = int(port)
                 peer = dict(ip = host, port = port)
-                print(peer)
                 self.add_peer(peer)
 
     def connect_peers(self):
@@ -674,9 +782,16 @@ class TorrentTask(netius.Observable):
         self.requested.push_block(index, begin)
 
     def verify_piece(self, index):
+        if self._is_single(): return self.verify_single(index)
+        else: return self.verify_multiple(index)
+
+    def verify_single(self, index):
         file = open(self.target_path, "rb")
         try: self._verify_piece(index, file)
         finally: file.close()
+
+    def verify_multiple(self, index):
+        pass
 
     def confirm_piece(self, index):
         piece_size = self.stored.piece_size(index)
@@ -702,6 +817,10 @@ class TorrentTask(netius.Observable):
         if not peer_t in self.peers_m: return
         del self.peers_m[peer_t]
         self.peers.remove(peer)
+
+    def _is_single(self):
+        files = self.info.get("files", [])
+        return False if files else True
 
     def _verify_piece(self, index, file):
         piece = self.info["pieces"][index]
@@ -827,7 +946,7 @@ if __name__ == "__main__":
     import logging
 
     def on_start(server):
-        task = server.download("\\", "\\file.torrent", close = True)
+        task = server.download("\\", "\\item.torrent", close = True)
         task.bind("piece", on_piece)
         task.bind("complete", on_complete)
 
