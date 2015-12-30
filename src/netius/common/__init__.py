@@ -47,6 +47,7 @@ from . import pop
 from . import rsa
 from . import smtp
 from . import socks
+from . import stream
 from . import structures
 from . import torrent
 from . import util
@@ -73,6 +74,7 @@ from .rsa import open_pem_key, write_pem_key, open_private_key, open_public_key,
     rsa_exponents, rsa_bits, rsa_sign, rsa_verify, rsa_crypt_s, rsa_crypt
 from .smtp import SMTPParser
 from .socks import SOCKSParser
+from .stream import Stream, FileStream, FilesStream
 from .structures import PriorityDict
 from .torrent import info_hash, bencode, bdecode, chunk, dechunk, TorrentParser
 from .util import cstring, chunks, header_down, header_up, addr_to_ip4, ip4_to_addr,\
