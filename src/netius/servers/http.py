@@ -181,13 +181,13 @@ class HTTPConnection(netius.Connection):
         # creates the various parts of the chunk with the size
         # of the data that is going to be sent and then adds
         # each of the parts to the chunk buffer list
-        buffer.append("%x\r\n" % size)
+        buffer.append(netius.legacy.bytes("%x\r\n" % size))
         buffer.append(data)
-        buffer.append("\r\n")
+        buffer.append(netius.legacy.bytes("\r\n"))
 
         # joins the buffer containing the chunk parts and then
         # sends it to the connection using the plain method
-        buffer_s = "".join(buffer)
+        buffer_s = b"".join(buffer)
         self.send_plain(buffer_s, delay = delay, callback = callback)
 
     def send_gzip(self, data, delay = False, callback = None, level = 6):
