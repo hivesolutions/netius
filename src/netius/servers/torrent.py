@@ -38,6 +38,7 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import os
+import sys
 import copy
 import math
 import uuid
@@ -454,17 +455,22 @@ class TorrentTask(netius.Observable):
         size = self.info["length"]
         name = self.info["info"]["name"]
 
+        # runs the normalization process on the target path so that
+        # it may be used on a more flexible way
+        target_path = os.path.expanduser(self.target_path)
+        target_path = os.path.normpath(target_path)
+
         # determines if the target path is a directory and if that's
         # not the case creates the appropriate directories so that
         # they area available for the file stream creation
-        is_dir = os.path.isdir(self.target_path)
-        if not is_dir: os.makedirs(self.target_path)
+        is_dir = os.path.isdir(target_path)
+        if not is_dir: os.makedirs(target_path)
 
         # creates the "final" file path from the target path and the
         # name of the file and then constructs a file stream with the
         # path and the size information and opens it, note that the
         # opening operation is expensive as it allocates the file
-        file_path = os.path.join(self.target_path, name)
+        file_path = os.path.join(target_path, name)
         self.file = netius.common.FileStream(file_path, size)
         self.file.open()
 
@@ -473,7 +479,10 @@ class TorrentTask(netius.Observable):
         size = self.info["length"]
         name = self.info["info"]["name"]
 
-        dir_path = os.path.join(self.target_path, name)
+        target_path = os.path.expanduser(self.target_path)
+        target_path = os.path.normpath(target_path)
+
+        dir_path = os.path.join(target_path, name)
         is_dir = os.path.isdir(dir_path)
         if not is_dir: os.makedirs(dir_path)
 
@@ -862,8 +871,11 @@ class TorrentServer(netius.ContainerServer):
 if __name__ == "__main__":
     import logging
 
+    if len(sys.argv) > 1: file_path = sys.argv[1]
+    else: file_path = "\\file.torrent"
+
     def on_start(server):
-        task = server.download("\\", "\\file.torrent", close = True)
+        task = server.download("~/Downloads", file_path, close = True)
         task.bind("piece", on_piece)
         task.bind("complete", on_complete)
 
