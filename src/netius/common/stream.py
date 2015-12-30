@@ -109,11 +109,12 @@ class FilesStream(Stream):
             file_size = file_m["length"]
             file_path = os.path.join(self.dir_path, *file_path)
             file = open(file_path, mode)
+            file_t = (file, file_m)
+            self.files.append(file_t)
+            if not allocate: continue
             file.seek(file_size - 1)
             file.write(b"\0")
             file.flush()
-            file_t = (file, file_m)
-            self.files.append(file_t)
 
     def close(self):
         if not self.files: return
