@@ -69,8 +69,8 @@ class FileStream(Stream):
         self.size = size
         self.file = None
 
-    def open(self, mode = "r+b", allocate = True):
-        self.file = open(self.target_path, mode)
+    def open(self, mode = "w+b", allocate = True):
+        self.file = open(self.path, mode)
         if not allocate: return
         self.file.seek(self.size - 1)
         self.file.write(b"\0")
@@ -103,7 +103,7 @@ class FilesStream(Stream):
         self.files = []
         self._offset = 0
 
-    def open(self, mode = "r+b", allocate = True):
+    def open(self, mode = "w+b", allocate = True):
         for file_m in self.files_m:
             file_path = file_m["path"]
             file_size = file_m["length"]
