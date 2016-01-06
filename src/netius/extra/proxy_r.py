@@ -109,6 +109,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         version_s = parser.version_s
         is_secure = connection.ssl
         host = headers.get("host", None)
+        address = headers.get("x-forwarded-for", connection.address[0])
         protocol = headers.get("x-forwarded-proto", None)
         protocol = protocol or ("https" if is_secure else "http")
 
@@ -201,10 +202,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # this value should be constructed based on the original path
         url = prefix + path
 
-        # updates the various headers that are relates with the reverse
+        # updates the various headers that are related with the reverse
         # proxy operation this is required so that the request gets
         # properly handled by the reverse server, otherwise some problems
         # would occur in the operation of handling the request
+        headers["x-forwarded-for"] = address
         headers["x-forwarded-proto"] = protocol
 
         # verifies if the current connection already contains a valid
