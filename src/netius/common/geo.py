@@ -91,7 +91,6 @@ class GeoResolver(object):
 
     @classmethod
     def _download_db(cls, path = DB_NAME):
-        path_gz = path + ".gz"
         result = netius.clients.HTTPClient.method_s(
             "GET",
             cls.DOWNLOAD_URL,
@@ -99,6 +98,11 @@ class GeoResolver(object):
         )
         response = netius.clients.HTTPClient.to_response(result)
         contents = response.read()
+        cls._store_db(contents, path = path)
+
+    @classmethod
+    def _store_db(cls, contents, path = DB_NAME):
+        path_gz = path + ".gz"
         file = open(path_gz, "wb")
         try: file.write(contents)
         finally: file.close()
