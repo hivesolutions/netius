@@ -38,6 +38,7 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import os
+import sys
 import gzip
 
 import netius.clients
@@ -142,7 +143,9 @@ class GeoResolver(object):
         return path
 
 if __name__ == "__main__":
+    prefix = "~/"
+    if len(sys.argv) > 1: prefix = sys.argv[1]
     GeoResolver._try_db(
-        path = "~/" + GeoResolver.DB_NAME,
+        path = prefix + GeoResolver.DB_NAME,
         download = True
     )
