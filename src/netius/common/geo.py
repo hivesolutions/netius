@@ -75,7 +75,7 @@ class GeoResolver(object):
         return result
 
     @classmethod
-    def _simplify(self, result, locale = "en", valid = VALID):
+    def _simplify(cls, result, locale = "en", valid = VALID):
         if not result: return result
         for name, value in netius.legacy.items(result):
             if not name in valid: del result[name]
