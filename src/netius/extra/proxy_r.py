@@ -65,6 +65,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         regex = {},
         hosts = {},
         auth = {},
+        redirect = {},
         strategy = "smart",
         reuse = True,
         *args,
@@ -78,6 +79,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             regex = regex,
             hosts = hosts,
             auth = auth,
+            redirect = redirect,
             strategy = strategy,
             reuse = reuse,
             robin = dict(),
@@ -112,6 +114,23 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         address = headers.get("x-forwarded-for", connection.address[0])
         protocol = headers.get("x-forwarded-proto", None)
         protocol = protocol or ("https" if is_secure else "http")
+
+        # tries to determine if a proper (client side) redirection should operation
+        # should be applied to the current request, if that's the case (match) an
+        # immediate response is returned with proper redirection instructions
+        redirect = self.redirect.get(host, None)
+        if redirect:
+            location = "%s://%s%s" % (protocol, redirect, path)
+            connection.send_response(
+                headers = dict(
+                    location = location
+                ),
+                version = version_s,
+                code = 303,
+                code_s = "See Other",
+                apply = True
+            )
+            return
 
         # tries to extract the various attributes of the current connection
         # that are going to be used for the routing operation, this attributes
@@ -387,9 +406,14 @@ if __name__ == "__main__":
     auth = {
         "host.com" : netius.PasswdAuth("extras/htpasswd")
     }
+    redirect = {
+        "host.com" : "other.host.com"
+    }
     server = ReverseProxyServer(
         regex = regex,
         hosts = hosts,
+        auth = auth,
+        redirect = redirect,
         level = logging.INFO
     )
     server.serve(env = True)
