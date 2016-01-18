@@ -109,6 +109,7 @@ class Server(Base):
         ssl = False,
         key_file = None,
         cer_file = None,
+        ca_file = None,
         ssl_verify = None,
         setuid = None,
         backlog = 5,
@@ -126,6 +127,7 @@ class Server(Base):
         ssl = self.get_env("SSL", ssl, cast = bool) if env else ssl
         key_file = self.get_env("KEY_FILE", key_file) if env else key_file
         cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
+        ca_file = self.get_env("CA_FILE", ca_file) if env else ca_file
         ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
         setuid = self.get_env("SETUID", setuid, cast = int) if env else setuid
         backlog = self.get_env("BACKLOG", backlog, cast = int) if env else backlog
@@ -170,6 +172,7 @@ class Server(Base):
         # that using these certificates may create validation problems
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
+        ca_file = ca_file or None
 
         # determines if the client side certificate should be verified
         # according to the loaded certificate authority values or if
@@ -189,6 +192,7 @@ class Server(Base):
             ssl,
             key_file = key_file,
             cer_file = cer_file,
+            ca_file = ca_file,
             ssl_verify = ssl_verify,
             family = family
         )
@@ -248,6 +252,7 @@ class Server(Base):
         ssl = False,
         key_file = None,
         cer_file = None,
+        ca_file = None,
         ssl_verify = False,
         family = socket.AF_INET,
         type = socket.SOCK_STREAM
@@ -262,6 +267,7 @@ class Server(Base):
         self.debug("Creating server's tcp %s socket ..." % type_s)
         if ssl: self.debug("Loading '%s' as key file" % key_file)
         if ssl: self.debug("Loading '%s' as certificate file" % cer_file)
+        if ssl and ca_file: self.debug("Loading '%s' as certificate authority file" % ca_file)
         if ssl and ssl_verify: self.debug("Loading with client ssl verification")
 
         # creates the socket that it's going to be used for the listening
@@ -275,6 +281,7 @@ class Server(Base):
             _socket,
             key_file = key_file,
             cer_file = cer_file,
+            ca_file = ca_file,
             ssl_verify = ssl_verify,
             server = True
         )

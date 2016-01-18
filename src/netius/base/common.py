@@ -1396,8 +1396,10 @@ class AbstractBase(observer.Observable):
         context,
         key_file = None,
         cer_file = None,
+        ca_file = None,
         verify_mode = ssl.CERT_NONE,
-        check_hostname = False
+        check_hostname = False,
+        load_default = True
     ):
         dir_path = os.path.dirname(__file__)
         root_path = os.path.join(dir_path, "../")
@@ -1409,6 +1411,8 @@ class AbstractBase(observer.Observable):
         context.load_cert_chain(cer_file, keyfile = key_file)
         context.verify_mode = verify_mode
         context.check_hostname = check_hostname
+        if ca_file: context.load_verify_locations(capath = ca_file)
+        if load_default: context.load_default_certs(purpose = ssl.Purpose.SERVER_AUTH)
 
     def _ssl_upgrade(self, _socket, key_file = None, cer_file = None, server = True):
         socket_ssl = self._ssl_wrap(
@@ -1424,9 +1428,9 @@ class AbstractBase(observer.Observable):
         _socket,
         key_file = None,
         cer_file = None,
+        ca_file = None,
         server = True,
-        ssl_verify = False,
-        ca_certs = None
+        ssl_verify = False
     ):
         dir_path = os.path.dirname(__file__)
         root_path = os.path.join(dir_path, "../")
@@ -1445,7 +1449,7 @@ class AbstractBase(observer.Observable):
             certfile = cer_file,
             server_side = server,
             cert_reqs = cert_reqs,
-            ca_certs = ca_certs,
+            ca_certs = ca_file,
             ssl_version = ssl.PROTOCOL_SSLv23,
             do_handshake_on_connect = False
         )
@@ -1454,6 +1458,7 @@ class AbstractBase(observer.Observable):
             self._ssl_context,
             key_file = key_file,
             cer_file = cer_file,
+            ca_file = ca_file,
             verify_mode = cert_reqs
         )
 
