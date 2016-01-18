@@ -93,6 +93,12 @@ The servers that come with netius out-of-the-box, can be tested through the comm
 * SMTPServer - `python -m netius.servers.smtp`
 * RelaySMTPServer - `python -m netius.extra.smtp_r`
 
+## Learn more
+
+### Basic
+
+* [Configuration](doc/configuration.md) - how to configure your server/client
+
 ### Advanced topics
 
 More information can be found in the [Advanced Topics](doc/advanced.md) page.
