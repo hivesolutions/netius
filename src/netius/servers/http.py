@@ -106,6 +106,7 @@ class HTTPConnection(netius.Connection):
         if self.gzip: self._close_gzip(safe = True)
 
     def send(self, data, delay = False, callback = None):
+        data = netius.legacy.bytes(data) if data else data
         if self.current == PLAIN_ENCODING:
             self.send_plain(
                 data,
