@@ -109,6 +109,7 @@ class Server(Base):
         ssl = False,
         key_file = None,
         cer_file = None,
+        ssl_verify = None,
         setuid = None,
         backlog = 5,
         load = True,
@@ -125,6 +126,7 @@ class Server(Base):
         ssl = self.get_env("SSL", ssl, cast = bool) if env else ssl
         key_file = self.get_env("KEY_FILE", key_file) if env else key_file
         cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
+        ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
         setuid = self.get_env("SETUID", setuid, cast = int) if env else setuid
         backlog = self.get_env("BACKLOG", backlog, cast = int) if env else backlog
 
@@ -169,6 +171,11 @@ class Server(Base):
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
 
+        # determines if the client side certificate should be verified
+        # according to the loaded certificate authority values or if
+        # on the contrary no (client) validation should be performed
+        ssl_verify = ssl_verify or False
+
         # verifies if the type of server that is going to be created is
         # unix or internet based, this allows the current infra-structure
         # to work under a much more latency free unix sockets
@@ -178,7 +185,13 @@ class Server(Base):
         # creates a service socket according to the defined service
         family = socket.AF_INET6 if ipv6 else socket.AF_INET
         family = socket.AF_UNIX if is_unix else family
-        if type == TCP_TYPE: self.socket = self.socket_tcp(ssl, key_file, cer_file, family)
+        if type == TCP_TYPE: self.socket = self.socket_tcp(
+            ssl,
+            key_file = key_file,
+            cer_file = cer_file,
+            ssl_verify = ssl_verify,
+            family = family
+        )
         elif type == UDP_TYPE: self.socket = self.socket_udp()
         else: raise errors.NetiusError("Invalid server type provided '%d'" % type)
 
@@ -235,6 +248,7 @@ class Server(Base):
         ssl = False,
         key_file = None,
         cer_file = None,
+        ssl_verify = False,
         family = socket.AF_INET,
         type = socket.SOCK_STREAM
     ):
@@ -244,10 +258,11 @@ class Server(Base):
 
         # retrieves the proper string based type for the current server socket
         # and the prints a series of log message about the socket to be created
-        type_s = ssl and "ssl" or ""
+        type_s = "ssl" if ssl else ""
         self.debug("Creating server's tcp %s socket ..." % type_s)
         if ssl: self.debug("Loading '%s' as key file" % key_file)
         if ssl: self.debug("Loading '%s' as certificate file" % cer_file)
+        if ssl and ssl_verify: self.debug("Loading with client ssl verification")
 
         # creates the socket that it's going to be used for the listening
         # of new connections (server socket) and sets it as non blocking
@@ -260,6 +275,7 @@ class Server(Base):
             _socket,
             key_file = key_file,
             cer_file = cer_file,
+            ssl_verify = ssl_verify,
             server = True
         )
 
