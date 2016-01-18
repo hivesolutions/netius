@@ -1410,7 +1410,15 @@ class AbstractBase(observer.Observable):
         )
         return socket_ssl
 
-    def _ssl_wrap(self, _socket, key_file = None, cer_file = None, server = True):
+    def _ssl_wrap(
+        self,
+        _socket,
+        key_file = None,
+        cer_file = None,
+        server = True,
+        cert_reqs = ssl.CERT_NONE,
+        ca_certs = None
+    ):
         dir_path = os.path.dirname(__file__)
         root_path = os.path.join(dir_path, "../")
         root_path = os.path.normpath(root_path)
@@ -1429,12 +1437,16 @@ class AbstractBase(observer.Observable):
         socket_ssl = self._ssl_context.wrap_socket(
             _socket,
             server_side = server,
+            cert_reqs = cert_reqs,
+            ca_certs = ca_certs,
             do_handshake_on_connect = False
         ) if self._ssl_context else ssl.wrap_socket(
             _socket,
             keyfile = key_file,
             certfile = cer_file,
             server_side = server,
+            cert_reqs = cert_reqs,
+            ca_certs = ca_certs,
             ssl_version = ssl.PROTOCOL_SSLv23,
             do_handshake_on_connect = False
         )
