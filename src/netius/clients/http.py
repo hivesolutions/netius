@@ -333,10 +333,12 @@ class HTTPClient(netius.StreamClient):
 
     @classmethod
     def decode_gzip(cls, data):
+        if not data: return data
         return zlib.decompress(data, zlib.MAX_WBITS | 16)
 
     @classmethod
     def decode_deflate(cls, data):
+        if not data: return data
         try: return zlib.decompress(data)
         except: return zlib.decompress(data, -zlib.MAX_WBITS)
 
@@ -347,7 +349,7 @@ class HTTPClient(netius.StreamClient):
         data = b"".join(buffer)
         encoding = headers.get("Content-Encoding", None)
         decoder = getattr(cls, "decode_%s" % encoding) if encoding else None
-        if decoder: data = decoder(data)
+        if decoder and data: data = decoder(data)
         request["code"] = parser.code
         request["status"] = parser.status
         request["headers"] = headers
