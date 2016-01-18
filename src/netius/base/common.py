@@ -1411,7 +1411,7 @@ class AbstractBase(observer.Observable):
         context.load_cert_chain(cer_file, keyfile = key_file)
         context.verify_mode = verify_mode
         context.check_hostname = check_hostname
-        if ca_file: context.load_verify_locations(capath = ca_file)
+        if ca_file: context.load_verify_locations(cafile = ca_file)
         if load_default: context.load_default_certs(purpose = ssl.Purpose.SERVER_AUTH)
 
     def _ssl_upgrade(self, _socket, key_file = None, cer_file = None, server = True):
