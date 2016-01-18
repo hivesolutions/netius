@@ -110,7 +110,7 @@ class Server(Base):
         key_file = None,
         cer_file = None,
         ca_file = None,
-        ssl_verify = None,
+        ssl_verify = False,
         setuid = None,
         backlog = 5,
         load = True,

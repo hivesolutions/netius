@@ -543,11 +543,22 @@ class StreamClient(Client):
         ssl = False,
         key_file = None,
         cer_file = None,
+        ca_file = None,
+        ssl_verify = False,
         family = socket.AF_INET,
-        type = socket.SOCK_STREAM
+        type = socket.SOCK_STREAM,
+        env = True
     ):
         if not host: raise errors.NetiusError("Invalid host for connect operation")
         if not port: raise errors.NetiusError("Invalid port for connect operation")
+
+        # tries to retrieve some of the environment variable related values
+        # so that some of these values are accessible via an external environment
+        # allowing extra configuration flexibility for the client
+        key_file = self.get_env("KEY_FILE", key_file) if env else key_file
+        cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
+        ca_file = self.get_env("CA_FILE", ca_file) if env else ca_file
+        ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
 
         # ensures that a proper loop cycle is available for the current
         # client, otherwise the connection operation would become stalled
@@ -568,6 +579,9 @@ class StreamClient(Client):
 
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
+        ca_file = ca_file or None
+
+        ssl_verify = ssl_verify or False
 
         _socket = socket.socket(family, type)
         _socket.setblocking(0)
@@ -576,6 +590,8 @@ class StreamClient(Client):
             _socket,
             key_file = key_file,
             cer_file = cer_file,
+            ca_file = ca_file,
+            ssl_verify = ssl_verify,
             server = False
         )
 
