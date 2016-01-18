@@ -1380,7 +1380,16 @@ class AbstractBase(observer.Observable):
             context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
             key_file = values.get("key_file", None)
             cer_file = values.get("cer_file", None)
-            self._ssl_certs(context, key_file = key_file, cer_file = cer_file)
+            ca_file = values.get("ca_file", None)
+            ssl_verify = values.get("ssl_verify", False)
+            cert_reqs = ssl.CERT_REQUIRED if ssl_verify else ssl.CERT_NONE
+            self._ssl_certs(
+                context,
+                key_file = key_file,
+                cer_file = cer_file,
+                ca_file = ca_file,
+                verify_mode = cert_reqs
+            )
             self._ssl_contexts[hostname] = context
 
     def _ssl_destroy(self):
