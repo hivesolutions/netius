@@ -87,6 +87,7 @@ class BaseConnection(observer.Observable):
         self.socket = socket
         self.address = address
         self.ssl = ssl
+        self.ssl_host = None
         self.renable = True
         self.wready = False
         self.pending_s = 0
@@ -443,6 +444,16 @@ class BaseConnection(observer.Observable):
             pending_s = self.pending_s
         )
         return info
+
+    def ssl_certificate(self):
+        if not self.ssl: return None
+        return self.socket.getpeercert()
+
+    def ssl_verify_host(self, host = None):
+        host = host or self.ssl_host
+        if not host: return
+        certificate = self.ssl_certificate()
+        ssl.match_hostname(certificate, host)
 
     def is_open(self):
         return self.status == OPEN

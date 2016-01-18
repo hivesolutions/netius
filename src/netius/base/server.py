@@ -111,6 +111,7 @@ class Server(Base):
         cer_file = None,
         ca_file = None,
         ssl_verify = False,
+        ssl_host = None,
         setuid = None,
         backlog = 5,
         load = True,
@@ -129,6 +130,7 @@ class Server(Base):
         cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
         ca_file = self.get_env("CA_FILE", ca_file) if env else ca_file
         ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
+        ssl_host = self.get_env("SSL_HOST", ssl_host) if env else ssl_host
         setuid = self.get_env("SETUID", setuid, cast = int) if env else setuid
         backlog = self.get_env("BACKLOG", backlog, cast = int) if env else backlog
 
@@ -165,6 +167,7 @@ class Server(Base):
         self.port = port
         self.type = type
         self.ssl = ssl
+        self.ssl_host = ssl_host
         self.env = env
 
         # defaults the provided ssl key and certificate paths to the
@@ -794,6 +797,11 @@ class StreamServer(Server):
         # immediately as there's nothing to be done here
         connection = self.connections_m.get(_socket, None)
         if not connection: return
+
+        # in case an ssl host verification value is defined for the server
+        # the client connection is going to be verified against such host
+        # to make sure the client represents the expected entity
+        if self.ssl_host: connection.ssl_verify_host(self.ssl_host)
 
         # in case the current connection is under the upgrade
         # status calls the proper event handler so that the

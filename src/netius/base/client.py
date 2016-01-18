@@ -616,6 +616,7 @@ class StreamClient(Client):
 
         address = port if is_unix else (host, port)
         connection = self.new_connection(_socket, address, ssl = ssl)
+        if ssl_verify: connection.ssl_host = host
 
         self._pending_lock.acquire()
         try: self.pendings.append(connection)
@@ -881,6 +882,11 @@ class StreamClient(Client):
         # immediately as there's nothing to be done here
         connection = self.connections_m.get(_socket, None)
         if not connection: return
+
+        # runs the connection host verification process for the ssl
+        # meaning that in case an ssl host value is defined it is going
+        # to be verified against the value in the certificate
+        connection.ssl_verify_host()
 
         # verifies if the connection is either connecting or upgrading
         # and calls the proper event handler for each event, this is
