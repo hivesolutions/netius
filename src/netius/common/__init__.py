@@ -45,6 +45,7 @@ from . import mime
 from . import parser
 from . import pop
 from . import rsa
+from . import setup
 from . import smtp
 from . import socks
 from . import stream
@@ -72,6 +73,7 @@ from .rsa import open_pem_key, write_pem_key, open_private_key, open_public_key,
     write_private_key, write_public_key, asn_private_key, asn_public_key, pem_to_der,\
     pem_limiters, private_to_public, assert_private, rsa_private, rsa_primes,\
     rsa_exponents, rsa_bits, rsa_sign, rsa_verify, rsa_crypt_s, rsa_crypt
+from .setup import ensure_setup, ensure_ca
 from .smtp import SMTPParser
 from .socks import SOCKSParser
 from .stream import Stream, FileStream, FilesStream

@@ -38,8 +38,17 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import os
+import sys
 import setuptools
 
+BASE_PATH = os.path.realpath(__file__)
+BASE_DIR = os.path.dirname(BASE_PATH)
+NETIUS_DIR = os.path.join(BASE_DIR, "src", "netius")
+sys.path.insert(0, NETIUS_DIR)
+
+import common
+
+common.ensure_setup()
 setuptools.setup(
     name = "netius",
     version = "1.6.9",
