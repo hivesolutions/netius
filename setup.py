@@ -43,12 +43,12 @@ import setuptools
 
 BASE_PATH = os.path.realpath(__file__)
 BASE_DIR = os.path.dirname(BASE_PATH)
-NETIUS_DIR = os.path.join(BASE_DIR, "src", "netius")
-sys.path.insert(0, NETIUS_DIR)
+SRC_DIR = os.path.join(BASE_DIR, "src")
+sys.path.insert(0, SRC_DIR)
 
-import common
+import netius
 
-common.ensure_setup()
+netius.ensure_setup()
 setuptools.setup(
     name = "netius",
     version = "1.6.9",
