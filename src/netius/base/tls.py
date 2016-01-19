@@ -47,16 +47,16 @@ def match_hostname(certificate, hostname):
         return ssl.match_hostname(certificate, hostname)
 
     dns_names = []
-    san = certificate.get("subjectAltName", ())
+    subject_alt_name = certificate.get("subjectAltName", ())
 
-    for key, value in san:
+    for key, value in subject_alt_name:
         if not key == "DNS": continue
         if _dnsname_match(value, hostname): return
         dns_names.append(value)
 
     if not dns_names:
-        for sub in certificate.get("subject", ()):
-            for key, value in sub:
+        for subject in certificate.get("subject", ()):
+            for key, value in subject:
                 if not key == "commonName": continue
                 if _dnsname_match(value, hostname): return
                 dns_names.append(value)
@@ -85,10 +85,9 @@ def _dnsname_match(dn, hostname, max_wildcards = 1):
     remainder = parts[1:]
 
     wildcards = leftmost.count("*")
-    if wildcards > max_wildcards:
-        raise errors.SecurityError(
-            "Too many wildcards in certificate DNS name: " + str(dn)
-        )
+    if wildcards > max_wildcards: raise errors.SecurityError(
+        "Too many wildcards in certificate DNS name: " + str(dn)
+    )
 
     if not wildcards:
         return dn.lower() == hostname.lower()
