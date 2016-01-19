@@ -110,6 +110,7 @@ class Server(Base):
         key_file = None,
         cer_file = None,
         ca_file = None,
+        ca_root = True,
         ssl_verify = False,
         ssl_host = None,
         setuid = None,
@@ -129,6 +130,7 @@ class Server(Base):
         key_file = self.get_env("KEY_FILE", key_file) if env else key_file
         cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
         ca_file = self.get_env("CA_FILE", ca_file) if env else ca_file
+        ca_root = self.get_env("CA_ROOT", ca_root, cast = bool) if env else ca_root
         ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
         ssl_host = self.get_env("SSL_HOST", ssl_host) if env else ssl_host
         setuid = self.get_env("SETUID", setuid, cast = int) if env else setuid
@@ -196,6 +198,7 @@ class Server(Base):
             key_file = key_file,
             cer_file = cer_file,
             ca_file = ca_file,
+            ca_root = ca_root,
             ssl_verify = ssl_verify,
             family = family
         )
@@ -256,6 +259,7 @@ class Server(Base):
         key_file = None,
         cer_file = None,
         ca_file = None,
+        ca_root = True,
         ssl_verify = False,
         family = socket.AF_INET,
         type = socket.SOCK_STREAM
@@ -285,6 +289,7 @@ class Server(Base):
             key_file = key_file,
             cer_file = cer_file,
             ca_file = ca_file,
+            ca_root = ca_root,
             ssl_verify = ssl_verify,
             server = True
         )

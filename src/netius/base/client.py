@@ -544,6 +544,7 @@ class StreamClient(Client):
         key_file = None,
         cer_file = None,
         ca_file = None,
+        ca_root = True,
         ssl_verify = False,
         family = socket.AF_INET,
         type = socket.SOCK_STREAM,
@@ -558,6 +559,7 @@ class StreamClient(Client):
         key_file = self.get_env("KEY_FILE", key_file) if env else key_file
         cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
         ca_file = self.get_env("CA_FILE", ca_file) if env else ca_file
+        ca_root = self.get_env("CA_ROOT", ca_root, cast = bool) if env else ca_root
         ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
 
         # ensures that a proper loop cycle is available for the current
@@ -591,6 +593,7 @@ class StreamClient(Client):
             key_file = key_file,
             cer_file = cer_file,
             ca_file = ca_file,
+            ca_root = ca_root,
             ssl_verify = ssl_verify,
             server = False
         )

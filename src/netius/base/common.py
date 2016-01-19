@@ -1383,6 +1383,7 @@ class AbstractBase(observer.Observable):
             key_file = values.get("key_file", None)
             cer_file = values.get("cer_file", None)
             ca_file = values.get("ca_file", None)
+            ca_root = values.get("ca_root", True)
             ssl_verify = values.get("ssl_verify", False)
             cert_reqs = ssl.CERT_REQUIRED if ssl_verify else ssl.CERT_NONE
             self._ssl_certs(
@@ -1390,6 +1391,7 @@ class AbstractBase(observer.Observable):
                 key_file = key_file,
                 cer_file = cer_file,
                 ca_file = ca_file,
+                ca_root = ca_root,
                 verify_mode = cert_reqs
             )
             self._ssl_contexts[hostname] = context
@@ -1408,9 +1410,9 @@ class AbstractBase(observer.Observable):
         key_file = None,
         cer_file = None,
         ca_file = None,
+        ca_root = False,
         verify_mode = ssl.CERT_NONE,
         check_hostname = False,
-        load_default = True
     ):
         dir_path = os.path.dirname(__file__)
         root_path = os.path.join(dir_path, "../")
@@ -1423,9 +1425,10 @@ class AbstractBase(observer.Observable):
         context.verify_mode = verify_mode
         if hasattr(context, "check_hostname"): context.check_hostname = check_hostname
         if ca_file: context.load_verify_locations(cafile = ca_file)
-        if load_default and hasattr(context, "load_default_certs"):
+        if ca_root and hasattr(context, "load_default_certs"):
             context.load_default_certs(purpose = ssl.Purpose.SERVER_AUTH)
-        if load_default: context.load_verify_locations(cafile = ca_file)
+        if ca_root and SSL_CA_PATH:
+            context.load_verify_locations(cafile = SSL_CA_PATH)
 
     def _ssl_upgrade(self, _socket, key_file = None, cer_file = None, server = True):
         socket_ssl = self._ssl_wrap(
@@ -1442,6 +1445,7 @@ class AbstractBase(observer.Observable):
         key_file = None,
         cer_file = None,
         ca_file = None,
+        ca_root = True,
         server = True,
         ssl_verify = False
     ):
@@ -1472,6 +1476,7 @@ class AbstractBase(observer.Observable):
             key_file = key_file,
             cer_file = cer_file,
             ca_file = ca_file,
+            ca_root = ca_root,
             verify_mode = cert_reqs
         )
 
