@@ -81,10 +81,10 @@ def _dnsname_match(dn, hostname, max_wildcards = 1):
     if not dn: return False
 
     parts = dn.split(r".")
-    leftmost = parts[0]
+    base = parts[0]
     remainder = parts[1:]
 
-    wildcards = leftmost.count("*")
+    wildcards = base.count("*")
     if wildcards > max_wildcards: raise errors.SecurityError(
         "Too many wildcards in certificate DNS name: " + str(dn)
     )
@@ -92,12 +92,12 @@ def _dnsname_match(dn, hostname, max_wildcards = 1):
     if not wildcards:
         return dn.lower() == hostname.lower()
 
-    if leftmost == "*":
+    if base == "*":
         pats.append("[^.]+")
-    elif leftmost.startswith("xn--") or hostname.startswith("xn--"):
-        pats.append(re.escape(leftmost))
+    elif base.startswith("xn--") or hostname.startswith("xn--"):
+        pats.append(re.escape(base))
     else:
-        pats.append(re.escape(leftmost).replace(r"\*", "[^.]*"))
+        pats.append(re.escape(base).replace(r"\*", "[^.]*"))
 
     for fragment in remainder:
         pats.append(re.escape(fragment))
