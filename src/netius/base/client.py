@@ -579,7 +579,7 @@ class StreamClient(Client):
 
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
-        ca_file = ca_file or None
+        ca_file = ca_file or SSL_CA_PATH
 
         ssl_verify = ssl_verify or False
 

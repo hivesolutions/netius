@@ -45,6 +45,7 @@ import socket
 import datetime
 import threading
 
+from . import tls
 from . import config
 from . import legacy
 from . import observer
@@ -453,7 +454,7 @@ class BaseConnection(observer.Observable):
         host = host or self.ssl_host
         if not host: return
         certificate = self.ssl_certificate()
-        ssl.match_hostname(certificate, host)
+        tls.match_hostname(certificate, host)
 
     def is_open(self):
         return self.status == OPEN

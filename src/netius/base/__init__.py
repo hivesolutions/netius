@@ -46,6 +46,7 @@ from . import observer
 from . import poll
 from . import request
 from . import server
+from . import tls
 
 from .client import Client, DatagramClient, StreamClient
 from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
@@ -60,3 +61,4 @@ from .observer import Observable
 from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
 from .request import Request, Response
 from .server import Server, DatagramServer, StreamServer
+from .tls import match_hostname

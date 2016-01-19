@@ -250,6 +250,8 @@ BASE_PATH = os.path.dirname(__file__)
 EXTRAS_PATH = os.path.join(BASE_PATH, "extras")
 SSL_KEY_PATH = os.path.join(EXTRAS_PATH, "net.key")
 SSL_CER_PATH = os.path.join(EXTRAS_PATH, "net.cer")
+SSL_CA_PATH = os.path.join(EXTRAS_PATH, "net.ca")
+if not os.path.exists(SSL_CA_PATH): SSL_CA_PATH = None
 
 class AbstractBase(observer.Observable):
     """
@@ -1423,6 +1425,7 @@ class AbstractBase(observer.Observable):
         if ca_file: context.load_verify_locations(cafile = ca_file)
         if load_default and hasattr(context, "load_default_certs"):
             context.load_default_certs(purpose = ssl.Purpose.SERVER_AUTH)
+        if load_default: context.load_verify_locations(cafile = ca_file)
 
     def _ssl_upgrade(self, _socket, key_file = None, cer_file = None, server = True):
         socket_ssl = self._ssl_wrap(
