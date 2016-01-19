@@ -46,9 +46,9 @@ BASE_DIR = os.path.dirname(BASE_PATH)
 SRC_DIR = os.path.join(BASE_DIR, "src")
 sys.path.insert(0, SRC_DIR)
 
-import netius
+import netius.common
 
-netius.ensure_setup()
+netius.common.ensure_setup()
 setuptools.setup(
     name = "netius",
     version = "1.6.9",
