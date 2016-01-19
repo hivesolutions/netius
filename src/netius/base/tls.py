@@ -68,7 +68,7 @@ def match_hostname(certificate, hostname):
         )
     elif len(dns_names) == 1:
         raise errors.SecurityError(
-            "Hostname %s doesn't match %r" %\
+            "Hostname %s doesn't match %s" %\
             (hostname, dns_names[0])
         )
     else:
