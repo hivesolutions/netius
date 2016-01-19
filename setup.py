@@ -44,7 +44,9 @@ import setuptools
 BASE_PATH = os.path.realpath(__file__)
 BASE_DIR = os.path.dirname(BASE_PATH)
 SRC_DIR = os.path.join(BASE_DIR, "src")
+NETIUS_DIR = os.path.join(SRC_DIR, "netius")
 sys.path.insert(0, SRC_DIR)
+sys.path.insert(0, NETIUS_DIR)
 
 import netius.common
 
