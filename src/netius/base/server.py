@@ -133,6 +133,9 @@ class Server(Base):
         ca_root = self.get_env("CA_ROOT", ca_root, cast = bool) if env else ca_root
         ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
         ssl_host = self.get_env("SSL_HOST", ssl_host) if env else ssl_host
+        key_file = self.get_env("KEY_DATA", key_file, expand = True) if env else key_file
+        cer_file = self.get_env("CER_DATA", cer_file, expand = True) if env else cer_file
+        ca_file = self.get_env("CA_DATA", ca_file, expand = True) if env else ca_file
         setuid = self.get_env("SETUID", setuid, cast = int) if env else setuid
         backlog = self.get_env("BACKLOG", backlog, cast = int) if env else backlog
 

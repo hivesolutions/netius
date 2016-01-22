@@ -561,6 +561,9 @@ class StreamClient(Client):
         ca_file = self.get_env("CA_FILE", ca_file) if env else ca_file
         ca_root = self.get_env("CA_ROOT", ca_root, cast = bool) if env else ca_root
         ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
+        key_file = self.get_env("KEY_DATA", key_file, expand = True) if env else key_file
+        cer_file = self.get_env("CER_DATA", cer_file, expand = True) if env else cer_file
+        ca_file = self.get_env("CA_DATA", ca_file, expand = True) if env else ca_file
 
         # ensures that a proper loop cycle is available for the current
         # client, otherwise the connection operation would become stalled

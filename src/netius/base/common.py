@@ -45,6 +45,7 @@ import heapq
 import signal
 import logging
 import hashlib
+import tempfile
 import traceback
 
 import netius.pool
@@ -1111,7 +1112,7 @@ class AbstractBase(observer.Observable):
         state_s = state_s.lower() if lower else state_s
         return state_s
 
-    def get_env(self, name, default = None, cast = None):
+    def get_env(self, name, default = None, cast = None, expand = False):
         """
         Retrieves the value of the environment variable with the
         requested name, defaulting to the provided value in case
@@ -1119,6 +1120,10 @@ class AbstractBase(observer.Observable):
 
         An optional cast type may be provided in order to cast the
         value of the environment variable in to the target type.
+
+        An optional expand flag may be set so that the variable gets
+        expanded as a file system file, for this the newline values
+        should be escaped as explicit '\n' string sequences (two chars).
 
         Current implementation forwards the request to the current
         configuration registry so that other data providers may
@@ -1133,6 +1138,10 @@ class AbstractBase(observer.Observable):
         @type cast: Type
         @param cast: The cast type to be used to cast the value
         of the requested environment variable.
+        @type expand: bool
+        @param expand: If the variable should be expanded as a file
+        object and stored in a temporary storage, for this situation
+        the resulting object should be a string with the file path.
         @rtype: Object
         @return: The value of the requested environment variable
         properly casted into the target value.
@@ -1140,10 +1149,45 @@ class AbstractBase(observer.Observable):
 
         if not name in config.CONFIGS: return default
         value = config.CONFIGS.get(name, default)
+        if expand: value = self.expand(value)
         if not cast: return value
         try: value = int(value) == 1 if cast == bool else cast(value)
         except: value = value
         return value
+
+    def expand(self, value, encoding = "utf-8", force = False):
+        """
+        Expands the provided string/bytes value into a file in the
+        current file system so that it may be correctly used by interfaces
+        that require certain values to be file system based.
+
+        In case the force value is provided the the file is created even
+        for situations where the provided value is invalid/unset.
+
+        @type value: String
+        @param value: The string/bytes based value that is going to be
+        expanded into a proper file system based (temporary) file.
+        @type encoding: String
+        @param encoding: The encoding that is going to be used to convert
+        the value into a bytes based one in case the provided value is not
+        bytes compliant (and must be converted).
+        @type force: bool
+        @param force: If the expansion operation should be performed even
+        for situations where the value is considered invalid/unset.
+        @rtype: String
+        @return: The path to the temporary file that has just been generated
+        for the expansion of the provided value.
+        """
+
+        if not value and not force: return value
+        is_bytes = legacy.is_bytes(value)
+        if not is_bytes: value = value.encode(encoding)
+        value = value.replace(b"\\n", b"\n")
+        fd, file_path = tempfile.mkstemp()
+        file = open(file_path, "wb")
+        try: file.write(value)
+        except: os.close(fd); file.close()
+        return file_path
 
     def get_adapter(self, name = "memory", *args, **kwargs):
         """
