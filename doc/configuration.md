@@ -16,6 +16,6 @@
 if the current instance is a client the host verification will also be performed for the server side host
 * `SSL_HOST` (`str`) - The hostname that is going to be used in for domain verification, this value is only
 user in server to be able to verify client certificates  against an expected host
-* `CER_DATA` (`str`) - Equivalent to `CER_FILE` but with explicit data contents of the files with `\n` escaped
-* `KEY_DATA` (`str`) - Equivalent to `KEY_FILE` but with explicit data contents of the files with `\n` escaped
-* `CA_DATA` (`str`) - Equivalent to `CA_FILE` but with explicit data contents of the files with `\n` escaped
+* `CER_DATA` (`str`) - Equivalent to `CER_FILE` but with explicit (data) contents of the files (`\n` escaped)
+* `KEY_DATA` (`str`) - Equivalent to `KEY_FILE` but with explicit (data) contents of the files (`\n` escaped)
+* `CA_DATA` (`str`) - Equivalent to `CA_FILE` but with explicit (data) contents of the files (`\n` escaped)
