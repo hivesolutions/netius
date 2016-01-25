@@ -1,11 +1,11 @@
 {
-    "name" : "netius",
-    "version" : "0.1.19",
-    "description" : "Netius System",
-    "author" : "Hive Solutions <development@hive.pt>",
-    "repo" : "git@bitbucket.org:hivesolutions/netius.git",
-    "scripts" : {
-        "*" : "all/build.py"
+    "name": "netius",
+    "version": "0.1.19",
+    "description": "Netius System",
+    "author": "Hive Solutions <development@hive.pt>",
+    "repo": "git@bitbucket.org:hivesolutions/netius.git",
+    "scripts": {
+        "*": "all/build.py"
     },
-    "recursion" : [0, 0, 1, 0, 0]
+    "recursion": [0, 0, 1, 0, 0]
 }
