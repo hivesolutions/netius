@@ -41,7 +41,7 @@ import os
 
 import netius.clients
 
-CA_URL = "http://curl.haxx.se/ca/cacert.pem"
+CA_URL = "https://curl.haxx.se/ca/cacert.pem"
 
 COMMON_PATH = os.path.dirname(__file__)
 BASE_PATH = os.path.join(COMMON_PATH, "..", "base")
