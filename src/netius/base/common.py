@@ -1420,8 +1420,14 @@ class AbstractBase(observer.Observable):
         # that in case the strict mode is enabled (default) the context
         # is unset for situation where no callback registration is possible
         self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        if secure and hasattr(ssl, "OP_NO_SSLv2"): self._ssl_context.options |= ssl.OP_NO_SSLv2
-        if secure and hasattr(ssl, "OP_NO_SSLv3"): self._ssl_context.options |= ssl.OP_NO_SSLv3
+        if secure and hasattr(ssl, "OP_NO_SSLv2"):
+            self._ssl_context.options |= ssl.OP_NO_SSLv2
+        if secure and hasattr(ssl, "OP_NO_SSLv3"):
+            self._ssl_context.options |= ssl.OP_NO_SSLv3
+        if secure and hasattr(ssl, "OP_SINGLE_DH_USE"):
+            self._ssl_context.options |= ssl.OP_SINGLE_DH_USE
+        if secure and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
+            self._ssl_context.options |= ssl.OP_SINGLE_ECDH_USE
         self._ssl_certs(self._ssl_context)
         has_callback = hasattr(self._ssl_context, "set_servername_callback")
         if has_callback: self._ssl_context.set_servername_callback(self._ssl_callback)
@@ -1432,8 +1438,14 @@ class AbstractBase(observer.Observable):
         # uses it to create the complete set of ssl context objects
         for hostname, values in legacy.iteritems(contexts):
             context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-            if secure and hasattr(ssl, "OP_NO_SSLv2"): context.options |= ssl.OP_NO_SSLv2
-            if secure and hasattr(ssl, "OP_NO_SSLv3"): context.options |= ssl.OP_NO_SSLv3
+            if secure and hasattr(ssl, "OP_NO_SSLv2"):
+                context.options |= ssl.OP_NO_SSLv2
+            if secure and hasattr(ssl, "OP_NO_SSLv3"):
+                context.options |= ssl.OP_NO_SSLv3
+            if secure and hasattr(ssl, "OP_SINGLE_DH_USE"):
+                context.options |= ssl.OP_SINGLE_DH_USE
+            if secure and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
+                context.options |= ssl.OP_SINGLE_ECDH_USE
             key_file = values.get("key_file", None)
             cer_file = values.get("cer_file", None)
             ca_file = values.get("ca_file", None)
