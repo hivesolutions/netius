@@ -252,7 +252,9 @@ EXTRAS_PATH = os.path.join(BASE_PATH, "extras")
 SSL_KEY_PATH = os.path.join(EXTRAS_PATH, "net.key")
 SSL_CER_PATH = os.path.join(EXTRAS_PATH, "net.cer")
 SSL_CA_PATH = os.path.join(EXTRAS_PATH, "net.ca")
+SSL_DH_PATH = os.path.join(EXTRAS_PATH, "dh.pem")
 if not os.path.exists(SSL_CA_PATH): SSL_CA_PATH = None
+if not os.path.exists(SSL_DH_PATH): SSL_DH_PATH = None
 
 class AbstractBase(observer.Observable):
     """
@@ -1428,6 +1430,8 @@ class AbstractBase(observer.Observable):
             self._ssl_context.options |= ssl.OP_SINGLE_DH_USE
         if secure and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
             self._ssl_context.options |= ssl.OP_SINGLE_ECDH_USE
+        if secure and SSL_DH_PATH and hasattr(self._ssl_context, "load_dh_params"):
+            self._ssl_context.load_dh_params(SSL_DH_PATH)
         self._ssl_certs(self._ssl_context)
         has_callback = hasattr(self._ssl_context, "set_servername_callback")
         if has_callback: self._ssl_context.set_servername_callback(self._ssl_callback)
@@ -1446,6 +1450,8 @@ class AbstractBase(observer.Observable):
                 context.options |= ssl.OP_SINGLE_DH_USE
             if secure and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
                 context.options |= ssl.OP_SINGLE_ECDH_USE
+            if secure and SSL_DH_PATH and hasattr(context, "load_dh_params"):
+                context.load_dh_params(SSL_DH_PATH)
             key_file = values.get("key_file", None)
             cer_file = values.get("cer_file", None)
             ca_file = values.get("ca_file", None)
