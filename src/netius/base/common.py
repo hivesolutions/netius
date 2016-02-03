@@ -62,7 +62,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.6.16"
+VERSION = "1.6.17"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -1430,6 +1430,8 @@ class AbstractBase(observer.Observable):
             self._ssl_context.options |= ssl.OP_SINGLE_DH_USE
         if secure and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
             self._ssl_context.options |= ssl.OP_SINGLE_ECDH_USE
+        if secure and hasattr(self._ssl_context, "set_ecdh_curve"):
+            self._ssl_context.set_ecdh_curve("prime256v1")
         if secure and SSL_DH_PATH and hasattr(self._ssl_context, "load_dh_params"):
             self._ssl_context.load_dh_params(SSL_DH_PATH)
         self._ssl_certs(self._ssl_context)
@@ -1450,6 +1452,8 @@ class AbstractBase(observer.Observable):
                 context.options |= ssl.OP_SINGLE_DH_USE
             if secure and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
                 context.options |= ssl.OP_SINGLE_ECDH_USE
+            if secure and hasattr(context, "set_ecdh_curve"):
+                context.set_ecdh_curve("prime256v1")
             if secure and SSL_DH_PATH and hasattr(context, "load_dh_params"):
                 context.load_dh_params(SSL_DH_PATH)
             key_file = values.get("key_file", None)
