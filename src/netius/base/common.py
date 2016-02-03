@@ -1405,6 +1405,13 @@ class AbstractBase(observer.Observable):
         has_context = hasattr(ssl, "SSLContext")
         if not has_context: return
 
+        # retrieves the reference to the environment variables that are going
+        # to be used in the construction of the various ssl contexts, note that
+        # the secure variable is extremely important to ensure that a proper and
+        # secure ssl connection is established with the peer
+        secure = self.get_env("SSL_SECURE", True, cast = bool) if env else False
+        contexts = self.get_env("SSL_CONTEXTS", {}, cast = dict) if env else {}
+
         # creates the main/default ssl context setting the default key
         # and certificate information in such context, then verifies
         # if the callback registration method is defined and if it is
@@ -1413,6 +1420,8 @@ class AbstractBase(observer.Observable):
         # that in case the strict mode is enabled (default) the context
         # is unset for situation where no callback registration is possible
         self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        if secure and hasattr(ssl, "OP_NO_SSLv2"): self._ssl_context.options |= ssl.OP_NO_SSLv2
+        if secure and hasattr(ssl, "OP_NO_SSLv3"): self._ssl_context.options |= ssl.OP_NO_SSLv3
         self._ssl_certs(self._ssl_context)
         has_callback = hasattr(self._ssl_context, "set_servername_callback")
         if has_callback: self._ssl_context.set_servername_callback(self._ssl_callback)
@@ -1420,10 +1429,11 @@ class AbstractBase(observer.Observable):
 
         # retrieves the reference to the map containing the various key
         # and certificate paths for the various defined host names and
-        # uses them to create the complete set of ssl context objects
-        contexts = self.get_env("SSL_CONTEXTS", {}) if env else {}
+        # uses it to create the complete set of ssl context objects
         for hostname, values in legacy.iteritems(contexts):
             context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+            if secure and hasattr(ssl, "OP_NO_SSLv2"): context.options |= ssl.OP_NO_SSLv2
+            if secure and hasattr(ssl, "OP_NO_SSLv3"): context.options |= ssl.OP_NO_SSLv3
             key_file = values.get("key_file", None)
             cer_file = values.get("cer_file", None)
             ca_file = values.get("ca_file", None)
