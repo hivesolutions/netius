@@ -435,9 +435,9 @@ class SMTPConnection(netius.Connection):
         for capability in self.capabilities:
             is_auth = capability.startswith("auth ")
             if not is_auth: continue
-            parts = capability.split(" ", 1)
-            if not len(parts) > 1: continue
-            methods.append(parts[1])
+            parts = capability.split(" ")
+            parts = [part.strip() for part in parts]
+            methods.extend(parts[1:])
         usable = [method for method in methods if method in AUTH_METHODS]
         return usable[0] if usable else "plain"
 
