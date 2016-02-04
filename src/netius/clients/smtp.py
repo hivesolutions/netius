@@ -581,8 +581,8 @@ class SMTPClient(netius.StreamClient):
 if __name__ == "__main__":
     import email.mime.text
 
-    sender = "joamag@bemisc.com"
-    receiver = "joamag@gmail.com"
+    sender = "hello@bemisc.com"
+    receiver = "hello@bemisc.com"
 
     mime = email.mime.text.MIMEText("Hello World")
     mime["Subject"] = "Hello World"
