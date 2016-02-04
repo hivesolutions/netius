@@ -290,7 +290,10 @@ class SMTPConnection(netius.Connection):
 
     def auth_t(self):
         is_valid = self.username and self.password
-        if not is_valid: self.skip(); return
+        if not is_valid:
+            self.next = FROM_STATE
+            self.skip()
+            return
 
         method = self.best_auth()
         self.auth(self.username, self.password, method = method)
