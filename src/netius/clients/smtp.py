@@ -203,6 +203,7 @@ class SMTPConnection(netius.Connection):
 
     def next_sequence(self):
         self.sindex += 1
+        self.sindex = self.sequence.index(self.next) if self.next else self.sindex
         self.state = self.next if self.next else self.sequence[self.sindex]
         self.next = None
 
