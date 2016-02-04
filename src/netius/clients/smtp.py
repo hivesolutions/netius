@@ -58,17 +58,26 @@ UPGRADE_STATE = 5
 
 AUTH_STATE = 6
 
-FROM_STATE = 7
+USERNAME_STATE = 7
 
-TO_STATE = 8
+PASSWORD_STATE = 8
 
-DATA_STATE = 9
+FROM_STATE = 9
 
-CONTENTS_STATE = 10
+TO_STATE = 10
 
-QUIT_STATE = 11
+DATA_STATE = 11
 
-FINAL_STATE = 12
+CONTENTS_STATE = 12
+
+QUIT_STATE = 13
+
+FINAL_STATE = 14
+
+AUTH_METHODS = (
+    "plain",
+    "login"
+)
 
 class SMTPConnection(netius.Connection):
 
@@ -84,6 +93,7 @@ class SMTPConnection(netius.Connection):
         self.expected = None
         self.to_index = 0
         self.state = HELO_STATE
+        self.next = None
         self.sindex = 0
         self.sequence = ()
         self.capabilities = ()
@@ -115,6 +125,8 @@ class SMTPConnection(netius.Connection):
             self.stls_t,
             self.upgrade_t,
             self.auth_t,
+            self.username_t,
+            self.password_t,
             self.mail_t,
             self.rcpt_t,
             self.data_t,
@@ -142,7 +154,8 @@ class SMTPConnection(netius.Connection):
         self.username = username
         self.password = password
 
-    def set_sequence(self, sequence):
+    def set_sequence(self, sequence, safe = True):
+        if safe and self.sequence == sequence: return
         self.sindex = 0
         self.sequence = sequence
         self.state = sequence[0]
@@ -152,6 +165,8 @@ class SMTPConnection(netius.Connection):
             EHLO_STATE if ehlo else HELO_STATE,
             CAPA_STATE,
             AUTH_STATE,
+            USERNAME_STATE,
+            PASSWORD_STATE,
             FROM_STATE,
             TO_STATE,
             DATA_STATE,
@@ -168,7 +183,10 @@ class SMTPConnection(netius.Connection):
             STLS_STATE,
             UPGRADE_STATE,
             EHLO_STATE if ehlo else HELO_STATE,
+            CAPA_STATE,
             AUTH_STATE,
+            USERNAME_STATE,
+            PASSWORD_STATE,
             FROM_STATE,
             TO_STATE,
             DATA_STATE,
@@ -178,15 +196,15 @@ class SMTPConnection(netius.Connection):
         )
         self.set_sequence(sequence)
 
-    def set_capabilities(self, capabilities):
-        if self.capabilities: return
+    def set_capabilities(self, capabilities, force = True):
+        if not force and self.capabilities: return
+        capabilities = [value.strip().lower() for value in capabilities]
         self.capabilities = capabilities
-        if "STARTTLS" in self.capabilities:
-            self.set_message_stls_seq()
 
     def next_sequence(self):
         self.sindex += 1
-        self.state = self.sequence[self.sindex]
+        self.state = self.next if self.next else self.sequence[self.sindex]
+        self.next = None
 
     def parse(self, data):
         return self.parser.parse(data)
@@ -254,6 +272,8 @@ class SMTPConnection(netius.Connection):
     def capa_t(self):
         capabilities = self.messages[1:]
         self.set_capabilities(capabilities)
+        if "starttls" in self.capabilities:
+            self.set_message_stls_seq()
         self.next_sequence()
         self.call()
 
@@ -271,7 +291,16 @@ class SMTPConnection(netius.Connection):
         is_valid = self.username and self.password
         if not is_valid: self.skip(); return
 
-        self.auth(self.username, self.password)
+        method = self.best_auth()
+        self.auth(self.username, self.password, method = method)
+        self.next_sequence()
+
+    def username_t(self):
+        self.login_username(self.username)
+        self.next_sequence()
+
+    def password_t(self):
+        self.login_password(self.password)
         self.next_sequence()
 
     def mail_t(self):
@@ -324,12 +353,39 @@ class SMTPConnection(netius.Connection):
 
     def auth(self, username, password, method = "plain"):
         self.assert_s(AUTH_STATE)
+        method_name = "auth_%s" % method
+        has_method = hasattr(self, method_name)
+        if not has_method: raise netius.NotImplemented("Method not implemented")
+        method = getattr(self, method_name)
+        method(username, password)
+
+    def auth_plain(self, username, password):
         auth_value = "\0%s\0%s" % (username, password)
         auth_value = netius.legacy.bytes(auth_value)
         auth_value = base64.b64encode(auth_value)
         auth_value = netius.legacy.str(auth_value)
-        message = "%s %s" % (method, auth_value)
+        message = "%s %s" % ("plain", auth_value)
         self.send_smtp("auth", message)
+        self.set_expected(235)
+        self.next = FROM_STATE
+
+    def auth_login(self, username, password):
+        message = "login"
+        self.send_smtp("auth", message)
+        self.set_expected(334)
+
+    def login_username(self, username):
+        username = netius.legacy.bytes(username)
+        username = base64.b64encode(username)
+        username = netius.legacy.str(username)
+        self.send_smtp(username)
+        self.set_expected(334)
+
+    def login_password(self, password):
+        password = netius.legacy.bytes(password)
+        password = base64.b64encode(password)
+        password = netius.legacy.str(password)
+        self.send_smtp(password)
         self.set_expected(235)
 
     def mail(self, value):
@@ -372,6 +428,17 @@ class SMTPConnection(netius.Connection):
     def assert_s(self, expected):
         if self.state == expected: return
         raise netius.ParserError("Invalid state")
+
+    def best_auth(self):
+        methods = []
+        for capability in self.capabilities:
+            is_auth = capability.startswith("auth ")
+            if not is_auth: continue
+            parts = capability.split(" ", 1)
+            if not len(parts) > 1: continue
+            methods.append(parts[1])
+        usable = [method for method in methods if method in AUTH_METHODS]
+        return usable[0] if usable else "plain"
 
 class SMTPClient(netius.StreamClient):
 
