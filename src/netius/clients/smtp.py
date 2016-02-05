@@ -480,47 +480,58 @@ class SMTPClient(netius.StreamClient):
         # this should provide some extra information on the agent
         if mark: contents = self.mark(contents)
 
-        def handler(response = None):
-            # in case there's a valid response provided must parse it
-            # to try to "recover" the final address that is going to be
-            # used in the establishment of the smtp connection
-            if response:
-                # retrieves the first answer (probably the most accurate)
-                # and then unpacks it until the mx address is retrieved
-                first = response.answers[0]
-                extra = first[4]
-                address = extra[1]
+        # creates the method that is able to generate handler for a
+        # certain sequence of to based (email) addresses
+        def build_handler(tos):
 
-            # otherwise the host should have been provided and as such the
-            # address value is set with the provided host
-            else: address = host
+            def handler(response = None):
+                # in case there's a valid response provided must parse it
+                # to try to "recover" the final address that is going to be
+                # used in the establishment of the smtp connection
+                if response:
+                    # retrieves the first answer (probably the most accurate)
+                    # and then unpacks it until the mx address is retrieved
+                    first = response.answers[0]
+                    extra = first[4]
+                    address = extra[1]
 
-            # sets the proper address (host) and port values that are
-            # going to be used to establish the connection, notice that
-            # in case the values provided as parameter to the message
-            # method are valid they are used instead of the "resolved"
-            _host = host or address
-            _port = port or 25
+                # otherwise the host should have been provided and as such the
+                # address value is set with the provided host
+                else: address = host
 
-            # establishes the connection to the target host and port
-            # and using the provided key and certificate files an then
-            # sets the smtp information in the current connection
-            connection = self.connect(_host, _port)
-            if stls: connection.set_message_stls_seq(ehlo = ehlo)
-            else: connection.set_message_seq(ehlo = ehlo)
-            connection.set_smtp(
-                froms,
-                tos,
-                contents,
-                username = username,
-                password = password
-            )
-            return connection
+                # sets the proper address (host) and port values that are
+                # going to be used to establish the connection, notice that
+                # in case the values provided as parameter to the message
+                # method are valid they are used instead of the "resolved"
+                _host = host or address
+                _port = port or 25
+
+                # establishes the connection to the target host and port
+                # and using the provided key and certificate files an then
+                # sets the smtp information in the current connection
+                connection = self.connect(_host, _port)
+                if stls: connection.set_message_stls_seq(ehlo = ehlo)
+                else: connection.set_message_seq(ehlo = ehlo)
+                connection.set_smtp(
+                    froms,
+                    tos,
+                    contents,
+                    username = username,
+                    password = password
+                )
+                return connection
+
+            # returns the clojure bound handler method, ready
+            # to be used under a specific context
+            return handler
 
         # in case the host address has been provided by argument the
         # handler method is called immediately to trigger the processing
         # of the smtp connection using the current host and port
-        if host: handler(); return
+        if host:
+            handler = build_handler(tos)
+            connection = handler()
+            return connection
 
         # ensures that the proper main loop is started so that the current
         # smtp client does not become orphan as no connection has been
@@ -528,16 +539,28 @@ class SMTPClient(netius.StreamClient):
         # is going to be run as a daemon (avoids process exit)
         self.ensure_loop()
 
-        # retrieves the first target of the complete list of
-        # to targets and then splits the email value so that
-        # both the base name and the host are retrieved
-        first = tos[0]
-        _name, domain = first.split("@", 1)
+        # creates the map that is going to be used to associate each of
+        # the domains with the proper to (email) addresses, this is going
+        # to allow aggregated based smtp sessions (performance wise)
+        tos_map = dict()
+        for to in tos:
+            _name, domain = to.split("@", 1)
+            _tos = tos_map.get(domain, [])
+            _tos.append(to)
+            tos_map[domain] = _tos
 
-        # runs the dns query to be able to retrieve the proper
-        # mail exchange host for the target email address and then
-        # sets the proper callback for sending
-        dns.DNSClient.query_s(domain, type = "mx", callback = handler)
+        # iterates over the complete set of domain and associated
+        # to addresses list for each of them to run the mx based
+        # query operation and then start the smtp session
+        for domain, tos in netius.legacy.iteritems(tos_map):
+            # creates a new handler method bound to the to addresses
+            # associated with the current domain in iteration
+            handler = build_handler(tos)
+
+            # runs the dns query to be able to retrieve the proper
+            # mail exchange host for the target email address and then
+            # sets the proper callback for sending
+            dns.DNSClient.query_s(domain, type = "mx", callback = handler)
 
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
