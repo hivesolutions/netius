@@ -477,6 +477,7 @@ class SMTPClient(netius.StreamClient):
     ):
         # in case the mark flag is set the contents data is modified
         # and "marked" with the pre-defined header values of the client
+        # this should provide some extra information on the agent
         if mark: contents = self.mark(contents)
 
         def handler(response = None):
