@@ -319,8 +319,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # url prefix is going to be used instead, the balancer operation
         # is then used to "resolve" the final prefix value from sequence
         host = headers.get("host", None)
-        if host: host = host.split(":", 1)[0]
-        prefix = self.hosts.get(host, None)
+        host_s = host.split(":", 1)[0] if host else host
+        prefix = self.hosts.get(host_s, None)
+        prefix = self.hosts.get(host, prefix)
         resolved = self.balancer(prefix)
 
         # returns the final "resolved" prefix value (in case there's any)
@@ -396,24 +397,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
 if __name__ == "__main__":
     import logging
-    regex = (
-        (re.compile(r"https://host\.com"), "http://localhost"),
-        (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}")
-    )
     hosts = {
-        "host.com" : "http://localhost"
-    }
-    auth = {
-        "host.com" : netius.PasswdAuth("extras/htpasswd")
-    }
-    redirect = {
-        "host.com" : "other.host.com"
+        "host.com:9090" : "http://cnn.com"
     }
     server = ReverseProxyServer(
-        regex = regex,
         hosts = hosts,
-        auth = auth,
-        redirect = redirect,
         level = logging.INFO
     )
     server.serve(env = True)
