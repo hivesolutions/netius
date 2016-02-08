@@ -397,11 +397,24 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
 if __name__ == "__main__":
     import logging
+    regex = (
+        (re.compile(r"https://host\.com"), "http://localhost"),
+        (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}")
+    )
     hosts = {
-        "host.com:9090" : "http://cnn.com"
+        "host.com" : "http://localhost"
+    }
+    auth = {
+        "host.com" : netius.PasswdAuth("extras/htpasswd")
+    }
+    redirect = {
+        "host.com" : "other.host.com"
     }
     server = ReverseProxyServer(
+        regex = regex,
         hosts = hosts,
+        auth = auth,
+        redirect = redirect,
         level = logging.INFO
     )
     server.serve(env = True)
