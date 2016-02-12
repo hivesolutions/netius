@@ -27,3 +27,4 @@ print(state)
 
 * [Tutorial](http://smira.ru/wp-content/uploads/2011/08/heapy.html)
 * [Diagnosing Memory "Leaks" in Python](http://python.dzone.com/articles/diagnosing-memory-leaks-python)
+* [Circular References in Python](http://engineering.hearsaysocial.com/2013/06/16/circular-references-in-python)
