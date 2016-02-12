@@ -68,6 +68,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         redirect = {},
         strategy = "smart",
         reuse = True,
+        sts = 0,
         *args,
         **kwargs
     ):
@@ -82,6 +83,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             redirect = redirect,
             strategy = strategy,
             reuse = reuse,
+            sts = sts,
             robin = dict(),
             smart = netius.common.PriorityDict()
         )
@@ -98,6 +100,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             busy_conn = self.busy_conn
         )
         return info
+
+    def on_serve(self):
+        netius.servers.ProxyServer.on_serve(self)
+        if self.env: self.sts = self.get_env("STS", self.sts, cast = int)
+        if self.sts: self.info("Strict transport security set to %d seconds" % self.sts)
 
     def on_headers(self, connection, parser):
         netius.servers.ProxyServer.on_headers(self, connection, parser)
@@ -227,6 +234,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # would occur in the operation of handling the request
         headers["x-forwarded-for"] = address
         headers["x-forwarded-proto"] = protocol
+
+        # in case a strict transport security value (number) is defined it
+        # is going to be used as the max age value to be applied for such
+        # behaviour, note that this is considered dangerous at it may corrupt
+        # the serving of assets through non secure connections
+        if self.sts: headers["strict-transport-security"] = "max-age=%d" % self.sts
 
         # verifies if the current connection already contains a valid
         # a proxy connection if that's the case that must be unset from
