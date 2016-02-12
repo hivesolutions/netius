@@ -22,3 +22,8 @@ context values (certificate, key, etc) for such domain
 * `CER_DATA` (`str`) - Equivalent to `CER_FILE` but with explicit (data) contents of the file (`\n` escaped)
 * `KEY_DATA` (`str`) - Equivalent to `KEY_FILE` but with explicit (data) contents of the file (`\n` escaped)
 * `CA_DATA` (`str`) - Equivalent to `CA_FILE` but with explicit (data) contents of the file (`\n` escaped)
+
+#### Proxy Reverse
+
+* `STS` (`int`) - Defines the strict transport security header value (in seconds) for the reverse proxy, in case
+the value is zero the strict transport security is disabled (defaults to `0`)
