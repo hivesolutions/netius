@@ -235,12 +235,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         headers["x-forwarded-for"] = address
         headers["x-forwarded-proto"] = protocol
 
-        # in case a strict transport security value (number) is defined it
-        # is going to be used as the max age value to be applied for such
-        # behaviour, note that this is considered dangerous at it may corrupt
-        # the serving of assets through non secure (no ssl) connections
-        if self.sts: headers["strict-transport-security"] = "max-age=%d" % self.sts
-
         # verifies if the current connection already contains a valid
         # a proxy connection if that's the case that must be unset from
         # the connection and from the connection map internal structures
@@ -407,6 +401,20 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if busy: self.busy_conn -= busy; _connection.busy -= busy
         if state: self.releaser(state); _connection.state = None
         netius.servers.ProxyServer._on_prx_close(self, client, _connection)
+
+    def _apply_headers(self, parser, headers, upper = True):
+        netius.servers.ProxyServer._apply_headers(
+            self,
+            parser,
+            headers,
+            upper = upper
+        )
+
+        # in case a strict transport security value (number) is defined it
+        # is going to be used as the max age value to be applied for such
+        # behaviour, note that this is considered dangerous at it may corrupt
+        # the serving of assets through non secure (no ssl) connections
+        if self.sts: headers["Strict-Transport-Security"] = "max-age=%d" % self.sts
 
 if __name__ == "__main__":
     import logging
