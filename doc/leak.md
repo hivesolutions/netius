@@ -16,7 +16,9 @@ snapshot positions (time values) and that allows a powerful memory leak detectio
 import guppy
 heap = guppy.hpy()
 heap.setrelheap()
-YOU_CODE_HERE
+
+...
+
 state = heap.heap()
 print(state)
 ```
