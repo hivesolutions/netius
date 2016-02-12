@@ -10,5 +10,14 @@ type of problems is important to provide a stable production environment.
 A simple yet powerfull utility that provides a mechanism to detect "pending" object between two pre-defined
 snapshot positions (time values) and that allows a powerful memory leak detection mechanism.
 
+```python
+import guppy
+heap = guppy.hpy()
+heap.setrelheap()
+YOU_CODE_HERE
+state = heap.heap()
+print(state)
+```
+
 * [Tutorial](http://smira.ru/wp-content/uploads/2011/08/heapy.html)
 * [Diagnosing Memory "Leaks" in Python](http://python.dzone.com/articles/diagnosing-memory-leaks-python)
