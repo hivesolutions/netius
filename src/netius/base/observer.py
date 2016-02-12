@@ -50,9 +50,6 @@ class Observable(object):
     def __init__(self, *args, **kwargs):
         self.events = {}
 
-    def __del__(self):
-        self.unbind_all()
-
     def build(self):
         pass
 

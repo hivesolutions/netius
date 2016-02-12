@@ -48,10 +48,6 @@ class Container(Base):
         self.owner = None
         self.bases = []
 
-    def __del__(self):
-        Base.__del__(self)
-        self.debug("Container (%s) '%s' deleted from memory" % (self.name, self._uuid))
-
     def start(self, owner):
         # registers for the start event on the current container so that when
         # the start operation is completed the proper propagation may occur

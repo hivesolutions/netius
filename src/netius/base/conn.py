@@ -95,10 +95,6 @@ class BaseConnection(observer.Observable):
         self.pending = []
         self.pending_lock = threading.RLock()
 
-    def __del__(self):
-        observer.Observable.__del__(self)
-        self.owner.debug("Connection '%s' deleted from memory" % self.id)
-
     def destroy(self):
         observer.Observable.destroy(self)
         del self.pending[:]

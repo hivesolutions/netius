@@ -295,10 +295,6 @@ class AbstractBase(observer.Observable):
         self._ssl_init()
         self.set_state(STATE_STOP)
 
-    def __del__(self):
-        observer.Observable.__del__(self)
-        self.close()
-
     @classmethod
     def test_poll(cls, preferred = None):
         # sets the initial selected variable with the unselected
