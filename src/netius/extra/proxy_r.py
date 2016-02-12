@@ -238,7 +238,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # in case a strict transport security value (number) is defined it
         # is going to be used as the max age value to be applied for such
         # behaviour, note that this is considered dangerous at it may corrupt
-        # the serving of assets through non secure connections
+        # the serving of assets through non secure (no ssl) connections
         if self.sts: headers["strict-transport-security"] = "max-age=%d" % self.sts
 
         # verifies if the current connection already contains a valid
