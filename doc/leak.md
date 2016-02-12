@@ -5,7 +5,6 @@ type of problems is important to provide a stable production environment.
 
 ## Notes
 
-
 > Long running Python jobs that consume a lot of memory while running may not 
 > return that memory to the operating system until the process actually 
 > terminates, even if everything is garbage collected properly. That was news 
@@ -20,7 +19,6 @@ type of problems is important to provide a stable production environment.
 > memory management. It's commonly know as memory fragmentation. 
 > Unfortunately, there doesn't seem to be any fool-proof method of avoiding 
 > it.
-
 
 ## Utilities
 
