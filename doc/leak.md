@@ -43,6 +43,7 @@ print(state)
 ### References
 
 * [Heapy Tutorial](http://smira.ru/wp-content/uploads/2011/08/heapy.html)
+* [Muppy Website](http://pythonhosted.org/Pympler/muppy.html)
 * [Diagnosing Memory "Leaks" in Python](http://python.dzone.com/articles/diagnosing-memory-leaks-python)
 * [Circular References in Python](http://engineering.hearsaysocial.com/2013/06/16/circular-references-in-python)
 * [Memory Usage Presentation (PDF)](https://dmalcolm.fedorapeople.org/presentations/MemoryUsage.pdf)
