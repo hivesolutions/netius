@@ -721,6 +721,10 @@ class AbstractBase(observer.Observable):
         # can no longer be used and are gracefully disconnected
         for connection in connections: connection.close()
 
+        # iterates over the complete set of sockets in the connections
+        # map to properly close them (avoids any leak of resources)
+        for _socket in self.connections_m: _socket.close()
+
         # closes the current poll mechanism so that no more issues arise
         # from an open poll system (memory leaks, etc.), note that this is
         # only performed in case the current base instance is the owner of
