@@ -197,6 +197,7 @@ class EpollPoll(Poll):
         self._open = False
 
         for fd in self.fd_m: self.epoll.unregister(fd)
+        self.epoll.close()
         self.epoll = None
 
         self.fd_m.clear()
