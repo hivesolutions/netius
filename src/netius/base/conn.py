@@ -568,9 +568,10 @@ class BaseConnection(observer.Observable):
             # current secure connection and send a graceful
             # shutdown notification to the other peer, or the
             # normal shutdown operation for the socket
-            if self.ssl: self.socket._sslobj.shutdown()
-            elif force: self.socket.shutdown(socket.SHUT_RDWR)
-        except (IOError, ssl.SSLError):
+            if self.ssl and hasattr(self.socket._sslobj, "shutdown"):
+                self.socket._sslobj.shutdown()
+            if force: self.socket.shutdown(socket.SHUT_RDWR)
+        except (IOError, socket.error, ssl.SSLError):
             # ignores the io/ssl error that has just been raise, this
             # assumes that the problem that has just occurred is not
             # relevant as the socket is shutting down and if a problem
