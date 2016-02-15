@@ -5,9 +5,9 @@ type of problems is important to provide a stable production environment.
 
 ## Status
 
-The current Python 2.7 implementation leaks memory under normal usage of the netius HTTP client so the usage of
-a Python 3.4+ version is recommended fora deployment/production environment in order to avoid leaks of memory.
-The leaking of memory under such environments occurs in the native (Python C) infra-structure so its leaking is
+The current Python 2.7 implementation leaks memory under normal usage of the netius HTTP client so using a
+Python 3.4+ version is recommended for a deployment/production environment to avoid memory leaking.
+The leaking of memory under such environments occurs on the native (Python C) codebase so its leaking is
 not traceable by tools like guppy.
 
 ## Notes
