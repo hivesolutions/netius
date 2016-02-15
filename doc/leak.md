@@ -20,10 +20,10 @@ not traceable by tools like guppy.
 > to me, but it's true. What this means is that processes that do need to use
 > a lot of memory will exhibit a "high water" behavior, where they remain
 > forever at the level of memory usage that they required at their peak.
->
+
 > Note: this behavior may be Linux specific; there are anecdotal reports that
 > Python on Windows does not have this problem.
->
+
 > This problem arises from the fact that the Python VM does its own internal
 > memory management. It's commonly know as memory fragmentation.
 > Unfortunately, there doesn't seem to be any fool-proof method of avoiding
