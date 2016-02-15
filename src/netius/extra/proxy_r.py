@@ -187,7 +187,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                     data = "Not authorized",
                     headers = {
                         "connection" : "close",
-                        "wWW-authenticate" : "Basic realm=\"insert realm\""
+                        "wWW-authenticate" : "Basic realm=\"default\""
                     },
                     version = version_s,
                     code = 401,
@@ -207,7 +207,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                     data = "Not authorized",
                     headers = {
                         "connection" : "close",
-                        "wWW-authenticate" : "Basic realm=\"insert realm\""
+                        "wWW-authenticate" : "Basic realm=\"default\""
                     },
                     version = version_s,
                     code = 401,
