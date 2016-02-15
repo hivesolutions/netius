@@ -1445,35 +1445,7 @@ class AbstractBase(observer.Observable):
         # and certificate paths for the various defined host names and
         # uses it to create the complete set of ssl context objects
         for hostname, values in legacy.iteritems(contexts):
-            context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-            if secure and hasattr(ssl, "OP_NO_SSLv2"):
-                context.options |= ssl.OP_NO_SSLv2
-            if secure and hasattr(ssl, "OP_NO_SSLv3"):
-                context.options |= ssl.OP_NO_SSLv3
-            if secure and hasattr(ssl, "OP_SINGLE_DH_USE"):
-                context.options |= ssl.OP_SINGLE_DH_USE
-            if secure and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
-                context.options |= ssl.OP_SINGLE_ECDH_USE
-            if secure and hasattr(ssl, "OP_CIPHER_SERVER_PREFERENCE"):
-                context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
-            if secure and hasattr(context, "set_ecdh_curve"):
-                context.set_ecdh_curve("prime256v1")
-            if secure and SSL_DH_PATH and hasattr(context, "load_dh_params"):
-                context.load_dh_params(SSL_DH_PATH)
-            key_file = values.get("key_file", None)
-            cer_file = values.get("cer_file", None)
-            ca_file = values.get("ca_file", None)
-            ca_root = values.get("ca_root", True)
-            ssl_verify = values.get("ssl_verify", False)
-            cert_reqs = ssl.CERT_REQUIRED if ssl_verify else ssl.CERT_NONE
-            self._ssl_certs(
-                context,
-                key_file = key_file,
-                cer_file = cer_file,
-                ca_file = ca_file,
-                ca_root = ca_root,
-                verify_mode = cert_reqs
-            )
+            context = self._ssl_context(values, secure = secure)
             self._ssl_contexts[hostname] = context
 
     def _ssl_destroy(self):
@@ -1483,6 +1455,38 @@ class AbstractBase(observer.Observable):
     def _ssl_callback(self, socket, hostname, context):
         context = self._ssl_contexts.get(hostname, context)
         socket.context = context
+
+    def _ssl_context(self, values, secure = True):
+        context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        if secure and hasattr(ssl, "OP_NO_SSLv2"):
+            context.options |= ssl.OP_NO_SSLv2
+        if secure and hasattr(ssl, "OP_NO_SSLv3"):
+            context.options |= ssl.OP_NO_SSLv3
+        if secure and hasattr(ssl, "OP_SINGLE_DH_USE"):
+            context.options |= ssl.OP_SINGLE_DH_USE
+        if secure and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
+            context.options |= ssl.OP_SINGLE_ECDH_USE
+        if secure and hasattr(ssl, "OP_CIPHER_SERVER_PREFERENCE"):
+            context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
+        if secure and hasattr(context, "set_ecdh_curve"):
+            context.set_ecdh_curve("prime256v1")
+        if secure and SSL_DH_PATH and hasattr(context, "load_dh_params"):
+            context.load_dh_params(SSL_DH_PATH)
+        key_file = values.get("key_file", None)
+        cer_file = values.get("cer_file", None)
+        ca_file = values.get("ca_file", None)
+        ca_root = values.get("ca_root", True)
+        ssl_verify = values.get("ssl_verify", False)
+        cert_reqs = ssl.CERT_REQUIRED if ssl_verify else ssl.CERT_NONE
+        self._ssl_certs(
+            context,
+            key_file = key_file,
+            cer_file = cer_file,
+            ca_file = ca_file,
+            ca_root = ca_root,
+            verify_mode = cert_reqs
+        )
+        return context
 
     def _ssl_certs(
         self,
