@@ -33,29 +33,3 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
-
-from . import base
-
-class SimpleAuth(base.Auth):
-
-    def __init__(self, username = None, password = None, *args, **kwargs):
-        base.Auth.__init__(self, *args, **kwargs)
-        self.username = username
-        self.password = password
-
-    @classmethod
-    def auth(cls, username, password, target = None, *args, **kwargs):
-        if not target: return False
-        _username, _password = target
-        if _username and not username == _username: return False
-        if not password == _password: return False
-        return True
-
-    def auth_i(self, username, password, *args, **kwargs):
-        return self.__class__.auth(
-            username,
-            password,
-            target = (self.username, self.password),
-            *args,
-            **kwargs
-        )

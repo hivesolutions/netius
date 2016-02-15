@@ -19,6 +19,9 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+__author__ = "João Magalhães <joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,28 +37,34 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from . import base
+import unittest
 
-class SimpleAuth(base.Auth):
+import netius.auth
 
-    def __init__(self, username = None, password = None, *args, **kwargs):
-        base.Auth.__init__(self, *args, **kwargs)
-        self.username = username
-        self.password = password
+class SimpleAuthTest(unittest.TestCase):
 
-    @classmethod
-    def auth(cls, username, password, target = None, *args, **kwargs):
-        if not target: return False
-        _username, _password = target
-        if _username and not username == _username: return False
-        if not password == _password: return False
-        return True
+    def test_simple(self):
+        auth = netius.auth.SimpleAuth("root", "root")
 
-    def auth_i(self, username, password, *args, **kwargs):
-        return self.__class__.auth(
-            username,
-            password,
-            target = (self.username, self.password),
-            *args,
-            **kwargs
-        )
+        result = auth.auth_i("root", "root")
+        self.assertEqual(result, True)
+
+        result = auth.auth_i("root", "root_")
+        self.assertEqual(result, False)
+
+        result = auth.auth_i("root", "")
+        self.assertEqual(result, False)
+
+        result = auth.auth_i("root", None)
+        self.assertEqual(result, False)
+
+        result = auth.auth_i(None, "root")
+        self.assertEqual(result, False)
+
+        auth = netius.auth.SimpleAuth(None, "root")
+
+        result = auth.auth_i(None, "root")
+        self.assertEqual(result, True)
+
+        result = auth.auth_i("root", "root")
+        self.assertEqual(result, True)
