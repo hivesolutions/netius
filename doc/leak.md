@@ -3,6 +3,13 @@
 Memory leaking is one of the major issues when creating a service infra-structure. A correct detection of tese
 type of problems is important to provide a stable production environment.
 
+## Status
+
+The current Python 2.7 implementation leaks memory under normal usage of the netius HTTP client so the usage of
+a Python 3.4+ version is recommended fora deployment/production environment in order to avoid leaks of memory.
+The leaking of memory under such environments occurs in the native (Python C) infra-structure so its leaking is
+not traceable by tools like guppy.
+
 ## Notes
 
 > Long running Python jobs that consume a lot of memory while running may not
