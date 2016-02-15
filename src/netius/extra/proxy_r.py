@@ -65,6 +65,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         regex = {},
         hosts = {},
         auth = {},
+        auth_regex = {},
         redirect = {},
         strategy = "smart",
         reuse = True,
@@ -80,6 +81,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             regex = regex,
             hosts = hosts,
             auth = auth,
+            auth_regex = auth_regex,
             redirect = redirect,
             strategy = strategy,
             reuse = reuse,
@@ -178,6 +180,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # verifies if the current host requires come kind of special authorization
         # process using the default basic http authorization process
         auth = self.auth.get(host.split(":", 1)[0], None)
+        auth, _match = self._resolve_regex(url, self.auth_regex, default = auth)
         if auth:
             # tries to retrieve the authorization header for the current request
             # and in case it's not defined "raises" a non authorized response
@@ -295,19 +298,19 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         prefix = None
         state = None
 
-        # iterates over the complete set of defined regex values to try
-        # to find a valid match and apply the groups value for format
-        # if the complete chain of regex is processed but there's no
-        # valid match the prefix value is considered to be unset
-        for regex, _prefix in self.regex:
-            match = regex.match(url)
-            if not match: continue
-            _prefix, _state = self.balancer(_prefix)
-            groups = match.groups()
-            if groups: _prefix = _prefix.format(*groups)
-            prefix = _prefix
-            state = _state
-            break
+        # runs the regex resolution process for the url and the defined
+        # sequence of regex values, this is an iterative process in case
+        # there's no match the default value is returned immediately
+        _prefix, match = self._resolve_regex(url, self.regex)
+        if not _prefix: return prefix, state
+
+        # uses the resolved prefix value in the balancer to obtain the
+        # proper final prefix and its associated state
+        _prefix, _state = self.balancer(_prefix)
+        groups = match.groups()
+        if groups: _prefix = _prefix.format(*groups)
+        prefix = _prefix
+        state = _state
 
         # returns the prefix and state values that have just been resolved
         # through regex based validation, this value may be unset for a mismatch
@@ -412,9 +415,16 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         # in case a strict transport security value (number) is defined it
         # is going to be used as the max age value to be applied for such
-        # behaviour, note that this is considered dangerous at it may corrupt
+        # behavior, note that this is considered dangerous at it may corrupt
         # the serving of assets through non secure (no ssl) connections
         if self.sts: headers["Strict-Transport-Security"] = "max-age=%d" % self.sts
+
+    def _resolve_regex(self, value, regexes, default = None):
+        for regex, result in regexes:
+            match = regex.match(value)
+            if not match: continue
+            return result, match
+        return default, None
 
 if __name__ == "__main__":
     import logging
@@ -426,8 +436,11 @@ if __name__ == "__main__":
         "host.com" : "http://localhost"
     }
     auth = {
-        "host.com" : netius.PasswdAuth("extras/htpasswd")
+        "host.com" : netius.SimpleAuth("root", "root")
     }
+    auth_regex = (
+        (re.compile(r"https://host\.com:9090"), netius.SimpleAuth("root", "root")),
+    )
     redirect = {
         "host.com" : "other.host.com"
     }
@@ -435,6 +448,7 @@ if __name__ == "__main__":
         regex = regex,
         hosts = hosts,
         auth = auth,
+        auth_regex = auth_regex,
         redirect = redirect,
         level = logging.INFO
     )
