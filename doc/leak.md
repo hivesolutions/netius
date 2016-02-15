@@ -10,7 +10,7 @@ Python 3.4+ version is recommended for a deployment/production environment to av
 The leaking of memory under such environments occurs on the native (Python C) codebase so its leaking is
 not traceable by tools like guppy.
 
-> In 3.x range doesn't create a list, so the test above won't create 10 million int objects. Even if it did, the int type in 3.x is basically a 2.x long, which doesn't implement a freelist.
+> In 3.x range doesn't create a list, so the test **above** won't create 10 million int objects. Even if it did, the int type in 3.x is basically a 2.x long, which doesn't implement a freelist.
 
 ## Notes
 
