@@ -1462,8 +1462,8 @@ class AbstractBase(observer.Observable):
         if not connection: return
         connection.ssl_host = ssl_host
 
-    def _ssl_ctx(self, values, secure = True):
-        context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    def _ssl_ctx(self, values, context = None, secure = True):
+        context = context or ssl.SSLContext(ssl.PROTOCOL_SSLv23)
         if secure and hasattr(ssl, "OP_NO_SSLv2"):
             context.options |= ssl.OP_NO_SSLv2
         if secure and hasattr(ssl, "OP_NO_SSLv3"):
