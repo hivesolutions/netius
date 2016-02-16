@@ -1458,6 +1458,7 @@ class AbstractBase(observer.Observable):
         ssl_host = values.get("ssl_host", None)
         if not ssl_host: return
         connection = self.connections_m.get(socket, None)
+        if not connection: return
         connection.ssl_host = ssl_host
 
     def _ssl_context(self, values, secure = True):
