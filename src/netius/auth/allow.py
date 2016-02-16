@@ -19,6 +19,9 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+__author__ = "João Magalhães <joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,18 +37,19 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from . import allow
-from . import base
-from . import deny
 from . import dummy
-from . import memory
-from . import passwd
-from . import simple
 
-from .allow import AllowAuth
-from .base import Auth
-from .deny import DenyAuth
-from .dummy import DummyAuth
-from .memory import MemoryAuth
-from .passwd import PasswdAuth
-from .simple import SimpleAuth
+class AllowAuth(dummy.DummyAuth):
+
+    def __init__(self, value = True, *args, **kwargs):
+        dummy.DummyAuth.__init__(self, value = value, *args, **kwargs)
+
+    @classmethod
+    def auth(cls, username, password, value = True, *args, **kwargs):
+        return super(AllowAuth, cls).auth(
+            username,
+            password,
+            value = value,
+            *args,
+            **kwargs
+        )

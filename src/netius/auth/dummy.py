@@ -41,6 +41,19 @@ from . import base
 
 class DummyAuth(base.Auth):
 
+    def __init__(self, value = True, *args, **kwargs):
+        base.Auth.__init__(self, *args, **kwargs)
+        self.value = value
+
     @classmethod
-    def auth(cls, username, password, *args, **kwargs):
-        return True
+    def auth(cls, username, password, value = True, *args, **kwargs):
+        return value
+
+    def auth_i(self, username, password, *args, **kwargs):
+        return self.__class__.auth(
+            username,
+            password,
+            value = self.value,
+            *args,
+            **kwargs
+        )
