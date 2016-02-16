@@ -5,6 +5,7 @@
 * `HOST` (`str`) - The listening address of the server (eg: `127.0.0.1` or `0.0.0.0`)
 * `PORT` (`int`) - The port the server will listen at (eg: `8080`)
 * `SSL` (`bool`) - If the server is going to use SSL/TLS (Secure Sockets Layer)
+* `IPV6` (`bool`) - If IPV6 should be enabled for the server/client
 
 ##### SSL
 
