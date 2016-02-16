@@ -806,8 +806,8 @@ class StreamServer(Server):
         # the client connection is going to be verified against such host
         # to make sure the client represents the expected entity, note that
         # as a fallback the ssl verification process is performed with no
-        # value defined, meaning that a possible host value set in the
-        # connection is going to be used instead
+        # value defined, meaning that a possible (ssl) host value set in the
+        # connection is going to be used instead for the verification
         if self.ssl_host: connection.ssl_verify_host(self.ssl_host)
         else: connection.ssl_verify_host()
 
