@@ -1446,15 +1446,19 @@ class AbstractBase(observer.Observable):
         # uses it to create the complete set of ssl context objects
         for hostname, values in legacy.iteritems(contexts):
             context = self._ssl_context(values, secure = secure)
-            self._ssl_contexts[hostname] = context
+            self._ssl_contexts[hostname] = (context, values)
 
     def _ssl_destroy(self):
         self._ssl_context = None
         self._ssl_contexts = dict()
 
     def _ssl_callback(self, socket, hostname, context):
-        context = self._ssl_contexts.get(hostname, context)
+        context, values = self._ssl_contexts.get(hostname, context)
         socket.context = context
+        ssl_host = values.get("ssl_host", None)
+        if not ssl_host: return
+        connection = self.connections_m.get(socket, None)
+        connection.ssl_host = ssl_host
 
     def _ssl_context(self, values, secure = True):
         context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)

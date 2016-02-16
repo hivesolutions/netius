@@ -804,8 +804,12 @@ class StreamServer(Server):
 
         # in case an ssl host verification value is defined for the server
         # the client connection is going to be verified against such host
-        # to make sure the client represents the expected entity
+        # to make sure the client represents the expected entity, note that
+        # as a fallback the ssl verification process is performed with no
+        # value defined, meaning that a possible host value set in the
+        # connection is going to be used instead
         if self.ssl_host: connection.ssl_verify_host(self.ssl_host)
+        else: connection.ssl_verify_host()
 
         # in case the current connection is under the upgrade
         # status calls the proper event handler so that the
