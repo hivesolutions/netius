@@ -1453,8 +1453,9 @@ class AbstractBase(observer.Observable):
         self._ssl_contexts = dict()
 
     def _ssl_callback(self, socket, hostname, context):
-        context, values = self._ssl_contexts.get(hostname, context)
+        context, values = self._ssl_contexts.get(hostname, (context, None))
         socket.context = context
+        if not values: return
         ssl_host = values.get("ssl_host", None)
         if not ssl_host: return
         connection = self.connections_m.get(socket, None)
