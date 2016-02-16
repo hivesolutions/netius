@@ -37,19 +37,10 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from . import dummy
+from . import base
 
-class AllowAuth(dummy.DummyAuth):
-
-    def __init__(self, value = True, *args, **kwargs):
-        dummy.DummyAuth.__init__(self, value = value, *args, **kwargs)
+class AllowAuth(base.Auth):
 
     @classmethod
-    def auth(cls, username, password, value = True, *args, **kwargs):
-        return super(AllowAuth, cls).auth(
-            username,
-            password,
-            value = value,
-            *args,
-            **kwargs
-        )
+    def auth(cls, username, password, *args, **kwargs):
+        return True

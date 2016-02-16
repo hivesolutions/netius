@@ -37,10 +37,23 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from . import base
+import unittest
 
-class DenyAuth(base.Auth):
+import netius.auth
 
-    @classmethod
-    def auth(cls, username, password, *args, **kwargs):
-        return False
+class DenyAuthTest(unittest.TestCase):
+
+    def test_simple(self):
+        result = netius.auth.DenyAuth.auth("root", "root")
+        self.assertEqual(result, False)
+        
+        result = netius.auth.DenyAuth.auth(None, None)
+        self.assertEqual(result, False)
+        
+        auth = netius.auth.DenyAuth()
+
+        result = auth.auth_i("root", "root")
+        self.assertEqual(result, False)
+
+        result = auth.auth_i(None, None)
+        self.assertEqual(result, False)
