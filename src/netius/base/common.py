@@ -1445,7 +1445,7 @@ class AbstractBase(observer.Observable):
         # and certificate paths for the various defined host names and
         # uses it to create the complete set of ssl context objects
         for hostname, values in legacy.iteritems(contexts):
-            context = self._ssl_context(values, secure = secure)
+            context = self._ssl_ctx(values, secure = secure)
             self._ssl_contexts[hostname] = (context, values)
 
     def _ssl_destroy(self):
@@ -1462,7 +1462,7 @@ class AbstractBase(observer.Observable):
         if not connection: return
         connection.ssl_host = ssl_host
 
-    def _ssl_context(self, values, secure = True):
+    def _ssl_ctx(self, values, secure = True):
         context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
         if secure and hasattr(ssl, "OP_NO_SSLv2"):
             context.options |= ssl.OP_NO_SSLv2
