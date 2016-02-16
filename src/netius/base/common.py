@@ -1502,7 +1502,7 @@ class AbstractBase(observer.Observable):
         ca_file = None,
         ca_root = False,
         verify_mode = ssl.CERT_NONE,
-        check_hostname = False,
+        check_hostname = False
     ):
         dir_path = os.path.dirname(__file__)
         root_path = os.path.join(dir_path, "../")
