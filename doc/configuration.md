@@ -5,8 +5,9 @@
 * `HOST` (`str`) - The listening address of the server (eg: `127.0.0.1` or `0.0.0.0`)
 * `PORT` (`int`) - The port the server will listen at (eg: `8080`)
 * `SSL` (`bool`) - If the server is going to use SSL/TLS (Secure Sockets Layer)
-* `IPV6` (`bool`) - If IPV6 should be enabled for the server/client
-
+* `IPV6` (`bool`) - If IPV6 should be enabled for the server/client, by default the created socket is IPV4 and if
+this flag is set it becomes an IPV6 only socket, netius does not support dual stack
+n
 ##### SSL
 
 * `CER_FILE` (`str`) - The path to the certificate file to be used for SSL (PEM format)
