@@ -5,8 +5,8 @@
 * `HOST` (`str`) - The listening address of the server (eg: `127.0.0.1` or `0.0.0.0`)
 * `PORT` (`int`) - The port the server will listen at (eg: `8080`)
 * `SSL` (`bool`) - If the server is going to use SSL/TLS (Secure Sockets Layer)
-* `IPV6` (`bool`) - If IPV6 should be enabled for the server/client, by default the created socket is IPV4 and if
-this flag is set it becomes an IPV6 only socket, netius does not support dual stack (defaults to `False`)
+* `IPV6` (`bool`) - If IPV6 should be enabled for the server/client, by default the created socket is either IPV4
+or IPV6 only, note that under linux dual stack is provided for "free" (defaults to `False`)
 * `ALLOWED` (`list`) - Sequence of IP addresses that are considerd to be allowed as clients for a given server, any
 client connection with an IP address not contained in the list will be dropped (defaults to `[]`)
 
