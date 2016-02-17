@@ -7,7 +7,7 @@
 * `SSL` (`bool`) - If the server is going to use SSL/TLS (Secure Sockets Layer)
 * `IPV6` (`bool`) - If IPV6 should be enabled for the server/client, by default the created socket is IPV4 and if
 this flag is set it becomes an IPV6 only socket, netius does not support dual stack
-n
+
 ##### SSL
 
 * `CER_FILE` (`str`) - The path to the certificate file to be used for SSL (PEM format)
