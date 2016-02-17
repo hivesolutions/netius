@@ -64,6 +64,7 @@ class Server(Base):
         self.type = None
         self.ssl = False
         self.env = False
+        self.allowed = []
 
     def welcome(self):
         Base.welcome(self)
@@ -147,6 +148,7 @@ class Server(Base):
             self.poll_timeout,
             cast = float
         )
+        if env: self.allowed = self.get_env("ALLOWED", self.allowed, cast = list)
 
         # updates the current service status to the configuration
         # stage as the next steps is to configure the service socket
@@ -157,7 +159,7 @@ class Server(Base):
         if load: self.load()
 
         # ensures the proper default address value, taking into account
-        # the type of connection that is currently being used, this avoid
+        # the type of connection that is currently being used, this avoids
         # problems with multiple stack based servers (ipv4 and ipv6)
         if host == None: host = "::1" if ipv6 else "127.0.0.1"
 
@@ -184,7 +186,7 @@ class Server(Base):
         ssl_verify = ssl_verify or False
 
         # verifies if the type of server that is going to be created is
-        # unix or internet based, this allows the current infra-structure
+        # unix or internet based, this allowed the current infra-structure
         # to work under a much more latency free unix sockets
         is_unix = host == "unix"
 
@@ -605,6 +607,8 @@ class StreamServer(Server):
         try:
             while True:
                 socket_c, address = _socket.accept()
+                result = netius.common.assert_ip4(address[0], self.allowed)
+                if not result: socket_c.close(); continue
                 try: self.on_socket_c(socket_c, address)
                 except: socket_c.close(); raise
         except ssl.SSLError as error:

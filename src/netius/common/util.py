@@ -87,6 +87,16 @@ def header_up(name):
     values = [value.title() for value in values]
     return "-".join(values)
 
+def assert_ip4(address, allowed):
+    if not allowed: return True
+    for item in allowed:
+        is_simple = not "/" in item
+        if is_simple: valid = address == item
+        else: valid = False
+        if not valid: continue
+        return True
+    return False
+
 def addr_to_ip4(number):
     first = int(number / 16777216) % 256
     second = int(number / 65536) % 256

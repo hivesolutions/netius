@@ -46,10 +46,10 @@ class AllowAuthTest(unittest.TestCase):
     def test_simple(self):
         result = netius.auth.AllowAuth.auth("root", "root")
         self.assertEqual(result, True)
-        
+
         result = netius.auth.AllowAuth.auth(None, None)
         self.assertEqual(result, True)
-        
+
         auth = netius.auth.AllowAuth()
 
         result = auth.auth_i("root", "root")

@@ -46,10 +46,10 @@ class DenyAuthTest(unittest.TestCase):
     def test_simple(self):
         result = netius.auth.DenyAuth.auth("root", "root")
         self.assertEqual(result, False)
-        
+
         result = netius.auth.DenyAuth.auth(None, None)
         self.assertEqual(result, False)
-        
+
         auth = netius.auth.DenyAuth()
 
         result = auth.auth_i("root", "root")
