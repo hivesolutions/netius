@@ -1152,9 +1152,8 @@ class AbstractBase(observer.Observable):
         if not name in config.CONFIGS: return default
         value = config.CONFIGS.get(name, default)
         if expand: value = self.expand(value)
-        if not cast: return value
-        try: value = int(value) == 1 if cast == bool else cast(value)
-        except: value = value
+        cast = config.CASTS.get(cast, cast)
+        if cast and not value == None: value = cast(value)
         return value
 
     def expand(self, value, encoding = "utf-8", force = False):
