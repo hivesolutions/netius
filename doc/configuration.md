@@ -6,7 +6,7 @@
 * `PORT` (`int`) - The port the server will listen at (eg: `8080`)
 * `SSL` (`bool`) - If the server is going to use SSL/TLS (Secure Sockets Layer)
 * `IPV6` (`bool`) - If IPV6 should be enabled for the server/client, by default the created socket is IPV4 and if
-this flag is set it becomes an IPV6 only socket, netius does not support dual stack (defaults to False)
+this flag is set it becomes an IPV6 only socket, netius does not support dual stack (defaults to `False`)
 
 ##### SSL
 
