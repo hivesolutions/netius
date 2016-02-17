@@ -6,7 +6,7 @@
 * `PORT` (`int`) - The port the server will listen at (eg: `8080`)
 * `SSL` (`bool`) - If the server is going to use SSL/TLS (Secure Sockets Layer)
 * `IPV6` (`bool`) - If IPV6 should be enabled for the server/client, by default the created socket is either IPV4
-or IPV6 only, note that under linux dual stack is provided for "free" (defaults to `False`)
+or IPV6 only, note that under Linux dual stack is provided for "free" (defaults to `False`)
 * `ALLOWED` (`list`) - Sequence of IP addresses that are considerd to be allowed as clients for a given server, any
 client connection with an IP address not contained in the list will be dropped (defaults to `[]`)
 
