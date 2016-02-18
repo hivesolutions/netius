@@ -242,8 +242,9 @@ class Server(Base):
         # creates the string that identifies it the current service connection
         # is using a secure channel (ssl) and then prints an info message about
         # the service that is going to be started
-        ssl_s = ssl and " using ssl" or ""
-        self.info("Serving '%s' service on %s:%s%s ..." % (self.name, host, port, ssl_s))
+        ipv6_s = " on ipv6" if ipv6 else ""
+        ssl_s = " using ssl" if ssl else ""
+        self.info("Serving '%s' service on %s:%s%s%s ..." % (self.name, host, port, ipv6_s, ssl_s))
 
         # calls the on serve callback handler so that underlying services may be
         # able to respond to the fact that the service is starting and some of
