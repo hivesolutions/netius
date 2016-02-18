@@ -160,9 +160,16 @@ class Auth(object):
         if cache: cls._cache[path] = contents
         return contents
 
+    @classmethod
+    def is_simple(cls):
+        return True
+
     def auth_i(self, *args, **kwargs):
         return self.__class__.auth(*args, **kwargs)
 
     def auth_assert_i(self, *args, **kwargs):
         result = self.auth_i(*args, **kwargs)
         if not result: raise netius.SecurityError("Invalid authentication")
+
+    def is_simple_i(self):
+        return self.__class__.is_simple()

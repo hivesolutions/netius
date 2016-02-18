@@ -182,29 +182,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         auth = self.auth.get(host.split(":", 1)[0], None)
         auth, _match = self._resolve_regex(url, self.auth_regex, default = auth)
         if auth:
-            # tries to retrieve the authorization header for the current request
-            # and in case it's not defined "raises" a non authorized response
-            authorization = headers.get("authorization", None)
-            if not authorization:
-                connection.send_response(
-                    data = "Not authorized",
-                    headers = {
-                        "connection" : "close",
-                        "wWW-authenticate" : "Basic realm=\"default\""
-                    },
-                    version = version_s,
-                    code = 401,
-                    code_s = "Not Authorized",
-                    apply = True,
-                    callback = self._prx_close
-                )
-                return
-
             # runs the authorization process for the requested auth value (file path)
             # and using the current parser for the connection handling, this should
             # return a valid response in case the authorization is valid and an invalid
             # value otherwise, in case there's a failure a not authorized value is returned
-            result = self.authorize(auth, parser)
+            result = self.authorize(connection, parser, auth = auth)
             if not result:
                 connection.send_response(
                     data = "Not authorized",

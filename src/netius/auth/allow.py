@@ -42,5 +42,9 @@ from . import base
 class AllowAuth(base.Auth):
 
     @classmethod
-    def auth(cls, username, password, *args, **kwargs):
+    def auth(cls, *args, **kwargs):
+        return True
+
+    @classmethod
+    def is_simple(cls):
         return True

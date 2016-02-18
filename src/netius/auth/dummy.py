@@ -46,13 +46,15 @@ class DummyAuth(base.Auth):
         self.value = value
 
     @classmethod
-    def auth(cls, username, password, value = True, *args, **kwargs):
+    def auth(cls, value = True, *args, **kwargs):
         return value
 
-    def auth_i(self, username, password, *args, **kwargs):
+    @classmethod
+    def is_simple(cls):
+        return True
+
+    def auth_i(self, *args, **kwargs):
         return self.__class__.auth(
-            username,
-            password,
             value = self.value,
             *args,
             **kwargs

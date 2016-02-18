@@ -39,12 +39,27 @@ __license__ = "Apache License, Version 2.0"
 
 from . import base
 
-class DenyAuth(base.Auth):
+class AddressAuth(base.Auth):
+
+    def __init__(self, allowed = [], *args, **kwargs):
+        base.Auth.__init__(self, *args, **kwargs)
+        self.allowed = allowed
 
     @classmethod
-    def auth(cls, *args, **kwargs):
-        return False
+    def auth(cls, allowed = [], *args, **kwargs):
+        address = kwargs.get("address", None)
+        if not address: return False
+        import netius.common
+        address = address[0]
+        return netius.common.assert_ip4(
+            address,
+            allowed,
+            default = False
+        )
 
-    @classmethod
-    def is_simple(cls):
-        return True
+    def auth_i(self, *args, **kwargs):
+        return self.__class__.auth(
+            allowed = self.allowed,
+            *args,
+            **kwargs
+        )

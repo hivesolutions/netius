@@ -412,28 +412,40 @@ class HTTPServer(netius.StreamServer):
         is_debug and self._log_request(connection, parser)
         connection.resolve_encoding(parser)
 
-    def authorize(self, path, parser):
-        # retrieves the headers from the parser structure and uses
-        # them to retrieve the authorization header value returning
-        # an invalid value in case no header is defined
-        headers = parser.headers
-        authorization = headers.get("authorization", None)
-        if not authorization: return False
+    def authorize(self, connection, parser, auth = None, **kwargs):
+        # determines the proper authorization method to be used
+        # taking into account either the provided method or the
+        # default one in case none is provided
+        auth = auth or netius.PasswdAuth
+        if hasattr(auth, "auth"): auth_method = auth.auth
+        else: auth_method = auth.auth_i
+        if hasattr(auth, "is_simple"): is_simple = auth.is_simple()
+        else: is_simple = auth.is_simple_i()
 
-        # splits the authorization token between the realm and the
-        # token value (decoding it afterwards) and then unpacks the
-        # token into the username and password components (for validation)
-        _realm, token = authorization.split(" ", 1)
-        token = base64.b64decode(token)
-        token = netius.legacy.str(token)
-        username, password = token.split(":", 1)
+        # constructs a dictionary that contains extra information
+        # about the current connection/request that may be used
+        # to further determine if the request is authorized
+        kwargs = dict(
+            connection = connection,
+            parser = parser,
+            address = connection.address,
+            headers = parser.headers
+        )
 
-        # verifies if the provided value is string based and taking that
-        # into account runs the authentication process either using the
-        # static passwd based approach or on the provided instance
-        is_str = type(path) in netius.legacy.STRINGS
-        if is_str: return netius.PasswdAuth.auth(username, password, path = path)
-        else: return path.auth(username, password)
+        # in case the current authentication method is considered
+        # simples (no "classic" username and password) the named
+        # arguments dictionary is provided as the only input
+        if is_simple: return auth_method(**kwargs)
+
+        # retrieves the authorization tuple (username and password)
+        # using the current parser and verifies if at least one of
+        # them is defined in case it's not returns an invalid result
+        username, password = self._authorization(parser)
+        if not username and not password: return False
+
+        # uses the provided username and password to run the authentication
+        # process using the method associated with the authorization structure
+        return auth_method(username, password, **kwargs)
 
     def _apply_all(self, parser, connection, headers, upper = True):
         if upper: self._headers_upper(headers)
@@ -469,6 +481,26 @@ class HTTPServer(netius.StreamServer):
             key_u = netius.common.header_up(key)
             del headers[key]
             headers[key_u] = value
+
+    def _authorization(self, parser):
+        # retrieves the headers from the parser structure and uses
+        # them to retrieve the authorization header value returning
+        # an invalid value in case no header is defined
+        headers = parser.headers
+        authorization = headers.get("authorization", None)
+        if not authorization: return None, None
+
+        # splits the authorization token between the realm and the
+        # token value (decoding it afterwards) and then unpacks the
+        # token into the username and password components (for validation)
+        _realm, token = authorization.split(" ", 1)
+        token = base64.b64decode(token)
+        token = netius.legacy.str(token)
+        username, password = token.split(":", 1)
+
+        # retrieves the "final" packed result containing both the username
+        # and the password associated with the authorization
+        return username, password
 
     def _log_request(self, connection, parser):
         # unpacks the various values that are going to be part of

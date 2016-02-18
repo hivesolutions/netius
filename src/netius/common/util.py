@@ -87,8 +87,8 @@ def header_up(name):
     values = [value.title() for value in values]
     return "-".join(values)
 
-def assert_ip4(address, allowed):
-    if not allowed: return True
+def assert_ip4(address, allowed, default = True):
+    if not allowed: return default
     for item in allowed:
         is_simple = not "/" in item
         if is_simple: valid = address == item
