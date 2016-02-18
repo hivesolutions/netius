@@ -47,15 +47,19 @@ class AddressAuth(base.Auth):
 
     @classmethod
     def auth(cls, allowed = [], *args, **kwargs):
+        import netius.common
         address = kwargs.get("address", None)
         if not address: return False
-        import netius.common
         address = address[0]
         return netius.common.assert_ip4(
             address,
             allowed,
             default = False
         )
+
+    @classmethod
+    def is_simple(cls):
+        return True
 
     def auth_i(self, *args, **kwargs):
         return self.__class__.auth(

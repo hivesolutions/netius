@@ -162,7 +162,7 @@ class Auth(object):
 
     @classmethod
     def is_simple(cls):
-        return True
+        return False
 
     def auth_i(self, *args, **kwargs):
         return self.__class__.auth(*args, **kwargs)

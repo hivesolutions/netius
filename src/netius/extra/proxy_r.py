@@ -182,11 +182,23 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         auth = self.auth.get(host.split(":", 1)[0], None)
         auth, _match = self._resolve_regex(url, self.auth_regex, default = auth)
         if auth:
-            # runs the authorization process for the requested auth value (file path)
-            # and using the current parser for the connection handling, this should
-            # return a valid response in case the authorization is valid and an invalid
-            # value otherwise, in case there's a failure a not authorized value is returned
-            result = self.authorize(connection, parser, auth = auth)
+            # determines if the provided authentication method is a sequence
+            # and if that't not the case casts it as one (iterative validation)
+            # then sets the initial/default (authentication) value as false (deny)
+            auths = auth if type(auth) in (list, tuple) else (auth,)
+            result = False
+
+            # iterates over the complete set of authorization methods defined
+            # trying to determine if at least one of them is valid for the current
+            # situation/request, note that this is considered an or operation
+            # and should be used carefully to avoid unexpected behavior
+            for auth in auths:
+                result = self.authorize(connection, parser, auth = auth)
+                if result: break
+
+            # in case the result of the authentication chain is not valid (none
+            # of the authentication methods was successful) sends the invalid
+            # response to the client meaning that the current request is invalid
             if not result:
                 connection.send_response(
                     data = "Not authorized",
@@ -421,7 +433,13 @@ if __name__ == "__main__":
         "host.com" : netius.SimpleAuth("root", "root")
     }
     auth_regex = (
-        (re.compile(r"https://host\.com:9090"), netius.SimpleAuth("root", "root")),
+        (
+            re.compile(r"https://host\.com:9090"),
+            (
+                netius.SimpleAuth("root", "root"),
+                netius.AddressAuth(["127.0.0.1"])
+            )
+        ),
     )
     redirect = {
         "host.com" : "other.host.com"
