@@ -608,8 +608,6 @@ class StreamServer(Server):
         try:
             while True:
                 socket_c, address = _socket.accept()
-                result = netius.common.assert_ip4(address[0], self.allowed)
-                if not result: socket_c.close(); continue
                 try: self.on_socket_c(socket_c, address)
                 except: socket_c.close(); raise
         except ssl.SSLError as error:
@@ -734,6 +732,14 @@ class StreamServer(Server):
         pass
 
     def on_socket_c(self, socket_c, address):
+        # verifies if the current address (host value) is present in
+        # the currently defined allowed list and in case that's not
+        # the case raises an exception indicating the issue
+        result = netius.common.assert_ip4(address[0], self.allowed)
+        if not result: raise errors.NetiusError(
+            "Address '%s' not present in allowed list" % address[0]
+        )
+
         # verifies a series of pre-conditions on the socket so
         # that it's ensured to be in a valid state before it's
         # set as a new connection for the server (validation)
