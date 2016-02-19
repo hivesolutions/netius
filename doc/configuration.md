@@ -7,9 +7,8 @@
 * `SSL` (`bool`) - If the server is going to use SSL/TLS (Secure Sockets Layer)
 * `IPV6` (`bool`) - If IPV6 should be enabled for the server/client, by default the created socket is either IPV4
 or IPV6 only, note that under Linux dual stack is provided for "free" for IPV6 stacks (defaults to `False`)
-* `ALLOWED` (`list`) - Sequence of IP addresses that are considerd to be allowed as clients for a given server, any
-client connection with an IP address not contained in the list will be dropped, subnets may also be used so that
-a full range of addresses are allowed (eg: 172.16.0.0/16) (defaults to `[]`)
+* `ALLOWED` (`list`) - Sequence of IP or Subnet addresses (eg: 172.16.0.0/16) that are considered to be allowed as clients
+for a given server, any client connection with an IP address not contained in the list will be dropped (defaults to `[]`)
 * `TRUST_ORIGIN` (`bool`) - If the origin connection (eg: http client, proxy client, etc.) is meant to be trusted meaning that
 its information is considered reliable, this value is especially important for proxy to proxy relations (defaults to `False`)
 
