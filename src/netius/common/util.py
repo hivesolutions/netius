@@ -90,9 +90,9 @@ def header_up(name):
 def assert_ip4(address, allowed, default = True):
     if not allowed: return default
     for item in allowed:
-        is_simple = not "/" in item
-        if is_simple: valid = address == item
-        else: valid = in_subnet_ip4(address, item)
+        is_subnet = "/" in item
+        if is_subnet: valid = in_subnet_ip4(address, item)
+        else: valid = address == item
         if not valid: continue
         return True
     return False
