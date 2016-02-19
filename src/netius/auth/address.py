@@ -48,9 +48,10 @@ class AddressAuth(base.Auth):
     @classmethod
     def auth(cls, allowed = [], *args, **kwargs):
         import netius.common
-        address = kwargs.get("address", None)
-        if not address: return False
-        address = address[0]
+        host = kwargs.get("host", None)
+        headers = kwargs.get("headers", {})
+        if not host and not headers: return False
+        address = headers.get("X-Forwarded-For", host)
         return netius.common.assert_ip4(
             address,
             allowed,
