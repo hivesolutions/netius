@@ -428,7 +428,8 @@ class HTTPServer(netius.StreamServer):
         kwargs = dict(
             connection = connection,
             parser = parser,
-            address = connection.address,
+            host = connection.address[0],
+            port = connection.address[1],
             headers = parser.headers
         )
 
