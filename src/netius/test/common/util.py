@@ -44,7 +44,7 @@ import netius.common
 class UtilTest(unittest.TestCase):
 
     def test_assert_ip4(self):
-        allowed = ("127.0.0.1", "192.168.0.1")
+        allowed = ("127.0.0.1", "192.168.0.1", "172.16.0.0/16")
 
         result = netius.common.assert_ip4("127.0.0.1", allowed)
         self.assertEqual(result, True)
@@ -53,6 +53,31 @@ class UtilTest(unittest.TestCase):
         self.assertEqual(result, True)
 
         result = netius.common.assert_ip4("192.168.0.2", allowed)
+        self.assertEqual(result, False)
+
+        result = netius.common.assert_ip4("172.16.0.1", allowed)
+        self.assertEqual(result, True)
+
+        result = netius.common.assert_ip4("172.16.1.1", allowed)
+        self.assertEqual(result, True)
+
+        result = netius.common.assert_ip4("172.17.0.1", allowed)
+        self.assertEqual(result, False)
+
+    def test_in_subnet_ip4(self):
+        result = netius.common.in_subnet_ip4("127.0.0.1", "127.0.0.0/24")
+        self.assertEqual(result, True)
+
+        result = netius.common.in_subnet_ip4("127.0.0.2", "127.0.0.0/24")
+        self.assertEqual(result, True)
+
+        result = netius.common.in_subnet_ip4("127.0.0.1", "127.0.0.0/31")
+        self.assertEqual(result, True)
+
+        result = netius.common.in_subnet_ip4("127.0.0.2", "127.0.0.0/31")
+        self.assertEqual(result, False)
+
+        result = netius.common.in_subnet_ip4("127.0.0.1", "128.0.0.0/24")
         self.assertEqual(result, False)
 
     def test_bytes_to_integer(self):

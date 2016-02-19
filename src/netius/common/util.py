@@ -92,10 +92,20 @@ def assert_ip4(address, allowed, default = True):
     for item in allowed:
         is_simple = not "/" in item
         if is_simple: valid = address == item
-        else: valid = False
+        else: valid = in_subnet_ip4(address, item)
         if not valid: continue
         return True
     return False
+
+def in_subnet_ip4(address, subnet):
+    subnet, length = subnet.split("/", 1)
+    size_i = 32 - int(length)
+    address_a = ip4_to_addr(address)
+    subnet_a = ip4_to_addr(subnet)
+    limit_a = subnet_a + pow(2, size_i)
+    in_subnet = (address_a & subnet_a) == subnet_a
+    in_subnet &= address_a < limit_a
+    return in_subnet
 
 def addr_to_ip4(number):
     first = int(number / 16777216) % 256
