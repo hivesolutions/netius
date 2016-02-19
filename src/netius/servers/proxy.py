@@ -77,7 +77,14 @@ class ProxyConnection(http.HTTPConnection):
 
 class ProxyServer(http.HTTPServer):
 
-    def __init__(self, throttle = True, max_pending = MAX_PENDING, *args, **kwargs):
+    def __init__(
+        self,
+        throttle = True,
+        trust = False,
+        max_pending = MAX_PENDING,
+        *args,
+        **kwargs
+    ):
         http.HTTPServer.__init__(
             self,
             receive_buffer_c = int(max_pending * BUFFER_RATIO),
@@ -86,6 +93,7 @@ class ProxyServer(http.HTTPServer):
             **kwargs
         )
         self.throttle = throttle
+        self.trust = trust
         self.max_pending = max_pending
         self.min_pending = int(max_pending * MIN_RATIO)
         self.conn_map = {}
@@ -196,8 +204,10 @@ class ProxyServer(http.HTTPServer):
     def on_serve(self):
         http.HTTPServer.on_serve(self)
         if self.env: self.throttle = self.get_env("THROTTLE", self.throttle, cast = bool)
+        if self.env: self.trust = self.get_env("TRUST_ORIGIN", self.trust, cast = bool)
         if self.throttle: self.info("Throttling connections in the proxy ...")
         else: self.info("Not throttling connections in the proxy ...")
+        if self.trust: self.info("Origin is considered \"trustable\" by proxy")
 
     def on_headers(self, connection, parser):
         pass

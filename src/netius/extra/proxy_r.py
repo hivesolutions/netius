@@ -120,8 +120,18 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         version_s = parser.version_s
         is_secure = connection.ssl
         host = headers.get("host", None)
-        address = headers.get("x-forwarded-for", connection.address[0])
-        protocol = headers.get("x-forwarded-proto", None)
+
+        # tries to discover the proper address representation of the current
+        # connections, note that the forwarded for header is only used in case
+        # the current "origin" is considered "trustable"
+        address = connection.address[0]
+        if self.trust: address = headers.get("x-forwarded-for", address)
+
+        # tries to discover the protocol representation of the current
+        # connections, note that the forwarded for header is only used in case
+        # the current "origin" is considered "trustable"
+        protocol = None
+        if self.trust: protocol = headers.get("x-forwarded-proto", protocol)
         protocol = protocol or ("https" if is_secure else "http")
 
         # tries to determine if a proper (client side) redirection should operation

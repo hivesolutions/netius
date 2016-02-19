@@ -9,6 +9,8 @@
 or IPV6 only, note that under Linux dual stack is provided for "free" for IPV6 stacks (defaults to `False`)
 * `ALLOWED` (`list`) - Sequence of IP addresses that are considerd to be allowed as clients for a given server, any
 client connection with an IP address not contained in the list will be dropped (defaults to `[]`)
+* `TRUST_ORIGIN` (`bool`) - If the origin connection (eg: http client, proxy client, etc.) is meant to be trusted meaning that
+its information is considered reliable (defaults to `False`)
 
 ##### SSL
 
