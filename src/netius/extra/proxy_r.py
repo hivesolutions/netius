@@ -423,6 +423,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # the serving of assets through non secure (no ssl) connections
         if self.sts: headers["Strict-Transport-Security"] = "max-age=%d" % self.sts
 
+        # in case the parser has determined that the current connection is
+        # meant to be kept alive the connection header is forced to be keep
+        # alive this avoids issues where in http 1.1 the connection header
+        # is omitted and an ambiguous situation may be created raising the
+        # level of incompatibility with user agents
+        if parser.keep_alive: parser.headers["Connection"] = "keep-alive"
+
     def _resolve_regex(self, value, regexes, default = None):
         for regex, result in regexes:
             match = regex.match(value)
