@@ -575,6 +575,7 @@ class HTTPParser(parser.Parser):
         self.connection_s = self.headers.get("connection", None)
         self.connection_s = self.connection_s and self.connection_s.lower()
         self.keep_alive = self.connection_s == "keep-alive"
+        self.keep_alive |= self.connection_s == None and self.version >= HTTP_11
 
         # verifies if the current message has finished, for those
         # situations an extra (finish) state change will be issued
