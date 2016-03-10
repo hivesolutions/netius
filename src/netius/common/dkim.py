@@ -207,6 +207,7 @@ def dkim_generate(domain, suffix = None, number_bits = 1024):
 
     public_data = rsa.asn_public_key(public_key)
     public_b64 = base64.b64encode(public_data)
+    public_b64 = netius.legacy.str(public_b64)
 
     dns_txt = "%s IN TXT \"k=rsa; p=%s\"" % (selector_full, public_b64)
 
