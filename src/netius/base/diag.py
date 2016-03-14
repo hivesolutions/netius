@@ -49,8 +49,12 @@ except:
 
 class DiagApp(appier.APIApp):
 
-    def __init__(self, system):
-        appier.APIApp.__init__(self, name = "diag")
+    def __init__(self, system, *args, **kwargs):
+        appier.APIApp.__init__(
+            self,
+            name = "diag",
+            *args, **kwargs
+        )
         self.system = system
 
     @appier.route("/logger", "GET")
