@@ -240,10 +240,11 @@ class HTTPConnection(netius.Connection):
         headers = headers or dict()
         code_s = code_s or netius.common.CODE_STRINGS.get(code, None)
         data_l = len(data) if data else 0
+        is_empty = code in (204, 304) and data_l == 0
 
         # verifies if the content length header is currently present
         # in the provided headers and in case it's not inserts it
-        if not "content-length" in headers:
+        if not "content-length" in headers and not is_empty:
             headers["content-length"] = data_l
 
         # in case the apply flag is set the apply all operation is performed
