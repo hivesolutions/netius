@@ -173,7 +173,7 @@ class WSGIServer(http.HTTPServer):
 
     def _next_queue(self, connection):
         # verifies if the current connection already contains a reference to
-        # the queue structure that handles the queuing/pipelining of requests
+        # the queue structure that handles the queueing/pipelining of requests
         # if it does not or the queue is empty returns immediately, as there's
         # nothing currently pending to be done/processed
         if not hasattr(connection, "queue"): return
