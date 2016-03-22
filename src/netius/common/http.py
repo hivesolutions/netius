@@ -559,7 +559,7 @@ class HTTPParser(parser.Parser):
         # in case the current response in parsing has the no content
         # code (no payload present) the content length is set to the
         # zero value in case it has not already been populated
-        if self.type == RESPONSE and self.code == 204 and\
+        if self.type == RESPONSE and self.code in (204, 304) and\
             self.content_l == -1: self.content_l = 0
 
         # in case the current request is not chunked and the content length
