@@ -239,6 +239,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # proxy operation this is required so that the request gets
         # properly handled by the reverse server, otherwise some problems
         # would occur in the operation of handling the request
+        headers["x-real-ip"] = address
         headers["x-forwarded-for"] = address
         headers["x-forwarded-proto"] = protocol
 
