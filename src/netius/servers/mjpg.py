@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import os
 
-import netius
+import netius.common
 
 from . import http
 
@@ -77,7 +77,9 @@ class MJPGServer(http.HTTPServer):
         buffer = []
         buffer.append("%s %s\r\n" % (version_s, status))
         for key, value in headers.items():
-            buffer.append("%s: %s\r\n" % (key, value))
+            key = netius.common.header_up(key)
+            if not type(value) == list: value = [value]
+            for _value in value: buffer.append("%s: %s\r\n" % (key, _value))
         buffer.append("\r\n")
 
         data = "".join(buffer)

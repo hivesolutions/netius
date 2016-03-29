@@ -535,6 +535,20 @@ class HTTPParser(parser.Parser):
             key = netius.legacy.str(key)
             value = value.strip()
             value = netius.legacy.str(value)
+            exists = key in self.headers
+
+            # in case the header already exists this indicates that
+            # there are multiple definitions of the header and a sequence
+            # must be used in order to store the various headers
+            if exists:
+                sequence = self.headers[key]
+                is_list = type(sequence) == list
+                if not is_list: sequence = [sequence]
+                sequence.append(value)
+                value = sequence
+
+            # sets the final header value into the headers map so that
+            # it may be used latter for the serialization process
             self.headers[key] = value
 
         # retrieves the size of the contents from the populated

@@ -300,7 +300,8 @@ class ProxyServer(http.HTTPServer):
         buffer.append("%s %s %s\r\n" % (version_s, code_s, status_s))
         for key, value in headers.items():
             key = netius.common.header_up(key)
-            buffer.append("%s: %s\r\n" % (key, value))
+            if not type(value) == list: value = [value]
+            for _value in value: buffer.append("%s: %s\r\n" % (key, _value))
         buffer.append("\r\n")
 
         # joins the header strings list as the data string that contains
