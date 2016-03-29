@@ -255,7 +255,6 @@ class HTTPConnection(netius.Connection):
         buffer = []
         buffer.append("%s %d %s\r\n" % (version, code, code_s))
         for key, value in headers.items():
-            key = netius.common.header_up(key)
             if not type(value) == list: value = (value,)
             for _value in value: buffer.append("%s: %s\r\n" % (key, _value))
         buffer.append("\r\n")
