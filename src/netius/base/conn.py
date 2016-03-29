@@ -233,6 +233,13 @@ class BaseConnection(observer.Observable):
         self.ssl = True
         self.upgrading = True
 
+        # determines if the arguments based certificate and key values should be used
+        # of if instead the owner values should be used as a fallback process, these
+        # values are going to be used as part of the ssl upgrade process
+        if hasattr(self.owner, "key_file"): key_file = key_file or self.owner.key_file
+        if hasattr(self.owner, "cer_file"): cer_file = cer_file or self.owner.cer_file
+        if hasattr(self.owner, "ca_file"): ca_file = ca_file or self.owner.ca_file
+
         # removes the "old" association socket association for the connection and
         # unsubscribes the "old" socket from the complete set of events, this should
         # be enough to avoid any interaction with the "old" socket
@@ -245,9 +252,9 @@ class BaseConnection(observer.Observable):
         # encapsulated ssl socket is then set as the current connection's socket
         self.socket = self.owner._ssl_upgrade(
             self.socket,
-            key_file = key_file or self.owner.key_file,
-            cer_file = cer_file or self.owner.cer_file,
-            ca_file = ca_file or self.owner.ca_file,
+            key_file = key_file,
+            cer_file = cer_file,
+            ca_file = ca_file,
             server = server
         )
 
