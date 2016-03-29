@@ -5,8 +5,8 @@
 * `HOST` (`str`) - The listening address of the server (eg: `127.0.0.1` or `0.0.0.0`)
 * `PORT` (`int`) - The port the server will listen at (eg: `8080`)
 * `SSL` (`bool`) - If the server is going to use SSL/TLS (Secure Sockets Layer)
-* `IPV6` (`bool`) - If IPV6 should be enabled for the server/client, by default the created socket is either IPV4
-or IPV6 only, note that under Linux dual stack is provided for "free" for IPV6 stacks (defaults to `False`)
+* `IPV6` (`bool`) - If IPv6 should be enabled for the server/client, by default the created socket is either IPV4
+or IPv6 only, note that under Linux dual stack is provided for "free" for IPv6 stacks (defaults to `False`)
 * `ALLOWED` (`list`) - Sequence of IP or Subnet addresses (eg: 172.16.0.0/16) that are considered to be allowed as clients
 for a given server, any client connection with an IP address not contained in the list will be dropped (defaults to `[]`)
 * `TRUST_ORIGIN` (`bool`) - If the origin connection (eg: http client, proxy client, etc.) is meant to be trusted meaning that
