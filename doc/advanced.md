@@ -40,8 +40,8 @@ regarding problems and solutions for Python 3 and WSGI.
 
 Running `ab -n 20000 -c 5 -k http://localhost:9090/` should achieve the following results:
 
-* `HelloServer` - 9.6 K req/sec
-* `WSGIServer` - 8.7 K req/sec
+* `HelloServer` - 14.3 K req/sec
+* `WSGIServer` - 9.6 K req/sec
 
 These values have been verified for commit #7c2687b running in Python 2.6.6.
 
