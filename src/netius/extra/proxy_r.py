@@ -125,7 +125,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # connections, note that the forwarded for header is only used in case
         # the current "origin" is considered "trustable"
         address = connection.address[0]
-        if self.trust_origin: address = headers.get("x-forwarded-for", address)
+        if self.trust_origin:
+            address = headers.get("x-real-ip", address)
+            address = headers.get("x-forwarded-for", address)
 
         # tries to discover the protocol representation of the current
         # connections, note that the forwarded for header is only used in case
