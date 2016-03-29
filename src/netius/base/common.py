@@ -1519,12 +1519,24 @@ class AbstractBase(observer.Observable):
         if ca_root and SSL_CA_PATH:
             context.load_verify_locations(cafile = SSL_CA_PATH)
 
-    def _ssl_upgrade(self, _socket, key_file = None, cer_file = None, server = True):
+    def _ssl_upgrade(
+        self,
+        _socket,
+        key_file = None,
+        cer_file = None,
+        ca_file = None,
+        ca_root = True,
+        server = True,
+        ssl_verify = False
+    ):
         socket_ssl = self._ssl_wrap(
             _socket,
             key_file = key_file,
             cer_file = cer_file,
-            server = server
+            ca_file = ca_file,
+            ca_root = ca_root,
+            server = server,
+            ssl_verify = ssl_verify
         )
         return socket_ssl
 

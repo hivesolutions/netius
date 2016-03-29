@@ -217,7 +217,7 @@ class BaseConnection(observer.Observable):
     def close_flush(self):
         self.send(None, callback = self._close_callback)
 
-    def upgrade(self, key_file = None, cer_file = None, server = True):
+    def upgrade(self, key_file = None, cer_file = None, ca_file = None, server = True):
         # in case the current connection is already an ssl oriented one there's
         # nothing to be done here and the method returns immediately to caller
         if self.ssl: return
@@ -245,8 +245,9 @@ class BaseConnection(observer.Observable):
         # encapsulated ssl socket is then set as the current connection's socket
         self.socket = self.owner._ssl_upgrade(
             self.socket,
-            key_file = key_file,
-            cer_file = cer_file,
+            key_file = key_file or self.owner.key_file,
+            cer_file = cer_file or self.owner.cer_file,
+            ca_file = ca_file or self.owner.ca_file,
             server = server
         )
 

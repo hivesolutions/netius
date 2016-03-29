@@ -63,6 +63,9 @@ class Server(Base):
         self.port = None
         self.type = None
         self.ssl = False
+        self.key_file = None
+        self.cer_file = None
+        self.ca_file = None
         self.env = False
         self.allowed = []
 
@@ -176,9 +179,9 @@ class Server(Base):
         # defaults the provided ssl key and certificate paths to the
         # ones statically defined (dummy certificates), please beware
         # that using these certificates may create validation problems
-        key_file = key_file or SSL_KEY_PATH
-        cer_file = cer_file or SSL_CER_PATH
-        ca_file = ca_file or SSL_CA_PATH
+        self.key_file = key_file or SSL_KEY_PATH
+        self.cer_file = cer_file or SSL_CER_PATH
+        self.ca_file = ca_file or SSL_CA_PATH
 
         # determines if the client side certificate should be verified
         # according to the loaded certificate authority values or if
