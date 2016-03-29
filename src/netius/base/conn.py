@@ -240,6 +240,12 @@ class BaseConnection(observer.Observable):
         if hasattr(self.owner, "cer_file"): cer_file = cer_file or self.owner.cer_file
         if hasattr(self.owner, "ca_file"): ca_file = ca_file or self.owner.ca_file
 
+        # prints some debug information about the files that are going to be used for
+        # the ssl based connection upgrade, this is mainly for debugging purposes
+        if key_file: self.owner.debug("Using '%s' as key file" % key_file)
+        if cer_file: self.owner.debug("Using '%s' as certificate file" % cer_file)
+        if ca_file: self.owner.debug("Using '%s' as certificate authority file" % ca_file)
+
         # removes the "old" association socket association for the connection and
         # unsubscribes the "old" socket from the complete set of events, this should
         # be enough to avoid any interaction with the "old" socket
