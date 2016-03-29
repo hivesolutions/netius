@@ -100,7 +100,7 @@ class SSDPClient(netius.DatagramClient):
         buffer.append("%s %s %s\r\n" % (method, path, version))
         for key, value in headers.items():
             key = netius.common.header_up(key)
-            if not type(value) == list: value = [value]
+            if not type(value) == list: value = (value,)
             for _value in value: buffer.append("%s: %s\r\n" % (key, _value))
         buffer.append("\r\n")
         buffer_data = "".join(buffer)

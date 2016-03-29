@@ -236,7 +236,7 @@ class WSGIServer(http.HTTPServer):
         buffer.append("%s %s\r\n" % (version_s, status))
         for key, value in headers.items():
             key = netius.common.header_up(key)
-            if not type(value) == list: value = [value]
+            if not type(value) == list: value = (value,)
             for _value in value: buffer.append("%s: %s\r\n" % (key, _value))
         buffer.append("\r\n")
 
