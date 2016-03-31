@@ -166,6 +166,13 @@ class Server(Base):
         # problems with multiple stack based servers (ipv4 and ipv6)
         if host == None: host = "::1" if ipv6 else "127.0.0.1"
 
+        # defaults the provided ssl key and certificate paths to the
+        # ones statically defined (dummy certificates), please beware
+        # that using these certificates may create validation problems
+        key_file = key_file or SSL_KEY_PATH
+        cer_file = cer_file or SSL_CER_PATH
+        ca_file = ca_file or SSL_CA_PATH
+
         # populates the basic information on the currently running
         # server like the host the port and the (is) ssl flag to be
         # used latter for reference operations
@@ -176,12 +183,12 @@ class Server(Base):
         self.ssl_host = ssl_host
         self.env = env
 
-        # defaults the provided ssl key and certificate paths to the
-        # ones statically defined (dummy certificates), please beware
-        # that using these certificates may create validation problems
-        self.key_file = key_file or SSL_KEY_PATH
-        self.cer_file = cer_file or SSL_CER_PATH
-        self.ca_file = ca_file or SSL_CA_PATH
+        # populates the key, certificate and certificate authority file
+        # information with the values that have just been resolved, these
+        # values are going to be used for runtime certificate loading
+        self.key_file = key_file
+        self.cer_file = cer_file
+        self.ca_file = ca_file
 
         # determines if the client side certificate should be verified
         # according to the loaded certificate authority values or if
