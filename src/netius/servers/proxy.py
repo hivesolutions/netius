@@ -232,6 +232,8 @@ class ProxyServer(http.HTTPServer):
         proxy_c.send(data, force = True, callback = self._throttle)
 
     def on_chunk(self, connection, parser, range):
+        if not parser.chunked: return
+
         start, end = range
         data = parser.message[start:end]
         data_s = b"".join(data)
