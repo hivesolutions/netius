@@ -209,6 +209,16 @@ class ProxyServer(http.HTTPServer):
         else: self.info("Not throttling connections in the proxy ...")
         if self.trust_origin: self.info("Origin is considered \"trustable\" by proxy")
 
+    def on_data_http(self, connection, parser):
+        http.HTTPServer.on_data_http(self, connection, parser)
+        if not parser.chunked: return
+
+        proxy_c = connection.proxy_c
+
+        should_disable = self.throttle and proxy_c.pending_s > self.max_pending
+        if should_disable: connection.disable_read()
+        proxy_c.send(b"0\r\n\r\n", force = True, callback = self._prx_throttle)
+
     def on_headers(self, connection, parser):
         pass
 
