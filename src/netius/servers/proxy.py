@@ -217,12 +217,14 @@ class ProxyServer(http.HTTPServer):
 
         should_disable = self.throttle and proxy_c.pending_s > self.max_pending
         if should_disable: connection.disable_read()
-        proxy_c.send(b"0\r\n\r\n", force = True, callback = self._prx_throttle)
+        proxy_c.send(b"0\r\n\r\n", force = True, callback = self._throttle)
 
     def on_headers(self, connection, parser):
         pass
 
     def on_partial(self, connection, parser, data):
+        if parser.chunked: return
+
         proxy_c = connection.proxy_c
 
         should_disable = self.throttle and proxy_c.pending_s > self.max_pending
@@ -241,7 +243,7 @@ class ProxyServer(http.HTTPServer):
 
         should_disable = self.throttle and proxy_c.pending_s > self.max_pending
         if should_disable: connection.disable_read()
-        proxy_c.send(chunk, force = True, callback = self._prx_throttle)
+        proxy_c.send(chunk, force = True, callback = self._throttle)
 
     def new_connection(self, socket, address, ssl = False):
         return ProxyConnection(
