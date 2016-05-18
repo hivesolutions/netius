@@ -68,7 +68,7 @@ class SSLContextDict(dict):
     def cer_path(self, domain):
         raise netius.NotImplemented("Missing implementation")
 
-def LetsEncyptDict(SSLContextDict):
+def LetsEncryptDict(SSLContextDict):
 
     def __init__(self, owner, domains, *args, **kwargs):
         dict.__init__(self, owner, domains, *args, **kwargs)
