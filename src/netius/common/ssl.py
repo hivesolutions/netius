@@ -71,8 +71,8 @@ class SSLContextDict(dict):
 class LetsEncryptDict(SSLContextDict):
 
     def __init__(self, owner, domains, *args, **kwargs):
-        SSLContextDict.__init__(self, owner, domains, *args, **kwargs)
         self.letse_path = kwargs.get("letse_path", "/data/letsencrypt/etc/live")
+        SSLContextDict.__init__(self, owner, domains, *args, **kwargs)
 
     def cer_path(self, domain):
         domain_path = os.path.join(self.letse_path, domain)
