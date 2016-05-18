@@ -48,6 +48,7 @@ from . import rsa
 from . import setup
 from . import smtp
 from . import socks
+from . import ssl
 from . import stream
 from . import structures
 from . import torrent
@@ -76,6 +77,7 @@ from .rsa import open_pem_key, write_pem_key, open_private_key, open_public_key,
 from .setup import ensure_setup, ensure_ca
 from .smtp import SMTPParser
 from .socks import SOCKSParser
+from .ssl import SSLContextDict, LetsEncyptDict
 from .stream import Stream, FileStream, FilesStream
 from .structures import PriorityDict
 from .torrent import info_hash, bencode, bdecode, chunk, dechunk, TorrentParser
