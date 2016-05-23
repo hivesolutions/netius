@@ -75,6 +75,7 @@ class Headers(list):
         raise KeyError("not found")
 
     def __setitem__(self, key, value):
+        key = self._normalize(key)
         value = self._normalize(value)
         is_integer = type(key) == int
         if is_integer: return list.__setitem__(self, key, value)
