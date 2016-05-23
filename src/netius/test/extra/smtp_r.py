@@ -64,7 +64,7 @@ RESULT = b"DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=netius.hive.pt;
 
 REGISTRY = {
     "netius.hive.pt" : dict(
-        key_data = PRIVATE_KEY,
+        key_b64 = PRIVATE_KEY,
         selector = "20160523113052",
         domain = "netius.hive.pt"
     )
