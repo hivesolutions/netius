@@ -177,9 +177,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         contents = contents.lstrip()
 
         if key_path: private_key = netius.common.open_private_key(key_path)
-        elif key_data:
-            data = base64.b64decode(key_data)
-            private_key = netius.common.open_private_key_data(data)
+        elif key_data: private_key = netius.common.open_private_key_b64(key_data)
         else: raise netius.SecurityError("No private key provided")
 
         signature = netius.common.dkim_sign(

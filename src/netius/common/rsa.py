@@ -100,6 +100,10 @@ def open_private_key(path):
     )
     return open_private_key_data(data)
 
+def open_private_key_b64(data_b64):
+    data = base64.b64decode(data_b64)
+    return open_private_key_data(data)
+
 def open_private_key_data(data):
     asn1 = asn.asn1_parse(asn.ASN1_RSA_PRIVATE_KEY, data)[0]
     private_key = dict(
@@ -121,6 +125,10 @@ def open_public_key(path):
         path,
         token = PUBLIC_TOKEN
     )
+    return open_public_key_data(data)
+
+def open_public_key_b64(data_b64):
+    data = base64.b64decode(data_b64)
     return open_public_key_data(data)
 
 def open_public_key_data(data):

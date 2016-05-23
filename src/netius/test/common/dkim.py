@@ -75,8 +75,7 @@ RESULT = b"DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=netius.hive.pt;
 class DKIMTest(unittest.TestCase):
 
     def test_simple(self):
-        private_key_data = base64.b64decode(PRIVATE_KEY)
-        private_key = netius.common.open_private_key_data(private_key_data)
+        private_key = netius.common.open_private_key_b64(PRIVATE_KEY)
         result = netius.common.dkim_sign(
             MESSAGE,
             "20160523113052",
