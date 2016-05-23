@@ -38,6 +38,7 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import uuid
+import base64
 import hashlib
 import datetime
 
@@ -163,23 +164,31 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         identifier = connection.identifier or identifier
         return "<%s@%s>" % (identifier, domain)
 
-    def dkim_contents(self, contents, email = "user@localhost"):
+    def dkim_contents(self, contents, email = "user@localhost", creation = None):
         _user, domain = email.split("@", 1)
         register = self.dkim.get(domain, None)
         if not register: return contents
 
-        key_path = register["key"]
+        key_path = register.get("key", None)
+        key_data = register.get("key_data", None)
         selector = register["selector"]
         domain = register["domain"]
 
         contents = contents.lstrip()
-        private_key = netius.common.open_private_key(key_path)
+
+        if key_path: private_key = netius.common.open_private_key(key_path)
+        elif key_data:
+            data = base64.b64decode(key_data)
+            private_key = netius.common.open_private_key_data(data)
+        else: raise netius.SecurityError("No private key provided")
+
         signature = netius.common.dkim_sign(
             contents,
             selector,
             domain,
             private_key,
-            identity = email
+            identity = email,
+            creation = creation
         )
 
         return signature + contents
