@@ -48,7 +48,7 @@ from . import rsa
 from . import setup
 from . import smtp
 from . import socks
-from . import ssl
+from . import tls
 from . import stream
 from . import structures
 from . import torrent
@@ -70,14 +70,15 @@ from .http import REQUEST, RESPONSE, HTTP_09, HTTP_10, HTTP_11, VERSIONS_MAP,\
 from .mime import rfc822_parse, rfc822_join
 from .parser import Parser
 from .pop import POPParser
-from .rsa import open_pem_key, write_pem_key, open_private_key, open_public_key,\
-    write_private_key, write_public_key, asn_private_key, asn_public_key, pem_to_der,\
-    pem_limiters, private_to_public, assert_private, rsa_private, rsa_primes,\
-    rsa_exponents, rsa_bits, rsa_sign, rsa_verify, rsa_crypt_s, rsa_crypt
+from .rsa import open_pem_key, write_pem_key, open_private_key, open_private_key_data,\
+    open_public_key, open_public_key_data, write_private_key, write_public_key,\
+    asn_private_key, asn_public_key, pem_to_der, pem_limiters, private_to_public,\
+    assert_private, rsa_private, rsa_primes, rsa_exponents, rsa_bits, rsa_sign,\
+    rsa_verify, rsa_crypt_s, rsa_crypt
 from .setup import ensure_setup, ensure_ca
 from .smtp import SMTPParser
 from .socks import SOCKSParser
-from .ssl import SSLContextDict, LetsEncryptDict
+from .tls import TLSContextDict, LetsEncryptDict
 from .stream import Stream, FileStream, FilesStream
 from .structures import PriorityDict
 from .torrent import info_hash, bencode, bdecode, chunk, dechunk, TorrentParser

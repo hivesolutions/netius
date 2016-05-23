@@ -41,7 +41,7 @@ import os
 
 import netius
 
-class SSLContextDict(dict):
+class TLSContextDict(dict):
 
     def __init__(self, owner, domains, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
@@ -68,11 +68,11 @@ class SSLContextDict(dict):
     def cer_path(self, domain):
         raise netius.NotImplemented("Missing implementation")
 
-class LetsEncryptDict(SSLContextDict):
+class LetsEncryptDict(TLSContextDict):
 
     def __init__(self, owner, domains, *args, **kwargs):
         self.letse_path = kwargs.get("letse_path", "/data/letsencrypt/etc/live")
-        SSLContextDict.__init__(self, owner, domains, *args, **kwargs)
+        TLSContextDict.__init__(self, owner, domains, *args, **kwargs)
 
     def cer_path(self, domain):
         domain_path = os.path.join(self.letse_path, domain)

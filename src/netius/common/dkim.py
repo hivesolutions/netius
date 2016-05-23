@@ -50,7 +50,15 @@ from . import rsa
 from . import util
 from . import mime
 
-def dkim_sign(message, selector, domain, private_key, identity = None, separator = ":"):
+def dkim_sign(
+    message,
+    selector,
+    domain,
+    private_key,
+    identity = None,
+    separator = ":",
+    creation = None
+):
     separator = netius.legacy.bytes(separator)
     identity = identity or "@" + domain
 
@@ -73,7 +81,7 @@ def dkim_sign(message, selector, domain, private_key, identity = None, separator
     body_hash = base64.b64encode(body_digest)
     body_hash = netius.legacy.str(body_hash)
 
-    creation = time.time()
+    creation = creation or time.time()
     creation = int(creation)
     creation_s = str(creation)
 

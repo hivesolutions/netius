@@ -98,6 +98,9 @@ def open_private_key(path):
         path,
         token = PRIVATE_TOKEN
     )
+    return open_private_key_data(data)
+
+def open_private_key_data(data):
     asn1 = asn.asn1_parse(asn.ASN1_RSA_PRIVATE_KEY, data)[0]
     private_key = dict(
         version = asn1[0],
@@ -118,6 +121,9 @@ def open_public_key(path):
         path,
         token = PUBLIC_TOKEN
     )
+    return open_public_key_data(data)
+
+def open_public_key_data(data):
     asn1 = asn.asn1_parse(asn.ASN1_OBJECT, data)[0]
     asn1 = asn.asn1_parse(asn.ASN1_RSA_PUBLIC_KEY, asn1[1][1:])[0]
     public_key = dict(
