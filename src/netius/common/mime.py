@@ -88,7 +88,7 @@ class Headers(list):
         self.remove([key, value])
 
     def __contains__(self, item):
-        is_string = type(item) in netius.legacy.STRINGS
+        is_string = type(item) in netius.legacy.ALL_STRINGS
         if not is_string: return list.__contains__(self, item)
         for key, _value in self:
             if not key == item: continue
