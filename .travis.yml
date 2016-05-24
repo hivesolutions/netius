@@ -11,7 +11,7 @@ python:
   - "pypy"
   - "pypy3"
 install:
-  - pip install pkginfo<1.3
+  - pip install "pkginfo<1.3"
   - pip install -r requirements.txt
   - pip install coveralls
   - pip install twine
