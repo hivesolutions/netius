@@ -585,8 +585,10 @@ class HTTPParser(parser.Parser):
 
         # verifies if the connection is meant to be kept alive by
         # verifying the current value of the connection header against
-        # the expected keep alive string value
+        # the expected keep alive string value, note that the verification
+        # takes into account a possible list value in connection
         self.connection_s = self.headers.get("connection", None)
+        if type(self.connection_s) == list: self.connection_s = self.connection_s[0]
         self.connection_s = self.connection_s and self.connection_s.lower()
         self.keep_alive = self.connection_s == "keep-alive"
         self.keep_alive |= self.connection_s == None and self.version >= HTTP_11
