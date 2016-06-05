@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import os
+import ctypes
 import threading
 
 import netius
@@ -127,3 +129,58 @@ class ThreadPool(object):
     def push_callable(self, callable):
         work = (CALLABLE_WORK, callable)
         self.push(work)
+
+class EventPool(ThreadPool):
+
+    def __init__(self, base = Thread, count = 30):
+        ThreadPool.__init__(self, base = base, count = count)
+        self.events = []
+        self.event_lock = threading.RLock()
+        self._libc = None
+        self._eventfd = None
+
+    def push_event(self, event):
+        self.event_lock.acquire()
+        try: self.events.append(event)
+        finally: self.event_lock.release()
+        self.notify()
+
+    def pop_event(self):
+        self.event_lock.acquire()
+        try: event = self.events.pop(0)
+        finally: self.event_lock.release()
+        return event
+
+    def pop_all(self, denotify = False):
+        self.event_lock.acquire()
+        try:
+            events = list(self.events)
+            del self.events[:]
+            if events and denotify: self.denotify()
+        finally:
+            self.event_lock.release()
+        return events
+
+    def notify(self):
+        if not self._eventfd: return
+        os.write(self._eventfd.fileno(), ctypes.c_ulonglong(1))
+
+    def denotify(self):
+        if not self._eventfd: return
+        os.write(self._eventfd.fileno(), ctypes.c_ulonglong(0))
+
+    def eventfd(self, init_val = 0, flags = 0):
+        if self._eventfd: return self._eventfd
+        try: self._libc = self._libc or ctypes.cdll.LoadLibrary("libc.so.6")
+        except: return None
+        fileno = self._libc.eventfd(init_val, flags)
+        self._eventfd = EventFile(fileno)
+        return self._eventfd
+
+class EventFile(object):
+
+    def __init__(self, fileno):
+        self._fileno = fileno
+
+    def fileno(self):
+        return self._fileno

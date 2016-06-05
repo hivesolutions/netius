@@ -37,6 +37,10 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import netius
+
+from . import common
+
 FILE_WORK = 10
 
 ERROR_ACTION = -1
@@ -44,14 +48,6 @@ OPEN_ACTION = 1
 CLOSE_ACTION = 2
 READ_ACTION = 3
 WRITE_ACTION = 4
-
-import os
-import ctypes
-import threading
-
-import netius
-
-from . import common
 
 class FileThread(common.Thread):
 
@@ -90,14 +86,10 @@ class FileThread(common.Thread):
         elif action == WRITE_ACTION: self.read(*work[2:])
         else: netius.NotImplemented("Undefined file action '%d'" % action)
 
-class FilePool(common.ThreadPool):
+class FilePool(common.EventPool):
 
     def __init__(self, base = FileThread, count = 10):
-        common.ThreadPool.__init__(self, base = base, count = count)
-        self.events = []
-        self.event_lock = threading.RLock()
-        self._libc = None
-        self._eventfd = None
+        common.EventPool.__init__(self, base = base, count = count)
 
     def open(self, path, mode = "r", data = None):
         work = (FILE_WORK, OPEN_ACTION, path, mode, data)
@@ -114,49 +106,3 @@ class FilePool(common.ThreadPool):
     def write(self, file, buffer, data = None):
         work = (FILE_WORK, WRITE_ACTION, file, buffer, data)
         self.push(work)
-
-    def push_event(self, event):
-        self.event_lock.acquire()
-        try: self.events.append(event)
-        finally: self.event_lock.release()
-        self.notify()
-
-    def pop_event(self):
-        self.event_lock.acquire()
-        try: event = self.events.pop(0)
-        finally: self.event_lock.release()
-        return event
-
-    def pop_all(self, denotify = False):
-        self.event_lock.acquire()
-        try:
-            events = list(self.events)
-            del self.events[:]
-            if events and denotify: self.denotify()
-        finally:
-            self.event_lock.release()
-        return events
-
-    def notify(self):
-        if not self._eventfd: return
-        os.write(self._eventfd.fileno(), ctypes.c_ulonglong(1))
-
-    def denotify(self):
-        if not self._eventfd: return
-        os.write(self._eventfd.fileno(), ctypes.c_ulonglong(0))
-
-    def eventfd(self, init_val = 0, flags = 0):
-        if self._eventfd: return self._eventfd
-        try: self._libc = self._libc or ctypes.cdll.LoadLibrary("libc.so.6")
-        except: return None
-        fileno = self._libc.eventfd(init_val, flags)
-        self._eventfd = EventFile(fileno)
-        return self._eventfd
-
-class EventFile(object):
-
-    def __init__(self, fileno):
-        self._fileno = fileno
-
-    def fileno(self):
-        return self._fileno
