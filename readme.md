@@ -62,7 +62,7 @@ result = netius.clients.HTTPClient.get_s(
     "http://www.flickr.com/",
     async = False
 )
-print result["data"]
+print(result["data"])
 ```
 #### Asynchronous usage
 
@@ -70,7 +70,7 @@ print result["data"]
 import netius.clients
 
 def on_partial(client, parser, data):
-    print data
+    print(data)
 
 def on_message(client, parser, message):
     netius.clients.HTTPClient.cleanup_s()
