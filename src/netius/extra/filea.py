@@ -53,7 +53,7 @@ class FileAsyncServer(_file.FileServer):
     production work that required mature and stable codebase.
 
     Using this kind of server (file pool based) is not recommended
-    for system that don't provide some system of event fd (windows)
+    for system that don't provide some system of event fd (eg: windows)
     as it would provide very slow performance or even stall the
     event loop as no notification occurs on events.
     """
