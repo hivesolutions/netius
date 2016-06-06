@@ -19,6 +19,9 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+__author__ = "João Magalhães <joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,31 +37,10 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from . import dhcp
-from . import echo
-from . import ftp
-from . import http
-from . import mjpg
-from . import pop
-from . import proxy
-from . import smtp
-from . import socks
-from . import tftp
-from . import torrent
-from . import ws
-from . import wsgi
-
-from .dhcp import DHCPRequest, DHCPServer
-from .echo import EchoServer
-from .ftp import FTPConnection, FTPServer
-from .http import PLAIN_ENCODING, CHUNKED_ENCODING, GZIP_ENCODING, HTTPConnection,\
-    HTTPServer
-from .mjpg import MJPGServer
-from .pop import POPConnection, POPServer
-from .proxy import ProxyConnection, ProxyServer
-from .smtp import TERMINATION_SIZE, SMTPConnection, SMTPServer
-from .socks import SOCKSConnection, SOCKSServer
-from .tftp import TFTPConnection, TFTPServer
-from .torrent import Pieces, TorrentTask, TorrentServer
-from .ws import WSConnection, WSServer
-from .wsgi import WSGIServer
+TYPES_TFTP = {
+    0x01 : "rrq",
+    0x02 : "wrq",
+    0x03 : "data",
+    0x04 : "ack",
+    0x05 : "error"
+}
