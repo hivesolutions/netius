@@ -265,6 +265,10 @@ class AbstractBase(observer.Observable):
     the read and write operations are easy to handle.
     """
 
+    _MAIN = None
+    """ Reference to the top level main instance responsible
+    for the control of the main thread loop """
+
     def __init__(self, name = None, handlers = None, *args, **kwargs):
         observer.Observable.__init__(self, *args, **kwargs)
         poll = AbstractBase.test_poll()
@@ -287,6 +291,7 @@ class AbstractBase(observer.Observable):
         self.connections_m = {}
         self._uuid = uuid.uuid4()
         self._lid = 0
+        self._main = False
         self._running = False
         self._loaded = False
         self._delayed = []
@@ -624,6 +629,11 @@ class AbstractBase(observer.Observable):
         cthread = threading.current_thread()
         name = cthread.getName()
         ident = cthread.ident or 0
+        self._main = name == "MainThread"
+
+        # in case the current thread is the main one, the global
+        # main instance is set as the current instance
+        if self._main: AbstractBase._MAIN = self
 
         # enters the main loop operation printing a message
         # to the logger indicating this start, this stage
@@ -724,6 +734,10 @@ class AbstractBase(observer.Observable):
         # iterates over the complete set of sockets in the connections
         # map to properly close them (avoids any leak of resources)
         for _socket in self.connections_m: _socket.close()
+
+        # in case the current thread is the main one and the global
+        # main instance is unset to an invalid value (main unloaded)
+        if self._main: AbstractBase._MAIN = None
 
         # closes the current poll mechanism so that no more issues arise
         # from an open poll system (memory leaks, etc.), note that this is
@@ -1692,6 +1706,14 @@ class BaseThread(threading.Thread):
         if not self.owner: return
         self.owner.start()
         self.owner = None
+
+def get_main():
+    return AbstractBase._MAIN
+
+def get_poll():
+    main = get_main()
+    if not main: return None
+    return main.poll
 
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Base = DiagBase
