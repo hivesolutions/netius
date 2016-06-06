@@ -58,7 +58,7 @@ from .pop import POPConnection, POPServer
 from .proxy import ProxyConnection, ProxyServer
 from .smtp import TERMINATION_SIZE, SMTPConnection, SMTPServer
 from .socks import SOCKSConnection, SOCKSServer
-from .tftp import TFTPConnection, TFTPServer
+from .tftp import TFTPRequest, TFTPServer
 from .torrent import Pieces, TorrentTask, TorrentServer
 from .ws import WSConnection, WSServer
 from .wsgi import WSGIServer

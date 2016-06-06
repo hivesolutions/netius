@@ -170,6 +170,8 @@ class TFTPRequest(object):
 
     @classmethod
     def _option_rrq(cls):
+        #@todo: find the zero termination of the name
+        # 
         subnet_a = netius.common.ip4_to_addr(subnet)
         subnet_s = struct.pack("!I", subnet_a)
         payload = cls._str(subnet_s)
