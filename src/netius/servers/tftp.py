@@ -160,12 +160,6 @@ class TFTPRequest(object):
         if self.op == netius.common.ACK_TFTP: return self.session.ack()
         return self.session.next()
 
-    def error(self, exception):
-        message = str(exception)
-        message = netius.legacy.bytes(message)
-        header = struct.pack("!HH", netius.common.ERROR_TFTP, 0)
-        return header + message + b"\x00"
-
     @classmethod
     def _parse_rrq(cls, self):
         payload = self.payload
@@ -215,14 +209,23 @@ class TFTPServer(netius.DatagramServer):
     def on_data(self, address, data):
         netius.DatagramServer.on_data(self, address, data)
 
-        session = self.sessions.get(address, None)
-        if not session: session = TFTPSession(self)
-        self.sessions[address] = session
+        try:
+            session = self.sessions.get(address, None)
+            if not session: session = TFTPSession(self)
+            self.sessions[address] = session
 
-        request = TFTPRequest(data, session)
-        request.parse()
+            request = TFTPRequest(data, session)
+            request.parse()
 
-        self.on_data_tftp(address, request)
+            self.on_data_tftp(address, request)
+        except BaseException as exception:
+            self.on_error_tftp(address, exception)
+
+    def on_serve(self):
+        netius.DatagramServer.on_serve(self)
+        if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)
+        self.info("Starting TFTP server ...")
+        self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
 
     def on_data_tftp(self, address, request):
         type = request.get_type()
@@ -235,19 +238,17 @@ class TFTPServer(netius.DatagramServer):
                 "Invalid operation type '%d'", type
             )
 
-        try: response = request.response()
-        except BaseException as exception:
-            response = request.error(exception)
-
+        response = request.response()
         if not response: return
 
         self.send(response, address)
 
-    def on_serve(self):
-        netius.DatagramServer.on_serve(self)
-        if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)
-        self.info("Starting TFTP server ...")
-        self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
+    def on_error_tftp(self, address, exception):
+        message = str(exception)
+        message = netius.legacy.bytes(message)
+        header = struct.pack("!HH", netius.common.ERROR_TFTP, 0)
+        response = header + message + b"\x00"
+        self.send(response, address)
 
 if __name__ == "__main__":
     import logging
