@@ -82,7 +82,7 @@ from .socks import SOCKSParser
 from .tls import TLSContextDict, LetsEncryptDict
 from .stream import Stream, FileStream, FilesStream
 from .structures import PriorityDict
-from .tftp import TYPES_TFTP
+from .tftp import RRQ_TFTP, WRQ_TFTP, DATA_TFTP, ACK_TFTP, ERROR_TFTP, TYPES_TFTP
 from .torrent import info_hash, bencode, bdecode, chunk, dechunk, TorrentParser
 from .util import cstring, chunks, header_down, header_up, assert_ip4, in_subnet_ip4,\
     addr_to_ip4, ip4_to_addr, string_to_bits, integer_to_bytes, bytes_to_integer,\

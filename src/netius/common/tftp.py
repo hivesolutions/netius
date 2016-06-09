@@ -37,10 +37,16 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+RRQ_TFTP = 0x01
+WRQ_TFTP = 0x02
+DATA_TFTP = 0x03
+ACK_TFTP = 0x04
+ERROR_TFTP = 0x05
+
 TYPES_TFTP = {
-    0x01 : "rrq",
-    0x02 : "wrq",
-    0x03 : "data",
-    0x04 : "ack",
-    0x05 : "error"
+    RRQ_TFTP : "rrq",
+    WRQ_TFTP : "wrq",
+    DATA_TFTP : "data",
+    ACK_TFTP : "ack",
+    ERROR_TFTP : "error"
 }

@@ -52,17 +52,23 @@ class TFTPSession(object):
         self.sequence = 0
 
     def close(self):
+        self.reset()
+
+    def reset(self):
         if self.file: self.file.close()
         self.name = None
         self.mode = None
         self.sequence = 0
 
     def next(self, size = 512, increment = True):
-        if increment: self.sequence += 1
+        if increment: self.increment()
         file = self._get_file()
         data = file.read(512)
-        header = struct.pack("!HH", 0x03, self.sequence)
+        header = struct.pack("!HH", netius.common.DATA_TFTP, self.sequence)
         return header + data
+
+    def increment(self):
+        self.sequence += 1
 
     def get_info(self):
         buffer = netius.legacy.StringIO()
@@ -141,11 +147,19 @@ class TFTPRequest(object):
         return type_s
 
     def response(self, options = {}):
+        if self.op == netius.common.ACK_TFTP: return None
         return self.session.next()
+
+    def error(self, exception):
+        message = str(exception)
+        message = netius.legacy.bytes(message)
+        header = struct.pack("!HH", netius.common.ERROR_TFTP, 0)
+        return header + message + b"\x00"
 
     @classmethod
     def _parse_rrq(cls, self):
         payload = self.payload
+        self.session.reset()
         self.session.name, payload = cls._str(payload)
         self.session.mode, payload = cls._str(payload)
 
@@ -206,11 +220,17 @@ class TFTPServer(netius.DatagramServer):
 
         self.info("Received %s message from '%s'" % (type_s, address))
 
-        if not type in (0x01, 0x04): raise netius.NetiusError(
-            "Invalid operation type '%d'", type
-        )
+        if not type in (netius.common.RRQ_TFTP, netius.common.ACK_TFTP):
+            raise netius.NetiusError(
+                "Invalid operation type '%d'", type
+            )
 
-        response = request.response()
+        try: response = request.response()
+        except BaseException as exception:
+            response = request.error(exception)
+
+        if not response: return
+
         self.send(response, address)
 
     def on_serve(self):
