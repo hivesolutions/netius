@@ -221,8 +221,6 @@ class TFTPServer(netius.DatagramServer):
             session = self.sessions.get(address, None)
             if not session: session = TFTPSession(self)
             self.sessions[address] = session
-            
-            session.print_info()
 
             request = TFTPRequest(data, session)
             request.parse()
