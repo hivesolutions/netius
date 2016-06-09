@@ -41,33 +41,54 @@ import struct
 
 import netius.common
 
+class TFTPSession(object):
+
+    def __init__(self, name = None, mode = None):
+        self.name = name
+        self.mode = mode
+
+    def get_info(self):
+        buffer = netius.legacy.StringIO()
+        buffer.write("name    := %s\n" % self.name)
+        buffer.write("mode    := %s" % self.mode)
+        buffer.seek(0)
+        info = buffer.read()
+        return info
+
+    def print_info(self):
+        info = self.get_info()
+        print(info)
+
 class TFTPRequest(object):
 
-    options_m = None
-    options_l = None
+    parsers_m = None
+    parsers_l = None
 
-    def __init__(self, data):
+    def __init__(self, data, session):
         self.data = data
+        self.session = session
 
         cls = self.__class__
         cls.generate()
 
     @classmethod
     def generate(cls):
-        if cls.options_m: return
-        cls.options_m = (
-            cls._option_rrq,
-            cls._option_wrq,
-            cls._option_data,
-            cls._option_ack,
-            cls._option_error
+        if cls.parsers_m: return
+        cls.parsers_m = (
+            cls._parse_rrq,
+            cls._parse_wrq,
+            cls._parse_data,
+            cls._parse_ack,
+            cls._parse_error
         )
-        cls.options_l = len(cls.options_m)
+        cls.parsers_l = len(cls.parsers_m)
 
     def get_info(self):
+        session_info = self.session.get_info()
         buffer = netius.legacy.StringIO()
         buffer.write("op      := %d\n" % self.op)
         buffer.write("payload := %s" % repr(self.payload))
+        if session_info: buffer.write("\n" + session_info)
         buffer.seek(0)
         info = buffer.read()
         return info
@@ -86,6 +107,9 @@ class TFTPRequest(object):
         result = struct.unpack(format, self.header)
         self.op = result[0]
 
+        method = cls.parsers_m[self.op - 1]
+        method(self)
+
     def get_type(self):
         return self.op
 
@@ -94,104 +118,34 @@ class TFTPRequest(object):
         type_s = netius.common.TYPES_TFTP.get(type, None)
         return type_s
 
-    def response(self, options = {}):
-        cls = self.__class__
-
-        host = netius.common.host()
-
-        format = "!BBBBIHHIIII2Q64s128sI"
-        result = []
-        buffer = []
-
-        op = 0x02
-        htype = 0x01
-        hlen = 0x06
-        hops = 0x00
-        xid = self.xid
-        secs = 0x0000
-        flags = self.flags
-        ciaddr = self.ciaddr
-        yiaddr = netius.common.ip4_to_addr(yiaddr)
-        siaddr = netius.common.ip4_to_addr(host)
-        giaddr = self.siaddr
-        chaddr = self.chaddr
-        sname = b""
-        file = b""
-        magic = 0x63825363
-
-        end = self._option_end()
-
-        result.append(op)
-        result.append(htype)
-        result.append(hlen)
-        result.append(hops)
-        result.append(xid)
-        result.append(secs)
-        result.append(flags)
-        result.append(ciaddr)
-        result.append(yiaddr)
-        result.append(siaddr)
-        result.append(giaddr)
-        result.append(chaddr[0])
-        result.append(chaddr[1])
-        result.append(sname)
-        result.append(file)
-        result.append(magic)
-
-        data = struct.pack(format, *result)
-        buffer.append(data)
-
-        for option, values in options.items():
-            method = cls.options_m[option - 1]
-            if values: option_s = method(**values)
-            else: option_s = method()
-            buffer.append(option_s)
-
-        buffer.append(end)
-        data = b"".join(buffer)
-
-        return data
+    @classmethod
+    def _parse_rrq(cls, self):
+        payload = self.payload
+        self.session.name, payload = cls._str(payload)
+        self.session.mode, payload = cls._str(payload)
 
     @classmethod
-    def _str(cls, data):
-        data = netius.legacy.bytes(data)
-        data_l = len(data)
-        size_s = struct.pack("!B", data_l)
-        return size_s + data
-
-    @classmethod
-    def _pack_m(cls, sequence, format):
-        result = []
-        for value in sequence:
-            value_s = struct.pack(format, value)
-            result.append(value_s)
-
-        return b"".join(result)
-
-    @classmethod
-    def _option_rrq(cls):
-        #@todo: find the zero termination of the name
-        #
-        subnet_a = netius.common.ip4_to_addr(subnet)
-        subnet_s = struct.pack("!I", subnet_a)
-        payload = cls._str(subnet_s)
-        return b"\x01" + payload
-
-    @classmethod
-    def _option_wrq(cls):
+    def _parse_wrq(cls, self):
         raise netius.NotImplemented("Option not implemented")
 
     @classmethod
-    def _option_data(cls):
+    def _parse_data(cls, self):
         raise netius.NotImplemented("Option not implemented")
 
     @classmethod
-    def _option_ack(cls):
+    def _parse_ack(cls, self):
         pass
 
     @classmethod
-    def _option_error(cls):
+    def _parse_error(cls, self):
         raise netius.NotImplemented("Option not implemented")
+
+    @classmethod
+    def _str(cls, data):
+        index = data.index(b"\x00")
+        value, remaining = data[:index], data[index + 1:]
+        value = netius.legacy.str(value)
+        return value, remaining
 
 class TFTPServer(netius.DatagramServer):
     """
@@ -204,6 +158,7 @@ class TFTPServer(netius.DatagramServer):
     def __init__(self, base_path = "", *args, **kwargs):
         netius.DatagramServer.__init__(self, *args, **kwargs)
         self.base_path = base_path
+        self.sessions = dict()
 
     def serve(self, port = 69, *args, **kwargs):
         netius.DatagramServer.serve(self, port = port, *args, **kwargs)
@@ -211,9 +166,12 @@ class TFTPServer(netius.DatagramServer):
     def on_data(self, address, data):
         netius.DatagramServer.on_data(self, address, data)
 
-        request = TFTPRequest(data)
+        session = self.sessions.get(address, None)
+        if not session: session = TFTPSession()
+        self.sessions[address] = session
+
+        request = TFTPRequest(data, session)
         request.parse()
-        request.print_info()
 
         self.on_data_tftp(address, request)
 
@@ -227,18 +185,12 @@ class TFTPServer(netius.DatagramServer):
             "Invalid operation type '%d'", type
         )
 
-        type_r = self.get_type(request)
-        options = self.get_options(request)
-        yiaddr = self.get_yiaddr(request)
-        verb = self.get_verb(type_r)
-        verb = verb.capitalize()
+        print("%s" % request.get_type_s().upper())
+        request.print_info()
 
-        options[type_r] = None
-
-        self.info("%s address '%s' ..." % (verb, yiaddr))
-
-        response = request.response(yiaddr, options = options)
-        self.send(response, address)
+        #@todo must create response from request
+        #response = request.response(yiaddr, options = options)
+        #self.send(response, address)
 
     def on_serve(self):
         netius.DatagramServer.on_serve(self)
