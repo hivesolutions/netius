@@ -169,11 +169,11 @@ class TFTPRequest(object):
 
     @classmethod
     def _parse_wrq(cls, self):
-        raise netius.NotImplemented("Option not implemented")
+        raise netius.NotImplemented("Operation not implemented")
 
     @classmethod
     def _parse_data(cls, self):
-        raise netius.NotImplemented("Option not implemented")
+        raise netius.NotImplemented("Operation not implemented")
 
     @classmethod
     def _parse_ack(cls, self):
@@ -181,7 +181,7 @@ class TFTPRequest(object):
 
     @classmethod
     def _parse_error(cls, self):
-        raise netius.NotImplemented("Option not implemented")
+        raise netius.NotImplemented("Operation not implemented")
 
     @classmethod
     def _str(cls, data):
