@@ -252,10 +252,11 @@ class TFTPServer(netius.DatagramServer):
 
     def on_error_tftp(self, address, exception):
         message = str(exception)
-        message = netius.legacy.bytes(message)
+        message_b = netius.legacy.bytes(message)
         header = struct.pack("!HH", netius.common.ERROR_TFTP, 0)
-        response = header + message + b"\x00"
+        response = header + message_b + b"\x00"
         self.send(response, address)
+        self.debug("Sent error message '%s' to '%s'" % (message, address))
 
 if __name__ == "__main__":
     import logging
