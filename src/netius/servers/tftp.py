@@ -93,9 +93,9 @@ class TFTPSession(object):
         info = self.get_info()
         print(info)
 
-    def _get_file(self):
+    def _get_file(self, allow_absolute = False):
         if self.file: return self.file
-        name = self.name.lstrip("/")
+        if not allow_absolute: name = self.name.lstrip("/")
         path = os.path.join(self.owner.base_path, name)
         self.file = open(path, "rb")
         return self.file
