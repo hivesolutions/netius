@@ -86,6 +86,7 @@ class TFTPSession(object):
         if self.file: return self.file
         path = os.path.join(self.owner.base_path, self.name)
         self.file = open(path, "rb")
+        return self.file
 
 class TFTPRequest(object):
 
