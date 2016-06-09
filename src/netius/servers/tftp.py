@@ -37,15 +37,32 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import os
 import struct
 
 import netius.common
 
 class TFTPSession(object):
 
-    def __init__(self, name = None, mode = None):
+    def __init__(self, owner, name = None, mode = None):
+        self.owner = owner
         self.name = name
         self.mode = mode
+        self.file = None
+        self.sequence = 0
+
+    def close(self):
+        if self.file: self.file.close()
+        self.name = None
+        self.mode = None
+        self.sequence = 0
+
+    def next(self, size = 512, increment = True):
+        if increment: self.sequence += 1
+        file = self._get_file()
+        data = file.read(512)
+        header = struct.pack("!HH", 0x03, self.sequence)
+        return header + data
 
     def get_info(self):
         buffer = netius.legacy.StringIO()
@@ -58,6 +75,11 @@ class TFTPSession(object):
     def print_info(self):
         info = self.get_info()
         print(info)
+
+    def _get_file(self):
+        if self.file: return self.file
+        path = os.path.join(self.owner.base_path, self.name)
+        self.file = open(path, "rb")
 
 class TFTPRequest(object):
 
@@ -118,6 +140,9 @@ class TFTPRequest(object):
         type_s = netius.common.TYPES_TFTP.get(type, None)
         return type_s
 
+    def response(self, options = {}):
+        return self.session.next()
+
     @classmethod
     def _parse_rrq(cls, self):
         payload = self.payload
@@ -167,7 +192,7 @@ class TFTPServer(netius.DatagramServer):
         netius.DatagramServer.on_data(self, address, data)
 
         session = self.sessions.get(address, None)
-        if not session: session = TFTPSession()
+        if not session: session = TFTPSession(self)
         self.sessions[address] = session
 
         request = TFTPRequest(data, session)
@@ -185,12 +210,8 @@ class TFTPServer(netius.DatagramServer):
             "Invalid operation type '%d'", type
         )
 
-        print("%s" % request.get_type_s().upper())
-        request.print_info()
-
-        #@todo must create response from request
-        #response = request.response(yiaddr, options = options)
-        #self.send(response, address)
+        response = request.response()
+        self.send(response, address)
 
     def on_serve(self):
         netius.DatagramServer.on_serve(self)
