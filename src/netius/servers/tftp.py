@@ -66,8 +66,8 @@ class TFTPSession(object):
     def next(self, size = 512, increment = True):
         if self.completed: return None
         file = self._get_file()
-        data = file.read(512)
-        self.completed = len(data) < 512
+        data = file.read(size)
+        self.completed = len(data) < size
         if increment: self.increment()
         header = struct.pack("!HH", netius.common.DATA_TFTP, self.sequence)
         return header + data
