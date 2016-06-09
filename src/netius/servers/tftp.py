@@ -81,8 +81,10 @@ class TFTPSession(object):
 
     def get_info(self):
         buffer = netius.legacy.StringIO()
-        buffer.write("name    := %s\n" % self.name)
-        buffer.write("mode    := %s" % self.mode)
+        buffer.write("name      := %s\n" % self.name)
+        buffer.write("mode      := %s" % self.mode)
+        buffer.write("completed := %d" % self.completed)
+        buffer.write("sequence  := %d" % self.sequence)
         buffer.seek(0)
         info = buffer.read()
         return info
@@ -125,8 +127,8 @@ class TFTPRequest(object):
     def get_info(self):
         session_info = self.session.get_info()
         buffer = netius.legacy.StringIO()
-        buffer.write("op      := %d\n" % self.op)
-        buffer.write("payload := %s" % repr(self.payload))
+        buffer.write("op        := %d\n" % self.op)
+        buffer.write("payload   := %s" % repr(self.payload))
         if session_info: buffer.write("\n" + session_info)
         buffer.seek(0)
         info = buffer.read()
@@ -257,7 +259,7 @@ class TFTPServer(netius.DatagramServer):
         header = struct.pack("!HH", netius.common.ERROR_TFTP, 0)
         response = header + message_b + b"\x00"
         self.send(response, address)
-        self.debug("Sent error message '%s' to '%s'" % (message, address))
+        self.info("Sent error message '%s' to '%s'" % (message, address))
 
 if __name__ == "__main__":
     import logging
