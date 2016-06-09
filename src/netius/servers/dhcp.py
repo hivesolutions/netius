@@ -368,7 +368,7 @@ class DHCPServer(netius.DatagramServer):
         type = request.get_type()
         type_s = request.get_type_s()
 
-        self.info("Received %s message from '%s'" % (type_s, mac))
+        self.debug("Received %s message from '%s'" % (type_s, mac))
 
         if not type in (0x01, 0x03): raise netius.NetiusError(
             "Invalid operation type '%d'", type
@@ -382,7 +382,7 @@ class DHCPServer(netius.DatagramServer):
 
         options[type_r] = None
 
-        self.info("%s address '%s' ..." % (verb, yiaddr))
+        self.debug("%s address '%s' ..." % (verb, yiaddr))
 
         response = request.response(yiaddr, options = options)
         self.send_dhcp(response)

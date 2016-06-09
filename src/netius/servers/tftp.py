@@ -49,6 +49,7 @@ class TFTPSession(object):
         self.name = name
         self.mode = mode
         self.file = None
+        self.completed = False
         self.sequence = 0
 
     def close(self):
@@ -58,14 +59,22 @@ class TFTPSession(object):
         if self.file: self.file.close()
         self.name = None
         self.mode = None
+        self.file = None
+        self.completed = False
         self.sequence = 0
 
     def next(self, size = 512, increment = True):
-        if increment: self.increment()
+        if self.completed: return None
         file = self._get_file()
         data = file.read(512)
+        self.completed = len(data) < 512
+        if increment: self.increment()
         header = struct.pack("!HH", netius.common.DATA_TFTP, self.sequence)
         return header + data
+
+    def ack(self, size = 512, increment = True):
+        if self.sequence == 0: return None
+        return self.next(size = size, increment = increment)
 
     def increment(self):
         self.sequence += 1
@@ -148,7 +157,7 @@ class TFTPRequest(object):
         return type_s
 
     def response(self, options = {}):
-        if self.op == netius.common.ACK_TFTP: return None
+        if self.op == netius.common.ACK_TFTP: return self.session.ack()
         return self.session.next()
 
     def error(self, exception):
@@ -219,7 +228,7 @@ class TFTPServer(netius.DatagramServer):
         type = request.get_type()
         type_s = request.get_type_s()
 
-        self.info("Received %s message from '%s'" % (type_s, address))
+        self.debug("Received %s message from '%s'" % (type_s, address))
 
         if not type in (netius.common.RRQ_TFTP, netius.common.ACK_TFTP):
             raise netius.NetiusError(
