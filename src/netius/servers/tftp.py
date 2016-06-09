@@ -82,8 +82,8 @@ class TFTPSession(object):
     def get_info(self):
         buffer = netius.legacy.StringIO()
         buffer.write("name      := %s\n" % self.name)
-        buffer.write("mode      := %s" % self.mode)
-        buffer.write("completed := %d" % self.completed)
+        buffer.write("mode      := %s\n" % self.mode)
+        buffer.write("completed := %d\n" % self.completed)
         buffer.write("sequence  := %d" % self.sequence)
         buffer.seek(0)
         info = buffer.read()
