@@ -198,6 +198,11 @@ class TFTPServer(netius.DatagramServer):
     @see: http://tools.ietf.org/html/rfc1350
     """
 
+    ALLOWED_OPERATIONS = (
+        netius.common.RRQ_TFTP,
+        netius.common.ACK_TFTP
+    )
+
     def __init__(self, base_path = "", *args, **kwargs):
         netius.DatagramServer.__init__(self, *args, **kwargs)
         self.base_path = base_path
@@ -228,12 +233,14 @@ class TFTPServer(netius.DatagramServer):
         self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
 
     def on_data_tftp(self, address, request):
+        cls = self.__class__
+
         type = request.get_type()
         type_s = request.get_type_s()
 
         self.debug("Received %s message from '%s'" % (type_s, address))
 
-        if not type in (netius.common.RRQ_TFTP, netius.common.ACK_TFTP):
+        if not type in cls.ALLOWED_OPERATIONS:
             raise netius.NetiusError(
                 "Invalid operation type '%d'", type
             )
