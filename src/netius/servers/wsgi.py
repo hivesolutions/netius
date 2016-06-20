@@ -267,7 +267,7 @@ class WSGIServer(http.HTTPServer):
         if is_future:
             def on_future(future):
                 data = future.result
-                connection.send(data, delay = True, callback = self._send_part)
+                connection.send(data, callback = self._send_part)
             data.add_done_callback(on_future)
             return
 
