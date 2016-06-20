@@ -85,3 +85,31 @@ class PriorityDict(dict):
     def _rebuild_heap(self):
         self._heap = [(v, k) for k, v in self.items()]
         heapq.heapify(self._heap)
+
+class Future(object):
+
+    def __init__(self):
+        self.result = None
+        self.exception = None
+        self.done_callbacks = []
+
+    def cancel(self):
+        pass
+
+    def cancelled(self):
+        return False if self.result else True
+
+    def done(self):
+        return False if self.result == None else True
+
+    def result(self):
+        return self.result
+
+    def add_done_callback(self, function):
+        self.done_callbacks.append(function)
+
+    def set_result(self, result):
+        self.result = result
+
+    def set_exception(self, exception):
+        self.exception = exception

@@ -1710,6 +1710,9 @@ class BaseThread(threading.Thread):
 def get_main():
     return AbstractBase._MAIN
 
+def get_loop():
+    return get_main()
+
 def get_poll():
     main = get_main()
     if not main: return None
