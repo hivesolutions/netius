@@ -377,7 +377,7 @@ class AbstractBase(observer.Observable):
 
         # creates the callable that is going to be used to set
         # the final value of the future variable
-        callable = lambda: future.set_result(True)
+        callable = lambda: future.set_result(None)
 
         # delays the execution of the callable so that it is executed
         # after the requested amount of timeout, note that the resolution
