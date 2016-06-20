@@ -51,7 +51,7 @@ from . import tls
 from .client import Client, DatagramClient, StreamClient
 from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     IDENTIFIER, UDP_TYPE, TCP_TYPE, Base, BaseThread, Future,\
-    get_main, get_loop, get_poll, ensure
+    get_main, get_loop, get_poll, ensure, sleep
 from .config import conf, conf_prefix, conf_s
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer

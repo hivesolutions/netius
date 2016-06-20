@@ -355,12 +355,34 @@ class AbstractBase(observer.Observable):
         heapq.heappush(self._delayed_o, callable_o)
 
     def ensure(self, coroutine, future = None, immediately = True):
+        # verifies if a future variable is meant to be re-used
+        # or if instead a new one should be created for the new
+        # ensure execution operation
         future = future or Future()
 
-        def callable():
-            return coroutine(future)
+        # creates the callable that is going to be used to call
+        # the coroutine with the proper future variable as argument
+        callable = lambda: coroutine(future)
 
+        # delays the execution of the callable so that it is executed
+        # immediately if possible (event on the same iteration)
         self.delay(callable, immediately = immediately)
+        return future
+
+    def sleep(self, timeout, future = None):
+        # verifies if a future variable is meant to be re-used
+        # or if instead a new one should be created for the new
+        # sleep operation to be executed
+        future = future or Future()
+
+        # creates the callable that is going to be used to set
+        # the final value of the future variable
+        callable = lambda: future.set_result(True)
+
+        # delays the execution of the callable so that it is executed
+        # after the requested amount of timeout, note that the resolution
+        # of the event loop will condition the precision of the timeout
+        self.delay(callable, timeout = timeout)
         return future
 
     def load(self, full = False):
@@ -1762,6 +1784,10 @@ def get_poll():
 def ensure(coroutine):
     loop = get_loop()
     return loop.ensure(coroutine)
+
+def sleep(timeout):
+    loop = get_loop()
+    return loop.sleep(timeout)
 
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Base = DiagBase
