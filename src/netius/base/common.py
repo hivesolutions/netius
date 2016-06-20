@@ -359,7 +359,7 @@ class AbstractBase(observer.Observable):
 
         def callable():
             return coroutine(future)
-                                         
+
         self.delay(callable, immediately = immediately)
         return future
 
@@ -1758,6 +1758,10 @@ def get_poll():
     main = get_main()
     if not main: return None
     return main.poll
+
+def ensure(coroutine):
+    loop = get_loop()
+    return loop.ensure(coroutine)
 
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Base = DiagBase
