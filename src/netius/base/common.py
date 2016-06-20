@@ -354,9 +354,14 @@ class AbstractBase(observer.Observable):
         heapq.heappush(self._delayed, callable_t)
         heapq.heappush(self._delayed_o, callable_o)
 
-    def ensure(self, coroutine, future, immediately = True):
-        def callable(): return coroutine(future)
+    def ensure(self, coroutine, future = None, immediately = True):
+        future = future or Future()
+
+        def callable():
+            return coroutine(future)
+                                         
         self.delay(callable, immediately = immediately)
+        return future
 
     def load(self, full = False):
         # in case the current structure is considered/marked as already loaded
@@ -1710,6 +1715,38 @@ class BaseThread(threading.Thread):
         if not self.owner: return
         self.owner.start()
         self.owner = None
+
+class Future(object):
+
+    def __init__(self):
+        self.result = None
+        self.exception = None
+        self.done_callbacks = []
+
+    def cancel(self):
+        pass
+
+    def cancelled(self):
+        return False if self.result else True
+
+    def done(self):
+        return False if self.result == None else True
+
+    def result(self):
+        return self.result
+
+    def add_done_callback(self, function):
+        self.done_callbacks.append(function)
+
+    def set_result(self, result):
+        self.result = result
+        self._run_callbacks()
+
+    def set_exception(self, exception):
+        self.exception = exception
+
+    def _run_callbacks(self):
+        for callback in self.done_callbacks: callback(self)
 
 def get_main():
     return AbstractBase._MAIN

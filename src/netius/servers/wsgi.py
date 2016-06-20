@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import sys
 
-import netius.common
+import netius
 
 from . import http
 
@@ -263,7 +263,7 @@ class WSGIServer(http.HTTPServer):
         # verifies if the current value in iteration is a future element
         # and if that's the case creates the proper callback to be used
         # for the handling on the end of the iteration
-        is_future = isinstance(data, netius.common.Future)
+        is_future = isinstance(data, netius.Future)
         if is_future:
             def on_future(future):
                 data = future.result
