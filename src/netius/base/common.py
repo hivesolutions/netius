@@ -330,12 +330,12 @@ class AbstractBase(observer.Observable):
         # as expected by the current method
         return selected
 
-    def delay(self, callable, timeout = None, verify = False):
+    def delay(self, callable, timeout = None, immediately = False, verify = False):
         # creates the original target value with a zero value (forced
         # execution in next tick) in case the timeout value is set the
         # value is incremented to the current time, then created the
         # callable original tuple with the target (time) and the callable
-        target = 0
+        target = -1 if immediately else 0
         if timeout: target = time.time() + timeout
         callable_o = (target, callable)
         callable_o = legacy.orderable(callable_o)
@@ -354,9 +354,9 @@ class AbstractBase(observer.Observable):
         heapq.heappush(self._delayed, callable_t)
         heapq.heappush(self._delayed_o, callable_o)
 
-    def ensure(self, coroutine, future):
+    def ensure(self, coroutine, future, immediately = True):
         def callable(): return coroutine(future)
-        self.delay(callable)
+        self.delay(callable, immediately = immediately)
 
     def load(self, full = False):
         # in case the current structure is considered/marked as already loaded
