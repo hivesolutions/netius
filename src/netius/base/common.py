@@ -354,6 +354,10 @@ class AbstractBase(observer.Observable):
         heapq.heappush(self._delayed, callable_t)
         heapq.heappush(self._delayed_o, callable_o)
 
+    def ensure(self, coroutine, future):
+        def callable(): return coroutine(future)
+        self.delay(callable)
+
     def load(self, full = False):
         # in case the current structure is considered/marked as already loaded
         # there's no need to continue with the loading execution (returns immediately)

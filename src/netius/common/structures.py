@@ -110,6 +110,10 @@ class Future(object):
 
     def set_result(self, result):
         self.result = result
+        self._run_callbacks()
 
     def set_exception(self, exception):
         self.exception = exception
+
+    def _run_callbacks(self):
+        for callback in self.done_callbacks: callback(self)

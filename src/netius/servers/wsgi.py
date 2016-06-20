@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import sys
 
-import netius
+import netius.common
 
 from . import http
 
@@ -259,6 +259,17 @@ class WSGIServer(http.HTTPServer):
         # so that no more data is sent through the connection
         try: data = next(iterator)
         except StopIteration: is_final = True
+
+        # verifies if the current value in iteration is a future element
+        # and if that's the case creates the proper callback to be used
+        # for the handling on the end of the iteration
+        is_future = isinstance(data, netius.common.Future)
+        if is_future:
+            def on_future(future):
+                data = future.result
+                connection.send(data, delay = True, callback = self._send_part)
+            data.add_done_callback(on_future)
+            return
 
         # in case the final flag is set runs the flush operation in the
         # connection setting the proper callback method for it so that
