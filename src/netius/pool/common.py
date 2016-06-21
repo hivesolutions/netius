@@ -210,7 +210,7 @@ class UnixEventFile(EventFile):
         flags = kwargs.get("flags", 0)
         try: cls._LIBC = cls._LIBC or ctypes.cdll.LoadLibrary("libc.so.6")
         except: return None
-        self._rfileno = self._libc.eventfd(init_val, flags)
+        self._rfileno = self._LIBC.eventfd(init_val, flags)
         self._wfileno = self._rfileno
 
     def notify(self):
