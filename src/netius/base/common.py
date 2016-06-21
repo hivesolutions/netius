@@ -280,6 +280,7 @@ class AbstractBase(observer.Observable):
         self.tid = None
         self.logger = None
         self.logging = None
+        self.tpool = None
         self.fpool = None
         self.poll_c = kwargs.get("poll", poll)
         self.poll = self.poll_c()
@@ -296,6 +297,8 @@ class AbstractBase(observer.Observable):
         self._loaded = False
         self._delayed = []
         self._delayed_o = []
+        self._delayed_n = []
+        self._delayed_l = threading.RLock()
         self._extra_handlers = []
         self._ssl_init()
         self.set_state(STATE_STOP)
@@ -354,7 +357,43 @@ class AbstractBase(observer.Observable):
         heapq.heappush(self._delayed, callable_t)
         heapq.heappush(self._delayed_o, callable_o)
 
-    def ensure(self, coroutine, future = None, immediately = True):
+    def delay_s(self, callable):
+        """
+        Safe version of the delay operation to be used to insert a callable
+        from a different thread (implied lock mechanisms).
+
+        This method should only be used from different threads as there's
+        a huge performance impact created from using this methods instead of
+        the local event loop one (delay()).
+
+        @type callable: Function
+        @param callable: The callable that should be called on the next tick
+        according to the event loop rules.
+        """
+
+        # acquires the lock that controls the access to the delayed for next
+        # tick list and then adds the callable to such list, please note that
+        # the delayed (next) list is only going to be joined/merged with delay
+        # operations and list on the next tick (through the merge operation)
+        self._delayed_l.acquire()
+        try: self._delayed_n.append(callable)
+        finally: self._delayed_l.release()
+
+    def delay_m(self):
+        if not self._delayed_n: return
+        for next in self._delayed_n:
+            self.delay(next, immediately = True)
+        del self._delayed_n[:]
+
+    def ensure(
+        self,
+        coroutine,
+        args = [],
+        kwargs = {},
+        thread = False,
+        future = None,
+        immediately = True
+    ):
         # verifies if a future variable is meant to be re-used
         # or if instead a new one should be created for the new
         # ensure execution operation
@@ -363,23 +402,69 @@ class AbstractBase(observer.Observable):
         # creates the generate sequence from the coroutine callable
         # by calling it with the newly created future instance, that
         # will be used for the control of the execution
-        sequence = coroutine(future)
+        sequence = coroutine(future, *args, **kwargs)
+
+        # creates the callable that is going to be used to call
+        # the coroutine with the proper future variable as argument
+        # note that in case the thread mode execution is enabled the
+        # callable is going to be executed on a different thread
+        initial = lambda: step(future)
+        if thread: callable = lambda f = future: self.texecute(step, [f])
+        else: callable = initial
 
         # creates the function that will be used to step through the
         # various elements in the sequence created from the calling of
         # the coroutine, the values returned from it may be either future
         # or concrete values, for each situation a proper operation must
         # be applied to complete the final task in the proper way
-        def step(future):
-            try: value = next(sequence)
-            except StopIteration: return None
-            is_future = isinstance(value, Future)
-            if is_future: value.add_done_callback(step)
-            else: step(future)
+        def step(_future):
 
-        # creates the callable that is going to be used to call
-        # the coroutine with the proper future variable as argument
-        callable = lambda: step(future)
+            # iterates continuously over the generator that may emit both
+            # plain object values or future (delayed executions)
+            while True:
+                # determines if the future is ready to receive new work
+                # this is done using a pipeline of callbacks that must
+                # deliver a positive value so that the future is considered
+                # ready, note that in case the future is not ready the current
+                # iteration cycle is delayed until the next tick
+                if not future.ready: self.delay(callable); break
+
+                # retrieves the next value from the generator and in case
+                # value is the last one (stop iteration) breaks the cycle
+                try: value = next(sequence)
+                except StopIteration: break
+
+                # determines if the value retrieved from the generator is a
+                # future and if that's the case schedules a proper execution
+                is_future = isinstance(value, Future)
+
+                # in case the current value is a future schedules it for execution
+                # taking into account the proper thread execution model
+                if is_future:
+                    value.add_done_callback(callable);
+                    break
+
+                # otherwise it's a normal value being yielded and should be sent
+                # to the future object as a partial value (pipelining)
+                else:
+                    # for a situation where a thread pool should be used the new
+                    # value should be "consumed" by adding the data handler operation
+                    # to the list of delayed operations and notifying the task pool
+                    # so that the event loop on the main thread gets unblocked and
+                    # the proper partial value handling is performed (always on main thread)
+                    if thread:
+                        def handler():
+                            future.partial(value)
+                            callable()
+
+                        self.delay_s(handler)
+                        self.tpool.notify()
+                        break
+
+                    # otherwise we're already on the main thread so a simple partial callback
+                    # notification should be enough for the proper consuming of the data
+                    else:
+                        future.partial(value)
 
         # delays the execution of the callable so that it is executed
         # immediately if possible (event on the same iteration)
@@ -760,10 +845,16 @@ class AbstractBase(observer.Observable):
         # in order to avoid any possible memory leak with clojures/cycles
         del self._delayed[:]
         del self._delayed_o[:]
+        del self._delayed_n[:]
 
         # runs the destroy operation on the ssl component of the base
         # element so that no more ssl is available/used (avoids leaks)
         self._ssl_destroy()
+
+        # verifies if there's a valid (and open) task pool, if that's
+        # the case starts the stop process for it so that there's no
+        # leaking of task descriptors and other structures
+        if self.tpool: self.tstop()
 
         # verifies if there's a valid (and open) file pool, if that's
         # the case starts the stop process for it so that there's no
@@ -855,6 +946,43 @@ class AbstractBase(observer.Observable):
 
     def errors(self, errors, state = True):
         if state: self.set_state(STATE_ERRROR)
+
+    def tensure(self):
+        if self.tpool: return
+        self.tstart()
+
+    def tstart(self):
+        if self.tpool: return
+        self.tpool = netius.pool.TaskPool()
+        self.tpool.start()
+
+        self.debug("Started new task pool, for async file handling")
+
+        eventfd = self.tpool.eventfd()
+        if not eventfd: self.warning("Starting task pool without eventfd")
+        if not eventfd: return
+        if not self.poll: return
+        self.poll.sub_read(eventfd)
+
+        self.debug("Subscribed for read operations on event fd")
+
+    def tstop(self):
+        if not self.tpool: return
+        self.tpool.stop()
+
+        self.debug("Stopped existing task pool, no more async handling")
+
+        eventfd = self.tpool.eventfd()
+        if not eventfd: self.warning("Stopping task pool without eventfd")
+        if not eventfd: return
+        if not self.poll: return
+        self.poll.unsub_read(eventfd)
+
+        self.debug("Unsubscribed for read operations on event fd")
+
+    def texecute(self, callable, args = [], kwargs = {}):
+        self.tensure()
+        self.tpool.execute(callable, args = args, kwargs = kwargs)
 
     def files(self):
         if not self.fpool: return
@@ -1339,6 +1467,11 @@ class AbstractBase(observer.Observable):
         to avoid loops in the delayed calls/insertions.
         """
 
+        # runs the merge delay lists operation, so that delay operations
+        # inserts from different threads may be used and processed under
+        # the current execution (as expected)
+        self.delay_m()
+
         # in case there's no delayed items to be called returns immediately
         # otherwise creates a copy of the delayed list and removes all
         # of the elements from the current list in instance
@@ -1766,9 +1899,9 @@ def get_poll():
     if not main: return None
     return main.poll
 
-def ensure(coroutine):
+def ensure(coroutine, args = [], kwargs = {}, thread = False):
     loop = get_loop()
-    return loop.ensure(coroutine)
+    return loop.ensure(coroutine, args = args, kwargs = kwargs, thread = thread)
 
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Base = DiagBase
