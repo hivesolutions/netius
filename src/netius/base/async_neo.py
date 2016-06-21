@@ -66,3 +66,4 @@ def sleep(timeout):
     from .common import get_loop
     loop = get_loop()
     yield loop.sleep(timeout)
+    return timeout
