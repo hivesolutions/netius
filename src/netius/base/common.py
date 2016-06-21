@@ -56,6 +56,7 @@ from . import errors
 
 from .conn import * #@UnusedWildImport
 from .poll import * #@UnusedWildImport
+from .async import * #@UnusedWildImport
 
 NAME = "netius"
 """ The global infra-structure name to be used in the
@@ -360,9 +361,26 @@ class AbstractBase(observer.Observable):
         # ensure execution operation
         future = future or Future()
 
+        # creates the generate sequence from the coroutine callable
+        # by calling it with the newly created future instance, that
+        # will be used for the control of the execution
+        sequence = coroutine(future)
+
+        # creates the function that will be used to step through the
+        # various elements in the sequence created from the calling of
+        # the coroutine, the values returned from it may be either future
+        # or concrete values, for each situation a proper operation must
+        # be applied to complete the final task in the proper way
+        def step(future):
+            try: value = next(sequence)
+            except StopIteration: return None
+            is_future = isinstance(value, Future)
+            if is_future: value.add_done_callback(step)
+            else: step()
+
         # creates the callable that is going to be used to call
         # the coroutine with the proper future variable as argument
-        callable = lambda: coroutine(future)
+        callable = lambda: step(future)
 
         # delays the execution of the callable so that it is executed
         # immediately if possible (event on the same iteration)
@@ -1738,66 +1756,6 @@ class BaseThread(threading.Thread):
         self.owner.start()
         self.owner = None
 
-class Future(object):
-
-    def __init__(self):
-        self.status = 0
-        self.result = None
-        self.exception = None
-        self.done_callbacks = []
-
-    def cancel(self):
-        self.status = 2
-        self._exec_callbacks()
-
-    def cancelled(self):
-        return self.status == 2
-
-    def done(self):
-        return self.status == 1
-
-    def result(self):
-        return self.result
-
-    def add_done_callback(self, function):
-        self.done_callbacks.append(function)
-
-    def set_result(self, result):
-        self.status = 1
-        self.result = result
-        self._exec_callbacks()
-
-    def set_exception(self, exception):
-        self.status = 2
-        self.exception = exception
-
-    def _exec_callbacks(self):
-        for callback in self.done_callbacks: callback(self)
-
-import inspect
-import functools
-
-def coroutine(function):
-
-    if inspect.isgeneratorfunction(function):
-        coro = function
-    else:
-        @functools.wraps(function)
-        def coro(*args, **kwargs):
-            result = function(*args, **kwargs)
-
-            if isinstance(result, Future) or inspect.isgenerator(result):
-                if legacy.PYTHON_3:
-                    result = yield from result
-                else:
-                    for value in result: yield value
-                    result = None
-
-            return result
-
-    coro._is_coroutine = True
-    return coro
-
 def get_main():
     return AbstractBase._MAIN
 
@@ -1815,7 +1773,8 @@ def ensure(coroutine):
 
 def sleep(timeout):
     loop = get_loop()
-    return loop.sleep(timeout)
+    yield loop.sleep(timeout)
+    return timeout
 
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Base = DiagBase
