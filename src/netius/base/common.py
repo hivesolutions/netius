@@ -1774,6 +1774,30 @@ class Future(object):
     def _exec_callbacks(self):
         for callback in self.done_callbacks: callback(self)
 
+import inspect
+import functools
+
+def coroutine(function):
+
+    if inspect.isgeneratorfunction(function):
+        coro = function
+    else:
+        @functools.wraps(function)
+        def coro(*args, **kwargs):
+            result = function(*args, **kwargs)
+
+            if isinstance(result, Future) or inspect.isgenerator(result):
+                if legacy.PYTHON_3:
+                    result = yield from result
+                else:
+                    for value in result: yield value
+                    result = None
+
+            return result
+
+    coro._is_coroutine = True
+    return coro
+
 def get_main():
     return AbstractBase._MAIN
 
