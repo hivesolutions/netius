@@ -361,8 +361,8 @@ class HTTPParser(parser.Parser):
         self.message_f.seek(0)
         if not copy: return self.message_f
         data = self.message_f.getvalue()
-        message_d = netius.legacy.BytesIO(data)
-        return message_d
+        message_f = netius.legacy.BytesIO(data)
+        return message_f
 
     def get_headers(self):
         headers = dict(self.headers)
