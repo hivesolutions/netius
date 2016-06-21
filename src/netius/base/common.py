@@ -948,6 +948,42 @@ class AbstractBase(observer.Observable):
     def errors(self, errors, state = True):
         if state: self.set_state(STATE_ERRROR)
 
+    def pregister(self, pool):
+        # prints a debug message stating that a new pool is
+        # being created for the handling of message events
+        self.debug("Started pool, for async handling")
+
+        # tries to retrieve the file descriptor of the event virtual
+        # object that is notified for each operation associated with
+        # the pool, (primary communication mechanism)
+        eventfd = pool.eventfd()
+        if not eventfd: self.warning("Starting pool without eventfd")
+        if not eventfd: return
+        if not self.poll: return
+        self.poll.sub_read(eventfd)
+
+        # echoes a debug message indicating that a new read event
+        # subscription has been created for the event fd of the pool
+        self.debug("Subscribed for read operations on event fd")
+
+    def punregister(self, pool):
+        # prints a debug message notifying the user that no more
+        # async handling is possible using the pool
+        self.debug("Stopped existing pool, no more async handling")
+
+        # tries to retrieve the event file descriptor for
+        # the pool an in case it exists unsubscribes
+        # from it under the current polling system
+        eventfd = pool.eventfd()
+        if not eventfd: self.warning("Stopping pool without eventfd")
+        if not eventfd: return
+        if not self.poll: return
+        self.poll.unsub_read(eventfd)
+
+        # echoes a debug message indicating that a new read event
+        # unsubscription has been created for the event fd of the pool
+        self.debug("Unsubscribed for read operations on event fd")
+
     def tensure(self):
         if self.tpool: return
         self.tstart()
@@ -956,30 +992,12 @@ class AbstractBase(observer.Observable):
         if self.tpool: return
         self.tpool = netius.pool.TaskPool()
         self.tpool.start()
-
-        self.debug("Started new task pool, for async file handling")
-
-        eventfd = self.tpool.eventfd()
-        if not eventfd: self.warning("Starting task pool without eventfd")
-        if not eventfd: return
-        if not self.poll: return
-        self.poll.sub_read(eventfd)
-
-        self.debug("Subscribed for read operations on event fd")
+        self.pregister(self.tpool)
 
     def tstop(self):
         if not self.tpool: return
+        self.punregister(self.tpool)
         self.tpool.stop()
-
-        self.debug("Stopped existing task pool, no more async handling")
-
-        eventfd = self.tpool.eventfd()
-        if not eventfd: self.warning("Stopping task pool without eventfd")
-        if not eventfd: return
-        if not self.poll: return
-        self.poll.unsub_read(eventfd)
-
-        self.debug("Unsubscribed for read operations on event fd")
 
     def texecute(self, callable, args = [], kwargs = {}):
         self.tensure()
@@ -1020,23 +1038,7 @@ class AbstractBase(observer.Observable):
         if self.fpool: return
         self.fpool = netius.pool.FilePool()
         self.fpool.start()
-
-        # prints a debug message stating that a new file pool is
-        # being created for the handling of message events
-        self.debug("Started new file pool, for async file handling")
-
-        # tries to retrieve the file descriptor of the event virtual
-        # object that is notified for each operation associated with
-        # the file pool, (primary communication mechanism)
-        eventfd = self.fpool.eventfd()
-        if not eventfd: self.warning("Starting file pool without eventfd")
-        if not eventfd: return
-        if not self.poll: return
-        self.poll.sub_read(eventfd)
-
-        # echoes a debug message indicating that a new read event
-        # subscription has been created for the event fd of the file pool
-        self.debug("Subscribed for read operations on event fd")
+        self.pregister(self.fpool)
 
     def fstop(self):
         # verifies if there's an available file pool and
@@ -1044,24 +1046,8 @@ class AbstractBase(observer.Observable):
         # such system, note that this is blocking call as
         # all of the thread will be joined under it
         if not self.fpool: return
+        self.punregister(self.fpool)
         self.fpool.stop()
-
-        # prints a debug message notifying the user that no more
-        # async file handling is possible using the file pool
-        self.debug("Stopped existing file pool, no more async handling")
-
-        # tries to retrieve the event file descriptor for
-        # the file pool an in case it exists unsubscribes
-        # from it under the current polling system
-        eventfd = self.fpool.eventfd()
-        if not eventfd: self.warning("Stopping file pool without eventfd")
-        if not eventfd: return
-        if not self.poll: return
-        self.poll.unsub_read(eventfd)
-
-        # echoes a debug message indicating that a new read event
-        # unsubscription has been created for the event fd of the file pool
-        self.debug("Unsubscribed for read operations on event fd")
 
     def on_connection_c(self, connection):
         self.debug(

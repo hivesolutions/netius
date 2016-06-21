@@ -139,6 +139,10 @@ class EventPool(ThreadPool):
         self.event_lock = threading.RLock()
         self._eventfd = None
 
+    def stop(self, join = True):
+        ThreadPool.stop(self, join = join)
+        if self._eventfd: self._eventfd.close()
+
     def push_event(self, event):
         self.event_lock.acquire()
         try: self.events.append(event)
@@ -180,9 +184,10 @@ class EventFile(object):
     def __init__(self, *args, **kwargs):
         self._rfileno = None
         self._wfileno = None
+        self.closed = False
 
     def close(self):
-        pass
+        self.closed = True
 
     def fileno(self):
         return self.rfileno()
@@ -213,6 +218,10 @@ class UnixEventFile(EventFile):
         self._rfileno = self._LIBC.eventfd(init_val, flags)
         self._wfileno = self._rfileno
 
+    def close(self):
+        EventFile.close(self)
+        os.close(self._wfileno)
+
     def notify(self):
         self._write(1)
 
@@ -220,7 +229,7 @@ class UnixEventFile(EventFile):
         self._write(0)
 
     def _write(self, value):
-        os.write(self.wfileno(), ctypes.c_ulonglong(value))
+        os.write(self._wfileno, ctypes.c_ulonglong(value))
 
 class SocketEventFile(EventFile):
 
@@ -229,13 +238,15 @@ class SocketEventFile(EventFile):
         temp_socket = socket.socket()
         temp_socket.bind(("127.0.0.1", 0))
         temp_socket.listen(1)
-        self._read_socket = socket.create_connection(temp_socket.getsockname())
+        hostname = temp_socket.getsockname()
+        self._read_socket = socket.create_connection(hostname)
         self._write_socket, _port = temp_socket.accept()
         self._rfileno = self._read_socket.fileno()
         self._wfileno = self._write_socket.fileno()
         temp_socket.close()
 
     def close(self):
+        EventFile.close(self)
         self._read_socket.close()
         self._write_socket.close()
 
