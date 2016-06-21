@@ -376,7 +376,7 @@ class AbstractBase(observer.Observable):
             except StopIteration: return None
             is_future = isinstance(value, Future)
             if is_future: value.add_done_callback(step)
-            else: step()
+            else: step(future)
 
         # creates the callable that is going to be used to call
         # the coroutine with the proper future variable as argument
@@ -1774,7 +1774,7 @@ def ensure(coroutine):
 def sleep(timeout):
     loop = get_loop()
     yield loop.sleep(timeout)
-    return timeout
+    #return timeout
 
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Base = DiagBase
