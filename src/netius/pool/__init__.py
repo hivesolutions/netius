@@ -38,6 +38,6 @@ from . import common
 from . import file
 from . import task
 
-from .common import Thread, ThreadPool, EventPool, EventFile
+from .common import Thread, ThreadPool, EventPool, EventFile, UnixEventFile, SocketEventFile
 from .file import FileThread, FilePool
 from .task import TaskThread, TaskPool
