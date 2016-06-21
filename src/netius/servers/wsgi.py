@@ -120,7 +120,7 @@ class WSGIServer(http.HTTPServer):
         # as a buffer to be able to handle the file specific operations
         environ["wsgi.version"] = (1, 0)
         environ["wsgi.url_scheme"] = scheme
-        environ["wsgi.input"] = parser.get_message_b()
+        environ["wsgi.input"] = parser.get_message_b(copy = True)
         environ["wsgi.errors"] = sys.stderr
         environ["wsgi.multithread"] = False
         environ["wsgi.multiprocess"] = False

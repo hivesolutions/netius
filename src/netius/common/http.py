@@ -329,7 +329,7 @@ class HTTPParser(parser.Parser):
         self.message_f.seek(0)
         return self.message_f.read()
 
-    def get_message_b(self):
+    def get_message_b(self, copy = False):
         """
         Retrieves a new buffer associated with the currently
         loaded message, the first time this method is called a
@@ -345,6 +345,11 @@ class HTTPParser(parser.Parser):
         Note that the returned object will always be set at the
         beginning of the file, so some care should be taken in usage.
 
+        @type copy: bool
+        @param copy: If a copy of the file object should be returned
+        or if instead the shallow copy associated with the parser should
+        be returned instead, this should be used carefully to avoid any
+        memory leak from file descriptors.
         @rtype: File
         @return: The file like object that may be used to percolate
         over the various parts of the current message contents.
@@ -354,7 +359,10 @@ class HTTPParser(parser.Parser):
             self.message_f = netius.legacy.BytesIO()
             for value in self.message: self.message_f.write(value)
         self.message_f.seek(0)
-        return self.message_f
+        if not copy: return self.message_f
+        data = self.message_f.getvalue()
+        message_d = netius.legacy.BytesIO(data)
+        return message_d
 
     def get_headers(self):
         headers = dict(self.headers)

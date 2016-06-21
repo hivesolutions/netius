@@ -441,7 +441,7 @@ class AbstractBase(observer.Observable):
                 # in case the current value is a future schedules it for execution
                 # taking into account the proper thread execution model
                 if is_future:
-                    value.add_done_callback(callable);
+                    value.add_done_callback(callable)
                     break
 
                 # otherwise it's a normal value being yielded and should be sent
