@@ -380,9 +380,17 @@ class AbstractBase(observer.Observable):
         finally: self._delayed_l.release()
 
     def delay_m(self):
+        # verifies if the delay next list is not valid or empty and if that's
+        # the case returns immediately as there's nothing to be merged
         if not self._delayed_n: return
+
+        # iterates over the complete set of next elements in the delay next list
+        # and schedules them as delay for the next tick execution
         for next in self._delayed_n:
             self.delay(next, immediately = True)
+
+        # deletes the complete set of elements present in the delay next list, this
+        # is considered to be equivalent to the empty operation
         del self._delayed_n[:]
 
     def ensure(
