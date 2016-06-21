@@ -61,3 +61,8 @@ def coroutine(function):
 
     routine._is_coroutine = True
     return routine
+
+def sleep(timeout):
+    from .common import get_loop
+    loop = get_loop()
+    yield loop.sleep(timeout)

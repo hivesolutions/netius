@@ -42,8 +42,6 @@ import sys
 import inspect
 import functools
 
-from . import legacy
-
 class Future(object):
 
     def __init__(self):
@@ -99,6 +97,11 @@ def coroutine(function):
 
     routine._is_coroutine = True
     return routine
+
+def sleep(timeout):
+    from .common import get_loop
+    loop = get_loop()
+    yield loop.sleep(timeout)
 
 is_neo = sys.version_info[0] >= 3 and sys.version_info[1] >= 3
 if is_neo: from .async_neo import * #@UnusedWildImport

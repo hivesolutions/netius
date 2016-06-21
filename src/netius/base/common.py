@@ -1770,11 +1770,6 @@ def ensure(coroutine):
     loop = get_loop()
     return loop.ensure(coroutine)
 
-def sleep(timeout):
-    loop = get_loop()
-    yield loop.sleep(timeout)
-    return timeout
-
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Base = DiagBase
 else: Base = AbstractBase
