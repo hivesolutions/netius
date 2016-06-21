@@ -363,7 +363,7 @@ class AbstractBase(observer.Observable):
         from a different thread (implied lock mechanisms).
 
         This method should only be used from different threads as there's
-        a huge performance impact created from using this methods instead of
+        a huge performance impact created from using this method instead of
         the local event loop one (delay()).
 
         @type callable: Function
