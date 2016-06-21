@@ -50,6 +50,7 @@ class Future(object):
         self.exception = None
         self.done_callbacks = []
         self.partial_callbacks = []
+        self.ready_callbacks = []
 
     def cancel(self):
         self.status = 2
@@ -73,6 +74,9 @@ class Future(object):
     def add_partial_callback(self, function):
         self.partial_callbacks.append(function)
 
+    def add_ready_callback(self, function):
+        self.ready_callbacks.append(function)
+
     def set_result(self, result):
         self.status = 1
         self.result = result
@@ -81,6 +85,12 @@ class Future(object):
     def set_exception(self, exception):
         self.status = 2
         self.exception = exception
+
+    @property
+    def ready(self):
+        ready = True
+        for callback in self.ready_callbacks: ready &= callback()
+        return ready
 
     def _done_callbacks(self):
         for callback in self.done_callbacks: callback(self)
