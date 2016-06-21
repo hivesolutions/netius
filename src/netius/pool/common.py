@@ -39,6 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import os
 import ctypes
+import socket
 import threading
 
 import netius
@@ -136,7 +137,6 @@ class EventPool(ThreadPool):
         ThreadPool.__init__(self, base = base, count = count)
         self.events = []
         self.event_lock = threading.RLock()
-        self._libc = None
         self._eventfd = None
 
     def push_event(self, event):
@@ -163,24 +163,90 @@ class EventPool(ThreadPool):
 
     def notify(self):
         if not self._eventfd: return
-        os.write(self._eventfd.fileno(), ctypes.c_ulonglong(1))
+        self._eventfd.notify()
 
     def denotify(self):
         if not self._eventfd: return
-        os.write(self._eventfd.fileno(), ctypes.c_ulonglong(0))
+        self._eventfd.denotify()
 
-    def eventfd(self, init_val = 0, flags = 0):
+    def eventfd(self):
         if self._eventfd: return self._eventfd
-        try: self._libc = self._libc or ctypes.cdll.LoadLibrary("libc.so.6")
-        except: return None
-        fileno = self._libc.eventfd(init_val, flags)
-        self._eventfd = EventFile(fileno)
+        if os.name == "nt": self._eventfd = SocketEventFile()
+        else: self._eventfd = UnixEventFile()
         return self._eventfd
 
 class EventFile(object):
 
-    def __init__(self, fileno):
-        self._fileno = fileno
+    def __init__(self, *args, **kwargs):
+        self._rfileno = None
+        self._wfileno = None
+
+    def close(self):
+        pass
 
     def fileno(self):
-        return self._fileno
+        return self.rfileno()
+
+    def rfileno(self):
+        return self._rfileno
+
+    def wfileno(self):
+        return self._wfileno
+
+    def notify(self):
+        raise netius.NotImplemented("Missing implementation")
+
+    def denotify(self):
+        raise netius.NotImplemented("Missing implementation")
+
+class UnixEventFile(EventFile):
+
+    _LIBC = None
+
+    def __init__(self, *args, **kwargs):
+        EventFile.__init__(self, *args, **kwargs)
+        cls = self.__class__
+        init_val = kwargs.get("init_val", 0)
+        flags = kwargs.get("flags", 0)
+        try: cls._LIBC = cls._LIBC or ctypes.cdll.LoadLibrary("libc.so.6")
+        except: return None
+        self._rfileno = self._libc.eventfd(init_val, flags)
+        self._wfileno = self._rfileno
+
+    def notify(self):
+        self._write(1)
+
+    def denotify(self):
+        self._write(0)
+
+    def _write(self, value):
+        os.write(self.wfileno(), ctypes.c_ulonglong(value))
+
+class SocketEventFile(EventFile):
+
+    def __init__(self, *args, **kwargs):
+        EventFile.__init__(self, *args, **kwargs)
+        temp_socket = socket.socket()
+        temp_socket.bind(("127.0.0.1", 0))
+        temp_socket.listen(1)
+        self._read_socket = socket.create_connection(temp_socket.getsockname())
+        self._write_socket, _port = temp_socket.accept()
+        self._rfileno = self._read_socket.fileno()
+        self._wfileno = self._write_socket.fileno()
+        temp_socket.close()
+
+    def close(self):
+        self._read_socket.close()
+        self._write_socket.close()
+
+    def notify(self):
+        self._write(b"1")
+
+    def denotify(self):
+        self._read()
+
+    def _read(self, length = 4096):
+        return self._read_socket.recv(length)
+
+    def _write(self, data):
+        self._write_socket.send(data)

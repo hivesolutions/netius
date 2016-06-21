@@ -454,6 +454,7 @@ class AbstractBase(observer.Observable):
                     # the proper partial value handling is performed (always on main thread)
                     if thread:
                         def handler():
+                            self.tpool.denotify()
                             future.partial(value)
                             callable()
 
