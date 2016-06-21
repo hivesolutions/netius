@@ -1774,7 +1774,7 @@ def ensure(coroutine):
 def sleep(timeout):
     loop = get_loop()
     yield loop.sleep(timeout)
-    #return timeout
+    return timeout
 
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Base = DiagBase
