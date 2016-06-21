@@ -265,10 +265,20 @@ class WSGIServer(http.HTTPServer):
         # for the handling on the end of the iteration
         is_future = isinstance(data, netius.Future)
         if is_future:
+            def on_partial(future, value):
+                if not value: return
+                connection.send(value)
+
             def on_future(future):
                 data = future.result
                 connection.send(data, callback = self._send_part)
+
+            def on_ready():
+                return connection.wready
+
+            data.add_partial_callback(on_partial)
             data.add_done_callback(on_future)
+            data.add_ready_callback(on_ready)
             return
 
         # in case the final flag is set runs the flush operation in the
