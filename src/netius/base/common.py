@@ -1741,18 +1741,20 @@ class BaseThread(threading.Thread):
 class Future(object):
 
     def __init__(self):
+        self.status = 0
         self.result = None
         self.exception = None
         self.done_callbacks = []
 
     def cancel(self):
-        pass
+        self.status = 2
+        self._exec_callbacks()
 
     def cancelled(self):
-        return False if self.result else True
+        return self.status == 2
 
     def done(self):
-        return False if self.result == None else True
+        return self.status == 1
 
     def result(self):
         return self.result
@@ -1761,13 +1763,15 @@ class Future(object):
         self.done_callbacks.append(function)
 
     def set_result(self, result):
+        self.status = 1
         self.result = result
-        self._run_callbacks()
+        self._exec_callbacks()
 
     def set_exception(self, exception):
+        self.status = 2
         self.exception = exception
 
-    def _run_callbacks(self):
+    def _exec_callbacks(self):
         for callback in self.done_callbacks: callback(self)
 
 def get_main():
