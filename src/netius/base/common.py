@@ -408,9 +408,8 @@ class AbstractBase(observer.Observable):
         # the coroutine with the proper future variable as argument
         # note that in case the thread mode execution is enabled the
         # callable is going to be executed on a different thread
-        initial = lambda: step(future)
         if thread: callable = lambda f = future: self.texecute(step, [f])
-        else: callable = initial
+        else: callable = lambda f = future: step(f)
 
         # creates the function that will be used to step through the
         # various elements in the sequence created from the calling of
