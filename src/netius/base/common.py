@@ -1888,7 +1888,20 @@ def get_poll():
 
 def ensure(coroutine, args = [], kwargs = {}, thread = False):
     loop = get_loop()
-    return loop.ensure(coroutine, args = args, kwargs = kwargs, thread = thread)
+    return loop.ensure(
+        coroutine,
+        args = args,
+        kwargs = kwargs,
+        thread = thread
+    )
+
+def ensure_pool(coroutine, args = [], kwargs = {}):
+    return ensure(
+        coroutine,
+        args = args,
+        kwargs = kwargs,
+        thread = True
+    )
 
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Base = DiagBase
