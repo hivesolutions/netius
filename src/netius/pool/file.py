@@ -41,7 +41,7 @@ import netius
 
 from . import common
 
-FILE_WORK = 10
+FILE_WORK = 20
 
 ERROR_ACTION = -1
 OPEN_ACTION = 1
