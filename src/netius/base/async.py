@@ -49,10 +49,11 @@ class Future(object):
         self.result = None
         self.exception = None
         self.done_callbacks = []
+        self.partial_callbacks = []
 
     def cancel(self):
         self.status = 2
-        self._exec_callbacks()
+        self._done_callbacks()
 
     def cancelled(self):
         return self.status == 2
@@ -63,20 +64,29 @@ class Future(object):
     def result(self):
         return self.result
 
+    def partial(self, value):
+        self._partial_callbacks(value)
+
     def add_done_callback(self, function):
         self.done_callbacks.append(function)
+
+    def add_partial_callback(self, function):
+        self.partial_callbacks.append(function)
 
     def set_result(self, result):
         self.status = 1
         self.result = result
-        self._exec_callbacks()
+        self._done_callbacks()
 
     def set_exception(self, exception):
         self.status = 2
         self.exception = exception
 
-    def _exec_callbacks(self):
+    def _done_callbacks(self):
         for callback in self.done_callbacks: callback(self)
+
+    def _partial_callbacks(self, value):
+        for callback in self.partial_callbacks: callback(self, value)
 
 def coroutine(function):
 
