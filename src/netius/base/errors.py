@@ -48,6 +48,17 @@ class NetiusError(RuntimeError):
 
     pass
 
+class PauseError(NetiusError):
+    """
+    Error to be used for situations where a pause
+    intention is meant to be raised to upper layers.
+
+    This error represent an operation and not a real
+    error and should be used as such.
+    """
+
+    pass
+
 class DataError(NetiusError):
     """
     Error to be used for situations where the
@@ -103,6 +114,14 @@ class NotImplemented(NetiusError):
 
     This kind of problems is considered to be development
     as they may be related with programming.
+    """
+
+    pass
+
+class AssertionError(NetiusError):
+    """
+    Error raised for failure to meet any pre-condition or
+    assertion for a certain data set.
     """
 
     pass

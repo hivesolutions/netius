@@ -212,10 +212,18 @@ class HTTPClient(netius.StreamClient):
     and may be disabled with an argument in the constructor.
     """
 
-    def __init__(self, auto_release = True, auto_close = False, *args, **kwargs):
+    def __init__(
+        self,
+        auto_release = True,
+        auto_close = False,
+        auto_pause = False,
+        *args,
+        **kwargs
+    ):
         netius.StreamClient.__init__(self, *args, **kwargs)
         self.auto_release = auto_release
         self.auto_close = auto_close
+        self.auto_pause = auto_pause
 
     @classmethod
     def get_s(
@@ -301,9 +309,10 @@ class HTTPClient(netius.StreamClient):
         on_headers = None,
         on_data = None,
         on_result = None,
+        http_client = None,
         **kwargs
     ):
-        http_client = cls.get_client_s(
+        if not http_client: http_client = cls.get_client_s(
             thread = True,
             daemon = daemon,
             **kwargs
@@ -600,7 +609,7 @@ class HTTPClient(netius.StreamClient):
         self.remove_c(connection)
 
         # verifies if the current client was created with
-        # the auto close flag and there are not more connections
+        # the auto close flag and there are no more connections
         # left open if that's the case closes the current
         # client so that no more interaction exists as it's
         # no longer required (as defined by the specification)
@@ -621,6 +630,7 @@ class HTTPClient(netius.StreamClient):
         self.trigger("message", self, parser, message)
         if self.auto_release: self.release_c(connection)
         if self.auto_close: self.close()
+        if self.auto_pause: self.pause()
 
     def on_partial_http(self, connection, parser, data):
         self.trigger("partial", self, parser, data)

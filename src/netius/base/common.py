@@ -180,32 +180,36 @@ STATE_START = 2
 """ The start state set when the service is in the starting
 stage and running, normal state """
 
-STATE_CONFIG = 3
+STATE_PAUSE = 3
+""" The pause state set for a service for which the main event
+loop has been paused and should be resumed latter """
+
+STATE_CONFIG = 4
 """ The configuration state that is set when the service is
 preparing to become started and the configuration attributes
 are being set according to pre-determined indications """
 
-STATE_POLL = 4
+STATE_POLL = 5
 """ State to be used when the service is in the polling part
 of the loop, this is the most frequent state in an idle service
 as the service "spends" most of its time in it """
 
-STATE_TICK = 5
+STATE_TICK = 6
 """ Tick state representative of the situation where the loop
 tick operation is being started and all the pre tick handlers
 are going to be called for pre-operations """
 
-STATE_READ = 6
+STATE_READ = 7
 """ Read state that is set when the connection are being read
 and the on data handlers are being called, this is the part
 where all the logic driven by incoming data is being called """
 
-STATE_WRITE = 7
+STATE_WRITE = 8
 """ The write state that is set on the writing of data to the
 connections, this is a pretty "fast" state as no logic is
 associated with it """
 
-STATE_ERRROR = 8
+STATE_ERRROR = 9
 """ The error state to be used when the connection is processing
 any error state coming from its main select operation and associated
 with a certain connection (very rare) """
@@ -213,6 +217,7 @@ with a certain connection (very rare) """
 STATE_STRINGS = (
     "STOP",
     "START",
+    "PAUSE",
     "CONFIG",
     "POLL",
     "TICK",
@@ -294,6 +299,7 @@ class AbstractBase(observer.Observable):
         self._lid = 0
         self._main = False
         self._running = False
+        self._pausing = False
         self._loaded = False
         self._delayed = []
         self._delayed_o = []
@@ -743,6 +749,10 @@ class AbstractBase(observer.Observable):
         except: self.debug("Failed to register SIGTERM handler")
 
     def start(self):
+        # in case the current instance is currently paused runs the
+        # resume operation instead as that's the expected operation
+        if self.is_paused(): return self.resume()
+
         # re-builds the polling structure with the new name this
         # is required so that it's possible to change the polling
         # mechanism in the middle of the loading process
@@ -768,12 +778,6 @@ class AbstractBase(observer.Observable):
         # (close) should be performed as part of the cleanup
         self.poll.open(timeout = self.poll_timeout)
 
-        # sets the running flag that controls the running of the
-        # main loop and then changes the current state to start
-        # as the main loop is going to start
-        self._running = True
-        self.set_state(STATE_START)
-
         # retrieves the complete set of information regarding the current
         # thread that is being used for the starting of the loop, this data
         # may be used for runtime debugging purposes (debug only data)
@@ -786,16 +790,52 @@ class AbstractBase(observer.Observable):
         # main instance is set as the current instance
         if self._main: AbstractBase._MAIN = self
 
-        # enters the main loop operation printing a message
+        # enters the main loop operation by printing a message
         # to the logger indicating this start, this stage
         # should block the thread until a stop call is made
         self.debug("Starting '%s' service main loop (%.2fs) ..." % (self.name, self.poll_timeout))
         self.debug("Using thread '%s' with tid '%d'" % (name, ident))
         self.debug("Using '%s' as polling mechanism" % poll_name)
+
+        # calls the main method to be able to start the main event
+        # loop properly as defined by specification
+        self.main()
+
+    def stop(self):
+        self._running = False
+
+    def pause(self):
+        self._running = False
+        self._pausing = True
+
+    def resume(self):
+        self.debug("Resuming '%s' service main loop (%.2fs) ..." % (self.name, self.poll_timeout))
+        self.main()
+
+    def close(self):
+        self.stop()
+
+    def main(self):
+        # sets the running flag that controls the running of the
+        # main loop and then changes the current state to start
+        # as the main loop is going to start, then triggers the
+        # start event indicating the (re-)start of the even loop
+        self._running = True
+        self._pausing = False
+        self.set_state(STATE_START)
         self.trigger("start", self)
-        try: self.loop()
+
+        # runs the event loop, this is a blocking method that should
+        # be finished by the end of the execution of by pause
+        try:
+            self.loop()
+            self.finalize()
         except (KeyboardInterrupt, SystemExit):
             self.info("Finishing '%s' service on user request ..." % self.name)
+        except errors.PauseError:
+            self.set_state(STATE_PAUSE)
+            self.trigger("pause", self)
+            self.debug("Pausing '%s' service main loop" % self.name)
         except BaseException as exception:
             self.error(exception)
             self.log_stack(method = self.warning)
@@ -803,16 +843,20 @@ class AbstractBase(observer.Observable):
             self.critical("Critical level loop exception raised")
             self.log_stack(method = self.error)
         finally:
+            if self.is_paused(): return
             self.trigger("stop", self)
             self.debug("Finished '%s' service main loop" % self.name)
             self.cleanup()
             self.set_state(STATE_STOP)
 
-    def stop(self):
-        self._running = False
+    def is_started(self):
+        return self.get_state() == STATE_START
 
-    def close(self):
-        self.stop()
+    def is_stopped(self):
+        return self.get_state() == STATE_STOP
+
+    def is_paused(self):
+        return self.get_state() == STATE_PAUSE
 
     def is_edge(self):
         return self.poll.is_edge()
@@ -936,6 +980,12 @@ class AbstractBase(observer.Observable):
             self.reads(reads)
             self.writes(writes)
             self.errors(errors)
+
+    def finalize(self):
+        # verifies a series of conditions and raises a proper error in case
+        # any of them is verified under the current state
+        if self._pausing: raise errors.PauseError("Pause state expected")
+        if self._running: raise errors.AssertionError("Not expected running")
 
     def ticks(self):
         # updates the current state value to the tick state indicating
@@ -1283,6 +1333,9 @@ class AbstractBase(observer.Observable):
         poll = self.get_poll()
         name = poll.name()
         return name
+
+    def get_state(self):
+        return self._state
 
     def set_state(self, state):
         self._state = state
