@@ -442,9 +442,14 @@ class AbstractBase(observer.Observable):
                 if not future.ready: self.delay(callable); break
 
                 # retrieves the next value from the generator and in case
-                # value is the last one (stop iteration) breaks the cycle
+                # value is the last one (stop iteration) breaks the cycle,
+                # notice that if there's an exception raised in the middle
+                # of the generator iteration it's set on the future
                 try: value = next(sequence)
                 except StopIteration: break
+                except BaseException as exception:
+                    future.set_exception(exception)
+                    break
 
                 # determines if the value retrieved from the generator is a
                 # future and if that's the case schedules a proper execution

@@ -269,15 +269,17 @@ class WSGIServer(http.HTTPServer):
                 if not value: return
                 connection.send(value)
 
-            def on_future(future):
-                data = future.result
-                connection.send(data, callback = self._send_part)
+            def on_done(future):
+                data = future.result()
+                exception = future.exception()
+                if exception: connection.close()
+                else: connection.send(data, callback = self._send_part)
 
             def on_ready():
                 return connection.wready
 
             data.add_partial_callback(on_partial)
-            data.add_done_callback(on_future)
+            data.add_done_callback(on_done)
             data.add_ready_callback(on_ready)
             return
 

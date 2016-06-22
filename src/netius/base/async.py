@@ -46,8 +46,8 @@ class Future(object):
 
     def __init__(self):
         self.status = 0
-        self.result = None
-        self.exception = None
+        self._result = None
+        self._exception = None
         self.done_callbacks = []
         self.partial_callbacks = []
         self.ready_callbacks = []
@@ -63,7 +63,10 @@ class Future(object):
         return self.status == 1
 
     def result(self):
-        return self.result
+        return self._result
+
+    def exception(self, timeout = None):
+        return self._exception
 
     def partial(self, value):
         self._partial_callbacks(value)
@@ -79,12 +82,13 @@ class Future(object):
 
     def set_result(self, result):
         self.status = 1
-        self.result = result
+        self._result = result
         self._done_callbacks()
 
     def set_exception(self, exception):
         self.status = 2
-        self.exception = exception
+        self._exception = exception
+        self._done_callbacks()
 
     @property
     def ready(self):
