@@ -530,6 +530,12 @@ class HTTPClient(netius.StreamClient):
         connection.set_headers(headers)
         connection.set_data(data)
 
+        # runs a series of unbind operation from the connection so that it
+        # becomes "free" from any previous usage under different context
+        connection.unbind("headers")
+        connection.unbind("partial")
+        connection.unbind("message")
+
         # runs the sending of the initial request, even though the
         # connection may not be open yet, if that's the case this
         # initial data will be queued for latter delivery (on connect)
