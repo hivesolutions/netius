@@ -59,6 +59,9 @@ class Future(object):
     def cancelled(self):
         return self.status == 2
 
+    def running(self):
+        return self.status == 0
+
     def done(self):
         return self.status == 1
 
