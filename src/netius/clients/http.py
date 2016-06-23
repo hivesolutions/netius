@@ -306,6 +306,7 @@ class HTTPClient(netius.StreamClient):
         async = True,
         daemon = True,
         callback = None,
+        on_close = None,
         on_headers = None,
         on_data = None,
         on_result = None,
@@ -332,6 +333,7 @@ class HTTPClient(netius.StreamClient):
             connection = connection,
             async = async,
             callback = callback,
+            on_close = on_close,
             on_headers = on_headers,
             on_data = on_data,
             on_result = on_result
@@ -364,6 +366,12 @@ class HTTPClient(netius.StreamClient):
         request["status"] = parser.status
         request["headers"] = headers
         request["data"] = data
+        return request
+
+    @classmethod
+    def set_error(cls, error, request = None):
+        if request == None: request = dict()
+        request["error"] = error
         return request
 
     def get(
@@ -442,6 +450,7 @@ class HTTPClient(netius.StreamClient):
         connection = None,
         async = True,
         callback = None,
+        on_close = None,
         on_headers = None,
         on_data = None,
         on_result = None
@@ -532,14 +541,10 @@ class HTTPClient(netius.StreamClient):
 
         # runs a series of unbind operation from the connection so that it
         # becomes "free" from any previous usage under different context
+        connection.unbind("close")
         connection.unbind("headers")
         connection.unbind("partial")
         connection.unbind("message")
-
-        # runs the sending of the initial request, even though the
-        # connection may not be open yet, if that's the case this
-        # initial data will be queued for latter delivery (on connect)
-        connection.send_request()
 
         # verifies if the current request to be done should create
         # a request structure representing it, this is the case when
@@ -557,6 +562,10 @@ class HTTPClient(netius.StreamClient):
             buffer = []
             request = dict(code = None, data = None)
 
+            def on_finish(connection):
+                if request["code"]: return
+                cls.set_error("closed", request = request)
+
             def on_partial(connection, parser, data):
                 buffer.append(data)
 
@@ -567,6 +576,7 @@ class HTTPClient(netius.StreamClient):
             # sets the proper callback references so that the newly created
             # clojure based methods are called for the current connection
             # under the desired events, for the construction of the request
+            on_close = on_finish
             on_data = on_partial
             callback = on_message
 
@@ -580,15 +590,21 @@ class HTTPClient(netius.StreamClient):
         # registers for the proper event handlers according to the
         # provided parameters, note that these are considered to be
         # the lower level infra-structure of the event handling
+        if on_close: connection.bind("close", on_close)
         if on_headers: connection.bind("headers", on_headers)
         if on_data: connection.bind("partial", on_data)
         if callback: connection.bind("message", callback)
+
+        # runs the sending of the initial request, even though the
+        # connection may not be open yet, if that's the case this
+        # initial data will be queued for latter delivery (on connect)
+        connection.send_request()
 
         # in case the current request is not meant to be handled as
         # asynchronous tries to start the current event loop (blocking
         # the current workflow) then returns the proper value to the
         # caller method (taking into account if it is sync or async)
-        not async and self.start()
+        not async and not connection.is_closed() and self.start()
         return result
 
     def on_connect(self, connection):
@@ -614,14 +630,14 @@ class HTTPClient(netius.StreamClient):
         self.trigger("close", self, connection)
         self.remove_c(connection)
 
-        # verifies if the current client was created with
-        # the auto close flag and there are no more connections
-        # left open if that's the case closes the current
-        # client so that no more interaction exists as it's
+        # verifies if the current client was created with the
+        # auto close or pause flags and there are no more
+        # connections left open if that's the case closes the
+        # current client so that no more interaction exists as it's
         # no longer required (as defined by the specification)
-        if not self.auto_close: return
         if self.connections: return
-        self.close()
+        if self.auto_close: self.close()
+        if self.auto_pause: self.pause()
 
     def new_connection(self, socket, address, ssl = False):
         return HTTPConnection(
