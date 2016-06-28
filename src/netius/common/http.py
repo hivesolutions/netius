@@ -329,7 +329,7 @@ class HTTPParser(parser.Parser):
         self.message_f.seek(0)
         return self.message_f.read()
 
-    def get_message_b(self, copy = False):
+    def get_message_b(self, copy = False, size = 40960):
         """
         Retrieves a new buffer associated with the currently
         loaded message, the first time this method is called a
@@ -350,18 +350,47 @@ class HTTPParser(parser.Parser):
         or if instead the shallow copy associated with the parser should
         be returned instead, this should be used carefully to avoid any
         memory leak from file descriptors.
+        @type size: int
+        @param size: Size (in bytes) of the buffer to be used in a possible
+        copy operation between buffers.
         @rtype: File
         @return: The file like object that may be used to percolate
         over the various parts of the current message contents.
         """
 
+        # in case there's not message file currently enabled creates one
+        # and writes the value of the message into it
         if not self.message_f:
             self.message_f = netius.legacy.BytesIO()
             for value in self.message: self.message_f.write(value)
+
+        # restores the message file to the original/initial position and
+        # then in case there's no copy required returns it immediately
         self.message_f.seek(0)
         if not copy: return self.message_f
-        data = self.message_f.getvalue()
-        message_f = netius.legacy.BytesIO(data)
+
+        # determines if the file limit for a temporary file has been
+        # surpassed and if that's the case creates a named temporary
+        # file, otherwise created a memory based buffer
+        use_file = self.store and self.content_l >= self.file_limit
+        if use_file: message_f = tempfile.NamedTemporaryFile(mode = "w+b")
+        else: message_f = netius.legacy.BytesIO()
+
+        try:
+            # iterates continuously reading the contents from the message
+            # file and writing them back to the output (copy) file
+            while True:
+                data = self.message_f.read(size)
+                if not data: break
+                message_f.write(data)
+        finally:
+            # resets both of the message file (output and input) to the
+            # original position as expected by the infra-structure
+            self.message_f.seek(0)
+            message_f.seek(0)
+
+        # returns the final (copy) of the message file to the caller method
+        # note that the type of this file may be an in memory or stored value
         return message_f
 
     def get_headers(self):
