@@ -286,7 +286,7 @@ class BaseConnection(observer.Observable):
     def set_upgraded(self):
         self.upgrading = False
 
-    def ensure_write(self):
+    def ensure_write(self, flush = True):
         # retrieves the identifier of the current thread and
         # checks if it's the same as the one defined in the
         # owner in case it's not then the operation is not
@@ -306,6 +306,13 @@ class BaseConnection(observer.Observable):
         # in case it's not returns immediately as there's no reason
         # to so it for writing
         if not self.status == OPEN: return
+
+        # in case the write ready flag is enabled (writes allowed)
+        # and the flush parameter is set the ensure operation performs
+        # the flush of the write operations (instead of subscription)
+        # this may be done because it's safe to flush the write operations
+        # when the write ready flag for the connection is set
+        if self.wready and flush: return self._flush_write()
 
         # verifies if the owner object is already subscribed for the
         # write operation in case it is returns immediately in order
@@ -479,6 +486,12 @@ class BaseConnection(observer.Observable):
         # sets the write ready flag so that any further request to
         # write operation will be immediately performed
         self.wready = True
+
+        # in case the current connection is under the connecting stage
+        # it's not possible to perform a sending operation and the
+        # send operation is ignored, note that the write ready flag
+        # is still set as it may be used later for flushing operations
+        if self.connecting: return
 
         # acquires the pending lock so that no other access to the
         # the pending structure is made from a different thread
