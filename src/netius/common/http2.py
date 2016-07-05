@@ -100,6 +100,8 @@ class HTTP2Parser(parser.Parser):
             self._parse_continuation
         )
 
+        self._decoder = None
+
     def destroy(self):
         """
         Destroys the current structure for the parser meaning that
@@ -212,7 +214,30 @@ class HTTP2Parser(parser.Parser):
         pass
 
     def _parse_headers(self, data):
-        pass
+        data_l = len(data)
+
+        padded = self.flags & 0x08
+        priority = self.flags & 0x20
+
+        index = 0
+        padded_l = 0
+        dependency = 0
+        weight = 0
+
+        if padded:
+            padded_l = struct.unpack("!B", data[index:index + 1])
+            index += 1
+
+        if priority:
+            dependency = struct.unpack("!I", data[index:index + 4])
+            index += 4
+            weight = struct.unpack("!B", data[index:index + 1])
+            index += 1
+
+        fragment = data[index:data_l - padded_l]
+        headers = self.decoder.decode(fragment)
+
+        self.trigger("on_headers", headers, dependency, weight)
 
     def _parse_priority(self, data):
         pass
@@ -256,3 +281,10 @@ class HTTP2Parser(parser.Parser):
         data = b"".join(self.buffer)
         if empty: del self.buffer[:]
         return data
+
+    @property
+    def decoder(self):
+        if self._decoder: return self._decoder
+        import hpack
+        self._decoder = hpack.hpack.Decoder()
+        return self._decoder
