@@ -101,6 +101,7 @@ class HTTP2Parser(parser.Parser):
         )
 
         self.keep_alive = True
+        self.version_s = "HTTP/2.0"
 
         self._encoder = None
         self._decoder = None
@@ -128,6 +129,10 @@ class HTTP2Parser(parser.Parser):
     def clear(self, force = False):
         if not force and self.state == HEADER_STATE: return
         self.reset()
+
+    def get_path(self):
+        split = self.path_s.split("?", 1)
+        return split[0]
 
     def parse(self, data):
         """

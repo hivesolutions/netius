@@ -104,7 +104,7 @@ class FTPConnection(netius.Connection):
         return self.parser.parse(data)
 
     def send_ftp(self, code, message = "", lines = (), simple = False, delay = False, callback = None):
-        if lines: self.send_ftp_lines(
+        if lines: return self.send_ftp_lines(
             code,
             message = message,
             lines = lines,
@@ -112,7 +112,7 @@ class FTPConnection(netius.Connection):
             delay = delay,
             callback = callback
         )
-        else: self.send_ftp_base(
+        else: return self.send_ftp_base(
             code,
             message,
             delay,
@@ -122,8 +122,9 @@ class FTPConnection(netius.Connection):
     def send_ftp_base(self, code, message = "", delay = False, callback = None):
         base = "%d %s" % (code, message)
         data = base + "\r\n"
-        self.send(data, delay = delay, callback = callback)
+        count = self.send(data, delay = delay, callback = callback)
         self.owner.debug(base)
+        return count
 
     def send_ftp_lines(self, code, message = "", lines = (), simple = False, delay = False, callback = None):
         lines = list(lines)
@@ -136,8 +137,9 @@ class FTPConnection(netius.Connection):
         lines_s.append("%d %s" % (code, tail))
         if simple: lines_s.insert(0, base)
         data = "\r\n".join(lines_s) + "\r\n"
-        self.send(data, delay = delay, callback = callback)
+        count = self.send(data, delay = delay, callback = callback)
         self.owner.debug(base)
+        return count
 
     def ready(self):
         message = "%s FTP Server %s ready" % (self.host, netius.NAME)
