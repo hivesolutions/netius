@@ -48,7 +48,15 @@ HEADER_SIZE = 9
 SETTING_SIZE = 6
 
 DATA = 0x00
+HEADERS = 0x01
+PRIORITY = 0x02
+RST_STREAM = 0x03
 SETTINGS = 0x04
+PUSH_PROMISE = 0x05
+PING = 0x06
+GOAWAY = 0x07
+WINDOW_UPDATE = 0x08
+CONTINUATION = 0x09
 
 HEADER_STATE = 1
 
@@ -78,6 +86,19 @@ class HTTP2Parser(parser.Parser):
             self._parse_payload
         )
         self.state_l = len(self.states)
+
+        self.parsers = (
+            self._parse_data,
+            self._parse_headers,
+            self._parse_priority,
+            self._parse_rst_stream,
+            self._parse_settings,
+            self._parse_push_promise,
+            self._parse_ping,
+            self._parse_goaway,
+            self._parse_window_update,
+            self._parse_continuation
+        )
 
     def destroy(self):
         """
@@ -179,13 +200,25 @@ class HTTP2Parser(parser.Parser):
         size = self.length - self.buffer_size
         data = self.buffer_data + data[:size]
 
-        if self.type == SETTINGS:
-            self._parse_settings(data)
+        parse_method = self.parsers[self.type]
+        parse_method(data)
 
         self.state = FINISH_STATE
         self.trigger("on_frame")
 
         return size
+
+    def _parse_data(self, data):
+        pass
+
+    def _parse_headers(self, data):
+        pass
+
+    def _parse_priority(self, data):
+        pass
+
+    def _parse_rst_stream(self, data):
+        pass
 
     def _parse_settings(self, data):
         settings = []
@@ -198,6 +231,21 @@ class HTTP2Parser(parser.Parser):
             settings.append(setting)
 
         self.trigger("on_settings", settings)
+
+    def _parse_push_promise(self, data):
+        pass
+
+    def _parse_ping(self, data):
+        pass
+
+    def _parse_goaway(self, data):
+        pass
+
+    def _parse_window_update(self, data):
+        pass
+
+    def _parse_continuation(self, data):
+        pass
 
     @property
     def buffer_size(self):

@@ -98,5 +98,8 @@ class HTTP2Server(http.HTTPServer):
     def on_settings_http2(self, connection, parser, settings):
         print(settings)
 
+    def on_headers_http2(self, connection, parser, headers):
+        print(headers)
+
     def _log_frame(self, connection, parser):
-        self.debug("Received frame 0x%02x with length %d" % (parser.type, parser.length))
+        self.debug("Received frame 0x%02x with length %d bytes" % (parser.type, parser.length))
