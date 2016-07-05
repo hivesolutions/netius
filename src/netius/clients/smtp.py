@@ -213,8 +213,9 @@ class SMTPConnection(netius.Connection):
     def send_smtp(self, code, message = "", delay = False, callback = None):
         base = "%s %s" % (code, message)
         data = base + "\r\n"
-        self.send(data, delay = delay, callback = callback)
+        count = self.send(data, delay = delay, callback = callback)
         self.owner.debug(base)
+        return count
 
     def on_line(self, code, message, is_final = True):
         # creates the base string from the provided code value and the

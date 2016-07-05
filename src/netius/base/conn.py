@@ -409,7 +409,7 @@ class BaseConnection(observer.Observable):
         # state and then verifies if a callback exists if that's
         # the case the data tuple must be created with the data
         # and the callback as the contents (standard process)
-        if not self.status == OPEN and not force: return
+        if not self.status == OPEN and not force: return 0
         if callback: data = (data, callback)
 
         # retrieves the identifier of the current thread and then
@@ -445,6 +445,10 @@ class BaseConnection(observer.Observable):
         # connection must be ensure to be write ready, should
         # subscribe to the write events as soon as possible
         else: self.ensure_write()
+
+        # returns the final number of bytes (length of data)
+        # that has been submitted to be sent
+        return data_l
 
     def recv(self, size = CHUNK_SIZE):
         return self._recv(size = size)

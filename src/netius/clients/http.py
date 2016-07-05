@@ -140,8 +140,11 @@ class HTTPConnection(netius.Connection):
         buffer.append("\r\n")
         buffer_data = "".join(buffer)
 
-        self.send(buffer_data, force = True)
-        data and self.send(data, force = True)
+        count = self.send(buffer_data, force = True)
+        if not data: return count
+
+        count += self.send(data, force = True)
+        return count
 
     def set_encodings(self, encodings):
         self.encodings = encodings

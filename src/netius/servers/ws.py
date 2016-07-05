@@ -191,7 +191,7 @@ class WSServer(netius.StreamServer):
 
     def send_ws(self, connection, data):
         encoded = netius.common.encode_ws(data, mask = False)
-        connection.send(encoded)
+        return connection.send(encoded)
 
     def on_data_ws(self, connection, data):
         pass

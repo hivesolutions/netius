@@ -262,8 +262,9 @@ class HTTPConnection(netius.Connection):
         buffer_data = "".join(buffer)
 
         self.send_plain(buffer_data)
-        if flush: self.send(data); self.flush(callback = callback)
-        else: self.send(data, callback = callback)
+        if flush: count = self.send(data); self.flush(callback = callback)
+        else: count = self.send(data, callback = callback)
+        return count
 
     def parse(self, data):
         return self.parser.parse(data)

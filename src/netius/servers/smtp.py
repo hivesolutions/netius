@@ -116,14 +116,14 @@ class SMTPConnection(netius.Connection):
         else: return self.parser.parse(data)
 
     def send_smtp(self, code, message = "", lines = (), delay = False, callback = None):
-        if lines: self.send_smtp_lines(
+        if lines: return self.send_smtp_lines(
             code,
             message = message,
             lines = lines,
             delay = delay,
             callback = callback
         )
-        else: self.send_smtp_base(
+        else: return self.send_smtp_base(
             code,
             message,
             delay,
@@ -133,8 +133,9 @@ class SMTPConnection(netius.Connection):
     def send_smtp_base(self, code, message = "", delay = False, callback = None):
         base = "%d %s" % (code, message)
         data = base + "\r\n"
-        self.send(data, delay = delay, callback = callback)
+        count = self.send(data, delay = delay, callback = callback)
         self.owner.debug(base)
+        return count
 
     def send_smtp_lines(self, code, message = "", lines = (), delay = False, callback = None):
         lines = list(lines)
@@ -145,8 +146,9 @@ class SMTPConnection(netius.Connection):
         lines_s = ["%d-%s" % (code, line) for line in body]
         lines_s.append("%d %s" % (code, tail))
         data = "\r\n".join(lines_s) + "\r\n"
-        self.send(data, delay = delay, callback = callback)
+        count = self.send(data, delay = delay, callback = callback)
         self.owner.debug(base)
+        return count
 
     def ready(self):
         self.assert_s(INTIAL_STATE)

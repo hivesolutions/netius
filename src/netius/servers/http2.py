@@ -115,13 +115,13 @@ class HTTP2Connection(http.HTTPConnection):
         size = len(payload)
         header = struct.pack("!BHBBI", 0x00, size, type, flags, stream)
         message = header + payload
-        self.send(message, delay = delay, callback = callback)
+        return self.send(message, delay = delay, callback = callback)
 
     def send_headers(self, headers, delay = False, callback = None):
         pass
 
     def send_settings(self, delay = False, callback = None):
-        self.send_frame(
+        return self.send_frame(
             type = netius.common.SETTINGS,
             delay = False,
             callback = None

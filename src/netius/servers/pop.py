@@ -104,8 +104,9 @@ class POPConnection(netius.Connection):
         base = "%s %s" % (status_s, message)
         data = base + "\r\n"
         if lines: data += "\r\n".join(lines) + "\r\n.\r\n"
-        self.send(data, delay = delay, callback = callback)
+        count = self.send(data, delay = delay, callback = callback)
         self.owner.debug(base)
+        return count
 
     def ready(self):
         self.assert_s(INTIAL_STATE)

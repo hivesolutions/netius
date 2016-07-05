@@ -82,7 +82,7 @@ class SOCKSConnection(netius.Connection):
 
     def send_response(self, status = GRANTED):
         data = struct.pack("!BBHI", 0, status, 0, 0)
-        self.send(data)
+        return self.send(data)
 
     def send_response_extra(self, status = GRANTED_EXTRA):
         version = self.parser.version
@@ -91,12 +91,12 @@ class SOCKSConnection(netius.Connection):
         address = self.parser.get_address()
         format = "!BBBB%dsH" % len(address)
         data = struct.pack(format, version, status, 0, type, address, port)
-        self.send(data)
+        return self.send(data)
 
     def send_auth(self, version = None, method = 0x00):
         version = version or self.parser.version
         data = struct.pack("!BB", version, method)
-        self.send(data)
+        return self.send(data)
 
     def get_version(self):
         return self.parser.version

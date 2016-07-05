@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import netius.servers
 
-class HelloServer(netius.servers.HTTPServer):
+class HelloServer(netius.servers.HTTP2Server):
     """
     Simple Hello (World) HTTP server meant to be used for benchmarks
     and other operations that require a simple in-memory HTTP server.
