@@ -63,11 +63,69 @@ class HTTP2Connection(http.HTTPConnection):
             return
         return self.parser.parse(data)
 
-    def send_frame(self, type = 0x01, flags = 0x00, stream = 0x00, payload = b""):
+    def send_response(
+        self,
+        data = None,
+        headers = None,
+        version = "HTTP/2.0",
+        code = 200,
+        code_s = None,
+        apply = False,
+        flush = True,
+        callback = None
+    ):
+        data = data or ""
+        headers = headers or dict()
+        code_s = code_s or netius.common.CODE_STRINGS.get(code, None)
+        data_l = len(data) if data else 0
+        is_empty = code in (204, 304) and data_l == 0
+
+        # verifies if the content length header is currently present
+        # in the provided headers and in case it's not inserts it
+        if not "content-length" in headers and not is_empty:
+            headers["content-length"] = data_l
+
+        # in case the apply flag is set the apply all operation is performed
+        # so that a series of headers are applied to the current context
+        # (things like the name of the server connection, etc)
+        if apply: self.owner._apply_all(self.parser, self, headers)
+
+        buffer = []
+        buffer.append("%s %d %s\r\n" % (version, code, code_s))
+        for key, value in headers.items():
+            key = netius.common.header_up(key)
+            if not type(value) == list: value = (value,)
+            for _value in value: buffer.append("%s: %s\r\n" % (key, _value))
+        buffer.append("\r\n")
+        buffer_data = "".join(buffer)
+
+        self.send_plain(buffer_data)
+        if flush: self.send(data); self.flush(callback = callback)
+        else: self.send(data, callback = callback)
+
+    def send_frame(
+        self,
+        type = 0x01,
+        flags = 0x00,
+        stream = 0x00,
+        payload = b"",
+        delay = False,
+        callback = None
+    ):
         size = len(payload)
         header = struct.pack("!BHBBI", 0x00, size, type, flags, stream)
         message = header + payload
-        self.send(message)
+        self.send(message, delay = delay, callback = callback)
+
+    def send_headers(self, headers, delay = False, callback = None):
+        pass
+
+    def send_settings(self, delay = False, callback = None):
+        self.send_frame(
+            type = netius.common.SETTINGS,
+            delay = False,
+            callback = None
+        )
 
     def on_frame(self):
         self.owner.on_frame_http2(self, self.parser)
@@ -93,7 +151,7 @@ class HTTP2Server(http.HTTPServer):
         )
 
     def on_preface_http2(self, connection, parser):
-        connection.send_frame(type = netius.common.SETTINGS)
+        connection.send_settings()
 
     def on_frame_http2(self, connection, parser):
         is_debug = self.is_debug()

@@ -100,6 +100,8 @@ class HTTP2Parser(parser.Parser):
             self._parse_continuation
         )
 
+        self.keep_alive = True
+
         self._decoder = None
 
     def destroy(self):
