@@ -290,7 +290,7 @@ class HTTP2Parser(parser.Parser):
             key, value = header
             is_special = key.startswith(":")
             if is_special: headers_s[key] = value
-            else: headers_m[key] = value
+            else: headers_m[key] = value #@todo in case there's an overlap a list must be created
 
         host = headers_s.get(":authority", None)
         if host: headers_m["host"] = host

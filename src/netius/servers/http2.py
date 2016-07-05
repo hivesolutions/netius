@@ -118,7 +118,13 @@ class HTTP2Connection(http.HTTPConnection):
         return self.send(message, delay = delay, callback = callback)
 
     def send_headers(self, headers, delay = False, callback = None):
-        pass
+        self.parser.encoder.encode(headers) #@todo must encode the headers properly
+        # after converting them from the standard (dictionary format)
+        return self.send_frame(
+            type = netius.common.HEADERS,
+            delay = False,
+            callback = None
+        )
 
     def send_settings(self, delay = False, callback = None):
         return self.send_frame(
