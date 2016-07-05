@@ -102,6 +102,7 @@ class HTTP2Parser(parser.Parser):
 
         self.keep_alive = True
 
+        self._encoder = None
         self._decoder = None
 
     def destroy(self):
@@ -239,6 +240,8 @@ class HTTP2Parser(parser.Parser):
         fragment = data[index:data_l - padded_l]
         headers = self.decoder.decode(fragment)
 
+        self._set_legacy(headers)
+
         self.trigger("on_headers", headers, dependency, weight)
 
     def _parse_priority(self, data):
@@ -274,6 +277,23 @@ class HTTP2Parser(parser.Parser):
     def _parse_continuation(self, data):
         pass
 
+    def _set_legacy(self, headers):
+        headers_m = dict()
+        headers_s = dict()
+
+        for header in headers:
+            key, value = header
+            is_special = key.startswith(":")
+            if is_special: headers_s[key] = value
+            else: headers_m[key] = value
+
+        host = headers_s.get(":authority", None)
+        if host: headers_m["host"] = host
+
+        self.method = headers_s.get(":method", None)
+        self.path_s = headers_s.get(":path", None)
+        self.headers = headers_m
+
     @property
     def buffer_size(self):
         return sum(len(data) for data in self.buffer)
@@ -283,6 +303,13 @@ class HTTP2Parser(parser.Parser):
         data = b"".join(self.buffer)
         if empty: del self.buffer[:]
         return data
+
+    @property
+    def encoder(self):
+        if self._encoder: return self._encoder
+        import hpack
+        self._encoder = hpack.hpack.Encoder()
+        return self._encoder
 
     @property
     def decoder(self):
