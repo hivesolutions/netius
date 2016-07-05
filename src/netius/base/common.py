@@ -1437,6 +1437,19 @@ class AbstractBase(observer.Observable):
         except: os.close(fd); file.close()
         return file_path
 
+    def get_protocols(self):
+        """
+        Retrieves the complete set of protocols (as ALPN strings) that are
+        going to be handled by the current protocol infra-structure.
+
+        @rtype: List
+        @return: The list containing the complete set of protocols handled
+        by the current infra-structure.
+        @see: https://tools.ietf.org/html/rfc7301
+        """
+
+        return None
+
     def get_adapter(self, name = "memory", *args, **kwargs):
         """
         Retrieves an instance of a storage adapter described
@@ -1673,20 +1686,7 @@ class AbstractBase(observer.Observable):
         # that in case the strict mode is enabled (default) the context
         # is unset for situation where no callback registration is possible
         self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        if secure and hasattr(ssl, "OP_NO_SSLv2"):
-            self._ssl_context.options |= ssl.OP_NO_SSLv2
-        if secure and hasattr(ssl, "OP_NO_SSLv3"):
-            self._ssl_context.options |= ssl.OP_NO_SSLv3
-        if secure and hasattr(ssl, "OP_SINGLE_DH_USE"):
-            self._ssl_context.options |= ssl.OP_SINGLE_DH_USE
-        if secure and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
-            self._ssl_context.options |= ssl.OP_SINGLE_ECDH_USE
-        if secure and hasattr(ssl, "OP_CIPHER_SERVER_PREFERENCE"):
-            self._ssl_context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
-        if secure and hasattr(self._ssl_context, "set_ecdh_curve"):
-            self._ssl_context.set_ecdh_curve("prime256v1")
-        if secure and SSL_DH_PATH and hasattr(self._ssl_context, "load_dh_params"):
-            self._ssl_context.load_dh_params(SSL_DH_PATH)
+        self._ssl_ctx_base(self._ssl_context, secure = secure)
         self._ssl_certs(self._ssl_context)
         has_callback = hasattr(self._ssl_context, "set_servername_callback")
         if has_callback: self._ssl_context.set_servername_callback(self._ssl_callback)
@@ -1705,6 +1705,7 @@ class AbstractBase(observer.Observable):
 
     def _ssl_callback(self, socket, hostname, context):
         context, values = self._ssl_contexts.get(hostname, (context, None))
+        self._ssl_ctx_base(context)
         socket.context = context
         if not values: return
         ssl_host = values.get("ssl_host", None)
@@ -1715,20 +1716,7 @@ class AbstractBase(observer.Observable):
 
     def _ssl_ctx(self, values, context = None, secure = True):
         context = context or ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        if secure and hasattr(ssl, "OP_NO_SSLv2"):
-            context.options |= ssl.OP_NO_SSLv2
-        if secure and hasattr(ssl, "OP_NO_SSLv3"):
-            context.options |= ssl.OP_NO_SSLv3
-        if secure and hasattr(ssl, "OP_SINGLE_DH_USE"):
-            context.options |= ssl.OP_SINGLE_DH_USE
-        if secure and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
-            context.options |= ssl.OP_SINGLE_ECDH_USE
-        if secure and hasattr(ssl, "OP_CIPHER_SERVER_PREFERENCE"):
-            context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
-        if secure and hasattr(context, "set_ecdh_curve"):
-            context.set_ecdh_curve("prime256v1")
-        if secure and SSL_DH_PATH and hasattr(context, "load_dh_params"):
-            context.load_dh_params(SSL_DH_PATH)
+        self._ssl_ctx_base(context, secure = secure)
         key_file = values.get("key_file", None)
         cer_file = values.get("cer_file", None)
         ca_file = values.get("ca_file", None)
@@ -1744,6 +1732,25 @@ class AbstractBase(observer.Observable):
             verify_mode = cert_reqs
         )
         return context
+
+    def _ssl_ctx_base(self, context, secure = True):
+        if hasattr(context, "set_alpn_protocols"):
+            protocols = self.get_protocols()
+            protocols and context.set_alpn_protocols(protocols)
+        if secure and hasattr(ssl, "OP_NO_SSLv2"):
+            context.options |= ssl.OP_NO_SSLv2
+        if secure and hasattr(ssl, "OP_NO_SSLv3"):
+            context.options |= ssl.OP_NO_SSLv3
+        if secure and hasattr(ssl, "OP_SINGLE_DH_USE"):
+            context.options |= ssl.OP_SINGLE_DH_USE
+        if secure and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
+            context.options |= ssl.OP_SINGLE_ECDH_USE
+        if secure and hasattr(ssl, "OP_CIPHER_SERVER_PREFERENCE"):
+            context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
+        if secure and hasattr(context, "set_ecdh_curve"):
+            context.set_ecdh_curve("prime256v1")
+        if secure and SSL_DH_PATH and hasattr(context, "load_dh_params"):
+            context.load_dh_params(SSL_DH_PATH)
 
     def _ssl_certs(
         self,
