@@ -59,10 +59,16 @@ WINDOW_UPDATE = 0x08
 CONTINUATION = 0x09
 
 HEADER_STATE = 1
+""" The initial header state for which the header
+of the frame is going to be parsed and loaded """
 
 PAYLOAD_STATE = 2
+""" The second state of the frame parsing where the
+payload of the frame is going to be loaded """
 
 FINISH_STATE = 3
+""" The final finish state to be used when the parsing
+of the frame has been finished """
 
 class HTTP2Parser(parser.Parser):
 
