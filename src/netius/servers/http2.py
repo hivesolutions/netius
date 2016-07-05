@@ -99,9 +99,9 @@ class HTTP2Connection(http.HTTPConnection):
         buffer.append("\r\n")
         buffer_data = "".join(buffer)
 
-        self.send_plain(buffer_data)
-        if flush: self.send(data); self.flush(callback = callback)
-        else: self.send(data, callback = callback)
+        count = self.send_plain(buffer_data)
+        if flush: count = self.send(data); self.flush(callback = callback)
+        else: count += self.send(data, callback = callback)
 
     def send_frame(
         self,

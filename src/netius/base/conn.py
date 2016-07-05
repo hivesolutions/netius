@@ -447,7 +447,7 @@ class BaseConnection(observer.Observable):
         else: self.ensure_write()
 
         # returns the final number of bytes (length of data)
-        # that has been submitted to be sent
+        # that has been submitted to be sent (as soon as possible)
         return data_l
 
     def recv(self, size = CHUNK_SIZE):
@@ -655,7 +655,7 @@ class DiagConnection(BaseConnection):
 
     def send(self, data, *args, **kwargs):
         result = BaseConnection.send(self, data, *args, **kwargs)
-        self.out_bytes += len(data) if data else 0
+        self.out_bytes += result
         self.sends += 1
         return result
 
