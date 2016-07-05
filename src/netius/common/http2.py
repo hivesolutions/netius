@@ -134,6 +134,11 @@ class HTTP2Parser(parser.Parser):
         split = self.path_s.split("?", 1)
         return split[0]
 
+    def get_query(self):
+        split = self.path_s.split("?", 1)
+        if len(split) == 1: return ""
+        else: return split[1]
+
     def parse(self, data):
         """
         Parses the provided data chunk, changing the current
