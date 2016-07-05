@@ -37,20 +37,47 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import struct
+
+import netius.common
+
 from . import http
 
 class HTTP2Connection(http.HTTPConnection):
 
-    pass
+    def __init__(self, *args, **kwargs):
+        http.HTTPConnection.__init__(self, *args, **kwargs)
+        self.preface = False #@todo this must be done via states and not like this (just like SMTP)
+
+    def open(self, *args, **kwargs):
+        netius.Connection.open(self, *args, **kwargs)
+        self.parser = netius.common.HTTP2Parser(self)
+        self.parser.bind("on_frame", self.on_frame)
+        self.parser.bind("on_settings", self.on_settings)
+
+    def parse(self, data):
+        if not self.preface:
+            self.owner.on_preface_http2(self, self.parser)
+            self.preface = True
+            return
+        return self.parser.parse(data)
+
+    def send_frame(self, type = 0x01, flags = 0x00, stream = 0x00, payload = b""):
+        size = len(payload)
+        header = struct.pack("!BHBBI", 0x00, size, type, flags, stream)
+        message = header + payload
+        self.send(message)
+
+    def on_frame(self):
+        self.owner.on_frame_http2(self, self.parser)
+
+    def on_settings(self, settings):
+        self.owner.on_settings_http2(self, self.parser, settings)
 
 class HTTP2Server(http.HTTPServer):
 
     def get_protocols(self):
         return ["h2", "http/1.1", "http/1.0"]
-
-    def on_data(self, connection, data):
-        http.HTTPServer.on_data(self, connection, data)
-        print(data)
 
     def new_connection(self, socket, address, ssl = False):
         return HTTP2Connection(
@@ -60,3 +87,16 @@ class HTTP2Server(http.HTTPServer):
             ssl = ssl,
             encoding = self.encoding
         )
+
+    def on_preface_http2(self, connection, parser):
+        connection.send_frame(type = netius.common.SETTINGS)
+
+    def on_frame_http2(self, connection, parser):
+        is_debug = self.is_debug()
+        is_debug and self._log_frame(connection, parser)
+
+    def on_settings_http2(self, connection, parser, settings):
+        print(settings)
+
+    def _log_frame(self, connection, parser):
+        self.debug("Received frame 0x%02x with length %d" % (parser.type, parser.length))
