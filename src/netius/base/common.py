@@ -284,6 +284,7 @@ class AbstractBase(observer.Observable):
         self.diag = kwargs.get("diag", False)
         self.children = kwargs.get("children", 0)
         self.tid = None
+        self.tname = None
         self.logger = None
         self.logging = None
         self.tpool = None
@@ -764,11 +765,6 @@ class AbstractBase(observer.Observable):
         # base service, this is going to be used for diagnostics
         poll_name = self.get_poll_name()
 
-        # retrieves the current thread identifier as the current
-        # "tid" value to be used for thread control mechanisms
-        cthread = threading.current_thread()
-        self.tid = cthread.ident or 0
-
         # triggers the loading of the internal structures of
         # the base structure in case the loading has already
         # been done nothing is done (avoids duplicated load)
@@ -783,9 +779,9 @@ class AbstractBase(observer.Observable):
         # thread that is being used for the starting of the loop, this data
         # may be used for runtime debugging purposes (debug only data)
         cthread = threading.current_thread()
-        name = cthread.getName()
-        ident = cthread.ident or 0
-        self._main = name == "MainThread"
+        self.tid = cthread.ident or 0
+        self.tname = cthread.getName()
+        self._main = self.tname == "MainThread"
 
         # in case the current thread is the main one, the global
         # main instance is set as the current instance
@@ -795,7 +791,7 @@ class AbstractBase(observer.Observable):
         # to the logger indicating this start, this stage
         # should block the thread until a stop call is made
         self.debug("Starting '%s' service main loop (%.2fs) ..." % (self.name, self.poll_timeout))
-        self.debug("Using thread '%s' with tid '%d'" % (name, ident))
+        self.debug("Using thread '%s' with tid '%d'" % (self.tname, self.tid))
         self.debug("Using '%s' as polling mechanism" % poll_name)
 
         # calls the main method to be able to start the main event
