@@ -993,7 +993,7 @@ class AbstractBase(observer.Observable):
         self.debug("Forking the current process into '%d' children ..." % self.children)
         for _index in range(self.children):
             pid = os.fork() #@UndefinedVariable
-            if pid == 0: continue
+            if not pid == 0: continue
             break
 
     def finalize(self):
