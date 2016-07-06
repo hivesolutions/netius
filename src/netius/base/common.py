@@ -1021,8 +1021,10 @@ class AbstractBase(observer.Observable):
         # sleep forever, waiting for an interruption of the current
         # process that triggers the children to quit, so that it's
         # able to "join" all of them into the current process
-        try: time.sleep(-1)
-        except: pass
+        try:
+            while True: time.sleep(60)
+        except:
+            pass
 
         # prints a debug information about the processes to be joined
         self.debug("Joining %d' children processes ..." % self.children)
