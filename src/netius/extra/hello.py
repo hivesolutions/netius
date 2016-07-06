@@ -64,6 +64,9 @@ class HelloServer(netius.servers.HTTPServer):
         netius.servers.HTTPServer.on_data_http(
             self, connection, parser
         )
+        
+        import os
+        print(os.getpid())
 
         callback = self._hello_keep if parser.keep_alive else self._hello_close
         connection_s = "keep-alive" if parser.keep_alive else "close"
