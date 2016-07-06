@@ -715,7 +715,7 @@ class AbstractBase(observer.Observable):
         if not self.diag: return
 
         # runs the import operations for the diag module, note that
-        # this must be performed locally no avoid any unwanted behaviour
+        # this must be performed locally no avoid any unwanted behavior
         # or collision with a runtime process (would pose issues)
         from . import diag
 
@@ -1023,6 +1023,9 @@ class AbstractBase(observer.Observable):
         # able to "join" all of them into the current process
         try: time.sleep(-1)
         except: pass
+
+        # prints a debug information about the processes to be joined
+        self.debug("Joining %d' children processes ..." % self.children)
 
         # iterates over the complete set of child processed to join
         # them (master responsibility) and then returns an invalid
