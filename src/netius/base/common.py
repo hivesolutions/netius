@@ -1316,12 +1316,6 @@ class AbstractBase(observer.Observable):
         # name and returns the new poll object to the caller method
         if self.poll and self.poll.is_open(): return self.poll
 
-        # runs the fork operation responsible for the forking of the
-        # current process into the various child processes for multiple
-        # process based parallelism, note that this must be done after
-        # the master socket has been created (to be shared)
-        self.fork()
-
         # runs the testing of the poll again and verifies if the polling
         # class has changed in case it did not returns the current poll
         # instance as expected by the current infra-structure

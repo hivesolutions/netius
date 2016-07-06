@@ -217,17 +217,6 @@ class Server(Base):
         elif type == UDP_TYPE: self.socket = self.socket_udp()
         else: raise errors.NetiusError("Invalid server type provided '%d'" % type)
 
-        # ensures that the current polling mechanism is correctly open as the
-        # service socket is going to be added to it next, this overrides the
-        # default behavior of the common infra-structure (on start)
-        self.poll = self.build_poll()
-        self.poll.open(timeout = self.poll_timeout)
-
-        # adds the socket to all of the pool lists so that it's ready to read
-        # write and handle error, this is the expected behavior of a service
-        # socket so that it can handle all of the expected operations
-        self.sub_all(self.socket)
-
         # "calculates" the address "bind target", taking into account that this
         # server may be running under a unix based socket infra-structure and
         # if that's the case the target (file path) is also removed, avoiding
@@ -256,6 +245,23 @@ class Server(Base):
         ipv6_s = " on ipv6" if ipv6 else ""
         ssl_s = " using ssl" if ssl else ""
         self.info("Serving '%s' service on %s:%s%s%s ..." % (self.name, host, port, ipv6_s, ssl_s))
+
+        # runs the fork operation responsible for the forking of the
+        # current process into the various child processes for multiple
+        # process based parallelism, note that this must be done after
+        # the master socket has been created (to be shared)
+        self.fork()
+
+        # ensures that the current polling mechanism is correctly open as the
+        # service socket is going to be added to it next, this overrides the
+        # default behavior of the common infra-structure (on start)
+        self.poll = self.build_poll()
+        self.poll.open(timeout = self.poll_timeout)
+
+        # adds the socket to all of the pool lists so that it's ready to read
+        # write and handle error, this is the expected behavior of a service
+        # socket so that it can handle all of the expected operations
+        self.sub_all(self.socket)
 
         # calls the on serve callback handler so that underlying services may be
         # able to respond to the fact that the service is starting and some of
