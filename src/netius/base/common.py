@@ -372,8 +372,8 @@ class AbstractBase(observer.Observable):
         a huge performance impact created from using this method instead of
         the local event loop one (delay()).
 
-        @type callable: Function
-        @param callable: The callable that should be called on the next tick
+        :type callable: Function
+        :param callable: The callable that should be called on the next tick
         according to the event loop rules.
         """
 
@@ -631,11 +631,11 @@ class AbstractBase(observer.Observable):
         arguments strategy so that python and configuration files
         are properly set as compatible.
 
-        @type level: String/int
-        @param level: The base severity level for which the new handler
+        :type level: String/int
+        :param level: The base severity level for which the new handler
         will be configured in case no extra level definition is set.
-        @type formatter: Formatter
-        @param formatter: The logging formatter instance to be set in
+        :type formatter: Formatter
+        :param formatter: The logging formatter instance to be set in
         the handler for formatting messages to the output.
         """
 
@@ -684,8 +684,8 @@ class AbstractBase(observer.Observable):
         The provided value may be an integer (internal value) or a string
         representation of the requested verbosity level.
 
-        @type level: int/String
-        @param level: The (logging) for which the logging infra-structure
+        :type level: int/String
+        :param level: The (logging) for which the logging infra-structure
         must be changed, either an integer or string value.
         """
 
@@ -1182,17 +1182,17 @@ class AbstractBase(observer.Observable):
         object and string based address, the returned
         value should be a workable object.
 
-        @type socket: Socket
-        @param socket: The socket object to be encapsulated
+        :type socket: Socket
+        :param socket: The socket object to be encapsulated
         by the object to be created (connection).
-        @type address: String
-        @param address: The address as a string to be used to
+        :type address: String
+        :param address: The address as a string to be used to
         describe the connection object to be created.
-        @type ssl: bool
-        @param ssl: If the connection to be created is meant to
+        :type ssl: bool
+        :param ssl: If the connection to be created is meant to
         be secured using the ssl framework for encryption.
-        @rtype: Connection
-        @return: The connection object that encapsulates the
+        :rtype: Connection
+        :return: The connection object that encapsulates the
         provided socket and address values.
         """
 
@@ -1235,8 +1235,8 @@ class AbstractBase(observer.Observable):
         This method should be used at runtime as opposed to the private
         configuration based one.
 
-        @rtype: bool
-        @return: If the current environment is development oriented or
+        :rtype: bool
+        :return: If the current environment is development oriented or
         if it's considered to be a production one (invalid result).
         """
 
@@ -1349,11 +1349,11 @@ class AbstractBase(observer.Observable):
         An optional parameter controls if the string should
         be lower cased or not.
 
-        @type lower: bool
-        @param lower: If the returned string should be converted
+        :type lower: bool
+        :param lower: If the returned string should be converted
         into a lower cased version.
-        @rtype: String
-        @return: A string describing the current sate of the loop
+        :rtype: String
+        :return: A string describing the current sate of the loop
         system, should be as descriptive as possible.
         """
 
@@ -1378,21 +1378,21 @@ class AbstractBase(observer.Observable):
         configuration registry so that other data providers may
         also be used in search for configuration.
 
-        @type name: String
-        @param name: The name of the environment variable that is
+        :type name: String
+        :param name: The name of the environment variable that is
         meant to be retrieved from the current environment
-        @type default: Object
-        @param default: The default value to be returned in case
+        :type default: Object
+        :param default: The default value to be returned in case
         no value is found for the provided name.
-        @type cast: Type
-        @param cast: The cast type to be used to cast the value
+        :type cast: Type
+        :param cast: The cast type to be used to cast the value
         of the requested environment variable.
-        @type expand: bool
-        @param expand: If the variable should be expanded as a file
+        :type expand: bool
+        :param expand: If the variable should be expanded as a file
         object and stored in a temporary storage, for this situation
         the resulting object should be a string with the file path.
-        @rtype: Object
-        @return: The value of the requested environment variable
+        :rtype: Object
+        :return: The value of the requested environment variable
         properly casted into the target value.
         """
 
@@ -1412,18 +1412,18 @@ class AbstractBase(observer.Observable):
         In case the force value is provided the the file is created even
         for situations where the provided value is invalid/unset.
 
-        @type value: String
-        @param value: The string/bytes based value that is going to be
+        :type value: String
+        :param value: The string/bytes based value that is going to be
         expanded into a proper file system based (temporary) file.
-        @type encoding: String
-        @param encoding: The encoding that is going to be used to convert
+        :type encoding: String
+        :param encoding: The encoding that is going to be used to convert
         the value into a bytes based one in case the provided value is not
         bytes compliant (and must be converted).
-        @type force: bool
-        @param force: If the expansion operation should be performed even
+        :type force: bool
+        :param force: If the expansion operation should be performed even
         for situations where the value is considered invalid/unset.
-        @rtype: String
-        @return: The path to the temporary file that has just been generated
+        :rtype: String
+        :return: The path to the temporary file that has just been generated
         for the expansion of the provided value.
         """
 
@@ -1442,10 +1442,10 @@ class AbstractBase(observer.Observable):
         Retrieves the complete set of protocols (as ALPN strings) that are
         going to be handled by the current protocol infra-structure.
 
-        @rtype: List
-        @return: The list containing the complete set of protocols handled
+        :rtype: List
+        :return: The list containing the complete set of protocols handled
         by the current infra-structure.
-        @see: https://tools.ietf.org/html/rfc7301
+        :see: https://tools.ietf.org/html/rfc7301
         """
 
         return None
@@ -1457,11 +1457,11 @@ class AbstractBase(observer.Observable):
         arguments are going to be used in the construction of
         the adapter instance.
 
-        @type name: String
-        @param name: The name of the adapter to be retrieved
+        :type name: String
+        :param name: The name of the adapter to be retrieved
         this should be equivalent to the adapter class name.
-        @rtype: Adapter
-        @return: An instance (properly configured) of the
+        :rtype: Adapter
+        :return: An instance (properly configured) of the
         requested adapter (defined by the name argument).
         """
 
@@ -1480,11 +1480,11 @@ class AbstractBase(observer.Observable):
         The state of theses authentication (handlers) is based
         on the "global" state of the environment (no instances).
 
-        @type name: String
-        @param name: The name of the authentication (handler)
+        :type name: String
+        :param name: The name of the authentication (handler)
         class that should be retrieved.
-        @rtype: Auth
-        @return: An authentication based class that may be used
+        :rtype: Auth
+        :return: An authentication based class that may be used
         for the interaction of authentication methods.
         """
 
@@ -1501,12 +1501,12 @@ class AbstractBase(observer.Observable):
         The method returns if there are still pending operations
         after this method tick.
 
-        @type _socket: Socket
-        @param _socket: The socket object to be checked for
+        :type _socket: Socket
+        :param _socket: The socket object to be checked for
         pending operations and that is going to be used in the
         performing of these operations.
-        @rtype: bool
-        @return: If there are still pending operations to be
+        :rtype: bool
+        :return: If there are still pending operations to be
         performed in the provided socket.
         """
 
@@ -1612,11 +1612,11 @@ class AbstractBase(observer.Observable):
         This method must be used carefully to avoid any unwanted
         behavior resulting from value collisions.
 
-        @type hashed: bool
-        @param hashed: If the identifier should be hashed into
+        :type hashed: bool
+        :param hashed: If the identifier should be hashed into
         and hexadecimal string instead of an uuid based identifier.
-        @rtype: String
-        @return: The random unique identifier generated and that
+        :rtype: String
+        :return: The random unique identifier generated and that
         may be used to identify objects or operations.
         """
 
@@ -1866,11 +1866,11 @@ class AbstractBase(observer.Observable):
         This method takes into account the current interpreter
         version so that no problem occur.
 
-        @type level: String/int
-        @param level: The level value that is meant to be converted
+        :type level: String/int
+        :param level: The level value that is meant to be converted
         into the best representation possible.
-        @rtype: int
-        @return: The best representation of the level so that it may
+        :rtype: int
+        :return: The best representation of the level so that it may
         be used freely for the setting of logging levels under the
         current running interpreter.
         """

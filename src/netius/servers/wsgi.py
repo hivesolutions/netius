@@ -386,13 +386,13 @@ class WSGIServer(http.HTTPServer):
         Note that python 3 enforces the encapsulation of the string
         value around a latin 1 encoded unicode string.
 
-        @type value: String
-        @param value: The quoted value that should be normalized and
+        :type value: String
+        :param value: The quoted value that should be normalized and
         decoded according to the wsgi 1.0/1.0.1 specifications.
-        @rtype: String
-        @return: The normalized version of the provided quoted value
+        :rtype: String
+        :return: The normalized version of the provided quoted value
         that is ready to be provided as part of the environ map.
-        @see: http://python.org/dev/peps/pep-3333
+        :see: http://python.org/dev/peps/pep-3333
         """
 
         value = netius.legacy.unquote(value)

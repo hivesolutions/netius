@@ -49,7 +49,7 @@ def upnp_map(ext_port, int_port, host, protocol = "TCP", description = "netius")
     In case there's no available router with UPnP features the
     client may become idle, leaking memory.
 
-    @see: http://www.upnp.org/specs/gw/UPnP-gw-WANIPConnection-v1-Service.pdf
+    :see: http://www.upnp.org/specs/gw/UPnP-gw-WANIPConnection-v1-Service.pdf
     """
 
     message = """<?xml version="1.0"?>

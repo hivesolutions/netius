@@ -48,7 +48,7 @@ class SSDPClient(netius.DatagramClient):
     Using this implementation it should be possible to discover
     and control devices like routes, media centers, etc.
 
-    @see: https://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol
+    :see: https://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol
     """
 
     def on_data(self, connection, data):

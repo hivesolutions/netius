@@ -684,8 +684,8 @@ class TorrentTask(netius.Observable):
         using the original creation time of the task and so it
         may not represent the most accurate speedup.
 
-        @rtype: float
-        @return: The current speed of download, defined as bytes
+        :rtype: float
+        :return: The current speed of download, defined as bytes
         per second from the original task creation time.
         """
 
@@ -814,21 +814,21 @@ class TorrentServer(netius.ContainerServer):
         task for the downloading of the requested file, this object may be
         used for the operations and listening of events.
 
-        @type target_path: String
-        @param target_path: The path to the directory that will be used to store
+        :type target_path: String
+        :param target_path: The path to the directory that will be used to store
         the binary information resulting from the download, this directory may also
         be used to store some temporary information on state of download.
-        @type torrent_path: String
-        @param torrent_path: The path to the file that contains the torrent
+        :type torrent_path: String
+        :param torrent_path: The path to the file that contains the torrent
         information that is going to be used for file processing.
-        @type info_hash: String
-        @param info_hash: The info hash value of the file that is going
+        :type info_hash: String
+        :param info_hash: The info hash value of the file that is going
         to be downloaded, may be used for magnet torrents (DHT).
-        @type close: bool
-        @param close: If the server infra-structure should be close (process ends)
+        :type close: bool
+        :param close: If the server infra-structure should be close (process ends)
         at the end of the download, this is not the default behavior (multiple download).
-        @rtype: TorrentTask
-        @return: The torrent task object that represents the task that has been
+        :rtype: TorrentTask
+        :return: The torrent task object that represents the task that has been
         created for downloading of the requested file.
         """
 

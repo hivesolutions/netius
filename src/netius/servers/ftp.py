@@ -468,7 +468,7 @@ class FTPServer(netius.ContainerServer):
     Note that the ftp server does not support multiple user handling
     and runs only as the user running the current process.
 
-    @see: http://tools.ietf.org/html/rfc959
+    :see: http://tools.ietf.org/html/rfc959
     """
 
     def __init__(self, base_path = "", auth_s = "dummy", *args, **kwargs):

@@ -166,14 +166,14 @@ def dkim_fold(header, length = 72):
     This is required so that the header field is defined according
     to the dkim rules and the default mime encoding.
 
-    @type header: String
-    @param header: The string value of the header that is going to
+    :type header: String
+    :param header: The string value of the header that is going to
     be folded into multiple lines.
-    @type length: int
-    @param length: The maximum length of a column until it gets
+    :type length: int
+    :param length: The maximum length of a column until it gets
     broken into multiple lines (in case it's possible).
-    @rtype: String
-    @return: The folded string value for the header after the correct
+    :rtype: String
+    :return: The folded string value for the header after the correct
     processing of the string value.
     """
 

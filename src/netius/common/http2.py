@@ -154,11 +154,11 @@ class HTTP2Parser(parser.Parser):
         state of the parser accordingly and returning the
         number of processed bytes from it.
 
-        @type data: String
-        @param data: The string containing the data to be parsed
+        :type data: String
+        :param data: The string containing the data to be parsed
         in the current parse operation.
-        @rtype: int
-        @return: The amount of bytes of the data string that have
+        :rtype: int
+        :return: The amount of bytes of the data string that have
         been "parsed" in the current parse operation.
         """
 

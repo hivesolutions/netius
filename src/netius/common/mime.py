@@ -128,17 +128,17 @@ def rfc822_parse(message, strip = True):
     for this function a set of dictionary tuples and the body of
     the processed message as a standard encoded string.
 
-    @type message: String
-    @param message: The message in rfc822 format, with both carriage
+    :type message: String
+    :param message: The message in rfc822 format, with both carriage
     return and line feed support.
-    @type strip: bool
-    @param strip: If the initial white spaces in the first header line
+    :type strip: bool
+    :param strip: If the initial white spaces in the first header line
     should be removed and the proper abstract structure created with no
     extra space values (no strict representation). This should not be
     used when the strict representation of the headers is required
     (eg: for cryptographic signing purposes).
-    @rtype: Tuple
-    @return Returns a tuple of headers and body where headers is
+    :rtype: Tuple
+    :return Returns a tuple of headers and body where headers is
     a list of (name and value) pairs.
     """
 

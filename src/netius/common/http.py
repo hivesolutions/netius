@@ -241,15 +241,15 @@ class HTTPParser(parser.Parser):
         for the various internal structures to the original value.
         After this operation the parser is ready for a new parse.
 
-        @type type: int
-        @param type: The type of http message that is going to be
+        :type type: int
+        :param type: The type of http message that is going to be
         parsed using the current parser.
-        @type store: bool
-        @param store: If the complete message body should be stored
+        :type store: bool
+        :param store: If the complete message body should be stored
         in memory as the message gets loaded, this option may create
         some serious performance issues.
-        @type file_limit: int
-        @param file_limit: The maximum content for the payload message
+        :type file_limit: int
+        :param file_limit: The maximum content for the payload message
         from which a in file buffer will be used instead of the one that
         is stored in memory (avoid memory starvation).
         """
@@ -315,8 +315,8 @@ class HTTPParser(parser.Parser):
         This method should be used carefully as it may create some memory
         performance issues when retrieving large message values.
 
-        @rtype: String
-        @return: The message for the current parsing process as a linear
+        :rtype: String
+        :return: The message for the current parsing process as a linear
         string value that may be used as a simple buffer.
         """
 
@@ -345,16 +345,16 @@ class HTTPParser(parser.Parser):
         Note that the returned object will always be set at the
         beginning of the file, so some care should be taken in usage.
 
-        @type copy: bool
-        @param copy: If a copy of the file object should be returned
+        :type copy: bool
+        :param copy: If a copy of the file object should be returned
         or if instead the shallow copy associated with the parser should
         be returned instead, this should be used carefully to avoid any
         memory leak from file descriptors.
-        @type size: int
-        @param size: Size (in bytes) of the buffer to be used in a possible
+        :type size: int
+        :param size: Size (in bytes) of the buffer to be used in a possible
         copy operation between buffers.
-        @rtype: File
-        @return: The file like object that may be used to percolate
+        :rtype: File
+        :return: The file like object that may be used to percolate
         over the various parts of the current message contents.
         """
 
@@ -413,11 +413,11 @@ class HTTPParser(parser.Parser):
         state of the parser accordingly and returning the
         number of processed bytes from it.
 
-        @type data: String
-        @param data: The string containing the data to be parsed
+        :type data: String
+        :param data: The string containing the data to be parsed
         in the current parse operation.
-        @rtype: int
-        @return: The amount of bytes of the data string that have
+        :rtype: int
+        :return: The amount of bytes of the data string that have
         been "parsed" in the current parse operation.
         """
 

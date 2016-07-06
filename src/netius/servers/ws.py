@@ -49,7 +49,7 @@ class WSConnection(netius.Connection):
     and decoding techniques in compliance with the websockets
     level 13 specification.
 
-    @see: http://tools.ietf.org/html/rfc6455
+    :see: http://tools.ietf.org/html/rfc6455
     """
 
     def __init__(self, *args, **kwargs):
@@ -207,11 +207,11 @@ class WSServer(netius.StreamServer):
         The key value should already be calculated according to the
         specification.
 
-        @type accept_key: String
-        @param accept_key: The accept key to be used in the creation
+        :type accept_key: String
+        :param accept_key: The accept key to be used in the creation
         of the response message.
-        @rtype: String
-        @return: The response message contents generated according to
+        :rtype: String
+        :return: The response message contents generated according to
         the specification and the provided accept key.
         """
 

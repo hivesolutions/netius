@@ -91,10 +91,10 @@ def asn1_parse(template, data):
     against the template format and a exception raised in
     case the data is not conformant.
 
-    @type template: List/Tuple
-    @param template: A list of tuples comprising the asn.1 template.
-    @type: List
-    @param data: A list of bytes to parse.
+    :type template: List/Tuple
+    :param template: A list of tuples comprising the asn.1 template.
+    :type: List
+    :param data: A list of bytes to parse.
     """
 
     # starts the index value at the zero value and the creates the
@@ -176,11 +176,11 @@ def asn1_length(length):
     This value is computed taking into account the multiple byte
     representation of very large values.
 
-    @type length: int
-    @param length:The integer based length value that is going to
+    :type length: int
+    :param length:The integer based length value that is going to
     be used in the conversion to a string representation.
-    @rtype: String
-    @return: The string based representation of the provided length
+    :rtype: String
+    :return: The string based representation of the provided length
     integer value according to the asn.1 specification.
     """
 
@@ -201,8 +201,8 @@ def asn1_build(node):
     Builds an asn.1 data structure based on pairs of (type, data),
     this function may be used as a generator of a buffer.
 
-    @type node: Tuple
-    @param node: The root node of the structure that is going to be
+    :type node: Tuple
+    :param node: The root node of the structure that is going to be
     used as reference for the generation of the asn.1 buffer.
     """
 

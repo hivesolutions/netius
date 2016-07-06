@@ -242,11 +242,11 @@ def rsa_private(number_bits):
     This method is extremely time consuming in terms of processor
     and should be used carefully to avoid any problem.
 
-    @type number_bits: int
-    @param number_bits: The number of bits that are going to be
+    :type number_bits: int
+    :param number_bits: The number of bits that are going to be
     used for the generation of the private key.
-    @rtype: Dictionary
-    @return: The generated private key structure, may then be used
+    :rtype: Dictionary
+    :return: The generated private key structure, may then be used
     for processing or written to a file.
     """
 
@@ -284,11 +284,11 @@ def rsa_primes(number_bits):
     The generation is made according to the number of bits
     defined and using a trial and error strategy (expensive).
 
-    @type number_bits: int
-    @param number_bits: The number of bits to be used in
+    :type number_bits: int
+    :param number_bits: The number of bits to be used in
     prime generation, this affects security.
-    @rtype: Tuple
-    @return: A tuple containing the two different prime
+    :rtype: Tuple
+    :return: A tuple containing the two different prime
     numbers to be returned.
     """
 
@@ -329,18 +329,18 @@ def rsa_exponents(prime_1, prime_2, number_bits, basic = True):
     the rsa cryptography system taking as base the provided
     prime numbers and the amount of bits for the values.
 
-    @type prime_1: int
-    @param prime_1: The first prime number use for rsa.
-    @type prime_2: int
-    @param prime_2: The second prime number use for rsa.
-    @type number_bits: int
-    @param number_bits: The number of bits that are going to be
+    :type prime_1: int
+    :param prime_1: The first prime number use for rsa.
+    :type prime_2: int
+    :param prime_2: The second prime number use for rsa.
+    :type number_bits: int
+    :param number_bits: The number of bits that are going to be
     used for the generation of the values.
-    @type basic: bool
-    @param basic: If the basic approach to the generation of the
+    :type basic: bool
+    :param basic: If the basic approach to the generation of the
     public exponent should be taken into account.
-    @rtype: Tuple
-    @return: The tuple containing the generated public and
+    :rtype: Tuple
+    :return: The tuple containing the generated public and
     private keys (properly tested).
     """
 

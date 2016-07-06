@@ -139,7 +139,7 @@ class DHTClient(netius.DatagramClient):
     This implementation is meant to be used in an asynchronous environment
     for maximum performance.
 
-    @see: http://www.bittorrent.org/beps/bep_0005.html
+    :see: http://www.bittorrent.org/beps/bep_0005.html
     """
 
     def ping(self, host, port, peer_id, *args, **kwargs):

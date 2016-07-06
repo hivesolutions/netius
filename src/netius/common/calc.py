@@ -50,11 +50,11 @@ def prime(number_bits):
     in length. This is a brute force based generation as a
     random number is generated and then tested for primality.
 
-    @type number_bits: int
-    @param number_bits: The number of bits to be used in
+    :type number_bits: int
+    :param number_bits: The number of bits to be used in
     the prime number generation.
-    @rtype: int
-    @return: The generated prime number, that should have
+    :rtype: int
+    :return: The generated prime number, that should have
     been verified for primality.
     """
 
@@ -91,15 +91,15 @@ def gcd(first, second):
     Calculates the greatest common divisor of p value and q value.
     This method uses the classic euclidean algorithm.
 
-    @type first: int
-    @param first: The first number to obtain the greatest
+    :type first: int
+    :param first: The first number to obtain the greatest
     common divisor using the euclidean algorithm.
-    @type second: int
-    @param second: The second number to obtain the greatest
+    :type second: int
+    :param second: The second number to obtain the greatest
     common divisor using the euclidean algorithm.
-    @rtype: int
-    @return: The greatest common divisor between both values.
-    @see: http://en.wikipedia.org/wiki/Euclidean_algorithm
+    :rtype: int
+    :return: The greatest common divisor between both values.
+    :see: http://en.wikipedia.org/wiki/Euclidean_algorithm
     """
 
     # in case the p value is smaller than the q value
@@ -124,16 +124,16 @@ def egcd(first, second):
     by Euclid. Computes additional coefficients of the
     Bézout's identity.
 
-    @type first: int
-    @param first: The first number to obtain the greatest
+    :type first: int
+    :param first: The first number to obtain the greatest
     common divisor using the euclidean algorithm.
-    @type second: int
-    @param second: The second number to obtain the greatest
+    :type second: int
+    :param second: The second number to obtain the greatest
     common divisor using the euclidean algorithm.
-    @rtype: Tuple
-    @return: A tuple containing the various coefficients calculated
+    :rtype: Tuple
+    :return: A tuple containing the various coefficients calculated
     for this extended approach of the greatest common divisor.
-    @see: http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
+    :see: http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
     """
 
     if second == 0: return (first, 1, 0)
@@ -152,14 +152,14 @@ def modinv(first, second):
     The execution of this method is equivalent to (1 / first mod second)
     using mathematical terms.
 
-    @type first: int
-    @param first: The first value, that is going to be inverted before
+    :type first: int
+    :param first: The first value, that is going to be inverted before
     the modulus operation is performed.
-    @type second: int
-    @param second: The second value that is going to be used as the basis
+    :type second: int
+    :param second: The second value that is going to be used as the basis
     for the modulus operation.
-    @rtype: int
-    @return: The result of the computation of inverted modulus according
+    :rtype: int
+    :return: The result of the computation of inverted modulus according
     to its mathematical definition.
     """
 
@@ -202,13 +202,13 @@ def random_primality(number, k):
     of (2 ** -k), so a k value should be chosen taking a low
     error as target.
 
-    @type number: int
-    @param number: The value that is going to be tested for
+    :type number: int
+    :param number: The value that is going to be tested for
     primality.
-    @type k: int
-    @param k: The coefficient that is going to be used in the
+    :type k: int
+    :param k: The coefficient that is going to be used in the
     test, the higher this value is the small the error is.
-    @see: http://en.wikipedia.org/wiki/Solovay%E2%80%93Strassen_primality_test
+    :see: http://en.wikipedia.org/wiki/Solovay%E2%80%93Strassen_primality_test
     """
 
     # calculates the upper range of values that are going
@@ -239,12 +239,12 @@ def jacobi_witness(x, n):
     The provided value x is considered to be a witness
     to n in case it is an euler's pseudo-prime with base x
 
-    @type x: int
-    @param x: The value to be checked for witness.
-    @type n: int
-    @param n: The value to be checked for primality.
-    @rtype: bool
-    @return: The result of the checking, if it passed
+    :type x: int
+    :param x: The value to be checked for witness.
+    :type n: int
+    :param n: The value to be checked for primality.
+    :rtype: bool
+    :return: The result of the checking, if it passed
     the test or not (is witness or not).
     """
 
@@ -262,14 +262,14 @@ def jacobi(a, b):
     The possible return values for jacobi symbols are:
     -1, 0 or 1.
 
-    @type a: int
-    @param a: The a value of the jacobi symbol.
-    @type b: int
-    @param b: The b value of the jacobi symbol.
-    @rtype: int
-    @return: The calculated jacobi symbol, possible values
+    :type a: int
+    :param a: The a value of the jacobi symbol.
+    :type b: int
+    :param b: The b value of the jacobi symbol.
+    :rtype: int
+    :return: The calculated jacobi symbol, possible values
     are: -1, 0 or 1.
-    @see: http://en.wikipedia.org/wiki/Jacobi_symbol
+    :see: http://en.wikipedia.org/wiki/Jacobi_symbol
     """
 
     if a % b == 0: return 0
@@ -293,11 +293,11 @@ def ceil_integer(value):
     The conversion to integer ensures that the ceil
     is compatible with certain (integer) operations.
 
-    @type value: int
-    @param value: The value to apply the ceil and that
+    :type value: int
+    :param value: The value to apply the ceil and that
     will latter be converted into a valid integer.
-    @rtype: int
-    @return: The ceil of the given value "casted" as an
+    :rtype: int
+    :return: The ceil of the given value "casted" as an
     integer to be able to be used in integer math.
     """
 

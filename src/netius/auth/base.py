@@ -115,17 +115,17 @@ class Auth(object):
         If the optional encoding value is provide the final value is
         decoded according to the defined encoding.
 
-        @type path: String
-        @param path: The path as string to the file for which the
+        :type path: String
+        :param path: The path as string to the file for which the
         contents are going to be retrieved.
-        @type cache: bool
-        @param cache: If the contents should be stored in memory and
+        :type cache: bool
+        :param cache: If the contents should be stored in memory and
         associated with the current path for latter access.
-        @type encoding: String
-        @param encoding: The string that identifies the encoding that
+        :type encoding: String
+        :param encoding: The string that identifies the encoding that
         is going to be used for the decoding of the final string value.
-        @rtype: String
-        @return: The contents (as a string) of the file located under
+        :rtype: String
+        :return: The contents (as a string) of the file located under
         the provided path (from the file system).
         """
 

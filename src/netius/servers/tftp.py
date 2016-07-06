@@ -198,7 +198,7 @@ class TFTPServer(netius.DatagramServer):
     Abstract trivial ftp server implementation that handles simple
     file system based file serving.
 
-    @see: http://tools.ietf.org/html/rfc1350
+    :see: http://tools.ietf.org/html/rfc1350
     """
 
     ALLOWED_OPERATIONS = (

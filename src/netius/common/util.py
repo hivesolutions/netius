@@ -160,12 +160,12 @@ def random_integer(number_bits):
     size of the provided number bits bits rounded up
     to whole bytes.
 
-    @type number_bits: int
-    @param number_bits: The number of bits of the generated
+    :type number_bits: int
+    :param number_bits: The number of bits of the generated
     random integer, this value will be used as the basis
     for the calculus of the required bytes.
-    @rtype: int
-    @return: The generated random integer, should be provided
+    :rtype: int
+    :return: The generated random integer, should be provided
     with the requested size.
     """
 
@@ -198,8 +198,8 @@ def host():
     The returned value is cached to avoid multiple
     blocking calls from blocking the processor.
 
-    @rtype: Strong
-    @return: The string that contains the host address
+    :rtype: Strong
+    :return: The string that contains the host address
     as defined by specification for the current machine.
     """
 
@@ -220,8 +220,8 @@ def hostname():
     The result of this function call is unpredictable and
     should not be trusted for critical operations.
 
-    @rtype: String
-    @return: The name as a string of the current local
+    :rtype: String
+    :return: The name as a string of the current local
     machine, the definition of this value varies.
     """
 
@@ -244,25 +244,25 @@ def size_round_unit(
     the number of digits (including decimal places) of the
     number that is going to be "generated".
 
-    @type size_value: int/float
-    @param size_value: The current size value (in bytes).
-    @type minimum: int
-    @param minimum: The minimum value to be used.
-    @type places: int
-    @param places: The target number of digits to be used for
+    :type size_value: int/float
+    :param size_value: The current size value (in bytes).
+    :type minimum: int
+    :param minimum: The minimum value to be used.
+    :type places: int
+    :param places: The target number of digits to be used for
     describing the value to be used for output, this is going
     to be used to calculate the proper number of decimal places.
-    @type reduce: bool
-    @param reduce: If the final string value should be reduced
+    :type reduce: bool
+    :param reduce: If the final string value should be reduced
     meaning that right decimal zeros should be removed as they
     represent an extra unused value.
-    @type space: bool
-    @param space: If a space character must be used dividing
+    :type space: bool
+    :param space: If a space character must be used dividing
     the value from the unit symbol.
-    @type depth: int
-    @param depth: The current iteration depth value.
-    @rtype: String
-    @return: The string representation of the data size
+    :type depth: int
+    :param depth: The current iteration depth value.
+    :rtype: String
+    :return: The string representation of the data size
     value in a simplified manner (unit).
     """
 

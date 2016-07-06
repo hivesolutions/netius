@@ -112,8 +112,8 @@ class Client(Base):
         The call to this method should be properly inserted on the code so
         that it is only called when a main (polling) loop is required.
 
-        @type env: bool
-        @param env: If the environment variables should be used for the
+        :type env: bool
+        :param env: If the environment variables should be used for the
         setting of some of the parameters of the new client/poll to be used.
         """
 
@@ -765,8 +765,8 @@ class StreamClient(Client):
         The process of finishing the connecting process should include
         the ssl handshaking process.
 
-        @type connection: Connection
-        @param connection: The connection that should have the connect
+        :type connection: Connection
+        :param connection: The connection that should have the connect
         process tested for finishing.
         """
 

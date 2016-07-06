@@ -377,20 +377,20 @@ class BaseConnection(observer.Observable):
         create dead lock or socket corruption situations, extreme
         knowledge of the internals of the system is required.
 
-        @type data: String
-        @param data: The buffer containing the data to be sent
+        :type data: String
+        :param data: The buffer containing the data to be sent
         through this connection to the other endpoint.
-        @type delay: bool
-        @param delay: If the send operation should be delayed until
+        :type delay: bool
+        :param delay: If the send operation should be delayed until
         the next tick operation or if it should be performed as
         soon as possible (as defined in specification).
-        @type force: bool
-        @param force: If the sending of the data should be "forced",
+        :type force: bool
+        :param force: If the sending of the data should be "forced",
         meaning that even if the connection is not open the data
         is added to the current pending queue. Useful for client
         connections wanting to write ahead.
-        @type callback: Function
-        @param callback: Function to be called when the data set
+        :type callback: Function
+        :param callback: Function to be called when the data set
         to be send is completely sent to the socket.
         """
 
@@ -621,8 +621,8 @@ class BaseConnection(observer.Observable):
         of the connection. This callback should be able to destroy
         and close all the resources associated with the connection.
 
-        @type connection: Connection
-        @param connection: The connection associated with the callback
+        :type connection: Connection
+        :param connection: The connection associated with the callback
         that is being called, this connection will be closed.
         """
 
