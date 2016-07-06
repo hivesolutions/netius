@@ -775,6 +775,12 @@ class AbstractBase(observer.Observable):
         # (close) should be performed as part of the cleanup
         self.poll.open(timeout = self.poll_timeout)
 
+        # runs the fork operation responsible for the forking of the
+        # current process into the various child processes for multiple
+        # process based parallelism, note that this must be done after
+        # the master socket has been created (to be shared)
+        self.fork()
+
         # retrieves the complete set of information regarding the current
         # thread that is being used for the starting of the loop, this data
         # may be used for runtime debugging purposes (debug only data)
@@ -793,12 +799,6 @@ class AbstractBase(observer.Observable):
         self.debug("Starting '%s' service main loop (%.2fs) ..." % (self.name, self.poll_timeout))
         self.debug("Using thread '%s' with tid '%d'" % (self.tname, self.tid))
         self.debug("Using '%s' as polling mechanism" % poll_name)
-
-        # runs the fork operation responsible for the forking of the
-        # current process into the various child processes for multiple
-        # process based parallelism, note that this must be done after
-        # the master socket has been created (to be shared)
-        self.fork()
 
         # calls the main method to be able to start the main event
         # loop properly as defined by specification
