@@ -144,6 +144,7 @@ class Server(Base):
         # please note that some side effects may arise from this set
         if env: self.level = self.get_env("LEVEL", self.level)
         if env: self.diag = self.get_env("DIAG", self.diag, cast = bool)
+        if env: self.children = self.get_env("CHILD", self.children, cast = int)
         if env: self.children = self.get_env("CHILDREN", self.children, cast = int)
         if env: self.logging = self.get_env("LOGGING", self.logging)
         if env: self.poll_name = self.get_env("POLL", self.poll_name)
