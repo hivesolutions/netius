@@ -997,9 +997,9 @@ class AbstractBase(observer.Observable):
         # going to be performed for the forking
         self.debug("Forking the current process into '%d' children ..." % self.children)
 
-        # triggers the fork event with the current instance meaning
-        # that a new fork operation is going to be performed
-        self.trigger("fork", self)
+        # calls the on fork method indicating that a new fork
+        # operation is soon going to be performed
+        self.on_fork()
 
         # sets the initial pid value to the value of the current
         # master process as this is going to be used for child
@@ -1011,7 +1011,7 @@ class AbstractBase(observer.Observable):
         for _index in range(self.children):
             pid = os.fork() #@UndefinedVariable
             self._child = pid == 0
-            if self._child: self.trigger("child", self)
+            if self._child: self.on_child()
             if self._child: break
             self._childs.append(pid)
 
@@ -1203,6 +1203,21 @@ class AbstractBase(observer.Observable):
             "There are '%d' connections for '%s' ..." %
             (len(connection.owner.connections), connection.owner.name)
         )
+
+    def on_fork(self):
+        self.trigger("fork", self)
+
+    def on_child(self):
+        # triggers the child event indicating that a new child has been
+        # created and than any callback operation may now be performed
+        self.trigger("child", self)
+
+        # creates a new seed value from a pseudo random value and
+        # then adds this new value as the base for randomness in the
+        # ssl base infra-structure, required for security
+        seed = str(uuid.uuid4())
+        seed = legacy.bytes(seed)
+        socket.RAND_add(seed, 0.0)
 
     def info_dict(self, full = False):
         info = dict(
