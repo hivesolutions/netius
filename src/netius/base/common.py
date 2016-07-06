@@ -1002,7 +1002,7 @@ class AbstractBase(observer.Observable):
         for _index in range(self.children):
             pid = os.fork() #@UndefinedVariable
             self._child = pid == 0
-            if self.child: break
+            if self._child: break
             self._childs.append(pid)
 
         # sets the forked flag, meaning that the current process
