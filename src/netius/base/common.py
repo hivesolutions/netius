@@ -1221,7 +1221,7 @@ class AbstractBase(observer.Observable):
         # ssl base infra-structure, required for security
         seed = str(uuid.uuid4())
         seed = legacy.bytes(seed)
-        socket.RAND_add(seed, 0.0)
+        ssl.RAND_add(seed, 0.0)
 
     def info_dict(self, full = False):
         info = dict(
