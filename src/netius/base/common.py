@@ -997,6 +997,10 @@ class AbstractBase(observer.Observable):
         # going to be performed for the forking
         self.debug("Forking the current process into '%d' children ..." % self.children)
 
+        # triggers the fork event with the current instance meaning
+        # that a new fork operation is going to be performed
+        self.trigger("fork", self)
+
         # sets the initial pid value to the value of the current
         # master process as this is going to be used for child
         # detection (critical for the correct logic execution)
@@ -1007,6 +1011,7 @@ class AbstractBase(observer.Observable):
         for _index in range(self.children):
             pid = os.fork() #@UndefinedVariable
             self._child = pid == 0
+            if self._child: self.trigger("child", self)
             if self._child: break
             self._childs.append(pid)
 
