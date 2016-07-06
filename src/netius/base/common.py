@@ -985,6 +985,8 @@ class AbstractBase(observer.Observable):
             self.writes(writes)
             self.errors(errors)
 
+        time.sleep(10)
+
     def fork(self):
         # runs a series of validations to be able to verify
         # if the fork operation should really be performed
