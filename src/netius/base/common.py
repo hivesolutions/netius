@@ -745,12 +745,12 @@ class AbstractBase(observer.Observable):
             conf = False
         )
 
-    def bind_signals(self):
+    def bind_signals(self, handler = None):
         # creates the signal handler function that propagates the raising
         # of the system exit exception (proper logic is executed) and then
         # registers such handler for the (typical) sigterm signal
-        def handler(signum = None, frame = None): raise SystemExit()
-        try: signal.signal(signal.SIGTERM, handler)
+        def base_handler(signum = None, frame = None): raise SystemExit()
+        try: signal.signal(signal.SIGTERM, handler or base_handler)
         except: self.debug("Failed to register SIGTERM handler")
 
     def start(self):
@@ -1012,6 +1012,10 @@ class AbstractBase(observer.Observable):
         # in case the current process is a child one an immediate
         # valid value should be returned (force logic continuation)
         if self._child: return True
+
+        # registers for the series of base signals under the current
+        # master process (this is required to avoid invalidation)
+        self.bind_signals(handler = lambda s = None, f = None: s)
 
         # iterates over the complete set of child processed to join
         # them (master responsibility) and then returns an invalid
