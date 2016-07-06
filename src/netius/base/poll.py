@@ -54,6 +54,10 @@ class Poll(object):
 
     def __init__(self):
         self._open = False
+        self.timeout = POLL_TIMEOUT
+        self.read_o = {}
+        self.write_o = {}
+        self.error_o = {}
 
     @classmethod
     def name(cls):
@@ -71,9 +75,9 @@ class Poll(object):
         self._open = True
         self.timeout = timeout
 
-        self.read_o = {}
-        self.write_o = {}
-        self.error_o = {}
+        self.read_o.clear()
+        self.write_o.clear()
+        self.error_o.clear()
 
     def close(self):
         if not self._open: return
