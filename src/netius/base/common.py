@@ -1018,17 +1018,11 @@ class AbstractBase(observer.Observable):
         # valid value should be returned (force logic continuation)
         if self._child: return True
 
-        signals = (
-            signal.SIGINT,
-            signal.SIGTERM,
-            signal.SIGHUP, #@UndefinedVariable
-            signal.SIGQUIT #@UndefinedVariable
-        )
-
-        # registers for the series of base signals under the current
-        # master process (this is required to avoid invalidation)
-        def handler(signum = None, frame = None): pass
-        self.bind_signals(signals = signals, handler = handler)
+        # sleep forever, waiting for an interruption of the current
+        # process that triggers the children to quit, so that it's
+        # able to "join" all of them into the current process
+        try: time.sleep(-1)
+        except: pass
 
         # iterates over the complete set of child processed to join
         # them (master responsibility) and then returns an invalid
