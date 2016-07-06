@@ -249,8 +249,11 @@ class Server(Base):
         # runs the fork operation responsible for the forking of the
         # current process into the various child processes for multiple
         # process based parallelism, note that this must be done after
-        # the master socket has been created (to be shared)
-        self.fork()
+        # the master socket has been created (to be shared), note that
+        # in case the result is not valid an immediate return is performed
+        # as this represents a master based process (not meant to serve)
+        result = self.fork()
+        if not result: return
 
         # ensures that the current polling mechanism is correctly open as the
         # service socket is going to be added to it next, this overrides the

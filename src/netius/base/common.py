@@ -304,6 +304,8 @@ class AbstractBase(observer.Observable):
         self._pausing = False
         self._loaded = False
         self._forked = False
+        self._child = False
+        self._childs = []
         self._delayed = []
         self._delayed_o = []
         self._delayed_n = []
@@ -979,15 +981,43 @@ class AbstractBase(observer.Observable):
             self.errors(errors)
 
     def fork(self):
-        if not os.name in ("posix",): return
-        if not self.children: return
-        if self._forked: return
+        # runs a series of validations to be able to verify
+        # if the fork operation should really be performed
+        if not self.children: return True
+        if not self.children > 0: return True
+        if not os.name in ("posix",): return True
+        if self._forked: return True
+
+        # prints a debug operation about the operation that is
+        # going to be performed for the forking
         self.debug("Forking the current process into '%d' children ..." % self.children)
-        self._forked = True
+
+        # sets the initial pid value to the value of the current
+        # master process as this is going to be used for child
+        # detection (critical for the correct logic execution)
+        pid = os.getpid()
+
+        # iterates of the requested (number of children) to run
+        # the concrete fork operation and fork the logic
         for _index in range(self.children):
             pid = os.fork() #@UndefinedVariable
-            if not pid == 0: continue
-            break
+            self._child = pid == 0
+            if self.child: break
+            self._childs.append(pid)
+
+        # sets the forked flag, meaning that the current process
+        # has been already forked (avoid duplicated operations)
+        self._forked = True
+
+        # in case the current process is a child one an immediate
+        # valid value should be returned (force logic continuation)
+        if self._child: return True
+
+        # iterates over the complete set of child processed to join
+        # them (master responsibility) and then returns an invalid
+        # value meaning that no control flow should continue
+        for pid in self._childs: os.waitpid(pid, 0)
+        return False
 
     def finalize(self):
         # verifies a series of conditions and raises a proper error in case
