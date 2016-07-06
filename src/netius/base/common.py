@@ -1018,21 +1018,25 @@ class AbstractBase(observer.Observable):
         # valid value should be returned (force logic continuation)
         if self._child: return True
 
-        # sleep forever, waiting for an interruption of the current
+        # sleeps forever, waiting for an interruption of the current
         # process that triggers the children to quit, so that it's
         # able to "join" all of them into the current process
-        try:
-            while True: time.sleep(60)
-        except:
-            pass
+        try: self._wait_forever()
+        except: pass
 
         # prints a debug information about the processes to be joined
-        self.debug("Joining %d' children processes ..." % self.children)
+        self.debug("Joining '%d' children processes ..." % self.children)
 
         # iterates over the complete set of child processed to join
-        # them (master responsibility) and then returns an invalid
-        # value meaning that no control flow should continue
+        # them (master responsibility)
         for pid in self._childs: os.waitpid(pid, 0)
+
+        # prints a message about the end of the child process joining
+        # this is relevant to make sure everything is ok before exit
+        self.debug("Finished joining %d' children processes" % self.children)
+
+        # returns an invalid value meaning that no control flow should
+        # continue, as this is the master process (coordinator)
         return False
 
     def finalize(self):
@@ -1956,6 +1960,9 @@ class AbstractBase(observer.Observable):
         if count == 0: return delta_s.strip()
         delta_s += "%ds" % seconds
         return delta_s.strip()
+
+    def _wait_forever(self):
+        while True: time.sleep(60)
 
 class DiagBase(AbstractBase):
 
