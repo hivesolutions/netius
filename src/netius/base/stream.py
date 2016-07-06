@@ -52,6 +52,14 @@ PENDING = 3
 connections under this state must be used carefully """
 
 class Stream(observer.Observable):
+    """
+    Abstract stream class responsible for the representation of
+    a "virtual" connection state for situation where multiplexing
+    of single connection exists.
+
+    Most of the interface for a stream should be "logically" similar
+    to the one defined by a connection.
+    """
 
     def __init__(self, owner = None):
         observer.Observable.__init__(self)
