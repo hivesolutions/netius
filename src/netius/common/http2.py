@@ -75,6 +75,9 @@ class HTTP2Parser(parser.Parser):
     def __init__(self, owner):
         parser.Parser.__init__(self, owner)
 
+        self.keep_alive = True
+        self.version_s = "HTTP/2.0"
+
         self.build()
         self.reset()
 
@@ -106,9 +109,6 @@ class HTTP2Parser(parser.Parser):
             self._parse_continuation
         )
 
-        self.keep_alive = True
-        self.version_s = "HTTP/2.0"
-
         self._encoder = None
         self._decoder = None
 
@@ -123,6 +123,9 @@ class HTTP2Parser(parser.Parser):
 
         self.states = ()
         self.state_l = 0
+        self.parsers = ()
+        self._encoder = None
+        self._decoder = None
 
     def reset(self):
         self.state = HEADER_STATE
