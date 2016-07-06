@@ -303,6 +303,7 @@ class AbstractBase(observer.Observable):
         self._running = False
         self._pausing = False
         self._loaded = False
+        self._forked = False
         self._delayed = []
         self._delayed_o = []
         self._delayed_n = []
@@ -775,12 +776,6 @@ class AbstractBase(observer.Observable):
         # (close) should be performed as part of the cleanup
         self.poll.open(timeout = self.poll_timeout)
 
-        # runs the fork operation responsible for the forking of the
-        # current process into the various child processes for multiple
-        # process based parallelism, note that this must be done after
-        # the master socket has been created (to be shared)
-        self.fork()
-
         # retrieves the complete set of information regarding the current
         # thread that is being used for the starting of the loop, this data
         # may be used for runtime debugging purposes (debug only data)
@@ -986,7 +981,9 @@ class AbstractBase(observer.Observable):
     def fork(self):
         if not os.name in ("posix",): return
         if not self.children: return
+        if self._forked: return
         self.debug("Forking the current process into '%d' children ..." % self.children)
+        self._forked = True
         for _index in range(self.children):
             pid = os.fork() #@UndefinedVariable
             if not pid == 0: continue
@@ -1318,6 +1315,12 @@ class AbstractBase(observer.Observable):
         # otherwise rebuilds the polling mechanism with the current
         # name and returns the new poll object to the caller method
         if self.poll and self.poll.is_open(): return self.poll
+
+        # runs the fork operation responsible for the forking of the
+        # current process into the various child processes for multiple
+        # process based parallelism, note that this must be done after
+        # the master socket has been created (to be shared)
+        self.fork()
 
         # runs the testing of the poll again and verifies if the polling
         # class has changed in case it did not returns the current poll
