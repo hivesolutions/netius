@@ -794,6 +794,12 @@ class AbstractBase(observer.Observable):
         self.debug("Using thread '%s' with tid '%d'" % (self.tname, self.tid))
         self.debug("Using '%s' as polling mechanism" % poll_name)
 
+        # runs the fork operation responsible for the forking of the
+        # current process into the various child processes for multiple
+        # process based parallelism, note that this must be done after
+        # the master socket has been created (to be shared)
+        self.fork()
+
         # calls the main method to be able to start the main event
         # loop properly as defined by specification
         self.main()
@@ -950,12 +956,6 @@ class AbstractBase(observer.Observable):
         del self._extra_handlers[:]
 
     def loop(self):
-        # run the fork operation responsible for the forking of the
-        # current process into the various child processes for multiple
-        # process based parallelism, note that this must be done after
-        # the master socket has been created (to be shared)
-        self.fork()
-
         # iterates continuously while the running flag is set, once
         # it becomes unset the loop breaks at the next execution cycle
         while self._running:
