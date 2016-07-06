@@ -282,6 +282,7 @@ class AbstractBase(observer.Observable):
         self.handlers = handlers or (self.handler_stream,)
         self.level = kwargs.get("level", logging.INFO)
         self.diag = kwargs.get("diag", False)
+        self.children = kwargs.get("children", 0)
         self.tid = None
         self.logger = None
         self.logging = None
@@ -988,7 +989,9 @@ class AbstractBase(observer.Observable):
 
     def fork(self):
         if not os.name in ("posix",): return
-        for _index in range(5):
+        if not self.children: return
+        self.debug("Forking the current process into '%d' children ..." % self.children)
+        for _index in range(self.children):
             os.fork() #@UndefinedVariable
 
     def finalize(self):
