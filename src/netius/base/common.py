@@ -849,6 +849,7 @@ class AbstractBase(observer.Observable):
             self.log_stack(method = self.error)
         finally:
             if self.is_paused(): return
+            time.sleep(10)
             self.trigger("stop", self)
             self.debug("Finished '%s' service main loop" % self.name)
             self.cleanup()
@@ -984,8 +985,6 @@ class AbstractBase(observer.Observable):
             self.reads(reads)
             self.writes(writes)
             self.errors(errors)
-
-        time.sleep(10)
 
     def fork(self):
         # runs a series of validations to be able to verify
