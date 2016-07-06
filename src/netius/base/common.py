@@ -953,9 +953,14 @@ class AbstractBase(observer.Observable):
         del self._extra_handlers[:]
 
     def loop(self):
-        # iterates continuously while the running flag
-        # is set, once it becomes unset the loop breaks
-        # at the next execution cycle
+        # run the fork operation responsible for the forking of the
+        # current process into the various child processes for multiple
+        # process based parallelism, note that this must be done after
+        # the master socket has been created (to be shared)
+        self.fork()
+
+        # iterates continuously while the running flag is set, once
+        # it becomes unset the loop breaks at the next execution cycle
         while self._running:
             # calls the base tick int handler indicating that a new
             # tick loop iteration is going to be started, all the
@@ -980,6 +985,11 @@ class AbstractBase(observer.Observable):
             self.reads(reads)
             self.writes(writes)
             self.errors(errors)
+
+    def fork(self):
+        if not os.name in ("posix",): return
+        for _index in range(5):
+            os.fork() #@UndefinedVariable
 
     def finalize(self):
         # verifies a series of conditions and raises a proper error in case
