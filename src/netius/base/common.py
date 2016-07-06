@@ -1036,6 +1036,10 @@ class AbstractBase(observer.Observable):
         # this is relevant to make sure everything is ok before exit
         self.debug("Finished joining %d' children processes" % self.children)
 
+        # runs the cleanup operation for the current process this is
+        # required to avoid any leaked information
+        self.cleanup()
+
         # returns an invalid value meaning that no control flow should
         # continue, as this is the master process (coordinator)
         return False
