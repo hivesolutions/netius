@@ -986,6 +986,10 @@ class AbstractBase(observer.Observable):
             self.errors(errors)
 
     def fork(self):
+        # ensures that the children value is converted as an
+        # integer value as this is the expected structure
+        self.children = int(self.children)
+
         # runs a series of validations to be able to verify
         # if the fork operation should really be performed
         if not self.children: return True
