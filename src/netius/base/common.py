@@ -992,7 +992,9 @@ class AbstractBase(observer.Observable):
         if not self.children: return
         self.debug("Forking the current process into '%d' children ..." % self.children)
         for _index in range(self.children):
-            os.fork() #@UndefinedVariable
+            pid = os.fork() #@UndefinedVariable
+            if pid == 0: continue
+            break
 
     def finalize(self):
         # verifies a series of conditions and raises a proper error in case
