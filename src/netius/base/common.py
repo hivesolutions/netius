@@ -849,7 +849,6 @@ class AbstractBase(observer.Observable):
             self.log_stack(method = self.error)
         finally:
             if self.is_paused(): return
-            time.sleep(10)
             self.trigger("stop", self)
             self.debug("Finished '%s' service main loop" % self.name)
             self.cleanup()
