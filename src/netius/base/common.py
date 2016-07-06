@@ -1025,6 +1025,7 @@ class AbstractBase(observer.Observable):
         except: pass
 
         # prints a debug information about the processes to be joined
+        # this indicated the start of the joining process
         self.debug("Joining '%d' children processes ..." % self.children)
 
         # iterates over the complete set of child processed to join
