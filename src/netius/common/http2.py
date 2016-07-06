@@ -230,7 +230,20 @@ class HTTP2Parser(parser.Parser):
         return size
 
     def _parse_data(self, data):
-        pass
+        data_l = len(data)
+
+        padded = self.flags & 0x08
+
+        index = 0
+        padded_l = 0
+
+        if padded:
+            padded_l = struct.unpack("!B", data[index:index + 1])
+            index += 1
+
+        contents = data[index:data_l - padded_l]
+
+        self.trigger("on_data", contents)
 
     def _parse_headers(self, data):
         data_l = len(data)
