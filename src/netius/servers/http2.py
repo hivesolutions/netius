@@ -127,19 +127,33 @@ class HTTP2Connection(http.HTTPConnection):
         message = header + payload
         return self.send(message, delay = delay, callback = callback)
 
-    def send_data(self, data, delay = False, callback = None):
+    def send_data(self, data, end_stream = True, delay = False, callback = None):
+        flags = 0x00
+        if end_stream: flags |= 0x01
         return self.send_frame(
             type = netius.common.DATA,
+            flags = flags,
             stream = self.parser.stream, #@todo: this is not correct (must retrieve it from stream)
             payload = data,
             delay = delay,
             callback = callback
         )
 
-    def send_headers(self, headers, delay = False, callback = None):
+    def send_headers(
+        self,
+        headers,
+        end_stream = False,
+        end_headers = True,
+        delay = False,
+        callback = None
+    ):
+        flags = 0x00
+        if end_stream: flags |= 0x01
+        if end_headers: flags |= 0x04
         payload = self.parser.encoder.encode(headers) #@todo must retrieve the encoder associated with the stream (maybe)
         return self.send_frame(
             type = netius.common.HEADERS,
+            flags = flags,
             stream = self.parser.stream, #@todo: this is not correct (must retrieve it from stream)
             payload = payload,
             delay = delay,
