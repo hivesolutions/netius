@@ -1007,7 +1007,7 @@ class AbstractBase(observer.Observable):
 
         # registers for some of the common signals to be able to avoid
         # any possible interaction with the joining process
-        def handler(signum = None, frame = None): pass
+        def handler(signum = None, frame = None): raise RuntimeError("signal")
         self.bind_signals(handler = handler)
 
         # sets the initial pid value to the value of the current
