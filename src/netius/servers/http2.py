@@ -117,8 +117,8 @@ class HTTP2Connection(http.HTTPConnection):
         self,
         type = 0x01,
         flags = 0x00,
-        stream = 0x00,
         payload = b"",
+        stream = 0x00,
         delay = False,
         callback = None
     ):
@@ -127,21 +127,27 @@ class HTTP2Connection(http.HTTPConnection):
         message = header + payload
         return self.send(message, delay = delay, callback = callback)
 
-    def send_data(self, data, end_stream = True, delay = False, callback = None):
+    def send_data(
+        self,
+        data = b"",
+        end_stream = True,
+        delay = False,
+        callback = None
+    ):
         flags = 0x00
         if end_stream: flags |= 0x01
         return self.send_frame(
             type = netius.common.DATA,
             flags = flags,
-            stream = self.parser.stream, #@todo: this is not correct (must retrieve it from stream)
             payload = data,
+            stream = self.parser.stream, #@todo: this is not correct (must retrieve it from stream)
             delay = delay,
             callback = callback
         )
 
     def send_headers(
         self,
-        headers,
+        headers = [],
         end_stream = False,
         end_headers = True,
         delay = False,
@@ -150,17 +156,23 @@ class HTTP2Connection(http.HTTPConnection):
         flags = 0x00
         if end_stream: flags |= 0x01
         if end_headers: flags |= 0x04
-        payload = self.parser.encoder.encode(headers) #@todo must retrieve the encoder associated with the stream (maybe)
+        payload = self.parser.encoder.encode(headers)
         return self.send_frame(
             type = netius.common.HEADERS,
             flags = flags,
-            stream = self.parser.stream, #@todo: this is not correct (must retrieve it from stream)
             payload = payload,
+            stream = self.parser.stream, #@todo: this is not correct (must retrieve it from stream)
             delay = delay,
             callback = callback
         )
 
-    def send_settings(self, settings = (), ack = False, delay = False, callback = None):
+    def send_settings(
+        self,
+        settings = (),
+        ack = False,
+        delay = False,
+        callback = None
+    ):
         flags = 0x00
         if ack: flags |= 0x01
         buffer = []
@@ -211,7 +223,7 @@ class HTTP2Server(http.HTTPServer):
         connection.send_settings(ack = True)
 
     def on_headers_http2(self, connection, parser, headers):
-        self.on_data_http(connection, parser) #@todo this is forced as the request may not be complete
+        self.on_data_http(connection, parser) #@todo this is forced as the request may not be complete (NOT VALID FOR POST)
 
     def _log_frame(self, connection, parser):
         self.debug("Received frame 0x%02x with length %d bytes" % (parser.type, parser.length))
