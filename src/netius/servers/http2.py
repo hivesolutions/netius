@@ -129,7 +129,7 @@ class HTTP2Connection(http.HTTPConnection):
 
     def send_data(self, data, delay = False, callback = None):
         return self.send_frame(
-            type = netius.common.HEADERS,
+            type = netius.common.DATA,
             stream = self.parser.stream, #@todo: this is not correct (must retrieve it from stream)
             payload = data,
             delay = delay,
