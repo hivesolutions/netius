@@ -1027,6 +1027,11 @@ class AbstractBase(observer.Observable):
         # valid value should be returned (force logic continuation)
         if self._child: return True
 
+        # registers for some of the common signals to be able to avoid
+        # any possible interaction with the joining process
+        def handler(signum = None, frame = None): pass
+        self.bind_signals(handler = handler)
+
         # sleeps forever, waiting for an interruption of the current
         # process that triggers the children to quit, so that it's
         # able to "join" all of them into the current process
@@ -1036,11 +1041,6 @@ class AbstractBase(observer.Observable):
         # prints a debug information about the processes to be joined
         # this indicated the start of the joining process
         self.debug("Joining '%d' children processes ..." % self.children)
-
-        # registers for some of the common signals to be able to avoid
-        # any possible interaction with the joining process
-        def handler(signum = None, frame = None): pass
-        self.bind_signals(handler = handler)
 
         # iterates over the complete set of child processed to join
         # them (master responsibility)
