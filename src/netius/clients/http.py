@@ -573,6 +573,8 @@ class HTTPClient(netius.StreamClient):
                     message = "Connection closed",
                     request = request
                 )
+                if self.auto_close: self.close()
+                if self.auto_pause: self.pause()
 
             def on_partial(connection, parser, data):
                 buffer.append(data)
