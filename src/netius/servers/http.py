@@ -236,7 +236,11 @@ class HTTPConnection(netius.Connection):
         flush = True,
         callback = None
     ):
+        # retrieves the various parts that define the response
+        # and runs a series of normalization processes to retrieve
+        # the relevant information of the data ot be sent to client
         data = data or ""
+        data = netius.legacy.bytes(data)
         headers = headers or dict()
         code_s = code_s or netius.common.CODE_STRINGS.get(code, None)
         data_l = len(data) if data else 0
