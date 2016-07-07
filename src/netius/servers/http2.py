@@ -160,12 +160,18 @@ class HTTP2Connection(http.HTTPConnection):
             callback = callback
         )
 
-    def send_settings(self, ack = False, delay = False, callback = None):
+    def send_settings(self, settings = (), ack = False, delay = False, callback = None):
         flags = 0x00
         if ack: flags |= 0x01
+        buffer = []
+        for ident, value in settings:
+            setting_s = struct.pack("!HI", ident, value)
+            buffer.append(setting_s)
+        payload = b"".join(buffer)
         return self.send_frame(
             type = netius.common.SETTINGS,
             flags = flags,
+            payload = payload,
             delay = delay,
             callback = callback
         )
@@ -194,7 +200,7 @@ class HTTP2Server(http.HTTPServer):
         )
 
     def on_preface_http2(self, connection, parser):
-        connection.send_settings()
+        pass
 
     def on_frame_http2(self, connection, parser):
         is_debug = self.is_debug()
