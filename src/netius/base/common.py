@@ -750,8 +750,8 @@ class AbstractBase(observer.Observable):
         signals = (
             signal.SIGINT,
             signal.SIGTERM,
-            signal.SIGHUP if os.name in ("posix",) else None, #@UndefinedVariable
-            signal.SIGQUIT if os.name in ("posix",) else None #@UndefinedVariable
+            signal.SIGHUP if hasattr(signal, "SIGHUP") else None, #@UndefinedVariable
+            signal.SIGQUIT if hasattr(signal, "SIGQUIT") else None #@UndefinedVariable
         ),
         handler = None
     ):
@@ -1000,7 +1000,7 @@ class AbstractBase(observer.Observable):
         # if the fork operation should really be performed
         if not self.children: return True
         if not self.children > 0: return True
-        if not os.name in ("posix",): return True
+        if not hasattr(os, "fork"): return True
         if self._forked: return True
 
         # prints a debug operation about the operation that is
