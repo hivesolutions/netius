@@ -348,7 +348,7 @@ class HTTPClient(netius.StreamClient):
         message = map.get("message", None)
         exception = map.get("exception", None)
         is_error = True if error and raise_e else False
-        if is_error: return netius.common.HTTPResponse(
+        if not is_error: return netius.common.HTTPResponse(
             data = map.get("data", None),
             code = map.get("code", 500),
             status = map.get("status", None),
