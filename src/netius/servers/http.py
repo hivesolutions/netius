@@ -245,13 +245,16 @@ class HTTPConnection(netius.Connection):
         # verifies if the content length header is currently present
         # in the provided headers and in case it's not inserts it
         if not "content-length" in headers and not is_empty:
-            headers["content-length"] = data_l
+            headers["content-length"] = str(data_l)
 
         # in case the apply flag is set the apply all operation is performed
         # so that a series of headers are applied to the current context
         # (things like the name of the server connection, etc)
         if apply: self.owner._apply_all(self.parser, self, headers)
 
+        # creates the buffer list that is going to hold the complete set of
+        # lines for the headers and then appends the complete set of headers
+        # according to the previous construction
         buffer = []
         buffer.append("%s %d %s\r\n" % (version, code, code_s))
         for key, value in headers.items():
@@ -261,6 +264,8 @@ class HTTPConnection(netius.Connection):
         buffer.append("\r\n")
         buffer_data = "".join(buffer)
 
+        # sends the initial headers data (including status line) and then
+        # "schedules" the sending of the payload message data
         count = self.send_plain(buffer_data)
         if flush: count += self.send(data); self.flush(callback = callback)
         else: count += self.send(data, callback = callback)
