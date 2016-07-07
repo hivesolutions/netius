@@ -201,8 +201,7 @@ class HTTP2Server(http.HTTPServer):
         print(settings)
 
     def on_headers_http2(self, connection, parser, headers):
-        print(headers)
-        self.on_data_http(connection, parser)
+        self.on_data_http(connection, parser) #@todo this is forced as the request may not be complete
 
     def _log_frame(self, connection, parser):
         self.debug("Received frame 0x%02x with length %d bytes" % (parser.type, parser.length))
