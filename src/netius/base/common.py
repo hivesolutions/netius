@@ -747,7 +747,12 @@ class AbstractBase(observer.Observable):
 
     def bind_signals(
         self,
-        signals = (signal.SIGINT, signal.SIGTERM),
+        signals = (
+            signal.SIGINT,
+            signal.SIGTERM,
+            signal.SIGHUP if os.name in ("posix",) else None, #@UndefinedVariable
+            signal.SIGQUIT if os.name in ("posix",) else None #@UndefinedVariable
+        ),
         handler = None
     ):
         # creates the signal handler function that propagates the raising
@@ -755,6 +760,7 @@ class AbstractBase(observer.Observable):
         # registers such handler for the (typical) sigterm signal
         def base_handler(signum = None, frame = None): raise SystemExit()
         for signum in signals:
+            if signum == None: continue
             try: signal.signal(signum, handler or base_handler)
             except: self.debug("Failed to register %d handler" % signum)
 
