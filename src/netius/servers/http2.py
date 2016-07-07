@@ -77,7 +77,11 @@ class HTTP2Connection(http.HTTPConnection):
         flush = True,
         callback = None
     ):
+        # retrieves the various parts that define the response
+        # and runs a series of normalization processes to retrieve
+        # the relevant information of the data ot be sent to client
         data = data or ""
+        data = netius.legacy.bytes(data)
         headers = headers or dict()
         code_s = code_s or netius.common.CODE_STRINGS.get(code, None)
         data_l = len(data) if data else 0
@@ -86,25 +90,28 @@ class HTTP2Connection(http.HTTPConnection):
         # verifies if the content length header is currently present
         # in the provided headers and in case it's not inserts it
         if not "content-length" in headers and not is_empty:
-            headers["content-length"] = data_l
+            headers["content-length"] = str(data_l)
 
         # in case the apply flag is set the apply all operation is performed
         # so that a series of headers are applied to the current context
         # (things like the name of the server connection, etc)
         if apply: self.owner._apply_all(self.parser, self, headers)
 
-        buffer = []
-        buffer.append("%s %d %s\r\n" % (version, code, code_s))
-        for key, value in headers.items():
-            key = netius.common.header_up(key)
-            if not type(value) == list: value = (value,)
-            for _value in value: buffer.append("%s: %s\r\n" % (key, _value))
-        buffer.append("\r\n")
-        buffer_data = "".join(buffer)
+        # creates the headers base list that is going to store the various
+        # header tuples representing the headers in canonical http2 form
+        headers_b = []
+        headers_b.append((":status", str(code)))
 
-        count = self.send_plain(buffer_data)
-        if flush: count = self.send(data); self.flush(callback = callback)
-        else: count += self.send(data, callback = callback)
+        # iterates over the complete set of raw header values to normalize
+        # them and add them to the currently defined base list
+        for key, value in headers.items():
+            key = netius.common.header_down(key)
+            if not type(value) == list: value = (value,)
+            for _value in value: headers_b.append((key, _value))
+
+        count = self.send_headers(headers_b)
+        if flush: count = self.send_data(data); self.flush(callback = callback)
+        else: count += self.send_data(data, callback = callback)
 
     def send_frame(
         self,
@@ -120,13 +127,23 @@ class HTTP2Connection(http.HTTPConnection):
         message = header + payload
         return self.send(message, delay = delay, callback = callback)
 
-    def send_headers(self, headers, delay = False, callback = None):
-        self.parser.encoder.encode(headers) #@todo must encode the headers properly
-        # after converting them from the standard (dictionary format)
+    def send_data(self, data, delay = False, callback = None):
         return self.send_frame(
             type = netius.common.HEADERS,
-            delay = False,
-            callback = None
+            stream = self.parser.stream, #@todo: this is not correct (must retrieve it from stream)
+            payload = data,
+            delay = delay,
+            callback = callback
+        )
+
+    def send_headers(self, headers, delay = False, callback = None):
+        payload = self.parser.encoder.encode(headers) #@todo must retrieve the encoder associated with the stream (maybe)
+        return self.send_frame(
+            type = netius.common.HEADERS,
+            stream = self.parser.stream, #@todo: this is not correct (must retrieve it from stream)
+            payload = payload,
+            delay = delay,
+            callback = callback
         )
 
     def send_settings(self, delay = False, callback = None):
