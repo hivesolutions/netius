@@ -1005,11 +1005,6 @@ class AbstractBase(observer.Observable):
         # operation is soon going to be performed
         self.on_fork()
 
-        # registers for some of the common signals to be able to avoid
-        # any possible interaction with the joining process
-        def handler(signum = None, frame = None): raise RuntimeError("signal")
-        self.bind_signals(handler = handler)
-
         # sets the initial pid value to the value of the current
         # master process as this is going to be used for child
         # detection (critical for the correct logic execution)
@@ -1031,6 +1026,11 @@ class AbstractBase(observer.Observable):
         # in case the current process is a child one an immediate
         # valid value should be returned (force logic continuation)
         if self._child: return True
+
+        # registers for some of the common signals to be able to avoid
+        # any possible interaction with the joining process
+        def handler(signum = None, frame = None): raise RuntimeError("signal")
+        self.bind_signals(handler = handler)
 
         # sleeps forever, waiting for an interruption of the current
         # process that triggers the children to quit, so that it's
