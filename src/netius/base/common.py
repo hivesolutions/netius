@@ -1042,6 +1042,10 @@ class AbstractBase(observer.Observable):
         # this indicated the start of the joining process
         self.debug("Joining '%d' children processes ..." % self.children)
 
+        # iterates over the complete set of children to send the proper
+        # terminate signal to each of them for proper termination
+        for pid in self._childs: os.kill(pid, signal.SIGTERM)
+
         # iterates over the complete set of child processed to join
         # them (master responsibility)
         for pid in self._childs: os.waitpid(pid, 0)
