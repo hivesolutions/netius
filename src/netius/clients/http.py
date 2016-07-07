@@ -343,8 +343,20 @@ class HTTPClient(netius.StreamClient):
         )
 
     @classmethod
-    def to_response(cls, map):
-        return netius.common.HTTPResponse(**map)
+    def to_response(cls, map, raise_e = True):
+        error = map.get("error", None)
+        message = map.get("message", None)
+        exception = map.get("exception", None)
+        is_error = True if error and raise_e else False
+        if is_error: return netius.common.HTTPResponse(
+            data = map.get("data", None),
+            code = map.get("code", 500),
+            status = map.get("status", None),
+            headers = map.get("headers", None)
+        )
+        message = message or "Undefined error"
+        if exception: raise exception
+        raise netius.NetiusError(message)
 
     @classmethod
     def decode_gzip(cls, data):
