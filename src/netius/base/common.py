@@ -1037,6 +1037,11 @@ class AbstractBase(observer.Observable):
         # this indicated the start of the joining process
         self.debug("Joining '%d' children processes ..." % self.children)
 
+        # registers for some of the common signals to be able to avoid
+        # any possible interaction with the joining process
+        def handler(signum = None, frame = None): pass
+        self.bind_signals(handler = handler)
+
         # iterates over the complete set of child processed to join
         # them (master responsibility)
         for pid in self._childs: os.waitpid(pid, 0)
