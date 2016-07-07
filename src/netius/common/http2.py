@@ -286,13 +286,15 @@ class HTTP2Parser(parser.Parser):
         settings = []
         count = self.length // SETTING_SIZE
 
+        ack = self.flags & 0x01
+
         for index in netius.legacy.xrange(count):
             base = index * SETTING_SIZE
             part = data[base:base + SETTING_SIZE]
             setting = struct.unpack("!HI", part)
             settings.append(setting)
 
-        self.trigger("on_settings", settings)
+        self.trigger("on_settings", settings, ack)
 
     def _parse_push_promise(self, data):
         pass

@@ -160,11 +160,14 @@ class HTTP2Connection(http.HTTPConnection):
             callback = callback
         )
 
-    def send_settings(self, delay = False, callback = None):
+    def send_settings(self, ack = False, delay = False, callback = None):
+        flags = 0x00
+        if ack: flags |= 0x01
         return self.send_frame(
             type = netius.common.SETTINGS,
-            delay = False,
-            callback = None
+            flags = flags,
+            delay = delay,
+            callback = callback
         )
 
     def on_frame(self):
@@ -173,8 +176,8 @@ class HTTP2Connection(http.HTTPConnection):
     def on_headers(self, headers, dependency, weight):
         self.owner.on_headers_http2(self, self.parser, headers)
 
-    def on_settings(self, settings):
-        self.owner.on_settings_http2(self, self.parser, settings)
+    def on_settings(self, settings, ack):
+        self.owner.on_settings_http2(self, self.parser, settings, ack)
 
 class HTTP2Server(http.HTTPServer):
 
@@ -197,8 +200,9 @@ class HTTP2Server(http.HTTPServer):
         is_debug = self.is_debug()
         is_debug and self._log_frame(connection, parser)
 
-    def on_settings_http2(self, connection, parser, settings):
-        print(settings)
+    def on_settings_http2(self, connection, parser, settings, ack):
+        if ack: return
+        connection.send_settings(ack = True)
 
     def on_headers_http2(self, connection, parser, headers):
         self.on_data_http(connection, parser) #@todo this is forced as the request may not be complete
