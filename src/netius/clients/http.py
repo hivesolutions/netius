@@ -372,9 +372,10 @@ class HTTPClient(netius.StreamClient):
         return request
 
     @classmethod
-    def set_error(cls, error, request = None):
+    def set_error(cls, error, message = None, request = None):
         if request == None: request = dict()
         request["error"] = error
+        request["message"] = message
         return request
 
     def get(
@@ -567,7 +568,11 @@ class HTTPClient(netius.StreamClient):
 
             def on_finish(connection):
                 if request["code"]: return
-                cls.set_error("closed", request = request)
+                cls.set_error(
+                    "closed",
+                    message = "Connection closed",
+                    request = request
+                )
 
             def on_partial(connection, parser, data):
                 buffer.append(data)
