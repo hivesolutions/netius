@@ -354,7 +354,7 @@ class HTTPClient(netius.StreamClient):
             status = map.get("status", None),
             headers = map.get("headers", None)
         )
-        message = message or "Undefined error"
+        message = message or "Undefined error (%s)" % error
         if exception: raise exception
         raise netius.NetiusError(message)
 
