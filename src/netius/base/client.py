@@ -146,6 +146,9 @@ class Client(Base):
         self._thread = BaseThread(owner = self, daemon = self.daemon)
         self._thread.start()
 
+    def join(self, timeout = None):
+        self._thread.join(timeout = timeout)
+
 class DatagramClient(Client):
 
     def __init__(self, *args, **kwargs):
