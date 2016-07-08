@@ -147,6 +147,8 @@ class Client(Base):
         self._thread.start()
 
     def join(self, timeout = None):
+        # runs the join operation in the thread associated with the client
+        # so that the current thread blocks until the other ends execution
         self._thread.join(timeout = timeout)
 
 class DatagramClient(Client):
