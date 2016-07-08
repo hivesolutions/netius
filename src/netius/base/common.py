@@ -166,7 +166,13 @@ SSL_VALID_ERRORS = (
     ssl.SSL_ERROR_WANT_WRITE,
     SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE
 )
-""" The list containing the valid error in the handshake
+""" The list containing the valid errors for the handshake
+operation of the ssl connection establishment """
+
+SSL_VALID_REASONS = (
+    "CERT_ALREADY_IN_HASH_TABLE",
+)
+""" The list containing the valid reasons for the handshake
 operation of the ssl connection establishment """
 
 TCP_TYPE = 1
