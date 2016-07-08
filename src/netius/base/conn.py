@@ -193,6 +193,11 @@ class BaseConnection(observer.Observable):
         if self in owner.connections: owner.connections.remove(self)
         if self.socket in owner.connections_m: del owner.connections_m[self.socket]
 
+        # in case the "flush" read operation is set runs the read operation
+        # one more time so that any pending errors are properly flushed
+        try: self.ssl and self.socket.read()
+        except: pass
+
         # closes the socket, using the proper gracefully way so that
         # operations are no longer allowed in the socket, in case there's
         # an error in the operation fails silently (on purpose)
