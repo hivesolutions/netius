@@ -101,7 +101,7 @@ class APNClient(netius.StreamClient):
     """
 
     def message(self, token, *args, **kwargs):
-        # unpacks the various keyword based arguments fro the
+        # unpacks the various keyword based arguments for the
         # provided map of arguments defaulting to a series of
         # pre-defined values in case the arguments have not
         # been correctly provided
