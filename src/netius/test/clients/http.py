@@ -107,5 +107,4 @@ class HTTPClientTest(unittest.TestCase):
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
-        self.assertEqual(result["headers"]["Connection"], "keep-alive")
         self.assertEqual(result["headers"]["Content-Type"], "image/png")
