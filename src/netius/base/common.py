@@ -114,6 +114,12 @@ WSAECONNRESET = 10054
 the connection as been disconnected using a graceful approach
 and without raising any extraneous problems """
 
+SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE = 101
+""" Error raised under the ssl infra-structure for situations
+where the certificate does not required re-loading as it is
+already present in the hash table, this error may be safely
+ignored as it does not represent a threat """
+
 POLL_ORDER = (
     EpollPoll,
     KqueuePoll,
@@ -157,7 +163,8 @@ to occur and should not be considered an exception """
 
 SSL_VALID_ERRORS = (
     ssl.SSL_ERROR_WANT_READ,
-    ssl.SSL_ERROR_WANT_WRITE
+    ssl.SSL_ERROR_WANT_WRITE,
+    SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE
 )
 """ The list containing the valid error in the handshake
 operation of the ssl connection establishment """
