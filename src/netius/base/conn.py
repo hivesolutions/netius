@@ -442,7 +442,7 @@ class BaseConnection(observer.Observable):
             else: self.owner.delay(self._flush_write, verify = True)
 
         # otherwise the write stream is not ready and so the
-        # connection must be ensure to be write ready, should
+        # connection must be ensured to be write ready, should
         # subscribe to the write events as soon as possible
         else: self.ensure_write()
 
