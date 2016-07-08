@@ -1246,6 +1246,7 @@ class AbstractBase(observer.Observable):
             poll = self.get_poll_name()
         )
         if full: info.update(
+            name = self.name,
             _lid = self._lid
         )
         return info
