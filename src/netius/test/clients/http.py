@@ -89,7 +89,7 @@ class HTTPClientTest(unittest.TestCase):
     def test_headers(self):
         result = netius.clients.HTTPClient.method_s(
             "GET",
-            "http:/%s/headers" % self.httpbin,
+            "http://%s/headers" % self.httpbin,
             async = False
         )
         payload = json.loads(result["data"].decode("utf-8"))
