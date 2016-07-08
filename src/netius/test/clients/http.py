@@ -44,10 +44,14 @@ import netius.clients
 
 class HTTPClientTest(unittest.TestCase):
 
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        self.httpbin = netius.conf("HTTPBIN", "httpbin.org")
+
     def test_simple(self):
         result = netius.clients.HTTPClient.method_s(
             "GET",
-            "http://httpbin.org/get",
+            "http://%s/get" % self.httpbin,
             async = False
         )
         self.assertEqual(result["code"], 200)
@@ -56,7 +60,7 @@ class HTTPClientTest(unittest.TestCase):
 
         result = netius.clients.HTTPClient.method_s(
             "GET",
-            "https://httpbin.org/get",
+            "https://%s/get" % self.httpbin,
             async = False
         )
         self.assertEqual(result["code"], 200)
@@ -66,7 +70,7 @@ class HTTPClientTest(unittest.TestCase):
     def test_compression(self):
         result = netius.clients.HTTPClient.method_s(
             "GET",
-            "http://httpbin.org/gzip",
+            "http://%s/gzip" % self.httpbin,
             async = False
         )
         self.assertEqual(result["code"], 200)
@@ -75,7 +79,7 @@ class HTTPClientTest(unittest.TestCase):
 
         result = netius.clients.HTTPClient.method_s(
             "GET",
-            "http://httpbin.org/deflate",
+            "http://%s/deflate" % self.httpbin,
             async = False
         )
         self.assertEqual(result["code"], 200)
@@ -85,20 +89,20 @@ class HTTPClientTest(unittest.TestCase):
     def test_headers(self):
         result = netius.clients.HTTPClient.method_s(
             "GET",
-            "http://httpbin.org/headers",
+            "http:/%s/headers" % self.httpbin,
             async = False
         )
         payload = json.loads(result["data"].decode("utf-8"))
         headers = payload["headers"]
         self.assertEqual(result["code"], 200)
-        self.assertEqual(headers["Host"], "httpbin.org")
+        self.assertEqual(headers["Host"], self.httpbin)
         self.assertEqual(headers["Content-Length"], "0")
         self.assertEqual(headers["Accept-Encoding"], "gzip, deflate")
         self.assertEqual(headers["User-Agent"].startswith("netius"), True)
 
         result = netius.clients.HTTPClient.method_s(
             "GET",
-            "http://httpbin.org/image/png",
+            "http://%s/image/png" % self.httpbin,
             async = False
         )
         self.assertEqual(result["code"], 200)
