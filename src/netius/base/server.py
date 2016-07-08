@@ -413,9 +413,8 @@ class DatagramServer(Server):
                 if not self.renable == True: break
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
-            sys.stderr("ERRRRO " + str(error.args[0]))
-            sys.stderr("ERRRRO " + str(type(error.args[0])))
-            sys.stderr("ERRRRO " + str((error.args)))
+            args = error.args if error.args else None
+            sys.stderr("ERRRRO " + str(args))
             sys.stderr.flush()
             if error_v in SSL_SILENT_ERRORS:
                 self.debug(error)
