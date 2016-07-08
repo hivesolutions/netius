@@ -138,7 +138,7 @@ class Client(Base):
 
         # prints a debug message about the new thread to be created for
         # the client infra-structure (required for execution)
-        self.debug("Starting new thread for '%s' ...", self.name)
+        self.debug("Starting new thread for '%s' ..." % self.name)
 
         # in case the thread flag is set a new thread must be constructed
         # for the running of the client's main loop then, these thread
