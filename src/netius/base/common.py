@@ -1797,6 +1797,7 @@ class AbstractBase(observer.Observable):
         # is unset for situation where no callback registration is possible
         self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
         self._ssl_ctx_base(self._ssl_context, secure = secure)
+        self._ssl_certs(self._ssl_context)
         has_callback = hasattr(self._ssl_context, "set_servername_callback")
         if has_callback: self._ssl_context.set_servername_callback(self._ssl_callback)
         elif strict: self._ssl_context = None
