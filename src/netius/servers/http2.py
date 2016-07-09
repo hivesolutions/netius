@@ -119,7 +119,7 @@ class HTTP2Connection(http.HTTPConnection):
     def send_header(
         self,
         headers = None,
-        version = "HTTP/1.1",
+        version = "HTTP/2.0",
         code = 200,
         code_s = None,
         delay = False,
