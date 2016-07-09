@@ -266,7 +266,7 @@ class HTTPConnection(netius.Connection):
 
         # sends the payload information (data) to the client and optionally flushes
         # the current internal buffers to enforce sending of the value
-        count += self.send_payload(
+        count += self.send_part(
             data,
             flush = flush,
             delay = delay,
