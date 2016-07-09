@@ -306,7 +306,7 @@ class HTTPConnection(netius.Connection):
         return self.send_plain(buffer_data, delay = delay, callback = callback)
 
     def send_part(self, data, flush = True, delay = False, callback = None):
-        if flush: count = self.send(data); self.flush(delay = delay, callback = callback)
+        if flush: count = self.send(data); self.flush(callback = callback)
         else: count = self.send(data, delay = delay, callback = callback)
         return count
 
