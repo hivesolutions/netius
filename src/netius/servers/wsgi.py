@@ -192,8 +192,9 @@ class WSGIServer(http.HTTPServer):
 
         # adds an extra space to the status line and then
         # splits it into the status message and the code
-        status_c, _status_m = (status + " ").split(" ", 1)
+        status_c, status_m = (status + " ").split(" ", 1)
         status_c = int(status_c)
+        status_m = status_m.strip()
 
         # converts the provided list of header tuples into a key
         # values based map so that it may be used more easily
@@ -229,20 +230,15 @@ class WSGIServer(http.HTTPServer):
         self._apply_parser(parser, headers)
         self._apply_connection(connection, headers)
 
-        # creates the list that will hold the various header string and
-        # that is going to be used as buffer and then generates the various
-        # lines for the headers and sets them in the buffer list
-        buffer = []
-        buffer.append("%s %s\r\n" % (version_s, status))
-        for key, value in headers.items():
-            if not type(value) == list: value = (value,)
-            for _value in value: buffer.append("%s: %s\r\n" % (key, _value))
-        buffer.append("\r\n")
-
-        # joins the header strings list as the data string that contains
-        # the headers and then sends the value through the connection
-        data = "".join(buffer)
-        connection.send_plain(data)
+        # runs the send header operation on the connection, this operation
+        # should serialize the various headers and send them through the
+        # current connection according to the currently associated protocol
+        connection.send_header(
+            headers = headers,
+            version = version_s,
+            code = status_c,
+            code_s = status_m
+        )
 
     def _send_part(self, connection):
         # unsets the is final flag and invalidates the data object to the
@@ -267,13 +263,13 @@ class WSGIServer(http.HTTPServer):
         if is_future:
             def on_partial(future, value):
                 if not value: return
-                connection.send(value)
+                connection.send_part(value)
 
             def on_done(future):
                 data = future.result()
                 exception = future.exception()
                 if exception: connection.close()
-                else: connection.send(data, callback = self._send_part)
+                else: connection.send_part(data, callback = self._send_part)
 
             def on_ready():
                 return connection.wready
@@ -289,7 +285,7 @@ class WSGIServer(http.HTTPServer):
         # kept untouched) otherwise sends the retrieved data setting the
         # callback to the current method so that more that is sent
         if is_final: connection.flush(callback = self._final)
-        else: connection.send(data, delay = True, callback = self._send_part)
+        else: connection.send_part(data, delay = True, callback = self._send_part)
 
     def _final(self, connection):
         # retrieves the parser of the current connection and then determines
