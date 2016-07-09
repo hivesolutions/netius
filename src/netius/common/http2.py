@@ -139,6 +139,9 @@ class HTTP2Parser(parser.Parser):
         if not force and self.state == HEADER_STATE: return
         self.reset()
 
+    def close(self):
+        pass
+
     def get_path(self):
         split = self.path_s.split("?", 1)
         return split[0]
@@ -147,6 +150,12 @@ class HTTP2Parser(parser.Parser):
         split = self.path_s.split("?", 1)
         if len(split) == 1: return ""
         else: return split[1]
+
+    def get_message_b(self, copy = False, size = 40960):
+        self.message_f = netius.legacy.BytesIO()
+        self.message_f.write(self._data) #@todo this is a hack
+        self.message_f.seek(0)
+        return self.message_f  #todo must handle proper copy of values
 
     def parse(self, data):
         """
@@ -235,6 +244,7 @@ class HTTP2Parser(parser.Parser):
     def _parse_data(self, data):
         data_l = len(data)
 
+        end_stream = True if self.flags & 0x01 else False
         padded = self.flags & 0x08
 
         index = 0
@@ -246,7 +256,9 @@ class HTTP2Parser(parser.Parser):
 
         contents = data[index:data_l - padded_l]
 
-        self.trigger("on_data", contents)
+        self._data = contents #@todo this is a huge hack
+
+        self.trigger("on_data", contents, end_stream)
 
     def _parse_headers(self, data):
         data_l = len(data)
@@ -273,6 +285,9 @@ class HTTP2Parser(parser.Parser):
         headers = self.decoder.decode(fragment)
 
         self._set_legacy(headers)
+
+        self.content_l = 0 #@todo this is a HUGE hack
+        self._data = b"";
 
         self.trigger("on_headers", headers, dependency, weight)
 
