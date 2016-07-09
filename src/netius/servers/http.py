@@ -234,15 +234,14 @@ class HTTPConnection(netius.Connection):
         code_s = None,
         apply = False,
         flush = True,
+        delay = False,
         callback = None
     ):
         # retrieves the various parts that define the response
         # and runs a series of normalization processes to retrieve
-        # the relevant information of the data ot be sent to client
+        # the relevant information of the data to be sent to client
         data = data or ""
         data = netius.legacy.bytes(data)
-        headers = headers or dict()
-        code_s = code_s or netius.common.CODE_STRINGS.get(code, None)
         data_l = len(data) if data else 0
         is_empty = code in (204, 304) and data_l == 0
 
@@ -256,6 +255,40 @@ class HTTPConnection(netius.Connection):
         # (things like the name of the server connection, etc)
         if apply: self.owner._apply_all(self.parser, self, headers)
 
+        # sends the initial headers data (including status line), this should
+        # trigger the initial data sent to the peer/client
+        count = self.send_header(
+            headers = headers,
+            version = version,
+            code = code,
+            code_s = code_s
+        )
+
+        # sends the payload information (data) to the client and optionally flushes
+        # the current internal buffers to enforce sending of the value
+        count += self.send_payload(
+            data,
+            flush = flush,
+            delay = delay,
+            callback = callback
+        )
+        return count
+
+    def send_header(
+        self,
+        headers = None,
+        version = "HTTP/1.1",
+        code = 200,
+        code_s = None,
+        delay = False,
+        callback = None
+    ):
+        # retrieves the various parts that define the response
+        # and runs a series of normalization processes to retrieve
+        # the relevant information of the data to be sent to client
+        headers = headers or dict()
+        code_s = code_s or netius.common.CODE_STRINGS.get(code, None)
+
         # creates the buffer list that is going to hold the complete set of
         # lines for the headers and then appends the complete set of headers
         # according to the previous construction
@@ -268,11 +301,13 @@ class HTTPConnection(netius.Connection):
         buffer.append("\r\n")
         buffer_data = "".join(buffer)
 
-        # sends the initial headers data (including status line) and then
-        # "schedules" the sending of the payload message data
-        count = self.send_plain(buffer_data)
-        if flush: count += self.send(data); self.flush(callback = callback)
-        else: count += self.send(data, callback = callback)
+        # sends the buffer data to the connection peer so that it gets notified
+        # about the headers for the current communication/message
+        return self.send_plain(buffer_data, delay = delay, callback = callback)
+
+    def send_part(self, data, flush = True, delay = False, callback = None):
+        if flush: count = self.send(data); self.flush(delay = delay, callback = callback)
+        else: count = self.send(data, delay = delay, callback = callback)
         return count
 
     def parse(self, data):
