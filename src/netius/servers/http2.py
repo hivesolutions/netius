@@ -141,7 +141,7 @@ class HTTP2Connection(http.HTTPConnection):
 
         return self.send_headers(headers_b, delay = delay, callback = callback)
 
-    def send_part(self, data, flush = True, delay = False, callback = None):
+    def send_part(self, data, flush = False, delay = False, callback = None):
         if flush: count = self.send_data(data); self.flush(callback = callback)
         else: count = self.send_data(data, delay = delay, callback = callback)
         return count
