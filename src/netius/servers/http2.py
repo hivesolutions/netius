@@ -48,19 +48,25 @@ class HTTP2Stream(netius.Stream):
 
 class HTTP2Connection(http.HTTPConnection):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, legacy = True, *args, **kwargs):
         http.HTTPConnection.__init__(self, *args, **kwargs)
         self.preface = False #@todo this must be done via states and not like this (just like SMTP)
+        self.legacy = legacy
 
     def open(self, *args, **kwargs):
-        netius.Connection.open(self, *args, **kwargs)
+        http.HTTPConnection.open(self, *args, **kwargs)
+        if not self.legacy: self.set_h2()
+
+    def set_h2(self):
+        self.legacy = False
+        if self.parser: self.parser.destroy()
         self.parser = netius.common.HTTP2Parser(self)
         self.parser.bind("on_frame", self.on_frame)
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_settings", self.on_settings)
 
     def parse(self, data):
-        if not self.preface:
+        if not self.legacy and not self.preface:
             self.owner.on_preface_http2(self, self.parser)
             self.preface = True
             return
@@ -78,6 +84,21 @@ class HTTP2Connection(http.HTTPConnection):
         delay = False,
         callback = None
     ):
+        # in case the legacy mode is enabled the send response call is
+        # forwarded to the upper layers so that it's handled properly
+        if self.legacy: return http.HTTPConnection.send_response(
+            self,
+            data = data,
+            headers = headers,
+            version = version,
+            code = code,
+            code_s = code_s,
+            apply = apply,
+            flush = flush,
+            delay = delay,
+            callback = callback
+        )
+
         # retrieves the various parts that define the response
         # and runs a series of normalization processes to retrieve
         # the relevant information of the data to be sent to client
@@ -125,6 +146,20 @@ class HTTP2Connection(http.HTTPConnection):
         delay = False,
         callback = None
     ):
+        # in case the legacy mode is enabled the send header call is
+        # forwarded to the upper layers so that it's handled properly
+        if self.legacy: return http.HTTPConnection.send_header(
+            self,
+            headers = headers,
+            version = version,
+            code = code,
+            code_s = code_s,
+            delay = delay,
+            callback = callback
+        )
+
+        # verifies if the headers value has been provided and in case it
+        # has not creates a new empty dictionary (runtime compatibility)
         headers = headers or dict()
 
         # creates the headers base list that is going to store the various
@@ -142,6 +177,13 @@ class HTTP2Connection(http.HTTPConnection):
         return self.send_headers(headers_b, delay = delay, callback = callback)
 
     def send_part(self, data, flush = False, delay = False, callback = None):
+        if self.legacy: return http.HTTPConnection.send_part(
+            self,
+            data,
+            flush = flush,
+            delay = delay,
+            callback = callback
+        )
         if flush: count = self.send_data(data); self.flush(callback = callback)
         else: count = self.send_data(data, delay = delay, callback = callback)
         return count
@@ -232,6 +274,10 @@ class HTTP2Connection(http.HTTPConnection):
 
 class HTTP2Server(http.HTTPServer):
 
+    def __init__(self, legacy = True, *args, **kwargs):
+        http.HTTPServer.__init__(self, *args, **kwargs)
+        self.legacy = legacy
+
     def get_protocols(self):
         return ["h2", "http/1.1", "http/1.0"]
 
@@ -241,8 +287,15 @@ class HTTP2Server(http.HTTPServer):
             socket = socket,
             address = address,
             ssl = ssl,
-            encoding = self.encoding
+            encoding = self.encoding,
+            legacy = self.legacy
         )
+
+    def on_ssl(self, connection):
+        http.HTTPServer.on_ssl(self, connection)
+        protocol = connection.ssl_protocol()
+        if not protocol == "h2": return
+        connection.set_h2()
 
     def on_preface_http2(self, connection, parser):
         pass
