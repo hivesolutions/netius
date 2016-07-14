@@ -242,6 +242,7 @@ class HTTPConnection(netius.Connection):
         # the relevant information of the data to be sent to client
         data = data or ""
         data = netius.legacy.bytes(data)
+        headers = headers or dict()
         data_l = len(data) if data else 0
         is_empty = code in (204, 304) and data_l == 0
 
