@@ -765,6 +765,19 @@ class StreamClient(Client):
     def on_upgrade(self, connection):
         connection.set_upgraded()
 
+    def on_ssl(self, connection):
+        # runs the connection host verification process for the ssl
+        # meaning that in case an ssl host value is defined it is going
+        # to be verified against the value in the certificate
+        connection.ssl_verify_host()
+
+        # verifies if the connection is either connecting or upgrading
+        # and calls the proper event handler for each event, this is
+        # required because the connection workflow is probably dependent
+        # on the calling of these event handlers to proceed
+        if connection.connecting: self.on_connect(connection)
+        elif connection.upgrading: self.on_upgrade(connection)
+
     def on_acquire(self, connection):
         pass
 
@@ -902,14 +915,7 @@ class StreamClient(Client):
         connection = self.connections_m.get(_socket, None)
         if not connection: return
 
-        # runs the connection host verification process for the ssl
-        # meaning that in case an ssl host value is defined it is going
-        # to be verified against the value in the certificate
-        connection.ssl_verify_host()
-
-        # verifies if the connection is either connecting or upgrading
-        # and calls the proper event handler for each event, this is
-        # required because the connection workflow is probably dependent
-        # on the calling of these event handlers to proceed
-        if connection.connecting: self.on_connect(connection)
-        elif connection.upgrading: self.on_upgrade(connection)
+        # calls the proper callback on the connection meaning
+        # that ssl is now enabled for that socket/connection and so
+        # the communication between peers is now secured
+        self.on_ssl(connection)

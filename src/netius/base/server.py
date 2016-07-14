@@ -807,21 +807,41 @@ class StreamServer(Server):
             self.send_buffer_c
         )
 
-        # in case the ssl mode is enabled for the server, runs
-        # the initial try for the handshaking process, note that
-        # this is an async process and further tries to the
-        # handshake may come after this one (async operation)
-        if self.ssl: self._ssl_handshake(socket_c)
-
         # the process creation is considered completed and a new
         # connection is created for it and opened, from this time
         # on a new connection is considered accepted/created for server
         connection = self.new_connection(socket_c, address, ssl = self.ssl)
         connection.open()
 
+        # in case the ssl mode is not enabled for the server there's
+        # nothing remaining to be done for the new connection
+        if not self.ssl: return
+
+        # runs the initial try for the handshaking process, note that
+        # this is an async process and further tries to the handshake
+        # may come after this one (async operation) in case an exception
+        # is raises the connection is closed (avoids possible errors)
+        try: self._ssl_handshake(socket_c)
+        except: connection.close(); raise
+
     def on_socket_d(self, socket_c):
         connection = self.connections_m.get(socket_c, None)
         if not connection: return
+
+    def on_ssl(self, connection):
+        # in case an ssl host verification value is defined for the server
+        # the client connection is going to be verified against such host
+        # to make sure the client represents the expected entity, note that
+        # as a fallback the ssl verification process is performed with no
+        # value defined, meaning that a possible (ssl) host value set in the
+        # connection is going to be used instead for the verification
+        if self.ssl_host: connection.ssl_verify_host(self.ssl_host)
+        else: connection.ssl_verify_host()
+
+        # in case the current connection is under the upgrade
+        # status calls the proper event handler so that the
+        # connection workflow may proceed accordingly
+        if connection.upgrading: self.on_upgrade(connection)
 
     def _upgradef(self, connection):
         self._ssl_handshake(connection.socket)
@@ -844,16 +864,7 @@ class StreamServer(Server):
         connection = self.connections_m.get(_socket, None)
         if not connection: return
 
-        # in case an ssl host verification value is defined for the server
-        # the client connection is going to be verified against such host
-        # to make sure the client represents the expected entity, note that
-        # as a fallback the ssl verification process is performed with no
-        # value defined, meaning that a possible (ssl) host value set in the
-        # connection is going to be used instead for the verification
-        if self.ssl_host: connection.ssl_verify_host(self.ssl_host)
-        else: connection.ssl_verify_host()
-
-        # in case the current connection is under the upgrade
-        # status calls the proper event handler so that the
-        # connection workflow may proceed accordingly
-        if connection.upgrading: self.on_upgrade(connection)
+        # calls the proper callback on the connection meaning
+        # that ssl is now enabled for that socket/connection and so
+        # the communication between peers is now secured
+        self.on_ssl(connection)

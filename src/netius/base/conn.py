@@ -477,6 +477,11 @@ class BaseConnection(observer.Observable):
         certificate = self.ssl_certificate()
         tls.match_hostname(certificate, host)
 
+    def ssl_protocol(self):
+        if not self.socket: return None
+        if not hasattr(self.socket, "selected_alpn_protocol"): return None
+        return self.socket.selected_alpn_protocol()
+
     def is_open(self):
         return self.status == OPEN
 
