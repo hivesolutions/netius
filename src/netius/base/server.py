@@ -759,6 +759,21 @@ class StreamServer(Server):
     def on_upgrade(self, connection):
         connection.set_upgraded()
 
+    def on_ssl(self, connection):
+        # in case an ssl host verification value is defined for the server
+        # the client connection is going to be verified against such host
+        # to make sure the client represents the expected entity, note that
+        # as a fallback the ssl verification process is performed with no
+        # value defined, meaning that a possible (ssl) host value set in the
+        # connection is going to be used instead for the verification
+        if self.ssl_host: connection.ssl_verify_host(self.ssl_host)
+        else: connection.ssl_verify_host()
+
+        # in case the current connection is under the upgrade
+        # status calls the proper event handler so that the
+        # connection workflow may proceed accordingly
+        if connection.upgrading: self.on_upgrade(connection)
+
     def on_data(self, connection, data):
         pass
 
@@ -827,21 +842,6 @@ class StreamServer(Server):
     def on_socket_d(self, socket_c):
         connection = self.connections_m.get(socket_c, None)
         if not connection: return
-
-    def on_ssl(self, connection):
-        # in case an ssl host verification value is defined for the server
-        # the client connection is going to be verified against such host
-        # to make sure the client represents the expected entity, note that
-        # as a fallback the ssl verification process is performed with no
-        # value defined, meaning that a possible (ssl) host value set in the
-        # connection is going to be used instead for the verification
-        if self.ssl_host: connection.ssl_verify_host(self.ssl_host)
-        else: connection.ssl_verify_host()
-
-        # in case the current connection is under the upgrade
-        # status calls the proper event handler so that the
-        # connection workflow may proceed accordingly
-        if connection.upgrading: self.on_upgrade(connection)
 
     def _upgradef(self, connection):
         self._ssl_handshake(connection.socket)
