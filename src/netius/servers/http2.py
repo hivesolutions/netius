@@ -275,14 +275,15 @@ class HTTP2Connection(http.HTTPConnection):
 class HTTP2Server(http.HTTPServer):
 
     def __init__(self, legacy = True, safe = False, *args, **kwargs):
+        self._protocols = []
         self.legacy, self.safe = legacy, safe
         http.HTTPServer.__init__(self, *args, **kwargs)
 
     def get_protocols(self):
-        protocols = []
-        if self.legacy: protocols.extend(["http/1.1", "http/1.0"])
-        if not self.safe: protocols.extend(["h2"])
-        return protocols
+        if self._protocols: return self._protocols
+        if not self.safe: self._protocols.extend(["h2"])
+        if self.legacy: self._protocols.extend(["http/1.1", "http/1.0"])
+        return self._protocols
 
     def new_connection(self, socket, address, ssl = False):
         return HTTP2Connection(
@@ -296,8 +297,8 @@ class HTTP2Server(http.HTTPServer):
 
     def on_ssl(self, connection):
         http.HTTPServer.on_ssl(self, connection)
-        protocol = connection.ssl_protocol()
         if self.safe: return
+        protocol = connection.ssl_protocol()
         if not protocol == "h2": return
         connection.set_h2()
 

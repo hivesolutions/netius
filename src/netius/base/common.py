@@ -1821,7 +1821,7 @@ class AbstractBase(observer.Observable):
 
     def _ssl_callback(self, socket, hostname, context):
         context, values = self._ssl_contexts.get(hostname, (context, None))
-        self._ssl_ctx_base(context)
+        self._ssl_ctx_alpn(context)
         socket.context = context
         if not values: return
         ssl_host = values.get("ssl_host", None)
@@ -1850,9 +1850,6 @@ class AbstractBase(observer.Observable):
         return context
 
     def _ssl_ctx_base(self, context, secure = True):
-        if hasattr(context, "set_alpn_protocols"):
-            protocols = self.get_protocols()
-            protocols and context.set_alpn_protocols(protocols)
         if secure and hasattr(ssl, "OP_NO_SSLv2"):
             context.options |= ssl.OP_NO_SSLv2
         if secure and hasattr(ssl, "OP_NO_SSLv3"):
@@ -1867,6 +1864,11 @@ class AbstractBase(observer.Observable):
             context.set_ecdh_curve("prime256v1")
         if secure and SSL_DH_PATH and hasattr(context, "load_dh_params"):
             context.load_dh_params(SSL_DH_PATH)
+
+    def _ssl_ctx_alpn(self, context):
+        if hasattr(context, "set_alpn_protocols"):
+            protocols = self.get_protocols()
+            protocols and context.set_alpn_protocols(protocols)
 
     def _ssl_certs(
         self,
