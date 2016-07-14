@@ -810,7 +810,7 @@ class StreamServer(Server):
         # in case the ssl mode is enabled for the server, runs
         # the initial try for the handshaking process, note that
         # this is an async process and further tries to the
-        # handshake may come after this one
+        # handshake may come after this one (async operation)
         if self.ssl: self._ssl_handshake(socket_c)
 
         # the process creation is considered completed and a new
