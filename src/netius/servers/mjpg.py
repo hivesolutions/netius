@@ -41,13 +41,13 @@ import os
 
 import netius
 
-from . import http
+from . import http2
 
 BOUNDARY = "mjpegboundary"
 """ The defualt boundary string value to be used in
 case no boundary is provided to the app """
 
-class MJPGServer(http.HTTPServer):
+class MJPGServer(http2.HTTP2Server):
     """
     Server class for the creation of an HTTP server for
     the providing of a motion JPEG stream (as in spec).
@@ -57,11 +57,11 @@ class MJPGServer(http.HTTPServer):
     """
 
     def __init__(self, boundary = BOUNDARY, *args, **kwargs):
-        http.HTTPServer.__init__(self, *args, **kwargs)
+        http2.HTTP2Server.__init__(self, *args, **kwargs)
         self.boundary = boundary
 
     def on_data_http(self, connection, parser):
-        http.HTTPServer.on_data_http(self, connection, parser)
+        http2.HTTP2Server.on_data_http(self, connection, parser)
 
         headers = [
             ("Content-type", "multipart/x-mixed-replace; boundary=%s" % self.boundary),
@@ -105,7 +105,7 @@ class MJPGServer(http.HTTPServer):
                 def callable(): send(connection)
                 self.delay(callable, delay)
 
-            connection.send(buffer_d, callback = next)
+            connection.send_part(buffer_d, final = False, callback = next)
 
         send(connection)
 

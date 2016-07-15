@@ -306,7 +306,14 @@ class HTTPConnection(netius.Connection):
         # about the headers for the current communication/message
         return self.send_plain(buffer_data, delay = delay, callback = callback)
 
-    def send_part(self, data, flush = False, delay = False, callback = None):
+    def send_part(
+        self,
+        data,
+        final = True,
+        flush = False,
+        delay = False,
+        callback = None
+    ):
         if flush: count = self.send(data); self.flush(callback = callback)
         else: count = self.send(data, delay = delay, callback = callback)
         return count
