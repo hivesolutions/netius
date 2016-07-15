@@ -129,7 +129,7 @@ class HTTP2Connection(http.HTTPConnection):
 
         # sends the payload information (data) to the client and optionally flushes
         # the current internal buffers to enforce sending of the value
-        count += self.send_payload(
+        count += self.send_part(
             data,
             flush = flush,
             delay = delay,
@@ -274,7 +274,7 @@ class HTTP2Connection(http.HTTPConnection):
 
 class HTTP2Server(http.HTTPServer):
 
-    def __init__(self, legacy = True, safe = True, *args, **kwargs):
+    def __init__(self, legacy = True, safe = False, *args, **kwargs):
         self._protocols = []
         self.legacy, self.safe = legacy, safe
         http.HTTPServer.__init__(self, *args, **kwargs)
