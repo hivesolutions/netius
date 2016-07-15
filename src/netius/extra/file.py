@@ -49,7 +49,7 @@ BUFFER_SIZE = 4096
 sending the file to the client, this should not be neither
 to big nor to small (as both situations would create problems) """
 
-class FileServer(netius.servers.HTTPServer):
+class FileServer(netius.servers.HTTP2Server):
     """
     Simple implementation of a file server that is able to list files
     for directories taking into account the base path values.
@@ -62,13 +62,13 @@ class FileServer(netius.servers.HTTPServer):
     """
 
     def __init__(self, base_path = "", cors = False, cache = 0, *args, **kwargs):
-        netius.servers.HTTPServer.__init__(self, *args, **kwargs)
+        netius.servers.HTTP2Server.__init__(self, *args, **kwargs)
         self.base_path = base_path
         self.cors = cors
         self.cache = 0
 
     def on_connection_d(self, connection):
-        netius.servers.HTTPServer.on_connection_d(self, connection)
+        netius.servers.HTTP2Server.on_connection_d(self, connection)
 
         file = hasattr(connection, "file") and connection.file
         if file: file.close()
@@ -78,7 +78,7 @@ class FileServer(netius.servers.HTTPServer):
         setattr(connection, "queue", None)
 
     def on_serve(self):
-        netius.servers.HTTPServer.on_serve(self)
+        netius.servers.HTTP2Server.on_serve(self)
         if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)
         if self.env: self.cors = self.get_env("CORS", self.cors, cast = bool)
         if self.env: self.cache = self.get_env("CACHE", self.cache, cast = int)
@@ -89,7 +89,7 @@ class FileServer(netius.servers.HTTPServer):
         if self.cache: self.info("Resource cache set with %d seconds" % self.cache)
 
     def on_data_http(self, connection, parser):
-        netius.servers.HTTPServer.on_data_http(self, connection, parser)
+        netius.servers.HTTP2Server.on_data_http(self, connection, parser)
 
         # verifies if the current connection contains a reference to the
         # file object, in case it exists there's a file currently being
@@ -334,6 +334,7 @@ class FileServer(netius.servers.HTTPServer):
             headers = headers,
             code = code,
             apply = True,
+            final = False,
             flush = False,
             callback = self._file_send
         )
@@ -394,8 +395,9 @@ class FileServer(netius.servers.HTTPServer):
         connection.bytes_p -= data_l
         is_final = not data or connection.bytes_p == 0
         callback = self._file_finish if is_final else self._file_send
-        connection.send(
+        connection.send_part(
             data,
+            final = is_final,
             delay = True,
             callback = callback
         )

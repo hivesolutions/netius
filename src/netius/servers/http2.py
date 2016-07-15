@@ -80,6 +80,7 @@ class HTTP2Connection(http.HTTPConnection):
         code = 200,
         code_s = None,
         apply = False,
+        final = True,
         flush = True,
         delay = False,
         callback = None
@@ -127,10 +128,11 @@ class HTTP2Connection(http.HTTPConnection):
             code_s = code_s
         )
 
-        # sends the payload information (data) to the client and optionally flushes
-        # the current internal buffers to enforce sending of the value
-        count += self.send_payload(
+        # sends the part/payload information (data) to the client and optionally
+        # flushes the current internal buffers to enforce sending of the value
+        count += self.send_part(
             data,
+            final = final,
             flush = flush,
             delay = delay,
             callback = callback
@@ -176,16 +178,24 @@ class HTTP2Connection(http.HTTPConnection):
 
         return self.send_headers(headers_b, delay = delay, callback = callback)
 
-    def send_part(self, data, flush = False, delay = False, callback = None):
+    def send_part(
+        self,
+        data,
+        final = True,
+        flush = False,
+        delay = False,
+        callback = None
+    ):
         if self.legacy: return http.HTTPConnection.send_part(
             self,
             data,
+            final = final,
             flush = flush,
             delay = delay,
             callback = callback
         )
-        if flush: count = self.send_data(data); self.flush(callback = callback)
-        else: count = self.send_data(data, delay = delay, callback = callback)
+        if flush: count = self.send_data(data, end_stream = final); self.flush(callback = callback)
+        else: count = self.send_data(data, end_stream = final, delay = delay, callback = callback)
         return count
 
     def send_frame(

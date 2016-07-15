@@ -39,31 +39,30 @@ __license__ = "Apache License, Version 2.0"
 
 import os
 
-import netius.common
+import netius
 
-from . import http
+from . import http2
 
 BOUNDARY = "mjpegboundary"
 """ The defualt boundary string value to be used in
 case no boundary is provided to the app """
 
-class MJPGServer(http.HTTPServer):
+class MJPGServer(http2.HTTP2Server):
     """
-    Server class for the creation of an http server for
-    the providing of a motion jpeg stream (as in spec).
+    Server class for the creation of an HTTP server for
+    the providing of a motion JPEG stream (as in spec).
 
     This class should only be seen as a foundation and
     proper implementation should be made from this.
     """
 
     def __init__(self, boundary = BOUNDARY, *args, **kwargs):
-        http.HTTPServer.__init__(self, *args, **kwargs)
+        http2.HTTP2Server.__init__(self, *args, **kwargs)
         self.boundary = boundary
 
     def on_data_http(self, connection, parser):
-        http.HTTPServer.on_data_http(self, connection, parser)
+        http2.HTTP2Server.on_data_http(self, connection, parser)
 
-        status = "200 OK"
         headers = [
             ("Content-type", "multipart/x-mixed-replace; boundary=%s" % self.boundary),
             ("Cache-Control", "no-cache"),
@@ -74,16 +73,12 @@ class MJPGServer(http.HTTPServer):
         version_s = parser.version_s
         headers = dict(headers)
 
-        buffer = []
-        buffer.append("%s %s\r\n" % (version_s, status))
-        for key, value in headers.items():
-            key = netius.common.header_up(key)
-            if not type(value) == list: value = (value,)
-            for _value in value: buffer.append("%s: %s\r\n" % (key, _value))
-        buffer.append("\r\n")
-
-        data = "".join(buffer)
-        connection.send(data)
+        connection.send_header(
+            headers = headers,
+            version = version_s,
+            code = 200,
+            code_s = "OK"
+        )
 
         def send(connection):
             self.on_send_mjpg(connection)
@@ -110,7 +105,7 @@ class MJPGServer(http.HTTPServer):
                 def callable(): send(connection)
                 self.delay(callable, delay)
 
-            connection.send(buffer_d, callback = next)
+            connection.send_part(buffer_d, final = False, callback = next)
 
         send(connection)
 

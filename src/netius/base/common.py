@@ -62,7 +62,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.8.13"
+VERSION = "1.8.16"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -1866,6 +1866,8 @@ class AbstractBase(observer.Observable):
             context.load_dh_params(SSL_DH_PATH)
 
     def _ssl_ctx_alpn(self, context):
+        if not hasattr(ssl, "HAS_ALPN"): return
+        if not ssl.HAS_ALPN: return
         if hasattr(context, "set_alpn_protocols"):
             protocols = self.get_protocols()
             protocols and context.set_alpn_protocols(protocols)

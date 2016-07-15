@@ -233,6 +233,7 @@ class HTTPConnection(netius.Connection):
         code = 200,
         code_s = None,
         apply = False,
+        final = True,
         flush = True,
         delay = False,
         callback = None
@@ -265,10 +266,11 @@ class HTTPConnection(netius.Connection):
             code_s = code_s
         )
 
-        # sends the payload information (data) to the client and optionally flushes
-        # the current internal buffers to enforce sending of the value
+        # sends the part/payload information (data) to the client and optionally
+        # flushes the current internal buffers to enforce sending of the value
         count += self.send_part(
             data,
+            final = final,
             flush = flush,
             delay = delay,
             callback = callback
@@ -306,7 +308,14 @@ class HTTPConnection(netius.Connection):
         # about the headers for the current communication/message
         return self.send_plain(buffer_data, delay = delay, callback = callback)
 
-    def send_part(self, data, flush = False, delay = False, callback = None):
+    def send_part(
+        self,
+        data,
+        final = True,
+        flush = False,
+        delay = False,
+        callback = None
+    ):
         if flush: count = self.send(data); self.flush(callback = callback)
         else: count = self.send(data, delay = delay, callback = callback)
         return count

@@ -40,7 +40,7 @@ __license__ = "Apache License, Version 2.0"
 import netius.common
 import netius.clients
 
-from . import http
+from . import http2
 
 BUFFER_RATIO = 1.5
 """ The ration for the calculus of the internal socket
@@ -57,10 +57,10 @@ allowed in the sending buffer, this maximum value
 avoids the starvation of the producer to consumer
 relation that could cause memory problems """
 
-class ProxyConnection(http.HTTPConnection):
+class ProxyConnection(http2.HTTP2Connection):
 
     def open(self, *args, **kwargs):
-        http.HTTPConnection.open(self, *args, **kwargs)
+        http2.HTTP2Connection.open(self, *args, **kwargs)
         self.parser.store = False
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_partial", self.on_partial)
@@ -75,7 +75,7 @@ class ProxyConnection(http.HTTPConnection):
     def on_chunk(self, range):
         self.owner.on_chunk(self, self.parser, range)
 
-class ProxyServer(http.HTTPServer):
+class ProxyServer(http2.HTTP2Server):
 
     def __init__(
         self,
@@ -85,7 +85,7 @@ class ProxyServer(http.HTTPServer):
         *args,
         **kwargs
     ):
-        http.HTTPServer.__init__(
+        http2.HTTP2Server.__init__(
             self,
             receive_buffer_c = int(max_pending * BUFFER_RATIO),
             send_buffer_c = int(max_pending * BUFFER_RATIO),
@@ -145,13 +145,13 @@ class ProxyServer(http.HTTPServer):
         self.container.stop()
 
     def cleanup(self):
-        http.HTTPServer.cleanup(self)
+        http2.HTTP2Server.cleanup(self)
         self.container = None
         self.http_client.destroy()
         self.raw_client.destroy()
 
     def info_dict(self, full = False):
-        info = http.HTTPServer.info_dict(self, full = full)
+        info = http2.HTTP2Server.info_dict(self, full = full)
         info.update(
             throttle = self.throttle,
             max_pending = self.max_pending,
@@ -162,7 +162,7 @@ class ProxyServer(http.HTTPServer):
         return info
 
     def connections_dict(self, full = False, parent = False):
-        if parent: return http.HTTPServer.connections_dict(self, full = full)
+        if parent: return http2.HTTP2Server.connections_dict(self, full = full)
         return self.container.connections_dict(full = full)
 
     def connection_dict(self, id, full = False):
@@ -190,7 +190,7 @@ class ProxyServer(http.HTTPServer):
         tunnel_c.send(data, callback = self._throttle)
 
     def on_connection_d(self, connection):
-        http.HTTPServer.on_connection_d(self, connection)
+        http2.HTTP2Server.on_connection_d(self, connection)
 
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
         proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
@@ -202,7 +202,7 @@ class ProxyServer(http.HTTPServer):
         setattr(connection, "proxy_c", None)
 
     def on_serve(self):
-        http.HTTPServer.on_serve(self)
+        http2.HTTP2Server.on_serve(self)
         if self.env: self.throttle = self.get_env("THROTTLE", self.throttle, cast = bool)
         if self.env: self.trust_origin = self.get_env("TRUST_ORIGIN", self.trust_origin, cast = bool)
         if self.throttle: self.info("Throttling connections in the proxy ...")
@@ -210,7 +210,7 @@ class ProxyServer(http.HTTPServer):
         if self.trust_origin: self.info("Origin is considered \"trustable\" by proxy")
 
     def on_data_http(self, connection, parser):
-        http.HTTPServer.on_data_http(self, connection, parser)
+        http2.HTTP2Server.on_data_http(self, connection, parser)
         if not parser.chunked: return
 
         proxy_c = connection.proxy_c
