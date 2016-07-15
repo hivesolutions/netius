@@ -39,6 +39,8 @@ __license__ = "Apache License, Version 2.0"
 
 import os
 
+import netius
+
 from . import http
 
 BOUNDARY = "mjpegboundary"
