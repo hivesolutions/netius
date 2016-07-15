@@ -127,8 +127,8 @@ class HTTP2Connection(http.HTTPConnection):
             code_s = code_s
         )
 
-        # sends the payload information (data) to the client and optionally flushes
-        # the current internal buffers to enforce sending of the value
+        # sends the part/payload information (data) to the client and optionally
+        # flushes the current internal buffers to enforce sending of the value
         count += self.send_part(
             data,
             flush = flush,
