@@ -394,7 +394,7 @@ class FileServer(netius.servers.HTTP2Server):
         connection.bytes_p -= data_l
         is_final = not data or connection.bytes_p == 0
         callback = self._file_finish if is_final else self._file_send
-        connection.send(
+        connection.send_part(
             data,
             delay = True,
             callback = callback
