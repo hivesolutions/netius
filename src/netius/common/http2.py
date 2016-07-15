@@ -260,7 +260,8 @@ class HTTP2Parser(parser.Parser):
 
         contents = data[index:data_l - padded_l]
 
-        self._data = contents #@todo this is a huge hack
+        self._data = contents #@todo this is a huge hack as there may be more
+                              # data in the current stream to be parsed 
 
         self.trigger("on_data", contents, end_stream)
 
@@ -290,7 +291,7 @@ class HTTP2Parser(parser.Parser):
 
         self._set_legacy(headers)
 
-        self.content_l = 0 #@todo this is a HUGE hack
+        self.content_l = 0 #@todo this is a HUGE hack, proper content length must be parsed
         self._data = b""
 
         self.trigger("on_headers", headers, dependency, weight)
