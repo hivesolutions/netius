@@ -347,7 +347,7 @@ class HTTP2Connection(http.HTTPConnection):
     def on_frame(self):
         self.owner.on_frame_http2(self, self.parser)
 
-    def on_headers(self, headers, dependency, weight):
+    def on_headers(self, headers, dependency, weight, end_stream):
         self.owner.on_headers_http2(self, self.parser, headers)
 
     def on_settings(self, settings, ack):

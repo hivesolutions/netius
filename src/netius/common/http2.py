@@ -268,6 +268,8 @@ class HTTP2Parser(parser.Parser):
     def _parse_headers(self, data):
         data_l = len(data)
 
+        end_stream = True if self.flags & 0x01 else False
+        end_headers = True if self.flags & 0x04 else False
         padded = self.flags & 0x08
         priority = self.flags & 0x20
 
@@ -299,7 +301,9 @@ class HTTP2Parser(parser.Parser):
         # a new stream must be created at this point
         # stream = new stream(headers)
 
-        self.trigger("on_headers", headers, dependency, weight)
+        #@todo: must respect the end_headers flag !!!
+
+        self.trigger("on_headers", headers, dependency, weight, end_stream)
 
     def _parse_priority(self, data):
         pass
