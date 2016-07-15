@@ -261,7 +261,7 @@ class HTTP2Parser(parser.Parser):
         contents = data[index:data_l - padded_l]
 
         self._data = contents #@todo this is a huge hack as there may be more
-                              # data in the current stream to be parsed 
+                              # data in the current stream to be parsed
 
         self.trigger("on_data", contents, end_stream)
 

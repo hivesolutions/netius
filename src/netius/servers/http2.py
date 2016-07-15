@@ -327,6 +327,23 @@ class HTTP2Connection(http.HTTPConnection):
             callback = callback
         )
 
+    def send_ping(
+        self,
+        ack = False,
+        delay = False,
+        callback = None
+    ):
+        flags = 0x00
+        if ack: flags |= 0x01
+        payload = b"\0\0\0\0\0\0\0\0"
+        return self.send_frame(
+            type = netius.common.PING,
+            flags = flags,
+            payload = payload,
+            delay = delay,
+            callback = callback
+        )
+
     def on_frame(self):
         self.owner.on_frame_http2(self, self.parser)
 
