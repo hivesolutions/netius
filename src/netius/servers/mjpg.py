@@ -39,8 +39,6 @@ __license__ = "Apache License, Version 2.0"
 
 import os
 
-import netius.common
-
 from . import http
 
 BOUNDARY = "mjpegboundary"
@@ -63,7 +61,6 @@ class MJPGServer(http.HTTPServer):
     def on_data_http(self, connection, parser):
         http.HTTPServer.on_data_http(self, connection, parser)
 
-        status = "200 OK"
         headers = [
             ("Content-type", "multipart/x-mixed-replace; boundary=%s" % self.boundary),
             ("Cache-Control", "no-cache"),
@@ -74,16 +71,12 @@ class MJPGServer(http.HTTPServer):
         version_s = parser.version_s
         headers = dict(headers)
 
-        buffer = []
-        buffer.append("%s %s\r\n" % (version_s, status))
-        for key, value in headers.items():
-            key = netius.common.header_up(key)
-            if not type(value) == list: value = (value,)
-            for _value in value: buffer.append("%s: %s\r\n" % (key, _value))
-        buffer.append("\r\n")
-
-        data = "".join(buffer)
-        connection.send(data)
+        connection.send_header(
+            headers = headers,
+            version = version_s,
+            code = 200,
+            code_s = "OK"
+        )
 
         def send(connection):
             self.on_send_mjpg(connection)
