@@ -68,11 +68,11 @@ class HTTP2Connection(http.HTTPConnection):
 
     def parse(self, data):
         if not self.legacy and not self.preface:
-            data = self.try_preface(data)
+            data = self.parse_preface(data)
             if not data: return
         return self.parser.parse(data)
 
-    def try_preface(self, data):
+    def parse_preface(self, data):
         """
         Tries to run the parsing on the preface part of the
         connection establishment using the provided data
