@@ -291,8 +291,9 @@ class HTTP2Parser(parser.Parser):
 
         self._set_legacy(headers)
 
-        self.content_l = 0 #@todo this is a HUGE hack, proper content length must be parsed
-        self._data = b""
+        self.content_l = self.headers.get("content-length", 0)
+        self.content_l = self.content_l and int(self.content_l)
+        self._data = b"" #@todo this is a hack (data must be parsed)
 
         self.trigger("on_headers", headers, dependency, weight)
 
