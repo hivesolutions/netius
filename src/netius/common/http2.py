@@ -291,7 +291,7 @@ class HTTP2Parser(parser.Parser):
         self._set_legacy(headers)
 
         self.content_l = 0 #@todo this is a HUGE hack
-        self._data = b"";
+        self._data = b""
 
         self.trigger("on_headers", headers, dependency, weight)
 

@@ -268,6 +268,7 @@ class HTTP2Connection(http.HTTPConnection):
         self,
         data = b"",
         end_stream = True,
+        stream = None,
         delay = False,
         callback = None
     ):
@@ -277,7 +278,7 @@ class HTTP2Connection(http.HTTPConnection):
             type = netius.common.DATA,
             flags = flags,
             payload = data,
-            stream = self.parser.stream, #@todo: this is not correct (must retrieve it from stream)
+            stream = stream or self.parser.stream,
             delay = delay,
             callback = callback
         )
@@ -287,6 +288,7 @@ class HTTP2Connection(http.HTTPConnection):
         headers = [],
         end_stream = False,
         end_headers = True,
+        stream = None,
         delay = False,
         callback = None
     ):
@@ -298,7 +300,7 @@ class HTTP2Connection(http.HTTPConnection):
             type = netius.common.HEADERS,
             flags = flags,
             payload = payload,
-            stream = self.parser.stream, #@todo: this is not correct (must retrieve it from stream)
+            stream = stream or self.parser.stream,
             delay = delay,
             callback = callback
         )
