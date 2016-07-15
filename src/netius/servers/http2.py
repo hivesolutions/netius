@@ -274,7 +274,7 @@ class HTTP2Connection(http.HTTPConnection):
 
 class HTTP2Server(http.HTTPServer):
 
-    def __init__(self, legacy = True, safe = False, *args, **kwargs):
+    def __init__(self, legacy = True, safe = True, *args, **kwargs):
         self._protocols = []
         self.legacy, self.safe = legacy, safe
         http.HTTPServer.__init__(self, *args, **kwargs)

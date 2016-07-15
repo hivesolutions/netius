@@ -42,13 +42,14 @@ import sys
 import netius
 
 from . import http
+from . import http2
 
 SERVER_SOFTWARE = netius.IDENTIFIER
 """ The server software string that is going to identify the
 current service that is running on the host, the values should
 include both the name and the version of it """
 
-class WSGIServer(http.HTTPServer):
+class WSGIServer(http2.HTTP2Server):
     """
     Base class for the creation of a wsgi compliant server
     the server should be initialized with the "target" app
@@ -56,14 +57,14 @@ class WSGIServer(http.HTTPServer):
     """
 
     def __init__(self, app, mount = "", decode = True, *args, **kwargs):
-        http.HTTPServer.__init__(self, *args, **kwargs)
+        http2.HTTP2Server.__init__(self, *args, **kwargs)
         self.app = app
         self.mount = mount
         self.mount_l = len(mount)
         self.decode = decode
 
     def on_connection_d(self, connection):
-        http.HTTPServer.on_connection_d(self, connection)
+        http2.HTTP2Server.on_connection_d(self, connection)
 
         # tries to run the releasing operation on the current connection
         # so that the proper destruction of objects is performed avoiding
@@ -75,7 +76,7 @@ class WSGIServer(http.HTTPServer):
         self._release_queue(connection)
 
     def on_data_http(self, connection, parser):
-        http.HTTPServer.on_data_http(self, connection, parser)
+        http2.HTTP2Server.on_data_http(self, connection, parser)
 
         # retrieves the path for the current request and then retrieves
         # the query string part for it also, after that computes the
