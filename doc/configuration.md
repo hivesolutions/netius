@@ -1,6 +1,6 @@
 # Configuration
 
-##### General
+#### General
 
 * `HOST` (`str`) - The listening address of the server (eg: `127.0.0.1` or `0.0.0.0`)
 * `PORT` (`int`) - The port the server will listen at (eg: `8080`)
@@ -14,7 +14,7 @@ its information is considered reliable, this value is especially important for p
 * `CHILDREN` (`int`) - Number of child processes that are meant to be created upon launch using a pre-fork approach. (defaults to `0`)
 * `CHILD` (`int`) - Same as `CHILDREN`
 
-##### Internal
+#### Internal
 
 * `POLL` (`str`) - The name of the polling system to be used for the controlling of the main event loop
 by default this values is infered automatically based on the current system capabilities
@@ -23,7 +23,7 @@ system will be running as an HTTP server on localhost under port 5050
 * `POLL_TIMEOUT` (`float`) - The timeout in seconds for each of the iteration of the event loop, this value
 should be carefully chosed as it controls the minimum resolution of a delayed execution
 
-##### SSL
+#### SSL
 
 * `CER_FILE` (`str`) - The path to the certificate file to be used for SSL (PEM format)
 * `KEY_FILE` (`str`) - The path to the private key file to be used for SSL (PEM format)
