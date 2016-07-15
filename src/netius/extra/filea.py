@@ -76,8 +76,9 @@ class FileAsyncServer(_file.FileServer):
             connection.bytes_p -= data_l
             is_final = not data or connection.bytes_p == 0
             callback = self._file_finish if is_final else self._file_send
-            connection.send(
+            connection.send_part(
                 data,
+                final = is_final,
                 delay = True,
                 callback = callback
             )
