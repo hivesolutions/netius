@@ -80,6 +80,7 @@ class HTTP2Connection(http.HTTPConnection):
         code = 200,
         code_s = None,
         apply = False,
+        final = True,
         flush = True,
         delay = False,
         callback = None
@@ -131,6 +132,7 @@ class HTTP2Connection(http.HTTPConnection):
         # flushes the current internal buffers to enforce sending of the value
         count += self.send_part(
             data,
+            final = final,
             flush = flush,
             delay = delay,
             callback = callback
