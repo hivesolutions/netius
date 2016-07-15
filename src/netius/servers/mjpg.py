@@ -49,8 +49,8 @@ case no boundary is provided to the app """
 
 class MJPGServer(http.HTTPServer):
     """
-    Server class for the creation of an http server for
-    the providing of a motion jpeg stream (as in spec).
+    Server class for the creation of an HTTP server for
+    the providing of a motion JPEG stream (as in spec).
 
     This class should only be seen as a foundation and
     proper implementation should be made from this.
