@@ -1867,7 +1867,7 @@ class AbstractBase(observer.Observable):
 
     def _ssl_ctx_alpn(self, context):
         if not hasattr(ssl, "HAS_ALPN"): return
-        if ssl.HAS_ALPN: return
+        if not ssl.HAS_ALPN: return
         if hasattr(context, "set_alpn_protocols"):
             protocols = self.get_protocols()
             protocols and context.set_alpn_protocols(protocols)
