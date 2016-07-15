@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import netius.servers
 
-class HelloServer(netius.servers.HTTP2Server):
+class HelloServer(netius.servers.HTTPServer):
     """
     Simple Hello (World) HTTP server meant to be used for benchmarks
     and other operations that require a simple in-memory HTTP server.
@@ -52,16 +52,16 @@ class HelloServer(netius.servers.HTTP2Server):
     """
 
     def __init__(self, message = "Hello World", *args, **kwargs):
-        netius.servers.HTTP2Server.__init__(self, *args, **kwargs)
+        netius.servers.HTTPServer.__init__(self, *args, **kwargs)
         self.message = message
 
     def on_serve(self):
-        netius.servers.HTTP2Server.on_serve(self)
+        netius.servers.HTTPServer.on_serve(self)
         if self.env: self.message = self.get_env("MESSAGE", self.message)
         self.info("Serving '%s' as welcome message ..." % self.message)
 
     def on_data_http(self, connection, parser):
-        netius.servers.HTTP2Server.on_data_http(
+        netius.servers.HTTPServer.on_data_http(
             self, connection, parser
         )
 
