@@ -293,7 +293,11 @@ class HTTP2Parser(parser.Parser):
 
         self.content_l = self.headers.get("content-length", 0)
         self.content_l = self.content_l and int(self.content_l)
-        self._data = b"" #@todo this is a hack (data must be parsed)
+        self._data = b"" #@todo this is a hack (data must be parsed) and associated with a stream
+
+        #@todo the returns of this method should be a new stream (maybe)
+        # a new stream must be created at this point
+        # stream = new stream(headers)
 
         self.trigger("on_headers", headers, dependency, weight)
 
