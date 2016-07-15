@@ -11,6 +11,8 @@ or IPv6 only, note that under Linux dual stack is provided for "free" for IPv6 s
 for a given server, any client connection with an IP address not contained in the list will be dropped (defaults to `[]`)
 * `TRUST_ORIGIN` (`bool`) - If the origin connection (eg: http client, proxy client, etc.) is meant to be trusted meaning that
 its information is considered reliable, this value is especially important for proxy to proxy relations (defaults to `False`)
+* `CHILDREN` (`int`) - Number of child processes that are meant to be created upon launch using a pre-fork approach. (defaults to `0`)
+* `CHILD` (`int`) - Same as `CHILDREN`
 
 ##### Internal
 
