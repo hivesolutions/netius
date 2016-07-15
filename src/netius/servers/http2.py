@@ -50,8 +50,9 @@ class HTTP2Connection(http.HTTPConnection):
 
     def __init__(self, legacy = True, *args, **kwargs):
         http.HTTPConnection.__init__(self, *args, **kwargs)
-        self.preface = False #@todo this must be done via states and not like this (just like SMTP)
         self.legacy = legacy
+        self.preface = False
+        self.preface_b = b""
 
     def open(self, *args, **kwargs):
         http.HTTPConnection.open(self, *args, **kwargs)
@@ -67,10 +68,61 @@ class HTTP2Connection(http.HTTPConnection):
 
     def parse(self, data):
         if not self.legacy and not self.preface:
-            self.owner.on_preface_http2(self, self.parser)
-            self.preface = True
-            return
+            data = self.try_preface(data)
+            if not data: return
         return self.parser.parse(data)
+
+    def try_preface(self, data):
+        """
+        Tries to run the parsing on the preface part of the
+        connection establishment using the provided data
+        note that the data is buffered in case the proper size
+        has not been reached for proper validation.
+
+        This should be the first step when trying to establish
+        a proper HTTP 2 connection.
+
+        :type data: String
+        :param data: The data buffer that is going to be used to
+        try to parse the connection preface.
+        :rtype: String
+        :return: The resulting data after the preface has been
+        parsed, this should be empty or invalid in case no data
+        is pending to be parsed.
+        """
+
+        # adds the current data to the buffer of bytes pending
+        # in the preface parsing and then verified that the proper
+        # preface size has been reached, in case it has not returned
+        # an invalid value immediately (no further parsing)
+        self.preface_b += data
+        preface_l = len(netius.common.HTTP2_PREFACE)
+        is_size = len(self.preface_b) >= preface_l
+        if not is_size: return None
+
+        # retrieves the preface string from the buffer (according to size)
+        # and runs the string based verification, raising an exception in
+        # case there's a mismatch in the string validation
+        preface = self.preface_b[:preface_l]
+        if not preface == netius.common.HTTP2_PREFACE:
+            raise netius.ParserError("Invalid preface")
+
+        # sets the preface (parsed) flag indicating that the preface has
+        # been parsed for the current connection
+        self.preface = True
+
+        # retrieves the extra data added to the preface buffer and then
+        # unsets the same buffer (no more preface parsing)
+        data = self.preface_b[preface_l:]
+        self.preface_b = b""
+
+        # calls the proper callback for the preface sending both the current
+        # instance and the associated parser for handling
+        self.owner.on_preface_http2(self, self.parser)
+
+        # returns the remaining data pending to be parsed so that it may be
+        # parsed by any extra operation
+        return data
 
     def send_response(
         self,

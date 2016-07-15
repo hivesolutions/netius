@@ -70,7 +70,7 @@ from .geo import GeoResolver
 from .http import REQUEST, RESPONSE, HTTP_09, HTTP_10, HTTP_11, VERSIONS_MAP,\
     CODE_STRINGS, HTTPParser, HTTPResponse
 from .http2 import DATA, HEADERS, PRIORITY, RST_STREAM, SETTINGS, PUSH_PROMISE,\
-    PING, GOAWAY, WINDOW_UPDATE, CONTINUATION, HTTP2Parser
+    PING, GOAWAY, WINDOW_UPDATE, CONTINUATION, HTTP2_PREFACE, HTTP2Parser
 from .mime import rfc822_parse, rfc822_join
 from .parser import Parser
 from .pop import POPParser

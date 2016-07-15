@@ -58,6 +58,10 @@ GOAWAY = 0x07
 WINDOW_UPDATE = 0x08
 CONTINUATION = 0x09
 
+HTTP2_PREFACE = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
+""" The preface string to be sent by the client upon
+the establishment of the connection """
+
 HEADER_STATE = 1
 """ The initial header state for which the header
 of the frame is going to be parsed and loaded """
