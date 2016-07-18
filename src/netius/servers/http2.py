@@ -65,6 +65,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.parser.bind("on_frame", self.on_frame)
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_settings", self.on_settings)
+        self.parser.bind("on_ping", self.on_ping)
 
     def parse(self, data):
         if not self.legacy and not self.preface:
@@ -396,6 +397,10 @@ class HTTP2Server(http.HTTPServer):
 
     def on_headers_http2(self, connection, parser, headers):
         self.on_data_http(connection, parser) #@todo this is forced as the request may not be complete (NOT VALID FOR POST)
+
+    def on_ping_http2(self, connection, parser, ack):
+        if ack: return
+        connection.send_ping(ack = True)
 
     def _log_frame(self, connection, parser):
         self.debug("Received frame 0x%02x with length %d bytes" % (parser.type, parser.length))
