@@ -329,7 +329,8 @@ class HTTP2Parser(parser.Parser):
         pass
 
     def _parse_ping(self, data):
-        pass
+        ack = self.flags & 0x01
+        self.trigger("on_ping", ack)
 
     def _parse_goaway(self, data):
         pass

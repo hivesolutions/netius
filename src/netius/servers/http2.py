@@ -354,6 +354,9 @@ class HTTP2Connection(http.HTTPConnection):
     def on_settings(self, settings, ack):
         self.owner.on_settings_http2(self, self.parser, settings, ack)
 
+    def on_ping(self, ack):
+        self.owner.on_ping_http2(self, self.parser, ack)
+
 class HTTP2Server(http.HTTPServer):
 
     def __init__(self, legacy = True, safe = True, *args, **kwargs):
@@ -391,12 +394,12 @@ class HTTP2Server(http.HTTPServer):
         is_debug = self.is_debug()
         is_debug and self._log_frame(connection, parser)
 
+    def on_headers_http2(self, connection, parser, headers):
+        self.on_data_http(connection, parser) #@todo this is forced as the request may not be complete (NOT VALID FOR POST)
+
     def on_settings_http2(self, connection, parser, settings, ack):
         if ack: return
         connection.send_settings(ack = True)
-
-    def on_headers_http2(self, connection, parser, headers):
-        self.on_data_http(connection, parser) #@todo this is forced as the request may not be complete (NOT VALID FOR POST)
 
     def on_ping_http2(self, connection, parser, ack):
         if ack: return
