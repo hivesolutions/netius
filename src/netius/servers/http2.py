@@ -129,7 +129,7 @@ class HTTP2Connection(http.HTTPConnection):
         self,
         data = None,
         headers = None,
-        version = "HTTP/2.0",
+        version = None,
         code = 200,
         code_s = None,
         apply = False,
@@ -144,6 +144,7 @@ class HTTP2Connection(http.HTTPConnection):
             self,
             data = data,
             headers = headers,
+            version = version,
             code = code,
             code_s = code_s,
             apply = apply,
@@ -194,7 +195,7 @@ class HTTP2Connection(http.HTTPConnection):
     def send_header(
         self,
         headers = None,
-        version = "HTTP/2.0",
+        version = None,
         code = 200,
         code_s = None,
         delay = False,
@@ -205,6 +206,7 @@ class HTTP2Connection(http.HTTPConnection):
         if self.legacy: return http.HTTPConnection.send_header(
             self,
             headers = headers,
+            version = version,
             code = code,
             code_s = code_s,
             delay = delay,
@@ -214,6 +216,10 @@ class HTTP2Connection(http.HTTPConnection):
         # verifies if the headers value has been provided and in case it
         # has not creates a new empty dictionary (runtime compatibility)
         headers = headers or dict()
+
+        # defines the proper default base http version in case it has not
+        # been provided as part the default values
+        version = version or "HTTP/2.0"
 
         # creates the headers base list that is going to store the various
         # header tuples representing the headers in canonical http2 form

@@ -229,7 +229,7 @@ class HTTPConnection(netius.Connection):
         self,
         data = None,
         headers = None,
-        version = "HTTP/1.1",
+        version = None,
         code = 200,
         code_s = None,
         apply = False,
@@ -280,7 +280,7 @@ class HTTPConnection(netius.Connection):
     def send_header(
         self,
         headers = None,
-        version = "HTTP/1.1",
+        version = None,
         code = 200,
         code_s = None,
         delay = False,
@@ -290,6 +290,7 @@ class HTTPConnection(netius.Connection):
         # and runs a series of normalization processes to retrieve
         # the relevant information of the data to be sent to client
         headers = headers or dict()
+        version = version or "HTTP/1.1"
         code_s = code_s or netius.common.CODE_STRINGS.get(code, None)
 
         # creates the buffer list that is going to hold the complete set of
