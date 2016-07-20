@@ -205,7 +205,6 @@ class HTTP2Connection(http.HTTPConnection):
         if self.legacy: return http.HTTPConnection.send_header(
             self,
             headers = headers,
-            version = version,
             code = code,
             code_s = code_s,
             delay = delay,
