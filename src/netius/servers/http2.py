@@ -144,7 +144,6 @@ class HTTP2Connection(http.HTTPConnection):
             self,
             data = data,
             headers = headers,
-            version = version,
             code = code,
             code_s = code_s,
             apply = apply,
