@@ -113,6 +113,7 @@ class HTTP2Parser(parser.Parser):
             self._parse_continuation
         )
 
+        self.streams = {}
         self._encoder = None
         self._decoder = None
 
@@ -128,6 +129,7 @@ class HTTP2Parser(parser.Parser):
         self.states = ()
         self.state_l = 0
         self.parsers = ()
+        self.streams = {}
         self._encoder = None
         self._decoder = None
 
@@ -297,10 +299,6 @@ class HTTP2Parser(parser.Parser):
         self.content_l = self.content_l and int(self.content_l)
         self._data = b"" #@todo this is a hack (data must be parsed) and associated with a stream
 
-        #@todo the returns of this method should be a new stream (maybe)
-        # a new stream must be created at this point
-        # stream = new stream(headers)
-
         stream = HTTP2Stream(
             owner = self.owner,
             identifier = self.stream,
@@ -309,6 +307,11 @@ class HTTP2Parser(parser.Parser):
             weight = weight,
             end_headers = end_headers
         )
+
+        self.streams[self.stream] = stream
+
+        #@todo when a stream is closed this association should also
+        # be removed (garbage collection)
 
         #@todo: must respect the end_headers flag !!! meaning that new
         # headers may come if this one is not the end, must set that flag
@@ -414,4 +417,4 @@ class HTTP2Stream(netius.Stream):
 
     @property
     def is_ready(self):
-        return self.end_headers
+        return self.end_headers #@todo the proper data for the message should have been received
