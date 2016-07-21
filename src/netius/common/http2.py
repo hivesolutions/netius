@@ -381,6 +381,9 @@ class HTTP2Parser(parser.Parser):
     def _set_stream(self, stream):
         self.streams[self.stream] = stream
 
+    def _del_stream(self, stream):
+        del self.streams[stream]
+
     @property
     def buffer_size(self):
         return sum(len(data) for data in self.buffer)
@@ -434,6 +437,9 @@ class HTTP2Stream(netius.Stream):
         self.content_l = 0
         self._data = None
         self._data_l = 0
+
+    def close(self):
+        self.owner._del_stream(self.identifier)
 
     def calculate(self):
         if not self._data == None: return self.owner
