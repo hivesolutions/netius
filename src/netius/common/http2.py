@@ -299,6 +299,9 @@ class HTTP2Parser(parser.Parser):
         self.content_l = self.content_l and int(self.content_l)
         self._data = b"" #@todo this is a hack (data must be parsed) and associated with a stream
 
+        # constructs the stream structure for the current stream that
+        # is being open/created using the current owner, headers and
+        # other information as the basis for such construction
         stream = HTTP2Stream(
             owner = self.owner,
             identifier = self.stream,
@@ -308,7 +311,9 @@ class HTTP2Parser(parser.Parser):
             end_headers = end_headers
         )
 
-        self.streams[self.stream] = stream
+        # sets the stream under the current parser meaning that it can
+        # be latter retrieved for proper event propagation
+        self._set_stream(stream)
 
         #@todo when a stream is closed this association should also
         # be removed (garbage collection)
@@ -371,6 +376,13 @@ class HTTP2Parser(parser.Parser):
         self.method = headers_s.get(":method", None)
         self.path_s = headers_s.get(":path", None)
         self.headers = headers_m
+
+    def _get_stream(self, stream = None):
+        stream = stream or self.stream
+        return self.streams[self.stream]
+
+    def _set_stream(self, stream):
+        self.streams[self.stream] = stream
 
     @property
     def buffer_size(self):
