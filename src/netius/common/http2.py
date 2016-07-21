@@ -297,15 +297,15 @@ class HTTP2Parser(parser.Parser):
 
         self.content_l = self.headers.get("content-length", 0)
         self.content_l = self.content_l and int(self.content_l)
-        self._data = b"" #@todo this is a hack (data must be parsed) and associated with a stream
+        self._data = b""
 
         # constructs the stream structure for the current stream that
         # is being open/created using the current owner, headers and
         # other information as the basis for such construction
         stream = HTTP2Stream(
-            owner = self.owner,
+            owner = self,
             identifier = self.stream,
-            headers = headers,
+            headers = self.headers,
             dependency = dependency,
             weight = weight,
             end_headers = end_headers,
@@ -410,6 +410,12 @@ class HTTP2Parser(parser.Parser):
         return self._decoder
 
 class HTTP2Stream(netius.Stream):
+    """
+    Object representing a stream of data interchanged between two
+    pears under the HTTP 2 protocol. Should be compatible with
+    both the parser and the connection interfaces and may be used
+    for both types of operations.
+    """
 
     def __init__(
         self,
@@ -429,6 +435,17 @@ class HTTP2Stream(netius.Stream):
         self.weight = weight
         self.end_headers = end_headers
         self.end_stream = end_stream
+        self.content_l = 0
+        self._data = None
+        self._data_l = 0
+
+    def calculate(self):
+        if not self._data == None: return self.owner
+        self.content_l = self.headers.get("content-length", 0)
+        self.content_l = self.content_l and int(self.content_l)
+        self._data = b""
+        self._data_l = 0
+        return self.owner
 
     @property
     def is_ready(self):
