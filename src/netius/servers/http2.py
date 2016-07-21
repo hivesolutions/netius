@@ -43,9 +43,6 @@ import netius.common
 
 from . import http
 
-class HTTP2Stream(netius.Stream):
-    pass
-
 class HTTP2Connection(http.HTTPConnection):
 
     def __init__(self, legacy = True, *args, **kwargs):

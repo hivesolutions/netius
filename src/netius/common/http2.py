@@ -301,7 +301,17 @@ class HTTP2Parser(parser.Parser):
         # a new stream must be created at this point
         # stream = new stream(headers)
 
-        #@todo: must respect the end_headers flag !!!
+        stream = HTTP2Stream(
+            owner = self.owner,
+            identifier = self.stream,
+            headers = headers
+        )
+        stream.dependency = dependency
+        stream.weight = weight
+
+        #@todo: must respect the end_headers flag !!! meaning that new
+        # headers may come if this one is not the end, must set that flag
+        # inside the stream structure
 
         self.trigger("on_headers", headers, dependency, weight, end_stream)
 
@@ -381,3 +391,10 @@ class HTTP2Parser(parser.Parser):
         import hpack
         self._decoder = hpack.hpack.Decoder()
         return self._decoder
+
+class HTTP2Stream(netius.Stream):
+
+    def __init__(self, identifier = None, headers = None, *args, **kwargs):
+        netius.Stream.__init__(self, *args, **kwargs)
+        self.identifier = identifier
+        self.headers = headers
