@@ -308,7 +308,8 @@ class HTTP2Parser(parser.Parser):
             headers = headers,
             dependency = dependency,
             weight = weight,
-            end_headers = end_headers
+            end_headers = end_headers,
+            end_stream = end_stream
         )
 
         # sets the stream under the current parser meaning that it can
@@ -322,7 +323,7 @@ class HTTP2Parser(parser.Parser):
         # headers may come if this one is not the end, must set that flag
         # inside the stream structure
 
-        self.trigger("on_headers", headers, dependency, weight, end_stream)
+        self.trigger("on_headers", stream)
 
     def _parse_priority(self, data):
         pass
@@ -417,6 +418,7 @@ class HTTP2Stream(netius.Stream):
         dependency = None,
         weight = 1,
         end_headers = False,
+        end_stream = False,
         *args,
         **kwargs
     ):
@@ -426,7 +428,12 @@ class HTTP2Stream(netius.Stream):
         self.dependency = dependency
         self.weight = weight
         self.end_headers = end_headers
+        self.end_stream = end_stream
 
     @property
     def is_ready(self):
         return self.end_headers #@todo the proper data for the message should have been received
+
+    @property
+    def is_headers(self):
+        return self.end_headers

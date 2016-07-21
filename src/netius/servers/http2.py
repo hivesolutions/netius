@@ -349,8 +349,8 @@ class HTTP2Connection(http.HTTPConnection):
     def on_frame(self):
         self.owner.on_frame_http2(self, self.parser)
 
-    def on_headers(self, headers, dependency, weight, end_stream):
-        self.owner.on_headers_http2(self, self.parser, headers)
+    def on_headers(self, stream):
+        self.owner.on_headers_http2(self, self.parser, stream)
 
     def on_settings(self, settings, ack):
         self.owner.on_settings_http2(self, self.parser, settings, ack)
@@ -395,8 +395,9 @@ class HTTP2Server(http.HTTPServer):
         is_debug = self.is_debug()
         is_debug and self._log_frame(connection, parser)
 
-    def on_headers_http2(self, connection, parser, headers):
-        self.on_data_http(connection, parser) #@todo this is forced as the request may not be complete (NOT VALID FOR POST)
+    def on_headers_http2(self, connection, parser, stream):
+        if not stream.is_ready: return
+        self.on_data_http(connection, parser)
 
     def on_settings_http2(self, connection, parser, settings, ack):
         if ack: return
