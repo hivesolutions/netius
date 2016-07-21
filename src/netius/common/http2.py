@@ -319,10 +319,6 @@ class HTTP2Parser(parser.Parser):
         #@todo when a stream is closed this association should also
         # be removed (garbage collection)
 
-        #@todo: must respect the end_headers flag !!! meaning that new
-        # headers may come if this one is not the end, must set that flag
-        # inside the stream structure
-
         self.trigger("on_headers", stream)
 
     def _parse_priority(self, data):
@@ -448,8 +444,9 @@ class HTTP2Stream(netius.Stream):
         return self.owner
 
     @property
-    def is_ready(self):
-        return self.end_headers #@todo the proper data for the message should have been received
+    def is_ready(self, calculate = True):
+        if calculate: self.calculate()
+        return self.end_headers and self._data_l >= self.content_l
 
     @property
     def is_headers(self):
