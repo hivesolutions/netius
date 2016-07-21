@@ -58,7 +58,7 @@ class HTTP2Connection(http.HTTPConnection):
     def set_h2(self):
         self.legacy = False
         if self.parser: self.parser.destroy()
-        self.parser = netius.common.HTTP2Parser(self)
+        self.parser = netius.common.HTTP2Parser(self, store = True)
         self.parser.bind("on_frame", self.on_frame)
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_settings", self.on_settings)

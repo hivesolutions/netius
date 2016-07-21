@@ -38,9 +38,11 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import struct
+import tempfile
 
 import netius
 
+from . import http
 from . import parser
 
 HEADER_SIZE = 9
@@ -76,14 +78,14 @@ of the frame has been finished """
 
 class HTTP2Parser(parser.Parser):
 
-    def __init__(self, owner):
+    def __init__(self, owner, store = False, file_limit = http.FILE_LIMIT):
         parser.Parser.__init__(self, owner)
 
         self.keep_alive = True
         self.version_s = "HTTP/2.0"
 
         self.build()
-        self.reset()
+        self.reset(store = store, file_limit = file_limit)
 
     def build(self):
         """
@@ -133,7 +135,9 @@ class HTTP2Parser(parser.Parser):
         self._encoder = None
         self._decoder = None
 
-    def reset(self):
+    def reset(self, store = False, file_limit = http.FILE_LIMIT):
+        self.store = store,
+        self.file_limit = file_limit
         self.state = HEADER_STATE
         self.buffer = []
         self.length = 0
@@ -309,7 +313,9 @@ class HTTP2Parser(parser.Parser):
             dependency = dependency,
             weight = weight,
             end_headers = end_headers,
-            end_stream = end_stream
+            end_stream = end_stream,
+            store = self.store,
+            file_limit = self.file_limit
         )
 
         # sets the stream under the current parser meaning that it can
@@ -424,6 +430,8 @@ class HTTP2Stream(netius.Stream):
         weight = 1,
         end_headers = False,
         end_stream = False,
+        store = False,
+        file_limit = http.FILE_LIMIT,
         *args,
         **kwargs
     ):
@@ -434,20 +442,34 @@ class HTTP2Stream(netius.Stream):
         self.weight = weight
         self.end_headers = end_headers
         self.end_stream = end_stream
-        self.content_l = 0
-        self._data = None
+        self.reset(store = store, file_limit = file_limit)
+
+    def reset(self, store = False, file_limit = http.FILE_LIMIT):
+        self.store = store
+        self.file_limit = file_limit
+        self.content_l =  -1
+        self._data_b = None
         self._data_l = 0
 
     def close(self):
         self.owner._del_stream(self.identifier)
 
     def calculate(self):
-        if not self._data == None: return self.owner
+        if not self._data_b == None: return self.owner
         self.content_l = self.headers.get("content-length", 0)
         self.content_l = self.content_l and int(self.content_l)
-        self._data = b""
+        self._data_b = self._build_b()
         self._data_l = 0
         return self.owner
+
+    def get_message_b(self, copy = False, size = 40960):
+        #@todo tenho de ver esta merda
+        ## ASDASDDASDDAS!!!!!
+
+        self.message_f = netius.legacy.BytesIO()
+        self.message_f.write(self._data) #@todo this is a hack
+        self.message_f.seek(0)
+        return self.message_f  #todo must handle proper copy of values
 
     @property
     def is_ready(self, calculate = True):
@@ -457,3 +479,8 @@ class HTTP2Stream(netius.Stream):
     @property
     def is_headers(self):
         return self.end_headers
+
+    def _build_b(self):
+        use_file = self.store and self.content_l >= self.file_limit
+        if use_file: return tempfile.NamedTemporaryFile(mode = "w+b")
+        else: return netius.legacy.BytesIO()
