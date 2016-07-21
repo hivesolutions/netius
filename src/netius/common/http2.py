@@ -304,10 +304,11 @@ class HTTP2Parser(parser.Parser):
         stream = HTTP2Stream(
             owner = self.owner,
             identifier = self.stream,
-            headers = headers
+            headers = headers,
+            dependency = dependency,
+            weight = weight,
+            end_headers = end_headers
         )
-        stream.dependency = dependency
-        stream.weight = weight
 
         #@todo: must respect the end_headers flag !!! meaning that new
         # headers may come if this one is not the end, must set that flag
@@ -394,7 +395,23 @@ class HTTP2Parser(parser.Parser):
 
 class HTTP2Stream(netius.Stream):
 
-    def __init__(self, identifier = None, headers = None, *args, **kwargs):
+    def __init__(
+        self,
+        identifier = None,
+        headers = None,
+        dependency = None,
+        weight = 1,
+        end_headers = False,
+        *args,
+        **kwargs
+    ):
         netius.Stream.__init__(self, *args, **kwargs)
         self.identifier = identifier
         self.headers = headers
+        self.dependency = dependency
+        self.weight = weight
+        self.end_headers = end_headers
+
+    @property
+    def is_ready(self):
+        return self.end_headers
