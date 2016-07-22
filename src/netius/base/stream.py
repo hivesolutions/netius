@@ -65,3 +65,9 @@ class Stream(observer.Observable):
         observer.Observable.__init__(self)
         self.status = PENDING
         self.owner = owner
+
+    def reset(self):
+        pass
+
+    def close(self):
+        self.status = CLOSED

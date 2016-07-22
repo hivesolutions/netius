@@ -402,6 +402,7 @@ class HTTP2Stream(netius.Stream):
         **kwargs
     ):
         netius.Stream.__init__(self, *args, **kwargs)
+        self.connection = self.owner.owner
         self.identifier = identifier
         self.headers_l = headers
         self.dependency = dependency
@@ -410,10 +411,16 @@ class HTTP2Stream(netius.Stream):
         self.end_stream = end_stream
         self.reset(store = store, file_limit = file_limit)
 
+    def __getattr__(self, name):
+        if hasattr(self.connection, name):
+            return getattr(self.connection, name)
+        raise AttributeError("'%s' not found" % name)
+
     def reset(self, store = False, file_limit = http.FILE_LIMIT):
+        netius.Stream.reset(self)
         self.store = store
         self.file_limit = file_limit
-        self.headers = {}
+        self.headers = None
         self.method = None
         self.path_s = None
         self.version_s = "HTTP/2.0"
@@ -423,6 +430,7 @@ class HTTP2Stream(netius.Stream):
         self._data_l = -1
 
     def close(self):
+        netius.Stream.close(self)
         self.owner._del_stream(self.identifier)
 
     def extend_headers(self, headers):
@@ -442,6 +450,18 @@ class HTTP2Stream(netius.Stream):
         self.message_f.write(self._data) #@todo this is a hack
         self.message_f.seek(0)
         return self.message_f  #todo must handle proper copy of values
+
+    def send_response(self, *args, **kwargs):
+        kwargs["stream"] = self.identifier
+        return self.connection.send_response(*args, **kwargs)
+
+    def send_header(self, *args, **kwargs):
+        kwargs["stream"] = self.identifier
+        return self.connection.send_header(*args, **kwargs)
+
+    def send_part(self, *args, **kwargs):
+        kwargs["stream"] = self.identifier
+        return self.connection.send_part(*args, **kwargs)
 
     @property
     def parser(self):
@@ -468,6 +488,7 @@ class HTTP2Stream(netius.Stream):
 
     def _calculate_headers(self):
         util.verify(self.is_headers)
+        util.verify(self.headers == None)
 
         headers_m = dict()
         headers_s = dict()

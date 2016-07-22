@@ -130,6 +130,7 @@ class HTTP2Connection(http.HTTPConnection):
         code = 200,
         code_s = None,
         apply = False,
+        stream = None,
         final = True,
         flush = True,
         delay = False,
@@ -145,6 +146,8 @@ class HTTP2Connection(http.HTTPConnection):
             code = code,
             code_s = code_s,
             apply = apply,
+            stream = stream,
+            final = final,
             flush = flush,
             delay = delay,
             callback = callback
@@ -175,13 +178,15 @@ class HTTP2Connection(http.HTTPConnection):
             headers = headers,
             version = version,
             code = code,
-            code_s = code_s
+            code_s = code_s,
+            stream = stream
         )
 
         # sends the part/payload information (data) to the client and optionally
         # flushes the current internal buffers to enforce sending of the value
         count += self.send_part(
             data,
+            stream = stream,
             final = final,
             flush = flush,
             delay = delay,
@@ -195,6 +200,7 @@ class HTTP2Connection(http.HTTPConnection):
         version = None,
         code = 200,
         code_s = None,
+        stream = None,
         delay = False,
         callback = None
     ):
@@ -206,6 +212,7 @@ class HTTP2Connection(http.HTTPConnection):
             version = version,
             code = code,
             code_s = code_s,
+            stream = stream,
             delay = delay,
             callback = callback
         )
@@ -230,11 +237,17 @@ class HTTP2Connection(http.HTTPConnection):
             if not type(value) == list: value = (value,)
             for _value in value: headers_b.append((key, _value))
 
-        return self.send_headers(headers_b, delay = delay, callback = callback)
+        return self.send_headers(
+            headers_b,
+            stream = stream,
+            delay = delay,
+            callback = callback
+        )
 
     def send_part(
         self,
         data,
+        stream = None,
         final = True,
         flush = False,
         delay = False,
@@ -243,13 +256,27 @@ class HTTP2Connection(http.HTTPConnection):
         if self.legacy: return http.HTTPConnection.send_part(
             self,
             data,
+            stream = stream,
             final = final,
             flush = flush,
             delay = delay,
             callback = callback
         )
-        if flush: count = self.send_data(data, end_stream = final); self.flush(callback = callback)
-        else: count = self.send_data(data, end_stream = final, delay = delay, callback = callback)
+        if flush:
+            count = self.send_data(
+                data,
+                stream = stream,
+                end_stream = final
+            )
+            self.flush(callback = callback)
+        else:
+            count = self.send_data(
+                data,
+                stream = stream,
+                end_stream = final,
+                delay = delay,
+                callback = callback
+            )
         return count
 
     def send_frame(
@@ -280,7 +307,7 @@ class HTTP2Connection(http.HTTPConnection):
             type = netius.common.DATA,
             flags = flags,
             payload = data,
-            stream = stream or self.parser.stream,
+            stream = stream,
             delay = delay,
             callback = callback
         )
@@ -302,7 +329,7 @@ class HTTP2Connection(http.HTTPConnection):
             type = netius.common.HEADERS,
             flags = flags,
             payload = payload,
-            stream = stream or self.parser.stream,
+            stream = stream,
             delay = delay,
             callback = callback
         )
@@ -397,7 +424,7 @@ class HTTP2Server(http.HTTPServer):
 
     def on_headers_http2(self, connection, parser, stream):
         if not stream.is_ready: return
-        self.on_data_http(connection, stream)
+        self.on_data_http(stream, stream)
 
     def on_settings_http2(self, connection, parser, settings, ack):
         if ack: return
