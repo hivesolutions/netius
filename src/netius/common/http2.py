@@ -348,7 +348,9 @@ class HTTP2Parser(parser.Parser):
         self.trigger("on_ping", ack)
 
     def _parse_goaway(self, data):
-        pass
+        last_stream, error_code = struct.unpack("!II", data[:8])
+        extra = data[8:]
+        self.trigger("on_goaway", last_stream, error_code, extra)
 
     def _parse_window_update(self, data):
         pass

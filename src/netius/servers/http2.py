@@ -63,6 +63,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_settings", self.on_settings)
         self.parser.bind("on_ping", self.on_ping)
+        self.parser.bind("on_goaway", self.on_goaway)
 
     def parse(self, data):
         if not self.legacy and not self.preface:
@@ -385,6 +386,9 @@ class HTTP2Connection(http.HTTPConnection):
     def on_ping(self, ack):
         self.owner.on_ping_http2(self, self.parser, ack)
 
+    def on_goaway(self, last_stream, error_code, extra):
+        self.owner.on_goaway_http2(self, self.parser, last_stream, error_code, extra)
+
 class HTTP2Server(http.HTTPServer):
 
     def __init__(self, legacy = True, safe = False, *args, **kwargs):
@@ -434,8 +438,17 @@ class HTTP2Server(http.HTTPServer):
         if ack: return
         connection.send_ping(ack = True)
 
+    def on_goaway_http2(self, connection, parser, last_stream, error_code, extra):
+        self._log_error(error_code, extra)
+
     def _log_frame(self, connection, parser):
         self.debug(
             "Received frame 0x%02x (%s) with length %d bytes" %\
             (parser.type, parser.type_s, parser.length)
+        )
+
+    def _log_error(self, error_code, extra):
+        self.warning(
+            "Received error 0x%02x with message '%s'" %\
+            (error_code, extra)
         )
