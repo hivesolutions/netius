@@ -322,9 +322,6 @@ class HTTP2Parser(parser.Parser):
         # be latter retrieved for proper event propagation
         self._set_stream(stream)
 
-        #@todo when a stream is closed this association should also
-        # be removed (garbage collection)
-
         self.trigger("on_headers", stream)
 
     def _parse_priority(self, data):
