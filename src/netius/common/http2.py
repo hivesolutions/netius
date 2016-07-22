@@ -455,9 +455,6 @@ class HTTP2Stream(netius.Stream):
         self.owner._del_stream(self.identifier)
 
     def get_message_b(self, copy = False, size = 40960):
-        #@todo tenho de ver esta merda
-        ## ASDASDDASDDAS!!!!!
-
         self.message_f = netius.legacy.BytesIO()
         self.message_f.write(self._data) #@todo this is a hack
         self.message_f.seek(0)
