@@ -358,6 +358,8 @@ class HTTP2Parser(parser.Parser):
         pass
 
     def _parse_continuation(self, data):
+        #@todo must retrieve the current stream and then parse more
+        # headers and add them to the associated stream
         pass
 
     def _set_legacy(self, headers):
