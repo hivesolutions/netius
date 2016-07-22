@@ -451,7 +451,7 @@ class HTTP2Server(http.HTTPServer):
         self.on_data_http(stream, stream)
 
     def on_settings_http2(self, connection, parser, settings, ack):
-        if ack: connection.send_window_update(increment = 6400); return
+        if ack: return
         self.debug("Received settings %s for connection" % str(settings))
         connection.send_settings(ack = True)
 
