@@ -353,7 +353,8 @@ class HTTP2Parser(parser.Parser):
         self.trigger("on_goaway", last_stream, error_code, extra)
 
     def _parse_window_update(self, data):
-        pass
+        increment, = struct.unpack("!I", data)
+        self.trigger("on_window_update", increment)
 
     def _parse_continuation(self, data):
         end_headers = True if self.flags & 0x04 else False

@@ -64,6 +64,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.parser.bind("on_settings", self.on_settings)
         self.parser.bind("on_ping", self.on_ping)
         self.parser.bind("on_goaway", self.on_goaway)
+        self.parser.bind("on_window_update", self.on_window_update)
 
     def parse(self, data):
         if not self.legacy and not self.preface:
@@ -389,6 +390,9 @@ class HTTP2Connection(http.HTTPConnection):
     def on_goaway(self, last_stream, error_code, extra):
         self.owner.on_goaway_http2(self, self.parser, last_stream, error_code, extra)
 
+    def on_window_update(self, increment):
+        self.owner.on_window_update_http2(self, self.parser, increment)
+
 class HTTP2Server(http.HTTPServer):
 
     def __init__(self, legacy = True, safe = False, *args, **kwargs):
@@ -440,6 +444,9 @@ class HTTP2Server(http.HTTPServer):
 
     def on_goaway_http2(self, connection, parser, last_stream, error_code, extra):
         self._log_error(error_code, extra)
+
+    def on_window_update_http2(self, connection, parser, increment):
+        print(increment)
 
     def _log_frame(self, connection, parser):
         self.debug(
