@@ -1803,6 +1803,7 @@ class AbstractBase(observer.Observable):
         # is unset for situation where no callback registration is possible
         self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
         self._ssl_ctx_base(self._ssl_context, secure = secure)
+        self._ssl_ctx_protocols(self._ssl_context)
         self._ssl_certs(self._ssl_context)
         has_callback = hasattr(self._ssl_context, "set_servername_callback")
         if has_callback: self._ssl_context.set_servername_callback(self._ssl_callback)
@@ -1821,7 +1822,7 @@ class AbstractBase(observer.Observable):
 
     def _ssl_callback(self, socket, hostname, context):
         context, values = self._ssl_contexts.get(hostname, (context, None))
-        self._ssl_ctx_alpn(context)
+        self._ssl_ctx_protocols(context)
         socket.context = context
         if not values: return
         ssl_host = values.get("ssl_host", None)
@@ -1833,6 +1834,7 @@ class AbstractBase(observer.Observable):
     def _ssl_ctx(self, values, context = None, secure = True):
         context = context or ssl.SSLContext(ssl.PROTOCOL_SSLv23)
         self._ssl_ctx_base(context, secure = secure)
+        self._ssl_ctx_protocols(context)
         key_file = values.get("key_file", None)
         cer_file = values.get("cer_file", None)
         ca_file = values.get("ca_file", None)
@@ -1865,12 +1867,23 @@ class AbstractBase(observer.Observable):
         if secure and SSL_DH_PATH and hasattr(context, "load_dh_params"):
             context.load_dh_params(SSL_DH_PATH)
 
+    def _ssl_ctx_protocols(self, context):
+        self._ssl_ctx_alpn(context)
+        self._ssl_ctx_npn(context)
+
     def _ssl_ctx_alpn(self, context):
         if not hasattr(ssl, "HAS_ALPN"): return
         if not ssl.HAS_ALPN: return
         if hasattr(context, "set_alpn_protocols"):
             protocols = self.get_protocols()
             protocols and context.set_alpn_protocols(protocols)
+
+    def _ssl_ctx_npn(self, context):
+        if not hasattr(ssl, "HAS_NPN"): return
+        if not ssl.HAS_NPN: return
+        if hasattr(context, "set_npn_protocols"):
+            protocols = self.get_protocols()
+            protocols and context.set_npn_protocols(protocols)
 
     def _ssl_certs(
         self,

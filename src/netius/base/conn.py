@@ -478,9 +478,17 @@ class BaseConnection(observer.Observable):
         tls.match_hostname(certificate, host)
 
     def ssl_protocol(self):
+        return self.ssl_alpn_protocol() or self.ssl_npn_protocol()
+
+    def ssl_alpn_protocol(self):
         if not self.socket: return None
         if not hasattr(self.socket, "selected_alpn_protocol"): return None
         return self.socket.selected_alpn_protocol()
+
+    def ssl_npn_protocol(self):
+        if not self.socket: return None
+        if not hasattr(self.socket, "selected_npn_protocol"): return None
+        return self.socket.selected_npn_protocol()
 
     def is_open(self):
         return self.status == OPEN
