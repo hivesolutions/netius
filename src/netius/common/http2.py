@@ -77,6 +77,21 @@ FINISH_STATE = 3
 """ The final finish state to be used when the parsing
 of the frame has been finished """
 
+HTTP2_NAMES = {
+    DATA : "DATA",
+    HEADERS : "HEADERS",
+    PRIORITY : "PRIORITY",
+    RST_STREAM : "RST_STREAM",
+    SETTINGS : "SETTINGS",
+    PUSH_PROMISE : "PUSH_PROMISE",
+    PING : "PING",
+    GOAWAY : "GOAWAY",
+    WINDOW_UPDATE : "WINDOW_UPDATE",
+    CONTINUATION : "CONTINUATION"
+}
+""" The association between the various types of frames
+described as integers and their representation as strings """
+
 class HTTP2Parser(parser.Parser):
 
     def __init__(self, owner, store = False, file_limit = http.FILE_LIMIT):
@@ -204,6 +219,10 @@ class HTTP2Parser(parser.Parser):
         # returns the number of read (processed) bytes of the
         # data that has been sent to the parser
         return size_o - size
+
+    @property
+    def type_s(self):
+        return HTTP2_NAMES.get(self.type, None)
 
     def _parse_header(self, data):
         if len(data) + self.buffer_size < HEADER_SIZE: return 0

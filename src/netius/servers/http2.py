@@ -435,4 +435,7 @@ class HTTP2Server(http.HTTPServer):
         connection.send_ping(ack = True)
 
     def _log_frame(self, connection, parser):
-        self.debug("Received frame 0x%02x with length %d bytes" % (parser.type, parser.length))
+        self.debug(
+            "Received frame 0x%02x (%s) with length %d bytes" %\
+            (parser.type, parser.type_s, parser.length)
+        )
