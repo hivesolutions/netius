@@ -367,8 +367,15 @@ class HTTP2Parser(parser.Parser):
         for header in headers:
             key, value = header
             is_special = key.startswith(":")
+            exists = key in headers_m
+            if exists:
+                sequence = self.headers[key]
+                is_list = type(sequence) == list
+                if not is_list: sequence = [sequence]
+                sequence.append(value)
+                value = sequence
             if is_special: headers_s[key] = value
-            else: headers_m[key] = value #@todo in case there's an overlap a list must be created
+            else: headers_m[key] = value
 
         host = headers_s.get(":authority", None)
         if host: headers_m["host"] = host
@@ -474,6 +481,7 @@ class HTTP2Stream(netius.Stream):
     def _calculate(self):
         if not self._data_b == None: return
         if not self._data_l == -1: return
+        if not self.is_headers: return
         self.content_l = self.headers.get("content-length", 0)
         self.content_l = self.content_l and int(self.content_l)
         self._data_b = self._build_b()
