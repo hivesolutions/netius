@@ -417,9 +417,10 @@ class HTTP2Parser(parser.Parser):
 class HTTP2Stream(netius.Stream):
     """
     Object representing a stream of data interchanged between two
-    pears under the HTTP 2 protocol. Should be compatible with
-    both the parser and the connection interfaces and may be used
-    for both types of operations.
+    pears under the HTTP 2 protocol.
+
+    Should be compatible with both the parser and the connection
+    interfaces and may be used for both types of operations.
     """
 
     def __init__(
@@ -459,6 +460,10 @@ class HTTP2Stream(netius.Stream):
         self.message_f.write(self._data) #@todo this is a hack
         self.message_f.seek(0)
         return self.message_f  #todo must handle proper copy of values
+
+    @property
+    def parser(self):
+        return self
 
     @property
     def is_ready(self, calculate = True):
