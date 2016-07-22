@@ -206,7 +206,7 @@ class HTTP2Parser(parser.Parser):
                 continue
 
             elif self.state == FINISH_STATE:
-                break
+                self.clear()
 
             else:
                 raise netius.ParserError("Invalid state '%d'" % self.state)

@@ -433,8 +433,14 @@ class HTTP2Server(http.HTTPServer):
         connection.set_h2()
 
     def on_preface_http2(self, connection, parser):
-        connection.send_settings(settings = [(3, 1024), (4, 6291456)])
-        connection.send_window_update(increment = 64000)
+        settings = [
+            (1, 4096),
+            (3, 100),
+            (4, 65535),
+            (5, 16384),
+            (6, 16384)
+        ]
+        connection.send_settings(settings = settings)
 
     def on_frame_http2(self, connection, parser):
         is_debug = self.is_debug()
@@ -445,8 +451,8 @@ class HTTP2Server(http.HTTPServer):
         self.on_data_http(stream, stream)
 
     def on_settings_http2(self, connection, parser, settings, ack):
-        if ack: return
-        print(settings)
+        if ack: connection.send_window_update(increment = 6400); return
+        self.debug("Received settings %s for connection" % str(settings))
         connection.send_settings(ack = True)
 
     def on_ping_http2(self, connection, parser, ack):
