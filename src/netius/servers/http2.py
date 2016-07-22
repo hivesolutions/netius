@@ -463,7 +463,7 @@ class HTTP2Server(http.HTTPServer):
         self._log_error(error_code, extra)
 
     def on_window_update_http2(self, connection, parser, increment):
-        self.debug("Window updated with increment %d frames" % increment)
+        self.debug("Window updated with increment %d bytes" % increment)
 
     def _log_frame(self, connection, parser):
         self.debug(
