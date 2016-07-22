@@ -449,7 +449,7 @@ class HTTP2Stream(netius.Stream):
         self.file_limit = file_limit
         self.content_l = -1
         self._data_b = None
-        self._data_l = 0
+        self._data_l = -1
 
     def close(self):
         self.owner._del_stream(self.identifier)
