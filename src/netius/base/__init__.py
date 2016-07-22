@@ -59,7 +59,7 @@ from .config import conf, conf_prefix, conf_s
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
 from .errors import NetiusError, PauseError, DataError, ParserError,\
-    GeneratorError, SecurityError, NotImplemented
+    GeneratorError, SecurityError, NotImplemented, AssertionError
 from .log import SILENT, rotating_handler, smtp_handler
 from .observer import Observable
 from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll

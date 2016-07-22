@@ -43,6 +43,7 @@ import tempfile
 import netius
 
 from . import http
+from . import util
 from . import parser
 
 HEADER_SIZE = 9
@@ -80,9 +81,6 @@ class HTTP2Parser(parser.Parser):
 
     def __init__(self, owner, store = False, file_limit = http.FILE_LIMIT):
         parser.Parser.__init__(self, owner)
-
-        self.keep_alive = True
-        self.version_s = "HTTP/2.0"
 
         self.build()
         self.reset(store = store, file_limit = file_limit)
@@ -151,21 +149,6 @@ class HTTP2Parser(parser.Parser):
 
     def close(self):
         pass
-
-    def get_path(self):
-        split = self.path_s.split("?", 1)
-        return split[0]
-
-    def get_query(self):
-        split = self.path_s.split("?", 1)
-        if len(split) == 1: return ""
-        else: return split[1]
-
-    def get_message_b(self, copy = False, size = 40960):
-        self.message_f = netius.legacy.BytesIO()
-        self.message_f.write(self._data) #@todo this is a hack
-        self.message_f.seek(0)
-        return self.message_f  #todo must handle proper copy of values
 
     def parse(self, data):
         """
@@ -297,19 +280,13 @@ class HTTP2Parser(parser.Parser):
         fragment = data[index:data_l - padded_l]
         headers = self.decoder.decode(fragment)
 
-        self._set_legacy(headers)
-
-        self.content_l = self.headers.get("content-length", 0)
-        self.content_l = self.content_l and int(self.content_l)
-        self._data = b""
-
         # constructs the stream structure for the current stream that
         # is being open/created using the current owner, headers and
         # other information as the basis for such construction
         stream = HTTP2Stream(
             owner = self,
             identifier = self.stream,
-            headers = self.headers,
+            headers = headers,
             dependency = dependency,
             weight = weight,
             end_headers = end_headers,
@@ -358,33 +335,15 @@ class HTTP2Parser(parser.Parser):
         pass
 
     def _parse_continuation(self, data):
-        #@todo must retrieve the current stream and then parse more
-        # headers and add them to the associated stream
-        pass
+        end_headers = True if self.flags & 0x04 else False
 
-    def _set_legacy(self, headers):
-        headers_m = dict()
-        headers_s = dict()
+        headers = self.decoder.decode(data)
 
-        for header in headers:
-            key, value = header
-            is_special = key.startswith(":")
-            exists = key in headers_m
-            if exists:
-                sequence = self.headers[key]
-                is_list = type(sequence) == list
-                if not is_list: sequence = [sequence]
-                sequence.append(value)
-                value = sequence
-            if is_special: headers_s[key] = value
-            else: headers_m[key] = value
+        stream = self._get_stream(self.stream)
+        stream.extend_headers(headers)
+        stream.end_headers = end_headers
 
-        host = headers_s.get(":authority", None)
-        if host: headers_m["host"] = host
-
-        self.method = headers_s.get(":method", None)
-        self.path_s = headers_s.get(":path", None)
-        self.headers = headers_m
+        self.trigger("on_headers", stream)
 
     def _get_stream(self, stream = None):
         stream = stream or self.stream
@@ -444,7 +403,7 @@ class HTTP2Stream(netius.Stream):
     ):
         netius.Stream.__init__(self, *args, **kwargs)
         self.identifier = identifier
-        self.headers = headers
+        self.headers_l = headers
         self.dependency = dependency
         self.weight = weight
         self.end_headers = end_headers
@@ -454,12 +413,29 @@ class HTTP2Stream(netius.Stream):
     def reset(self, store = False, file_limit = http.FILE_LIMIT):
         self.store = store
         self.file_limit = file_limit
+        self.headers = {}
+        self.method = None
+        self.path_s = None
+        self.version_s = "HTTP/2.0"
+        self.keep_alive = True
         self.content_l = -1
         self._data_b = None
         self._data_l = -1
 
     def close(self):
         self.owner._del_stream(self.identifier)
+
+    def extend_headers(self, headers):
+        self.headers_l += headers
+
+    def get_path(self):
+        split = self.path_s.split("?", 1)
+        return split[0]
+
+    def get_query(self):
+        split = self.path_s.split("?", 1)
+        if len(split) == 1: return ""
+        else: return split[1]
 
     def get_message_b(self, copy = False, size = 40960):
         self.message_f = netius.legacy.BytesIO()
@@ -484,10 +460,37 @@ class HTTP2Stream(netius.Stream):
         if not self._data_b == None: return
         if not self._data_l == -1: return
         if not self.is_headers: return
+        self._calculate_headers()
         self.content_l = self.headers.get("content-length", 0)
         self.content_l = self.content_l and int(self.content_l)
         self._data_b = self._build_b()
         self._data_l = 0
+
+    def _calculate_headers(self):
+        util.verify(self.is_headers)
+
+        headers_m = dict()
+        headers_s = dict()
+
+        for header in self.headers_l:
+            key, value = header
+            is_special = key.startswith(":")
+            exists = key in headers_m
+            if exists:
+                sequence = headers_m[key]
+                is_list = type(sequence) == list
+                if not is_list: sequence = [sequence]
+                sequence.append(value)
+                value = sequence
+            if is_special: headers_s[key] = value
+            else: headers_m[key] = value
+
+        host = headers_s.get(":authority", None)
+        if host: headers_m["host"] = host
+
+        self.headers = headers_m
+        self.method = headers_s.get(":method", None)
+        self.path_s = headers_s.get(":path", None)
 
     def _build_b(self):
         use_file = self.store and self.content_l >= self.file_limit

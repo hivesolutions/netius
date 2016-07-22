@@ -360,7 +360,7 @@ class HTTP2Connection(http.HTTPConnection):
 
 class HTTP2Server(http.HTTPServer):
 
-    def __init__(self, legacy = True, safe = True, *args, **kwargs):
+    def __init__(self, legacy = True, safe = False, *args, **kwargs):
         self._protocols = []
         self.legacy, self.safe = legacy, safe
         http.HTTPServer.__init__(self, *args, **kwargs)
@@ -397,7 +397,7 @@ class HTTP2Server(http.HTTPServer):
 
     def on_headers_http2(self, connection, parser, stream):
         if not stream.is_ready: return
-        self.on_data_http(connection, parser) #@todo the stream should be passed here instead
+        self.on_data_http(connection, stream)
 
     def on_settings_http2(self, connection, parser, settings, ack):
         if ack: return
