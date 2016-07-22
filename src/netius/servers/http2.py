@@ -375,6 +375,15 @@ class HTTP2Connection(http.HTTPConnection):
             callback = callback
         )
 
+    def send_window_update(self, increment = 0, delay = False, callback = None):
+        payload = struct.pack("!I", increment)
+        return self.send_frame(
+            type = netius.common.WINDOW_UPDATE,
+            payload = payload,
+            delay = delay,
+            callback = callback
+        )
+
     def on_frame(self):
         self.owner.on_frame_http2(self, self.parser)
 
@@ -424,7 +433,8 @@ class HTTP2Server(http.HTTPServer):
         connection.set_h2()
 
     def on_preface_http2(self, connection, parser):
-        pass
+        connection.send_settings(settings = [(3, 1024), (4, 6291456)])
+        connection.send_window_update(increment = 64000)
 
     def on_frame_http2(self, connection, parser):
         is_debug = self.is_debug()
@@ -436,6 +446,7 @@ class HTTP2Server(http.HTTPServer):
 
     def on_settings_http2(self, connection, parser, settings, ack):
         if ack: return
+        print(settings)
         connection.send_settings(ack = True)
 
     def on_ping_http2(self, connection, parser, ack):
@@ -446,12 +457,12 @@ class HTTP2Server(http.HTTPServer):
         self._log_error(error_code, extra)
 
     def on_window_update_http2(self, connection, parser, increment):
-        print(increment)
+        self.debug("Window updated with increment %d frames" % increment)
 
     def _log_frame(self, connection, parser):
         self.debug(
-            "Received frame 0x%02x (%s) with length %d bytes" %\
-            (parser.type, parser.type_s, parser.length)
+            "Received frame 0x%02x (%s) for stream %d with length %d bytes" %\
+            (parser.type, parser.type_s, parser.stream, parser.length)
         )
 
     def _log_error(self, error_code, extra):
