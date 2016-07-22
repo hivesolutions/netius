@@ -474,6 +474,7 @@ class HTTP2Stream(netius.Stream):
 
     def _calculate(self):
         if not self._data_b == None: return
+        if not self._data_l == -1: return
         self.content_l = self.headers.get("content-length", 0)
         self.content_l = self.content_l and int(self.content_l)
         self._data_b = self._build_b()
