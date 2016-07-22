@@ -447,20 +447,12 @@ class HTTP2Stream(netius.Stream):
     def reset(self, store = False, file_limit = http.FILE_LIMIT):
         self.store = store
         self.file_limit = file_limit
-        self.content_l =  -1
+        self.content_l = -1
         self._data_b = None
         self._data_l = 0
 
     def close(self):
         self.owner._del_stream(self.identifier)
-
-    def calculate(self):
-        if not self._data_b == None: return self.owner
-        self.content_l = self.headers.get("content-length", 0)
-        self.content_l = self.content_l and int(self.content_l)
-        self._data_b = self._build_b()
-        self._data_l = 0
-        return self.owner
 
     def get_message_b(self, copy = False, size = 40960):
         #@todo tenho de ver esta merda
@@ -473,12 +465,19 @@ class HTTP2Stream(netius.Stream):
 
     @property
     def is_ready(self, calculate = True):
-        if calculate: self.calculate()
+        if calculate: self._calculate()
         return self.end_headers and self._data_l >= self.content_l
 
     @property
     def is_headers(self):
         return self.end_headers
+
+    def _calculate(self):
+        if not self._data_b == None: return
+        self.content_l = self.headers.get("content-length", 0)
+        self.content_l = self.content_l and int(self.content_l)
+        self._data_b = self._build_b()
+        self._data_l = 0
 
     def _build_b(self):
         use_file = self.store and self.content_l >= self.file_limit

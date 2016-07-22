@@ -397,8 +397,7 @@ class HTTP2Server(http.HTTPServer):
 
     def on_headers_http2(self, connection, parser, stream):
         if not stream.is_ready: return
-        stream = stream.calculate()
-        self.on_data_http(connection, stream)
+        self.on_data_http(connection, parser) #@todo the stream should be passed here instead
 
     def on_settings_http2(self, connection, parser, settings, ack):
         if ack: return
