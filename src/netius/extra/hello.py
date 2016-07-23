@@ -67,7 +67,10 @@ class HelloServer(netius.servers.HTTP2Server):
 
         callback = self._hello_keep if parser.keep_alive else self._hello_close
         connection_s = "keep-alive" if parser.keep_alive else "close"
-        headers = dict(Connection = connection_s)
+        headers = {
+            "Connection" : connection_s,
+            "Content-Type" : "text/plain"
+        }
 
         connection.send_response(
             data = self.message,

@@ -236,6 +236,7 @@ class HTTP2Connection(http.HTTPConnection):
         # them and add them to the currently defined base list
         for key, value in headers.items():
             key = netius.common.header_down(key)
+            if key in ("connection",): continue
             if not type(value) == list: value = (value,)
             for _value in value: headers_b.append((key, _value))
 
@@ -435,6 +436,7 @@ class HTTP2Server(http.HTTPServer):
     def on_preface_http2(self, connection, parser):
         settings = [
             (1, 4096),
+            (2, 0),
             (3, 100),
             (4, 65535),
             (5, 16384),
