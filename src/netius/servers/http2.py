@@ -344,7 +344,7 @@ class HTTP2Connection(http.HTTPConnection):
         delay = False,
         callback = None
     ):
-        payload = = struct.pack("!I", error_code)
+        payload = struct.pack("!I", error_code)
         return self.send_frame(
             type = netius.common.RST_STREAM,
             payload = payload,
