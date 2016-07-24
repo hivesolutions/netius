@@ -337,6 +337,22 @@ class HTTP2Connection(http.HTTPConnection):
             callback = callback
         )
 
+    def send_rst_stream(
+        self,
+        error_code = 0x00,
+        stream = None,
+        delay = False,
+        callback = None
+    ):
+        payload = = struct.pack("!I", error_code)
+        return self.send_frame(
+            type = netius.common.RST_STREAM,
+            payload = payload,
+            stream = stream,
+            delay = delay,
+            callback = callback
+        )
+
     def send_settings(
         self,
         settings = (),
