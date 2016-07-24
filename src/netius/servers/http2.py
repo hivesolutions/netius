@@ -478,6 +478,7 @@ class HTTP2Server(http.HTTPServer):
         connection.send_ping(ack = True)
 
     def on_goaway_http2(self, connection, parser, last_stream, error_code, extra):
+        if error_code == 0x00: return
         self._log_error(error_code, extra)
 
     def on_window_update_http2(self, connection, parser, increment):
