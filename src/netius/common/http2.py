@@ -198,7 +198,7 @@ class HTTP2Parser(parser.Parser):
             if self.state <= self.state_l:
                 method = self.states[self.state - 1]
                 count = method(data)
-                if count == 0: break
+                if count == 0: continue
 
                 size -= count
                 data = data[count:]
