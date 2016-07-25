@@ -71,9 +71,12 @@ class Stream(observer.Observable):
 
     def open(self):
         self.status = OPEN
+        self.connection = self.owner.owner
+        self.connection.owner.on_stream_c(self)
 
     def close(self):
         self.status = CLOSED
+        self.connection.owner.on_stream_d(self)
 
     def is_open(self):
         return self.status == OPEN

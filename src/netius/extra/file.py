@@ -77,6 +77,14 @@ class FileServer(netius.servers.HTTP2Server):
         setattr(connection, "bytes_p", None)
         setattr(connection, "queue", None)
 
+    def on_stream_d(self, stream):
+        file = hasattr(stream, "file") and stream.file
+        if file: file.close()
+        setattr(stream, "file", None)
+        setattr(stream, "range", None)
+        setattr(stream, "bytes_p", None)
+        setattr(stream, "queue", None)
+
     def on_serve(self):
         netius.servers.HTTP2Server.on_serve(self)
         if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)

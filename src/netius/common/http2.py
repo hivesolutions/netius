@@ -497,7 +497,6 @@ class HTTP2Stream(netius.Stream):
         **kwargs
     ):
         netius.Stream.__init__(self, *args, **kwargs)
-        self.connection = self.owner.owner
         self.identifier = identifier
         self.headers_l = headers
         self.dependency = dependency
@@ -637,35 +636,35 @@ class HTTP2Stream(netius.Stream):
         if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
-        if callback: kwargs["callback"] = lambda c: callback(self)
+        if callback: kwargs["callback"] = self._build_c(callback)
         return self.connection.flush(*args, **kwargs)
 
     def send_response(self, *args, **kwargs):
         if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
-        if callback: kwargs["callback"] = lambda c: callback(self)
+        if callback: kwargs["callback"] = self._build_c(callback)
         return self.connection.send_response(*args, **kwargs)
 
     def send_header(self, *args, **kwargs):
         if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
-        if callback: kwargs["callback"] = lambda c: callback(self)
+        if callback: kwargs["callback"] = self._build_c(callback)
         return self.connection.send_header(*args, **kwargs)
 
     def send_part(self, *args, **kwargs):
         if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
-        if callback: kwargs["callback"] = lambda c: callback(self)
+        if callback: kwargs["callback"] = self._build_c(callback)
         return self.connection.send_part(*args, **kwargs)
 
     def send_reset(self, *args, **kwargs):
         if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
-        if callback: kwargs["callback"] = lambda c: callback(self)
+        if callback: kwargs["callback"] = self._build_c(callback)
         return self.connection.send_rst_stream(*args, **kwargs)
 
     @property
@@ -722,3 +721,27 @@ class HTTP2Stream(netius.Stream):
         use_file = self.store and self.content_l >= self.file_limit
         if use_file: return tempfile.NamedTemporaryFile(mode = "w+b")
         else: return netius.legacy.BytesIO()
+
+    def _build_c(self, callback, validate = True):
+        """
+        Builds the final callback function to be used with a clojure
+        around the current stream for proper validation and passing
+        of the connection parameter as the stream (context).
+
+        :type callback: function
+        :param callback: The function to be used as the basis for the
+        callback and for which a clojure is going to be applied.
+        :type validate: bool
+        :param validate: If stream open validation should be applied
+        for the calling of the callback, the idea is that is a stream
+        is already closed the callback should not be called.
+        :rtype function
+        :return The final clojure function that may be used safely for
+        callback with proper stream context.
+        """
+
+        def inner(connection):
+            if validate and not self.is_open(): return
+            callback(self)
+
+        return inner

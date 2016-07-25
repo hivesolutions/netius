@@ -1236,6 +1236,20 @@ class AbstractBase(observer.Observable):
             (len(connection.owner.connections), connection.owner.name)
         )
 
+    def on_stream_c(self, stream):
+        connection = stream.connection
+        self.debug(
+            "Stream '%s' from '%s' created ..." %
+            (stream.identifier, connection.owner.name)
+        )
+
+    def on_stream_d(self, stream):
+        connection = stream.connection
+        self.debug(
+            "Stream '%s' from '%s' deleted" %
+            (stream.identifier, connection.owner.name)
+        )
+
     def on_fork(self):
         self.trigger("fork", self)
 
