@@ -736,8 +736,8 @@ class HTTP2Stream(netius.Stream):
         :param validate: If stream open validation should be applied
         for the calling of the callback, the idea is that is a stream
         is already closed the callback should not be called.
-        :rtype function
-        :return The final clojure function that may be used safely for
+        :rtype: function
+        :return: The final clojure function that may be used safely for
         callback with proper stream context.
         """
 

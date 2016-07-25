@@ -138,7 +138,7 @@ def rfc822_parse(message, strip = True):
     used when the strict representation of the headers is required
     (eg: for cryptographic signing purposes).
     :rtype: Tuple
-    :return Returns a tuple of headers and body where headers is
+    :return: Returns a tuple of headers and body where headers is
     a list of (name and value) pairs.
     """
 
