@@ -508,7 +508,6 @@ class HTTP2Stream(netius.Stream):
         self.store = store
         self.file_limit = file_limit
         self.window = window
-        print(window)
         self.headers = None
         self.method = None
         self.path_s = None
