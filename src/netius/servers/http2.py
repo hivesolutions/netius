@@ -638,7 +638,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.send_rst_stream(
             error_code = error_code,
             stream = stream,
-            callback = lambda: self.send_goaway(
+            callback = lambda c: self.send_goaway(
                 error_code = error_code
             )
         )
