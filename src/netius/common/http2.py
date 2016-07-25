@@ -153,7 +153,7 @@ class HTTP2Parser(parser.Parser):
         self._decoder = None
 
     def reset(self, store = False, file_limit = http.FILE_LIMIT):
-        self.store = store,
+        self.store = store
         self.file_limit = file_limit
         self.state = HEADER_STATE
         self.buffer = []
@@ -277,7 +277,7 @@ class HTTP2Parser(parser.Parser):
         stream.extend_data(contents)
         stream.end_stream = end_stream
 
-        self.trigger("on_data", stream, contents)
+        self.trigger("on_part", stream, contents)
 
     def _parse_headers(self, data):
         data_l = len(data)
@@ -375,14 +375,15 @@ class HTTP2Parser(parser.Parser):
 
         self.trigger("on_headers", stream)
 
-    def _get_stream(self, stream = None):
+    def _get_stream(self, stream = None, default = None):
         stream = stream or self.stream
-        return self.streams[self.stream]
+        return self.streams.get(self.stream, default)
 
     def _set_stream(self, stream):
         self.streams[self.stream] = stream
 
     def _del_stream(self, stream):
+        if not stream in self.streams: return
         del self.streams[stream]
 
     @property
@@ -467,6 +468,7 @@ class HTTP2Stream(netius.Stream):
         self._data_l = -1
 
     def close(self, flush = False, destroy = True):
+        #if flush: self.send_reset()  #@todo if a close operation is done without a end_stream on our side a send reset is required
         netius.Stream.close(self)
         self.owner._del_stream(self.identifier)
 
@@ -543,6 +545,12 @@ class HTTP2Stream(netius.Stream):
         # note that the type of this file may be an in memory or stored value
         return message_f
 
+    def flush(self, *args, **kwargs):
+        kwargs["stream"] = self.identifier
+        callback = kwargs.get("callback", None)
+        if callback: kwargs["callback"] = lambda c: callback(self)
+        return self.connection.flush(*args, **kwargs)
+
     def send_response(self, *args, **kwargs):
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
@@ -560,6 +568,12 @@ class HTTP2Stream(netius.Stream):
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = lambda c: callback(self)
         return self.connection.send_part(*args, **kwargs)
+
+    def send_reset(self, *args, **kwargs):
+        kwargs["stream"] = self.identifier
+        callback = kwargs.get("callback", None)
+        if callback: kwargs["callback"] = lambda c: callback(self)
+        return self.connection.send_rst_stream(*args, **kwargs)
 
     @property
     def parser(self):

@@ -105,33 +105,6 @@ class HTTPConnection(netius.Connection):
         if self.parser: self.parser.destroy()
         if self.gzip: self._close_gzip(safe = True)
 
-    def send(self, data, delay = False, callback = None):
-        data = netius.legacy.bytes(data) if data else data
-        if self.current == PLAIN_ENCODING:
-            return self.send_plain(
-                data,
-                delay = delay,
-                callback = callback
-            )
-        elif self.current == CHUNKED_ENCODING:
-            return self.send_chunked(
-                data,
-                delay = delay,
-                callback = callback
-            )
-        elif self.current == GZIP_ENCODING:
-            return self.send_gzip(
-                data,
-                delay = delay,
-                callback = callback
-            )
-        elif self.current == DEFLATE_ENCODING:
-            return self.send_gzip(
-                data,
-                delay = delay,
-                callback = callback
-            )
-
     def info_dict(self, full = False):
         info = netius.Connection.info_dict(self, full = full)
         info.update(
@@ -143,32 +116,64 @@ class HTTPConnection(netius.Connection):
         )
         return info
 
-    def flush(self, callback = None):
+    def flush(self, stream = None, callback = None):
         if self.current == DEFLATE_ENCODING:
-            self._flush_gzip(callback = callback)
+            self._flush_gzip(stream = stream, callback = callback)
         elif self.current == GZIP_ENCODING:
-            self._flush_gzip(callback = callback)
+            self._flush_gzip(stream = stream, callback = callback)
         elif self.current == CHUNKED_ENCODING:
-            self._flush_chunked(callback = callback)
+            self._flush_chunked(stream = stream, callback = callback)
         elif self.current == PLAIN_ENCODING:
-            self._flush_plain(callback = callback)
+            self._flush_plain(stream = stream, callback = callback)
 
         self.current = self.encoding
 
-    def send_plain(self, data, delay = False, callback = None):
-        return netius.Connection.send(
-            self,
+    def send_base(self, data, stream = None, delay = False, callback = None):
+        data = netius.legacy.bytes(data) if data else data
+        if self.current == PLAIN_ENCODING:
+            return self.send_plain(
+                data,
+                stream = stream,
+                delay = delay,
+                callback = callback
+            )
+        elif self.current == CHUNKED_ENCODING:
+            return self.send_chunked(
+                data,
+                stream = stream,
+                delay = delay,
+                callback = callback
+            )
+        elif self.current == GZIP_ENCODING:
+            return self.send_gzip(
+                data,
+                stream = stream,
+                delay = delay,
+                callback = callback
+            )
+        elif self.current == DEFLATE_ENCODING:
+            return self.send_gzip(
+                data,
+                stream = stream,
+                delay = delay,
+                callback = callback
+            )
+
+    def send_plain(self, data, stream = None, delay = False, callback = None):
+        return self.send_part(
             data,
+            stream = stream,
             delay = delay,
             callback = callback
         )
 
-    def send_chunked(self, data, delay = False, callback = None):
+    def send_chunked(self, data, stream = None, delay = False, callback = None):
         # in case there's no valid data to be sent uses the plain
         # send method to send the empty string and returns immediately
         # to the caller method, to avoid any problems
         if not data: return self.send_plain(
             data,
+            stream = stream,
             delay = delay,
             callback = callback
         )
@@ -189,14 +194,20 @@ class HTTPConnection(netius.Connection):
         # joins the buffer containing the chunk parts and then
         # sends it to the connection using the plain method
         buffer_s = b"".join(buffer)
-        return self.send_plain(buffer_s, delay = delay, callback = callback)
+        return self.send_plain(
+            buffer_s,
+            stream = stream,
+            delay = delay,
+            callback = callback
+        )
 
-    def send_gzip(self, data, delay = False, callback = None, level = 6):
+    def send_gzip(self, data, stream = None, delay = False, callback = None, level = 6):
         # verifies if the provided data buffer is valid and in
         # in case it's not propagates the sending to the upper
         # layer (chunked sending) for proper processing
         if not data: return self.send_chunked(
             data,
+            stream = stream,
             delay = delay,
             callback = callback
         )
@@ -223,7 +234,12 @@ class HTTPConnection(netius.Connection):
 
         # sends the compressed data to the client endpoint setting
         # the correct callback values as requested
-        return self.send_chunked(data_c, delay = delay, callback = callback)
+        return self.send_chunked(
+            data_c,
+            stream = stream,
+            delay = delay,
+            callback = callback
+        )
 
     def send_response(
         self,
@@ -312,7 +328,12 @@ class HTTPConnection(netius.Connection):
 
         # sends the buffer data to the connection peer so that it gets notified
         # about the headers for the current communication/message
-        return self.send_plain(buffer_data, delay = delay, callback = callback)
+        return self.send_plain(
+            buffer_data,
+            stream = stream,
+            delay = delay,
+            callback = callback
+        )
 
     def send_part(
         self,
@@ -395,14 +416,14 @@ class HTTPConnection(netius.Connection):
     def on_data(self):
         self.owner.on_data_http(self, self.parser)
 
-    def _flush_plain(self, callback = None):
+    def _flush_plain(self, stream = None, callback = None):
         if not callback: return
-        self.send_plain("", callback = callback)
+        self.send_plain(b"", stream = stream, callback = callback)
 
-    def _flush_chunked(self, callback = None):
-        self.send_plain("0\r\n\r\n", callback = callback)
+    def _flush_chunked(self, stream = None, callback = None):
+        self.send_plain(b"0\r\n\r\n", stream = stream, callback = callback)
 
-    def _flush_gzip(self, callback = None):
+    def _flush_gzip(self, stream = None, callback = None):
         # in case the gzip structure has not been initialized
         # (no data sent) no need to run the flushing of the
         # gzip data, so only the chunked part is flushed
@@ -414,7 +435,7 @@ class HTTPConnection(netius.Connection):
         # the data pending to be sent to the client and then sends
         # it using the chunked encoding strategy
         data_c = self.gzip.flush(zlib.Z_FINISH)
-        self.send_chunked(data_c)
+        self.send_chunked(data_c, stream = stream)
 
         # resets the gzip values to the original ones so that new
         # requests will starts the information from the beginning
