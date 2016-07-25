@@ -484,11 +484,18 @@ class HTTP2Connection(http.HTTPConnection):
             callback = callback
         )
 
-    def send_window_update(self, increment = 0, delay = False, callback = None):
+    def send_window_update(
+        self,
+        increment = 0,
+        stream = None,
+        delay = False,
+        callback = None
+    ):
         payload = struct.pack("!I", increment)
         return self.send_frame(
             type = netius.common.WINDOW_UPDATE,
             payload = payload,
+            stream = stream,
             delay = delay,
             callback = callback
         )
@@ -622,7 +629,10 @@ class HTTP2Server(http.HTTPServer):
         connection.set_h2()
 
     def on_preface_http2(self, connection, parser):
+        delta = self.settings[netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE] -\
+            netius.common.HTTP2_SETTINGS[netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE]
         connection.send_settings(settings = self.settings_t)
+        if not delta == 0: connection.send_window_update(increment = delta, stream = 0x00)
 
     def on_frame_http2(self, connection, parser):
         is_debug = self.is_debug()
