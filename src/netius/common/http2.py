@@ -61,6 +61,11 @@ GOAWAY = 0x07
 WINDOW_UPDATE = 0x08
 CONTINUATION = 0x09
 
+HTTP_20 = 4
+""" The newly created version of the protocol, note that
+this constant value should be created in away that its value
+is superior to the ones defined for previous versions """
+
 HTTP2_WINDOW = 65535
 """ The default/initial size of the window used for the
 flow control of both connections and streams """
@@ -461,7 +466,9 @@ class HTTP2Stream(netius.Stream):
         self.headers = None
         self.method = None
         self.path_s = None
+        self.version = HTTP_20
         self.version_s = "HTTP/2.0"
+        self.encodings = None
         self.keep_alive = True
         self.content_l = -1
         self._data_b = None
@@ -544,6 +551,12 @@ class HTTP2Stream(netius.Stream):
         # returns the final (copy) of the message file to the caller method
         # note that the type of this file may be an in memory or stored value
         return message_f
+
+    def get_encodings(self):
+        if not self.encodings == None: return self.encodings
+        accept_encoding_s = self.headers.get("accept-encoding", "")
+        self.encodings = [value.strip() for value in accept_encoding_s.split(",")]
+        return self.encodings
 
     def flush(self, *args, **kwargs):
         kwargs["stream"] = self.identifier

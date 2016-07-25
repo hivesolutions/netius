@@ -126,6 +126,46 @@ class HTTP2Connection(http.HTTPConnection):
         # parsed by any extra operation
         return data
 
+    def send_plain(
+        self,
+        data,
+        stream = None,
+        final = True,
+        delay = False,
+        callback = None
+    ):
+        if self.legacy: return http.HTTPConnection.send_plain(
+            self,
+            data,
+            stream = stream,
+            final = final,
+            delay = delay,
+            callback = callback
+        )
+        return self.send_data(
+            data,
+            stream = stream,
+            end_stream = final,
+            delay = delay,
+            callback = callback
+        )
+
+    def send_chunked(
+        self,
+        data,
+        stream = None,
+        final = True,
+        delay = False,
+        callback = None
+    ):
+        return self.send_plain(
+            data,
+            stream = stream,
+            final = final,
+            delay = delay,
+            callback = callback
+        )
+
     def send_response(
         self,
         data = None,
@@ -239,7 +279,7 @@ class HTTP2Connection(http.HTTPConnection):
         # them and add them to the currently defined base list
         for key, value in headers.items():
             key = netius.common.header_down(key)
-            if key in ("connection",): continue
+            if key in ("connection", "transfer-encoding"): continue
             if not type(value) == list: value = (value,)
             for _value in value: headers_b.append((key, _value))
 
@@ -279,17 +319,17 @@ class HTTP2Connection(http.HTTPConnection):
             callback = callback
         )
         if flush:
-            count = self.send_data(
+            count = self.send_base(
                 data,
                 stream = stream,
-                end_stream = final
+                final = False
             )
-            self.flush(callback = callback)
+            self.flush(stream = stream, callback = callback)
         else:
-            count = self.send_data(
+            count = self.send_base(
                 data,
                 stream = stream,
-                end_stream = final,
+                final = final,
                 delay = delay,
                 callback = callback
             )
@@ -443,6 +483,9 @@ class HTTP2Connection(http.HTTPConnection):
 
     def on_window_update(self, increment):
         self.owner.on_window_update_http2(self, self.parser, increment)
+
+    def _flush_chunked(self, stream = None, callback = None):
+        self._flush_plain(stream = stream, callback = callback)
 
 class HTTP2Server(http.HTTPServer):
 
