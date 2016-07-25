@@ -204,6 +204,7 @@ class HTTP2Connection(http.HTTPConnection):
         code = 200,
         code_s = None,
         stream = None,
+        final = False,
         delay = False,
         callback = None
     ):
@@ -241,12 +242,22 @@ class HTTP2Connection(http.HTTPConnection):
             if not type(value) == list: value = (value,)
             for _value in value: headers_b.append((key, _value))
 
-        return self.send_headers(
+        # runs the send headers operations that should send the headers list
+        # to the other peer and returns the number of bytes sent
+        count = self.send_headers(
             headers_b,
             stream = stream,
             delay = delay,
             callback = callback
         )
+
+        # verifies if this is considered to be the final operation in the stream
+        # and if that's the case closes the stream everything is done for it
+        if final: self.close_stream(stream)
+
+        # returns the final number of bytes that have been sent during the current
+        # operation of sending headers to the other peer
+        return count
 
     def send_part(
         self,
@@ -281,6 +292,7 @@ class HTTP2Connection(http.HTTPConnection):
                 delay = delay,
                 callback = callback
             )
+        if final: self.close_stream(stream)
         return count
 
     def send_frame(
@@ -401,6 +413,10 @@ class HTTP2Connection(http.HTTPConnection):
             delay = delay,
             callback = callback
         )
+
+    def close_stream(self, stream):
+        stream = self.parser._get_stream(stream)
+        stream.close()
 
     def on_frame(self):
         self.owner.on_frame_http2(self, self.parser)

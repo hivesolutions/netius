@@ -287,6 +287,7 @@ class HTTPConnection(netius.Connection):
         code = 200,
         code_s = None,
         stream = None,
+        final = False,
         delay = False,
         callback = None
     ):
