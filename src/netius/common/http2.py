@@ -719,6 +719,19 @@ class HTTP2Stream(netius.Stream):
         self.path_s = headers_s.get(":path", None)
 
     def _build_b(self):
+        """
+        Builds the buffer object (compliant with file spec) that is
+        going to be used to store the message payload for the HTTP
+        request.
+
+        Note that in case the file limit value is exceeded a file system
+        based temporary file is used.
+
+        :rtype: File
+        :return: A file compliant object to be used to store the
+        message payload for the HTTP request.
+        """
+
         use_file = self.store and self.content_l >= self.file_limit
         if use_file: return tempfile.NamedTemporaryFile(mode = "w+b")
         else: return netius.legacy.BytesIO()
