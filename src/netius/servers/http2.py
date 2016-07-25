@@ -644,7 +644,7 @@ class HTTP2Connection(http.HTTPConnection):
         )
 
     def on_header(self, header):
-        self.parser._assert_header()
+        self.parser.assert_header()
         self.owner.on_header_http2(self, self.parser, header)
 
     def on_frame(self):
