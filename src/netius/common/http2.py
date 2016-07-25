@@ -61,18 +61,17 @@ GOAWAY = 0x07
 WINDOW_UPDATE = 0x08
 CONTINUATION = 0x09
 
+SETTINGS_HEADER_TABLE_SIZE = 0x01
+SETTINGS_ENABLE_PUSH = 0x02
+SETTINGS_MAX_CONCURRENT_STREAMS = 0x03
+SETTINGS_INITIAL_WINDOW_SIZE = 0x04
+SETTINGS_MAX_FRAME_SIZE = 0x05
+SETTINGS_MAX_HEADER_LIST_SIZE = 0x06
+
 HTTP_20 = 4
 """ The newly created version of the protocol, note that
 this constant value should be created in away that its value
 is superior to the ones defined for previous versions """
-
-HTTP2_WINDOW = 65535
-""" The default/initial size of the window used for the
-flow control of both connections and streams """
-
-HTTP2_PREFACE = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
-""" The preface string to be sent by the client upon
-the establishment of the connection """
 
 HEADER_STATE = 1
 """ The initial header state for which the header
@@ -85,6 +84,14 @@ payload of the frame is going to be loaded """
 FINISH_STATE = 3
 """ The final finish state to be used when the parsing
 of the frame has been finished """
+
+HTTP2_WINDOW = 65535
+""" The default/initial size of the window used for the
+flow control of both connections and streams """
+
+HTTP2_PREFACE = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
+""" The preface string to be sent by the client upon
+the establishment of the connection """
 
 HTTP2_NAMES = {
     DATA : "DATA",
@@ -100,6 +107,20 @@ HTTP2_NAMES = {
 }
 """ The association between the various types of frames
 described as integers and their representation as strings """
+
+HTTP2_SETTINGS = {
+    SETTINGS_HEADER_TABLE_SIZE : 4096,
+    SETTINGS_ENABLE_PUSH : 0,
+    SETTINGS_MAX_CONCURRENT_STREAMS : 128,
+    SETTINGS_INITIAL_WINDOW_SIZE : 65535,
+    SETTINGS_MAX_FRAME_SIZE : 16384,
+    SETTINGS_MAX_HEADER_LIST_SIZE : 16384
+}
+""" The default values to be used for settings of a newly
+created connection, this should be defined according to specification """
+
+HTTP2_SETTINGS_T = netius.legacy.items(HTTP2_SETTINGS)
+""" The tuple sequence version of the settings defaults """
 
 class HTTP2Parser(parser.Parser):
 
@@ -326,6 +347,10 @@ class HTTP2Parser(parser.Parser):
         fragment = data[index:data_l - padded_l]
         headers = self.decoder.decode(fragment)
 
+        # retrieves the value of the window initial size from the owner
+        # connections this is the value to be set in the new stream
+        window = self.owner.settings[SETTINGS_INITIAL_WINDOW_SIZE]
+
         # constructs the stream structure for the current stream that
         # is being open/created using the current owner, headers and
         # other information as the basis for such construction
@@ -339,7 +364,7 @@ class HTTP2Parser(parser.Parser):
             end_stream = end_stream,
             store = self.store,
             file_limit = self.file_limit,
-            window = self.window
+            window = window
         )
 
         # sets the stream under the current parser meaning that it can

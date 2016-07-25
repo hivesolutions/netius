@@ -49,12 +49,14 @@ class HTTP2Connection(http.HTTPConnection):
         self,
         legacy = True,
         window = netius.common.HTTP2_WINDOW,
+        settings = netius.common.HTTP2_SETTINGS,
         *args,
         **kwargs
     ):
         http.HTTPConnection.__init__(self, *args, **kwargs)
         self.legacy = legacy
         self.window = window
+        self.settings = settings
         self.preface = False
         self.preface_b = b""
 
@@ -464,6 +466,9 @@ class HTTP2Connection(http.HTTPConnection):
             callback = callback
         )
 
+    def set_settings(self, settings):
+        self.settings.update(settings)
+
     def close_stream(self, stream, final = False):
         stream = self.parser._get_stream(stream)
         if not stream: return
@@ -506,9 +511,19 @@ class HTTP2Connection(http.HTTPConnection):
 
 class HTTP2Server(http.HTTPServer):
 
-    def __init__(self, legacy = True, safe = False, *args, **kwargs):
+    def __init__(
+        self,
+        legacy = True,
+        safe = False,
+        settings = netius.common.HTTP2_SETTINGS,
+        *args,
+        **kwargs
+    ):
+        self.legacy = legacy
+        self.safe = safe
+        self.settings = settings
+        self.settings_t = netius.legacy.items(self.settings)
         self._protocols = []
-        self.legacy, self.safe = legacy, safe
         http.HTTPServer.__init__(self, *args, **kwargs)
 
     def get_protocols(self):
@@ -535,15 +550,7 @@ class HTTP2Server(http.HTTPServer):
         connection.set_h2()
 
     def on_preface_http2(self, connection, parser):
-        settings = [
-            (1, 4096),
-            (2, 0),
-            (3, 100),
-            (4, 65535),
-            (5, 16384),
-            (6, 16384)
-        ]
-        connection.send_settings(settings = settings)
+        connection.send_settings(settings = self.settings_t)
 
     def on_frame_http2(self, connection, parser):
         is_debug = self.is_debug()
@@ -566,6 +573,7 @@ class HTTP2Server(http.HTTPServer):
     def on_settings_http2(self, connection, parser, settings, ack):
         if ack: return
         self.debug("Received settings %s for connection" % str(settings))
+        connection.set_settings(dict(settings))
         connection.send_settings(ack = True)
 
     def on_ping_http2(self, connection, parser, ack):
