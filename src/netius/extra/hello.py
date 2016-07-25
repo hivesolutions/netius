@@ -73,6 +73,8 @@ class HelloServer(netius.servers.HTTP2Server):
             "Connection" : connection_s,
             "Content-Type" : "text/plain"
         }
+        
+        print(self.message_b)
 
         connection.send_response(
             data = self.message_b,
