@@ -324,7 +324,9 @@ class HTTP2Parser(parser.Parser):
         pass
 
     def _parse_rst_stream(self, data):
-        pass
+        error_code, = struct.unpack("!I", data)
+        stream = self._get_stream(self.stream)
+        self.trigger("on_rst_stream", stream, error_code)
 
     def _parse_settings(self, data):
         settings = []
