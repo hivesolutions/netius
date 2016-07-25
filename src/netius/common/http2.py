@@ -110,7 +110,7 @@ described as integers and their representation as strings """
 
 HTTP2_SETTINGS = {
     SETTINGS_HEADER_TABLE_SIZE : 4096,
-    SETTINGS_ENABLE_PUSH : 0,
+    SETTINGS_ENABLE_PUSH : 1,
     SETTINGS_MAX_CONCURRENT_STREAMS : 128,
     SETTINGS_INITIAL_WINDOW_SIZE : 65535,
     SETTINGS_MAX_FRAME_SIZE : 16384,
@@ -119,8 +119,22 @@ HTTP2_SETTINGS = {
 """ The default values to be used for settings of a newly
 created connection, this should be defined according to specification """
 
+HTTP2_SETTINGS_OPTIMAL = {
+    SETTINGS_HEADER_TABLE_SIZE : 4096,
+    SETTINGS_ENABLE_PUSH : 1,
+    SETTINGS_MAX_CONCURRENT_STREAMS : 256,
+    SETTINGS_INITIAL_WINDOW_SIZE : 33554432,
+    SETTINGS_MAX_FRAME_SIZE : 32768,
+    SETTINGS_MAX_HEADER_LIST_SIZE : 16384
+}
+""" The optimal settings meant to be used by an infra-structure
+deployed in a production environment """
+
 HTTP2_SETTINGS_T = netius.legacy.items(HTTP2_SETTINGS)
 """ The tuple sequence version of the settings defaults """
+
+HTTP2_SETTINGS_OPTIMAL_T = netius.legacy.items(HTTP2_SETTINGS_OPTIMAL)
+""" The tuple sequence version of the settings optimal """
 
 class HTTP2Parser(parser.Parser):
 

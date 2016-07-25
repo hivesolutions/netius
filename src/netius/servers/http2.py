@@ -587,7 +587,7 @@ class HTTP2Server(http.HTTPServer):
         self,
         legacy = True,
         safe = False,
-        settings = netius.common.HTTP2_SETTINGS,
+        settings = netius.common.HTTP2_SETTINGS_OPTIMAL,
         *args,
         **kwargs
     ):
