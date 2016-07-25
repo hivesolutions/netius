@@ -65,13 +65,13 @@ class Stream(observer.Observable):
         observer.Observable.__init__(self)
         self.status = PENDING
         self.owner = owner
+        self.connection = owner.owner
 
     def reset(self):
         pass
 
     def open(self):
         self.status = OPEN
-        self.connection = self.owner.owner
         self.connection.owner.on_stream_c(self)
 
     def close(self):
