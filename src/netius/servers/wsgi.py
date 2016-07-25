@@ -257,6 +257,10 @@ class WSGIServer(http2.HTTP2Server):
         try: data = next(iterator)
         except StopIteration: is_final = True
 
+        # ensures that the provided data is a byte sequence as expected
+        # by the underlying server infra-structure
+        if data: data = netius.legacy.bytes(data)
+
         # verifies if the current value in iteration is a future element
         # and if that's the case creates the proper callback to be used
         # for the handling on the end of the iteration

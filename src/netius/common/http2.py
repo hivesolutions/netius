@@ -61,6 +61,10 @@ GOAWAY = 0x07
 WINDOW_UPDATE = 0x08
 CONTINUATION = 0x09
 
+HTTP2_WINDOW = 65535
+""" The default/initial size of the window used for the
+flow control of both connections and streams """
+
 HTTP2_PREFACE = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
 """ The preface string to be sent by the client upon
 the establishment of the connection """
@@ -153,6 +157,7 @@ class HTTP2Parser(parser.Parser):
         self.file_limit = file_limit
         self.state = HEADER_STATE
         self.buffer = []
+        self.keep_alive = True
         self.length = 0
         self.type = 0
         self.flags = 0
@@ -268,10 +273,11 @@ class HTTP2Parser(parser.Parser):
 
         contents = data[index:data_l - padded_l]
 
-        self._data = contents #@todo this is a huge hack as there may be more
-                              # data in the current stream to be parsed
+        stream = self._get_stream(self.stream)
+        stream.extend_data(contents)
+        stream.end_stream = end_stream
 
-        self.trigger("on_data", contents, end_stream)
+        self.trigger("on_data", stream, contents)
 
     def _parse_headers(self, data):
         data_l = len(data)
@@ -422,6 +428,7 @@ class HTTP2Stream(netius.Stream):
         end_stream = False,
         store = False,
         file_limit = http.FILE_LIMIT,
+        window = HTTP2_WINDOW,
         *args,
         **kwargs
     ):
@@ -433,17 +440,23 @@ class HTTP2Stream(netius.Stream):
         self.weight = weight
         self.end_headers = end_headers
         self.end_stream = end_stream
-        self.reset(store = store, file_limit = file_limit)
+        self.reset(store = store, file_limit = file_limit, window = window)
 
     def __getattr__(self, name):
         if hasattr(self.connection, name):
             return getattr(self.connection, name)
         raise AttributeError("'%s' not found" % name)
 
-    def reset(self, store = False, file_limit = http.FILE_LIMIT):
+    def reset(
+        self,
+        store = False,
+        file_limit = http.FILE_LIMIT,
+        window = HTTP2_WINDOW
+    ):
         netius.Stream.reset(self)
         self.store = store
         self.file_limit = file_limit
+        self.window = window
         self.headers = None
         self.method = None
         self.path_s = None
@@ -453,12 +466,16 @@ class HTTP2Stream(netius.Stream):
         self._data_b = None
         self._data_l = -1
 
-    def close(self):
+    def close(self, flush = False, destroy = True):
         netius.Stream.close(self)
         self.owner._del_stream(self.identifier)
 
     def extend_headers(self, headers):
         self.headers_l += headers
+
+    def extend_data(self, data):
+        self._data_b.write(data)
+        self._data_l += len(data)
 
     def get_path(self):
         split = self.path_s.split("?", 1)
@@ -470,21 +487,78 @@ class HTTP2Stream(netius.Stream):
         else: return split[1]
 
     def get_message_b(self, copy = False, size = 40960):
-        self.message_f = netius.legacy.BytesIO()
-        self.message_f.write(self._data) #@todo this is a hack
-        self.message_f.seek(0)
-        return self.message_f  #todo must handle proper copy of values
+        """
+        Retrieves a new buffer associated with the currently
+        loaded message.
+
+        In case the current parsing operation is using a file like
+        object for the handling this object it is returned instead.
+
+        The call of this method is only considered to be safe after
+        the complete message has been received and processed, otherwise
+        and invalid message file structure may be created.
+
+        Note that the returned object will always be set at the
+        beginning of the file, so some care should be taken in usage.
+
+        :type copy: bool
+        :param copy: If a copy of the file object should be returned
+        or if instead the shallow copy associated with the parser should
+        be returned instead, this should be used carefully to avoid any
+        memory leak from file descriptors.
+        :type size: int
+        :param size: Size (in bytes) of the buffer to be used in a possible
+        copy operation between buffers.
+        :rtype: File
+        :return: The file like object that may be used to percolate
+        over the various parts of the current message contents.
+        """
+
+        # restores the message file to the original/initial position and
+        # then in case there's no copy required returns it immediately
+        self._data_b.seek(0)
+        if not copy: return self._data_b
+
+        # determines if the file limit for a temporary file has been
+        # surpassed and if that's the case creates a named temporary
+        # file, otherwise created a memory based buffer
+        use_file = self.store and self.content_l >= self.file_limit
+        if use_file: message_f = tempfile.NamedTemporaryFile(mode = "w+b")
+        else: message_f = netius.legacy.BytesIO()
+
+        try:
+            # iterates continuously reading the contents from the message
+            # file and writing them back to the output (copy) file
+            while True:
+                data = self._data_b.read(size)
+                if not data: break
+                message_f.write(data)
+        finally:
+            # resets both of the message file (output and input) to the
+            # original position as expected by the infra-structure
+            self._data_b.seek(0)
+            message_f.seek(0)
+
+        # returns the final (copy) of the message file to the caller method
+        # note that the type of this file may be an in memory or stored value
+        return message_f
 
     def send_response(self, *args, **kwargs):
         kwargs["stream"] = self.identifier
+        callback = kwargs.get("callback", None)
+        if callback: kwargs["callback"] = lambda c: callback(self)
         return self.connection.send_response(*args, **kwargs)
 
     def send_header(self, *args, **kwargs):
         kwargs["stream"] = self.identifier
+        callback = kwargs.get("callback", None)
+        if callback: kwargs["callback"] = lambda c: callback(self)
         return self.connection.send_header(*args, **kwargs)
 
     def send_part(self, *args, **kwargs):
         kwargs["stream"] = self.identifier
+        callback = kwargs.get("callback", None)
+        if callback: kwargs["callback"] = lambda c: callback(self)
         return self.connection.send_part(*args, **kwargs)
 
     @property
