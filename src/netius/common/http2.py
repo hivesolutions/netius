@@ -729,14 +729,14 @@ class HTTP2Stream(netius.Stream):
         around the current stream for proper validation and passing
         of the connection parameter as the stream (context).
 
-        :type callback: function
+        :type callback: Function
         :param callback: The function to be used as the basis for the
         callback and for which a clojure is going to be applied.
         :type validate: bool
         :param validate: If stream open validation should be applied
         for the calling of the callback, the idea is that is a stream
         is already closed the callback should not be called.
-        :rtype: function
+        :rtype: Function
         :return: The final clojure function that may be used safely for
         callback with proper stream context.
         """
