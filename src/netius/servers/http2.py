@@ -377,8 +377,9 @@ class HTTP2Connection(http.HTTPConnection):
     ):
         size = len(payload)
         header = struct.pack("!BHBBI", 0x00, size, type, flags, stream)
-        print(header)
-        print(payload)
+        print(repr(header))
+        print(repr(payload))
+        print("--------------")
         message = header + payload
         return self.send(message, delay = delay, callback = callback)
 
