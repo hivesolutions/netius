@@ -103,11 +103,21 @@ described as integers and their representation as strings """
 
 class HTTP2Parser(parser.Parser):
 
-    def __init__(self, owner, store = False, file_limit = http.FILE_LIMIT):
+    def __init__(
+        self,
+        owner,
+        store = False,
+        file_limit = http.FILE_LIMIT,
+        window = HTTP2_WINDOW
+    ):
         parser.Parser.__init__(self, owner)
 
         self.build()
-        self.reset(store = store, file_limit = file_limit)
+        self.reset(
+            store = store,
+            file_limit = file_limit,
+            window = window
+        )
 
     def build(self):
         """
@@ -157,9 +167,15 @@ class HTTP2Parser(parser.Parser):
         self._encoder = None
         self._decoder = None
 
-    def reset(self, store = False, file_limit = http.FILE_LIMIT):
+    def reset(
+        self,
+        store = False,
+        file_limit = http.FILE_LIMIT,
+        window = HTTP2_WINDOW
+    ):
         self.store = store
         self.file_limit = file_limit
+        self.window = window
         self.state = HEADER_STATE
         self.buffer = []
         self.keep_alive = True
@@ -322,7 +338,8 @@ class HTTP2Parser(parser.Parser):
             end_headers = end_headers,
             end_stream = end_stream,
             store = self.store,
-            file_limit = self.file_limit
+            file_limit = self.file_limit,
+            window = self.window
         )
 
         # sets the stream under the current parser meaning that it can
@@ -367,7 +384,8 @@ class HTTP2Parser(parser.Parser):
 
     def _parse_window_update(self, data):
         increment, = struct.unpack("!I", data)
-        self.trigger("on_window_update", increment)
+        stream = self._get_stream(self.stream)
+        self.trigger("on_window_update", stream, increment)
 
     def _parse_continuation(self, data):
         end_headers = True if self.flags & 0x04 else False

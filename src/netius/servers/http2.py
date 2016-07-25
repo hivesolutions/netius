@@ -45,9 +45,16 @@ from . import http
 
 class HTTP2Connection(http.HTTPConnection):
 
-    def __init__(self, legacy = True, *args, **kwargs):
+    def __init__(
+        self,
+        legacy = True,
+        window = netius.common.HTTP2_WINDOW,
+        *args,
+        **kwargs
+    ):
         http.HTTPConnection.__init__(self, *args, **kwargs)
         self.legacy = legacy
+        self.window = window
         self.preface = False
         self.preface_b = b""
 
@@ -361,6 +368,7 @@ class HTTP2Connection(http.HTTPConnection):
     ):
         flags = 0x00
         if end_stream: flags |= 0x01
+        if stream: self.increment_stream(stream, len(data) * -1)
         return self.send_frame(
             type = netius.common.DATA,
             flags = flags,
@@ -462,6 +470,12 @@ class HTTP2Connection(http.HTTPConnection):
         stream.end_stream_l = final
         stream.close()
 
+    def increment_stream(self, stream, increment, connection = True):
+        if connection: self.window += increment
+        stream = self.parser._get_stream(stream)
+        if not stream: return
+        stream.window += increment
+
     def on_frame(self):
         self.owner.on_frame_http2(self, self.parser)
 
@@ -483,8 +497,9 @@ class HTTP2Connection(http.HTTPConnection):
     def on_goaway(self, last_stream, error_code, extra):
         self.owner.on_goaway_http2(self, self.parser, last_stream, error_code, extra)
 
-    def on_window_update(self, increment):
-        self.owner.on_window_update_http2(self, self.parser, increment)
+    def on_window_update(self, stream, increment):
+        self.increment_stream(stream, increment)
+        self.owner.on_window_update_http2(self, self.parser, stream, increment)
 
     def _flush_chunked(self, stream = None, callback = None):
         self._flush_plain(stream = stream, callback = callback)
@@ -544,6 +559,8 @@ class HTTP2Server(http.HTTPServer):
 
     def on_rst_stream_http2(self, connection, parser, stream, error_code):
         if not stream: return
+        stream.end_stream = True
+        stream.end_stream_l = True
         stream.close()
 
     def on_settings_http2(self, connection, parser, settings, ack):
@@ -559,7 +576,7 @@ class HTTP2Server(http.HTTPServer):
         if error_code == 0x00: return
         self._log_error(error_code, extra)
 
-    def on_window_update_http2(self, connection, parser, increment):
+    def on_window_update_http2(self, connection, parser, stream, increment):
         self.debug("Window updated with increment %d bytes" % increment)
 
     def _log_frame(self, connection, parser):
