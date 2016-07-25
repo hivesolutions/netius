@@ -59,6 +59,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.settings = settings
         self.preface = False
         self.preface_b = b""
+        self.frames = []
 
     def open(self, *args, **kwargs):
         http.HTTPConnection.open(self, *args, **kwargs)
@@ -292,6 +293,16 @@ class HTTP2Connection(http.HTTPConnection):
             if not type(value) == list: value = (value,)
             for _value in value: headers_b.append((key, _value))
 
+        # verifies if this is considered to be the final operation in the stream
+        # and if that's the case creates a new callback for the closing of the
+        # stream at the end of the operation, this is required for proper collection
+        if final:
+            old_callback = callback
+
+            def callback(connection):
+                old_callback and old_callback(connection)
+                self.close_stream(stream, final = final)
+
         # runs the send headers operations that should send the headers list
         # to the other peer and returns the number of bytes sent
         count = self.send_headers(
@@ -301,10 +312,6 @@ class HTTP2Connection(http.HTTPConnection):
             delay = delay,
             callback = callback
         )
-
-        # verifies if this is considered to be the final operation in the stream
-        # and if that's the case closes the stream everything is done for it
-        if final: self.close_stream(stream, final = final)
 
         # returns the final number of bytes that have been sent during the current
         # operation of sending headers to the other peer
@@ -328,6 +335,17 @@ class HTTP2Connection(http.HTTPConnection):
             delay = delay,
             callback = callback
         )
+
+        # verifies if this is considered to be the final operation in the stream
+        # and if that's the case creates a new callback for the closing of the
+        # stream at the end of the operation, this is required for proper collection
+        if final:
+            old_callback = callback
+
+            def callback(connection):
+                old_callback and old_callback(connection)
+                self.close_stream(stream, final = final)
+
         if flush:
             count = self.send_base(
                 data,
@@ -343,7 +361,6 @@ class HTTP2Connection(http.HTTPConnection):
                 delay = delay,
                 callback = callback
             )
-        if final: self.close_stream(stream, final = final)
         return count
 
     def send_frame(
@@ -369,8 +386,18 @@ class HTTP2Connection(http.HTTPConnection):
         callback = None
     ):
         flags = 0x00
+        data_l = len(data)
         if end_stream: flags |= 0x01
-        if stream: self.increment_stream(stream, len(data) * -1)
+        if not self.available_stream(stream, data_l):
+            return self.delay_frame(
+                type = netius.common.DATA,
+                flags = flags,
+                payload = data,
+                stream = stream,
+                delay = delay,
+                callback = callback
+            )
+        self.increment_stream(stream, data_l * -1)
         return self.send_frame(
             type = netius.common.DATA,
             flags = flags,
@@ -466,6 +493,38 @@ class HTTP2Connection(http.HTTPConnection):
             callback = callback
         )
 
+    def delay_frame(self, *args, **kwargs):
+        stream = kwargs["stream"]
+        stream = self.parser._get_stream(stream)
+        self.frames.append((args, kwargs))
+
+    def flush_frames(self):
+        while self.frames:
+            frame = self.frames[0]
+            args, kwargs = frame
+            stream = kwargs["stream"]
+            payload = kwargs["payload"]
+            payload_l = len(payload)
+
+            # verifies if the current stream to be flushed is still
+            # open and if that's not the case removed the frame from
+            # the frames queue and skips the current iteration
+            open = self.open_stream(stream)
+            if not open: self.frames.pop(0); continue
+
+            # verifies if there's available "space" in the stream flow
+            # to send the current payload and in case there's not breaks
+            # the current loop as there's nothing else to be done, delays
+            # pending frames for a new flush operation
+            available = self.available_stream(stream, payload_l)
+            if not available: break
+
+            # decrements the current stream window by the size of the payload
+            # and then runs the send frame operation for the pending frame
+            self.increment_stream(stream, payload_l * -1)
+            self.send_frame(*args, **kwargs)
+            self.frames.pop(0)
+
     def set_settings(self, settings):
         self.settings.update(settings)
 
@@ -475,11 +534,23 @@ class HTTP2Connection(http.HTTPConnection):
         stream.end_stream_l = final
         stream.close()
 
-    def increment_stream(self, stream, increment, connection = True):
-        if connection: self.window += increment
+    def increment_stream(self, stream, increment):
+        if not stream: self.window += increment
+        if not stream: return
         stream = self.parser._get_stream(stream)
         if not stream: return
-        stream.window += increment
+        stream.window_update(increment)
+
+    def available_stream(self, stream, length):
+        if self.window < length: return False
+        _stream = stream
+        stream = self.parser._get_stream(stream)
+        if stream.window < length: return False
+        return True
+
+    def open_stream(self, stream):
+        stream = self.parser._get_stream(stream)
+        return True if stream and stream.is_open() else False
 
     def on_frame(self):
         self.owner.on_frame_http2(self, self.parser)
@@ -503,7 +574,8 @@ class HTTP2Connection(http.HTTPConnection):
         self.owner.on_goaway_http2(self, self.parser, last_stream, error_code, extra)
 
     def on_window_update(self, stream, increment):
-        self.increment_stream(stream, increment)
+        self.increment_stream(stream and stream.identifier, increment)
+        self.flush_frames()
         self.owner.on_window_update_http2(self, self.parser, stream, increment)
 
     def _flush_chunked(self, stream = None, callback = None):

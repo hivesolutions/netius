@@ -366,6 +366,7 @@ class HTTP2Parser(parser.Parser):
             file_limit = self.file_limit,
             window = window
         )
+        stream.open()
 
         # sets the stream under the current parser meaning that it can
         # be latter retrieved for proper event propagation
@@ -428,10 +429,10 @@ class HTTP2Parser(parser.Parser):
 
     def _get_stream(self, stream = None, default = None):
         stream = stream or self.stream
-        return self.streams.get(self.stream, default)
+        return self.streams.get(stream, default)
 
     def _set_stream(self, stream):
-        self.streams[self.stream] = stream
+        self.streams[stream.identifier] = stream
 
     def _del_stream(self, stream):
         if not stream in self.streams: return
@@ -611,30 +612,35 @@ class HTTP2Stream(netius.Stream):
         return self.encodings
 
     def flush(self, *args, **kwargs):
+        if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = lambda c: callback(self)
         return self.connection.flush(*args, **kwargs)
 
     def send_response(self, *args, **kwargs):
+        if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = lambda c: callback(self)
         return self.connection.send_response(*args, **kwargs)
 
     def send_header(self, *args, **kwargs):
+        if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = lambda c: callback(self)
         return self.connection.send_header(*args, **kwargs)
 
     def send_part(self, *args, **kwargs):
+        if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = lambda c: callback(self)
         return self.connection.send_part(*args, **kwargs)
 
     def send_reset(self, *args, **kwargs):
+        if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = lambda c: callback(self)

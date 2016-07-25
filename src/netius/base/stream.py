@@ -69,5 +69,17 @@ class Stream(observer.Observable):
     def reset(self):
         pass
 
+    def open(self):
+        self.status = OPEN
+
     def close(self):
         self.status = CLOSED
+
+    def is_open(self):
+        return self.status == OPEN
+
+    def is_closed(self):
+        return self.status == CLOSED
+
+    def is_pending(self):
+        return self.status == PENDING
