@@ -492,6 +492,9 @@ class HTTP2Stream(netius.Stream):
         self._data_b.write(data)
         self._data_l += len(data)
 
+    def window_update(self, increment):
+        self.window += increment
+
     def get_path(self):
         split = self.path_s.split("?", 1)
         return split[0]
