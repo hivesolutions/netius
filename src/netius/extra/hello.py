@@ -54,10 +54,12 @@ class HelloServer(netius.servers.HTTP2Server):
     def __init__(self, message = "Hello World", *args, **kwargs):
         netius.servers.HTTP2Server.__init__(self, *args, **kwargs)
         self.message = message
+        self.message_b = netius.legacy.bytes(self.message)
 
     def on_serve(self):
         netius.servers.HTTP2Server.on_serve(self)
         if self.env: self.message = self.get_env("MESSAGE", self.message)
+        if self.env: self.message_b = netius.legacy.bytes(self.message)
         self.info("Serving '%s' as welcome message ..." % self.message)
 
     def on_data_http(self, connection, parser):
@@ -73,7 +75,7 @@ class HelloServer(netius.servers.HTTP2Server):
         }
 
         connection.send_response(
-            data = self.message,
+            data = self.message_b,
             headers = headers,
             code = 200,
             code_s = "OK",
