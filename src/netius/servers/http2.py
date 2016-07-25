@@ -49,13 +49,16 @@ class HTTP2Connection(http.HTTPConnection):
         self,
         legacy = True,
         window = netius.common.HTTP2_WINDOW,
-        settings = netius.common.HTTP2_SETTINGS,
+        settings = netius.common.HTTP2_SETTINGS_OPTIMAL,
         *args,
         **kwargs
     ):
         http.HTTPConnection.__init__(self, *args, **kwargs)
         self.legacy = legacy
         self.window = window
+        self.window_o = settings[netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE]
+        self.window_l = self.window_o
+        self.window_t = self.window_o // 2
         self.settings = settings
         self.preface = False
         self.preface_b = b""
@@ -397,7 +400,7 @@ class HTTP2Connection(http.HTTPConnection):
                 delay = delay,
                 callback = callback
             )
-        self.increment_stream(stream, data_l * -1)
+        self.increment_remote(stream, data_l * -1)
         return self.send_frame(
             type = netius.common.DATA,
             flags = flags,
@@ -500,6 +503,12 @@ class HTTP2Connection(http.HTTPConnection):
             callback = callback
         )
 
+    def send_delta(self):
+        delta = self.window_l -\
+            netius.common.HTTP2_SETTINGS[netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE]
+        if delta == 0: return
+        self.send_window_update(increment = delta, stream = 0x00)
+
     def delay_frame(self, *args, **kwargs):
         stream = kwargs["stream"]
         stream = self.parser._get_stream(stream)
@@ -528,7 +537,7 @@ class HTTP2Connection(http.HTTPConnection):
 
             # decrements the current stream window by the size of the payload
             # and then runs the send frame operation for the pending frame
-            self.increment_stream(stream, payload_l * -1)
+            self.increment_remote(stream, payload_l * -1)
             self.send_frame(*args, **kwargs)
             self.frames.pop(0)
 
@@ -541,12 +550,50 @@ class HTTP2Connection(http.HTTPConnection):
         stream.end_stream_l = final
         stream.close()
 
-    def increment_stream(self, stream, increment):
+    def increment_remote(self, stream, increment):
+        """
+        Increments the size of the remove window associated with
+        the stream passed by argument by the size defined in the
+        increment field (in bytes).
+
+        If the stream is not provided or invalid the global window
+        is updated instead of the stream one.
+
+        :type stream: int
+        :param stream: The identifier of the stream that is going
+        to have its window incremented, or invalid if the global
+        connection window is meant to be updated.
+        :type increment: int
+        :param increment: The increment in bytes for the window,
+        this value may be negative for decrement operations.
+        """
+
         if not stream: self.window += increment
         if not stream: return
         stream = self.parser._get_stream(stream)
         if not stream: return
-        stream.window_update(increment)
+        stream.remote_update(increment)
+
+    def increment_local(self, stream, increment):
+        # increments the global connection local window
+        # by the provided value, and then verifies if the
+        # threshold has been passed, if that's the case
+        # the window updated frame must be sent so that
+        # the remove end point is properly notified
+        self.window_l += increment
+        if self.window_l < self.window_t:
+            self.send_window_update(
+                increment = self.window_o - self.window_l,
+                stream = 0x00
+            )
+            self.windows_l = self.window_o
+
+        # tries to retrieve the stream associates with the
+        # provided identifier and then runs the local update
+        # operation in it (may trigger window update flushing)
+        stream = self.parser._get_stream(stream)
+        if not stream: return
+        stream.local_update(increment)
 
     def available_stream(self, stream, length):
         if self.window < length: return False
@@ -563,6 +610,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.owner.on_frame_http2(self, self.parser)
 
     def on_part(self, stream, contents):
+        self.increment_local(stream and stream.identifier, increment = len(contents) * -1)
         self.owner.on_data_http2(self, self.parser, stream, contents)
 
     def on_headers(self, stream):
@@ -581,7 +629,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.owner.on_goaway_http2(self, self.parser, last_stream, error_code, extra)
 
     def on_window_update(self, stream, increment):
-        self.increment_stream(stream and stream.identifier, increment)
+        self.increment_remote(stream and stream.identifier, increment)
         self.flush_frames()
         self.owner.on_window_update_http2(self, self.parser, stream, increment)
 
@@ -618,7 +666,8 @@ class HTTP2Server(http.HTTPServer):
             address = address,
             ssl = ssl,
             encoding = self.encoding,
-            legacy = self.legacy
+            legacy = self.legacy,
+            settings = self.settings
         )
 
     def on_ssl(self, connection):
@@ -629,10 +678,8 @@ class HTTP2Server(http.HTTPServer):
         connection.set_h2()
 
     def on_preface_http2(self, connection, parser):
-        delta = self.settings[netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE] -\
-            netius.common.HTTP2_SETTINGS[netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE]
         connection.send_settings(settings = self.settings_t)
-        if not delta == 0: connection.send_window_update(increment = delta, stream = 0x00)
+        connection.send_delta()
 
     def on_frame_http2(self, connection, parser):
         is_debug = self.is_debug()

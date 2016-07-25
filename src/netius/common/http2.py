@@ -522,6 +522,9 @@ class HTTP2Stream(netius.Stream):
         self.store = store
         self.file_limit = file_limit
         self.window = window
+        self.window_o = self.connection.window_o
+        self.window_l = self.window_o
+        self.window_t = self.window_o // 2
         self.headers = None
         self.method = None
         self.path_s = None
@@ -546,8 +549,17 @@ class HTTP2Stream(netius.Stream):
         self._data_b.write(data)
         self._data_l += len(data)
 
-    def window_update(self, increment):
+    def remote_update(self, increment):
         self.window += increment
+
+    def local_update(self, increment):
+        self.window_l += increment
+        if self.window_l >= self.window_t: return
+        self.connection.send_window_update(
+            increment = self.window_o - self.window_l,
+            stream = self.identifier
+        )
+        self.windows_l = self.window_o
 
     def get_path(self):
         split = self.path_s.split("?", 1)
