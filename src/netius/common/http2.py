@@ -380,6 +380,9 @@ class HTTP2Parser(parser.Parser):
 
         self.trigger("on_headers", stream)
 
+    def _has_stream(self, stream):
+        return stream in self.streams
+
     def _get_stream(self, stream = None, default = None):
         stream = stream or self.stream
         return self.streams.get(self.stream, default)
@@ -432,6 +435,7 @@ class HTTP2Stream(netius.Stream):
         weight = 1,
         end_headers = False,
         end_stream = False,
+        end_stream_l = False,
         store = False,
         file_limit = http.FILE_LIMIT,
         window = HTTP2_WINDOW,
@@ -446,6 +450,7 @@ class HTTP2Stream(netius.Stream):
         self.weight = weight
         self.end_headers = end_headers
         self.end_stream = end_stream
+        self.end_stream_l = end_stream_l
         self.reset(store = store, file_limit = file_limit, window = window)
 
     def __getattr__(self, name):
@@ -475,9 +480,10 @@ class HTTP2Stream(netius.Stream):
         self._data_l = -1
 
     def close(self, flush = False, destroy = True):
-        #if flush: self.send_reset()  #@todo if a close operation is done without a end_stream on our side a send reset is required
         netius.Stream.close(self)
+        if not self.owner._has_stream(self.identifier): return
         self.owner._del_stream(self.identifier)
+        if self.end_stream_l: self.send_reset()
 
     def extend_headers(self, headers):
         self.headers_l += headers
