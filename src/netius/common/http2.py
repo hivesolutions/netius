@@ -61,6 +61,20 @@ GOAWAY = 0x07
 WINDOW_UPDATE = 0x08
 CONTINUATION = 0x09
 
+PROTOCOL_ERROR = 0x01
+INTERNAL_ERROR = 0x02
+FLOW_CONTROL_ERROR = 0x03
+SETTINGS_TIMEOUT = 0x04
+STREAM_CLOSED = 0x05
+FRAME_SIZE_ERROR = 0x06
+REFUSED_STREAM = 0x07
+CANCEL = 0x08
+COMPRESSION_ERROR = 0x09
+CONNECT_ERROR = 0x0a
+ENHANCE_YOUR_CALM = 0xb
+INADEQUATE_SECURITY = 0x0c
+HTTP_1_1_REQUIRED = 0x0d
+
 SETTINGS_HEADER_TABLE_SIZE = 0x01
 SETTINGS_ENABLE_PUSH = 0x02
 SETTINGS_MAX_CONCURRENT_STREAMS = 0x03
@@ -277,6 +291,17 @@ class HTTP2Parser(parser.Parser):
         # returns the number of read (processed) bytes of the
         # data that has been sent to the parser
         return size_o - size
+
+    def assert_header(self):
+        """
+        Runs a series of assertion operation related with the
+        header of the frame, making sure it remains compliant
+        with the HTTP 2 specification.
+        """
+
+        if self.length > self.owner.settings[SETTINGS_MAX_FRAME_SIZE]:
+            self.connection.error_stream(self.stream, error_code = FRAME_SIZE_ERROR)
+            #@todo: this should be replaced with a proper exception raising
 
     @property
     def type_s(self):

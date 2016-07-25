@@ -72,6 +72,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.legacy = False
         if self.parser: self.parser.destroy()
         self.parser = netius.common.HTTP2Parser(self, store = True)
+        self.parser.bind("on_header", self.on_header)
         self.parser.bind("on_frame", self.on_frame)
         self.parser.bind("on_part", self.on_part)
         self.parser.bind("on_headers", self.on_headers)
@@ -487,6 +488,32 @@ class HTTP2Connection(http.HTTPConnection):
             callback = callback
         )
 
+    def send_goaway(
+        self,
+        last_stream = 0x00,
+        error_code = 0x00,
+        message = "",
+        close = True,
+        delay = False,
+        callback = None
+    ):
+        if close:
+            old_callback = callback
+
+            def callback(connection):
+                old_callback and old_callback(connection)
+                self.close()
+
+        message = netius.legacy.bytes(message)
+        payload = struct.pack("!II", last_stream, error_code)
+        payload += message
+        return self.send_frame(
+            type = netius.common.GOAWAY,
+            payload = payload,
+            delay = delay,
+            callback = callback
+        )
+
     def send_window_update(
         self,
         increment = 0,
@@ -550,6 +577,18 @@ class HTTP2Connection(http.HTTPConnection):
         stream.end_stream_l = final
         stream.close()
 
+    def available_stream(self, stream, length):
+        if self.window < length: return False
+        _stream = stream
+        stream = self.parser._get_stream(stream)
+        if not stream: return True
+        if stream.window < length: return False
+        return True
+
+    def open_stream(self, stream):
+        stream = self.parser._get_stream(stream)
+        return True if stream and stream.is_open() else False
+
     def increment_remote(self, stream, increment):
         """
         Increments the size of the remove window associated with
@@ -595,17 +634,18 @@ class HTTP2Connection(http.HTTPConnection):
         if not stream: return
         stream.local_update(increment)
 
-    def available_stream(self, stream, length):
-        if self.window < length: return False
-        _stream = stream
-        stream = self.parser._get_stream(stream)
-        if not stream: return True
-        if stream.window < length: return False
-        return True
+    def error_stream(self, stream, error_code = 0x00):
+        self.send_rst_stream(
+            error_code = error_code,
+            stream = stream,
+            callback = lambda: self.send_goaway(
+                error_code = error_code
+            )
+        )
 
-    def open_stream(self, stream):
-        stream = self.parser._get_stream(stream)
-        return True if stream and stream.is_open() else False
+    def on_header(self, header):
+        self.parser._assert_header()
+        self.owner.on_header_http2(self, self.parser, header)
 
     def on_frame(self):
         self.owner.on_frame_http2(self, self.parser)
@@ -681,6 +721,9 @@ class HTTP2Server(http.HTTPServer):
     def on_preface_http2(self, connection, parser):
         connection.send_settings(settings = self.settings_t)
         connection.send_delta()
+
+    def on_header_http2(self, connection, parser, header):
+        pass
 
     def on_frame_http2(self, connection, parser):
         is_debug = self.is_debug()
