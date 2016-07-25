@@ -128,16 +128,14 @@ class HTTP2Parser(parser.Parser):
         self,
         owner,
         store = False,
-        file_limit = http.FILE_LIMIT,
-        window = HTTP2_WINDOW
+        file_limit = http.FILE_LIMIT
     ):
         parser.Parser.__init__(self, owner)
 
         self.build()
         self.reset(
             store = store,
-            file_limit = file_limit,
-            window = window
+            file_limit = file_limit
         )
 
     def build(self):
@@ -191,12 +189,10 @@ class HTTP2Parser(parser.Parser):
     def reset(
         self,
         store = False,
-        file_limit = http.FILE_LIMIT,
-        window = HTTP2_WINDOW
+        file_limit = http.FILE_LIMIT
     ):
         self.store = store
         self.file_limit = file_limit
-        self.window = window
         self.state = HEADER_STATE
         self.buffer = []
         self.keep_alive = True
@@ -512,6 +508,7 @@ class HTTP2Stream(netius.Stream):
         self.store = store
         self.file_limit = file_limit
         self.window = window
+        print(window)
         self.headers = None
         self.method = None
         self.path_s = None
