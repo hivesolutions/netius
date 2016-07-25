@@ -599,6 +599,7 @@ class HTTP2Connection(http.HTTPConnection):
         if self.window < length: return False
         _stream = stream
         stream = self.parser._get_stream(stream)
+        if not stream: return True
         if stream.window < length: return False
         return True
 
