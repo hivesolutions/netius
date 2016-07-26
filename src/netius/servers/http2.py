@@ -644,7 +644,6 @@ class HTTP2Connection(http.HTTPConnection):
         )
 
     def on_header(self, header):
-        self.parser.assert_header()
         self.owner.on_header_http2(self, self.parser, header)
 
     def on_frame(self):
@@ -723,7 +722,7 @@ class HTTP2Server(http.HTTPServer):
         connection.send_delta()
 
     def on_header_http2(self, connection, parser, header):
-        pass
+        parser.assert_header()
 
     def on_frame_http2(self, connection, parser):
         is_debug = self.is_debug()
