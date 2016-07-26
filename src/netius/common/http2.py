@@ -294,7 +294,7 @@ class HTTP2Parser(parser.Parser):
 
     def assert_header(self):
         """
-        Runs a series of assertion operation related with the
+        Runs a series of assertion operations related with the
         header of the frame, making sure it remains compliant
         with the HTTP 2 specification.
         """
