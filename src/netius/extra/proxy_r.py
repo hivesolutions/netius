@@ -412,6 +412,21 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if state: self.releaser(state); _connection.state = None
         netius.servers.ProxyServer._on_prx_close(self, client, _connection)
 
+    def _apply_all(self, parser, connection, headers, upper = True):
+        netius.servers.ProxyServer._apply_all(
+            self,
+            parser,
+            connection,
+            headers,
+            upper = upper
+        )
+
+        # in case a strict transport security value (number) is defined it
+        # is going to be used as the max age value to be applied for such
+        # behavior, note that this is considered dangerous at it may corrupt
+        # the serving of assets through non secure (no ssl) connections
+        if self.sts: headers["Strict-Transport-Security"] = "max-age=%d" % self.sts
+
     def _apply_headers(self, parser, headers, upper = True):
         netius.servers.ProxyServer._apply_headers(
             self,
