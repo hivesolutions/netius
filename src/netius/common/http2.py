@@ -765,7 +765,7 @@ class HTTP2Stream(netius.Stream):
         """
         Builds the final callback function to be used with a clojure
         around the current stream for proper validation and passing
-        of the connection parameter as the stream (context).
+        of the stream as connection parameter (context).
 
         :type callback: Function
         :param callback: The function to be used as the basis for the
