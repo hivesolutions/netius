@@ -172,6 +172,14 @@ class HTTP2Connection(http.HTTPConnection):
         delay = False,
         callback = None
     ):
+        if self.legacy: return http.HTTPConnection.send_chunked(
+            self,
+            data,
+            stream = stream,
+            final = final,
+            delay = delay,
+            callback = callback
+        )
         return self.send_plain(
             data,
             stream = stream,
@@ -674,6 +682,11 @@ class HTTP2Connection(http.HTTPConnection):
         self.owner.on_window_update_http2(self, self.parser, stream, increment)
 
     def _flush_chunked(self, stream = None, callback = None):
+        if self.legacy: return http.HTTPConnection._flush_chunked(
+            self,
+            stream = stream,
+            callback = callback
+        )
         self._flush_plain(stream = stream, callback = callback)
 
 class HTTP2Server(http.HTTPServer):
