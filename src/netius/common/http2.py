@@ -870,6 +870,12 @@ class HTTP2Stream(netius.Stream):
             yield data[:self.window_m]
             data = data[self.window_m:]
 
+    def fragmentable(self, data):
+        if not data: return False
+        if len(data) <= self.window_m: return False
+        if self.window_m == 0: return False
+        return True
+
     def flush(self, *args, **kwargs):
         if not self.is_open(): return 0
         kwargs["stream"] = self.identifier

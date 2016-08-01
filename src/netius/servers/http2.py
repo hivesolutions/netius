@@ -156,13 +156,39 @@ class HTTP2Connection(http.HTTPConnection):
             delay = delay,
             callback = callback
         )
-        return self.send_data(
-            data,
-            stream = stream,
-            end_stream = final,
-            delay = delay,
-            callback = callback
-        )
+        if not stream or not self.fragmentable_stream(stream, data):
+            return self.send_data(
+                data,
+                stream = stream,
+                end_stream = final,
+                delay = delay,
+                callback = callback
+            )
+
+        count = 0
+        fragments = self.fragment_stream(stream, data)
+        fragments = list(fragments)
+
+        for index in netius.legacy.xrange(len(fragments)):
+            is_last = index == len(fragments) - 1
+            fragment = fragments[index]
+            if is_last:
+                count += self.send_data(
+                    fragment,
+                    stream = stream,
+                    end_stream = final,
+                    delay = delay,
+                    callback = callback
+                )
+            else:
+                count += self.send_data(
+                    fragment,
+                    stream = stream,
+                    end_stream = False,
+                    delay = delay
+                )
+
+        return count
 
     def send_chunked(
         self,
@@ -548,6 +574,7 @@ class HTTP2Connection(http.HTTPConnection):
         stream = kwargs["stream"]
         stream = self.parser._get_stream(stream)
         self.frames.append((args, kwargs))
+        return 0
 
     def flush_frames(self):
         while self.frames:
@@ -592,6 +619,14 @@ class HTTP2Connection(http.HTTPConnection):
         if not stream: return True
         if stream.window < length: return False
         return True
+
+    def fragment_stream(self, stream, data):
+        stream = self.parser._get_stream(stream)
+        return stream.fragment(data)
+
+    def fragmentable_stream(self, stream, data):
+        stream = self.parser._get_stream(stream)
+        return stream.fragmentable(data)
 
     def open_stream(self, stream):
         stream = self.parser._get_stream(stream)
