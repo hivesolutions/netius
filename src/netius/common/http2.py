@@ -941,7 +941,7 @@ class HTTP2Stream(netius.Stream):
     def is_ready(self, calculate = True):
         """
         Determines if the stream is ready, meaning that the complete
-        set of headers and data have been passed to the and the request
+        set of headers and data have been passed to peer and the request
         is ready to be passed to underlying layers for processing.
 
         :type calculate: bool
