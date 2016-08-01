@@ -481,17 +481,17 @@ class HTTP2Connection(http.HTTPConnection):
 
     def send_ping(
         self,
+        opaque = b"\0\0\0\0\0\0\0\0",
         ack = False,
         delay = False,
         callback = None
     ):
         flags = 0x00
         if ack: flags |= 0x01
-        payload = b"\0\0\0\0\0\0\0\0"
         return self.send_frame(
             type = netius.common.PING,
             flags = flags,
-            payload = payload,
+            payload = opaque,
             delay = delay,
             callback = callback
         )
@@ -685,8 +685,8 @@ class HTTP2Connection(http.HTTPConnection):
     def on_settings(self, settings, ack):
         self.owner.on_settings_http2(self, self.parser, settings, ack)
 
-    def on_ping(self, ack):
-        self.owner.on_ping_http2(self, self.parser, ack)
+    def on_ping(self, opaque, ack):
+        self.owner.on_ping_http2(self, self.parser, opaque, ack)
 
     def on_goaway(self, last_stream, error_code, extra):
         self.owner.on_goaway_http2(self, self.parser, last_stream, error_code, extra)
@@ -792,9 +792,9 @@ class HTTP2Server(http.HTTPServer):
         connection.set_settings(dict(settings))
         connection.send_settings(ack = True)
 
-    def on_ping_http2(self, connection, parser, ack):
+    def on_ping_http2(self, connection, parser, opaque, ack):
         if ack: return
-        connection.send_ping(ack = True)
+        connection.send_ping(opaque = opaque, ack = True)
 
     def on_goaway_http2(self, connection, parser, last_stream, error_code, extra):
         if error_code == 0x00: return
