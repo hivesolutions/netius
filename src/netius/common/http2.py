@@ -363,13 +363,20 @@ class HTTP2Parser(parser.Parser):
     def assert_ping(self):
         if not self.stream == 0x00:
             raise netius.ParserError(
-                "Stream must be set to 0x00",
+                "Stream must be set to 0x00 for PING",
                 error_code = PROTOCOL_ERROR
             )
         if not self.length == 8:
             raise netius.ParserError(
                 "Size of PING frame must be 8",
                 error_code = FRAME_SIZE_ERROR
+            )
+
+    def assert_goaway(self):
+        if not self.stream == 0x00:
+            raise netius.ParserError(
+                "Stream must be set to 0x00 for GOAWAY",
+                error_code = PROTOCOL_ERROR
             )
 
     def assert_continuation(self, stream):
@@ -548,6 +555,7 @@ class HTTP2Parser(parser.Parser):
     def _parse_goaway(self, data):
         last_stream, error_code = struct.unpack("!II", data[:8])
         extra = data[8:]
+        self.assert_goaway()
         self.trigger("on_goaway", last_stream, error_code, extra)
 
     def _parse_window_update(self, data):
