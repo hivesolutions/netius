@@ -412,6 +412,12 @@ class HTTP2Parser(parser.Parser):
                 error_code = PROTOCOL_ERROR
             )
 
+    def assert_push_promise(self, promised_stream):
+        raise netius.ParserError(
+            "PUSH_PROMISE not allowed for server",
+            error_code = PROTOCOL_ERROR
+        )
+
     def assert_ping(self):
         if not self.stream == 0x00:
             raise netius.ParserError(
@@ -627,7 +633,25 @@ class HTTP2Parser(parser.Parser):
         self.trigger("on_settings", settings, ack)
 
     def _parse_push_promise(self, data):
-        pass
+        data_l = len(data)
+
+        end_headers = True if self.flags & 0x04 else False
+        padded = self.flags & 0x08
+
+        index = 0
+        padded_l = 0
+
+        if padded:
+            padded_l, = struct.unpack("!B", data[index:index + 1])
+            index += 1
+
+        promised_stream, = struct.unpack("!I", data[index:index + 4])
+
+        fragment = data[index:data_l - padded_l]
+
+        self.assert_push_promise(promised_stream)
+
+        self.trigger("on_push_promise", promised_stream, fragment, end_headers)
 
     def _parse_ping(self, data):
         ack = self.flags & 0x01
