@@ -310,6 +310,12 @@ class HTTP2Parser(parser.Parser):
     def assert_stream(self, stream):
         if not stream.identifier % 2 == 1:
             raise netius.ParserError("Stream identifiers must be odd")
+        if len(self.streams) >= self.owner.settings[SETTINGS_MAX_CONCURRENT_STREAMS]:
+            raise netius.ParserError(
+                "Too many stream (greater than SETTINGS_MAX_CONCURRENT_STREAMS)",
+                stream = self.stream,
+                error_code = PROTOCOL_ERROR
+            )
 
     def assert_continuation(self, stream):
         if stream.end_stream:
