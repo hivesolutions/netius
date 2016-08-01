@@ -365,7 +365,7 @@ class HTTP2Parser(parser.Parser):
                 error_code = PROTOCOL_ERROR
             )
 
-    def assert_settings(self, ack):
+    def assert_settings(self, settings, ack, extended = True):
         if not self.stream == 0x00:
             raise netius.ParserError(
                 "Stream must be set to 0x00 for SETTINGS",
@@ -380,6 +380,28 @@ class HTTP2Parser(parser.Parser):
             raise netius.ParserError(
                 "Size of SETTINGS frame must be a multiple of 6",
                 error_code = FRAME_SIZE_ERROR
+            )
+        if not extended: return
+        settings = dict(settings)
+        if not settings.get(SETTINGS_ENABLE_PUSH, 0) in (0, 1):
+            raise netius.ParserError(
+                "Value of SETTINGS_ENABLE_PUSH different from 0 or 1",
+                error_code = PROTOCOL_ERROR
+            )
+        if settings.get(SETTINGS_INITIAL_WINDOW_SIZE, 0) > 2147483647:
+            raise netius.ParserError(
+                "Value of SETTINGS_INITIAL_WINDOW_SIZE too large",
+                error_code = FLOW_CONTROL_ERROR
+            )
+        if settings.get(SETTINGS_MAX_FRAME_SIZE, 16384) < 16384:
+            raise netius.ParserError(
+                "Value of SETTINGS_MAX_FRAME_SIZE too small",
+                error_code = PROTOCOL_ERROR
+            )
+        if settings.get(SETTINGS_MAX_FRAME_SIZE, 16384) > 16777215:
+            raise netius.ParserError(
+                "Value of SETTINGS_MAX_FRAME_SIZE too large",
+                error_code = PROTOCOL_ERROR
             )
 
     def assert_ping(self):
@@ -569,7 +591,7 @@ class HTTP2Parser(parser.Parser):
             setting = struct.unpack("!HI", part)
             settings.append(setting)
 
-        self.assert_settings(ack)
+        self.assert_settings(settings, ack)
 
         self.trigger("on_settings", settings, ack)
 
