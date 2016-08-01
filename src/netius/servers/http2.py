@@ -172,9 +172,10 @@ class HTTP2Connection(http.HTTPConnection):
         count = 0
         fragments = self.fragment_stream(stream, data)
         fragments = list(fragments)
+        fragments_l = len(fragments) - 1
 
         for index in netius.legacy.xrange(len(fragments)):
-            is_last = index == len(fragments) - 1
+            is_last = index == fragments_l
             fragment = fragments[index]
             if is_last:
                 count += self.send_data(
