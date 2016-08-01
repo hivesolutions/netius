@@ -825,56 +825,6 @@ class HTTP2Stream(netius.Stream):
         self.header_b = []
         if assert_h: self.assert_headers()
 
-    def assert_headers(self):
-        pseudo = True
-        pseudos = dict()
-        for name, value in self.headers_l:
-            is_pseudo = name.startswith(":")
-            if not is_pseudo: pseudo = False
-            if not name.lower() == name:
-                raise netius.ParserError(
-                    "Headers must be lower cased",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
-                )
-            if name in (":status",):
-                raise netius.ParserError(
-                    "Response pseudo-header present",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
-                )
-            if name in ("connection",):
-                raise netius.ParserError(
-                    "Invalid header present",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
-                )
-            if name == "te" and not value == "trailers":
-                raise netius.ParserError(
-                    "Invalid value for TE header",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
-                )
-            if is_pseudo and name in pseudos:
-                raise netius.ParserError(
-                    "Duplicated pseudo-header value",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
-                )
-            if pseudo and not name in HTTP2_PSEUDO:
-                raise netius.ParserError(
-                    "Invalid pseudo-header",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
-                )
-            if not pseudo and is_pseudo:
-                raise netius.ParserError(
-                    "Pseudo-header positioned after normal header",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
-                )
-            if is_pseudo: pseudos[name] = True
-
     def extend_headers(self, fragment):
         self.header_b.append(fragment)
 
@@ -1012,12 +962,70 @@ class HTTP2Stream(netius.Stream):
         if callback: kwargs["callback"] = self._build_c(callback)
         return self.connection.send_rst_stream(*args, **kwargs)
 
+    def assert_headers(self):
+        pseudo = True
+        pseudos = dict()
+        for name, value in self.headers_l:
+            is_pseudo = name.startswith(":")
+            if not is_pseudo: pseudo = False
+            if not name.lower() == name:
+                raise netius.ParserError(
+                    "Headers must be lower cased",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
+            if name in (":status",):
+                raise netius.ParserError(
+                    "Response pseudo-header present",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
+            if name in ("connection",):
+                raise netius.ParserError(
+                    "Invalid header present",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
+            if name == "te" and not value == "trailers":
+                raise netius.ParserError(
+                    "Invalid value for TE header",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
+            if is_pseudo and name in pseudos:
+                raise netius.ParserError(
+                    "Duplicated pseudo-header value",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
+            if pseudo and not name in HTTP2_PSEUDO:
+                raise netius.ParserError(
+                    "Invalid pseudo-header",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
+            if not pseudo and is_pseudo:
+                raise netius.ParserError(
+                    "Pseudo-header positioned after normal header",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
+            if is_pseudo: pseudos[name] = True
+
+    def assert_ready(self):
+        if not self._data_l == self.content_l:
+            raise netius.ParserError(
+                "Invalid content-length header value (missmatch)",
+                stream = self.identifier,
+                error_code = PROTOCOL_ERROR
+            )
+
     @property
     def parser(self):
         return self
 
     @property
-    def is_ready(self, calculate = True):
+    def is_ready(self, calculate = True, assert_r = True):
         """
         Determines if the stream is ready, meaning that the complete
         set of headers and data have been passed to peer and the request
@@ -1027,13 +1035,18 @@ class HTTP2Stream(netius.Stream):
         :param calculate: If the calculus of the content length should be
         taken into consideration meaning that the content/data length should
         be ensured to be calculated.
+        :type assert_r: bool
+        :param assert_r: If the extra assert (ready) operation should be
+        performed to ensure that proper data values are defined in the request.
         :rtype: bool
         :return: The final value on the is ready (for processing).
         """
 
         if calculate: self._calculate()
-        return self.end_headers and self.end_stream and\
-            self._data_l >= self.content_l
+        if not self.end_headers: return False
+        if not self.end_stream: return False
+        if assert_r: self.assert_ready()
+        return True
 
     @property
     def is_headers(self):
