@@ -50,6 +50,9 @@ class NetiusError(RuntimeError):
         RuntimeError.__init__(self, *args)
         self.kwargs = kwargs
 
+    def get_kwarg(self, name, default = None):
+        return self.kwargs.get(name, default)
+
 class PauseError(NetiusError):
     """
     Error to be used for situations where a pause
