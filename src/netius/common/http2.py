@@ -313,11 +313,11 @@ class HTTP2Parser(parser.Parser):
                 stream = self.stream,
                 error_code = FRAME_SIZE_ERROR
             )
-        if self.last_type == HEADERS and not self.last_stream == self.stream:
-            raise netius.ParserError(
-                "Cannot send frame from a different stream in middle of HEADERS",
-                error_code = PROTOCOL_ERROR
-            )
+        #if self.last_type == HEADERS and not self.last_stream == self.stream:
+        #    raise netius.ParserError(
+        #        "Cannot send frame from a different stream in middle of HEADERS",
+        #        error_code = PROTOCOL_ERROR
+        #    )
 
     def assert_stream(self, stream):
         if not stream.identifier % 2 == 1:
