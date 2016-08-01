@@ -415,21 +415,18 @@ class DatagramServer(Server):
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
             if error_v in SSL_SILENT_ERRORS:
-                self.debug(error)
+                self.on_expected(error)
             elif not error_v in SSL_VALID_ERRORS and\
                 not error_m in SSL_VALID_REASONS:
-                self.warning(error)
-                self.log_stack()
+                self.on_exception(error)
         except socket.error as error:
             error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
-                self.debug(error)
+                self.on_expected(error)
             elif not error_v in VALID_ERRORS:
-                self.warning(error)
-                self.log_stack()
+                self.on_exception(error)
         except BaseException as exception:
-            self.warning(exception)
-            self.log_stack()
+            self.on_exception(exception)
 
     def on_write(self, _socket):
         try:
@@ -438,24 +435,28 @@ class DatagramServer(Server):
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
             if error_v in SSL_SILENT_ERRORS:
-                self.debug(error)
+                self.on_expected(error)
             elif not error_v in SSL_VALID_ERRORS and\
                 not error_m in SSL_VALID_REASONS:
-                self.warning(error)
-                self.log_stack()
+                self.on_exception(error)
         except socket.error as error:
             error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
-                self.debug(error)
+                self.on_expected(error)
             elif not error_v in VALID_ERRORS:
-                self.warning(error)
-                self.log_stack()
+                self.on_exception(error)
         except BaseException as exception:
-            self.warning(exception)
-            self.log_stack()
+            self.on_exception(exception)
 
     def on_error(self, _socket):
         pass
+
+    def on_exception(self, exception):
+        self.warning(exception)
+        self.log_stack()
+
+    def on_expected(self, exception):
+        self.debug(exception)
 
     def on_data(self, address, data):
         pass
@@ -639,21 +640,18 @@ class StreamServer(Server):
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
             if error_v in SSL_SILENT_ERRORS:
-                self.debug(error)
+                self.on_expected_s(error)
             elif not error_v in SSL_VALID_ERRORS and\
                 not error_m in SSL_VALID_REASONS:
-                self.warning(error)
-                self.log_stack()
+                self.on_exception_s(error)
         except socket.error as error:
             error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
-                self.debug(error)
+                self.on_expected_s(error)
             elif not error_v in VALID_ERRORS:
-                self.warning(error)
-                self.log_stack()
+                self.on_exception_s(error)
         except BaseException as exception:
-            self.warning(exception)
-            self.log_stack()
+            self.on_exception_s(exception)
 
     def on_write_s(self, _socket):
         pass
@@ -696,26 +694,18 @@ class StreamServer(Server):
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
             if error_v in SSL_SILENT_ERRORS:
-                self.debug(error)
-                connection.close()
+                self.on_expected(error, connection)
             elif not error_v in SSL_VALID_ERRORS and\
                 not error_m in SSL_VALID_REASONS:
-                self.warning(error)
-                self.log_stack()
-                connection.close()
+                self.on_exception(error, connection)
         except socket.error as error:
             error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
-                self.debug(error)
-                connection.close()
+                self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
-                self.warning(error)
-                self.log_stack()
-                connection.close()
+                self.on_exception(error, connection)
         except BaseException as exception:
-            self.warning(exception)
-            self.log_stack()
-            connection.close()
+            self.on_exception(exception, connection)
 
     def on_write(self, _socket):
         connection = self.connections_m.get(_socket, None)
@@ -728,26 +718,18 @@ class StreamServer(Server):
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
             if error_v in SSL_SILENT_ERRORS:
-                self.debug(error)
-                connection.close()
+                self.on_expected(error, connection)
             elif not error_v in SSL_VALID_ERRORS and\
                 not error_m in SSL_VALID_REASONS:
-                self.warning(error)
-                self.log_stack()
-                connection.close()
+                self.on_exception(error, connection)
         except socket.error as error:
             error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
-                self.debug(error)
-                connection.close()
+                self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
-                self.warning(error)
-                self.log_stack()
-                connection.close()
+                self.on_exception(error, connection)
         except BaseException as exception:
-            self.warning(exception)
-            self.log_stack()
-            connection.close()
+            self.on_exception(exception, connection)
 
     def on_error(self, _socket):
         connection = self.connections_m.get(_socket, None)
@@ -755,6 +737,22 @@ class StreamServer(Server):
         if not connection.status == OPEN: return
 
         connection.close()
+
+    def on_exception(self, exception, connection):
+        self.warning(exception)
+        self.log_stack()
+        connection.close()
+
+    def on_exception_s(self, exception):
+        self.warning(exception)
+        self.log_stack()
+
+    def on_expected(self, exception, connection):
+        self.debug(exception)
+        connection.close()
+
+    def on_expected_s(self, exception):
+        self.debug(exception)
 
     def on_upgrade(self, connection):
         connection.set_upgraded()

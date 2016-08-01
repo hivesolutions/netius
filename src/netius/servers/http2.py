@@ -694,7 +694,7 @@ class HTTP2Server(http.HTTPServer):
     def __init__(
         self,
         legacy = True,
-        safe = True,
+        safe = False,
         settings = netius.common.HTTP2_SETTINGS_OPTIMAL,
         *args,
         **kwargs

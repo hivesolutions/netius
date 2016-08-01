@@ -46,7 +46,9 @@ class NetiusError(RuntimeError):
     error meaning that all the errors are runtime.
     """
 
-    pass
+    def __init__(self, *args, **kwargs):
+        RuntimeError.__init__(self, *args)
+        self.kwargs = kwargs
 
 class PauseError(NetiusError):
     """

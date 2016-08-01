@@ -300,8 +300,11 @@ class HTTP2Parser(parser.Parser):
         """
 
         if self.length > self.owner.settings[SETTINGS_MAX_FRAME_SIZE]:
-            self.owner.error_stream(self.stream, error_code = FRAME_SIZE_ERROR)
-            #@todo: this should be replaced with a proper exception raising
+            raise netius.ParserError(
+                "Header assertion failed",
+                stream = self.stream,
+                error_code = FRAME_SIZE_ERROR
+            )
 
     @property
     def type_s(self):
