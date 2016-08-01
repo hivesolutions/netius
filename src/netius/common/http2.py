@@ -227,17 +227,21 @@ class HTTP2Parser(parser.Parser):
         self.type = 0
         self.flags = 0
         self.stream = 0
+        self.end_headers = False
         self.last_type = 0
         self.last_stream = 0
+        self.last_end_headers = False
 
     def clear(self, force = False, save = True):
         if not force and self.state == HEADER_STATE: return
         type = self.type
         stream = self.stream
+        end_headers = self.end_headers
         self.reset()
         if not save: return
         self.last_type = type
         self.last_stream = stream
+        self.last_end_headers = end_headers
 
     def close(self):
         pass
@@ -313,11 +317,12 @@ class HTTP2Parser(parser.Parser):
                 stream = self.stream,
                 error_code = FRAME_SIZE_ERROR
             )
-        #if self.last_type == HEADERS and not self.last_stream == self.stream:
-        #    raise netius.ParserError(
-        #        "Cannot send frame from a different stream in middle of HEADERS",
-        #        error_code = PROTOCOL_ERROR
-        #    )
+        if self.last_type in (HEADERS, CONTINUATION) and not\
+            self.last_end_headers and not self.last_stream == self.stream:
+            raise netius.ParserError(
+                "Cannot send frame from a different stream in middle of headers",
+                error_code = PROTOCOL_ERROR
+            )
 
     def assert_stream(self, stream):
         if not stream.identifier % 2 == 1:
@@ -507,6 +512,11 @@ class HTTP2Parser(parser.Parser):
             )
             stream.open()
 
+        # updates the current parser value for the end headers flag
+        # this is going to be used to determine if the current state
+        # of the connection is (loading/parsing) headers
+        self.end_headers = end_headers
+
         # runs the assertion for the new stream that has been created
         # it must be correctly validation for some of its values
         self.assert_stream(stream)
@@ -573,6 +583,7 @@ class HTTP2Parser(parser.Parser):
 
         stream.extend_headers(headers)
         stream.end_headers = end_headers
+        self.end_headers = end_headers
 
         self.trigger("on_headers", stream)
 
