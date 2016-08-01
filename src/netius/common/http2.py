@@ -827,7 +827,7 @@ class HTTP2Stream(netius.Stream):
 
     def assert_headers(self):
         pseudo = True
-        for name in netius.legacy.iterkeys(self.headers_l):
+        for name, _value in self.headers_l:
             if not name.startswith(":"): pseudo = False
             if not name.lower() == name:
                 raise netius.ParserError(
