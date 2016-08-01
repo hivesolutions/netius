@@ -827,8 +827,10 @@ class HTTP2Stream(netius.Stream):
 
     def assert_headers(self):
         pseudo = True
-        for name, _value in self.headers_l:
-            if not name.startswith(":"): pseudo = False
+        pseudos = dict()
+        for name, value in self.headers_l:
+            is_pseudo = name.startswith(":")
+            if not is_pseudo: pseudo = False
             if not name.lower() == name:
                 raise netius.ParserError(
                     "Headers must be lower cased",
@@ -841,18 +843,37 @@ class HTTP2Stream(netius.Stream):
                     stream = self.identifier,
                     error_code = PROTOCOL_ERROR
                 )
+            if name in ("connection",):
+                raise netius.ParserError(
+                    "Invalid header present",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
+            if name == "te" and not value == "trailers":
+                raise netius.ParserError(
+                    "Invalid value for TE header",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
+            if is_pseudo and name in pseudos:
+                raise netius.ParserError(
+                    "Duplicated pseudo-header value",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
             if pseudo and not name in HTTP2_PSEUDO:
                 raise netius.ParserError(
                     "Invalid pseudo-header",
                     stream = self.identifier,
                     error_code = PROTOCOL_ERROR
                 )
-            if not pseudo and name.startswith(":"):
+            if not pseudo and is_pseudo:
                 raise netius.ParserError(
                     "Pseudo-header positioned after normal header",
                     stream = self.identifier,
                     error_code = PROTOCOL_ERROR
                 )
+            if is_pseudo: pseudos[name] = True
 
     def extend_headers(self, fragment):
         self.header_b.append(fragment)
