@@ -194,6 +194,7 @@ class HTTP2Parser(parser.Parser):
         )
 
         self.streams = {}
+        self._max_stream = 0
         self._encoder = None
         self._decoder = None
 
@@ -210,6 +211,7 @@ class HTTP2Parser(parser.Parser):
         self.state_l = 0
         self.parsers = ()
         self.streams = {}
+        self._max_stream = 0
         self._encoder = None
         self._decoder = None
 
@@ -657,15 +659,19 @@ class HTTP2Parser(parser.Parser):
 
     def _get_stream(self, stream = None, default = None, strict = True):
         if stream == None: stream = self.stream
-        if strict and not stream == 0 and not stream in self.streams:
+        if (strict or stream <= self._max_stream) and not stream == 0 and\
+            not stream in self.streams:
+            existed = stream <= self._max_stream
+            error_code = STREAM_CLOSED if existed else PROTOCOL_ERROR
             raise netius.ParserError(
                 "Invalid stream '%d'" % stream,
-                error_code = PROTOCOL_ERROR
+                error_code = error_code
             )
         return self.streams.get(stream, default)
 
     def _set_stream(self, stream):
         self.streams[stream.identifier] = stream
+        self._max_stream = max(self._max_stream, stream.identifier)
 
     def _del_stream(self, stream):
         if not stream in self.streams: return
