@@ -642,6 +642,13 @@ class HTTP2Connection(http.HTTPConnection):
         if not stream: return
         stream.local_update(increment)
 
+    def error_connection(self, error_code = 0x00, close = True, callback = None):
+        self.send_goaway(
+            error_code = error_code,
+            close = close,
+            callback = callback
+        )
+
     def error_stream(
         self,
         stream,
@@ -652,7 +659,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.send_rst_stream(
             error_code = error_code,
             stream = stream,
-            callback = lambda c: self.send_goaway(
+            callback = lambda c: self.error_connection(
                 error_code = error_code,
                 close = close,
                 callback = callback
@@ -735,12 +742,16 @@ class HTTP2Server(http.HTTPServer):
         legacy = lambda: http.HTTPServer.on_exception(self, exception, connection)
         if not isinstance(exception, netius.NetiusError): return legacy()
         stream = exception.get_kwarg("stream")
-        if not stream: return legacy()
         error_code = exception.get_kwarg("error_code", 0x00)
+        ignore = exception.get_kwarg("ignore", False)
         self.warning(exception)
         self.log_stack()
-        connection.error_stream(
+        if ignore: return connection.send_ping(ack = True)
+        if stream: return connection.error_stream(
             stream,
+            error_code = error_code
+        )
+        return connection.error_connection(
             error_code = error_code
         )
 

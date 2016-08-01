@@ -227,10 +227,17 @@ class HTTP2Parser(parser.Parser):
         self.type = 0
         self.flags = 0
         self.stream = 0
+        self.last_type = 0
+        self.last_stream = 0
 
-    def clear(self, force = False):
+    def clear(self, force = False, save = True):
         if not force and self.state == HEADER_STATE: return
+        type = self.type
+        stream = self.stream
         self.reset()
+        if not save: return
+        self.last_type = type
+        self.last_stream = stream
 
     def close(self):
         pass
@@ -306,12 +313,23 @@ class HTTP2Parser(parser.Parser):
                 stream = self.stream,
                 error_code = FRAME_SIZE_ERROR
             )
+        if self.last_type == HEADERS and not self.last_stream == self.stream:
+            raise netius.ParserError(
+                "Cannot send frame from a different stream in middle of HEADERS",
+                error_code = PROTOCOL_ERROR
+            )
 
     def assert_stream(self, stream):
         if not stream.identifier % 2 == 1:
-            raise netius.ParserError("Stream identifiers must be odd")
+            raise netius.ParserError(
+                "Stream identifiers must be odd",
+                error_code = PROTOCOL_ERROR
+            )
         if stream.dependency == stream.identifier:
-            raise netius.ParserError("Stream cannot depend on itself")
+            raise netius.ParserError(
+                "Stream cannot depend on itself",
+                error_code = PROTOCOL_ERROR
+            )
         if len(self.streams) >= self.owner.settings[SETTINGS_MAX_CONCURRENT_STREAMS]:
             raise netius.ParserError(
                 "Too many streams (greater than SETTINGS_MAX_CONCURRENT_STREAMS)",
@@ -319,24 +337,35 @@ class HTTP2Parser(parser.Parser):
                 error_code = PROTOCOL_ERROR
             )
 
+    def assert_data(self, stream):
+        if stream.end_stream:
+            raise netius.ParserError(
+                "Not ready to receive DATA half closed (remote)",
+                stream = self.stream,
+                error_code = STREAM_CLOSED
+            )
+
+    def assert_headers(self, stream):
+        if stream.end_stream:
+            raise netius.ParserError(
+                "Not ready to receive HEADERS half closed (remote)",
+                stream = self.stream,
+                error_code = STREAM_CLOSED
+            )
+
     def assert_priority(self, stream):
         if stream.dependency == stream.identifier:
-            raise netius.ParserError("Stream cannot depend on itself")
+            raise netius.ParserError(
+                "Stream cannot depend on itself",
+                error_code = PROTOCOL_ERROR
+            )
 
     def assert_continuation(self, stream):
         if stream.end_stream:
             raise netius.ParserError(
-                "Not ready to receive data half closed (remote)",
+                "Not ready to receive CONTINUATION half closed (remote)",
                 stream = self.stream,
                 error_code = PROTOCOL_ERROR
-            )
-
-    def assert_data(self, stream):
-        if stream.end_stream:
-            raise netius.ParserError(
-                "Not ready to receive data half closed (remote)",
-                stream = self.stream,
-                error_code = STREAM_CLOSED
             )
 
     @property
@@ -366,6 +395,9 @@ class HTTP2Parser(parser.Parser):
         size = self.length - self.buffer_size
         data = self.buffer_data + data[:size]
 
+        valid_type = self.type < len(self.parsers)
+        if not valid_type: self._invalid_type()
+
         parse_method = self.parsers[self.type]
         parse_method(data)
 
@@ -390,7 +422,7 @@ class HTTP2Parser(parser.Parser):
         contents = data[index:data_l - padded_l]
 
         stream = self._get_stream(self.stream)
-        self.owner.assert_data(stream)
+        self.assert_data(stream)
 
         stream.extend_data(contents)
         stream.end_stream = end_stream
@@ -425,22 +457,36 @@ class HTTP2Parser(parser.Parser):
         # connections this is the value to be set in the new stream
         window = self.owner.settings[SETTINGS_INITIAL_WINDOW_SIZE]
 
-        # constructs the stream structure for the current stream that
-        # is being open/created using the current owner, headers and
-        # other information as the basis for such construction
-        stream = HTTP2Stream(
-            owner = self,
-            identifier = self.stream,
-            headers = headers,
-            dependency = dependency,
-            weight = weight,
-            end_headers = end_headers,
-            end_stream = end_stream,
-            store = self.store,
-            file_limit = self.file_limit,
-            window = window
-        )
-        stream.open()
+        # tries to retrieve a previously opened stream and, this may be
+        # the case it has been opened by a previous frame operation
+        stream = self._get_stream(self.stream, strict = False)
+
+        if stream:
+            # runs the headers assertion operation and then updated the
+            # various elements in the currently opened stream accordingly
+            self.assert_headers(stream)
+            stream.headers = self.headers
+            if dependency: stream.dependency = dependency
+            if weight: stream.weight = weight
+            if end_headers: stream.end_headers = end_headers
+            if end_stream: stream.end_stream = end_stream
+        else:
+            # constructs the stream structure for the current stream that
+            # is being open/created using the current owner, headers and
+            # other information as the basis for such construction
+            stream = HTTP2Stream(
+                owner = self,
+                identifier = self.stream,
+                headers = headers,
+                dependency = dependency,
+                weight = weight,
+                end_headers = end_headers,
+                end_stream = end_stream,
+                store = self.store,
+                file_limit = self.file_limit,
+                window = window
+            )
+            stream.open()
 
         # runs the assertion for the new stream that has been created
         # it must be correctly validation for some of its values
@@ -515,7 +561,10 @@ class HTTP2Parser(parser.Parser):
     def _get_stream(self, stream = None, default = None, strict = True):
         if stream == None: stream = self.stream
         if strict and not stream == 0 and not stream in self.streams:
-            raise netius.ParserError("Invalid stream '%d'" % stream)
+            raise netius.ParserError(
+                "Invalid stream '%d'" % stream,
+                error_code = PROTOCOL_ERROR
+            )
         return self.streams.get(stream, default)
 
     def _set_stream(self, stream):
@@ -524,6 +573,11 @@ class HTTP2Parser(parser.Parser):
     def _del_stream(self, stream):
         if not stream in self.streams: return
         del self.streams[stream]
+
+    def _invalid_type(self):
+        ignore = False if self.last_type == HEADERS else True
+        if ignore: raise netius.ParserError("Invalid frame type", ignore = True)
+        raise netius.ParserError("Invalid frame type", error_code = PROTOCOL_ERROR)
 
     @property
     def buffer_size(self):
