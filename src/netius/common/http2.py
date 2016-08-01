@@ -343,7 +343,7 @@ class HTTP2Parser(parser.Parser):
             )
 
     def assert_data(self, stream):
-        if stream.end_stream and self.end_headers:
+        if stream.end_stream and stream.end_headers:
             raise netius.ParserError(
                 "Not ready to receive DATA half closed (remote)",
                 stream = self.stream,
@@ -351,7 +351,7 @@ class HTTP2Parser(parser.Parser):
             )
 
     def assert_headers(self, stream):
-        if stream.end_stream and self.end_headers:
+        if stream.end_stream and stream.end_headers:
             raise netius.ParserError(
                 "Not ready to receive HEADERS half closed (remote)",
                 stream = self.stream,
