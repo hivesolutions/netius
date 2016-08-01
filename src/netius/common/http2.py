@@ -423,6 +423,13 @@ class HTTP2Parser(parser.Parser):
                 error_code = PROTOCOL_ERROR
             )
 
+    def assert_window_update(self, stream, increment):
+        if increment == 0:
+            raise netius.ParserError(
+                "WINDOW_UPDATE increment must not be zero",
+                error_code = PROTOCOL_ERROR
+            )
+
     def assert_continuation(self, stream):
         if stream.end_stream and stream.end_headers:
             raise netius.ParserError(
@@ -618,6 +625,7 @@ class HTTP2Parser(parser.Parser):
     def _parse_window_update(self, data):
         increment, = struct.unpack("!I", data)
         stream = self._get_stream(self.stream)
+        self.assert_window_update(stream, increment)
         self.trigger("on_window_update", stream, increment)
 
     def _parse_continuation(self, data):
