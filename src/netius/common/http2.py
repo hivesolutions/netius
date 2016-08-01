@@ -933,8 +933,22 @@ class HTTP2Stream(netius.Stream):
 
     @property
     def is_ready(self, calculate = True):
+        """
+        Determines if the stream is ready, meaning that the complete
+        set of headers and data have been passed to the and the request
+        is ready to be passed to underlying layers for processing.
+
+        :type calculate: bool
+        :param calculate: If the calculus of the content length should be
+        taken into consideration meaning that the content/data length should
+        be ensured to be calculated.
+        :rtype: bool
+        :return: The final value on the is ready (for processing).
+        """
+
         if calculate: self._calculate()
-        return self.end_headers and self._data_l >= self.content_l
+        return self.end_headers and self.end_stream and\
+            self._data_l >= self.content_l
 
     @property
     def is_headers(self):
