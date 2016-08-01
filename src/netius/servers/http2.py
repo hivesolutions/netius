@@ -756,7 +756,7 @@ class HTTP2Server(http.HTTPServer):
         connection.send_delta()
 
     def on_header_http2(self, connection, parser, header):
-        parser.assert_header()
+        pass
 
     def on_frame_http2(self, connection, parser):
         is_debug = self.is_debug()
@@ -771,7 +771,6 @@ class HTTP2Server(http.HTTPServer):
         self.on_data_http(stream, stream)
 
     def on_rst_stream_http2(self, connection, parser, stream, error_code):
-        if not stream: return
         stream.end_stream = True
         stream.end_stream_l = True
         stream.close()

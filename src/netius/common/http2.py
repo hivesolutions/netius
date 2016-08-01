@@ -268,6 +268,7 @@ class HTTP2Parser(parser.Parser):
             if self.state <= self.state_l:
                 method = self.states[self.state - 1]
                 count = method(data)
+                if count == -1: break
                 if count == 0: continue
 
                 size -= count
@@ -292,18 +293,38 @@ class HTTP2Parser(parser.Parser):
         # data that has been sent to the parser
         return size_o - size
 
-    def assert_header(self):
+    def assert_header(self, stream):
         """
         Runs a series of assertion operations related with the
         header of the frame, making sure it remains compliant
         with the HTTP 2 specification.
+
+        :type stream: Stream
+        :param stream: The stream that is going to be verified
+        note that the parsed context is also used.
         """
 
         if self.length > self.owner.settings[SETTINGS_MAX_FRAME_SIZE]:
             raise netius.ParserError(
-                "Header assertion failed",
+                "Headers are greater than SETTINGS_MAX_FRAME_SIZE",
                 stream = self.stream,
                 error_code = FRAME_SIZE_ERROR
+            )
+
+    def assert_continuation(self, stream):
+        if stream.end_stream:
+            raise netius.ParserError(
+                "Not ready to receive data half closed (remote)",
+                stream = self.stream,
+                error_code = PROTOCOL_ERROR
+            )
+
+    def assert_data(self, stream):
+        if stream.end_stream:
+            raise netius.ParserError(
+                "Not ready to receive data half closed (remote)",
+                stream = self.stream,
+                error_code = STREAM_CLOSED
             )
 
     @property
@@ -311,7 +332,7 @@ class HTTP2Parser(parser.Parser):
         return HTTP2_NAMES.get(self.type, None)
 
     def _parse_header(self, data):
-        if len(data) + self.buffer_size < HEADER_SIZE: return 0
+        if len(data) + self.buffer_size < HEADER_SIZE: return -1
 
         size = HEADER_SIZE - self.buffer_size
         data = self.buffer_data + data[:size]
@@ -326,7 +347,7 @@ class HTTP2Parser(parser.Parser):
         return size
 
     def _parse_payload(self, data):
-        if len(data) + self.buffer_size < self.length: return 0
+        if len(data) + self.buffer_size < self.length: return -1
 
         size = self.length - self.buffer_size
         data = self.buffer_data + data[:size]
@@ -355,6 +376,8 @@ class HTTP2Parser(parser.Parser):
         contents = data[index:data_l - padded_l]
 
         stream = self._get_stream(self.stream)
+        self.owner.assert_data(stream)
+
         stream.extend_data(contents)
         stream.end_stream = end_stream
 
@@ -407,6 +430,10 @@ class HTTP2Parser(parser.Parser):
         )
         stream.open()
 
+        # runs the assertion on the header value of the stream to make
+        # sure that everything is compliant with the specification
+        self.assert_header(stream)
+
         # sets the stream under the current parser meaning that it can
         # be latter retrieved for proper event propagation
         self._set_stream(stream)
@@ -458,6 +485,8 @@ class HTTP2Parser(parser.Parser):
         headers = self.decoder.decode(data)
 
         stream = self._get_stream(self.stream)
+        self.assert_continuation(stream)
+
         stream.extend_headers(headers)
         stream.end_headers = end_headers
 
@@ -466,8 +495,10 @@ class HTTP2Parser(parser.Parser):
     def _has_stream(self, stream):
         return stream in self.streams
 
-    def _get_stream(self, stream = None, default = None):
-        stream = stream or self.stream
+    def _get_stream(self, stream = None, default = None, strict = True):
+        if stream == None: stream = self.stream
+        if strict and not stream == 0 and not stream in self.streams:
+            raise netius.ParserError("Invalid stream '%d'" % stream)
         return self.streams.get(stream, default)
 
     def _set_stream(self, stream):
