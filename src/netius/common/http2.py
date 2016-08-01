@@ -343,7 +343,7 @@ class HTTP2Parser(parser.Parser):
             )
 
     def assert_data(self, stream):
-        if stream.end_stream:
+        if stream.end_stream and self.end_headers:
             raise netius.ParserError(
                 "Not ready to receive DATA half closed (remote)",
                 stream = self.stream,
@@ -351,7 +351,7 @@ class HTTP2Parser(parser.Parser):
             )
 
     def assert_headers(self, stream):
-        if stream.end_stream:
+        if stream.end_stream and self.end_headers:
             raise netius.ParserError(
                 "Not ready to receive HEADERS half closed (remote)",
                 stream = self.stream,
@@ -424,10 +424,15 @@ class HTTP2Parser(parser.Parser):
             )
 
     def assert_continuation(self, stream):
-        if stream.end_stream:
+        if stream.end_stream and stream.end_headers:
             raise netius.ParserError(
                 "Not ready to receive CONTINUATION half closed (remote)",
                 stream = self.stream,
+                error_code = PROTOCOL_ERROR
+            )
+        if not self.last_type in (HEADERS, PUSH_PROMISE, CONTINUATION):
+            raise netius.ParserError(
+                "CONTINUATION without HEADERS, PUSH_PROMISE or CONTINUATION before",
                 error_code = PROTOCOL_ERROR
             )
 
@@ -513,8 +518,9 @@ class HTTP2Parser(parser.Parser):
             dependency, weight = struct.unpack("!IB", data[index:index + 5])
             index += 5
 
+        # retrieves the (headers) fragment part of the payload, this is
+        # going to be used as the basis for the header decoding
         fragment = data[index:data_l - padded_l]
-        headers = self.decoder.decode(fragment)
 
         # retrieves the value of the window initial size from the owner
         # connections this is the value to be set in the new stream
@@ -528,7 +534,7 @@ class HTTP2Parser(parser.Parser):
             # runs the headers assertion operation and then updated the
             # various elements in the currently opened stream accordingly
             self.assert_headers(stream)
-            stream.headers = self.headers
+            stream.header_b = fragment
             if dependency: stream.dependency = dependency
             if weight: stream.weight = weight
             if end_headers: stream.end_headers = end_headers
@@ -540,7 +546,7 @@ class HTTP2Parser(parser.Parser):
             stream = HTTP2Stream(
                 owner = self,
                 identifier = self.stream,
-                headers = headers,
+                header_b = fragment,
                 dependency = dependency,
                 weight = weight,
                 end_headers = end_headers,
@@ -617,14 +623,14 @@ class HTTP2Parser(parser.Parser):
     def _parse_continuation(self, data):
         end_headers = True if self.flags & 0x04 else False
 
-        headers = self.decoder.decode(data)
-
         stream = self._get_stream(self.stream)
         self.assert_continuation(stream)
 
-        stream.extend_headers(headers)
+        stream.extend_headers(data)
         stream.end_headers = end_headers
         self.end_headers = end_headers
+
+        stream.decode_headers()
 
         self.trigger("on_headers", stream)
 
@@ -688,7 +694,7 @@ class HTTP2Stream(netius.Stream):
     def __init__(
         self,
         identifier = None,
-        headers = None,
+        header_b = None,
         dependency = None,
         weight = 1,
         end_headers = False,
@@ -702,7 +708,7 @@ class HTTP2Stream(netius.Stream):
     ):
         netius.Stream.__init__(self, *args, **kwargs)
         self.identifier = identifier
-        self.headers_l = headers
+        self.header_b = [header_b]
         self.dependency = dependency
         self.weight = weight
         self.end_headers = end_headers
@@ -729,6 +735,7 @@ class HTTP2Stream(netius.Stream):
         self.window_l = self.window_o
         self.window_t = self.window_o // 2
         self.headers = None
+        self.headers_l = None
         self.method = None
         self.path_s = None
         self.version = HTTP_20
@@ -739,14 +746,27 @@ class HTTP2Stream(netius.Stream):
         self._data_b = None
         self._data_l = -1
 
+    def open(self):
+        netius.Stream.open(self)
+        self.decode_headers()
+
     def close(self, flush = False, destroy = True):
         netius.Stream.close(self)
         if not self.owner._has_stream(self.identifier): return
         self.owner._del_stream(self.identifier)
         if self.end_stream_l: self.send_reset()
 
-    def extend_headers(self, headers):
-        self.headers_l += headers
+    def decode_headers(self, force = False):
+        if not self.end_headers and not force: return
+        if self.headers_l and not force: return
+        if not self.header_b: return
+        is_joinable = len(self.header_b) > 1
+        block = b"".join(self.header_b) if is_joinable else self.header_b[0]
+        self.headers_l = self.owner.decoder.decode(block)
+        self.header_b = []
+
+    def extend_headers(self, fragment):
+        self.header_b.append(fragment)
 
     def extend_data(self, data):
         self._data_b.write(data)
