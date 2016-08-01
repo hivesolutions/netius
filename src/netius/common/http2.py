@@ -107,6 +107,10 @@ HTTP2_PREFACE = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
 """ The preface string to be sent by the client upon
 the establishment of the connection """
 
+HTTP2_PSEUDO = (":method", ":scheme", ":path", ":authority", ":status")
+""" The complete set of HTTP 2 based pseudo-header values
+this list should be inclusive and limited """
+
 HTTP2_NAMES = {
     DATA : "DATA",
     HEADERS : "HEADERS",
@@ -811,7 +815,7 @@ class HTTP2Stream(netius.Stream):
         self.owner._del_stream(self.identifier)
         if self.end_stream_l: self.send_reset()
 
-    def decode_headers(self, force = False):
+    def decode_headers(self, force = False, assert_h = True):
         if not self.end_headers and not force: return
         if self.headers_l and not force: return
         if not self.header_b: return
@@ -819,6 +823,36 @@ class HTTP2Stream(netius.Stream):
         block = b"".join(self.header_b) if is_joinable else self.header_b[0]
         self.headers_l = self.owner.decoder.decode(block)
         self.header_b = []
+        if assert_h: self.assert_headers()
+
+    def assert_headers(self):
+        pseudo = True
+        for name in netius.legacy.iterkeys(self.headers_l):
+            if not name.startswith(":"): pseudo = False
+            if not name.lower() == name:
+                raise netius.ParserError(
+                    "Headers must be lower cased",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
+            if name in (":status",):
+                raise netius.ParserError(
+                    "Response pseudo-header present",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
+            if pseudo and not name in HTTP2_PSEUDO:
+                raise netius.ParserError(
+                    "Invalid pseudo-header",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
+            if not pseudo and name.startswith(":"):
+                raise netius.ParserError(
+                    "Pseudo-header positioned after normal header",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
 
     def extend_headers(self, fragment):
         self.header_b.append(fragment)
