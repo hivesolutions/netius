@@ -293,15 +293,11 @@ class HTTP2Parser(parser.Parser):
         # data that has been sent to the parser
         return size_o - size
 
-    def assert_header(self, stream):
+    def assert_header(self):
         """
         Runs a series of assertion operations related with the
         header of the frame, making sure it remains compliant
         with the HTTP 2 specification.
-
-        :type stream: Stream
-        :param stream: The stream that is going to be verified
-        note that the parsed context is also used.
         """
 
         if self.length > self.owner.settings[SETTINGS_MAX_FRAME_SIZE]:
@@ -310,6 +306,10 @@ class HTTP2Parser(parser.Parser):
                 stream = self.stream,
                 error_code = FRAME_SIZE_ERROR
             )
+
+    def assert_stream(self, stream):
+        if not stream.identifier % 2 == 1:
+            raise netius.ParserError("Stream identifiers must be odd")
 
     def assert_continuation(self, stream):
         if stream.end_stream:
@@ -340,6 +340,8 @@ class HTTP2Parser(parser.Parser):
         header = struct.unpack("!BHBBI", data)
         extra, self.length, self.type, self.flags, self.stream = header
         self.length += extra << 16
+
+        self.assert_header()
 
         self.state = PAYLOAD_STATE
         self.trigger("on_header", header)
@@ -430,9 +432,9 @@ class HTTP2Parser(parser.Parser):
         )
         stream.open()
 
-        # runs the assertion on the header value of the stream to make
-        # sure that everything is compliant with the specification
-        self.assert_header(stream)
+        # runs the assertion for the new stream that has been created
+        # it must be correctly validation for some of its values
+        self.assert_stream(stream)
 
         # sets the stream under the current parser meaning that it can
         # be latter retrieved for proper event propagation
