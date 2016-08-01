@@ -42,7 +42,7 @@ def app(environ, start_response):
     content_l = len(contents)
     headers = (
         ("Content-Length", content_l),
-        ("Content-type", "text/plain"),
+        ("Content-Type", "text/plain"),
         ("Connection", "keep-alive")
     )
     start_response(status, headers)
