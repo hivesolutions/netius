@@ -429,6 +429,16 @@ class HTTP2Parser(parser.Parser):
                 "WINDOW_UPDATE increment must not be zero",
                 error_code = PROTOCOL_ERROR
             )
+        if self.owner.window + increment > 2147483647:
+            raise netius.ParserError(
+                "Window value for the connection too large",
+                error_code = FLOW_CONTROL_ERROR
+            )
+        if stream and stream.window + increment > 2147483647:
+            raise netius.ParserError(
+                "Window value for the stream too large",
+                error_code = FLOW_CONTROL_ERROR
+            )
 
     def assert_continuation(self, stream):
         if stream.end_stream and stream.end_headers:

@@ -156,7 +156,11 @@ class HTTP2Connection(http.HTTPConnection):
             delay = delay,
             callback = callback
         )
-        if not stream or not self.fragmentable_stream(stream, data):
+
+        # verifies if the data should be fragmented for the provided
+        # stream and if that's not required send the required data
+        # straight away with any required splitting/fragmentation of it
+        if not self.fragmentable_stream(stream, data):
             return self.send_data(
                 data,
                 stream = stream,
