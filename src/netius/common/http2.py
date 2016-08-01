@@ -739,6 +739,7 @@ class HTTP2Stream(netius.Stream):
         self.store = store
         self.file_limit = file_limit
         self.window = window
+        self.window_m = self.window
         self.window_o = self.connection.window_o
         self.window_l = self.window_o
         self.window_t = self.window_o // 2
@@ -863,6 +864,11 @@ class HTTP2Stream(netius.Stream):
         accept_encoding_s = self.headers.get("accept-encoding", "")
         self.encodings = [value.strip() for value in accept_encoding_s.split(",")]
         return self.encodings
+
+    def fragment(self, data):
+        while data:
+            yield data[:self.window_m]
+            data = data[self.window_m:]
 
     def flush(self, *args, **kwargs):
         if not self.is_open(): return 0
