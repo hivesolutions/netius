@@ -319,6 +319,10 @@ class HTTP2Parser(parser.Parser):
                 error_code = PROTOCOL_ERROR
             )
 
+    def assert_priority(self, stream):
+        if stream.dependency == stream.identifier:
+            raise netius.ParserError("Stream cannot depend on itself")
+
     def assert_continuation(self, stream):
         if stream.end_stream:
             raise netius.ParserError(
@@ -449,7 +453,12 @@ class HTTP2Parser(parser.Parser):
         self.trigger("on_headers", stream)
 
     def _parse_priority(self, data):
-        pass
+        dependency, weight = struct.unpack("!IB", data)
+        stream = self._get_stream(self.stream)
+        stream.dependency = dependency
+        stream.weight = weight
+        self.assert_priority(stream)
+        self.trigger("on_priority", stream, dependency, weight)
 
     def _parse_rst_stream(self, data):
         error_code, = struct.unpack("!I", data)
