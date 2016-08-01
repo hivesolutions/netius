@@ -55,11 +55,11 @@ class HTTP2Connection(http.HTTPConnection):
     ):
         http.HTTPConnection.__init__(self, *args, **kwargs)
         self.legacy = legacy
+        self.settings = dict(settings)
         self.window = window
-        self.window_o = settings[netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE]
+        self.window_o = self.settings[netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE]
         self.window_l = self.window_o
         self.window_t = self.window_o // 2
-        self.settings = settings
         self.preface = False
         self.preface_b = b""
         self.frames = []

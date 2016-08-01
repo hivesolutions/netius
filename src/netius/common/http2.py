@@ -312,7 +312,7 @@ class HTTP2Parser(parser.Parser):
             raise netius.ParserError("Stream identifiers must be odd")
         if len(self.streams) >= self.owner.settings[SETTINGS_MAX_CONCURRENT_STREAMS]:
             raise netius.ParserError(
-                "Too many stream (greater than SETTINGS_MAX_CONCURRENT_STREAMS)",
+                "Too many streams (greater than SETTINGS_MAX_CONCURRENT_STREAMS)",
                 stream = self.stream,
                 error_code = PROTOCOL_ERROR
             )
