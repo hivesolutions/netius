@@ -310,6 +310,8 @@ class HTTP2Parser(parser.Parser):
     def assert_stream(self, stream):
         if not stream.identifier % 2 == 1:
             raise netius.ParserError("Stream identifiers must be odd")
+        if stream.dependency == stream.identifier:
+            raise netius.ParserError("Stream cannot depend on itself")
         if len(self.streams) >= self.owner.settings[SETTINGS_MAX_CONCURRENT_STREAMS]:
             raise netius.ParserError(
                 "Too many streams (greater than SETTINGS_MAX_CONCURRENT_STREAMS)",
@@ -405,14 +407,12 @@ class HTTP2Parser(parser.Parser):
         weight = 0
 
         if padded:
-            padded_l = struct.unpack("!B", data[index:index + 1])
+            padded_l, = struct.unpack("!B", data[index:index + 1])
             index += 1
 
         if priority:
-            dependency = struct.unpack("!I", data[index:index + 4])
-            index += 4
-            weight = struct.unpack("!B", data[index:index + 1])
-            index += 1
+            dependency, weight = struct.unpack("!IB", data[index:index + 5])
+            index += 5
 
         fragment = data[index:data_l - padded_l]
         headers = self.decoder.decode(fragment)
