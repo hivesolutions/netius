@@ -135,6 +135,7 @@ class WSGIServer(http2.HTTP2Server):
         # in the standard specification
         for key, value in parser.headers.items():
             key = "HTTP_" + key.replace("-", "_").upper()
+            if type(value) in (list, tuple): value = ";".join(value)
             environ[key] = value
 
         # verifies if the connection already has an iterator associated with
