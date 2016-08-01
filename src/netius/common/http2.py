@@ -352,12 +352,18 @@ class HTTP2Parser(parser.Parser):
                 error_code = STREAM_CLOSED
             )
 
-    def assert_headers(self, stream):
+    def assert_headers(self, stream, end_stream):
         if stream.end_stream and stream.end_headers:
             raise netius.ParserError(
                 "Not ready to receive HEADERS half closed (remote)",
                 stream = self.stream,
                 error_code = STREAM_CLOSED
+            )
+        if not end_stream:
+            raise netius.ParserError(
+                "Second HEADERS without END_STREAM flag",
+                stream = self.stream,
+                error_code = PROTOCOL_ERROR
             )
 
     def assert_priority(self, stream):
@@ -552,7 +558,7 @@ class HTTP2Parser(parser.Parser):
         if stream:
             # runs the headers assertion operation and then updated the
             # various elements in the currently opened stream accordingly
-            self.assert_headers(stream)
+            self.assert_headers(stream, end_stream)
             stream.header_b = fragment
             if dependency: stream.dependency = dependency
             if weight: stream.weight = weight
