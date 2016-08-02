@@ -858,6 +858,12 @@ class HTTP2Server(http.HTTPServer):
         if not protocol == "h2": return
         connection.set_h2()
 
+    def on_serve(self):
+        http.HTTPServer.on_serve(self)
+        if self.env: self.safe = self.get_env("SAFE", self.safe, cast = bool)
+        safe_s = "with" if self.safe else "without"
+        self.info("Starting HTTP 2 server %s safe mode ..." % safe_s)
+
     def on_preface_http2(self, connection, parser):
         connection.send_settings(settings = self.settings_t)
         connection.send_delta()
