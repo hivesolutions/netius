@@ -134,6 +134,53 @@ class HTTPConnection(netius.Connection):
 
         self.current = self.encoding
 
+    def send_base(
+        self,
+        data,
+        stream = None,
+        final = True,
+        delay = False,
+        force = False,
+        callback = None
+    ):
+        data = netius.legacy.bytes(data) if data else data
+        if self.current == PLAIN_ENCODING:
+            return self.send_plain(
+                data,
+                stream = stream,
+                final = final,
+                delay = delay,
+                force = force,
+                callback = callback
+            )
+        elif self.current == CHUNKED_ENCODING:
+            return self.send_chunked(
+                data,
+                stream = stream,
+                final = final,
+                delay = delay,
+                force = force,
+                callback = callback
+            )
+        elif self.current == GZIP_ENCODING:
+            return self.send_gzip(
+                data,
+                stream = stream,
+                final = final,
+                delay = delay,
+                force = force,
+                callback = callback
+            )
+        elif self.current == DEFLATE_ENCODING:
+            return self.send_gzip(
+                data,
+                stream = stream,
+                final = final,
+                delay = delay,
+                force = force,
+                callback = callback
+            )
+
     def send_plain(
         self,
         data,
