@@ -774,12 +774,14 @@ class HTTP2Connection(http.HTTPConnection):
 
     @property
     def connection_ctx(self):
+        if self.legacy: return super(HTTP2Connection, self).connection_ctx
         if not self.parser: return self
         if not self.parser.stream_o: return self
         return self.parser.stream_o
 
     @property
     def parser_ctx(self):
+        if self.legacy: return super(HTTP2Connection, self).parser_ctx
         if not self.parser: return None
         if not self.parser.stream_o: return self.parser
         return self.parser.stream_o
