@@ -305,7 +305,7 @@ class ProxyServer(http2.HTTP2Server):
         # defined or if the connection is chunked (does not require length)
         connection = self.conn_map[_connection]
         connection.parser.keep_alive = connection.parser.keep_alive and\
-            (not parser.content_l == -1 or connection.is_chunked())
+            parser.keep_alive and (not parser.content_l == -1 or connection.is_chunked())
 
         # applies the headers meaning that the headers are going to be
         # processed so that they represent the proper proxy operation
