@@ -632,6 +632,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.settings.update(settings)
 
     def close_stream(self, stream, final = False):
+        if not self.parser._has_stream(stream): return
         stream = self.parser._get_stream(stream)
         if not stream: return
         stream.end_stream_l = final
@@ -770,6 +771,18 @@ class HTTP2Connection(http.HTTPConnection):
         self.increment_remote(stream and stream.identifier, increment)
         self.flush_frames()
         self.owner.on_window_update_http2(self, self.parser, stream, increment)
+
+    @property
+    def connection_ctx(self):
+        if not self.parser: return self
+        if not self.parser.stream_o: return self
+        return self.parser.stream_o
+
+    @property
+    def parser_ctx(self):
+        if not self.parser: return None
+        if not self.parser.stream_o: return self.parser
+        return self.parser.stream_o
 
     def _flush_chunked(self, stream = None, callback = None):
         if self.legacy: return http.HTTPConnection._flush_chunked(
