@@ -862,7 +862,7 @@ class HTTP2Server(http.HTTPServer):
         http.HTTPServer.on_serve(self)
         if self.env: self.safe = self.get_env("SAFE", self.safe, cast = bool)
         safe_s = "with" if self.safe else "without"
-        self.info("Starting HTTP 2 server %s safe mode ..." % safe_s)
+        self.info("Starting HTTP2 server %s safe mode ..." % safe_s)
 
     def on_preface_http2(self, connection, parser):
         connection.send_settings(settings = self.settings_t)
