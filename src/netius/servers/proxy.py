@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import netius.common
 import netius.clients
 
 from . import http
@@ -302,11 +303,17 @@ class ProxyServer(http2.HTTP2Server):
         # resolves the client connection into the proper proxy connection
         # to be used to send the headers (and status line) to the client
         # and then verifies if a chunked encoding upgrade is required, this
-        # is the case if the content length is not defined and the current
-        # connection is not already set in chunked mode
+        # is the case if the content length is not defined or in case there's
+        # non base content encoding defined (content length not reliable)
         connection = self.conn_map[_connection]
-        need_chunked = parser.content_l == -1 and not connection.is_chunked()
-        if need_chunked: connection.current = http.CHUNKED_ENCODING
+        content_encoding = headers.get("content-encoding", "identity")
+        need_chunked = parser.content_l == -1 or not content_encoding == "identity"
+        if need_chunked and connection.current < http.CHUNKED_ENCODING:
+            if parser.version < netius.common.HTTP_11:
+                connection.parser.keep_alive = False
+                if "content-length" in headers: del headers["content-length"]
+            else:
+                connection.current = http.CHUNKED_ENCODING
 
         # applies the headers meaning that the headers are going to be
         # processed so that they represent the proper proxy operation
