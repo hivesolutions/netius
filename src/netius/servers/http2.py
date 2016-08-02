@@ -169,31 +169,17 @@ class HTTP2Connection(http.HTTPConnection):
                 callback = callback
             )
 
-        count = 0
-        fragments = self.fragment_stream(stream, data)
-        fragments = list(fragments)
-        fragments_l = len(fragments) - 1
-
-        for index in netius.legacy.xrange(len(fragments)):
-            is_last = index == fragments_l
-            fragment = fragments[index]
-            if is_last:
-                count += self.send_data(
-                    fragment,
-                    stream = stream,
-                    end_stream = final,
-                    delay = delay,
-                    callback = callback
-                )
-            else:
-                count += self.send_data(
-                    fragment,
-                    stream = stream,
-                    end_stream = False,
-                    delay = delay
-                )
-
-        return count
+        # sends the same data but using a fragmented approach where the
+        # data is going to be splitted according to the maximum determined
+        # frame size, this is required to overcome limitations in the connection
+        # that has been established with the other peer
+        return self.send_fragmented(
+            data,
+            stream = stream,
+            final = final,
+            delay = delay,
+            callback = callback
+        )
 
     def send_chunked(
         self,
@@ -218,6 +204,40 @@ class HTTP2Connection(http.HTTPConnection):
             delay = delay,
             callback = callback
         )
+
+    def send_fragmented(
+        self,
+        data,
+        stream = None,
+        final = True,
+        delay = False,
+        callback = None
+    ):
+        count = 0
+        fragments = self.fragment_stream(stream, data)
+        fragments = list(fragments)
+        fragments_l = len(fragments)
+
+        for index in netius.legacy.xrange(fragments_l):
+            is_last = index == fragments_l - 1
+            fragment = fragments[index]
+            if is_last:
+                count += self.send_data(
+                    fragment,
+                    stream = stream,
+                    end_stream = final,
+                    delay = delay,
+                    callback = callback
+                )
+            else:
+                count += self.send_data(
+                    fragment,
+                    stream = stream,
+                    end_stream = False,
+                    delay = delay
+                )
+
+        return count
 
     def send_response(
         self,

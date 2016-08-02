@@ -103,6 +103,10 @@ HTTP2_WINDOW = 65535
 """ The default/initial size of the window used for the
 flow control of both connections and streams """
 
+HTTP2_FRAME_SIZE = 16384
+""" The base default value for the maximum size allowed
+from the frame, this includes the header value """
+
 HTTP2_PREFACE = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
 """ The preface string to be sent by the client upon
 the establishment of the connection """
@@ -559,7 +563,10 @@ class HTTP2Parser(parser.Parser):
 
         # retrieves the value of the window initial size from the owner
         # connections this is the value to be set in the new stream
+        # and then retrieves the (maximum) frame size allowed to be passed
+        # to the new stream instance for proper data frame fragmentation
         window = self.owner.settings[SETTINGS_INITIAL_WINDOW_SIZE]
+        frame_size = self.owner.settings[SETTINGS_MAX_FRAME_SIZE]
 
         # tries to retrieve a previously opened stream and, this may be
         # the case it has been opened by a previous frame operation
@@ -588,7 +595,8 @@ class HTTP2Parser(parser.Parser):
                 end_stream = end_stream,
                 store = self.store,
                 file_limit = self.file_limit,
-                window = window
+                window = window,
+                frame_size = frame_size
             )
             stream.open()
 
@@ -761,6 +769,7 @@ class HTTP2Stream(netius.Stream):
         store = False,
         file_limit = http.FILE_LIMIT,
         window = HTTP2_WINDOW,
+        frame_size = HTTP2_FRAME_SIZE,
         *args,
         **kwargs
     ):
@@ -772,7 +781,12 @@ class HTTP2Stream(netius.Stream):
         self.end_headers = end_headers
         self.end_stream = end_stream
         self.end_stream_l = end_stream_l
-        self.reset(store = store, file_limit = file_limit, window = window)
+        self.reset(
+            store = store,
+            file_limit = file_limit,
+            window = window,
+            frame_size = frame_size
+        )
 
     def __getattr__(self, name):
         if hasattr(self.connection, name):
@@ -783,13 +797,14 @@ class HTTP2Stream(netius.Stream):
         self,
         store = False,
         file_limit = http.FILE_LIMIT,
-        window = HTTP2_WINDOW
+        window = HTTP2_WINDOW,
+        frame_size = HTTP2_FRAME_SIZE,
     ):
         netius.Stream.reset(self)
         self.store = store
         self.file_limit = file_limit
         self.window = window
-        self.window_m = self.window
+        self.window_m = min(self.window, frame_size - HEADER_SIZE)
         self.window_o = self.connection.window_o
         self.window_l = self.window_o
         self.window_t = self.window_o // 2
