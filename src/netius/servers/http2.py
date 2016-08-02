@@ -786,6 +786,9 @@ class HTTP2Connection(http.HTTPConnection):
         if not self.parser.stream_o: return self.parser
         return self.parser.stream_o
 
+    def _flush_plain(self, stream = None, callback = None):
+        self.send_plain(b"", stream = stream, callback = callback)
+
     def _flush_chunked(self, stream = None, callback = None):
         if self.legacy: return http.HTTPConnection._flush_chunked(
             self,
