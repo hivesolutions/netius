@@ -531,7 +531,6 @@ class HTTPServer(netius.StreamServer):
         netius.StreamServer.on_serve(self)
         if self.env: self.encoding_s = self.get_env("ENCODING", self.encoding_s)
         self.encoding = ENCODING_MAP.get(self.encoding_s, PLAIN_ENCODING)
-        self._ssl_rebuild()
         self.info("Starting HTTP server with '%s' encoding ..." % self.encoding_s)
 
     def new_connection(self, socket, address, ssl = False):
