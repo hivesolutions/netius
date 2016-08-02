@@ -215,6 +215,11 @@ class HTTP2Parser(parser.Parser):
 
         parser.Parser.destroy(self)
 
+        # iterates over the complete set of associated streams to close
+        # them as the parser is now going to be destroyed and they cannot
+        # be reached any longer (invalidated state)
+        for stream in self.streams.values(): stream.close()
+
         self.states = ()
         self.state_l = 0
         self.parsers = ()
