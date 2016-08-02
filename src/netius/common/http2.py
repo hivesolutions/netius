@@ -242,6 +242,7 @@ class HTTP2Parser(parser.Parser):
         self.type = 0
         self.flags = 0
         self.stream = 0
+        self.stream_o = None
         self.end_headers = False
         self.last_type = 0
         self.last_stream = 0
@@ -618,6 +619,9 @@ class HTTP2Parser(parser.Parser):
         # be latter retrieved for proper event propagation
         self._set_stream(stream)
 
+        if end_headers: stream._calculate()
+        if end_headers: self.trigger("on_headers")
+
         self.trigger("on_headers_h2", stream)
 
     def _parse_priority(self, data):
@@ -699,6 +703,9 @@ class HTTP2Parser(parser.Parser):
 
         stream.decode_headers()
 
+        if end_headers: stream._calculate()
+        if end_headers: self.trigger("on_headers")
+
         self.trigger("on_headers_h2", stream)
 
     def _has_stream(self, stream):
@@ -714,15 +721,18 @@ class HTTP2Parser(parser.Parser):
                 "Invalid stream '%d'" % stream,
                 error_code = error_code
             )
-        return self.streams.get(stream, default)
+        self.stream_o = self.streams.get(stream, default)
+        return self.stream_o
 
     def _set_stream(self, stream):
         self.streams[stream.identifier] = stream
+        self.stream_o = stream
         self._max_stream = max(self._max_stream, stream.identifier)
 
     def _del_stream(self, stream):
         if not stream in self.streams: return
         del self.streams[stream]
+        self.stream_o = None
 
     def _invalid_type(self):
         ignore = False if self.last_type == HEADERS else True
@@ -820,6 +830,7 @@ class HTTP2Stream(netius.Stream):
         self.version = HTTP_20
         self.version_s = "HTTP/2.0"
         self.encodings = None
+        self.chunked = False
         self.keep_alive = True
         self.content_l = -1
         self._data_b = None
@@ -953,6 +964,20 @@ class HTTP2Stream(netius.Stream):
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
         return self.connection.flush(*args, **kwargs)
+
+    def send_base(self, *args, **kwargs):
+        if not self.is_open(): return 0
+        kwargs["stream"] = self.identifier
+        callback = kwargs.get("callback", None)
+        if callback: kwargs["callback"] = self._build_c(callback)
+        return self.connection.send_base(*args, **kwargs)
+
+    def send_plain(self, *args, **kwargs):
+        if not self.is_open(): return 0
+        kwargs["stream"] = self.identifier
+        callback = kwargs.get("callback", None)
+        if callback: kwargs["callback"] = self._build_c(callback)
+        return self.connection.send_plain(*args, **kwargs)
 
     def send_response(self, *args, **kwargs):
         if not self.is_open(): return 0
