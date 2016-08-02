@@ -607,6 +607,7 @@ class HTTPServer(netius.StreamServer):
 
         if is_plain:
             if "Transfer-Encoding" in headers: del headers["Transfer-Encoding"]
+            if "Content-Encoding" in headers: del headers["Content-Encoding"]
 
         if is_chunked:
             headers["Transfer-Encoding"] = "chunked"
