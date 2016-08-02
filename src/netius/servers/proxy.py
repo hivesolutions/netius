@@ -37,7 +37,6 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-import netius.common
 import netius.clients
 
 from . import http2
@@ -64,16 +63,20 @@ class ProxyConnection(http2.HTTP2Connection):
         self.parser.store = False
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_partial", self.on_partial)
-        self.parser.bind("on_chunk", self.on_chunk)
 
     def on_headers(self):
-        self.owner.on_headers(self, self.parser)
+        self.owner.on_headers(self.connection_ctx, self.parser_ctx)
 
     def on_partial(self, data):
-        self.owner.on_partial(self, self.parser, data)
+        self.owner.on_partial(self.connection_ctx, self.parser_ctx, data)
 
     def on_chunk(self, range):
-        self.owner.on_chunk(self, self.parser, range)
+        self.owner.on_chunk(self.connection_ctx, self.parser_ctx, range)
+
+    def set_h2(self):
+        http2.HTTP2Connection.set_h2(self)
+        self.parser.bind("on_headers", self.on_headers)
+        self.parser.bind("on_partial", self.on_partial)
 
 class ProxyServer(http2.HTTP2Server):
 
@@ -109,7 +112,6 @@ class ProxyServer(http2.HTTP2Server):
         self.http_client.bind("headers", self._on_prx_headers)
         self.http_client.bind("message", self._on_prx_message)
         self.http_client.bind("partial", self._on_prx_partial)
-        self.http_client.bind("chunk", self._on_prx_chunk)
         self.http_client.bind("connect", self._on_prx_connect)
         self.http_client.bind("acquire", self._on_prx_acquire)
         self.http_client.bind("close", self._on_prx_close)
@@ -187,7 +189,7 @@ class ProxyServer(http2.HTTP2Server):
         # performs the sending operation on the data but uses the throttle
         # callback so that the connection read operations may be resumed if
         # the buffer has reached certain (minimum) levels
-        tunnel_c.send(data, callback = self._throttle)
+        tunnel_c.send_plain(data, callback = self._throttle)
 
     def on_connection_d(self, connection):
         http2.HTTP2Server.on_connection_d(self, connection)
@@ -211,41 +213,22 @@ class ProxyServer(http2.HTTP2Server):
 
     def on_data_http(self, connection, parser):
         http2.HTTP2Server.on_data_http(self, connection, parser)
-        if not parser.chunked: return
 
         proxy_c = connection.proxy_c
 
         should_disable = self.throttle and proxy_c.pending_s > self.max_pending
         if should_disable: connection.disable_read()
-        proxy_c.send(b"0\r\n\r\n", force = True, callback = self._throttle)
+        proxy_c.flush(force = True, callback = self._throttle)
 
     def on_headers(self, connection, parser):
         pass
 
     def on_partial(self, connection, parser, data):
-        if parser.chunked: return
-
         proxy_c = connection.proxy_c
 
         should_disable = self.throttle and proxy_c.pending_s > self.max_pending
         if should_disable: connection.disable_read()
-        proxy_c.send(data, force = True, callback = self._throttle)
-
-    def on_chunk(self, connection, parser, range):
-        if not parser.chunked: return
-
-        start, end = range
-        data = parser.message[start:end]
-        data_s = b"".join(data)
-        data_l = len(data_s)
-        header = netius.legacy.bytes("%x\r\n" % data_l)
-        chunk = header + data_s + b"\r\n"
-
-        proxy_c = connection.proxy_c
-
-        should_disable = self.throttle and proxy_c.pending_s > self.max_pending
-        if should_disable: connection.disable_read()
-        proxy_c.send(chunk, force = True, callback = self._throttle)
+        proxy_c.send_base(data, force = True, callback = self._throttle)
 
     def new_connection(self, socket, address, ssl = False):
         return ProxyConnection(
@@ -306,28 +289,21 @@ class ProxyServer(http2.HTTP2Server):
         # to be used to send the headers (and status line) to the client
         connection = self.conn_map[_connection]
 
-        # creates a buffer list that will hold the complete set of
-        # lines that compose both the status lines and the headers
-        # then appends the start line and the various header lines
-        # to it so that it contains all of them
-        buffer = []
-        buffer.append("%s %s %s\r\n" % (version_s, code_s, status_s))
-        for key, value in headers.items():
-            key = netius.common.header_up(key)
-            if not type(value) == list: value = (value,)
-            for _value in value: buffer.append("%s: %s\r\n" % (key, _value))
-        buffer.append("\r\n")
-
-        # joins the header strings list as the data string that contains
-        # the headers and then sends the value through the connection
-        data = "".join(buffer)
-        connection.send(data)
+        # runs the send headers operation that will start the transmission
+        # of the headers for the requested proxy operation, the concrete
+        # semantics of the transmission should dependent on the version of
+        # the protocol that is going to be used in the transmission
+        connection.send_header(
+            headers = headers,
+            version = version_s,
+            code = int(code_s),
+            code_s = status_s
+        )
 
     def _on_prx_message(self, client, parser, message):
-        # retrieves the back-end connection from the provided parser and
-        # then evaluates if that connection is of type chunked
+        # retrieves the back-end connection from the provided parser this
+        # is going to be used for the reverse connection resolution process
         _connection = parser.owner
-        is_chunked = parser.chunked
 
         # sets the current client connection as not waiting and then retrieves
         # the requester connection associated with the client (back-end)
@@ -351,38 +327,18 @@ class ProxyServer(http2.HTTP2Server):
         if keep_alive: callback = None
         else: callback = close
 
-        # verifies if the current connection is of type chunked an in case
-        # it is must first send the final (close) chunk and then call the
-        # proper callback otherwise in case it's a plain connection the
-        # callback is immediately called in case it's defined
-        if is_chunked: connection.send("0\r\n\r\n", callback = callback)
-        elif callback: connection.send("", callback = callback)
+        # runs the final flush operation in the connection making sure that
+        # every data that is pending is properly flushed, this is especially
+        # important for chunked or compressed connections
+        connection.flush(callback = callback)
 
     def _on_prx_partial(self, client, parser, data):
         _connection = parser.owner
-        is_chunked = parser.chunked
-
-        if is_chunked: return
 
         connection = self.conn_map[_connection]
         should_disable = self.throttle and connection.pending_s > self.max_pending
         if should_disable: _connection.disable_read()
-        connection.send(data, callback = self._prx_throttle)
-
-    def _on_prx_chunk(self, client, parser, range):
-        _connection = parser.owner
-        connection = self.conn_map[_connection]
-
-        start, end = range
-        data = parser.message[start:end]
-        data_s = b"".join(data)
-        data_l = len(data_s)
-        header = netius.legacy.bytes("%x\r\n" % data_l)
-        chunk = header + data_s + b"\r\n"
-
-        should_disable = self.throttle and connection.pending_s > self.max_pending
-        if should_disable: _connection.disable_read()
-        connection.send(chunk, callback = self._prx_throttle)
+        connection.send_base(data, callback = self._prx_throttle)
 
     def _on_prx_connect(self, client, _connection):
         _connection.waiting = False

@@ -42,6 +42,30 @@ import base64
 
 import netius.common
 
+PLAIN_ENCODING = 1
+""" Plain text encoding that does not transform the
+data from its based format, should be used only as
+a fallback method because of performance issues """
+
+CHUNKED_ENCODING = 2
+""" Chunked based encoding that allows the sending of
+the data as a series of length based parts """
+
+GZIP_ENCODING = 3
+""" The gzip based encoding used to compress data, this
+kind of encoding will always used chunked encoding so
+that the content may be send in parts """
+
+DEFLATE_ENCODING = 4
+""" The deflate based encoding used to compress data, this
+kind of encoding will always used chunked encoding so
+that the content may be send in parts """
+
+Z_PARTIAL_FLUSH = 1
+""" The zlib constant value representing the partial flush
+of the current zlib stream, this value has to be defined
+locally as it is not defines under the zlib module """
+
 BASE_HEADERS = {
     "user-agent" : netius.IDENTIFIER
 }
@@ -50,9 +74,12 @@ that are meant to be applied to all the requests """
 
 class HTTPConnection(netius.Connection):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
         self.parser = None
+        self.encoding = encoding
+        self.current = encoding
+        self.gzip = None
         self.version = "HTTP/1.1"
         self.method = "GET"
         self.encodings = "gzip, deflate"
@@ -94,6 +121,133 @@ class HTTPConnection(netius.Connection):
             parser = self.parser.info_dict()
         )
         return info
+
+    def flush(self, force = False, callback = None):
+        if self.current == DEFLATE_ENCODING:
+            self._flush_gzip(force = force, callback = callback)
+        elif self.current == GZIP_ENCODING:
+            self._flush_gzip(force = force, callback = callback)
+        elif self.current == CHUNKED_ENCODING:
+            self._flush_chunked(force = force, callback = callback)
+        elif self.current == PLAIN_ENCODING:
+            self._flush_plain(force = force, callback = callback)
+
+        self.current = self.encoding
+
+    def send_plain(
+        self,
+        data,
+        stream = None,
+        final = True,
+        delay = False,
+        force = False,
+        callback = None
+    ):
+        return self.send(
+            data,
+            delay = delay,
+            force = force,
+            callback = callback
+        )
+
+    def send_chunked(
+        self,
+        data,
+        stream = None,
+        final = True,
+        delay = False,
+        force = False,
+        callback = None
+    ):
+        # in case there's no valid data to be sent uses the plain
+        # send method to send the empty string and returns immediately
+        # to the caller method, to avoid any problems
+        if not data: return self.send_plain(
+            data,
+            stream = stream,
+            final = final,
+            delay = delay,
+            force = force,
+            callback = callback
+        )
+
+        # creates the new list that is going to be used to store
+        # the various parts of the chunk and then calculates the
+        # size (in bytes) of the data that is going to be sent
+        buffer = []
+        size = len(data)
+
+        # creates the various parts of the chunk with the size
+        # of the data that is going to be sent and then adds
+        # each of the parts to the chunk buffer list
+        buffer.append(netius.legacy.bytes("%x\r\n" % size))
+        buffer.append(data)
+        buffer.append(netius.legacy.bytes("\r\n"))
+
+        # joins the buffer containing the chunk parts and then
+        # sends it to the connection using the plain method
+        buffer_s = b"".join(buffer)
+        return self.send_plain(
+            buffer_s,
+            stream = stream,
+            final = final,
+            delay = delay,
+            force = force,
+            callback = callback
+        )
+
+    def send_gzip(
+        self,
+        data,
+        stream = None,
+        final = True,
+        delay = False,
+        force = False,
+        callback = None,
+        level = 6
+    ):
+        # verifies if the provided data buffer is valid and in
+        # in case it's not propagates the sending to the upper
+        # layer (chunked sending) for proper processing
+        if not data: return self.send_chunked(
+            data,
+            stream = stream,
+            final = final,
+            delay = delay,
+            force = force,
+            callback = callback
+        )
+
+        # "calculates" if the current sending of gzip data is
+        # the first one by verifying if the gzip object is set
+        is_first = self.gzip == None
+
+        # in case this is the first sending a new compress object
+        # is created with the requested compress level, notice that
+        # the special deflate case is handled differently
+        if is_first:
+            is_deflate = self.is_deflate()
+            wbits = -zlib.MAX_WBITS if is_deflate else zlib.MAX_WBITS | 16
+            self.gzip = zlib.compressobj(level, zlib.DEFLATED, wbits)
+
+        # compresses the provided data string and removes the
+        # initial data contents of the compressed data because
+        # they are not part of the gzip specification, notice
+        # that in case the resulting of the compress operation
+        # is not valid a sync flush operation is performed
+        data_c = self.gzip.compress(data)
+        if not data_c: data_c = self.gzip.flush(Z_PARTIAL_FLUSH)
+
+        # sends the compressed data to the client endpoint setting
+        # the correct callback values as requested
+        return self.send_chunked(
+            data_c,
+            stream = stream,
+            final = final,
+            delay = delay,
+            force = force,
+            callback = callback
+        )
 
     def set_http(
         self,
@@ -143,7 +297,7 @@ class HTTPConnection(netius.Connection):
         count = self.send(buffer_data, force = True)
         if not data: return count
 
-        count += self.send(data, force = True)
+        count += self.send_base(data, force = True)
         return count
 
     def set_encodings(self, encodings):
@@ -182,6 +336,52 @@ class HTTPConnection(netius.Connection):
     def on_chunk(self, range):
         self.trigger("chunk", self, self.parser, range)
         self.owner.on_chunk_http(self, self.parser, range)
+
+    def _flush_plain(self, force = False, callback = None):
+        if not callback: return
+        self.send_plain(b"", force = force, callback = callback)
+
+    def _flush_chunked(self, force = False, callback = None):
+        self.send_plain(b"0\r\n\r\n", force = force, callback = callback)
+
+    def _flush_gzip(self, force = False, callback = None):
+        # in case the gzip structure has not been initialized
+        # (no data sent) no need to run the flushing of the
+        # gzip data, so only the chunked part is flushed
+        if not self.gzip:
+            self._flush_chunked(force = force, callback = callback)
+            return
+
+        # flushes the internal zlib buffers to be able to retrieve
+        # the data pending to be sent to the client and then sends
+        # it using the chunked encoding strategy
+        data_c = self.gzip.flush(zlib.Z_FINISH)
+        self.send_chunked(data_c, force = force, final = False)
+
+        # resets the gzip values to the original ones so that new
+        # requests will starts the information from the beginning
+        self.gzip = None
+
+        # runs the flush operation for the underlying chunked encoding
+        # layer so that the client is correctly notified about the
+        # end of the current request (normal operation)
+        self._flush_chunked(force = force, callback = callback)
+
+    def _close_gzip(self, safe = True):
+        # in case the gzip object is not defined returns the control
+        # to the caller method immediately (nothing to be done)
+        if not self.gzip: return
+
+        try:
+            # runs the flush operation for the the final finish stage
+            # (note that an exception may be raised) and then unsets
+            # the gzip object (meaning no more interaction)
+            self.gzip.flush(zlib.Z_FINISH)
+            self.gzip = None
+        except:
+            # in case the safe flag is not set re-raises the exception
+            # to the caller stack (as expected by the callers)
+            if not safe: raise
 
     def _apply_base(self, headers, replace = False):
         for key, value in BASE_HEADERS.items():
