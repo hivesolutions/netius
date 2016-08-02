@@ -583,8 +583,17 @@ class HTTPServer(netius.StreamServer):
         # process using the method associated with the authorization structure
         return auth_method(username, password, **kwargs)
 
-    def _apply_all(self, parser, connection, headers, upper = True, replace = False):
+    def _apply_all(
+        self,
+        parser,
+        connection,
+        headers,
+        upper = True,
+        normalize = False,
+        replace = False
+    ):
         if upper: self._headers_upper(headers)
+        if normalize: self._headers_normalize(headers)
         self._apply_base(headers, replace = replace)
         self._apply_parser(parser, headers, replace = replace)
         self._apply_connection(connection, headers)
@@ -620,6 +629,11 @@ class HTTPServer(netius.StreamServer):
             key_u = netius.common.header_up(key)
             del headers[key]
             headers[key_u] = value
+
+    def _headers_normalize(self, headers):
+        for key, value in headers.items():
+            if not type(value) in (list, tuple): continue
+            headers[key] = "".join(value)
 
     def _authorization(self, parser):
         # retrieves the headers from the parser structure and uses
