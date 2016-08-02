@@ -262,6 +262,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             url,
             headers = headers,
             encodings = None,
+            safe = True,
             connection = proxy_c
         )
 
@@ -411,13 +412,22 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if state: self.releaser(state); _connection.state = None
         netius.servers.ProxyServer._on_prx_close(self, client, _connection)
 
-    def _apply_all(self, parser, connection, headers, upper = True, replace = False):
+    def _apply_all(
+        self,
+        parser,
+        connection,
+        headers,
+        upper = True,
+        normalize = False,
+        replace = False
+    ):
         netius.servers.ProxyServer._apply_all(
             self,
             parser,
             connection,
             headers,
             upper = upper,
+            normalize = normalize,
             replace = replace
         )
 

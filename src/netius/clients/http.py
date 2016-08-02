@@ -309,7 +309,8 @@ class HTTPConnection(netius.Connection):
         port = None,
         path = None,
         ssl = False,
-        parsed = None
+        parsed = None,
+        safe = False
     ):
         self.version = version
         self.method = method.upper()
@@ -320,6 +321,7 @@ class HTTPConnection(netius.Connection):
         self.path = path
         self.ssl = ssl
         self.parsed = parsed
+        self.safe = safe
 
     def send_request(self):
         method = self.method
@@ -328,12 +330,14 @@ class HTTPConnection(netius.Connection):
         headers = self.headers
         data = self.data
         parsed = self.parsed
+        safe = self.safe
 
         if parsed.query: path += "?" + parsed.query
 
         headers = dict(headers)
         self._apply_base(headers)
         self._apply_dynamic(headers)
+        if safe: self._headers_normalize(headers)
 
         buffer = []
         buffer.append("%s %s %s\r\n" % (method, path, version))
@@ -477,6 +481,11 @@ class HTTPConnection(netius.Connection):
         if not "accept-encoding" in headers and self.encodings:
             headers["accept-encoding"] = self.encodings
 
+    def _headers_normalize(self, headers):
+        for key, value in headers.items():
+            if not type(value) in (list, tuple): continue
+            headers[key] = "".join(value)
+
 class HTTPClient(netius.StreamClient):
     """
     Simple test of an http client, supports a series of basic
@@ -577,6 +586,7 @@ class HTTPClient(netius.StreamClient):
         headers = {},
         data = None,
         version = "HTTP/1.1",
+        safe = False,
         connection = None,
         async = True,
         daemon = True,
@@ -605,6 +615,7 @@ class HTTPClient(netius.StreamClient):
             headers = headers,
             data = data,
             version = version,
+            safe = safe,
             connection = connection,
             async = async,
             callback = callback,
@@ -735,6 +746,7 @@ class HTTPClient(netius.StreamClient):
         data = None,
         version = "HTTP/1.1",
         encodings = "gzip, deflate",
+        safe = False,
         connection = None,
         async = True,
         callback = None,
@@ -821,7 +833,8 @@ class HTTPClient(netius.StreamClient):
             port = port,
             path = path,
             ssl = ssl,
-            parsed = parsed
+            parsed = parsed,
+            safe = safe
         )
         connection.set_encodings(encodings)
         connection.set_headers(headers)

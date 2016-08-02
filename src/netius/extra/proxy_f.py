@@ -91,6 +91,7 @@ class ForwardProxyServer(netius.servers.ProxyServer):
                 path,
                 headers = parser.headers,
                 encodings = None,
+                safe = True,
                 connection = proxy_c
             )
 
