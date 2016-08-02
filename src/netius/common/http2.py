@@ -845,6 +845,9 @@ class HTTP2Stream(netius.Stream):
 
     def close(self, flush = False, destroy = True):
         if flush: return self.close_flush()
+        
+        import traceback
+        traceback.print_stack()
         netius.Stream.close(self)
         if not self.owner._has_stream(self.identifier): return
         self.owner._del_stream(self.identifier)
