@@ -222,6 +222,7 @@ class HTTP2Parser(parser.Parser):
         # be reached any longer (invalidated state)
         for stream in self.streams.values(): stream.close()
 
+        self.connection = None
         self.states = ()
         self.state_l = 0
         self.parsers = ()

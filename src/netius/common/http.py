@@ -234,6 +234,7 @@ class HTTPParser(parser.Parser):
         self.clear()
         self.close()
 
+        self.connection = None
         self.states = ()
         self.state_l = 0
 
