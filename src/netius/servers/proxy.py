@@ -282,6 +282,10 @@ class ProxyServer(http2.HTTP2Server):
         status_s = parser.status_s
         version_s = parser.version_s
 
+        # creates a new dictionary from the provided one, so that no overlap
+        # in values occurs (would destroy the original data)
+        headers = dict(headers)
+
         # resolves the client connection into the proper proxy connection
         # to be used to send the headers (and status line) to the client
         connection = self.conn_map[_connection]
@@ -335,8 +339,15 @@ class ProxyServer(http2.HTTP2Server):
         connection.flush(callback = callback)
 
     def _on_prx_partial(self, client, parser, data):
+        # retrieves the owner of the proxy parser as the proxy connection
+        # then uses the connection to decode the data to obtain the raw
+        # value of it, this is required as gzip compression may exist
         _connection = parser.owner
+        data = _connection.raw_data(data)
 
+        # retrieves the peer connection and tries to send the new data chunk
+        # back to it using the currently defined encoding (as expected), note
+        # that additional throttling operations may apply
         connection = self.conn_map[_connection]
         should_disable = self.throttle and connection.pending_s > self.max_pending
         if should_disable: _connection.disable_read()
@@ -429,7 +440,7 @@ class ProxyServer(http2.HTTP2Server):
     def _apply_headers(self, parser, parser_prx, headers, upper = True):
         if upper: self._headers_upper(headers)
         self._apply_via(parser_prx, headers)
-        self._apply_all(parser, parser.owner, headers, replace = True)
+        self._apply_all(parser, parser.connection, headers, replace = True)
 
     def _apply_via(self, parser_prx, headers):
         # retrieves the various elements of the parser that are going
