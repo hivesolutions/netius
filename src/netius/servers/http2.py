@@ -452,7 +452,6 @@ class HTTP2Connection(http.HTTPConnection):
         data_l = len(data)
         if end_stream: flags |= 0x01
         if not self.available_stream(stream, data_l):
-            print("delaying frame !!!")
             return self.delay_frame(
                 type = netius.common.DATA,
                 flags = flags,
