@@ -48,6 +48,8 @@ class NetiusError(RuntimeError):
 
     def __init__(self, *args, **kwargs):
         RuntimeError.__init__(self, *args)
+        message = args[0] if len(args) > 0 else ""
+        kwargs["message"] = kwargs.get("message", message)
         self.kwargs = kwargs
 
     def get_kwarg(self, name, default = None):

@@ -684,9 +684,18 @@ class HTTP2Connection(http.HTTPConnection):
         if not stream: return
         stream.local_update(increment)
 
-    def error_connection(self, error_code = 0x00, close = True, callback = None):
+    def error_connection(
+        self,
+        last_stream = 0x00,
+        error_code = 0x00,
+        message = "",
+        close = True,
+        callback = None
+    ):
         self.send_goaway(
+            last_stream = last_stream,
             error_code = error_code,
+            message = message,
             close = close,
             callback = callback
         )
@@ -694,7 +703,9 @@ class HTTP2Connection(http.HTTPConnection):
     def error_stream(
         self,
         stream,
+        last_stream = 0x00,
         error_code = 0x00,
+        message = "",
         close = True,
         callback = None
     ):
@@ -702,7 +713,9 @@ class HTTP2Connection(http.HTTPConnection):
             error_code = error_code,
             stream = stream,
             callback = lambda c: self.error_connection(
+                last_stream = last_stream,
                 error_code = error_code,
+                message = message,
                 close = close,
                 callback = callback
             )
@@ -785,16 +798,19 @@ class HTTP2Server(http.HTTPServer):
         if not isinstance(exception, netius.NetiusError): return legacy()
         stream = exception.get_kwarg("stream")
         error_code = exception.get_kwarg("error_code", 0x00)
+        message = exception.get_kwarg("message", "")
         ignore = exception.get_kwarg("ignore", False)
         self.warning(exception)
         self.log_stack()
         if ignore: return connection.send_ping(ack = True)
         if stream: return connection.error_stream(
             stream,
-            error_code = error_code
+            error_code = error_code,
+            message = message
         )
         return connection.error_connection(
-            error_code = error_code
+            error_code = error_code,
+            message = message
         )
 
     def on_ssl(self, connection):
