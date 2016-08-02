@@ -189,7 +189,7 @@ class ProxyServer(http2.HTTP2Server):
         # performs the sending operation on the data but uses the throttle
         # callback so that the connection read operations may be resumed if
         # the buffer has reached certain (minimum) levels
-        tunnel_c.send_plain(data, callback = self._throttle)
+        tunnel_c.send(data, callback = self._throttle)
 
     def on_connection_d(self, connection):
         http2.HTTP2Server.on_connection_d(self, connection)
@@ -213,6 +213,8 @@ class ProxyServer(http2.HTTP2Server):
 
     def on_data_http(self, connection, parser):
         http2.HTTP2Server.on_data_http(self, connection, parser)
+
+        if not hasattr(connection, "proxy_c"): return
 
         proxy_c = connection.proxy_c
 
@@ -280,14 +282,14 @@ class ProxyServer(http2.HTTP2Server):
         status_s = parser.status_s
         version_s = parser.version_s
 
-        # applies the headers meaning that the headers are going to be
-        # processed so that they represent the proper proxy operation
-        # that is going to be done with the passing of the data
-        self._apply_headers(parser, headers)
-
         # resolves the client connection into the proper proxy connection
         # to be used to send the headers (and status line) to the client
         connection = self.conn_map[_connection]
+
+        # applies the headers meaning that the headers are going to be
+        # processed so that they represent the proper proxy operation
+        # that is going to be done with the passing of the data
+        self._apply_headers(connection.parser, parser, headers)
 
         # runs the send headers operation that will start the transmission
         # of the headers for the requested proxy operation, the concrete
@@ -424,17 +426,17 @@ class ProxyServer(http2.HTTP2Server):
         connection.close(flush = True)
         del self.conn_map[_connection]
 
-    def _apply_headers(self, parser, headers, upper = True):
+    def _apply_headers(self, parser, parser_prx, headers, upper = True):
         if upper: self._headers_upper(headers)
-        self._apply_via(parser, headers)
-        self._apply_base(headers, replace = True)
+        self._apply_via(parser_prx, headers)
+        self._apply_all(parser, parser.owner, headers, replace = True)
 
-    def _apply_via(self, parser, headers):
+    def _apply_via(self, parser_prx, headers):
         # retrieves the various elements of the parser that are going
         # to be used for the creation of the via string value, and
         # processes some of them to take them into the normal form
-        connection = parser.owner
-        version_s = parser.version_s
+        connection = parser_prx.owner
+        version_s = parser_prx.version_s
         version_s = version_s.split("/", 1)[1]
 
         # unpacks the current connectiont's address so that the host
