@@ -411,25 +411,27 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if state: self.releaser(state); _connection.state = None
         netius.servers.ProxyServer._on_prx_close(self, client, _connection)
 
-    def _apply_all(self, parser, connection, headers, upper = True):
+    def _apply_all(self, parser, connection, headers, upper = True, replace = False):
         netius.servers.ProxyServer._apply_all(
             self,
             parser,
             connection,
             headers,
-            upper = upper
+            upper = upper,
+            replace = replace
         )
 
         # in case a strict transport security value (number) is defined it
         # is going to be used as the max age value to be applied for such
         # behavior, note that this is considered dangerous at it may corrupt
-        # the serving of assets through non secure (no ssl) connections
+        # the serving of assets through non secure (no SSL) connections
         if self.sts: headers["Strict-Transport-Security"] = "max-age=%d" % self.sts
 
-    def _apply_headers(self, parser, headers, upper = True):
+    def _apply_headers(self, parser, parser_prx, headers, upper = True):
         netius.servers.ProxyServer._apply_headers(
             self,
             parser,
+            parser_prx,
             headers,
             upper = upper
         )
@@ -437,15 +439,15 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # in case a strict transport security value (number) is defined it
         # is going to be used as the max age value to be applied for such
         # behavior, note that this is considered dangerous at it may corrupt
-        # the serving of assets through non secure (no ssl) connections
+        # the serving of assets through non secure (no SSL) connections
         if self.sts: headers["Strict-Transport-Security"] = "max-age=%d" % self.sts
 
         # in case the parser has determined that the current connection is
         # meant to be kept alive the connection header is forced to be keep
-        # alive this avoids issues where in http 1.1 the connection header
+        # alive this avoids issues where in HTTP 1.1 the connection header
         # is omitted and an ambiguous situation may be created raising the
         # level of incompatibility with user agents
-        if parser.keep_alive: parser.headers["Connection"] = "keep-alive"
+        if parser_prx.keep_alive: parser_prx.headers["Connection"] = "keep-alive"
 
     def _resolve_regex(self, value, regexes, default = None):
         for regex, result in regexes:
