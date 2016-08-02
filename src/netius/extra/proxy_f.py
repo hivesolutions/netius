@@ -44,7 +44,7 @@ import netius.servers
 class ForwardProxyServer(netius.servers.ProxyServer):
 
     def __init__(self, config = "proxy.json", rules = {}, *args, **kwargs):
-        netius.servers.ProxyServer.__init__(self, safe = True, *args, **kwargs)
+        netius.servers.ProxyServer.__init__(self, *args, **kwargs)
         self.load_config(path = config, rules = rules)
         self.compile()
 
