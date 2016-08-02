@@ -586,7 +586,7 @@ class HTTPServer(netius.StreamServer):
     def _apply_all(self, parser, connection, headers, upper = True, replace = False):
         if upper: self._headers_upper(headers)
         self._apply_base(headers, replace = replace)
-        self._apply_parser(parser, headers)
+        self._apply_parser(parser, headers, replace = replace)
         self._apply_connection(connection, headers)
 
     def _apply_base(self, headers, replace = False):
@@ -594,8 +594,8 @@ class HTTPServer(netius.StreamServer):
             if not replace and key in headers: continue
             headers[key] = value
 
-    def _apply_parser(self, parser, headers):
-        if "Connection" in headers: return
+    def _apply_parser(self, parser, headers, replace = False):
+        if not replace and "Connection" in headers: return
         if parser.keep_alive: headers["Connection"] = "keep-alive"
         else: headers["Connection"] = "close"
 
