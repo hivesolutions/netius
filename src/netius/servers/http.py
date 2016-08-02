@@ -600,14 +600,12 @@ class HTTPServer(netius.StreamServer):
         else: headers["Connection"] = "close"
 
     def _apply_connection(self, connection, headers):
-        is_plain = connection.is_plain()
         is_chunked = connection.is_chunked()
         is_gzip = connection.is_gzip()
         is_deflate = connection.is_deflate()
 
-        if is_plain:
-            if "Transfer-Encoding" in headers: del headers["Transfer-Encoding"]
-            if "Content-Encoding" in headers: del headers["Content-Encoding"]
+        if "Transfer-Encoding" in headers: del headers["Transfer-Encoding"]
+        if "Content-Encoding" in headers: del headers["Content-Encoding"]
 
         if is_chunked:
             headers["Transfer-Encoding"] = "chunked"
