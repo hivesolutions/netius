@@ -428,6 +428,9 @@ class HTTPConnection(netius.Connection):
     def set_encoding(self, encoding):
         self.current = encoding
 
+    def set_plain(self):
+        self.current = PLAIN_ENCODING
+
     def set_chunked(self):
         self.current = CHUNKED_ENCODING
 
@@ -436,6 +439,9 @@ class HTTPConnection(netius.Connection):
 
     def set_deflate(self):
         self.current = DEFLATE_ENCODING
+
+    def is_plain(self):
+        return self.current == PLAIN_ENCODING
 
     def is_chunked(self):
         return self.current > PLAIN_ENCODING
@@ -577,9 +583,9 @@ class HTTPServer(netius.StreamServer):
         # process using the method associated with the authorization structure
         return auth_method(username, password, **kwargs)
 
-    def _apply_all(self, parser, connection, headers, upper = True):
+    def _apply_all(self, parser, connection, headers, upper = True, replace = False):
         if upper: self._headers_upper(headers)
-        self._apply_base(headers)
+        self._apply_base(headers, replace = replace)
         self._apply_parser(parser, headers)
         self._apply_connection(connection, headers)
 
@@ -594,9 +600,13 @@ class HTTPServer(netius.StreamServer):
         else: headers["Connection"] = "close"
 
     def _apply_connection(self, connection, headers):
+        is_plain = connection.is_plain()
         is_chunked = connection.is_chunked()
         is_gzip = connection.is_gzip()
         is_deflate = connection.is_deflate()
+
+        if is_plain:
+            if "Transfer-Encoding" in headers: del headers["Transfer-Encoding"]
 
         if is_chunked:
             headers["Transfer-Encoding"] = "chunked"
