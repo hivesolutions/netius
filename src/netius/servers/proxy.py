@@ -39,6 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import netius.clients
 
+from . import http
 from . import http2
 
 BUFFER_RATIO = 1.5
@@ -300,12 +301,12 @@ class ProxyServer(http2.HTTP2Server):
 
         # resolves the client connection into the proper proxy connection
         # to be used to send the headers (and status line) to the client
-        # and then re-computes the keep alive value for its parser taking
-        # into account if the current proxy response has the content length
-        # defined or if the connection is chunked (does not require length)
+        # and then verifies if a chunked encoding upgrade is required, this
+        # is the case if the content length is not defined and the current
+        # connection is not already set in chunked mode
         connection = self.conn_map[_connection]
-        connection.parser.keep_alive = connection.parser.keep_alive and\
-            parser.keep_alive and (not parser.content_l == -1 or connection.is_chunked())
+        need_chunked = parser.content_l == -1 and not connection.is_chunked()
+        if need_chunked: connection.current = http.CHUNKED_ENCODING
 
         # applies the headers meaning that the headers are going to be
         # processed so that they represent the proper proxy operation
