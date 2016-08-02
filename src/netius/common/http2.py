@@ -965,20 +965,6 @@ class HTTP2Stream(netius.Stream):
         if callback: kwargs["callback"] = self._build_c(callback)
         return self.connection.flush(*args, **kwargs)
 
-    def send_base(self, *args, **kwargs):
-        if not self.is_open(): return 0
-        kwargs["stream"] = self.identifier
-        callback = kwargs.get("callback", None)
-        if callback: kwargs["callback"] = self._build_c(callback)
-        return self.connection.send_base(*args, **kwargs)
-
-    def send_plain(self, *args, **kwargs):
-        if not self.is_open(): return 0
-        kwargs["stream"] = self.identifier
-        callback = kwargs.get("callback", None)
-        if callback: kwargs["callback"] = self._build_c(callback)
-        return self.connection.send_plain(*args, **kwargs)
-
     def send_response(self, *args, **kwargs):
         if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
