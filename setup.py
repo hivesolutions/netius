@@ -53,7 +53,7 @@ import netius.common
 netius.common.ensure_setup()
 setuptools.setup(
     name = "netius",
-    version = "1.8.19",
+    version = "1.8.20",
     author = "Hive Solutions Lda.",
     author_email = "development@hive.pt",
     description = "Netius System",
