@@ -213,6 +213,8 @@ class HTTPParser(parser.Parser):
 
         parser.Parser.build(self)
 
+        self.connection = self.owner
+
         self.states = (
             self._parse_line,
             self._parse_headers,

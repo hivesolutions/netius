@@ -182,6 +182,8 @@ class HTTP2Parser(parser.Parser):
 
         parser.Parser.build(self)
 
+        self.connection = self.owner
+
         self.states = (
             self._parse_header,
             self._parse_payload
