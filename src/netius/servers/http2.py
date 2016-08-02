@@ -812,6 +812,7 @@ class HTTP2Server(http.HTTPServer):
         self.settings = settings
         self.settings_t = netius.legacy.items(self.settings)
         self._protocols = []
+        if self.env: self.safe = self.get_env("SAFE", self.safe, cast = bool)
         http.HTTPServer.__init__(self, *args, **kwargs)
 
     def get_protocols(self):
@@ -860,7 +861,6 @@ class HTTP2Server(http.HTTPServer):
 
     def on_serve(self):
         http.HTTPServer.on_serve(self)
-        if self.env: self.safe = self.get_env("SAFE", self.safe, cast = bool)
         safe_s = "with" if self.safe else "without"
         self.info("Starting HTTP2 server %s safe mode ..." % safe_s)
 

@@ -1834,10 +1834,6 @@ class AbstractBase(observer.Observable):
         self._ssl_context = None
         self._ssl_contexts = dict()
 
-    def _ssl_rebuild(self):
-        self._ssl_destroy()
-        self._ssl_init()
-
     def _ssl_callback(self, socket, hostname, context):
         context, values = self._ssl_contexts.get(hostname, (context, None))
         self._ssl_ctx_protocols(context)
