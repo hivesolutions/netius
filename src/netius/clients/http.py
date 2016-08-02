@@ -294,7 +294,7 @@ class HTTPConnection(netius.Connection):
         buffer.append("\r\n")
         buffer_data = "".join(buffer)
 
-        count = self.send(buffer_data, force = True)
+        count = self.send_plain(buffer_data, force = True)
         if not data: return count
 
         count += self.send_base(data, force = True)
