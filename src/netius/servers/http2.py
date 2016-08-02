@@ -407,7 +407,7 @@ class HTTP2Connection(http.HTTPConnection):
 
             def callback(connection):
                 old_callback and old_callback(connection)
-                self.close_stream(stream, final = final)
+                self.close_stream(stream)
 
         if flush:
             count = self.send_base(
