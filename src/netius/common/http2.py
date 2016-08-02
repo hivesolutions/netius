@@ -539,7 +539,7 @@ class HTTP2Parser(parser.Parser):
         stream.extend_data(contents)
         stream.end_stream = end_stream
 
-        self.trigger("on_part", stream, contents)
+        self.trigger("on_data_h2", stream, contents)
 
     def _parse_headers(self, data):
         data_l = len(data)
@@ -618,7 +618,7 @@ class HTTP2Parser(parser.Parser):
         # be latter retrieved for proper event propagation
         self._set_stream(stream)
 
-        self.trigger("on_headers", stream)
+        self.trigger("on_headers_h2", stream)
 
     def _parse_priority(self, data):
         dependency, weight = struct.unpack("!IB", data)
@@ -699,7 +699,7 @@ class HTTP2Parser(parser.Parser):
 
         stream.decode_headers()
 
-        self.trigger("on_headers", stream)
+        self.trigger("on_headers_h2", stream)
 
     def _has_stream(self, stream):
         return stream in self.streams
