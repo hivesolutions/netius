@@ -63,6 +63,11 @@ class FileAsyncServer(_file.FileServer):
         if file: self.fclose(file); connection.file = None
         _file.FileServer.on_connection_d(self, connection)
 
+    def on_stream_d(self, stream):
+        file = hasattr(stream, "file") and stream.file
+        if file: self.fclose(file); stream.file = None
+        _file.FileServer.on_stream_d(self, stream)
+
     def _file_send(self, connection):
         file = connection.file
         range = connection.range
