@@ -452,6 +452,14 @@ class HTTPConnection(netius.Connection):
     def on_data(self):
         self.owner.on_data_http(self, self.parser)
 
+    @property
+    def connection_ctx(self):
+        return self
+
+    @property
+    def parser_ctx(self):
+        return self.parser
+
     def _flush_plain(self, stream = None, callback = None):
         if not callback: return
         self.send_plain(b"", stream = stream, callback = callback)
