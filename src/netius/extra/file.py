@@ -405,7 +405,7 @@ class FileServer(netius.servers.HTTP2Server):
         callback = self._file_finish if is_final else self._file_send
         connection.send_part(
             data,
-            final = is_final,
+            final = False,
             delay = True,
             callback = callback
         )

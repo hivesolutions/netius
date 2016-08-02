@@ -293,7 +293,7 @@ class WSGIServer(http2.HTTP2Server):
         if is_final: connection.flush(callback = self._final)
         else: connection.send_part(
             data,
-            final = is_final,
+            final = False,
             delay = True,
             callback = self._send_part
         )

@@ -203,6 +203,18 @@ class ProxyServer(http2.HTTP2Server):
         setattr(connection, "tunnel_c", None)
         setattr(connection, "proxy_c", None)
 
+    def on_stream_d(self, stream):
+        http2.HTTP2Server.on_stream_d(self, stream)
+
+        tunnel_c = hasattr(stream, "tunnel_c") and stream.tunnel_c
+        proxy_c = hasattr(stream, "proxy_c") and stream.proxy_c
+
+        if tunnel_c: tunnel_c.close()
+        if proxy_c: proxy_c.close()
+
+        setattr(stream, "tunnel_c", None)
+        setattr(stream, "proxy_c", None)
+
     def on_serve(self):
         http2.HTTP2Server.on_serve(self)
         if self.env: self.throttle = self.get_env("THROTTLE", self.throttle, cast = bool)
