@@ -1043,6 +1043,14 @@ class HTTP2Stream(netius.Stream):
                 )
             if is_pseudo: pseudos[name] = True
 
+        for name in (":method", ":scheme", ":path"):
+            if not name in pseudos:
+                raise netius.ParserError(
+                    "Missing pseudo-header in request",
+                    stream = self.identifier,
+                    error_code = PROTOCOL_ERROR
+                )
+
     def assert_ready(self):
         if not self._data_l == self.content_l:
             raise netius.ParserError(
