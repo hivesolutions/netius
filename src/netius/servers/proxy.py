@@ -308,7 +308,7 @@ class ProxyServer(http2.HTTP2Server):
         connection = self.conn_map[_connection]
         content_encoding = headers.get("content-encoding", "identity")
         need_chunked = parser.content_l == -1 or not content_encoding == "identity"
-        if need_chunked and connection.current < http.CHUNKED_ENCODING:
+        if need_chunked and self.legacy and connection.current < http.CHUNKED_ENCODING:
             if parser.version < netius.common.HTTP_11:
                 connection.parser.keep_alive = False
                 if "content-length" in headers: del headers["content-length"]
