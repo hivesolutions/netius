@@ -80,6 +80,7 @@ class HTTPConnection(netius.Connection):
         self.encoding = encoding
         self.current = encoding
         self.gzip = None
+        self.gzip_c = None
         self.version = "HTTP/1.1"
         self.method = "GET"
         self.encodings = "gzip, deflate"
@@ -103,6 +104,8 @@ class HTTPConnection(netius.Connection):
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
         if self.parser: self.parser.destroy()
+        if self.gzip: self._close_gzip(safe = True)
+        if self.gzip_c: self.gzip_c = None
 
     def info_dict(self, full = False):
         info = netius.Connection.info_dict(self, full = full)
@@ -366,11 +369,33 @@ class HTTPConnection(netius.Connection):
     def parse(self, data):
         return self.parser.parse(data)
 
+    def raw_data(self, data):
+        """
+        Tries to obtain the raw version of the provided data, taking
+        into account the possible content encoding present for compression
+        or any other kind of operation.
+
+        :type data: String
+        :param data: The data to be converted back to its original
+        raw value (probably through decompression).
+        :rtype: String
+        :return: The final raw value for the provided data.
+        """
+
+        encoding = self.parser.headers.get("content-encoding", None)
+        if not encoding: return data
+        if not self.gzip_c:
+            is_deflate = encoding == "deflate"
+            wbits = -zlib.MAX_WBITS if is_deflate else zlib.MAX_WBITS | 16
+            self.gzip_c = zlib.decompressobj(wbits)
+        return self.gzip_c.decompress(data)
+
     def on_data(self):
         message = self.parser.get_message()
         self.trigger("message", self, self.parser, message)
         self.owner.on_data_http(self, self.parser)
         self.parser.clear()
+        self.gzip_c = None
 
     def on_partial(self, data):
         self.trigger("partial", self, self.parser, data)
