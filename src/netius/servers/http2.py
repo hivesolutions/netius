@@ -811,13 +811,14 @@ class HTTP2Server(http.HTTPServer):
         self.safe = safe
         self.settings = settings
         self.settings_t = netius.legacy.items(self.settings)
+        self.has_h2 = self._has_h2()
         self._protocols = []
         self.safe = self.get_env("SAFE", self.safe, cast = bool)
         http.HTTPServer.__init__(self, *args, **kwargs)
 
     def get_protocols(self):
         if self._protocols: return self._protocols
-        if not self.safe: self._protocols.extend(["h2"])
+        if not self.safe and self.has_h2: self._protocols.extend(["h2"])
         if self.legacy: self._protocols.extend(["http/1.1", "http/1.0"])
         return self._protocols
 
@@ -904,6 +905,15 @@ class HTTP2Server(http.HTTPServer):
 
     def on_window_update_http2(self, connection, parser, stream, increment):
         self.debug("Window updated with increment %d bytes" % increment)
+
+    def _has_h2(self):
+        if not self._has_hpack(): return False
+        return True
+
+    def _has_hpack(self):
+        try: import hpack #@UnusedImport
+        except: return False
+        return True
 
     def _log_frame(self, connection, parser):
         self.debug(
