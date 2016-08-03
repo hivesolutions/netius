@@ -842,13 +842,31 @@ class HTTP2Stream(netius.Stream):
         self._data_l = -1
 
     def open(self):
+        # check if the current stream is currently in (already) in
+        # the open state and if that's the case returns immediately
         if self.status == netius.OPEN: return
+
+        # calls the parent open operation for upper operations, this
+        # should take care of some callback calling
         netius.Stream.open(self)
+
+        # runs the decoding of the headers, note that this is just a
+        # try-out operation and may fail if the complete set of header
+        # data is not currently available (continuation frames pending)
         self.decode_headers()
 
     def close(self, flush = False, destroy = True, reset = True):
+        # verifies if the current stream is already closed and
+        # if that's the case returns immediately, avoiding duplicate
         if self.status == netius.CLOSED: return
+
+        # calls the parent close method so that the upper layer
+        # instructions are correctly processed/handled
         netius.Stream.close(self)
+
+        # verifies if a stream structure exists in the parser for
+        # the provided identifier and if that's not the case returns
+        # immediately otherwise removes it from the parent
         if not self.owner._has_stream(self.identifier): return
         self.owner._del_stream(self.identifier)
         if reset: self.send_reset()
