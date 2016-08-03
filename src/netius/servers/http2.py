@@ -889,6 +889,7 @@ class HTTP2Server(http.HTTPServer):
         self.on_data_http(stream, stream)
 
     def on_rst_stream_http2(self, connection, parser, stream, error_code):
+        if not stream: return
         stream.end_stream = True
         stream.end_stream_l = True
         stream.close()
