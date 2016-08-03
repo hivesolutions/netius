@@ -486,7 +486,7 @@ class HTTPConnection(netius.Connection):
     def _headers_normalize(self, headers):
         for key, value in headers.items():
             if not type(value) in (list, tuple): continue
-            headers[key] = "".join(value)
+            headers[key] = ";".join(value)
 
 class HTTPClient(netius.StreamClient):
     """

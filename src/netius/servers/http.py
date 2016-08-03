@@ -633,7 +633,7 @@ class HTTPServer(netius.StreamServer):
     def _headers_normalize(self, headers):
         for key, value in headers.items():
             if not type(value) in (list, tuple): continue
-            headers[key] = "".join(value)
+            headers[key] = ";".join(value)
 
     def _authorization(self, parser):
         # retrieves the headers from the parser structure and uses
