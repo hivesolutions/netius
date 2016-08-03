@@ -676,7 +676,7 @@ class HTTP2Parser(parser.Parser):
         if stream:
             stream.dependency = dependency
             stream.weight = weight
-        self.assert_priority(stream)
+        self.assert_priority(stream, dependency)
         self.trigger("on_priority", stream, dependency, weight)
 
     def _parse_rst_stream(self, data):
