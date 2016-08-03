@@ -676,7 +676,7 @@ class HTTP2Parser(parser.Parser):
 
     def _parse_rst_stream(self, data):
         error_code, = struct.unpack("!I", data)
-        stream = self._get_stream(self.stream, strict = False)
+        stream = self._get_stream(self.stream)
         self.assert_rst_stream(stream)
         self.trigger("on_rst_stream", stream, error_code)
 
