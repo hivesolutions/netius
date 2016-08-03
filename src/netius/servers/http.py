@@ -73,10 +73,10 @@ of the current zlib stream, this value has to be defined
 locally as it is not defines under the zlib module """
 
 ENCODING_MAP = dict(
-    plain = 1,
-    chunked = 2,
-    gzip = 3,
-    deflate = 4
+    plain = PLAIN_ENCODING,
+    chunked = CHUNKED_ENCODING,
+    gzip = GZIP_ENCODING,
+    deflate = DEFLATE_ENCODING
 )
 """ The map associating the various types of encoding with
 the corresponding integer value for each of them this is used

@@ -315,6 +315,10 @@ class ProxyServer(http2.HTTP2Server):
             else:
                 connection.current = http.CHUNKED_ENCODING
 
+        #@todo must correclty handle this
+        target_encoding = http.ENCODING_MAP.get(content_encoding, connection.current)
+        if target_encoding > connection.current: connection.current = target_encoding
+
         # applies the headers meaning that the headers are going to be
         # processed so that they represent the proper proxy operation
         # that is going to be done with the passing of the data
