@@ -955,6 +955,17 @@ class HTTP2Server(http.HTTPServer):
         method = getattr(self, method_s)
         method(flags, payload, stream)
 
+    def _log_frame_flags(self, type_s, *args):
+        flags = ", ".join(args)
+        pluralized = "flags" if len(args) > 1 else "flag"
+        if flags: self.debug("%s with %s %s active" % (type_s, pluralized, flags))
+        else: self.debug("Frame %s with no flags active" % type_s)
+
+    def _log_frame_data(self, flags, payload, stream):
+        end_stream = True if flags & 0x01 else False
+        end_stream_s = "END_STREAM" if end_stream else ""
+        self._log_frame_flags("DATA", end_stream_s)
+
     def _log_frame_window_update(self, flags, payload, stream):
         increment, = struct.unpack("!I", payload)
-        self.debug("WINDOW_UPDATE with increment %d" % increment)
+        self.debug("Frame WINDOW_UPDATE with increment %d" % increment)
