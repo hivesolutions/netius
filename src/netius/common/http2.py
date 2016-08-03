@@ -928,6 +928,10 @@ class HTTP2Stream(netius.Stream):
         self.owner._del_stream(self.identifier)
         if reset: self.send_reset()
 
+        # runs the reset operation in the stream clearing all of its
+        # internal structure may avoid some memory leaks
+        self.reset()
+
     def decode_headers(self, force = False, assert_h = True):
         if not self.end_headers and not force: return
         if self.headers_l and not force: return
@@ -942,8 +946,9 @@ class HTTP2Stream(netius.Stream):
         self.header_b.append(fragment)
 
     def extend_data(self, data):
-        self._data_b.write(data)
         self._data_l += len(data)
+        if not self.store: return
+        self._data_b.write(data)
 
     def remote_update(self, increment):
         self.window += increment
