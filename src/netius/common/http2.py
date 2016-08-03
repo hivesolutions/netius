@@ -969,21 +969,21 @@ class HTTP2Stream(netius.Stream):
         return self.connection.flush(*args, **kwargs)
 
     def send_response(self, *args, **kwargs):
-        if not self.is_open(): return 0
+        if not self.is_open(): print("tentou mandar"); return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
         return self.connection.send_response(*args, **kwargs)
 
     def send_header(self, *args, **kwargs):
-        if not self.is_open(): return 0
+        if not self.is_open(): print("tentou mandar"); return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
         return self.connection.send_header(*args, **kwargs)
 
     def send_part(self, *args, **kwargs):
-        if not self.is_open(): return 0
+        if not self.is_open(): print("tentou mandar"); return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
