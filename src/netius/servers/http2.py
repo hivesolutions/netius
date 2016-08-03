@@ -855,7 +855,7 @@ class HTTP2Server(http.HTTPServer):
 
     def on_ssl(self, connection):
         http.HTTPServer.on_ssl(self, connection)
-        if self.safe: return
+        if self.safe or not self.has_h2: return
         protocol = connection.ssl_protocol()
         if not protocol == "h2": return
         connection.set_h2()
