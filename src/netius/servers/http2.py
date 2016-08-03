@@ -969,13 +969,12 @@ class HTTP2Server(http.HTTPServer):
         else: self.debug("Frame %s with no flags active" % type_s)
 
     def _log_frame_data(self, parser, flags, payload, stream):
-        stream = parser._get_stream(stream)
+        stream = parser._get_stream(stream, strict = False)
         flags_l = self._flags_l(flags, (("END_STREAM", 0x01),))
         self._log_frame_flags("DATA", *flags_l)
-        self.debug("Frame DATA for path '%s'" % stream.path_s)
+        if stream: self.debug("Frame DATA for path '%s'" % stream.path_s)
 
     def _log_frame_headers(self, parser, flags, payload, stream):
-        stream = parser._get_stream(stream)
         flags_l = self._flags_l(
             flags,
             (
