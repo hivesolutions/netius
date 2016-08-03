@@ -72,9 +72,6 @@ class ProxyConnection(http2.HTTP2Connection):
     def on_partial(self, data):
         self.owner.on_partial(self.connection_ctx, self.parser_ctx, data)
 
-    def on_chunk(self, range):
-        self.owner.on_chunk(self.connection_ctx, self.parser_ctx, range)
-
     def set_h2(self):
         http2.HTTP2Connection.set_h2(self)
         self.parser.bind("on_headers", self.on_headers)
