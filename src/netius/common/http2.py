@@ -755,6 +755,7 @@ class HTTP2Parser(parser.Parser):
     def _del_stream(self, stream):
         if not stream in self.streams: return
         del self.streams[stream]
+        self.stream_o = None
 
     def _invalid_type(self):
         ignore = False if self.last_type == HEADERS else True
