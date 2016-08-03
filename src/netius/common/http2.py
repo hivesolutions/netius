@@ -379,6 +379,12 @@ class HTTP2Parser(parser.Parser):
             )
 
     def assert_data(self, stream):
+        if not stream.end_headers:
+            raise netius.ParserError(
+                "Not ready to receive DATA open",
+                stream = self.stream,
+                error_code = PROTOCOL_ERROR
+            )
         if stream.end_stream and stream.end_headers:
             raise netius.ParserError(
                 "Not ready to receive DATA half closed (remote)",
@@ -738,6 +744,8 @@ class HTTP2Parser(parser.Parser):
 
     def _parse_window_update(self, data):
         increment, = struct.unpack("!I", data)
+        if self.stream and not self._has_stream(self.stream) and\
+            self.stream <= self._max_stream: return
         stream = self._get_stream(self.stream)
         self.assert_window_update(stream, increment)
         self.trigger("on_window_update", stream, increment)
