@@ -842,13 +842,13 @@ class HTTP2Stream(netius.Stream):
         self._data_l = -1
 
     def open(self):
-        netius.Stream.open(self)
         if self.status == netius.OPEN: return
+        netius.Stream.open(self)
         self.decode_headers()
 
     def close(self, flush = False, destroy = True, reset = True):
-        netius.Stream.close(self)
         if self.status == netius.CLOSED: return
+        netius.Stream.close(self)
         if not self.owner._has_stream(self.identifier): return
         self.owner._del_stream(self.identifier)
         if reset: self.send_reset()
