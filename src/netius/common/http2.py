@@ -1060,7 +1060,6 @@ class HTTP2Stream(netius.Stream):
     def send_response(self, *args, **kwargs):
         if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
-        self.connection.current = self.current
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
         self.connection.current = self.current
