@@ -399,8 +399,18 @@ class HTTP2Parser(parser.Parser):
                 error_code = PROTOCOL_ERROR
             )
 
-    def assert_priority(self, stream):
-        if stream.dependency == stream.identifier:
+    def assert_priority(self, stream, dependency):
+        if self.stream == 0x00:
+            raise netius.ParserError(
+                "Stream cannot be set to 0x00 for PRIORITY",
+                error_code = PROTOCOL_ERROR
+            )
+        if dependency == self.stream:
+            raise netius.ParserError(
+                "Stream cannot depend on current stream",
+                error_code = PROTOCOL_ERROR
+            )
+        if stream and dependency == stream.identifier:
             raise netius.ParserError(
                 "Stream cannot depend on itself",
                 error_code = PROTOCOL_ERROR
@@ -597,7 +607,7 @@ class HTTP2Parser(parser.Parser):
 
         # tries to retrieve a previously opened stream and, this may be
         # the case it has been opened by a previous frame operation
-        stream = self._get_stream(self.stream, strict = False)
+        stream = self._get_stream(self.stream, strict = False, closed_s = True)
 
         if stream:
             # runs the headers assertion operation and then updated the
@@ -625,6 +635,9 @@ class HTTP2Parser(parser.Parser):
                 window = window,
                 frame_size = frame_size
             )
+
+            # ensures that the stream object is properly open, this should
+            # enable to stream to start performing operations
             stream.open()
 
         # updates the current parser value for the end headers flag
@@ -645,19 +658,18 @@ class HTTP2Parser(parser.Parser):
 
         self.trigger("on_headers_h2", stream)
 
-    def _parse_priority(self, data, strict = False):
+    def _parse_priority(self, data):
         dependency, weight = struct.unpack("!IB", data)
-        if not strict and not self._has_stream(self.stream): return
-        stream = self._get_stream(self.stream)
-        stream.dependency = dependency
-        stream.weight = weight
+        stream = self._get_stream(self.stream, strict = False)
+        if stream:
+            stream.dependency = dependency
+            stream.weight = weight
         self.assert_priority(stream)
         self.trigger("on_priority", stream, dependency, weight)
 
-    def _parse_rst_stream(self, data, strict = False):
+    def _parse_rst_stream(self, data):
         error_code, = struct.unpack("!I", data)
-        if not strict and not self._has_stream(self.stream): return
-        stream = self._get_stream(self.stream)
+        stream = self._get_stream(self.stream, strict = False)
         self.trigger("on_rst_stream", stream, error_code)
 
     def _parse_settings(self, data):
@@ -734,15 +746,27 @@ class HTTP2Parser(parser.Parser):
     def _has_stream(self, stream):
         return stream in self.streams
 
-    def _get_stream(self, stream = None, default = None, strict = True):
+    def _get_stream(
+        self,
+        stream = None,
+        default = None,
+        strict = True,
+        closed_s = False,
+        exists_s = False
+    ):
         if stream == None: stream = self.stream
-        if (strict or stream <= self._max_stream) and not stream == 0 and\
-            not stream in self.streams:
-            existed = stream <= self._max_stream
-            error_code = STREAM_CLOSED if existed else PROTOCOL_ERROR
+        if stream == 0: return default
+        if strict: closed_s = True; exists_s = True
+        exists = stream in self.streams
+        if closed_s and not exists and stream <= self._max_stream:
             raise netius.ParserError(
                 "Invalid stream '%d'" % stream,
-                error_code = error_code
+                error_code = STREAM_CLOSED
+            )
+        if exists_s and not exists:
+            raise netius.ParserError(
+                "Invalid stream '%d'" % stream,
+                error_code = PROTOCOL_ERROR
             )
         self.stream_o = self.streams.get(stream, default)
         return self.stream_o
