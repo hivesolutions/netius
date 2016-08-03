@@ -437,10 +437,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # the serving of assets through non secure (no SSL) connections
         if self.sts: headers["Strict-Transport-Security"] = "max-age=%d" % self.sts
 
-    def _apply_headers(self, parser, parser_prx, headers, upper = True):
+    def _apply_headers(self, parser, connection, parser_prx, headers, upper = True):
         netius.servers.ProxyServer._apply_headers(
             self,
             parser,
+            connection,
             parser_prx,
             headers,
             upper = upper

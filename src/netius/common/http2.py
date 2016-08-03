@@ -932,6 +932,10 @@ class HTTP2Stream(netius.Stream):
         # internal structure may avoid some memory leaks
         self.reset()
 
+    def set_encoding(self, encoding):
+        self.current = encoding
+        self.connection.set_encoding(encoding)
+
     def decode_headers(self, force = False, assert_h = True):
         if not self.end_headers and not force: return
         if self.headers_l and not force: return
@@ -1050,13 +1054,16 @@ class HTTP2Stream(netius.Stream):
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
+        self.connection.current = self.current
         return self.connection.flush(*args, **kwargs)
 
     def send_response(self, *args, **kwargs):
         if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
+        self.connection.current = self.current
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
+        self.connection.current = self.current
         return self.connection.send_response(*args, **kwargs)
 
     def send_header(self, *args, **kwargs):
@@ -1064,6 +1071,7 @@ class HTTP2Stream(netius.Stream):
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
+        self.connection.current = self.current
         return self.connection.send_header(*args, **kwargs)
 
     def send_part(self, *args, **kwargs):
@@ -1071,6 +1079,7 @@ class HTTP2Stream(netius.Stream):
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
+        self.connection.current = self.current
         return self.connection.send_part(*args, **kwargs)
 
     def send_reset(self, *args, **kwargs):
@@ -1078,6 +1087,7 @@ class HTTP2Stream(netius.Stream):
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
+        self.connection.current = self.current
         return self.connection.send_rst_stream(*args, **kwargs)
 
     def assert_headers(self):

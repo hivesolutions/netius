@@ -313,16 +313,16 @@ class ProxyServer(http2.HTTP2Server):
                 connection.parser.keep_alive = False
                 if "content-length" in headers: del headers["content-length"]
             else:
-                connection.current = http.CHUNKED_ENCODING
+                connection.set_encoding(http.CHUNKED_ENCODING)
 
-        #@todo must correclty handle this
+        #@todo must correctly handle this
         target_encoding = http.ENCODING_MAP.get(content_encoding, connection.current)
-        if target_encoding > connection.current: connection.current = target_encoding
+        if target_encoding > connection.current: connection.set_encoding(target_encoding)
 
         # applies the headers meaning that the headers are going to be
         # processed so that they represent the proper proxy operation
         # that is going to be done with the passing of the data
-        self._apply_headers(connection.parser, parser, headers)
+        self._apply_headers(connection.parser, connection, parser, headers)
 
         # runs the send headers operation that will start the transmission
         # of the headers for the requested proxy operation, the concrete
@@ -468,10 +468,10 @@ class ProxyServer(http2.HTTP2Server):
         connection.close(flush = True)
         del self.conn_map[_connection]
 
-    def _apply_headers(self, parser, parser_prx, headers, upper = True):
+    def _apply_headers(self, parser, connection, parser_prx, headers, upper = True):
         if upper: self._headers_upper(headers)
         self._apply_via(parser_prx, headers)
-        self._apply_all(parser, parser.connection, headers, replace = True)
+        self._apply_all(parser, connection, headers, replace = True)
 
     def _apply_via(self, parser_prx, headers):
         # retrieves the various elements of the parser that are going
