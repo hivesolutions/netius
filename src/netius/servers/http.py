@@ -39,6 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import zlib
 import base64
+import contextlib
 
 import netius.common
 
@@ -450,6 +451,10 @@ class HTTPConnection(netius.Connection):
 
     def on_data(self):
         self.owner.on_data_http(self, self.parser)
+
+    @contextlib.contextmanager
+    def ctx_request(self, args = None, kwargs = None):
+        yield
 
     @property
     def connection_ctx(self):

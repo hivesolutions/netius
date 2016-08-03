@@ -39,6 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import struct
 import tempfile
+import contextlib
 
 import netius
 
@@ -1050,58 +1051,28 @@ class HTTP2Stream(netius.Stream):
 
     def flush(self, *args, **kwargs):
         if not self.is_open(): return 0
-        kwargs["stream"] = self.identifier
-        callback = kwargs.get("callback", None)
-        if callback: kwargs["callback"] = self._build_c(callback)
-        current = self.connection.current
-        self.connection.current = self.current
-        try: result = self.connection.flush(*args, **kwargs)
-        finally: self.connection.current = current
-        return result
+        with self.ctx_request(args, kwargs):
+            return self.connection.flush(*args, **kwargs)
 
     def send_response(self, *args, **kwargs):
         if not self.is_open(): return 0
-        kwargs["stream"] = self.identifier
-        callback = kwargs.get("callback", None)
-        if callback: kwargs["callback"] = self._build_c(callback)
-        current = self.connection.current
-        self.connection.current = self.current
-        try: result = self.connection.send_response(*args, **kwargs)
-        finally: self.connection.current = current
-        return result
+        with self.ctx_request(args, kwargs):
+            return self.connection.send_response(*args, **kwargs)
 
     def send_header(self, *args, **kwargs):
         if not self.is_open(): return 0
-        kwargs["stream"] = self.identifier
-        callback = kwargs.get("callback", None)
-        if callback: kwargs["callback"] = self._build_c(callback)
-        current = self.connection.current
-        self.connection.current = self.current
-        try: result = self.connection.send_header(*args, **kwargs)
-        finally: self.connection.current = current
-        return result
+        with self.ctx_request(args, kwargs):
+            return self.connection.send_header(*args, **kwargs)
 
     def send_part(self, *args, **kwargs):
         if not self.is_open(): return 0
-        kwargs["stream"] = self.identifier
-        callback = kwargs.get("callback", None)
-        if callback: kwargs["callback"] = self._build_c(callback)
-        current = self.connection.current
-        self.connection.current = self.current
-        try: result = self.connection.send_part(*args, **kwargs)
-        finally: self.connection.current = current
-        return result
+        with self.ctx_request(args, kwargs):
+            return self.connection.send_part(*args, **kwargs)
 
     def send_reset(self, *args, **kwargs):
         if not self.is_open(): return 0
-        kwargs["stream"] = self.identifier
-        callback = kwargs.get("callback", None)
-        if callback: kwargs["callback"] = self._build_c(callback)
-        current = self.connection.current
-        self.connection.current = self.current
-        try: result = self.connection.send_rst_stream(*args, **kwargs)
-        finally: self.connection.current = current
-        return result
+        with self.ctx_request(args, kwargs):
+            return self.connection.send_rst_stream(*args, **kwargs)
 
     def assert_headers(self):
         pseudo = True
@@ -1168,6 +1139,17 @@ class HTTP2Stream(netius.Stream):
                 stream = self.identifier,
                 error_code = PROTOCOL_ERROR
             )
+
+    @contextlib.contextmanager
+    def ctx_request(self, args = None, kwargs = None):
+        if not kwargs == None:
+            kwargs["stream"] = self.identifier
+            callback = kwargs.get("callback", None)
+            if callback: kwargs["callback"] = self._build_c(callback)
+        current = self.connection.current
+        self.connection.current = self.current
+        try: yield
+        finally: self.connection.current = current
 
     @property
     def parser(self):

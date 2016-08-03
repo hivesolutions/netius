@@ -322,7 +322,8 @@ class ProxyServer(http2.HTTP2Server):
         # applies the headers meaning that the headers are going to be
         # processed so that they represent the proper proxy operation
         # that is going to be done with the passing of the data
-        self._apply_headers(connection.parser, connection, parser, headers)
+        with connection.ctx_request():
+            self._apply_headers(connection.parser, connection, parser, headers)
 
         # runs the send headers operation that will start the transmission
         # of the headers for the requested proxy operation, the concrete
