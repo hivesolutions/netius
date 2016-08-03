@@ -1054,40 +1054,55 @@ class HTTP2Stream(netius.Stream):
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
+        current = self.connection.current
         self.connection.current = self.current
-        return self.connection.flush(*args, **kwargs)
+        try: result = self.connection.flush(*args, **kwargs)
+        finally: self.connection.current = current
+        return result
 
     def send_response(self, *args, **kwargs):
         if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
+        current = self.connection.current
         self.connection.current = self.current
-        return self.connection.send_response(*args, **kwargs)
+        try: result = self.connection.send_response(*args, **kwargs)
+        finally: self.connection.current = current
+        return result
 
     def send_header(self, *args, **kwargs):
         if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
+        current = self.connection.current
         self.connection.current = self.current
-        return self.connection.send_header(*args, **kwargs)
+        try: result = self.connection.send_header(*args, **kwargs)
+        finally: self.connection.current = current
+        return result
 
     def send_part(self, *args, **kwargs):
         if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
+        current = self.connection.current
         self.connection.current = self.current
-        return self.connection.send_part(*args, **kwargs)
+        try: result = self.connection.send_part(*args, **kwargs)
+        finally: self.connection.current = current
+        return result
 
     def send_reset(self, *args, **kwargs):
         if not self.is_open(): return 0
         kwargs["stream"] = self.identifier
         callback = kwargs.get("callback", None)
         if callback: kwargs["callback"] = self._build_c(callback)
+        current = self.connection.current
         self.connection.current = self.current
-        return self.connection.send_rst_stream(*args, **kwargs)
+        try: result = self.connection.send_rst_stream(*args, **kwargs)
+        finally: self.connection.current = current
+        return result
 
     def assert_headers(self):
         pseudo = True
