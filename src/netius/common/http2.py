@@ -846,6 +846,8 @@ class HTTP2Stream(netius.Stream):
     def close(self, flush = False, destroy = True, reset = False):
         netius.Stream.close(self)
         if not self.owner._has_stream(self.identifier): return
+        print(self.connection.pending)
+        print(self.connection.frames)
         self.owner._del_stream(self.identifier)
         if reset: self.send_reset()
 
