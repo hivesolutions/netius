@@ -315,13 +315,16 @@ class ProxyServer(http2.HTTP2Server):
             else:
                 connection.set_encoding(http.CHUNKED_ENCODING)
 
-        #@todo must correctly handle this
+        # tries to use the content encoding value to determine the minimum encoding
+        # that allows the content encoding to be kept (compatibility support)
         target_encoding = http.ENCODING_MAP.get(content_encoding, connection.current)
         if target_encoding > connection.current: connection.set_encoding(target_encoding)
 
         # applies the headers meaning that the headers are going to be
         # processed so that they represent the proper proxy operation
-        # that is going to be done with the passing of the data
+        # that is going to be done with the passing of the data, note
+        # that the connection request context is applied so that the
+        # proper encoding is used in the connection header application
         with connection.ctx_request():
             self._apply_headers(connection.parser, connection, parser, headers)
 
