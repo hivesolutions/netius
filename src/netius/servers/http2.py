@@ -214,6 +214,8 @@ class HTTP2Connection(http.HTTPConnection):
         callback = None
     ):
         count = 0
+        
+        print("FRAGMENTATION!!!")
         fragments = self.fragment_stream(stream, data)
         fragments = list(fragments)
         fragments_l = len(fragments)
