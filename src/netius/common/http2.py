@@ -627,8 +627,9 @@ class HTTP2Parser(parser.Parser):
 
         self.trigger("on_headers_h2", stream)
 
-    def _parse_priority(self, data):
+    def _parse_priority(self, data, strict = False):
         dependency, weight = struct.unpack("!IB", data)
+        if not strict and not self._has_stream(self.stream): return
         stream = self._get_stream(self.stream)
         stream.dependency = dependency
         stream.weight = weight
@@ -846,10 +847,6 @@ class HTTP2Stream(netius.Stream):
     def close(self, flush = False, destroy = True, reset = False):
         netius.Stream.close(self)
         if not self.owner._has_stream(self.identifier): return
-        print("-------------------------")
-        print(len(self.connection.pending))
-        print(len(self.connection.frames))
-        print("-------------------------")
         self.owner._del_stream(self.identifier)
         if reset: self.send_reset()
 
