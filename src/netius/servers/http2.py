@@ -438,9 +438,8 @@ class HTTP2Connection(http.HTTPConnection):
         size = len(payload)
         header = struct.pack("!BHBBI", 0x00, size, type, flags, stream)
         message = header + payload
-        count = self.send(message, delay = delay, callback = callback)
         self.owner.on_send_http2(self, self.parser, type, flags, payload, stream)
-        return count
+        return self.send(message, delay = delay, callback = callback)
 
     def send_data(
         self,
@@ -928,7 +927,11 @@ class HTTP2Server(http.HTTPServer):
         )
 
         self._log_frame_details(
-            parser.type_s, parser.flags, parser.payload, parser.stream
+            parser,
+            parser.type_s,
+            parser.flags,
+            parser.payload,
+            parser.stream
         )
 
     def _log_error(self, error_code, extra):
@@ -946,14 +949,14 @@ class HTTP2Server(http.HTTPServer):
             (type, type_s, stream, length)
         )
 
-        self._log_frame_details(type_s, flags, payload, stream)
+        self._log_frame_details(parser, type_s, flags, payload, stream)
 
-    def _log_frame_details(self, type_s, flags, payload, stream):
+    def _log_frame_details(self, parser, type_s, flags, payload, stream):
         type_l = type_s.lower()
         method_s = "_log_frame_" + type_l
         if not hasattr(self, method_s): return
         method = getattr(self, method_s)
-        method(flags, payload, stream)
+        method(parser, flags, payload, stream)
 
     def _log_frame_flags(self, type_s, *args):
         flags = ", ".join(args)
@@ -961,11 +964,13 @@ class HTTP2Server(http.HTTPServer):
         if flags: self.debug("%s with %s %s active" % (type_s, pluralized, flags))
         else: self.debug("Frame %s with no flags active" % type_s)
 
-    def _log_frame_data(self, flags, payload, stream):
+    def _log_frame_data(self, parser, flags, payload, stream):
+        stream = parser._get_stream(stream)
         end_stream = True if flags & 0x01 else False
         end_stream_s = "END_STREAM" if end_stream else ""
         self._log_frame_flags("DATA", end_stream_s)
+        self.debug("Frame DATA for path '%s'" % stream.path_s)
 
-    def _log_frame_window_update(self, flags, payload, stream):
+    def _log_frame_window_update(self, parser, flags, payload, stream):
         increment, = struct.unpack("!I", payload)
         self.debug("Frame WINDOW_UPDATE with increment %d" % increment)
