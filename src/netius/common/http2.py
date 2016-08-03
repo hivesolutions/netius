@@ -844,7 +844,7 @@ class HTTP2Stream(netius.Stream):
         netius.Stream.open(self)
         self.decode_headers()
 
-    def close(self, flush = False, destroy = True, reset = False):
+    def close(self, flush = False, destroy = True, reset = True):
         netius.Stream.close(self)
         if not self.owner._has_stream(self.identifier): return
         self.owner._del_stream(self.identifier)
@@ -1173,16 +1173,3 @@ class HTTP2Stream(netius.Stream):
             callback(self)
 
         return inner
-
-    def _close_callback(self, stream):
-        """
-        The callback to the delayed (flush based) close operation
-        of the stream. This callback should be able to destroy
-        and close all the resources associated with the stream.
-
-        :type stream: Stream
-        :param stream: The stream associated with the callback
-        that is being called, this stream will be closed.
-        """
-
-        stream.close()
