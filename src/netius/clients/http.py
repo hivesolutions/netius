@@ -390,7 +390,7 @@ class HTTPConnection(netius.Connection):
         if not encoding: return data
         if not self.gzip_c:
             is_deflate = encoding == "deflate"
-            wbits = -zlib.MAX_WBITS if is_deflate else zlib.MAX_WBITS | 16
+            wbits = zlib.MAX_WBITS if is_deflate else zlib.MAX_WBITS | 16
             self.gzip_c = zlib.decompressobj(wbits)
         return self.gzip_c.decompress(data)
 
