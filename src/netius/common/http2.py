@@ -242,6 +242,7 @@ class HTTP2Parser(parser.Parser):
         self.state = HEADER_STATE
         self.buffer = []
         self.keep_alive = True
+        self.payload = None
         self.length = 0
         self.type = 0
         self.flags = 0
@@ -323,6 +324,20 @@ class HTTP2Parser(parser.Parser):
         # returns the number of read (processed) bytes of the
         # data that has been sent to the parser
         return size_o - size
+
+    def get_type_s(self, type):
+        """
+        Retrieves the string based representation of the frame
+        type according to the HTTP2 specification.
+
+        :type type: int
+        :param type: The frame type as an integer that is going
+        to be converted to the string representation.
+        :rtype: String
+        :return: The string based representation of the frame type.
+        """
+
+        return HTTP2_NAMES.get(type, None)
 
     def assert_header(self):
         """
@@ -487,7 +502,7 @@ class HTTP2Parser(parser.Parser):
 
     @property
     def type_s(self):
-        return HTTP2_NAMES.get(self.type, None)
+        return self.get_type_s(self.type)
 
     def _parse_header(self, data):
         if len(data) + self.buffer_size < HEADER_SIZE: return -1
@@ -517,6 +532,8 @@ class HTTP2Parser(parser.Parser):
 
         parse_method = self.parsers[self.type]
         parse_method(data)
+
+        self.payload = data
 
         self.state = FINISH_STATE
         self.trigger("on_frame")
@@ -899,7 +916,7 @@ class HTTP2Stream(netius.Stream):
             increment = self.window_o - self.window_l,
             stream = self.identifier
         )
-        self.windows_l = self.window_o
+        self.window_l = self.window_o
 
     def get_path(self):
         split = self.path_s.split("?", 1)

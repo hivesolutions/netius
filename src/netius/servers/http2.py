@@ -438,7 +438,9 @@ class HTTP2Connection(http.HTTPConnection):
         size = len(payload)
         header = struct.pack("!BHBBI", 0x00, size, type, flags, stream)
         message = header + payload
-        return self.send(message, delay = delay, callback = callback)
+        count = self.send(message, delay = delay, callback = callback)
+        self.owner.on_send_http2(self, self.parser, type, flags, payload, stream)
+        return count
 
     def send_data(
         self,
@@ -696,7 +698,7 @@ class HTTP2Connection(http.HTTPConnection):
                 increment = self.window_o - self.window_l,
                 stream = 0x00
             )
-            self.windows_l = self.window_o
+            self.window_l = self.window_o
 
         # tries to retrieve the stream associates with the
         # provided identifier and then runs the local update
@@ -906,6 +908,10 @@ class HTTP2Server(http.HTTPServer):
     def on_window_update_http2(self, connection, parser, stream, increment):
         self.debug("Window updated with increment %d bytes" % increment)
 
+    def on_send_http2(self, connection, parser, type, flags, payload, stream):
+        is_debug = self.is_debug()
+        is_debug and self._log_send(connection, parser, type, flags, payload, stream)
+
     def _has_h2(self):
         if not self._has_hpack(): return False
         return True
@@ -921,8 +927,34 @@ class HTTP2Server(http.HTTPServer):
             (parser.type, parser.type_s, parser.stream, parser.length)
         )
 
+        self._log_frame_details(
+            parser.type_s, parser.flags, parser.payload, parser.stream
+        )
+
     def _log_error(self, error_code, extra):
         self.warning(
             "Received error 0x%02x with message '%s'" %\
             (error_code, extra)
         )
+
+    def _log_send(self, connection, parser, type, flags, payload, stream):
+        length = len(payload)
+        type_s = parser.get_type_s(type)
+
+        self.debug(
+            "Sent frame 0x%02x (%s) for stream %d with length %d bytes" %\
+            (type, type_s, stream, length)
+        )
+
+        self._log_frame_details(type_s, flags, payload, stream)
+
+    def _log_frame_details(self, type_s, flags, payload, stream):
+        type_l = type_s.lower()
+        method_s = "_log_frame_" + type_l
+        if not hasattr(self, method_s): return
+        method = getattr(self, method_s)
+        method(flags, payload, stream)
+
+    def _log_frame_window_update(self, flags, payload, stream):
+        increment, = struct.unpack("!I", payload)
+        self.debug("WINDOW_UPDATE with increment %d" % increment)
