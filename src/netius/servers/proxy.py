@@ -439,10 +439,12 @@ class ProxyServer(http2.HTTP2Server):
             code_s = "Internal Error",
             apply = True
         )
+        else: connection.close(flush = True)
 
         # sets the connection as not waiting, so that no more
         # messages are sent as part of the closing chain
         _connection.waiting = False
+        del self.conn_map[_connection]
 
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
