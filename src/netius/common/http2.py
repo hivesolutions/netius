@@ -416,6 +416,13 @@ class HTTP2Parser(parser.Parser):
                 error_code = PROTOCOL_ERROR
             )
 
+    def assert_rst_stream(self, stream):
+        if self.stream == 0x00:
+            raise netius.ParserError(
+                "Stream cannot be set to 0x00 for RST_STREAM",
+                error_code = PROTOCOL_ERROR
+            )
+
     def assert_settings(self, settings, ack, extended = True):
         if not self.stream == 0x00:
             raise netius.ParserError(
@@ -670,6 +677,7 @@ class HTTP2Parser(parser.Parser):
     def _parse_rst_stream(self, data):
         error_code, = struct.unpack("!I", data)
         stream = self._get_stream(self.stream, strict = False)
+        self.assert_rst_stream(stream)
         self.trigger("on_rst_stream", stream, error_code)
 
     def _parse_settings(self, data):
