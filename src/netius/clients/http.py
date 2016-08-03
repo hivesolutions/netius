@@ -338,6 +338,8 @@ class HTTPConnection(netius.Connection):
         self._apply_base(headers)
         self._apply_dynamic(headers)
         if safe: self._headers_normalize(headers)
+        import pprint
+        pprint.pprint(headers)
 
         buffer = []
         buffer.append("%s %s %s\r\n" % (method, path, version))
