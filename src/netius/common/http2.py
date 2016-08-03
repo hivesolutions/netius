@@ -636,8 +636,9 @@ class HTTP2Parser(parser.Parser):
         self.assert_priority(stream)
         self.trigger("on_priority", stream, dependency, weight)
 
-    def _parse_rst_stream(self, data):
+    def _parse_rst_stream(self, data, strict = False):
         error_code, = struct.unpack("!I", data)
+        if not strict and not self._has_stream(self.stream): return
         stream = self._get_stream(self.stream)
         self.trigger("on_rst_stream", stream, error_code)
 
