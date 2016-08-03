@@ -625,7 +625,7 @@ class HTTP2Parser(parser.Parser):
             # runs the headers assertion operation and then updated the
             # various elements in the currently opened stream accordingly
             self.assert_headers(stream, end_stream)
-            stream.header_b = fragment
+            stream.extend_headers(fragment)
             if dependency: stream.dependency = dependency
             if weight: stream.weight = weight
             if end_headers: stream.end_headers = end_headers
