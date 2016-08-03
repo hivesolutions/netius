@@ -631,12 +631,12 @@ class HTTP2Connection(http.HTTPConnection):
     def set_settings(self, settings):
         self.settings.update(settings)
 
-    def close_stream(self, stream, final = False):
+    def close_stream(self, stream, final = False, flush = True, reset = False):
         if not self.parser._has_stream(stream): return
         stream = self.parser._get_stream(stream)
         if not stream: return
         stream.end_stream_l = final
-        stream.close()
+        stream.close(flush = flush, reset = reset)
 
     def available_stream(self, stream, length):
         if self.window == 0: return False
