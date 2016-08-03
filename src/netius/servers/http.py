@@ -89,7 +89,7 @@ class HTTPConnection(netius.Connection):
         self.parser = None
         self.encoding = encoding
         self.current = encoding
-        self.gzip = None
+        self.gzip_m = dict()
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
@@ -103,7 +103,7 @@ class HTTPConnection(netius.Connection):
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
         if self.parser: self.parser.destroy()
-        if self.gzip: self._close_gzip(safe = True)
+        if self.gzip_m: self._close_gzip(safe = True)
 
     def info_dict(self, full = False):
         info = netius.Connection.info_dict(self, full = full)
@@ -247,25 +247,18 @@ class HTTPConnection(netius.Connection):
             callback = callback
         )
 
-        # "calculates" if the current sending of gzip data is
-        # the first one by verifying if the gzip object is set
-        is_first = self.gzip == None
-
-        # in case this is the first sending a new compress object
-        # is created with the requested compress level, notice that
-        # the special deflate case is handled differently
-        if is_first:
-            is_deflate = self.is_deflate()
-            wbits = -zlib.MAX_WBITS if is_deflate else zlib.MAX_WBITS | 16
-            self.gzip = zlib.compressobj(level, zlib.DEFLATED, wbits)
+        # tries to retrieve the gzip object for the current stream
+        # in case it's a new connection one will be created with the
+        # appropriate compression level (as expected)
+        gzip = self._get_gzip(stream, level = level)
 
         # compresses the provided data string and removes the
         # initial data contents of the compressed data because
         # they are not part of the gzip specification, notice
         # that in case the resulting of the compress operation
         # is not valid a sync flush operation is performed
-        data_c = self.gzip.compress(data)
-        if not data_c: data_c = self.gzip.flush(Z_PARTIAL_FLUSH)
+        data_c = gzip.compress(data)
+        if not data_c: data_c = gzip.flush(Z_PARTIAL_FLUSH)
 
         # sends the compressed data to the client endpoint setting
         # the correct callback values as requested
@@ -474,43 +467,81 @@ class HTTPConnection(netius.Connection):
         self.send_plain(b"0\r\n\r\n", stream = stream, callback = callback)
 
     def _flush_gzip(self, stream = None, callback = None):
+        # tries to retrieve a possible gzip object for the current
+        # stream, note that no gzip object is going to be created
+        # in case there's none defined for the current stream
+        gzip = self._get_gzip(stream, ensure = False)
+
         # in case the gzip structure has not been initialized
         # (no data sent) no need to run the flushing of the
         # gzip data, so only the chunked part is flushed
-        if not self.gzip:
+        if not gzip:
             self._flush_chunked(stream = stream, callback = callback)
             return
 
         # flushes the internal zlib buffers to be able to retrieve
         # the data pending to be sent to the client and then sends
         # it using the chunked encoding strategy
-        data_c = self.gzip.flush(zlib.Z_FINISH)
+        data_c = gzip.flush(zlib.Z_FINISH)
         self.send_chunked(data_c, stream = stream, final = False)
 
         # resets the gzip values to the original ones so that new
         # requests will starts the information from the beginning
-        self.gzip = None
+        self._unset_gzip(stream)
 
         # runs the flush operation for the underlying chunked encoding
         # layer so that the client is correctly notified about the
         # end of the current request (normal operation)
         self._flush_chunked(stream = stream, callback = callback)
 
+    def _get_gzip(self, stream, level = 6, ensure = True):
+        # tries to retrieve the proper gzip object for the requested
+        # stream and in case there's one or if the ensure flag is set
+        # the retrieved value is returned to the caller method
+        gzip = self.gzip_m.get(stream, None)
+        if gzip or not ensure: return gzip
+
+        # in case this is the first sending a new compress object
+        # is created with the requested compress level, notice that
+        # the special deflate case is handled differently
+        is_deflate = self.is_deflate()
+        wbits = -zlib.MAX_WBITS if is_deflate else zlib.MAX_WBITS | 16
+        gzip = zlib.compressobj(level, zlib.DEFLATED, wbits)
+
+        # updates the gzip objects map with the gzip object that has
+        # just been created for the target stream
+        self.gzip_m[stream] = gzip
+        return gzip
+
+    def _set_gzip(self, stream, gzip):
+        self.gzip_m[stream] = gzip
+
+    def _unset_gzip(self, stream):
+        del self.gzip_m[stream]
+
     def _close_gzip(self, safe = True):
         # in case the gzip object is not defined returns the control
         # to the caller method immediately (nothing to be done)
-        if not self.gzip: return
+        if not self.gzip_m: return
 
-        try:
-            # runs the flush operation for the the final finish stage
-            # (note that an exception may be raised) and then unsets
-            # the gzip object (meaning no more interaction)
-            self.gzip.flush(zlib.Z_FINISH)
-            self.gzip = None
-        except:
-            # in case the safe flag is not set re-raises the exception
-            # to the caller stack (as expected by the callers)
-            if not safe: raise
+        # saves the current gzip object map locally (releasing reference)
+        # and then recreates a new empty dictionary on the other object
+        gzip_m = self.gzip_m
+        self.gzip_m = dict()
+
+        # iterates over the complete set of gzip object to run the flush
+        # operation over each of them, as expected for proper and final
+        # memory release, note that an exception may be raised in the case
+        # of a duplicated flush operation
+        for gzip in gzip_m.values():
+            try:
+                # runs the flush operation for the the final finish stage
+                # (note that an exception may be raised)
+                gzip.flush(zlib.Z_FINISH)
+            except:
+                # in case the safe flag is not set re-raises the exception
+                # to the caller stack (as expected by the callers)
+                if not safe: raise
 
 class HTTPServer(netius.StreamServer):
     """
