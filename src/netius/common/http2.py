@@ -583,6 +583,8 @@ class HTTP2Parser(parser.Parser):
         stream.extend_data(contents)
         stream.end_stream = end_stream
 
+        self.trigger("on_partial", contents)
+
         self.trigger("on_data_h2", stream, contents)
 
     def _parse_headers(self, data):
