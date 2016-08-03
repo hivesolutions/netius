@@ -970,11 +970,31 @@ class HTTP2Server(http.HTTPServer):
 
     def _log_frame_data(self, parser, flags, payload, stream):
         stream = parser._get_stream(stream)
-        end_stream = True if flags & 0x01 else False
-        end_stream_s = "END_STREAM" if end_stream else ""
-        self._log_frame_flags("DATA", end_stream_s)
+        flags_l = self._flags_l(flags, (("END_STREAM", 0x01),))
+        self._log_frame_flags("DATA", *flags_l)
         self.debug("Frame DATA for path '%s'" % stream.path_s)
+
+    def _log_frame_headers(self, parser, flags, payload, stream):
+        stream = parser._get_stream(stream)
+        flags_l = self._flags_l(
+            flags,
+            (
+                ("END_STREAM", 0x01),
+                ("END_HEADERS", 0x04),
+                ("PADDED", 0x08),
+                ("PRIORITY", 0x20)
+            )
+        )
+        self._log_frame_flags("HEADERS", *flags_l)
 
     def _log_frame_window_update(self, parser, flags, payload, stream):
         increment, = struct.unpack("!I", payload)
         self.debug("Frame WINDOW_UPDATE with increment %d" % increment)
+
+    def _flags_l(self, flags, definition):
+        flags_l = []
+        for name, value in definition:
+            valid = True if flags & value else False
+            if not valid: continue
+            flags_l.append(name)
+        return flags_l
