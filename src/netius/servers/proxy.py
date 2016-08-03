@@ -52,7 +52,7 @@ MIN_RATIO = 0.8
 value this is going to be used to re-enable the operation
 and start the filling of the buffer again """
 
-MAX_PENDING = 655360000
+MAX_PENDING = 65536
 """ The size in bytes considered to be the maximum
 allowed in the sending buffer, this maximum value
 avoids the starvation of the producer to consumer
@@ -182,7 +182,8 @@ class ProxyServer(http2.HTTP2Server):
         # verifies that the current size of the pending buffer is greater
         # than the maximum size for the pending buffer the read operations
         # if that the case the read operations must be disabled
-        should_disable = self.throttle and tunnel_c.pending_s > self.max_pending
+        should_throttle = self.throttle and tunnel_c.is_throttleable()
+        should_disable = should_throttle and tunnel_c.pending_s > self.max_pending
         if should_disable: connection.disable_read()
 
         # performs the sending operation on the data but uses the throttle
@@ -229,7 +230,8 @@ class ProxyServer(http2.HTTP2Server):
 
         proxy_c = connection.proxy_c
 
-        should_disable = self.throttle and proxy_c.pending_s > self.max_pending
+        should_throttle = self.throttle and proxy_c.is_throttleable()
+        should_disable = should_throttle and proxy_c.pending_s > self.max_pending
         if should_disable: connection.disable_read()
         proxy_c.flush(force = True, callback = self._throttle)
 
@@ -239,7 +241,8 @@ class ProxyServer(http2.HTTP2Server):
     def on_partial(self, connection, parser, data):
         proxy_c = connection.proxy_c
 
-        should_disable = self.throttle and proxy_c.pending_s > self.max_pending
+        should_throttle = self.throttle and proxy_c.is_throttleable()
+        should_disable = should_throttle and proxy_c.pending_s > self.max_pending
         if should_disable: connection.disable_read()
         proxy_c.send_base(data, force = True, callback = self._throttle)
 
@@ -371,7 +374,8 @@ class ProxyServer(http2.HTTP2Server):
         # back to it using the currently defined encoding (as expected), note
         # that additional throttling operations may apply
         connection = self.conn_map[_connection]
-        should_disable = self.throttle and connection.pending_s > self.max_pending
+        should_throttle = self.throttle and connection.is_throttleable()
+        should_disable = should_throttle and connection.pending_s > self.max_pending
         if should_disable: _connection.disable_read()
         connection.send_part(data, final = False, callback = self._prx_throttle)
 
@@ -450,7 +454,8 @@ class ProxyServer(http2.HTTP2Server):
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
-        should_disable = self.throttle and connection.pending_s > self.max_pending
+        should_throttle = self.throttle and connection.is_throttleable()
+        should_disable = should_throttle and connection.pending_s > self.max_pending
         if should_disable: _connection.disable_read()
         connection.send(data, callback = self._raw_throttle)
 

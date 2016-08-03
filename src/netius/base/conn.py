@@ -499,6 +499,9 @@ class BaseConnection(observer.Observable):
     def is_pending(self):
         return self.status == PENDING
 
+    def is_throttleable(self):
+        return True
+
     def _send(self):
         # sets the write ready flag so that any further request to
         # write operation will be immediately performed

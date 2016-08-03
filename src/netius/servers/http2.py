@@ -773,6 +773,9 @@ class HTTP2Connection(http.HTTPConnection):
         self.flush_frames()
         self.owner.on_window_update_http2(self, self.parser, stream, increment)
 
+    def is_throttleable(self):
+        return False
+
     @property
     def connection_ctx(self):
         if self.legacy: return super(HTTP2Connection, self).connection_ctx
