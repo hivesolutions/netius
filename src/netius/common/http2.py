@@ -220,7 +220,8 @@ class HTTP2Parser(parser.Parser):
         # iterates over the complete set of associated streams to close
         # them as the parser is now going to be destroyed and they cannot
         # be reached any longer (invalidated state)
-        for stream in self.streams.values(): stream.close()
+        streams = netius.legacy.values(self.streams)
+        for stream in streams: stream.close()
 
         self.connection = None
         self.states = ()
