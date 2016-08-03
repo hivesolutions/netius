@@ -934,7 +934,6 @@ class HTTP2Stream(netius.Stream):
 
     def set_encoding(self, encoding):
         self.current = encoding
-        self.connection.set_encoding(encoding)
 
     def decode_headers(self, force = False, assert_h = True):
         if not self.end_headers and not force: return
