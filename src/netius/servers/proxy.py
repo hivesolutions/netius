@@ -189,7 +189,7 @@ class ProxyServer(http2.HTTP2Server):
         # than the maximum size for the pending buffer the read operations
         # if that the case the read operations must be disabled
         should_throttle = self.throttle and connection.is_throttleable()
-        should_disable = should_throttle and tunnel_c.pending_s > self.max_pending
+        should_disable = should_throttle and tunnel_c.is_exhausted()
         if should_disable: connection.disable_read()
 
         # performs the sending operation on the data but uses the throttle
@@ -239,7 +239,7 @@ class ProxyServer(http2.HTTP2Server):
         proxy_c = connection.proxy_c
 
         should_throttle = self.throttle and connection.is_throttleable()
-        should_disable = should_throttle and proxy_c.pending_s > self.max_pending
+        should_disable = should_throttle and proxy_c.is_exhausted()
         if should_disable: connection.disable_read()
         proxy_c.flush(force = True, callback = self._throttle)
 
@@ -250,7 +250,7 @@ class ProxyServer(http2.HTTP2Server):
         proxy_c = connection.proxy_c
 
         should_throttle = self.throttle and connection.is_throttleable()
-        should_disable = should_throttle and proxy_c.pending_s > self.max_pending
+        should_disable = should_throttle and proxy_c.is_exhausted()
         if should_disable: connection.disable_read()
         proxy_c.send_base(data, force = True, callback = self._throttle)
 
@@ -260,11 +260,13 @@ class ProxyServer(http2.HTTP2Server):
             socket = socket,
             address = address,
             ssl = ssl,
-            encoding = self.encoding
+            encoding = self.encoding,
+            max_pending = self.max_pending,
+            min_pending = self.min_pending
         )
 
     def _throttle(self, _connection):
-        if _connection.pending_s > self.min_pending: return
+        if not _connection.is_restored(): return
         connection = self.conn_map[_connection]
         if not connection.renable == False: return
         connection.enable_read()
@@ -277,7 +279,7 @@ class ProxyServer(http2.HTTP2Server):
         pass
 
     def _prx_throttle(self, connection):
-        if connection.pending_s > self.min_pending: return
+        if not connection.is_restored(): return
 
         proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
         if not proxy_c: return
@@ -287,7 +289,7 @@ class ProxyServer(http2.HTTP2Server):
         self.http_client.reads((proxy_c.socket,), state = False)
 
     def _raw_throttle(self, connection):
-        if connection.pending_s > self.min_pending: return
+        if not connection.is_restored(): return
 
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
         if not tunnel_c: return
@@ -393,7 +395,7 @@ class ProxyServer(http2.HTTP2Server):
         # that additional throttling operations may apply
         connection = self.conn_map[_connection]
         should_throttle = self.throttle and _connection.is_throttleable()
-        should_disable = should_throttle and connection.pending_s > self.max_pending
+        should_disable = should_throttle and connection.is_exhausted()
         if should_disable: _connection.disable_read()
         connection.send_part(data, final = False, callback = self._prx_throttle)
 
@@ -473,7 +475,7 @@ class ProxyServer(http2.HTTP2Server):
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
         should_throttle = self.throttle and _connection.is_throttleable()
-        should_disable = should_throttle and connection.pending_s > self.max_pending
+        should_disable = should_throttle and connection.is_exhausted()
         if should_disable: _connection.disable_read()
         connection.send(data, callback = self._raw_throttle)
 

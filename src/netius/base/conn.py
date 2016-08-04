@@ -78,7 +78,15 @@ class BaseConnection(observer.Observable):
     appropriate operations.
     """
 
-    def __init__(self, owner = None, socket = None, address = None, ssl = False):
+    def __init__(
+        self,
+        owner = None,
+        socket = None,
+        address = None,
+        ssl = False,
+        max_pending = -1,
+        min_pending = -1
+    ):
         observer.Observable.__init__(self)
         self.status = PENDING
         self.id = str(uuid.uuid4())
@@ -89,6 +97,8 @@ class BaseConnection(observer.Observable):
         self.address = address
         self.ssl = ssl
         self.ssl_host = None
+        self.max_pending = max_pending
+        self.min_pending = min_pending
         self.renable = True
         self.wready = False
         self.pending_s = 0
@@ -501,6 +511,12 @@ class BaseConnection(observer.Observable):
 
     def is_throttleable(self):
         return True
+
+    def is_exhausted(self):
+        return self.pending_s > self.max_pending
+
+    def is_restored(self):
+        return self.pending_s < self.min_pending
 
     def _send(self):
         # sets the write ready flag so that any further request to
