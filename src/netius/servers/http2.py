@@ -409,6 +409,12 @@ class HTTP2Connection(http.HTTPConnection):
                 old_callback and old_callback(connection)
                 self.close_stream(stream, final = final)
 
+        # verifies if the current connection/stream is flushed meaning that it requires
+        # a final chunk of data to be sent to the peer, if that's not the case there's
+        # no need to run the flushing as a possible empty data frame may be sent which
+        # may cause errors to be raised from the server side
+        flush = flush and self.is_flushed()
+
         if flush:
             count = self.send_base(
                 data,
