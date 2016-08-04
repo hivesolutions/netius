@@ -877,6 +877,7 @@ class HTTP2Server(http.HTTPServer):
         http.HTTPServer.on_serve(self)
         safe_s = "with" if self.safe else "without"
         self.info("Starting HTTP2 server %s safe mode ..." % safe_s)
+        if not self.has_h2: self.info("No support for HTTP2 is available ...")
 
     def on_preface_http2(self, connection, parser):
         connection.send_settings(settings = self.settings_t)
