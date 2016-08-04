@@ -326,6 +326,8 @@ class ProxyServer(http2.HTTP2Server):
         target_encoding = http.ENCODING_MAP.get(content_encoding, connection.current)
         if self.dynamic and target_encoding > connection.current:
             connection.set_encoding(target_encoding)
+            
+        if "content-length" in headers: del headers["content-length"]
 
         # applies the headers meaning that the headers are going to be
         # processed so that they represent the proper proxy operation
