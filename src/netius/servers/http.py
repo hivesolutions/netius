@@ -424,16 +424,16 @@ class HTTPConnection(netius.Connection):
         self.current = encoding
 
     def set_plain(self):
-        self.current = PLAIN_ENCODING
+        self.set_encoding(PLAIN_ENCODING)
 
     def set_chunked(self):
-        self.current = CHUNKED_ENCODING
+        self.set_encoding(CHUNKED_ENCODING)
 
     def set_gzip(self):
-        self.current = GZIP_ENCODING
+        self.set_encoding(GZIP_ENCODING)
 
     def set_deflate(self):
-        self.current = DEFLATE_ENCODING
+        self.set_encoding(DEFLATE_ENCODING)
 
     def is_plain(self):
         return self.current == PLAIN_ENCODING

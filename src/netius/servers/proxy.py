@@ -66,16 +66,19 @@ class ProxyConnection(http2.HTTP2Connection):
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_partial", self.on_partial)
 
-    def on_headers(self):
-        self.owner.on_headers(self.connection_ctx, self.parser_ctx)
-
-    def on_partial(self, data):
-        self.owner.on_partial(self.connection_ctx, self.parser_ctx, data)
+    def resolve_encoding(self, parser):
+        pass
 
     def set_h2(self):
         http2.HTTP2Connection.set_h2(self)
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_partial", self.on_partial)
+
+    def on_headers(self):
+        self.owner.on_headers(self.connection_ctx, self.parser_ctx)
+
+    def on_partial(self, data):
+        self.owner.on_partial(self.connection_ctx, self.parser_ctx, data)
 
 class ProxyServer(http2.HTTP2Server):
 
