@@ -691,7 +691,7 @@ class HTTPParser(parser.Parser):
         count = 0
 
         # verifies if the end of chunk state has been reached
-        # that happen when only the last two character remain
+        # that happens when only the last two characters remain
         # to be parsed from the chunk
         is_end = self.chunk_l < 3 and self.chunk_l > 0
         if is_end:
