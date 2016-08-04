@@ -559,6 +559,11 @@ class HTTPServer(netius.StreamServer):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.encoding_s = encoding
 
+    def info_dict(self, full = False):
+        info = netius.StreamServer.info_dict(self, full = full)
+        info.update(encoding_s = self.encoding_s)
+        return info
+
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
         connection.parse(data)

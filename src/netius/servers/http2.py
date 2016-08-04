@@ -820,6 +820,14 @@ class HTTP2Server(http.HTTPServer):
         self.safe = self.get_env("SAFE", self.safe, cast = bool)
         http.HTTPServer.__init__(self, *args, **kwargs)
 
+    def info_dict(self, full = False):
+        info = http.HTTPServer.info_dict(self, full = full)
+        info.update(
+            legacy = self.legacy,
+            safe = self.safe
+        )
+        return info
+
     def get_protocols(self):
         if self._protocols: return self._protocols
         if not self.safe and self.has_h2: self._protocols.extend(["h2"])
