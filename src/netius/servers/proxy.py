@@ -52,7 +52,7 @@ MIN_RATIO = 0.8
 value this is going to be used to re-enable the operation
 and start the filling of the buffer again """
 
-MAX_PENDING = netius.CHUNK_SIZE * 8
+MAX_PENDING = netius.CHUNK_SIZE * 2
 """ The size in bytes considered to be the maximum
 allowed in the sending buffer, this maximum value
 avoids the starvation of the producer to consumer
@@ -326,8 +326,6 @@ class ProxyServer(http2.HTTP2Server):
         target_encoding = http.ENCODING_MAP.get(content_encoding, connection.current)
         if self.dynamic and target_encoding > connection.current:
             connection.set_encoding(target_encoding)
-            
-        if "content-length" in headers: del headers["content-length"]
 
         # applies the headers meaning that the headers are going to be
         # processed so that they represent the proper proxy operation

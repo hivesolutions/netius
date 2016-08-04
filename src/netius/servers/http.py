@@ -87,9 +87,10 @@ class HTTPConnection(netius.Connection):
 
     def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
-        self.parser = None
         self.encoding = encoding
         self.current = encoding
+        self.parser = None
+        self.legacy = True
         self.gzip_m = dict()
 
     def open(self, *args, **kwargs):
