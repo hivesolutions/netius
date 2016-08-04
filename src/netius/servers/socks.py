@@ -157,7 +157,7 @@ class SOCKSServer(netius.ContainerServer):
         # verifies that the current size of the pending buffer is greater
         # than the maximum size for the pending buffer the read operations
         # if that the case the read operations must be disabled
-        should_disable = self.throttle and tunnel_c.pending_s > self.max_pending
+        should_disable = self.throttle and tunnel_c.is_exhausted()
         if should_disable: connection.disable_read()
 
         # performs the sending operation on the data but uses the throttle
@@ -170,6 +170,8 @@ class SOCKSServer(netius.ContainerServer):
         port = parser.port
 
         _connection = self.raw_client.connect(host, port)
+        _connection.max_pending = self.max_pending
+        _connection.min_pending = self.min_pending
         connection.tunnel_c = _connection
         self.conn_map[_connection] = connection
 
@@ -195,18 +197,20 @@ class SOCKSServer(netius.ContainerServer):
             owner = self,
             socket = socket,
             address = address,
-            ssl = ssl
+            ssl = ssl,
+            max_pending = self.max_pending,
+            min_pending = self.min_pending
         )
 
     def _throttle(self, _connection):
-        if _connection.pending_s > self.min_pending: return
+        if not _connection.is_restored(): return
         connection = self.conn_map[_connection]
         if not connection.renable == False: return
         connection.enable_read()
         self.reads((connection.socket,), state = False)
 
     def _raw_throttle(self, connection):
-        if connection.pending_s > self.min_pending: return
+        if not connection.is_restored(): return
 
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
         if not tunnel_c: return
@@ -223,7 +227,7 @@ class SOCKSServer(netius.ContainerServer):
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]
-        should_disable = self.throttle and connection.pending_s > self.max_pending
+        should_disable = self.throttle and connection.is_exhausted()
         if should_disable: _connection.disable_read()
         connection.send(data, callback = self._raw_throttle)
 
