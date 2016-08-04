@@ -62,7 +62,7 @@ PENDING = 3
 """ The pending status used for transient states (eg created)
 connections under this state must be used carefully """
 
-CHUNK_SIZE = 4096
+CHUNK_SIZE = 16384
 """ The size of the chunk to be used while received
 data from the service socket """
 

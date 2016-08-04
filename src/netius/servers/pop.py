@@ -49,7 +49,7 @@ AUTH_STATE = 3
 
 SESSION_STATE = 4
 
-CHUNK_SIZE = 4096
+CHUNK_SIZE = 16384
 """ The size of the chunk to be used for the partial sending
 of the message to the client, this value will affect the
 memory used by the server and its network performance """

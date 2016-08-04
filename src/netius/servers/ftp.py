@@ -43,7 +43,7 @@ import datetime
 
 import netius.common
 
-BUFFER_SIZE = 4096
+BUFFER_SIZE = 16384
 """ The size of the buffer that is going to be used when
 sending the file to the client, this should not be neither
 to big nor to small (as both situations would create problems) """
