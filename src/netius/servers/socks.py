@@ -50,7 +50,7 @@ FAILED_AUTH = 0x5d
 GRANTED_EXTRA = 0x00
 
 BUFFER_RATIO = 1.5
-""" The ration for the calculus of the internal socket
+""" The ratio for the calculus of the internal socket
 buffer size from the maximum pending buffer size """
 
 MIN_RATIO = 0.8
