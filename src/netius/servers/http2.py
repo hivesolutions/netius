@@ -658,7 +658,8 @@ class HTTP2Connection(http.HTTPConnection):
         return stream.fragmentable(data)
 
     def open_stream(self, stream):
-        stream = self.parser._get_stream(stream)
+        stream = self.parser._get_stream(stream, strict = False)
+        if not stream : return False
         return True if stream and stream.is_open() else False
 
     def increment_remote(self, stream, increment):
