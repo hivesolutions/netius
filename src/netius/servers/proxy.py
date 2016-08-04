@@ -391,7 +391,7 @@ class ProxyServer(http2.HTTP2Server):
         connection = self.conn_map[_connection]
         should_throttle = self.throttle and _connection.is_throttleable()
         print(connection.pending_s)
-        print(self.lid)
+        print(self._lid)
         should_disable = should_throttle and connection.pending_s > self.max_pending
         if should_disable: _connection.disable_read()
         connection.send_part(data, final = False, callback = self._prx_throttle)
