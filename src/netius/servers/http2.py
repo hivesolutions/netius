@@ -781,6 +781,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.owner.on_window_update_http2(self, self.parser, stream, increment)
 
     def is_throttleable(self):
+        if self.legacy: return http.HTTPConnection.is_throttleable()
         return False
 
     @property
