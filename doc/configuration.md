@@ -41,6 +41,13 @@ context values (certificate, key, etc) for such domain
 * `KEY_DATA` (`str`) - Equivalent to `KEY_FILE` but with explicit (data) contents of the file (`\n` escaped)
 * `CA_DATA` (`str`) - Equivalent to `CA_FILE` but with explicit (data) contents of the file (`\n` escaped)
 
+#### Proxy
+
+* `DYNAMIC` (`bool`) - In case the value is active dynamic connection encoding is applied, meaning that extra
+heuristics will be applied on a response basis to determine the proper encoding of the response (eg: plain, chunked, gzip, etc.)
+* `THROTTLE` (`bool`) - If throttling of the connection stream should be applied on both ways to avoid starvation
+of the producer consumer relation
+
 #### Proxy Reverse
 
 * `STS` (`int`) - Defines the strict transport security header value (in seconds) for the reverse proxy, in case

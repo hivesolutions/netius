@@ -81,6 +81,7 @@ class ProxyServer(http2.HTTP2Server):
 
     def __init__(
         self,
+        dynamic = True,
         throttle = True,
         trust_origin = False,
         max_pending = MAX_PENDING,
@@ -94,6 +95,7 @@ class ProxyServer(http2.HTTP2Server):
             *args,
             **kwargs
         )
+        self.dynamic = dynamic
         self.throttle = throttle
         self.trust_origin = trust_origin
         self.max_pending = max_pending
@@ -154,6 +156,7 @@ class ProxyServer(http2.HTTP2Server):
     def info_dict(self, full = False):
         info = http2.HTTP2Server.info_dict(self, full = full)
         info.update(
+            dynamic = self.dynamic,
             throttle = self.throttle,
             max_pending = self.max_pending,
             min_pending = self.min_pending,
@@ -217,8 +220,10 @@ class ProxyServer(http2.HTTP2Server):
 
     def on_serve(self):
         http2.HTTP2Server.on_serve(self)
+        if self.env: self.dynamic = self.get_env("DYNAMIC", self.dynamic, cast = bool)
         if self.env: self.throttle = self.get_env("THROTTLE", self.throttle, cast = bool)
         if self.env: self.trust_origin = self.get_env("TRUST_ORIGIN", self.trust_origin, cast = bool)
+        if self.dynamic: self.info("Using dynamic encoding for connections in the proxy ...")
         if self.throttle: self.info("Throttling connections in the proxy ...")
         else: self.info("Not throttling connections in the proxy ...")
         if self.trust_origin: self.info("Origin is considered \"trustable\" by proxy")
@@ -316,9 +321,11 @@ class ProxyServer(http2.HTTP2Server):
                 connection.set_encoding(http.CHUNKED_ENCODING)
 
         # tries to use the content encoding value to determine the minimum encoding
-        # that allows the content encoding to be kept (compatibility support)
+        # that allows the content encoding to be kept (compatibility support), this
+        # heuristic is only applied in case the dynamic option is enabled
         target_encoding = http.ENCODING_MAP.get(content_encoding, connection.current)
-        if target_encoding > connection.current: connection.set_encoding(target_encoding)
+        if self.dynamic and target_encoding > connection.current:
+            connection.set_encoding(target_encoding)
 
         # applies the headers meaning that the headers are going to be
         # processed so that they represent the proper proxy operation
