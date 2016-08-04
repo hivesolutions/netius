@@ -825,7 +825,8 @@ class HTTP2Server(http.HTTPServer):
         info = http.HTTPServer.info_dict(self, full = full)
         info.update(
             legacy = self.legacy,
-            safe = self.safe
+            safe = self.safe,
+            has_h2 = self.has_h2
         )
         return info
 
