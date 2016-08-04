@@ -855,8 +855,10 @@ class HTTP2Server(http.HTTPServer):
         )
 
     def on_exception(self, exception, connection):
-        legacy = lambda: http.HTTPServer.on_exception(self, exception, connection)
-        if not isinstance(exception, netius.NetiusError): return legacy()
+        if self.legacy:
+            return http.HTTPServer.on_exception(self, exception, connection)
+        if not isinstance(exception, netius.NetiusError):
+            return http.HTTPServer.on_exception(self, exception, connection)
         stream = exception.get_kwarg("stream")
         error_code = exception.get_kwarg("error_code", 0x00)
         message = exception.get_kwarg("message", "")
