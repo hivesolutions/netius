@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 from . import file as _file
 
-BUFFER_SIZE = _file.BUFFER_SIZE * 16
+BUFFER_SIZE = _file.BUFFER_SIZE * 4
 """ Re-creates the buffer size of the file buffer so that it
 handles more data for each chunk, this is required to avoid
 extreme amounts of overhead in the file pool """
