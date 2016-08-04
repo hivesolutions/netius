@@ -52,7 +52,7 @@ MIN_RATIO = 0.8
 value this is going to be used to re-enable the operation
 and start the filling of the buffer again """
 
-MAX_PENDING = 65536
+MAX_PENDING = 262144
 """ The size in bytes considered to be the maximum
 allowed in the sending buffer, this maximum value
 avoids the starvation of the producer to consumer
