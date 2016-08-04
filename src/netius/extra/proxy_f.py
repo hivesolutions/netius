@@ -78,6 +78,8 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             host, port = path.split(":")
             port = int(port)
             _connection = self.raw_client.connect(host, port)
+            _connection.max_pending = self.max_pending
+            _connection.min_pending = self.min_pending
             connection.tunnel_c = _connection
             self.conn_map[_connection] = connection
         else:
@@ -98,6 +100,8 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             self.debug("Setting connection as waiting, proxy connection loading ...")
 
             _connection.waiting = True
+            _connection.max_pending = self.max_pending
+            _connection.min_pending = self.min_pending
             connection.proxy_c = _connection
             self.conn_map[_connection] = connection
 

@@ -516,7 +516,7 @@ class BaseConnection(observer.Observable):
         return self.pending_s > self.max_pending
 
     def is_restored(self):
-        return self.pending_s < self.min_pending
+        return self.pending_s <= self.min_pending
 
     def _send(self):
         # sets the write ready flag so that any further request to

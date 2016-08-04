@@ -287,6 +287,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # maps it as the proxy connection in the connection and also creates
         # the reverse mapping using the connection map of the current server
         _connection.waiting = True
+        _connection.max_pending = self.max_pending
+        _connection.min_pending = self.min_pending
         connection.proxy_c = _connection
         connection.prefix = prefix
         connection.state = state
