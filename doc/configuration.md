@@ -43,7 +43,7 @@ context values (certificate, key, etc) for such domain
 
 #### Proxy
 
-* `DYNAMIC` (`bool`) - In case the value is active dynamic connection encoding is applied, meaning that extra
+* `DYNAMIC` (`bool`) - In case this value is active dynamic connection encoding is applied, meaning that extra
 heuristics will be applied on a response basis to determine the proper encoding of the response (eg: plain, chunked, gzip, etc.)
 * `THROTTLE` (`bool`) - If throttling of the connection stream should be applied on both ways to avoid starvation
 of the producer consumer relation
