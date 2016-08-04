@@ -114,7 +114,7 @@ class Server(Base):
         ssl_verify = False,
         ssl_host = None,
         setuid = None,
-        backlog = 5,
+        backlog = socket.SOMAXCONN,
         load = True,
         start = True,
         env = False
