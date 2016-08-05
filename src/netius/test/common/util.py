@@ -112,3 +112,9 @@ class UtilTest(unittest.TestCase):
 
         result = netius.common.size_round_unit(2049, places = 4, reduce = False)
         self.assertEqual(result, "2.001KB")
+
+        result = netius.common.size_round_unit(2048, places = 0, reduce = False)
+        self.assertEqual(result, "2KB")
+
+        result = netius.common.size_round_unit(2049, places = 0, reduce = False)
+        self.assertEqual(result, "2KB")

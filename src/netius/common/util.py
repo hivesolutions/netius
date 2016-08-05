@@ -295,8 +295,8 @@ def size_round_unit(
 
         # in case the dot value is not present in the size value
         # string adds it to the end otherwise an issue may occur
-        # while removing extra padding characters
-        if not "." in size_value_s: size_value_s += "."
+        # while removing extra padding characters for reduce
+        if reduce and not "." in size_value_s: size_value_s += "."
 
         # strips the value from zero appended to the right and
         # then strips the value also from a possible decimal
