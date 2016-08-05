@@ -469,7 +469,7 @@ class HTTP2Connection(http.HTTPConnection):
                 delay = delay,
                 callback = callback
             )
-        self.increment_remote(stream, data_l * -1)
+        self.increment_remote(stream, data_l * -1, all = True)
         return self.send_frame(
             type = netius.common.DATA,
             flags = flags,
@@ -687,7 +687,7 @@ class HTTP2Connection(http.HTTPConnection):
         if not stream : return False
         return True if stream and stream.is_open() else False
 
-    def increment_remote(self, stream, increment):
+    def increment_remote(self, stream, increment, all = False):
         """
         Increments the size of the remove window associated with
         the stream passed by argument by the size defined in the
@@ -703,9 +703,12 @@ class HTTP2Connection(http.HTTPConnection):
         :type increment: int
         :param increment: The increment in bytes for the window,
         this value may be negative for decrement operations.
+        :type all: bool
+        :param all: If all the resources (connection and stream)
+        should be updated by the increment operation.
         """
 
-        if not stream: self.window += increment
+        if not stream or all: self.window += increment
         if not stream: return
         stream = self.parser._get_stream(stream)
         if not stream: return
@@ -776,7 +779,10 @@ class HTTP2Connection(http.HTTPConnection):
         self.owner.on_frame_http2(self, self.parser)
 
     def on_data_h2(self, stream, contents):
-        self.increment_local(stream and stream.identifier, increment = len(contents) * -1)
+        self.increment_local(
+            stream and stream.identifier,
+            increment = len(contents) * -1
+        )
         self.owner.on_data_http2(self, self.parser, stream, contents)
 
     def on_headers_h2(self, stream):
@@ -1002,14 +1008,13 @@ class HTTP2Server(http.HTTPServer):
 
     def _log_window(self, parser, stream, remote = False):
         name = "SEND" if remote else "RECV"
+        connection = parser.connection
+        window = connection.window if remote else connection.window_l
+        self.debug("Connection %s window size is %d bytes" % (name, window))
         stream = parser._get_stream(stream, strict = False)
-        if stream:
-            window = stream.window if remote else stream.window_l
-            self.debug("Stream %d %s window size is %d bytes" % (stream.identifier, name, window))
-        else:
-            connection = parser.connection
-            window = connection.window if remote else connection.window_l
-            self.debug("Connection %s window size is %d bytes" % (name, window))
+        if not stream: return
+        window = stream.window if remote else stream.window_l
+        self.debug("Stream %d %s window size is %d bytes" % (stream.identifier, name, window))
 
     def _log_frame_details(self, parser, type_s, flags, payload, stream, out):
         type_l = type_s.lower()
@@ -1025,10 +1030,11 @@ class HTTP2Server(http.HTTPServer):
         else: self.debug("Frame %s with no flags active" % type_s)
 
     def _log_frame_data(self, parser, flags, payload, stream, out):
-        stream = parser._get_stream(stream, strict = False)
+        _stream = parser._get_stream(stream, strict = False)
         flags_l = self._flags_l(flags, (("END_STREAM", 0x01),))
         self._log_frame_flags("DATA", *flags_l)
-        if stream: self.debug("Frame DATA for path '%s'" % stream.path_s)
+        if _stream: self.debug("Frame DATA for path '%s'" % _stream.path_s)
+        self._log_window(parser, stream, remote = out)
 
     def _log_frame_headers(self, parser, flags, payload, stream, out):
         flags_l = self._flags_l(
