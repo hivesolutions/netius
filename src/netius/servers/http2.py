@@ -651,7 +651,7 @@ class HTTP2Connection(http.HTTPConnection):
 
             # decrements the current stream window by the size of the payload
             # and then runs the send frame operation for the pending frame
-            self.increment_remote(stream, payload_l * -1)
+            self.increment_remote(stream, payload_l * -1, all = True)
             self.send_frame(*args, **kwargs)
 
     def set_settings(self, settings):
