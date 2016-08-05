@@ -927,6 +927,11 @@ class HTTP2Stream(netius.Stream):
         # if that's the case returns immediately, avoiding duplicate
         if self.status == netius.CLOSED: return
 
+        # in case the reset flag is set send the final reset stream
+        # frame, gracefully notifying the peer about the closing of
+        # the stream (avoid possible protocol issues)
+        if reset: self.send_reset()
+
         # calls the parent close method so that the upper layer
         # instructions are correctly processed/handled
         netius.Stream.close(self)
@@ -936,7 +941,6 @@ class HTTP2Stream(netius.Stream):
         # immediately otherwise removes it from the parent
         if not self.owner._has_stream(self.identifier): return
         self.owner._del_stream(self.identifier)
-        if reset: self.send_reset()
 
         # runs the reset operation in the stream clearing all of its
         # internal structure may avoid some memory leaks
