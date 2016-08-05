@@ -337,6 +337,7 @@ class HTTPConnection(netius.Connection):
         headers = dict(headers)
         self._apply_base(headers)
         self._apply_dynamic(headers)
+        self._apply_connection(headers)
         if safe: self._headers_normalize(headers)
 
         buffer = []
@@ -393,6 +394,24 @@ class HTTPConnection(netius.Connection):
             wbits = zlib.MAX_WBITS if is_deflate else zlib.MAX_WBITS | 16
             self.gzip_c = zlib.decompressobj(wbits)
         return self.gzip_c.decompress(data)
+
+    def is_plain(self):
+        return self.current == PLAIN_ENCODING
+
+    def is_chunked(self):
+        return self.current > PLAIN_ENCODING
+
+    def is_gzip(self):
+        return self.current == GZIP_ENCODING
+
+    def is_deflate(self):
+        return self.current == DEFLATE_ENCODING
+
+    def is_compressed(self):
+        return self.current > CHUNKED_ENCODING
+
+    def is_uncompressed(self):
+        return not self.is_compressed()
 
     def on_data(self):
         message = self.parser.get_message()
@@ -480,6 +499,22 @@ class HTTPConnection(netius.Connection):
             headers["host"] = host_s
         if not "accept-encoding" in headers and self.encodings:
             headers["accept-encoding"] = self.encodings
+
+    def _apply_connection(self, headers):
+        is_chunked = self.is_chunked()
+        is_gzip = self.is_gzip()
+        is_deflate = self.is_deflate()
+
+        if "transfer-encoding" in headers: del headers["transfer-encoding"]
+        if "content-encoding" in headers: del headers["content-encoding"]
+
+        if is_chunked:
+            headers["transfer-encoding"] = "chunked"
+            if "content-length" in headers: del headers["content-length"]
+
+        if is_gzip: headers["content-encoding"] = "gzip"
+
+        if is_deflate: headers["content-encoding"] = "deflate"
 
     def _headers_normalize(self, headers):
         for key, value in headers.items():

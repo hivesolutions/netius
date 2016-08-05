@@ -326,7 +326,8 @@ class ProxyServer(http2.HTTP2Server):
         unreliable_length &= not self.dynamic
 
         # in case the content length is unreliable some of the headers defined
-        # must be removed so that no extra connection error occurs
+        # must be removed so that no extra connection error occurs, as the size
+        # of the content from one end point to the other may change
         if unreliable_length:
             if "content-length" in headers: del headers["content-length"]
             if "accept-ranges" in headers: del headers["accept-ranges"]
