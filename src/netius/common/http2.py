@@ -785,11 +785,13 @@ class HTTP2Parser(parser.Parser):
         if closed_s and not exists and stream <= self._max_stream:
             raise netius.ParserError(
                 "Invalid stream '%d'" % stream,
+                stream = self.stream,
                 error_code = STREAM_CLOSED
             )
         if exists_s and not exists:
             raise netius.ParserError(
                 "Invalid stream '%d'" % stream,
+                stream = self.stream,
                 error_code = PROTOCOL_ERROR
             )
         self.stream_o = self.streams.get(stream, default)

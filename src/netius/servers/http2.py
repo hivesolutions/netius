@@ -363,8 +363,8 @@ class HTTP2Connection(http.HTTPConnection):
             old_callback = callback
 
             def callback(connection):
+                self.close_stream(stream, final = final)
                 old_callback and old_callback(connection)
-                self.close_stream(stream, final = final, reset = False)
 
         # runs the send headers operations that should send the headers list
         # to the other peer and returns the number of bytes sent
@@ -406,8 +406,8 @@ class HTTP2Connection(http.HTTPConnection):
             old_callback = callback
 
             def callback(connection):
+                self.close_stream(stream, final = final)
                 old_callback and old_callback(connection)
-                self.close_stream(stream, final = final, reset = False)
 
         # verifies if the current connection/stream is flushed meaning that it requires
         # a final chunk of data to be sent to the peer, if that's not the case there's
@@ -569,8 +569,8 @@ class HTTP2Connection(http.HTTPConnection):
             old_callback = callback
 
             def callback(connection):
-                old_callback and old_callback(connection)
                 self.close()
+                old_callback and old_callback(connection)
 
         message = netius.legacy.bytes(message)
         payload = struct.pack("!II", last_stream, error_code)
@@ -632,7 +632,7 @@ class HTTP2Connection(http.HTTPConnection):
             # verifies if the current stream to be flushed is still
             # open and if that's not the case removes the frame from
             # the frames queue and skips the current iteration
-            if not _stream or not _stream.open():
+            if not _stream or not _stream.is_open():
                 self.frames.pop(0)
                 _stream.frames.pop(0)
                 continue
@@ -879,22 +879,8 @@ class HTTP2Server(http.HTTPServer):
             return http.HTTPServer.on_exception(self, exception, connection)
         if not isinstance(exception, netius.NetiusError):
             return http.HTTPServer.on_exception(self, exception, connection)
-        stream = exception.get_kwarg("stream")
-        error_code = exception.get_kwarg("error_code", 0x00)
-        message = exception.get_kwarg("message", "")
-        ignore = exception.get_kwarg("ignore", False)
-        self.warning(exception)
-        self.log_stack()
-        if ignore: return connection.send_ping(ack = True)
-        if stream: return connection.error_stream(
-            stream,
-            error_code = error_code,
-            message = message
-        )
-        return connection.error_connection(
-            error_code = error_code,
-            message = message
-        )
+        try: self._handle_exception(exception, connection)
+        except: connection.close()
 
     def on_ssl(self, connection):
         http.HTTPServer.on_ssl(self, connection)
@@ -963,6 +949,24 @@ class HTTP2Server(http.HTTPServer):
         try: import hpack #@UnusedImport
         except: return False
         return True
+
+    def _handle_exception(self, exception, connection):
+        stream = exception.get_kwarg("stream")
+        error_code = exception.get_kwarg("error_code", 0x00)
+        message = exception.get_kwarg("message", "")
+        ignore = exception.get_kwarg("ignore", False)
+        self.warning(exception)
+        self.log_stack()
+        if ignore: return connection.send_ping(ack = True)
+        if stream: return connection.error_stream(
+            stream,
+            error_code = error_code,
+            message = message
+        )
+        return connection.error_connection(
+            error_code = error_code,
+            message = message
+        )
 
     def _log_frame(self, connection, parser):
         self.debug(
