@@ -1012,6 +1012,20 @@ class HTTP2Server(http.HTTPServer):
         increment, = struct.unpack("!I", payload)
         self.debug("Frame WINDOW_UPDATE with increment %d" % increment)
 
+    def _log_windows(self, parser, stream, out = False):
+        pass
+        #@todo must implement proper display of windows !!!
+        #if not stream: self.window += increment
+        #if not stream: return
+        #stream = self.parser._get_stream(stream)
+        #if not stream: return
+        #stream.remote_update(increment)
+
+        #self.debug("Frame WINDOW_UPDATE with increment %d" % increment)
+        
+        #stream = parser._get_stream(stream, strict = False)
+        #if not stream: return
+
     def _flags_l(self, flags, definition):
         flags_l = []
         for name, value in definition:
