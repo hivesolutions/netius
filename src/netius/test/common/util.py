@@ -87,3 +87,22 @@ class UtilTest(unittest.TestCase):
     def test_integer_to_bytes(self):
         result = netius.common.integer_to_bytes(87521618088882533792115812)
         self.assertEqual(result, b"Hello World")
+
+    def test_size_round_unit(self):
+        result = netius.common.size_round_unit(209715200, space = True)
+        self.assertEqual(result, "200 MB")
+
+        result = netius.common.size_round_unit(20480, space = True)
+        self.assertEqual(result, "20 KB")
+
+        result = netius.common.size_round_unit(2048, reduce = False, space = True)
+        self.assertEqual(result, "2.00 KB")
+
+        result = netius.common.size_round_unit(2500, space = True)
+        self.assertEqual(result, "2.44 KB")
+
+        result = netius.common.size_round_unit(2500, reduce = False, space = True)
+        self.assertEqual(result, "2.44 KB")
+
+        result = netius.common.size_round_unit(1)
+        self.assertEqual(result, "1B")
