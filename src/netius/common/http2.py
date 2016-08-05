@@ -904,6 +904,7 @@ class HTTP2Stream(netius.Stream):
         self.chunked = False
         self.keep_alive = True
         self.content_l = -1
+        self.frames = []
         self._data_b = None
         self._data_l = -1
 
