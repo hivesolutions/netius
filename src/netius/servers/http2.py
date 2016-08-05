@@ -667,7 +667,6 @@ class HTTP2Connection(http.HTTPConnection):
     def available_stream(self, stream, length, strict = True):
         if self.window == 0: return False
         if self.window < length: return False
-        _stream = stream
         stream = self.parser._get_stream(stream)
         if not stream: return True
         if stream.window == 0: return False
