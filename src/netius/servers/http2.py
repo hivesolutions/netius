@@ -364,7 +364,7 @@ class HTTP2Connection(http.HTTPConnection):
 
             def callback(connection):
                 old_callback and old_callback(connection)
-                self.close_stream(stream, final = final)
+                self.close_stream(stream, final = final, reset = False)
 
         # runs the send headers operations that should send the headers list
         # to the other peer and returns the number of bytes sent
@@ -407,7 +407,7 @@ class HTTP2Connection(http.HTTPConnection):
 
             def callback(connection):
                 old_callback and old_callback(connection)
-                self.close_stream(stream, final = final)
+                self.close_stream(stream, final = final, reset = False)
 
         # verifies if the current connection/stream is flushed meaning that it requires
         # a final chunk of data to be sent to the peer, if that's not the case there's
