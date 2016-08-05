@@ -929,10 +929,16 @@ class HTTP2Stream(netius.Stream):
         # if that's the case returns immediately, avoiding duplicate
         if self.status == netius.CLOSED: return
 
-        # in case the reset flag is set send the final reset stream
-        # frame, gracefully notifying the peer about the closing of
-        # the stream (avoid possible protocol issues)
-        if reset: self.send_reset()
+        # in case the reset flag is set sends the final, tries to determine
+        # the way of reseting the stream, in case the flush flag is set
+        # (meaning that a less strict closing is requested) and the current
+        # stream is considered ready for request handling the stream reset
+        # operation consists of a final chunk sending, otherwise (in case no
+        # graceful approach is requested) the reset operation is performed
+        if reset:
+            graceful = flush and self.is_ready
+            if graceful: self.send_part(b"")
+            else: self.send_reset()
 
         # calls the parent close method so that the upper layer
         # instructions are correctly processed/handled
