@@ -216,9 +216,6 @@ class HTTP2Connection(http.HTTPConnection):
         count = 0
         fragments = self.fragment_stream(stream, data)
         fragments = list(fragments)
-        for fragment in fragments:
-            print(len(fragment))
-            print("-------------")
         fragments_l = len(fragments)
 
         for index in netius.legacy.xrange(fragments_l):
