@@ -62,8 +62,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.window_t = self.window_o // 2
         self.preface = False
         self.preface_b = b""
-        self.delayed = dict()
-        self.delayed_l = []
+        self.frames = []
 
     def open(self, *args, **kwargs):
         http.HTTPConnection.open(self, *args, **kwargs)
@@ -607,53 +606,48 @@ class HTTP2Connection(http.HTTPConnection):
 
     def delay_frame(self, *args, **kwargs):
         stream = kwargs["stream"]
-        if not stream in self.delayed:
-            self.delayed[stream] = True
-            self.delayed_l.append(stream)
         stream = self.parser._get_stream(stream)
-        stream.frames.append((args, kwargs))
+        frame = (args, kwargs)
+        self.frames.append(frame)
+        stream.frames.append(frame)
         return 0
 
     def flush_frames(self):
-        while self.delayed_l:
-            stream = self.delayed_l[0]
-            result = self.flush_stream(stream)
-            if not result: return False
-            self.delayed_l.pop(0)
-            del self.delayed[stream]
-        return True
-
-    def flush_stream(self, stream):
-        # retrieves the reference to the stream object from the
-        # identifier of the stream, going to be used in operations
-        _stream = self.parser._get_stream(stream, strict = False)
-
-        # verifies if the current stream to be flushed is still
-        # open and if that's not the case returns the control flow
-        # immediately with success meaning proper flushing occurred
-        if not _stream or not _stream.is_open(): return True
-
         # iterates over the complete set of frames pending to to be sent
         # (delayed) trying to send each of them until one fails and the
         # flushing operation is delayed until further requesting
-        while _stream.frames:
+        while self.frames:
             # retrieves the reference to the current frame tuple to
             # be sent and retrieves the stream and payload from it
-            frame = _stream.frames[0]
+            frame = self.frames[0]
             args, kwargs = frame
             stream = kwargs["stream"]
             payload = kwargs["payload"]
             payload_l = len(payload)
 
+            # retrieves the reference to the stream object from the
+            # identifier of the stream, this may an invalid/unset value
+            _stream = self.parser._get_stream(stream, strict = False)
+
+            # verifies if the current stream to be flushed is still
+            # open and if that's not the case removes the frame from
+            # the frames queue and skips the current iteration
+            if not _stream or not _stream.is_open():
+                self.frames.pop(0)
+                if _stream: _stream.frames.pop(0)
+                continue
+
             # verifies if there's available "space" in the stream flow
             # to send the current payload and in case there's not breaks
             # the current loop as there's nothing else to be done, delays
-            # pending frames for a new flush operation
+            # pending frames for a new flush operation, note that the return
+            # value is invalid (meaning that the stream may not be available)
             available = self.available_stream(stream, payload_l, strict = False)
             if not available: return False
 
-            # removes the frame from the frame queues so that it is no
-            # longer going to be used for any flush operation on the stream
+            # removes the frame from both of the frame queues (both global
+            # and stream) so that it is no longer going to be used for flush
+            self.frames.pop(0)
             _stream.frames.pop(0)
 
             # decrements the current stream window by the size of the payload
@@ -662,7 +656,7 @@ class HTTP2Connection(http.HTTPConnection):
             self.send_frame(*args, **kwargs)
 
         # returns the final result with a valid value meaning that all of the
-        # flush operations have been success full (no frames pending in stream)
+        # flush operations have been successful (no frames pending in connection)
         return True
 
     def set_settings(self, settings):
@@ -813,7 +807,6 @@ class HTTP2Connection(http.HTTPConnection):
 
     def on_window_update(self, stream, increment):
         self.increment_remote(stream and stream.identifier, increment)
-        if stream: self.flush_stream(stream.identifier)
         self.flush_frames()
         self.owner.on_window_update_http2(self, self.parser, stream, increment)
 
