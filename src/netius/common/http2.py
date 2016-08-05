@@ -884,7 +884,7 @@ class HTTP2Stream(netius.Stream):
         store = False,
         file_limit = http.FILE_LIMIT,
         window = HTTP2_WINDOW,
-        frame_size = HTTP2_FRAME_SIZE,
+        frame_size = HTTP2_FRAME_SIZE
     ):
         netius.Stream.reset(self)
         self.store = store
