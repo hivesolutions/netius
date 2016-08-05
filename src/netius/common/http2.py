@@ -1053,7 +1053,6 @@ class HTTP2Stream(netius.Stream):
         return self.encodings
 
     def fragment(self, data):
-        print(self.window_m)
         while data:
             yield data[:self.window_m]
             data = data[self.window_m:]
