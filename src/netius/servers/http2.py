@@ -957,7 +957,8 @@ class HTTP2Server(http.HTTPServer):
             parser.type_s,
             parser.flags,
             parser.payload,
-            parser.stream
+            parser.stream,
+            False
         )
 
     def _log_error(self, error_code, extra):
@@ -975,14 +976,25 @@ class HTTP2Server(http.HTTPServer):
             (type, type_s, stream, length)
         )
 
-        self._log_frame_details(parser, type_s, flags, payload, stream)
+        self._log_frame_details(parser, type_s, flags, payload, stream, True)
 
-    def _log_frame_details(self, parser, type_s, flags, payload, stream):
+    def _log_window(self, parser, stream, remote = False):
+        name = "SEND" if remote else "RECV"
+        stream = parser._get_stream(stream, strict = False)
+        if stream:
+            window = stream.window if remote else stream.window_l
+            self.debug("Stream %d %s window size is %d bytes" % (stream.identifier, name, window))
+        else:
+            connection = parser.connection
+            window = connection.window if remote else connection.window_l
+            self.debug("Connection %s window size is %d bytes" % (name, window))
+
+    def _log_frame_details(self, parser, type_s, flags, payload, stream, out):
         type_l = type_s.lower()
         method_s = "_log_frame_" + type_l
         if not hasattr(self, method_s): return
         method = getattr(self, method_s)
-        method(parser, flags, payload, stream)
+        method(parser, flags, payload, stream, out)
 
     def _log_frame_flags(self, type_s, *args):
         flags = ", ".join(args)
@@ -990,13 +1002,13 @@ class HTTP2Server(http.HTTPServer):
         if flags: self.debug("%s with %s %s active" % (type_s, pluralized, flags))
         else: self.debug("Frame %s with no flags active" % type_s)
 
-    def _log_frame_data(self, parser, flags, payload, stream):
+    def _log_frame_data(self, parser, flags, payload, stream, out):
         stream = parser._get_stream(stream, strict = False)
         flags_l = self._flags_l(flags, (("END_STREAM", 0x01),))
         self._log_frame_flags("DATA", *flags_l)
         if stream: self.debug("Frame DATA for path '%s'" % stream.path_s)
 
-    def _log_frame_headers(self, parser, flags, payload, stream):
+    def _log_frame_headers(self, parser, flags, payload, stream, out):
         flags_l = self._flags_l(
             flags,
             (
@@ -1008,23 +1020,10 @@ class HTTP2Server(http.HTTPServer):
         )
         self._log_frame_flags("HEADERS", *flags_l)
 
-    def _log_frame_window_update(self, parser, flags, payload, stream):
+    def _log_frame_window_update(self, parser, flags, payload, stream, out):
         increment, = struct.unpack("!I", payload)
         self.debug("Frame WINDOW_UPDATE with increment %d" % increment)
-
-    def _log_windows(self, parser, stream, out = False):
-        pass
-        #@todo must implement proper display of windows !!!
-        #if not stream: self.window += increment
-        #if not stream: return
-        #stream = self.parser._get_stream(stream)
-        #if not stream: return
-        #stream.remote_update(increment)
-
-        #self.debug("Frame WINDOW_UPDATE with increment %d" % increment)
-        
-        #stream = parser._get_stream(stream, strict = False)
-        #if not stream: return
+        self._log_window(parser, stream, remote = not out)
 
     def _flags_l(self, flags, definition):
         flags_l = []
