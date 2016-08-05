@@ -450,6 +450,9 @@ class HTTPConnection(netius.Connection):
     def is_compressed(self):
         return self.current > CHUNKED_ENCODING
 
+    def is_uncompressed(self):
+        return not self.is_compressed()
+
     def is_flushed(self):
         return self.current > PLAIN_ENCODING
 

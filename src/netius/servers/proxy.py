@@ -312,16 +312,30 @@ class ProxyServer(http2.HTTP2Server):
 
         # resolves the client connection into the proper proxy connection
         # to be used to send the headers (and status line) to the client
-        # and then verifies if a chunked encoding upgrade is required, this
-        # is the case if the content length is not defined or in case there's
-        # non base content encoding defined (content length not reliable)
+        # and then retrieves the origin content encoding value that is going
+        # to be used to determine some heuristics in the data
         connection = self.conn_map[_connection]
-        content_encoding = headers.get("content-encoding", "identity")
-        need_chunked = parser.content_l == -1 or not content_encoding == "identity"
-        if need_chunked and connection.current < http.CHUNKED_ENCODING:
+        content_encoding = headers.get("content-encoding", None)
+
+        # if either the proxy connection or the back-end one is compressed
+        # the length values of the connection are considered unreliable and
+        # some extra operation must be defined
+        unreliable_length = _connection.current > http.CHUNKED_ENCODING or\
+            connection.current > http.CHUNKED_ENCODING or parser.content_l == -1
+
+        # in case the content length is unreliable some of the headers defined
+        # must be removed so that no extra connection error occur
+        if unreliable_length:
+            if "content-length" in headers: del headers["content-length"]
+            if "accept-ranges" in headers: del headers["accept-ranges"]
+
+        # in case the length of the data is not reliable and the current connection
+        # is plain encoded a proper set of operation must be properly handled including
+        # the forcing of the chunked encoding or the connection drop at the end of the
+        # message strategies
+        if unreliable_length and connection.current < http.CHUNKED_ENCODING:
             if parser.version < netius.common.HTTP_11:
                 connection.parser.keep_alive = False
-                if "content-length" in headers: del headers["content-length"]
             else:
                 connection.set_encoding(http.CHUNKED_ENCODING)
 
