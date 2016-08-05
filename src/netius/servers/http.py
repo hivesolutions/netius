@@ -119,13 +119,16 @@ class HTTPConnection(netius.Connection):
         return info
 
     def flush(self, stream = None, callback = None):
-        if self.current == DEFLATE_ENCODING:
+        encoding = min(self.current, CHUNKED_ENCODING) if\
+            self.owner.dynamic else self.current
+
+        if encoding == DEFLATE_ENCODING:
             self._flush_gzip(stream = stream, callback = callback)
-        elif self.current == GZIP_ENCODING:
+        elif encoding == GZIP_ENCODING:
             self._flush_gzip(stream = stream, callback = callback)
-        elif self.current == CHUNKED_ENCODING:
+        elif encoding == CHUNKED_ENCODING:
             self._flush_chunked(stream = stream, callback = callback)
-        elif self.current == PLAIN_ENCODING:
+        elif encoding == PLAIN_ENCODING:
             self._flush_plain(stream = stream, callback = callback)
 
         self.current = self.encoding
@@ -139,7 +142,10 @@ class HTTPConnection(netius.Connection):
         callback = None
     ):
         data = netius.legacy.bytes(data) if data else data
-        if self.current == PLAIN_ENCODING:
+        encoding = min(self.current, CHUNKED_ENCODING) if\
+            self.owner.dynamic else self.current
+
+        if encoding == PLAIN_ENCODING:
             return self.send_plain(
                 data,
                 stream = stream,
@@ -147,7 +153,7 @@ class HTTPConnection(netius.Connection):
                 delay = delay,
                 callback = callback
             )
-        elif self.current == CHUNKED_ENCODING:
+        elif encoding == CHUNKED_ENCODING:
             return self.send_chunked(
                 data,
                 stream = stream,
@@ -155,7 +161,7 @@ class HTTPConnection(netius.Connection):
                 delay = delay,
                 callback = callback
             )
-        elif self.current == GZIP_ENCODING:
+        elif encoding == GZIP_ENCODING:
             return self.send_gzip(
                 data,
                 stream = stream,
@@ -163,7 +169,7 @@ class HTTPConnection(netius.Connection):
                 delay = delay,
                 callback = callback
             )
-        elif self.current == DEFLATE_ENCODING:
+        elif encoding == DEFLATE_ENCODING:
             return self.send_gzip(
                 data,
                 stream = stream,
@@ -565,6 +571,7 @@ class HTTPServer(netius.StreamServer):
     def __init__(self, encoding = "plain", *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.encoding_s = encoding
+        self.dynamic = False
 
     def info_dict(self, full = False):
         info = netius.StreamServer.info_dict(self, full = full)

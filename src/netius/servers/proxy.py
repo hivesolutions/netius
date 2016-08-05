@@ -226,7 +226,7 @@ class ProxyServer(http2.HTTP2Server):
         if self.env: self.dynamic = self.get_env("DYNAMIC", self.dynamic, cast = bool)
         if self.env: self.throttle = self.get_env("THROTTLE", self.throttle, cast = bool)
         if self.env: self.trust_origin = self.get_env("TRUST_ORIGIN", self.trust_origin, cast = bool)
-        if self.dynamic: self.info("Using dynamic encoding for connections in the proxy ...")
+        if self.dynamic: self.info("Using dynamic encoding (no content re-encoding) in the proxy ...")
         if self.throttle: self.info("Throttling connections in the proxy ...")
         else: self.info("Not throttling connections in the proxy ...")
         if self.trust_origin: self.info("Origin is considered \"trustable\" by proxy")
@@ -319,12 +319,14 @@ class ProxyServer(http2.HTTP2Server):
 
         # if either the proxy connection or the back-end one is compressed
         # the length values of the connection are considered unreliable and
-        # some extra operation must be defined
+        # some extra operation must be defined, note that in case the dynamic
+        # (no re-encoding) support is enabled the length is always reliable
         unreliable_length = _connection.current > http.CHUNKED_ENCODING or\
             connection.current > http.CHUNKED_ENCODING or parser.content_l == -1
+        unreliable_length &= not self.dynamic
 
         # in case the content length is unreliable some of the headers defined
-        # must be removed so that no extra connection error occur
+        # must be removed so that no extra connection error occurs
         if unreliable_length:
             if "content-length" in headers: del headers["content-length"]
             if "accept-ranges" in headers: del headers["accept-ranges"]
@@ -399,10 +401,10 @@ class ProxyServer(http2.HTTP2Server):
 
     def _on_prx_partial(self, client, parser, data):
         # retrieves the owner of the proxy parser as the proxy connection
-        # then uses the connection to decode the data to obtain the raw
+        # and then uses the connection to decode the data to obtain the raw
         # value of it, this is required as gzip compression may exist
         _connection = parser.owner
-        data = _connection.raw_data(data)
+        data = data if self.dynamic else _connection.raw_data(data)
 
         # retrieves the peer connection and tries to send the new data chunk
         # back to it using the currently defined encoding (as expected), note
