@@ -634,7 +634,7 @@ class HTTP2Connection(http.HTTPConnection):
             # the frames queue and skips the current iteration
             if not _stream or not _stream.is_open():
                 self.frames.pop(0)
-                _stream.frames.pop(0)
+                if _stream: _stream.frames.pop(0)
                 continue
 
             # verifies if there's available "space" in the stream flow
