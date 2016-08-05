@@ -875,7 +875,7 @@ class HTTP2Server(http.HTTPServer):
         )
 
     def on_exception(self, exception, connection):
-        if self.legacy:
+        if connection.legacy:
             return http.HTTPServer.on_exception(self, exception, connection)
         if not isinstance(exception, netius.NetiusError):
             return http.HTTPServer.on_exception(self, exception, connection)
