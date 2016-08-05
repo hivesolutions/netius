@@ -983,9 +983,10 @@ class HTTP2Server(http.HTTPServer):
         )
 
     def _log_error(self, error_code, extra):
+        message = netius.legacy.str(extra)
         self.warning(
             "Received error 0x%02x with message '%s'" %\
-            (error_code, extra)
+            (error_code, message)
         )
 
     def _log_send(self, connection, parser, type, flags, payload, stream):
