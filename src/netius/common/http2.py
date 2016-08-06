@@ -394,7 +394,7 @@ class HTTP2Parser(parser.Parser):
         if end_stream and (not stream.content_l == stream._data_l or\
             stream.content_l == -1):
             raise netius.ParserError(
-                "Missmatch in content length",
+                "Invalid content-length header value (missmatch)",
                 stream = self.stream,
                 error_code = PROTOCOL_ERROR
             )
