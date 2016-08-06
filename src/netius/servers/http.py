@@ -463,7 +463,7 @@ class HTTPConnection(netius.Connection):
         return self.current > PLAIN_ENCODING
 
     def on_data(self):
-        self.owner.on_data_http(self, self.parser)
+        self.owner.on_data_http(self.connection_ctx, self.parser_ctx)
 
     @contextlib.contextmanager
     def ctx_request(self, args = None, kwargs = None):

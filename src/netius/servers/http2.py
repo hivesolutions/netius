@@ -72,6 +72,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.legacy = False
         if self.parser: self.parser.destroy()
         self.parser = netius.common.HTTP2Parser(self, store = True)
+        self.parser.bind("on_data", self.on_data)
         self.parser.bind("on_header", self.on_header)
         self.parser.bind("on_frame", self.on_frame)
         self.parser.bind("on_data_h2", self.on_data_h2)
@@ -81,6 +82,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.parser.bind("on_ping", self.on_ping)
         self.parser.bind("on_goaway", self.on_goaway)
         self.parser.bind("on_window_update", self.on_window_update)
+        self.parser.bind("on_continuation", self.on_continuation)
 
     def parse(self, data):
         if not self.legacy and not self.preface:
@@ -810,6 +812,9 @@ class HTTP2Connection(http.HTTPConnection):
         self.flush_frames()
         self.owner.on_window_update_http2(self, self.parser, stream, increment)
 
+    def on_continuation(self, stream):
+        self.owner.on_continuation_http2(self, self.parser, stream)
+
     def is_throttleable(self):
         if self.legacy: return http.HTTPConnection.is_throttleable(self)
         return False
@@ -917,12 +922,10 @@ class HTTP2Server(http.HTTPServer):
         is_debug and self._log_frame(connection, parser)
 
     def on_data_http2(self, connection, parser, stream, contents):
-        if not stream.is_ready: return
-        self.on_data_http(stream, stream)
+        pass
 
     def on_headers_http2(self, connection, parser, stream):
-        if not stream.is_ready: return
-        self.on_data_http(stream, stream)
+        pass
 
     def on_rst_stream_http2(self, connection, parser, stream, error_code):
         if not stream: return
@@ -946,6 +949,9 @@ class HTTP2Server(http.HTTPServer):
 
     def on_window_update_http2(self, connection, parser, stream, increment):
         self.debug("Window updated with increment %d bytes" % increment)
+
+    def on_continuation_http2(self, connection, parser, stream):
+        pass
 
     def on_send_http2(self, connection, parser, type, flags, payload, stream):
         is_debug = self.is_debug()

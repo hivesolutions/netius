@@ -591,6 +591,7 @@ class HTTP2Parser(parser.Parser):
         stream.end_stream = end_stream
 
         self.trigger("on_partial", contents)
+        if stream.end_stream: self.trigger("on_data")
 
         self.trigger("on_data_h2", stream, contents)
 
@@ -674,8 +675,10 @@ class HTTP2Parser(parser.Parser):
         # be latter retrieved for proper event propagation
         self._set_stream(stream)
 
-        if end_headers: stream._calculate()
-        if end_headers: self.trigger("on_headers")
+        if stream.end_headers: stream._calculate()
+        if stream.end_headers: self.trigger("on_headers")
+        if stream.end_headers and stream.end_stream:
+            self.trigger("on_data")
 
         self.trigger("on_headers_h2", stream)
 
@@ -762,10 +765,12 @@ class HTTP2Parser(parser.Parser):
 
         stream.decode_headers()
 
-        if end_headers: stream._calculate()
-        if end_headers: self.trigger("on_headers")
+        if stream.end_headers: stream._calculate()
+        if stream.end_headers: self.trigger("on_headers")
+        if stream.end_headers and stream.end_stream:
+            self.trigger("on_data")
 
-        self.trigger("on_headers_h2", stream)
+        self.trigger("on_continuation", stream)
 
     def _has_stream(self, stream):
         return stream in self.streams
