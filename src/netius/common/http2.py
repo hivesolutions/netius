@@ -378,7 +378,7 @@ class HTTP2Parser(parser.Parser):
                 error_code = PROTOCOL_ERROR
             )
 
-    def assert_data(self, stream):
+    def assert_data(self, stream, end_stream):
         if not stream.end_headers:
             raise netius.ParserError(
                 "Not ready to receive DATA open",
@@ -390,6 +390,13 @@ class HTTP2Parser(parser.Parser):
                 "Not ready to receive DATA half closed (remote)",
                 stream = self.stream,
                 error_code = STREAM_CLOSED
+            )
+        if end_stream and (not stream.content_l == stream._data_l or\
+            stream.content_l == -1):
+            raise netius.ParserError(
+                "Missmatch in content length",
+                stream = self.stream,
+                error_code = PROTOCOL_ERROR
             )
 
     def assert_headers(self, stream, end_stream):
@@ -585,15 +592,15 @@ class HTTP2Parser(parser.Parser):
         contents = data[index:data_l - padded_l]
 
         stream = self._get_stream(self.stream)
-        self.assert_data(stream)
-
         stream.extend_data(contents)
+        self.assert_data(stream, end_stream)
+
         stream.end_stream = end_stream
+
+        self.trigger("on_data_h2", stream, contents)
 
         self.trigger("on_partial", contents)
         if stream.end_stream: self.trigger("on_data")
-
-        self.trigger("on_data_h2", stream, contents)
 
     def _parse_headers(self, data):
         data_l = len(data)
@@ -675,12 +682,12 @@ class HTTP2Parser(parser.Parser):
         # be latter retrieved for proper event propagation
         self._set_stream(stream)
 
+        self.trigger("on_headers_h2", stream)
+
         if stream.end_headers: stream._calculate()
         if stream.end_headers: self.trigger("on_headers")
         if stream.end_headers and stream.end_stream:
             self.trigger("on_data")
-
-        self.trigger("on_headers_h2", stream)
 
     def _parse_priority(self, data):
         dependency, weight = struct.unpack("!IB", data)
@@ -765,12 +772,12 @@ class HTTP2Parser(parser.Parser):
 
         stream.decode_headers()
 
+        self.trigger("on_continuation", stream)
+
         if stream.end_headers: stream._calculate()
         if stream.end_headers: self.trigger("on_headers")
         if stream.end_headers and stream.end_stream:
             self.trigger("on_data")
-
-        self.trigger("on_continuation", stream)
 
     def _has_stream(self, stream):
         return stream in self.streams
@@ -789,7 +796,7 @@ class HTTP2Parser(parser.Parser):
         exists = stream in self.streams
         if closed_s and not exists and stream <= self._max_stream:
             raise netius.ParserError(
-                "Invalid stream '%d'" % stream,
+                "Invalid or closed stream '%d'" % stream,
                 stream = self.stream,
                 error_code = STREAM_CLOSED
             )
@@ -910,7 +917,7 @@ class HTTP2Stream(netius.Stream):
         self.encodings = None
         self.chunked = False
         self.keep_alive = True
-        self.content_l = -1
+        self.content_r = 0
         self.frames = []
         self._data_b = None
         self._data_l = -1
