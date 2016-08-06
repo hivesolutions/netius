@@ -601,7 +601,7 @@ class HTTP2Parser(parser.Parser):
         self.trigger("on_data_h2", stream, contents)
 
         self.trigger("on_partial", contents)
-        if stream.end_stream: self.trigger("on_data")
+        if stream.is_ready: self.trigger("on_data")
 
     def _parse_headers(self, data):
         data_l = len(data)
@@ -687,8 +687,7 @@ class HTTP2Parser(parser.Parser):
 
         if stream.end_headers: stream._calculate()
         if stream.end_headers: self.trigger("on_headers")
-        if stream.end_headers and stream.end_stream:
-            self.trigger("on_data")
+        if stream.is_ready: self.trigger("on_data")
 
     def _parse_priority(self, data):
         dependency, weight = struct.unpack("!IB", data)
@@ -755,10 +754,13 @@ class HTTP2Parser(parser.Parser):
 
     def _parse_window_update(self, data):
         increment, = struct.unpack("!I", data)
-        if self.stream and not self._has_stream(self.stream) and\
-            self.stream <= self._max_stream: return
-        stream = self._get_stream(self.stream)
+        stream = self._get_stream(
+            self.stream,
+            strict = False,
+            exists_s = True
+        )
         self.assert_window_update(stream, increment)
+        if self.stream and not stream: return
         self.trigger("on_window_update", stream, increment)
 
     def _parse_continuation(self, data):
@@ -1213,6 +1215,7 @@ class HTTP2Stream(netius.Stream):
         :return: The final value on the is ready (for processing).
         """
 
+        if not self.is_open(): return False
         if calculate: self._calculate()
         if not self.end_headers: return False
         if not self.end_stream: return False
