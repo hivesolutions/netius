@@ -74,6 +74,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.parser = netius.common.HTTP2Parser(self, store = True)
         self.parser.bind("on_data", self.on_data)
         self.parser.bind("on_header", self.on_header)
+        self.parser.bind("on_payload", self.on_payload)
         self.parser.bind("on_frame", self.on_frame)
         self.parser.bind("on_data_h2", self.on_data_h2)
         self.parser.bind("on_headers_h2", self.on_headers_h2)
@@ -782,6 +783,9 @@ class HTTP2Connection(http.HTTPConnection):
     def on_header(self, header):
         self.owner.on_header_http2(self, self.parser, header)
 
+    def on_payload(self):
+        self.owner.on_payload_http2(self, self.parser)
+
     def on_frame(self):
         self.owner.on_frame_http2(self, self.parser)
 
@@ -917,9 +921,12 @@ class HTTP2Server(http.HTTPServer):
     def on_header_http2(self, connection, parser, header):
         pass
 
-    def on_frame_http2(self, connection, parser):
+    def on_payload_http2(self, connection, parser):
         is_debug = self.is_debug()
         is_debug and self._log_frame(connection, parser)
+
+    def on_frame_http2(self, connection, parser):
+        pass
 
     def on_data_http2(self, connection, parser, stream, contents):
         pass

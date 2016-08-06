@@ -566,10 +566,11 @@ class HTTP2Parser(parser.Parser):
         valid_type = self.type < len(self.parsers)
         if not valid_type: self._invalid_type()
 
+        self.payload = data
+        self.trigger("on_payload")
+
         parse_method = self.parsers[self.type]
         parse_method(data)
-
-        self.payload = data
 
         self.state = FINISH_STATE
         self.trigger("on_frame")
