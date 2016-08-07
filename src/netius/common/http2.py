@@ -259,7 +259,10 @@ class HTTP2Parser(parser.Parser):
         type = self.type
         stream = self.stream
         end_headers = self.end_headers
-        self.reset()
+        self.reset(
+            store = self.store,
+            file_limit = self.file_limit
+        )
         if not save: return
         self.last_type = type
         self.last_stream = stream
