@@ -623,7 +623,7 @@ class HTTP2Connection(http.HTTPConnection):
         # pop operation and the dictionary to be used in the storage of
         # the bitset of streams marked as started in the iteration
         offset = 0
-        starved = dict()
+        starved = dict() if all else None
 
         # iterates over the complete set of frames pending to to be sent
         # (delayed) trying to send each of them until one fails and the
@@ -640,7 +640,7 @@ class HTTP2Connection(http.HTTPConnection):
             # verifies if the stream associated with the frame to be
             # sent is in the started map and if that's the case continue
             # the current loop immediately (cannot flush frame)
-            if stream in starved:
+            if starved and stream in starved:
                 offset += 1
                 continue
 
