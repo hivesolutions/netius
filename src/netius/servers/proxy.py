@@ -312,10 +312,11 @@ class ProxyServer(http2.HTTP2Server):
 
         # resolves the client connection into the proper proxy connection
         # to be used to send the headers (and status line) to the client
-        # and then retrieves the origin content encoding value that is going
-        # to be used to determine some heuristics in the data
+        # and then retrieves the origin content and transfer encoding values
+        # that are going to be used to determine some heuristics for the data
         connection = self.conn_map[_connection]
         content_encoding = headers.get("content-encoding", None)
+        transfer_encoding = headers.get("transfer-encoding", None)
 
         # if either the proxy connection or the back-end one is compressed
         # the length values of the connection are considered unreliable and
@@ -345,7 +346,9 @@ class ProxyServer(http2.HTTP2Server):
         # tries to use the content encoding value to determine the minimum encoding
         # that allows the content encoding to be kept (compatibility support), this
         # heuristic is only applied in case the dynamic option is enabled
-        target_encoding = http.ENCODING_MAP.get(content_encoding, connection.current)
+        content_encoding_c = http.ENCODING_MAP.get(content_encoding, connection.current)
+        content_encoding_t = http.ENCODING_MAP.get(transfer_encoding, connection.current)
+        target_encoding = max(content_encoding_c, content_encoding_t)
         if self.dynamic and target_encoding > connection.current:
             connection.set_encoding(target_encoding)
 
