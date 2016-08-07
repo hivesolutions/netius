@@ -614,23 +614,35 @@ class HTTP2Connection(http.HTTPConnection):
     def delay_frame(self, *args, **kwargs):
         stream = kwargs["stream"]
         stream = self.parser._get_stream(stream)
-        frame = (args, kwargs)
-        self.frames.append(frame)
-        stream.frames.append(frame)
+        self.frames.append((args, kwargs))
+        stream.frames += 1
         return 0
 
-    def flush_frames(self):
+    def flush_frames(self, all = True):
+        # starts the values for both the offset value to be used in the
+        # pop operation and the dictionary to be used in the storage of
+        # the bitset of streams marked as started in the iteration
+        offset = 0
+        starved = dict()
+
         # iterates over the complete set of frames pending to to be sent
         # (delayed) trying to send each of them until one fails and the
         # flushing operation is delayed until further requesting
-        while self.frames:
+        while offset < len(self.frames):
             # retrieves the reference to the current frame tuple to
             # be sent and retrieves the stream and payload from it
-            frame = self.frames[0]
+            frame = self.frames[offset]
             args, kwargs = frame
             stream = kwargs["stream"]
             payload = kwargs["payload"]
             payload_l = len(payload)
+
+            # verifies if the stream associated with the frame to be
+            # sent is in the started map and if that's the case continue
+            # the current loop immediately (cannot flush frame)
+            if stream in starved:
+                offset += 1
+                continue
 
             # retrieves the reference to the stream object from the
             # identifier of the stream, this may an invalid/unset value
@@ -640,22 +652,30 @@ class HTTP2Connection(http.HTTPConnection):
             # open and if that's not the case removes the frame from
             # the frames queue and skips the current iteration
             if not _stream or not _stream.is_open():
-                self.frames.pop(0)
-                if _stream: _stream.frames.pop(0)
+                self.frames.pop(offset)
+                if _stream: _stream.frames -= 1
                 continue
 
             # verifies if there's available "space" in the stream flow
             # to send the current payload and in case there's not breaks
             # the current loop as there's nothing else to be done, delays
-            # pending frames for a new flush operation, note that the return
-            # value is invalid (meaning that the stream may not be available)
+            # pending frames for a new flush operation, note that the
+            # return value is invalid (meaning that the stream may not
+            # be available), a special failover operation exists if the
+            # all flush operation is enabled in which the stream is marked
+            # as starved and the current iteration is skipped trying to
+            # flush frames from different streams
             available = self.available_stream(stream, payload_l, strict = False)
-            if not available: return False
+            if not available and not all: return False
+            if not available and all:
+                starved[stream] = True
+                offset += 1
+                continue
 
             # removes the frame from both of the frame queues (both global
             # and stream) so that it is no longer going to be used for flush
-            self.frames.pop(0)
-            _stream.frames.pop(0)
+            self.frames.pop(offset)
+            _stream.frames -= 1
 
             # decrements the current stream window by the size of the payload
             # and then runs the send frame operation for the pending frame
@@ -664,7 +684,7 @@ class HTTP2Connection(http.HTTPConnection):
 
         # returns the final result with a valid value meaning that all of the
         # flush operations have been successful (no frames pending in connection)
-        return True
+        return True if offset == 0 else False
 
     def set_settings(self, settings):
         self.settings.update(settings)

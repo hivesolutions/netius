@@ -924,7 +924,7 @@ class HTTP2Stream(netius.Stream):
         self.chunked = False
         self.keep_alive = True
         self.content_l = -1
-        self.frames = []
+        self.frames = 0
         self._data_b = None
         self._data_l = -1
 
@@ -1084,14 +1084,18 @@ class HTTP2Stream(netius.Stream):
         return self.encodings
 
     def fragment(self, data):
+        if self.window < self.window_m:
+            yield data[:self.window]
+            data = data[self.window:]
         while data:
             yield data[:self.window_m]
             data = data[self.window_m:]
 
     def fragmentable(self, data):
         if not data: return False
-        if len(data) <= self.window_m: return False
         if self.window_m == 0: return False
+        if len(data) <= self.window_m and\
+            len(data) <= self.window: return False
         return True
 
     def flush(self, *args, **kwargs):
