@@ -619,6 +619,26 @@ class HTTP2Connection(http.HTTPConnection):
         return 0
 
     def flush_frames(self, all = True):
+        """
+        Runs the flush operation on the delayed/pending frames, meaning
+        that the window/availability tests are going to be run, checking
+        if the various streams and connection are ready for sending the
+        frames.
+
+        In case the all flag is active the complete set of frames are going
+        to be tested for sending, this operation implies more resource usage.
+
+        This method should be called after a window update frame is
+        received so that the pending frames may be sent.
+
+        :type all: bool
+        :param all: If the complete set of frames should be tested, or
+        if instead at the first testing fail the control flow should be
+        returned immediately.
+        :rtype: bool
+        :return: If all the pending frames have been successfully flushed.
+        """
+
         # starts the values for both the offset value to be used in the
         # pop operation and the dictionary to be used in the storage of
         # the bitset of streams marked as started in the iteration
