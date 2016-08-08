@@ -983,12 +983,12 @@ class HTTP2Stream(netius.Stream):
         self.current = encoding
 
     def is_exhausted(self):
-        if self.connection.is_exhausted(): return True
+        #if self.connection.is_exhausted(): return True
         if not self.connection.available_stream(self.identifier, 1): return True
         return False
 
     def is_restored(self):
-        if not self.connection.is_restored(): return False
+        #if not self.connection.is_restored(): return False
         if not self.connection.available_stream(self.identifier, 1): return False
         return True
 
