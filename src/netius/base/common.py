@@ -1222,7 +1222,7 @@ class AbstractBase(observer.Observable):
             (connection.id, connection.owner.name)
         )
         self.debug(
-            "There are '%d' connections for '%s' ..." %
+            "There are %d connections for '%s' ..." %
             (len(connection.owner.connections), connection.owner.name)
         )
 
@@ -1232,7 +1232,7 @@ class AbstractBase(observer.Observable):
             (connection.id, connection.owner.name)
         )
         self.debug(
-            "There are '%d' connections for '%s' ..." %
+            "There are %d connections for '%s' ..." %
             (len(connection.owner.connections), connection.owner.name)
         )
 
