@@ -472,8 +472,10 @@ class HTTP2Connection(http.HTTPConnection):
         
         #@todo: this code must be improved
         if stream:
+            _stream = self.parser._get_stream(stream, strict = False)
+            _stream.pending_s += data_l
+
             def _callback(connection):
-                _stream = self.parser._get_stream(stream, strict = False)
                 if not stream: return callback(connection)
                 _stream.pending_s -= data_l
                 return callback(connection)
