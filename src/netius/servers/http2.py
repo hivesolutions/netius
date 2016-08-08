@@ -467,23 +467,7 @@ class HTTP2Connection(http.HTTPConnection):
         flags = 0x00
         data_l = len(data)
         if end_stream: flags |= 0x01
-        
-        
-        
-        #@todo: this code must be improved
-        if stream:
-            _stream = self.parser._get_stream(stream, strict = False)
-            _stream.pending_s += data_l
-
-            def _callback(connection):
-                if not stream: return callback(connection)
-                _stream.pending_s -= data_l
-                return callback(connection)
-        else:
-            _callback = callback
-            
-            
-        
+        callback = self._build_c(callback, stream, data_l)
         if not self.available_stream(stream, data_l):
             return self.delay_frame(
                 type = netius.common.DATA,
@@ -491,7 +475,7 @@ class HTTP2Connection(http.HTTPConnection):
                 payload = data,
                 stream = stream,
                 delay = delay,
-                callback = _callback
+                callback = callback
             )
         self.increment_remote(stream, data_l * -1, all = True)
         return self.send_frame(
@@ -500,7 +484,7 @@ class HTTP2Connection(http.HTTPConnection):
             payload = data,
             stream = stream,
             delay = delay,
-            callback = _callback
+            callback = callback
         )
 
     def send_headers(
@@ -897,6 +881,20 @@ class HTTP2Connection(http.HTTPConnection):
         if not self.parser: return None
         if not self.parser.stream_o: return self.parser
         return self.parser.stream_o
+
+    def _build_c(self, callback, stream, data_l):
+        stream = self.parser._get_stream(stream, strict = False)
+        if not stream: return callback
+
+        stream.pending_s += data_l
+        old_callback = callback
+
+        def callback(connection):
+            stream.pending_s -= data_l
+            if not old_callback: return
+            return old_callback(connection)
+
+        return callback
 
     def _flush_plain(self, stream = None, callback = None):
         self.send_part(b"", stream = stream, callback = callback)
