@@ -472,14 +472,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 if __name__ == "__main__":
     import logging
     regex = (
-        (re.compile(r"https://host\.com"), "http://localhost"),
-        (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}")
+        (re.compile(r"https://172.16.0.100"), "http://ams-logic-1.bemisc.com:8019"),
+        (re.compile(r"https://([a-zA-Z]*)\.172.16.0.100"), "http://ams-logic-1.bemisc.com:8019/{0}")
     )
     hosts = {
-        "host.com" : "http://localhost"
+        "172.16.0.100" : "http://ams-logic-1.bemisc.com:8019"
     }
     auth = {
-        "host.com" : netius.SimpleAuth("root", "root")
     }
     auth_regex = (
         (
