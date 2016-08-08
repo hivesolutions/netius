@@ -467,6 +467,21 @@ class HTTP2Connection(http.HTTPConnection):
         flags = 0x00
         data_l = len(data)
         if end_stream: flags |= 0x01
+        
+        
+        
+        #@todo: this code must be improved
+        if stream:
+            def _callback(connection):
+                _stream = self.parser._get_stream(stream, strict = False)
+                if not stream: return callback(connection)
+                _stream.pending_s -= data_l
+                return callback(connection)
+        else:
+            _callback = callback
+            
+            
+        
         if not self.available_stream(stream, data_l):
             return self.delay_frame(
                 type = netius.common.DATA,
@@ -474,7 +489,7 @@ class HTTP2Connection(http.HTTPConnection):
                 payload = data,
                 stream = stream,
                 delay = delay,
-                callback = callback
+                callback = _callback
             )
         self.increment_remote(stream, data_l * -1, all = True)
         return self.send_frame(
@@ -483,7 +498,7 @@ class HTTP2Connection(http.HTTPConnection):
             payload = data,
             stream = stream,
             delay = delay,
-            callback = callback
+            callback = _callback
         )
 
     def send_headers(

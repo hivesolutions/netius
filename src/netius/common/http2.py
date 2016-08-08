@@ -921,6 +921,7 @@ class HTTP2Stream(netius.Stream):
         self.window_o = self.connection.window_o
         self.window_l = self.window_o
         self.window_t = self.window_o // 2
+        self.pending_s = 0
         self.headers = None
         self.headers_l = None
         self.method = None
@@ -983,12 +984,12 @@ class HTTP2Stream(netius.Stream):
         self.current = encoding
 
     def is_exhausted(self):
-        #if self.connection.is_exhausted(): return True
+        if self.pending_s > self.connection.max_pending: return True
         if not self.connection.available_stream(self.identifier, 1): return True
         return False
 
     def is_restored(self):
-        #if not self.connection.is_restored(): return False
+        if self.pending_s > self.connection.min_pending: return False
         if not self.connection.available_stream(self.identifier, 1): return False
         return True
 
