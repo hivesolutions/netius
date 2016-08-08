@@ -1076,7 +1076,10 @@ class HTTP2Server(http.HTTPServer):
         stream = parser._get_stream(stream, strict = False)
         if not stream: return
         window = stream.window if remote else stream.window_l
-        self.debug("Stream %d %s window size is %d bytes" % (stream.identifier, name, window))
+        self.debug(
+            "Stream %d (dependency = %d, weight = %d) %s window size is %d bytes" %\
+            (stream.identifier, stream.dependency, stream.weight, name, window)
+        )
 
     def _log_frame_details(self, parser, type_s, flags, payload, stream, out):
         type_l = type_s.lower()

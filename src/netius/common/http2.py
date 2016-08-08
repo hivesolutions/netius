@@ -867,7 +867,7 @@ class HTTP2Stream(netius.Stream):
         self,
         identifier = None,
         header_b = None,
-        dependency = None,
+        dependency = 0x00,
         weight = 1,
         end_headers = False,
         end_stream = False,
