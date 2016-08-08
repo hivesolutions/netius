@@ -226,9 +226,9 @@ class ProxyServer(http2.HTTP2Server):
         if self.env: self.dynamic = self.get_env("DYNAMIC", self.dynamic, cast = bool)
         if self.env: self.throttle = self.get_env("THROTTLE", self.throttle, cast = bool)
         if self.env: self.trust_origin = self.get_env("TRUST_ORIGIN", self.trust_origin, cast = bool)
-        if self.dynamic: self.info("Using dynamic encoding (no content re-encoding) in the proxy ...")
-        if self.throttle: self.info("Throttling connections in the proxy ...")
-        else: self.info("Not throttling connections in the proxy ...")
+        if self.dynamic: self.info("Using dynamic encoding (no content re-encoding) in proxy ...")
+        if self.throttle: self.info("Throttling connections in proxy ...")
+        else: self.info("Not throttling connections in proxy ...")
         if self.trust_origin: self.info("Origin is considered \"trustable\" by proxy")
 
     def on_data_http(self, connection, parser):
