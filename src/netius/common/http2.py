@@ -116,6 +116,17 @@ HTTP2_PSEUDO = (":method", ":scheme", ":path", ":authority", ":status")
 """ The complete set of HTTP 2 based pseudo-header values
 this list should be inclusive and limited """
 
+HTTP2_TUPLES = (
+    (SETTINGS_HEADER_TABLE_SIZE, "SETTINGS_HEADER_TABLE_SIZE"),
+    (SETTINGS_ENABLE_PUSH, "SETTINGS_ENABLE_PUSH"),
+    (SETTINGS_MAX_CONCURRENT_STREAMS, "SETTINGS_MAX_CONCURRENT_STREAMS"),
+    (SETTINGS_INITIAL_WINDOW_SIZE, "SETTINGS_INITIAL_WINDOW_SIZE"),
+    (SETTINGS_MAX_FRAME_SIZE, "SETTINGS_MAX_FRAME_SIZE"),
+    (SETTINGS_MAX_HEADER_LIST_SIZE, "SETTINGS_MAX_HEADER_LIST_SIZE")
+)
+""" The sequence of tuple that associate the constant value of the
+setting with the proper string representation for it """
+
 HTTP2_NAMES = {
     DATA : "DATA",
     HEADERS : "HEADERS",

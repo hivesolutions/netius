@@ -972,6 +972,13 @@ class HTTP2Server(http.HTTPServer):
         safe_s = "with" if self.safe else "without"
         self.info("Starting HTTP2 server %s safe mode ..." % safe_s)
         if not self.has_h2: self.info("No support for HTTP2 is available ...")
+        for setting, name in netius.common.HTTP2_TUPLES:
+            if not self.env: continue
+            value = self.get_env(name, None)
+            if value == None: continue
+            value = int(value)
+            self.settings[setting] = value
+            self.info("Setting HTTP2 %s with value '%d' ..." % (name, value))
 
     def on_preface_http2(self, connection, parser):
         connection.send_settings(settings = self.settings_t)
