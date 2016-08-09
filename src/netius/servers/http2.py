@@ -977,7 +977,7 @@ class HTTP2Server(http.HTTPServer):
             value = self.get_env(name, None, cast = int)
             if value == None: continue
             self.settings[setting] = value
-            self.info("Setting HTTP2 %s with value '%d' ..." % (name, value))
+            self.info("Setting HTTP2 setting %s with value '%d' ..." % (name, value))
 
     def on_preface_http2(self, connection, parser):
         connection.send_settings(settings = self.settings_t)
