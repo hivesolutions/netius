@@ -974,9 +974,8 @@ class HTTP2Server(http.HTTPServer):
         if not self.has_h2: self.info("No support for HTTP2 is available ...")
         for setting, name in netius.common.HTTP2_TUPLES:
             if not self.env: continue
-            value = self.get_env(name, None)
+            value = self.get_env(name, None, cast = int)
             if value == None: continue
-            value = int(value)
             self.settings[setting] = value
             self.info("Setting HTTP2 %s with value '%d' ..." % (name, value))
 
