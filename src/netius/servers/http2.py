@@ -978,6 +978,7 @@ class HTTP2Server(http.HTTPServer):
             if value == None: continue
             self.settings[setting] = value
             self.info("Setting HTTP2 setting %s with value '%d' ..." % (name, value))
+        self.settings_t = netius.legacy.items(self.settings)
 
     def on_preface_http2(self, connection, parser):
         connection.send_settings(settings = self.settings_t)
