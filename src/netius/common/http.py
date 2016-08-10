@@ -297,9 +297,12 @@ class HTTPParser(parser.Parser):
         if hasattr(self, "message") and self.message: self.message = []
         if hasattr(self, "message_f") and self.message_f: self.message_f.close()
 
-    def get_path(self):
+    def get_path(self, normalize = False):
         split = self.path_s.split("?", 1)
-        return split[0]
+        path = split[0]
+        if not normalize: return path
+        if not path.startswith(("http://", "https://")): return path
+        return netius.legacy.urlparse(path).path
 
     def get_query(self):
         split = self.path_s.split("?", 1)

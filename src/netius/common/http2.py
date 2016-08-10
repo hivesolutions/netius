@@ -875,6 +875,9 @@ class HTTP2Stream(netius.Stream):
     Object representing a stream of data interchanged between two
     pears under the HTTP 2 protocol.
 
+    A stream may be considered a node in a tree of dependencies,
+    the children references are stored on the parent node.
+
     Should be compatible with both the parser and the connection
     interfaces and may be used for both types of operations.
     """
@@ -1034,9 +1037,12 @@ class HTTP2Stream(netius.Stream):
         )
         self.window_l = self.window_o
 
-    def get_path(self):
+    def get_path(self, normalize = False):
         split = self.path_s.split("?", 1)
-        return split[0]
+        path = split[0]
+        if not normalize: return path
+        if not path.startswith(("http://", "https://")): return path
+        return netius.legacy.urlparse(path).path
 
     def get_query(self):
         split = self.path_s.split("?", 1)

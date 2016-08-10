@@ -81,7 +81,7 @@ class WSGIServer(http2.HTTP2Server):
         # retrieves the path for the current request and then retrieves
         # the query string part for it also, after that computes the
         # path info value as the substring of the path without the mount
-        path = parser.get_path()
+        path = parser.get_path(normalize = True)
         query = parser.get_query()
         path_info = path[self.mount_l:]
 
