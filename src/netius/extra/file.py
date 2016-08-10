@@ -113,7 +113,7 @@ class FileServer(netius.servers.HTTP2Server):
             # retrieves the requested path from the parser and the constructs
             # the correct file name/path to be used in the reading from the
             # current file system, so that it's possible to handle the data
-            path = parser.get_path()
+            path = parser.get_path(normalize = True)
             path = netius.legacy.unquote(path)
             path = path.lstrip("/")
             path_f = os.path.join(self.base_path, path)
