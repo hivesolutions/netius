@@ -393,6 +393,11 @@ class HTTP2Parser(parser.Parser):
             )
 
     def assert_data(self, stream, end_stream):
+        if self.stream == 0x00:
+            raise netius.ParserError(
+                "Stream cannot be set to 0x00 for DATA",
+                error_code = PROTOCOL_ERROR
+            )
         if not stream.end_headers:
             raise netius.ParserError(
                 "Not ready to receive DATA open",
@@ -404,13 +409,6 @@ class HTTP2Parser(parser.Parser):
                 "Not ready to receive DATA half closed (remote)",
                 stream = self.stream,
                 error_code = STREAM_CLOSED
-            )
-        if end_stream and (not stream.content_l == stream._data_l or\
-            stream.content_l == -1):
-            raise netius.ParserError(
-                "Invalid content-length header value (missmatch)",
-                stream = self.stream,
-                error_code = PROTOCOL_ERROR
             )
 
     def assert_headers(self, stream, end_stream):
@@ -607,9 +605,9 @@ class HTTP2Parser(parser.Parser):
         contents = data[index:data_l - padded_l]
 
         stream = self._get_stream(self.stream)
-        stream.extend_data(contents)
         self.assert_data(stream, end_stream)
 
+        stream.extend_data(contents)
         stream.end_stream = end_stream
 
         self.trigger("on_data_h2", stream, contents)
