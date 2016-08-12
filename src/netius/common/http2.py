@@ -1216,7 +1216,8 @@ class HTTP2Stream(netius.Stream):
                 )
 
     def assert_ready(self):
-        if not self._data_l == self.content_l:
+        if not self.content_l == -1 and not self._data_l == 0 and\
+            not self._data_l == self.content_l:
             raise netius.ParserError(
                 "Invalid content-length header value (missmatch)",
                 stream = self.identifier,
@@ -1272,7 +1273,7 @@ class HTTP2Stream(netius.Stream):
         if not self._data_l == -1: return
         if not self.is_headers: return
         self._calculate_headers()
-        self.content_l = self.headers.get("content-length", 0)
+        self.content_l = self.headers.get("content-length", -1)
         self.content_l = self.content_l and int(self.content_l)
         self._data_b = self._build_b()
         self._data_l = 0
