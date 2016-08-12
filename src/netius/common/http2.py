@@ -601,7 +601,7 @@ class HTTP2Parser(parser.Parser):
         padded_l = 0
 
         if padded:
-            padded_l = struct.unpack("!B", data[index:index + 1])
+            padded_l, = struct.unpack("!B", data[index:index + 1])
             index += 1
 
         contents = data[index:data_l - padded_l]
@@ -776,7 +776,7 @@ class HTTP2Parser(parser.Parser):
         stream = self._get_stream(
             self.stream,
             strict = False,
-            exists_s = True
+            unopened_s = True
         )
         self.assert_window_update(stream, increment)
         if self.stream and not stream: return
@@ -810,17 +810,24 @@ class HTTP2Parser(parser.Parser):
         default = None,
         strict = True,
         closed_s = False,
+        unopened_s = False,
         exists_s = False
     ):
         if stream == None: stream = self.stream
         if stream == 0: return default
-        if strict: closed_s = True; exists_s = True
+        if strict: closed_s = True; unopened_s = True; exists_s = True
         exists = stream in self.streams
         if closed_s and not exists and stream <= self._max_stream:
             raise netius.ParserError(
                 "Invalid or closed stream '%d'" % stream,
                 stream = self.stream,
                 error_code = STREAM_CLOSED
+            )
+        if unopened_s and not exists and stream > self._max_stream:
+            raise netius.ParserError(
+                "Invalid or unopened stream '%d'" % stream,
+                stream = self.stream,
+                error_code = PROTOCOL_ERROR
             )
         if exists_s and not exists:
             raise netius.ParserError(
