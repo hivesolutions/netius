@@ -50,19 +50,19 @@ class HTTP2Connection(http.HTTPConnection):
         legacy = True,
         window = netius.common.HTTP2_WINDOW,
         settings = netius.common.HTTP2_SETTINGS_OPTIMAL,
+        settings_r = netius.common.HTTP2_SETTINGS,
         *args,
         **kwargs
     ):
         http.HTTPConnection.__init__(self, *args, **kwargs)
         self.legacy = legacy
         self.settings = dict(settings)
+        self.settings_r = dict(settings_r)
         self.window = window
-        self.window_o = self.settings[netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE]
-        self.window_l = self.window_o
-        self.window_t = self.window_o // 2
         self.preface = False
         self.preface_b = b""
         self.frames = []
+        self._build_windows()
 
     def open(self, *args, **kwargs):
         http.HTTPConnection.open(self, *args, **kwargs)
@@ -708,7 +708,7 @@ class HTTP2Connection(http.HTTPConnection):
         return True if offset == 0 else False
 
     def set_settings(self, settings):
-        self.settings.update(settings)
+        self.settings_r.update(settings)
 
     def close_stream(self, stream, final = False, flush = False, reset = False):
         if not self.parser._has_stream(stream): return
@@ -881,6 +881,20 @@ class HTTP2Connection(http.HTTPConnection):
         if not self.parser: return None
         if not self.parser.stream_o: return self.parser
         return self.parser.stream_o
+
+    def _build_windows(self):
+        """
+        Builds the various values to be used as part of the
+        output stream flow window management.
+
+        This operation should be performed whenever the remote
+        settings are updated as the initial window size value
+        for the remote peer may change.
+        """
+
+        self.window_o = self.settings_r[netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE]
+        self.window_l = self.window_o
+        self.window_t = self.window_o // 2
 
     def _build_c(self, callback, stream, data_l):
         stream = self.parser._get_stream(stream, strict = False)
