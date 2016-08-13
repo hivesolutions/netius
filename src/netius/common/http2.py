@@ -1230,10 +1230,27 @@ class HTTP2Stream(netius.Stream):
             kwargs["stream"] = self.identifier
             callback = kwargs.get("callback", None)
             if callback: kwargs["callback"] = self._build_c(callback)
+
+        # retrieves the references to the "original"
+        # values of the current and stream objects
         current = self.connection.current
+        stream_o = self.owner.stream_o
+
+        # replaces the values of the current (encoding)
+        # and stream object with the stream based ones
         self.connection.current = self.current
-        try: yield
-        finally: self.connection.current = current
+        self.owner.stream_o = self
+
+        try:
+            # runs the yield operation meaning that
+            # the concrete operation will be performed
+            # at this point
+            yield
+        finally:
+            # restores both the stream object and the current
+            # values to the original state (before context)
+            self.owner.stream_o = stream_o
+            self.connection.current = current
 
     @property
     def parser(self):
