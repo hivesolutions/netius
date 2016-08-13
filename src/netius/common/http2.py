@@ -644,9 +644,10 @@ class HTTP2Parser(parser.Parser):
         fragment = data[index:data_l - padded_l]
 
         # retrieves the value of the window initial size from the owner
-        # connections this is the value to be set in the new stream
-        # and then retrieves the (maximum) frame size allowed to be passed
+        # connection this is the value to be set in the new stream and
+        # then retrieves the (maximum) frame size allowed to be passed
         # to the new stream instance for proper data frame fragmentation
+        # these values are associated with the remote peer settings
         window = self.owner.settings_r[SETTINGS_INITIAL_WINDOW_SIZE]
         frame_size = self.owner.settings_r[SETTINGS_MAX_FRAME_SIZE]
 
