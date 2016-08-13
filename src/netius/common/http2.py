@@ -647,8 +647,8 @@ class HTTP2Parser(parser.Parser):
         # connections this is the value to be set in the new stream
         # and then retrieves the (maximum) frame size allowed to be passed
         # to the new stream instance for proper data frame fragmentation
-        window = self.owner.settings[SETTINGS_INITIAL_WINDOW_SIZE]
-        frame_size = self.owner.settings[SETTINGS_MAX_FRAME_SIZE]
+        window = self.owner.settings_r[SETTINGS_INITIAL_WINDOW_SIZE]
+        frame_size = self.owner.settings_r[SETTINGS_MAX_FRAME_SIZE]
 
         # tries to retrieve a previously opened stream and, this may be
         # the case it has been opened by a previous frame operation
