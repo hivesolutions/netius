@@ -298,6 +298,21 @@ class HTTPParser(parser.Parser):
         if hasattr(self, "message_f") and self.message_f: self.message_f.close()
 
     def get_path(self, normalize = False):
+        """
+        Retrieves the path associated with the request, this
+        value should be interpreted from the HTTP status line.
+
+        In case the normalize flag is set a possible absolute
+        URL value should be normalized into an absolute path.
+        This may be required under some proxy related scenarios.
+
+        :type normalize: bool
+        :param normalize: If the normalization process should be
+        applied for absolute URL scenarios.
+        :rtype: String
+        :return: The path associated with the current request.
+        """
+
         split = self.path_s.split("?", 1)
         path = split[0]
         if not normalize: return path
@@ -305,6 +320,18 @@ class HTTPParser(parser.Parser):
         return netius.legacy.urlparse(path).path
 
     def get_query(self):
+        """
+        Retrieves the (GET) query part of the path, this is considered
+        to be the part of the path after the first question mark.
+
+        This query string may be used to parse any possible (GET)
+        arguments.
+
+        :rtype: String
+        :return: The query part of the path, to be used for parsing
+        of (GET) arguments.
+        """
+
         split = self.path_s.split("?", 1)
         if len(split) == 1: return ""
         else: return split[1]
