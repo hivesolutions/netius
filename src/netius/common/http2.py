@@ -879,13 +879,15 @@ class HTTP2Parser(parser.Parser):
 class HTTP2Stream(netius.Stream):
     """
     Object representing a stream of data interchanged between two
-    pears under the HTTP 2 protocol.
+    peers under the HTTP 2 protocol.
 
     A stream may be considered a node in a tree of dependencies,
     the children references are stored on the parent node.
 
     Should be compatible with both the parser and the connection
     interfaces and may be used for both types of operations.
+
+    :see: https://tools.ietf.org/html/rfc7540
     """
 
     def __init__(
