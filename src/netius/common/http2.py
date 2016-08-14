@@ -1024,9 +1024,32 @@ class HTTP2Stream(netius.Stream):
         if assert_h: self.assert_headers()
 
     def extend_headers(self, fragment):
+        """
+        Extends the headers data buffer with the provided
+        data fragment. This method may be used for adding
+        headers data coming from a continuation frame.
+
+        :type fragment: String
+        :param fragment: The data fragment to be used in
+        the extension of the headers data.
+        """
+
         self.header_b.append(fragment)
 
     def extend_data(self, data):
+        """
+        Adds a data chunk to the buffer associated with the
+        stream. Note that the buffer is only populated in case
+        the store flag is currently set.
+
+        Even if the store flag is not set this method should be
+        called whenever a new data chunk is received in the stream.
+
+        :type data: String
+        :param data: The data chunk to be added to the stream's
+        internal buffers.
+        """
+
         self._data_l += len(data)
         if not self.store: return
         self._data_b.write(data)
