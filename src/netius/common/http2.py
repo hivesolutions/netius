@@ -1032,9 +1032,36 @@ class HTTP2Stream(netius.Stream):
         self._data_b.write(data)
 
     def remote_update(self, increment):
+        """
+        Updates the remote window value, the remote windows is
+        the window that controls the output stream of bytes and
+        should represent the number of available bytes in the
+        remote peer that can be immediately processed.
+
+        :type increment: int
+        :param increment: The increment in bytes to be added to
+        the current remote window value, this value may be negative.
+        """
+
         self.window += increment
 
     def local_update(self, increment):
+        """
+        Increments the current local window value with the increment
+        (in bytes) passed as parameter.
+
+        The local window represents the number of bytes that can be
+        processed in the current local buffer, effectively representing
+        the number of bytes that may still be received in the stream.
+
+        In case the window threshold is reached the method triggers
+        the sending of the window update frame.
+
+        :type increment: int
+        :param increment: The number of bytes that are going to be
+        incremented in the local window value.
+        """
+
         self.window_l += increment
         if self.window_l >= self.window_t: return
         self.connection.send_window_update(
