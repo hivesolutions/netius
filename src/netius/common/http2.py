@@ -1305,11 +1305,20 @@ class HTTP2Stream(netius.Stream):
             )
 
     @contextlib.contextmanager
-    def ctx_request(self, args = None, kwargs = None):
-        if not kwargs == None:
-            kwargs["stream"] = self.identifier
-            callback = kwargs.get("callback", None)
-            if callback: kwargs["callback"] = self._build_c(callback)
+    def ctx_request(self, args, kwargs):
+        # in case there's no valid set of keyword arguments
+        # a valid and empty one must be created (avoids error)
+        if kwargs == None: kwargs = dict()
+
+        # sets the stream keyword argument with the current
+        # stream's identifier (provides identification support)
+        kwargs["stream"] = self.identifier
+
+        # tries to retrieves a possible callback (method) value
+        # and in case it exits uses it to create a new one that
+        # calls this one at the end (connection to stream clojure)
+        callback = kwargs.get("callback", None)
+        if callback: kwargs["callback"] = self._build_c(callback)
 
         # retrieves the references to the "original"
         # values of the current and stream objects
