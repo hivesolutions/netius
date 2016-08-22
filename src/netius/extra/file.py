@@ -149,7 +149,7 @@ class FileServer(netius.servers.HTTP2Server):
             # it to the client and identifying the problem correctly
             self.on_exception_file(connection, exception)
 
-    def on_dir_file(self, connection, parser, path):
+    def on_dir_file(self, connection, parser, path, style = True):
         path_v = parser.get_path()
         path_v = netius.legacy.unquote(path_v)
 
@@ -174,8 +174,27 @@ class FileServer(netius.servers.HTTP2Server):
 
         buffer = list()
         buffer.append("<html>")
+        buffer.append("<head>")
         buffer.append("<meta charset=\"utf-8\" />")
         buffer.append("<title>Index of %s</title>" % path_v)
+        if style:
+            buffer.append("<style>")
+            buffer.append("body { ")
+            buffer.append("font-family: \"Segoe UI\", \"Open Sans\", \"Times New Roman\", arial;")
+            buffer.append("font-size: 13px;")
+            buffer.append("}")
+            buffer.append("h1 { ")
+            buffer.append("font-weight: 500;")
+            buffer.append("}")
+            buffer.append("table { ")
+            buffer.append("font-size: 14px;")
+            buffer.append("line-height: 18px;")
+            buffer.append("}")
+            buffer.append("table th { ")
+            buffer.append("font-weight: 500;")
+            buffer.append("}")
+            buffer.append("</style>")
+        buffer.append("</head>")
         buffer.append("<body>")
         buffer.append("<h1>Index of %s</h1>" % path_v)
         buffer.append("<hr/>")
