@@ -168,7 +168,7 @@ class FileServer(netius.servers.HTTP2Server):
             return
 
         items = os.listdir(path)
-        items.sort()
+        items.sort(key = self._sorter_build(path))
 
         is_root = path_v == "" or path_v == "/"
         if not is_root: items.insert(0, "..")
@@ -462,6 +462,15 @@ class FileServer(netius.servers.HTTP2Server):
     def _file_check_close(self, connection):
         if connection.parser.keep_alive: return
         connection.close(flush = True)
+
+    def _sorter_build(self, path):
+
+        def sorter(item):
+            path_f = os.path.join(path, item)
+            is_dir = os.path.isdir(path_f)
+            return (0 if is_dir else 1, item)
+
+        return sorter
 
 if __name__ == "__main__":
     import logging
