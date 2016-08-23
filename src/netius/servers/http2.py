@@ -648,6 +648,10 @@ class HTTP2Connection(http.HTTPConnection):
         offset = 0
         starved = dict() if all else None
 
+        # prints a debug message about the flush operation that is going
+        # to be performed for the connection
+        self.owner.debug("Flushing %d pending frames ..." % len(self.frames))
+
         # iterates over the complete set of frames pending to to be sent
         # (delayed) trying to send each of them until one fails and the
         # flushing operation is delayed until further requesting
