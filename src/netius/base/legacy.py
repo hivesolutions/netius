@@ -269,7 +269,7 @@ def execfile(path, global_vars, local_vars = None, encoding = "utf-8"):
     finally: file.close()
     data = data.decode(encoding)
     code = compile(data, path, "exec")
-    exec(code, global_vars, local_vars)
+    exec(code, global_vars, local_vars) #@UndefinedVariable
 
 def walk(path, visit, arg):
     for root, dirs, _files in os.walk(path):
