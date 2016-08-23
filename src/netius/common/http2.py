@@ -1305,7 +1305,7 @@ class HTTP2Stream(netius.Stream):
             )
 
     @contextlib.contextmanager
-    def ctx_request(self, args, kwargs):
+    def ctx_request(self, args = None, kwargs = None):
         # in case there's no valid set of keyword arguments
         # a valid and empty one must be created (avoids error)
         if kwargs == None: kwargs = dict()
