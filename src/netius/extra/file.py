@@ -191,7 +191,7 @@ class FileServer(netius.servers.HTTP2Server):
             buffer.append("<style>")
             buffer.append("body {")
             buffer.append("color: #2d2d2d;")
-            buffer.append("font-family: \"Segoe UI\", \"Arial\", sans-serif;")
+            buffer.append("font-family: \"Segoe UI\", \"Roboto\", \"Helvetica\", \"Arial\", sans-serif;")
             buffer.append("font-size: 13px;")
             buffer.append("line-height: 18px;")
             buffer.append("}")
