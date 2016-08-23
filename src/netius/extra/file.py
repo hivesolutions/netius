@@ -225,6 +225,8 @@ class FileServer(netius.servers.HTTP2Server):
             buffer.append("vertical-align: middle;")
             buffer.append("}")
             buffer.append("table td > svg {")
+            buffer.append("color: #6d6d6d;")
+            buffer.append("fill: currentColor;")
             buffer.append("margin-right: 6px;")
             buffer.append("}")
             buffer.append("@media screen and (max-width: 760px) {")
