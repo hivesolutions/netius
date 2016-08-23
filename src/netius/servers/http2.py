@@ -1006,7 +1006,7 @@ class HTTP2Server(http.HTTPServer):
         if not stream: return
         stream.end_stream = True
         stream.end_stream_l = True
-        stream.close()
+        stream.close(reset = False)
 
     def on_settings_http2(self, connection, parser, settings, ack):
         if ack: return
