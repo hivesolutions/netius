@@ -23,9 +23,13 @@ by default this values is infered automatically based on the current system capa
 system will be running as an HTTP server on localhost under port 5050
 * `POLL_TIMEOUT` (`float`) - The timeout in seconds for each of the iteration of the event loop, this value
 should be carefully chosed as it controls the minimum resolution of a delayed execution
-* `KEEPALIVE_TIMEOUT` -
-* `KEEPALIVE_INTERVAL` -
-* `KEEPALIVE_COUNT` -
+* `KEEPALIVE_TIMEOUT` (`int`) - The amount of time in seconds that a connection is set as idle until a
+new refresh token is sent to it to make sure that it's still online and not disconnected, make sure that this
+value is high enough that it does not consume to much bandwidth
+* `KEEPALIVE_INTERVAL` (`int`) - The time between the retrying of "ping" packets, this value does not
+need to be too large and should not be considered too important (may be calculated automatically)
+* `KEEPALIVE_COUNT` (`int`) - The amount of times the "ping" packet is re-sent until the connection is
+considered to be offline and is dropped
 
 #### SSL
 
