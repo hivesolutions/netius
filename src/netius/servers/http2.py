@@ -1137,6 +1137,18 @@ class HTTP2Server(http.HTTPServer):
         )
         self._log_frame_flags("HEADERS", *flags_l)
 
+    def _log_frame_rst_stream(self, parser, flags, payload, stream, out):
+        error_code, = struct.unpack("!I", payload)
+        self.debug("Frame RST_STREAM with error code %d" % error_code)
+
+    def _log_frame_goaway(self, parser, flags, payload, stream, out):
+        last_stream, error_code = struct.unpack("!II", payload[:8])
+        extra = payload[8:]
+        self.debug(
+            "Frame GOAWAY with last stream %d, error code %d and message %s" %\
+            (last_stream, error_code, extra)
+        )
+
     def _log_frame_window_update(self, parser, flags, payload, stream, out):
         increment, = struct.unpack("!I", payload)
         self.debug("Frame WINDOW_UPDATE with increment %d" % increment)
