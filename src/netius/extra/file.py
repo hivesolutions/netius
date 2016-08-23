@@ -245,8 +245,8 @@ class FileServer(netius.servers.HTTP2Server):
             size_s = "-" if is_dir else size_s
 
             type_s, _encoding = mimetypes.guess_type(path_f, strict = True)
-            type_s = type or "-"
-            type_s = "Directory" if is_dir else type
+            type_s = type_s or "-"
+            type_s = "Directory" if is_dir else type_s
 
             buffer.append("<tr>")
             buffer.append("<td><a href=\"%s\">%s</td>" % (item_s, item_s))
