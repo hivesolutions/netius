@@ -248,14 +248,14 @@ idle until a new refresh token is sent to it to make sure that
 it's still online and not disconnected, make sure that this
 value is high enough that it does not consume to much bandwidth """
 
-KEEPALIVE_COUNT = 3
-""" The amount of times the "ping" packet is re-sent until the
-connection is considered to be offline and is dropped """
-
 KEEPALIVE_INTERVAL = int(KEEPALIVE_TIMEOUT / 10)
 """ The time between the retrying of "ping" packets, this value
 does not need to be too large and should not be considered too
 important (may be calculated automatically) """
+
+KEEPALIVE_COUNT = 3
+""" The amount of times the "ping" packet is re-sent until the
+connection is considered to be offline and is dropped """
 
 LOG_FORMAT = "%(asctime)s [%(levelname)s] %(message)s"
 """ The format that is going to be used by the logger of the
@@ -306,6 +306,9 @@ class AbstractBase(observer.Observable):
         self.poll = self.poll_c()
         self.poll_name = self.poll.name()
         self.poll_timeout = kwargs.get("poll_timeout", POLL_TIMEOUT)
+        self.keepalive_timeout = kwargs.get("keepalive_timeout", KEEPALIVE_TIMEOUT)
+        self.keepalive_interval = kwargs.get("keepalive_interval", KEEPALIVE_INTERVAL)
+        self.keepalive_count = kwargs.get("keepalive_count", KEEPALIVE_COUNT)
         self.poll_owner = True
         self.diag_app = None
         self.connections = []
@@ -1765,19 +1768,19 @@ class AbstractBase(observer.Observable):
             self.socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPIDLE, #@UndefinedVariable
-                KEEPALIVE_TIMEOUT
+                self.keepalive_timeout
             )
         is_inet and hasattr(_socket, "TCP_KEEPINTVL") and\
             self.socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPINTVL, #@UndefinedVariable
-                KEEPALIVE_INTERVAL
+                self.keepalive_interval
             )
         is_inet and hasattr(_socket, "TCP_KEEPCNT") and\
             self.socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPCNT, #@UndefinedVariable
-                KEEPALIVE_COUNT
+                self.keepalive_count
             )
         hasattr(_socket, "SO_REUSEPORT") and\
             self.socket.setsockopt(

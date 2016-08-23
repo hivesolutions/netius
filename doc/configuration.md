@@ -23,6 +23,9 @@ by default this values is infered automatically based on the current system capa
 system will be running as an HTTP server on localhost under port 5050
 * `POLL_TIMEOUT` (`float`) - The timeout in seconds for each of the iteration of the event loop, this value
 should be carefully chosed as it controls the minimum resolution of a delayed execution
+* `KEEPALIVE_TIMEOUT` -
+* `KEEPALIVE_INTERVAL` -
+* `KEEPALIVE_COUNT` -
 
 #### SSL
 

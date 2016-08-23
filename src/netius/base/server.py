@@ -153,6 +153,21 @@ class Server(Base):
             self.poll_timeout,
             cast = float
         )
+        if env: self.keepalive_timeout = self.get_env(
+            "KEEPALIVE_TIMEOUT",
+            self.keepalive_timeout,
+            cast = int
+        )
+        if env: self.keepalive_interval = self.get_env(
+            "KEEPALIVE_INTERVAL",
+            self.keepalive_interval,
+            cast = int
+        )
+        if env: self.keepalive_count = self.get_env(
+            "KEEPALIVE_COUNT",
+            self.keepalive_count,
+            cast = int
+        )
         if env: self.allowed = self.get_env("ALLOWED", self.allowed, cast = list)
 
         # updates the current service status to the configuration
