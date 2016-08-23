@@ -638,7 +638,10 @@ class HTTP2Connection(http.HTTPConnection):
         """
         Runs the (became) available flush operation that tries to determine
         all the streams that were under the "blocked" state and became
-        unblocked, notifying them about that "edge" operation.
+        "unblocked", notifying them about that "edge" operation.
+
+        This operation must be performed after any of the blocking constraints
+        is changed (eg: connection window, stream window, etc.).
         """
 
         # iterates over the complete set of streams (identifiers) that are
