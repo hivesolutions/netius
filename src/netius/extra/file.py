@@ -49,6 +49,14 @@ BUFFER_SIZE = 32768
 sending the file to the client, this should not be neither
 to big nor to small (as both situations would create problems) """
 
+FOLDER_SVG = "<svg aria-hidden=\"true\" class=\"octicon octicon-file-directory\" height=\"16\" version=\"1.1\" viewBox=\"0 0 14 16\" width=\"14\"><path d=\"M13 4H7V3c0-.66-.31-1-1-1H1c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V5c0-.55-.45-1-1-1zM6 4H1V3h5v1z\"></path></svg>"
+""" The vector code to be used for the icon that represents
+a folder under the directory listing """
+
+FILE_SVG = "<svg aria-hidden=\"true\" class=\"octicon octicon-file-text\" height=\"16\" version=\"1.1\" viewBox=\"0 0 12 16\" width=\"12\"><path d=\"M6 5H2V4h4v1zM2 8h7V7H2v1zm0 2h7V9H2v1zm0 2h7v-1H2v1zm10-7.5V14c0 .55-.45 1-1 1H1c-.55 0-1-.45-1-1V2c0-.55.45-1 1-1h7.5L12 4.5zM11 5L8 2H1v12h10V5z\"></path></svg>"
+""" The vector code to be used for the icon that represents
+a plain file under the directory listing """
+
 class FileServer(netius.servers.HTTP2Server):
     """
     Simple implementation of a file server that is able to list files
@@ -181,43 +189,49 @@ class FileServer(netius.servers.HTTP2Server):
         buffer.append("<title>Index of %s</title>" % path_v)
         if style:
             buffer.append("<style>")
-            buffer.append("body { ")
+            buffer.append("body {")
             buffer.append("color: #2d2d2d;")
             buffer.append("font-family: \"Segoe UI\", \"Arial\", sans-serif;")
             buffer.append("font-size: 13px;")
             buffer.append("line-height: 18px;")
             buffer.append("}")
-            buffer.append("h1 { ")
+            buffer.append("h1 {")
             buffer.append("font-size: 22px;")
             buffer.append("font-weight: 500;")
             buffer.append("line-height: 26px;")
             buffer.append("margin: 14px 0px 14px 0px;")
             buffer.append("}")
-            buffer.append("a { ")
+            buffer.append("a {")
             buffer.append("color: #0033cc;")
             buffer.append("text-decoration: none;")
             buffer.append("}")
             buffer.append("a:hover {")
             buffer.append("text-decoration: underline;")
             buffer.append("}")
-            buffer.append("hr { ")
+            buffer.append("hr {")
             buffer.append("margin: 3px 0px 3px 0px;")
             buffer.append("}")
-            buffer.append("table { ")
+            buffer.append("table {")
             buffer.append("font-size: 13px;")
-            buffer.append("line-height: 18px;")
+            buffer.append("line-height: 20px;")
             buffer.append("max-width: 760px;")
             buffer.append("table-layout: fixed;")
             buffer.append("word-break: break-all;")
             buffer.append("}")
-            buffer.append("table th { ")
+            buffer.append("table th {")
             buffer.append("font-weight: 500;")
             buffer.append("}")
+            buffer.append("table th > *, table td > * {")
+            buffer.append("vertical-align: middle;")
+            buffer.append("}")
+            buffer.append("table td > svg {")
+            buffer.append("margin-right: 6px;")
+            buffer.append("}")
             buffer.append("@media screen and (max-width: 760px) {")
-            buffer.append("table th, table td { ")
+            buffer.append("table th, table td {")
             buffer.append("display: none;")
             buffer.append("}")
-            buffer.append("table td:nth-child(1) { ")
+            buffer.append("table td:nth-child(1) {")
             buffer.append("display: initial;")
             buffer.append("}")
             buffer.append("}")
@@ -258,8 +272,13 @@ class FileServer(netius.servers.HTTP2Server):
             type_s = type_s or "-"
             type_s = "Directory" if is_dir else type_s
 
+            icon = FOLDER_SVG if is_dir else FILE_SVG
+
             buffer.append("<tr>")
-            buffer.append("<td><a href=\"%s\">%s</td>" % (item_s, item_s))
+            buffer.append("<td>")
+            if style: buffer.append(icon)
+            buffer.append("<a href=\"%s\">%s</a>" % (item_s, item_s))
+            buffer.append("</td>")
             buffer.append("<td>%s</td>" % time_s)
             buffer.append("<td>%s</td>" % size_s)
             buffer.append("<td>%s</td>" % type_s)
