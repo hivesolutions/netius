@@ -65,6 +65,8 @@ class ProxyConnection(http2.HTTP2Connection):
         self.parser.store = False
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_partial", self.on_partial)
+        self.parser.bind("on_available", self.on_available)
+        self.parser.bind("on_unavailable", self.on_unavailable)
 
     def resolve_encoding(self, parser):
         pass
@@ -73,12 +75,20 @@ class ProxyConnection(http2.HTTP2Connection):
         http2.HTTP2Connection.set_h2(self)
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_partial", self.on_partial)
+        self.parser.bind("on_available", self.on_available)
+        self.parser.bind("on_unavailable", self.on_unavailable)
 
     def on_headers(self):
         self.owner.on_headers(self.connection_ctx, self.parser_ctx)
 
     def on_partial(self, data):
         self.owner.on_partial(self.connection_ctx, self.parser_ctx, data)
+
+    def on_available(self):
+        self.owner.on_available(self.connection_ctx, self.parser_ctx)
+
+    def on_unavailable(self):
+        self.owner.on_unavailable(self.connection_ctx, self.parser_ctx)
 
 class ProxyServer(http2.HTTP2Server):
 
@@ -253,6 +263,20 @@ class ProxyServer(http2.HTTP2Server):
         should_disable = should_throttle and proxy_c.is_exhausted()
         if should_disable: connection.disable_read()
         proxy_c.send_base(data, force = True, callback = self._throttle)
+
+    def on_available(self, connection, parser):
+        proxy_c = connection.proxy_c
+        if not proxy_c.renable == False: return
+        if not connection.is_restored(): return
+        proxy_c.enable_read()
+
+    def on_unavailable(self, connection, parser):
+        proxy_c = connection.proxy_c
+        if proxy_c.renable == False: return
+        should_throttle = self.throttle and proxy_c.is_throttleable()
+        should_disable = should_throttle and connection.is_exhausted()
+        if not should_disable: return
+        proxy_c.disable_read()
 
     def new_connection(self, socket, address, ssl = False):
         return ProxyConnection(

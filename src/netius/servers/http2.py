@@ -65,6 +65,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.preface = False
         self.preface_b = b""
         self.frames = []
+        self.unavailable = {}
 
     def open(self, *args, **kwargs):
         http.HTTPConnection.open(self, *args, **kwargs)
@@ -471,6 +472,7 @@ class HTTP2Connection(http.HTTPConnection):
         if end_stream: flags |= 0x01
         callback = self._build_c(callback, stream, data_l)
         if not self.available_stream(stream, data_l):
+            self.try_unavailable(stream)
             return self.delay_frame(
                 type = netius.common.DATA,
                 flags = flags,
@@ -480,6 +482,7 @@ class HTTP2Connection(http.HTTPConnection):
                 callback = callback
             )
         self.increment_remote(stream, data_l * -1, all = True)
+        self.try_unavailable(stream)
         return self.send_frame(
             type = netius.common.DATA,
             flags = flags,
@@ -615,11 +618,25 @@ class HTTP2Connection(http.HTTPConnection):
         self.send_window_update(increment = delta, stream = 0x00)
 
     def delay_frame(self, *args, **kwargs):
+        # retrieves the reference to the stream identifier for which
+        # the frame is meant to be sent, and then uses this same value
+        # to try to retrieve the target stream of the frame
         stream = kwargs["stream"]
         stream = self.parser._get_stream(stream)
+
+        # adds the frame structure (tuple) as the structure describing
+        # the frame to be delayed, then increments the frame counter in
+        # the stream so that it represent a proper value
         self.frames.append((args, kwargs))
         stream.frames += 1
+
+        # returns a zero value indicating that no bytes have been sent
+        # "immediately" by this method
         return 0
+
+    def flush_available(self):
+        for stream in netius.legacy.keys(self.unavailable):
+            self.try_available(stream)
 
     def flush_frames(self, all = True):
         """
@@ -746,6 +763,24 @@ class HTTP2Connection(http.HTTPConnection):
         if not stream : return False
         return True if stream and stream.is_open() else False
 
+    def try_available(self, stream):
+        if not stream in self.unavailable: return
+        _stream = self.parser._get_stream(stream, strict = False)
+        if not _stream:
+            del self.unavailable[stream]
+            return
+        if not self.available_stream(stream, 1, strict = False): return
+        del self.unavailable[stream]
+        _stream.available()
+
+    def try_unavailable(self, stream):
+        if stream in self.unavailable: return
+        _stream = self.parser._get_stream(stream, strict = False)
+        if not _stream: return
+        if self.available_stream(stream, 1, strict = False): return
+        self.unavailable[stream] = True
+        _stream.unavailable()
+
     def increment_remote(self, stream, increment, all = False):
         """
         Increments the size of the remove window associated with
@@ -864,6 +899,7 @@ class HTTP2Connection(http.HTTPConnection):
 
     def on_window_update(self, stream, increment):
         self.increment_remote(stream and stream.identifier, increment)
+        self.flush_available()
         self.flush_frames()
         self.owner.on_window_update_http2(self, self.parser, stream, increment)
 
