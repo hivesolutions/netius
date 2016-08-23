@@ -1005,21 +1005,20 @@ class HTTP2Stream(netius.Stream):
     def available(self):
         """
         Method called upon the become available event triggered
-        when a blocked stream becomes unblocked again, this is a
+        when a blocked stream becomes "unblocked" again, this is a
         level operation that is only called once.
         """
 
         self.owner.trigger("on_available")
-        print("available %d" % self.identifier)
 
     def unavailable(self):
         """
-        Called whenever an unblocked stream becomes blocked again
-        this is called only upon the "edge" (once).
+        Called whenever an "unblocked" stream becomes "blocked" again
+        this is called only upon the "edge" (once). After this event
+        the stream should no longer send frames containing data.
         """
 
         self.owner.trigger("on_unavailable")
-        print("unavailable %d" % self.identifier)
 
     def set_encoding(self, encoding):
         self.current = encoding

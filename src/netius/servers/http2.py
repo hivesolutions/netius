@@ -635,6 +635,15 @@ class HTTP2Connection(http.HTTPConnection):
         return 0
 
     def flush_available(self):
+        """
+        Runs the (became) available flush operation that tries to determine
+        all the streams that were under the "blocked" state and became
+        unblocked, notifying them about that "edge" operation.
+        """
+
+        # iterates over the complete set of streams (identifiers) that are
+        # currently under the unavailable/blocked state, to try to determine
+        # if they became unblocked by the "current operation"
         for stream in netius.legacy.keys(self.unavailable):
             self.try_available(stream)
 
@@ -764,20 +773,70 @@ class HTTP2Connection(http.HTTPConnection):
         return True if stream and stream.is_open() else False
 
     def try_available(self, stream):
+        """
+        Tries to determine if the stream with the provided identifier
+        has just became available (unblocked from blocked state), this
+        happens when the required window value (either connection or
+        stream is increased properly).
+
+        :type stream: int
+        :param stream: The identifier of the stream that is going to
+        be tested from proper connection availability.
+        """
+
+        # verifies if the stream is currently present in the map of unavailable
+        # or blocked streams and if that's the case returns immediately as
+        # the connection is not blocked
         if not stream in self.unavailable: return
+
+        # tries to retrieve the stream object reference from the identifier and
+        # in case none is retrieved (probably stream closed) returns immediately
+        # and removes the stream from the map of unavailability
         _stream = self.parser._get_stream(stream, strict = False)
         if not _stream:
             del self.unavailable[stream]
             return
+
+        # tries to determine if the stream is available for the sending of at
+        # least one byte and if that's not the case returns immediately, not
+        # setting the stream as available
         if not self.available_stream(stream, 1, strict = False): return
+
+        # removes the stream from the map of unavailable stream and "notifies"
+        # the stream about the state changing operation to available/unblocked
         del self.unavailable[stream]
         _stream.available()
 
     def try_unavailable(self, stream):
+        """
+        Runs the unavailability test on the stream with the provided identifier
+        meaning that a series of validation will be performed to try to determine
+        if for some reason is not possible to send any more data frames to the
+        stream until some window changes. A stream that is under the unavailable
+        state is considered "blocked".
+
+        :type stream: int
+        :param stream: The identifier of the stream that is going to
+        be tested from proper connection unavailability.
+        """
+
+        # in case the stream identifier is already present in the unavailable
+        # map it cannot be marked as unavailable again
         if stream in self.unavailable: return
+
+        # tries to retrieve the reference to the stream object to be tested
+        # an in case none is found (connection closed) returns immediately
         _stream = self.parser._get_stream(stream, strict = False)
         if not _stream: return
+
+        # runs the proper availability verification by testing the capacity
+        # of the stream to send one byte and in case there's capacity to send
+        # that byte the stream is considered available or unblocked, so the
+        # control flow must be returned (stream not marked)
         if self.available_stream(stream, 1, strict = False): return
+
+        # marks the stream as unavailable and "notifies" the stream object
+        # about the changing to the unavailable/blocked state
         self.unavailable[stream] = True
         _stream.unavailable()
 
