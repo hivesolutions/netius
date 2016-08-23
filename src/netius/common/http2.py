@@ -999,7 +999,7 @@ class HTTP2Stream(netius.Stream):
         self.owner._del_stream(self.identifier)
 
         # runs the reset operation in the stream clearing all of its
-        # internal structure may avoid some memory leaks
+        # internal structures may avoid some memory leaks
         self.reset()
 
     def set_encoding(self, encoding):
