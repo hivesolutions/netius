@@ -92,6 +92,7 @@ class FileServer(netius.servers.HTTP2Server):
         if self.env: self.cache = self.get_env("CACHE", self.cache, cast = int)
         self.base_path = os.path.abspath(self.base_path)
         self.cache_d = datetime.timedelta(seconds = self.cache)
+        self.base_path = netius.legacy.u(self.base_path, force = True)
         self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
         if self.cors: self.info("Cross origin resource sharing is enabled")
         if self.cache: self.info("Resource cache set with %d seconds" % self.cache)
@@ -116,6 +117,7 @@ class FileServer(netius.servers.HTTP2Server):
             path = parser.get_path(normalize = True)
             path = netius.legacy.unquote(path)
             path = path.lstrip("/")
+            path = netius.legacy.u(path, force = True)
             path_f = os.path.join(self.base_path, path)
             path_f = os.path.abspath(path_f)
             path_f = os.path.normpath(path_f)
@@ -124,8 +126,7 @@ class FileServer(netius.servers.HTTP2Server):
             # it's required to decode the path into an unicode string, if that's
             # the case the normal decoding process is used using the currently
             # defined file system encoding as defined in the specification
-            is_unicode = netius.legacy.is_unicode(path_f)
-            if not is_unicode: path_f = path_f.decode("utf-8")
+            path_f = netius.legacy.u(path_f, encoding = "utf-8", force = True)
 
             # verifies if the provided path starts with the contents of the
             # base path in case it does not it's a security issue and a proper
@@ -263,8 +264,7 @@ class FileServer(netius.servers.HTTP2Server):
         buffer.append("</html>")
         data = "".join(buffer)
 
-        is_unicode = netius.legacy.is_unicode(data)
-        if is_unicode: data = data.encode("utf-8")
+        data = netius.legacy.bytes(data, encoding = "utf-8", force = True)
 
         connection.send_response(
             data = data,

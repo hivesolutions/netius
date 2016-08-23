@@ -1410,6 +1410,8 @@ class HTTP2Stream(netius.Stream):
         self.headers = headers_m
         self.method = headers_s.get(":method", None)
         self.path_s = headers_s.get(":path", None)
+        if self.method: self.method = str(self.method)
+        if self.path_s: self.path_s = str(self.path_s)
 
     def _build_b(self):
         """
