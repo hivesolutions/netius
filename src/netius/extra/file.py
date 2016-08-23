@@ -203,7 +203,7 @@ class FileServer(netius.servers.HTTP2Server):
             buffer.append("margin: 14px 0px 14px 0px;")
             buffer.append("}")
             buffer.append("a {")
-            buffer.append("color: #4078c0;")
+            buffer.append("color: #4769cc;")
             buffer.append("text-decoration: none;")
             buffer.append("}")
             buffer.append("a:hover {")
