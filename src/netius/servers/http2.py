@@ -752,6 +752,7 @@ class HTTP2Connection(http.HTTPConnection):
             # and then runs the send frame operation for the pending frame
             self.increment_remote(stream, payload_l * -1, all = True)
             self.send_frame(*args, **kwargs)
+            self.try_unavailable(stream)
 
         # returns the final result with a valid value meaning that all of the
         # flush operations have been successful (no frames pending in connection)
