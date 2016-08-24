@@ -470,10 +470,11 @@ class HTTP2Connection(http.HTTPConnection):
         flags = 0x00
         data_l = len(data)
         if end_stream: flags |= 0x01
+
         callback = self._build_c(callback, stream, data_l)
+
         if not self.available_stream(stream, data_l):
-            self.try_unavailable(stream)
-            return self.delay_frame(
+            count = self.delay_frame(
                 type = netius.common.DATA,
                 flags = flags,
                 payload = data,
@@ -481,9 +482,11 @@ class HTTP2Connection(http.HTTPConnection):
                 delay = delay,
                 callback = callback
             )
+            self.try_unavailable(stream)
+            return count
+
         self.increment_remote(stream, data_l * -1, all = True)
-        self.try_unavailable(stream)
-        return self.send_frame(
+        count = self.send_frame(
             type = netius.common.DATA,
             flags = flags,
             payload = data,
@@ -491,6 +494,8 @@ class HTTP2Connection(http.HTTPConnection):
             delay = delay,
             callback = callback
         )
+        self.try_unavailable(stream)
+        return count
 
     def send_headers(
         self,
@@ -634,22 +639,6 @@ class HTTP2Connection(http.HTTPConnection):
         # "immediately" by this method
         return 0
 
-    def flush_available(self):
-        """
-        Runs the (became) available flush operation that tries to determine
-        all the streams that were under the "blocked" state and became
-        "unblocked", notifying them about that "edge" operation.
-
-        This operation must be performed after any of the blocking constraints
-        is changed (eg: connection window, stream window, etc.).
-        """
-
-        # iterates over the complete set of streams (identifiers) that are
-        # currently under the unavailable/blocked state, to try to determine
-        # if they became unblocked by the "current operation"
-        for stream in netius.legacy.keys(self.unavailable):
-            self.try_available(stream)
-
     def flush_frames(self, all = True):
         """
         Runs the flush operation on the delayed/pending frames, meaning
@@ -738,6 +727,22 @@ class HTTP2Connection(http.HTTPConnection):
         # flush operations have been successful (no frames pending in connection)
         return True if offset == 0 else False
 
+    def flush_available(self):
+        """
+        Runs the (became) available flush operation that tries to determine
+        all the streams that were under the "blocked" state and became
+        "unblocked", notifying them about that "edge" operation.
+
+        This operation must be performed after any of the blocking constraints
+        is changed (eg: connection window, stream window, etc.).
+        """
+
+        # iterates over the complete set of streams (identifiers) that are
+        # currently under the unavailable/blocked state, to try to determine
+        # if they became unblocked by the "current operation"
+        for stream in netius.legacy.keys(self.unavailable):
+            self.try_available(stream)
+
     def set_settings(self, settings):
         self.settings_r.update(settings)
 
@@ -771,7 +776,7 @@ class HTTP2Connection(http.HTTPConnection):
         if not stream : return False
         return True if stream and stream.is_open() else False
 
-    def try_available(self, stream):
+    def try_available(self, stream, strict = True):
         """
         Tries to determine if the stream with the provided identifier
         has just became available (unblocked from blocked state), this
@@ -781,6 +786,9 @@ class HTTP2Connection(http.HTTPConnection):
         :type stream: int
         :param stream: The identifier of the stream that is going to
         be tested from proper connection availability.
+        :type strict: bool
+        :param strict: If the strict mode should be used in the availability
+        testing, this implies extra verifications.
         """
 
         # verifies if the stream is currently present in the map of unavailable
@@ -799,14 +807,14 @@ class HTTP2Connection(http.HTTPConnection):
         # tries to determine if the stream is available for the sending of at
         # least one byte and if that's not the case returns immediately, not
         # setting the stream as available
-        if not self.available_stream(stream, 1, strict = False): return
+        if not self.available_stream(stream, 1, strict = strict): return
 
         # removes the stream from the map of unavailable stream and "notifies"
         # the stream about the state changing operation to available/unblocked
         del self.unavailable[stream]
         _stream.available()
 
-    def try_unavailable(self, stream):
+    def try_unavailable(self, stream, strict = True):
         """
         Runs the unavailability test on the stream with the provided identifier
         meaning that a series of validation will be performed to try to determine
@@ -817,6 +825,9 @@ class HTTP2Connection(http.HTTPConnection):
         :type stream: int
         :param stream: The identifier of the stream that is going to
         be tested from proper connection unavailability.
+        :type strict: bool
+        :param strict: If the strict mode should be used in the availability
+        testing, this implies extra verifications.
         """
 
         # in case the stream identifier is already present in the unavailable
@@ -832,7 +843,7 @@ class HTTP2Connection(http.HTTPConnection):
         # of the stream to send one byte and in case there's capacity to send
         # that byte the stream is considered available or unblocked, so the
         # control flow must be returned (stream not marked)
-        if self.available_stream(stream, 1, strict = False): return
+        if self.available_stream(stream, 1, strict = strict): return
 
         # marks the stream as unavailable and "notifies" the stream object
         # about the changing to the unavailable/blocked state
