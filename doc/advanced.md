@@ -74,7 +74,7 @@ The results are a result of executing the benchmark on `servidor4.hive`.
 scu install go
 export GOPATH=~/go
 mkdir -p ~/go
-go get github.com/summerwind/h2spec/cmd/h2spec  
+go get github.com/summerwind/h2spec/cmd/h2spec
 ~/go/bin/h2spec -h localhost -p 9090 -t -k
 ```
 

@@ -41,7 +41,7 @@ import struct
 
 import netius.common
 
-from . import http
+import http
 
 class HTTP2Connection(http.HTTPConnection):
 
@@ -1102,13 +1102,13 @@ class HTTP2Server(http.HTTPServer):
             settings = self.settings
         )
 
-   # def on_exception(self, exception, connection):
-      #  if connection.legacy:
-      #      return http.HTTPServer.on_exception(self, exception, connection)
-      #  if not isinstance(exception, netius.NetiusError):
-      #      return http.HTTPServer.on_exception(self, exception, connection)
-      #  try: self._handle_exception(exception, connection)
-      #  except: connection.close()
+    def on_exception(self, exception, connection):
+        if connection.legacy:
+            return http.HTTPServer.on_exception(self, exception, connection)
+        if not isinstance(exception, netius.NetiusError):
+            return http.HTTPServer.on_exception(self, exception, connection)
+        try: self._handle_exception(exception, connection)
+        except: connection.close()
 
     def on_ssl(self, connection):
         http.HTTPServer.on_ssl(self, connection)
