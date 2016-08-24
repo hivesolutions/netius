@@ -171,6 +171,22 @@ HTTP2_SETTINGS_OPTIMAL_T = netius.legacy.items(HTTP2_SETTINGS_OPTIMAL)
 
 class HTTP2Parser(parser.Parser):
 
+    FIELDS = (
+        "_pid",
+        "store",
+        "file_limit",
+        "state",
+        "keep_alive",
+        "length",
+        "type",
+        "flags",
+        "stream",
+        "end_headers",
+        "last_type",
+        "last_stream",
+        "last_end_headers"
+    )
+
     def __init__(
         self,
         owner,
@@ -243,6 +259,23 @@ class HTTP2Parser(parser.Parser):
         self._max_stream = 0
         self._encoder = None
         self._decoder = None
+
+    def info_dict(self):
+        info = parser.Parser.info_dict(self)
+        info.update(
+            streams = self.info_streams()
+        )
+        return info
+
+    def info_streams(self):
+        info = []
+        keys = netius.legacy.keys(self.streams)
+        keys.sort()
+        for stream in keys:
+            stream = self.streams[stream]
+            item = stream.info_dict()
+            info.append(item)
+        return info
 
     def reset(
         self,
@@ -1001,6 +1034,40 @@ class HTTP2Stream(netius.Stream):
         # runs the reset operation in the stream clearing all of its
         # internal structures may avoid some memory leaks
         self.reset()
+
+    def info_dict(self, full = False):
+        info = netius.Stream.info_dict(self, full = full)
+        info.update(
+            identifier = self.identifier,
+            dependency = self.dependency,
+            weight = self.weight,
+            exclusive = self.exclusive,
+            end_headers = self.end_headers,
+            end_stream = self.end_stream,
+            end_stream_l = self.end_stream_l,
+            store = self.store,
+            file_limit = self.file_limit,
+            window = self.window,
+            window_m = self.window_m,
+            window_o = self.window_o,
+            window_l = self.window_l,
+            window_t = self.window_t,
+            pending_s = self.pending_s,
+            headers = self.headers,
+            method = self.method,
+            path_s = self.path_s,
+            version = self.version,
+            version_s = self.version_s,
+            encodings = self.encodings,
+            chunked = self.chunked,
+            keep_alive = self.keep_alive,
+            content_l = self.content_l,
+            frames = self.frames,
+            available = self.connection.available_stream(self.identifier, 1),
+            exhausted = self.is_exhausted(),
+            restored = self.is_restored()
+        )
+        return info
 
     def available(self):
         """

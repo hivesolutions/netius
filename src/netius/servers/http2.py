@@ -71,6 +71,17 @@ class HTTP2Connection(http.HTTPConnection):
         http.HTTPConnection.open(self, *args, **kwargs)
         if not self.legacy: self.set_h2()
 
+    def info_dict(self, full = False):
+        info = http.HTTPConnection.info_dict(self, full = full)
+        info.update(
+            legacy = self.legacy,
+            window = self.window,
+            window_o = self.window_o,
+            window_l = self.window_l,
+            window_t = self.window_t
+        )
+        return info
+
     def set_h2(self):
         self.legacy = False
         if self.parser: self.parser.destroy()
@@ -467,12 +478,19 @@ class HTTP2Connection(http.HTTPConnection):
         delay = False,
         callback = None
     ):
+        # builds the flags byte taking into account the various
+        # options that have been passed to the sending of data
         flags = 0x00
         data_l = len(data)
         if end_stream: flags |= 0x01
 
+        # builds the callback clojure so that the connection state
+        # is properly updated upon the sending of data
         callback = self._build_c(callback, stream, data_l)
 
+        # verifies if the stream is available for the amount of data
+        # that is currently being sent and if that's not the case delays
+        # the sending of the frame to when the stream becomes available
         if not self.available_stream(stream, data_l):
             count = self.delay_frame(
                 type = netius.common.DATA,
@@ -485,7 +503,12 @@ class HTTP2Connection(http.HTTPConnection):
             self.try_unavailable(stream)
             return count
 
+        # runs the increments remove window value, decrementing the window
+        # by the size of the data being sent
         self.increment_remote(stream, data_l * -1, all = True)
+
+        # runs the "proper" sending of the data frame, registering the callback
+        # with the expected clojure
         count = self.send_frame(
             type = netius.common.DATA,
             flags = flags,
@@ -494,7 +517,13 @@ class HTTP2Connection(http.HTTPConnection):
             delay = delay,
             callback = callback
         )
+
+        # runs the try unavailable method to verify if the stream did became
+        # unavailable after the sending of the data
         self.try_unavailable(stream)
+
+        # returns the final number of bytes sent to the called method, this should
+        # match the value of the data length
         return count
 
     def send_headers(

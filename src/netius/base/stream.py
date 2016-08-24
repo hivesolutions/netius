@@ -80,6 +80,12 @@ class Stream(observer.Observable):
         self.status = CLOSED
         self.connection.owner.on_stream_d(self)
 
+    def info_dict(self, full = False):
+        info = dict(
+            status = self.status
+        )
+        return info
+
     def is_open(self):
         return self.status == OPEN
 
