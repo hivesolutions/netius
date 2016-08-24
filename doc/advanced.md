@@ -38,14 +38,45 @@ regarding problems and solutions for Python 3 and WSGI.
 
 ## Benchmarks
 
+### Apache Benchmark (ab)
+
+To install `ab` run `scu install apache`.
+
 Running `ab -n 20000 -c 5 -k http://localhost:9090/` should achieve the following results:
 
-* `HelloServer` - 14.3 K req/sec
-* `WSGIServer` - 9.6 K req/sec
+* HelloServer `PORT=9090 python -m netius.extra.hello` - 14.3 K req/sec
+* WSGIServer `PORT=9090 python -m netius.servers.wsgi` - 9.6 K req/sec
 
-These values have been verified for commit #38eab1f running in Python 2.7.11.
+### h2Load Benchmark
 
-The results are a resolut of executing the benchmark on `servidor4.hive`.
+To install `h2load` run `scu install nghttp2`.
+
+Running `h2load -n20000 -c5 -m100 --h1 http://localhost:9090` should achieve the following results:
+
+* HelloServer `PORT=9090 python -m netius.extra.hello` - 13.4 K req/sec
+
+Using multiple children the results should increase in a linear way:
+
+* HelloServer `CHILDREN=4 PORT=9090 python -m netius.extra.hello` - 29.6 K req/sec
+* HelloServer PyPy `CHILDREN=4 PORT=9090 pypy -m netius.extra.hello` - 170.7 K req/sec
+
+### Notes
+
+These values have been verified for commit #008ba53 running in Python 2.7.11.
+
+The results are a result of executing the benchmark on `servidor4.hive`.
+
+## Compliance
+
+### HTTP2
+
+```
+scu install go
+export GOPATH=~/go
+mkdir -p ~/go
+go get github.com/summerwind/h2spec/cmd/h2spec  
+~/go/bin/h2spec -h localhost -p 9090 -t -k
+```
 
 ## Cryptography
 
