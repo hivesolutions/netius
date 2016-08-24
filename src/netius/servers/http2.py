@@ -957,8 +957,8 @@ class HTTP2Connection(http.HTTPConnection):
 
     def on_window_update(self, stream, increment):
         self.increment_remote(stream and stream.identifier, increment)
-        self.flush_available()
         self.flush_frames()
+        self.flush_available()
         self.owner.on_window_update_http2(self, self.parser, stream, increment)
 
     def on_continuation(self, stream):
