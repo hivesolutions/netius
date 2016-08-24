@@ -344,13 +344,14 @@ class SMTPConnection(netius.Connection):
     def to_s(self):
         return ", ".join(["<%s>" % email[3:].strip()[1:-1] for email in self.to_l])
 
-    def received_s(self):
+    def received_s(self, for_s = False):
         to_s = self.to_s()
         date_time = datetime.datetime.utcfromtimestamp(self.time)
         date_s = date_time.strftime("%a, %d %b %Y %H:%M:%S +0000")
         return "from %s " % self.chost +\
             "by %s (netius) with ESMTP id %s " % (self.host, self.identifier) +\
-            "for %s; %s" % (to_s, date_s)
+            "for %s" % to_s if for_s else "" +\
+            "; %s" % (to_s, date_s)
 
 class SMTPServer(netius.StreamServer):
 
