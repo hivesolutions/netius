@@ -79,7 +79,7 @@ class HTTP2Connection(http.HTTPConnection):
             window_o = self.window_o,
             window_l = self.window_l,
             window_t = self.window_t,
-            frames = self.frames[1]["payload"]
+            frames = [value[1]["payload"] for value in self.frames]
         )
         return info
 
