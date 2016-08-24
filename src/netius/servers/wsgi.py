@@ -294,7 +294,6 @@ class WSGIServer(http2.HTTP2Server):
         else: connection.send_part(
             data,
             final = False,
-            delay = True,
             callback = self._send_part
         )
 

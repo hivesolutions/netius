@@ -210,7 +210,7 @@ class SMTPConnection(netius.Connection):
     def parse(self, data):
         return self.parser.parse(data)
 
-    def send_smtp(self, code, message = "", delay = False, callback = None):
+    def send_smtp(self, code, message = "", delay = True, callback = None):
         base = "%s %s" % (code, message)
         data = base + "\r\n"
         count = self.send(data, delay = delay, callback = callback)

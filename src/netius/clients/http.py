@@ -142,7 +142,7 @@ class HTTPConnection(netius.Connection):
         data,
         stream = None,
         final = True,
-        delay = False,
+        delay = True,
         force = False,
         callback = None
     ):
@@ -189,7 +189,7 @@ class HTTPConnection(netius.Connection):
         data,
         stream = None,
         final = True,
-        delay = False,
+        delay = True,
         force = False,
         callback = None
     ):
@@ -205,7 +205,7 @@ class HTTPConnection(netius.Connection):
         data,
         stream = None,
         final = True,
-        delay = False,
+        delay = True,
         force = False,
         callback = None
     ):
@@ -251,7 +251,7 @@ class HTTPConnection(netius.Connection):
         data,
         stream = None,
         final = True,
-        delay = False,
+        delay = True,
         force = False,
         callback = None,
         level = 6

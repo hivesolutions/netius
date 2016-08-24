@@ -103,7 +103,7 @@ class FTPConnection(netius.Connection):
     def parse(self, data):
         return self.parser.parse(data)
 
-    def send_ftp(self, code, message = "", lines = (), simple = False, delay = False, callback = None):
+    def send_ftp(self, code, message = "", lines = (), simple = False, delay = True, callback = None):
         if lines: return self.send_ftp_lines(
             code,
             message = message,
@@ -119,14 +119,14 @@ class FTPConnection(netius.Connection):
             callback
         )
 
-    def send_ftp_base(self, code, message = "", delay = False, callback = None):
+    def send_ftp_base(self, code, message = "", delay = True, callback = None):
         base = "%d %s" % (code, message)
         data = base + "\r\n"
         count = self.send(data, delay = delay, callback = callback)
         self.owner.debug(base)
         return count
 
-    def send_ftp_lines(self, code, message = "", lines = (), simple = False, delay = False, callback = None):
+    def send_ftp_lines(self, code, message = "", lines = (), simple = False, delay = True, callback = None):
         lines = list(lines)
         if not simple: lines.insert(0, message)
         body = lines[:-1]
@@ -344,7 +344,7 @@ class FTPConnection(netius.Connection):
         self.bytes_p -= data_l
         is_final = not data or self.bytes_p == 0
         callback = self._file_finish if is_final else self._file_send
-        self.data_server.send_ftp(data, delay = True, callback = callback)
+        self.data_server.send_ftp(data, callback = callback)
 
     def _file_finish(self, connection):
         self.file.close()
@@ -448,7 +448,7 @@ class FTPDataServer(netius.StreamServer):
         netius.StreamServer.on_data(self, connection, data)
         self.connection.data_ftp(data)
 
-    def send_ftp(self, data, delay = False, force = False, callback = None):
+    def send_ftp(self, data, delay = True, force = False, callback = None):
         if not self.accepted: raise netius.DataError("No connection accepted")
         return self.accepted.send(data, delay = delay, force = force, callback = callback)
 

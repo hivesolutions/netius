@@ -115,7 +115,7 @@ class SMTPConnection(netius.Connection):
         elif self.state == PASSWORD_STATE: self.on_password(data)
         else: return self.parser.parse(data)
 
-    def send_smtp(self, code, message = "", lines = (), delay = False, callback = None):
+    def send_smtp(self, code, message = "", lines = (), delay = True, callback = None):
         if lines: return self.send_smtp_lines(
             code,
             message = message,
@@ -130,14 +130,14 @@ class SMTPConnection(netius.Connection):
             callback
         )
 
-    def send_smtp_base(self, code, message = "", delay = False, callback = None):
+    def send_smtp_base(self, code, message = "", delay = True, callback = None):
         base = "%d %s" % (code, message)
         data = base + "\r\n"
         count = self.send(data, delay = delay, callback = callback)
         self.owner.debug(base)
         return count
 
-    def send_smtp_lines(self, code, message = "", lines = (), delay = False, callback = None):
+    def send_smtp_lines(self, code, message = "", lines = (), delay = True, callback = None):
         lines = list(lines)
         lines.insert(0, message)
         body = lines[:-1]

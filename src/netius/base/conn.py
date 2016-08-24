@@ -369,7 +369,7 @@ class BaseConnection(observer.Observable):
         self.renable = False
         self.owner.unsub_read(self.socket)
 
-    def send(self, data, delay = False, force = False, callback = None):
+    def send(self, data, delay = True, force = False, callback = None):
         """
         The main send call to be used by a proxy connection and
         from different threads.
@@ -447,9 +447,15 @@ class BaseConnection(observer.Observable):
         if self.wready:
             # checks if the safe flag is set and if it is runs
             # the send operation right way otherwise "waits" until
-            # the next tick operation (delayed execution)
+            # the next tick operation (delayed execution), note that
+            # running the flush operation immediately may lead to
+            # typical stack overflow errors (due to recursion limit)
             if is_safe and not delay: self._flush_write()
-            else: self.owner.delay(self._flush_write, verify = True)
+            else: self.owner.delay(
+                self._flush_write,
+                immediately = True,
+                verify = True
+            )
 
         # otherwise the write stream is not ready and so the
         # connection must be ensured to be write ready, should

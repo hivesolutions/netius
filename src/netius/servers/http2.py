@@ -163,7 +163,7 @@ class HTTP2Connection(http.HTTPConnection):
         data,
         stream = None,
         final = True,
-        delay = False,
+        delay = True,
         callback = None
     ):
         if self.legacy: return http.HTTPConnection.send_plain(
@@ -204,7 +204,7 @@ class HTTP2Connection(http.HTTPConnection):
         data,
         stream = None,
         final = True,
-        delay = False,
+        delay = True,
         callback = None
     ):
         if self.legacy: return http.HTTPConnection.send_chunked(
@@ -228,7 +228,7 @@ class HTTP2Connection(http.HTTPConnection):
         data,
         stream = None,
         final = True,
-        delay = False,
+        delay = True,
         callback = None
     ):
         count = 0
@@ -268,7 +268,7 @@ class HTTP2Connection(http.HTTPConnection):
         stream = None,
         final = True,
         flush = True,
-        delay = False,
+        delay = True,
         callback = None
     ):
         # in case the legacy mode is enabled the send response call is
@@ -341,7 +341,7 @@ class HTTP2Connection(http.HTTPConnection):
         code_s = None,
         stream = None,
         final = False,
-        delay = False,
+        delay = True,
         callback = None
     ):
         # in case the legacy mode is enabled the send header call is
@@ -408,7 +408,7 @@ class HTTP2Connection(http.HTTPConnection):
         stream = None,
         final = True,
         flush = False,
-        delay = False,
+        delay = True,
         callback = None
     ):
         if self.legacy: return http.HTTPConnection.send_part(
@@ -460,7 +460,7 @@ class HTTP2Connection(http.HTTPConnection):
         flags = 0x00,
         payload = b"",
         stream = 0x00,
-        delay = False,
+        delay = True,
         callback = None
     ):
         size = len(payload)
@@ -476,7 +476,7 @@ class HTTP2Connection(http.HTTPConnection):
         data = b"",
         end_stream = True,
         stream = None,
-        delay = False,
+        delay = True,
         callback = None
     ):
         # builds the flags byte taking into account the various
@@ -533,7 +533,7 @@ class HTTP2Connection(http.HTTPConnection):
         end_stream = False,
         end_headers = True,
         stream = None,
-        delay = False,
+        delay = True,
         callback = None
     ):
         flags = 0x00
@@ -553,7 +553,7 @@ class HTTP2Connection(http.HTTPConnection):
         self,
         error_code = 0x00,
         stream = None,
-        delay = False,
+        delay = True,
         callback = None
     ):
         payload = struct.pack("!I", error_code)
@@ -569,7 +569,7 @@ class HTTP2Connection(http.HTTPConnection):
         self,
         settings = (),
         ack = False,
-        delay = False,
+        delay = True,
         callback = None
     ):
         flags = 0x00
@@ -591,7 +591,7 @@ class HTTP2Connection(http.HTTPConnection):
         self,
         opaque = b"\0\0\0\0\0\0\0\0",
         ack = False,
-        delay = False,
+        delay = True,
         callback = None
     ):
         flags = 0x00
@@ -610,7 +610,7 @@ class HTTP2Connection(http.HTTPConnection):
         error_code = 0x00,
         message = "",
         close = True,
-        delay = False,
+        delay = True,
         callback = None
     ):
         if close:
@@ -634,7 +634,7 @@ class HTTP2Connection(http.HTTPConnection):
         self,
         increment = 0,
         stream = None,
-        delay = False,
+        delay = True,
         callback = None
     ):
         payload = struct.pack("!I", increment)

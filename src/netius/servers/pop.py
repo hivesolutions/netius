@@ -99,7 +99,7 @@ class POPConnection(netius.Connection):
         if self.state == AUTH_STATE: self.on_user(data)
         else: return self.parser.parse(data)
 
-    def send_pop(self, message = "", lines = (), status = "OK", delay = False, callback = None):
+    def send_pop(self, message = "", lines = (), status = "OK", delay = True, callback = None):
         status_s = "+" + status if status == "OK" else "-" + status
         base = "%s %s" % (status_s, message)
         data = base + "\r\n"
@@ -169,7 +169,7 @@ class POPConnection(netius.Connection):
             if not connection.file: return
             file = connection.file
             contents = file.read(CHUNK_SIZE)
-            if contents: self.send(contents, delay = True, callback = callback)
+            if contents: self.send(contents, callback = callback)
             else: self.send("\r\n.\r\n"); file.close(); connection.file = None
         self.owner.on_retr_pop(self, index)
         message = "%d octets" % self.size

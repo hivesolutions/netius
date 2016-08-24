@@ -510,7 +510,7 @@ class DatagramServer(Server):
         self.renable = False
         self.unsub_read(self.socket)
 
-    def send(self, data, address, delay = False, callback = None):
+    def send(self, data, address, delay = True, callback = None):
         data = legacy.bytes(data)
         data_l = len(data)
 
@@ -529,7 +529,11 @@ class DatagramServer(Server):
 
         if self.wready:
             if is_safe and not delay: self._flush_write()
-            else: self.delay(self._flush_write, verify = True)
+            else: self.delay(
+                self._flush_write,
+                immediately = True,
+                verify = True
+            )
         else:
             self.ensure_write()
 

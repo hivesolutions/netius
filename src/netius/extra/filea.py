@@ -84,7 +84,6 @@ class FileAsyncServer(_file.FileServer):
             connection.send_part(
                 data,
                 final = False,
-                delay = True,
                 callback = callback
             )
 

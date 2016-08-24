@@ -138,7 +138,7 @@ class HTTPConnection(netius.Connection):
         data,
         stream = None,
         final = True,
-        delay = False,
+        delay = True,
         callback = None
     ):
         data = netius.legacy.bytes(data) if data else data
@@ -183,7 +183,7 @@ class HTTPConnection(netius.Connection):
         data,
         stream = None,
         final = True,
-        delay = False,
+        delay = True,
         callback = None
     ):
         return self.send(
@@ -197,7 +197,7 @@ class HTTPConnection(netius.Connection):
         data,
         stream = None,
         final = True,
-        delay = False,
+        delay = True,
         callback = None
     ):
         # in case there's no valid data to be sent uses the plain
@@ -240,7 +240,7 @@ class HTTPConnection(netius.Connection):
         data,
         stream = None,
         final = True,
-        delay = False,
+        delay = True,
         callback = None,
         level = 6
     ):
@@ -289,7 +289,7 @@ class HTTPConnection(netius.Connection):
         stream = None,
         final = True,
         flush = True,
-        delay = False,
+        delay = True,
         callback = None
     ):
         # retrieves the various parts that define the response
@@ -345,7 +345,7 @@ class HTTPConnection(netius.Connection):
         code_s = None,
         stream = None,
         final = False,
-        delay = False,
+        delay = True,
         callback = None
     ):
         # retrieves the various parts that define the response
@@ -382,7 +382,7 @@ class HTTPConnection(netius.Connection):
         stream = None,
         final = True,
         flush = False,
-        delay = False,
+        delay = True,
         callback = None
     ):
         if flush: count = self.send_base(data); self.flush(callback = callback)
