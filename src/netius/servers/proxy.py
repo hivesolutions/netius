@@ -269,6 +269,7 @@ class ProxyServer(http2.HTTP2Server):
         if not proxy_c.renable == False: return
         if not connection.is_restored(): return
         proxy_c.enable_read()
+        self.reads((proxy_c.socket,), state = False)
 
     def on_unavailable(self, connection, parser):
         proxy_c = connection.proxy_c
