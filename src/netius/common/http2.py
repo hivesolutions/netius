@@ -1094,13 +1094,13 @@ class HTTP2Stream(netius.Stream):
     def set_encoding(self, encoding):
         self.current = encoding
 
-    def is_exhausted(self, extended = False):
-        if extended and self.pending_s > self.connection.max_pending: return True
+    def is_exhausted(self):
+        if self.pending_s > self.connection.max_pending: return True
         if not self.connection.available_stream(self.identifier, 1): return True
         return False
 
-    def is_restored(self, extended = False):
-        if extended and self.pending_s > self.connection.min_pending: return False
+    def is_restored(self):
+        if self.pending_s > self.connection.min_pending: return False
         if not self.connection.available_stream(self.identifier, 1): return False
         return True
 
