@@ -51,10 +51,6 @@ Using multiple children the results should increase in a linear way:
 * `HelloServer (CHILDREN=4 PORT=9090 python -m netius.extra.hello)` - 29.6 K req/sec
 * `HelloServer PyPy (CHILDREN=4 PORT=9090 pypy -m netius.extra.hello)` - 170.7 K req/sec
 
-These values have been verified for commit #38eab1f running in Python 2.7.11.
-
-The results are a result of executing the benchmark on `servidor4.hive`.
-
 ### h2Load Benchmark
 
 To install `h2load` run `scu install nghttp2`.
@@ -64,8 +60,9 @@ Running `h2load -n20000 -c5 -m100 --h1 http://localhost:9090` should achieve the
 * `HelloServer (PORT=9090 python -m netius.extra.hello)` - 13.4 K req/sec
 * `WSGIServer (PORT=9090 python -m netius.servers.wsgi)` - 9.6 K req/sec
 
-These values have been verified for commit #008ba53 running in Python 2.7.11.
+### Notes
 
+These values have been verified for commit #008ba53 running in Python 2.7.11.
 The results are a result of executing the benchmark on `servidor4.hive`.
 
 ## Compliance
