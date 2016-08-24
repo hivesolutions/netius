@@ -44,8 +44,8 @@ To install `ab` run `scu install apache`.
 
 Running `ab -n 20000 -c 5 -k http://localhost:9090/` should achieve the following results:
 
-* `HelloServer` - 14.3 K req/sec
-* `WSGIServer` - 9.6 K req/sec
+* `HelloServer (PORT=9090 python -m netius.extra.hello)` - 14.3 K req/sec
+* `WSGIServer (PORT=9090 python -m netius.servers.wsgi)` - 9.6 K req/sec
 
 These values have been verified for commit #38eab1f running in Python 2.7.11.
 
@@ -55,10 +55,14 @@ The results are a result of executing the benchmark on `servidor4.hive`.
 
 To install `h2load` run `scu install nghttp2`.
 
-Running `h2load -n20000 -c5 -m100 https://localhost:9090/` should achieve the following results:
+Running `h2load -n20000 -c5 -m100 --h1 http://localhost:9090` should achieve the following results:
 
-* `HelloServer` - 14.3 K req/sec
-* `WSGIServer` - 9.6 K req/sec
+* `HelloServer (PORT=9090 python -m netius.extra.hello)` - 13.4 K req/sec
+* `WSGIServer (PORT=9090 python -m netius.servers.wsgi)` - 9.6 K req/sec
+
+These values have been verified for commit 008ba536abf9cc54d0c0e0bc25fbf38ca81c691e running in Python 2.7.11.
+
+The results are a result of executing the benchmark on `servidor4.hive`.
 
 ## Compliance
 
