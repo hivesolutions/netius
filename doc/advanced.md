@@ -63,6 +63,7 @@ Using multiple children the results should increase in a linear way:
 ### Notes
 
 These values have been verified for commit #008ba53 running in Python 2.7.11.
+
 The results are a result of executing the benchmark on `servidor4.hive`.
 
 ## Compliance
