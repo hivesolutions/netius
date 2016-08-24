@@ -351,7 +351,7 @@ class SMTPConnection(netius.Connection):
         return "from %s " % self.chost +\
             "by %s (netius) with ESMTP id %s" % (self.host, self.identifier) +\
             " for %s" % to_s if for_s else "" +\
-            "; %s" % (to_s, date_s)
+            "; %s" % date_s
 
 class SMTPServer(netius.StreamServer):
 
