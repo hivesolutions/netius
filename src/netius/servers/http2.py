@@ -78,7 +78,8 @@ class HTTP2Connection(http.HTTPConnection):
             window = self.window,
             window_o = self.window_o,
             window_l = self.window_l,
-            window_t = self.window_t
+            window_t = self.window_t,
+            frames = len(self.frames)
         )
         return info
 
