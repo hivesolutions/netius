@@ -988,6 +988,7 @@ class HTTP2Stream(netius.Stream):
         self.keep_alive = True
         self.content_l = -1
         self.frames = 0
+        self._available = True
         self._data_b = None
         self._data_l = -1
 
@@ -1065,7 +1066,8 @@ class HTTP2Stream(netius.Stream):
             frames = self.frames,
             available = self.connection.available_stream(self.identifier, 1),
             exhausted = self.is_exhausted(),
-            restored = self.is_restored()
+            restored = self.is_restored(),
+            _available = self._available
         )
         return info
 
@@ -1076,6 +1078,7 @@ class HTTP2Stream(netius.Stream):
         level operation that is only called once.
         """
 
+        self._available = True
         self.owner.trigger("on_available")
 
     def unavailable(self):
@@ -1085,6 +1088,7 @@ class HTTP2Stream(netius.Stream):
         the stream should no longer send frames containing data.
         """
 
+        self._available = False
         self.owner.trigger("on_unavailable")
 
     def set_encoding(self, encoding):
