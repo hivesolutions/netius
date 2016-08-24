@@ -38,7 +38,9 @@ regarding problems and solutions for Python 3 and WSGI.
 
 ## Benchmarks
 
-### Apache Benchmark
+### Apache Benchmark (ab)
+
+To install `ab` run `scu install apache`.
 
 Running `ab -n 20000 -c 5 -k http://localhost:9090/` should achieve the following results:
 
@@ -51,7 +53,9 @@ The results are a result of executing the benchmark on `servidor4.hive`.
 
 ### h2Load Benchmark
 
-`h2load -n200000 -c10 -m100 https://localhost:9090/`
+To install `h2load` run `scu install nghttp2`.
+
+Running `h2load -n20000 -c5 -m100 https://localhost:9090/` should achieve the following results:
 
 * `HelloServer` - 14.3 K req/sec
 * `WSGIServer` - 9.6 K req/sec
