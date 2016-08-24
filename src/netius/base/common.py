@@ -315,6 +315,7 @@ class AbstractBase(observer.Observable):
         self.connections_m = {}
         self._uuid = uuid.uuid4()
         self._lid = 0
+        self._did = 0
         self._main = False
         self._running = False
         self._pausing = False
@@ -379,10 +380,15 @@ class AbstractBase(observer.Observable):
         # creates the "final" callable tuple with the target time, the
         # callable and the loop id (lid) then inserts both the delayed
         # (original) callable tuple and the callable tuple in the lists
-        callable_t = (target, callable, self._lid)
+        callable_t = (target, self._did, callable, self._lid)
         callable_t = legacy.orderable(callable_t)
         heapq.heappush(self._delayed, callable_t)
         heapq.heappush(self._delayed_o, callable_o)
+
+        # increments the "delay" identifier by one, this identifier is
+        # used to correctly identify a delayed object so that for the
+        # same target value a sorting is performed (fifo like)
+        self._did += 1
 
     def delay_s(self, callable):
         """
@@ -1702,7 +1708,7 @@ class AbstractBase(observer.Observable):
             # unpacks the current callable tuple in iteration into a
             # target (timestamp value) and a method to be called in
             # case the target timestamp is valid (in the past)
-            target, method, lid = callable_t
+            target, _did, method, lid = callable_t
 
             # tests if the current target is valid (less than or
             # equals to the current time value) and in case it's
@@ -1729,6 +1735,10 @@ class AbstractBase(observer.Observable):
             # the current list of delayed object (causing cycles) and so
             # must be implemented with the proper precautions
             method()
+
+        # in case the delayed list is empty resets the delay id so that
+        # it never gets into a very large number, would break performance
+        if not self._delayed: self._did = 0
 
         # iterates over all the pending callable tuple values and adds
         # them back to the delayed heap list so that they are called
