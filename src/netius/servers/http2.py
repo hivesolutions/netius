@@ -708,6 +708,11 @@ class HTTP2Connection(http.HTTPConnection):
             payload = kwargs["payload"]
             payload_l = len(payload)
 
+            # verifies that the stream is currently place in the list of
+            # stream that are considered unavailable as this is a state
+            # required for proper execution
+            netius.common.verify(stream in self.unavailable)
+
             # verifies if the stream associated with the frame to be
             # sent is in the started map and if that's the case continue
             # the current loop immediately (cannot flush frame)
@@ -726,6 +731,10 @@ class HTTP2Connection(http.HTTPConnection):
                 self.frames.pop(offset)
                 if _stream: _stream.frames -= 1
                 continue
+
+            # makes sure that the stream is currently marked as not available
+            # this should be the state for every stream that has pending frames
+            netius.common.verify(not _stream._available)
 
             # verifies if there's available "space" in the stream flow
             # to send the current payload and in case there's not breaks
@@ -752,7 +761,6 @@ class HTTP2Connection(http.HTTPConnection):
             # and then runs the send frame operation for the pending frame
             self.increment_remote(stream, payload_l * -1, all = True)
             self.send_frame(*args, **kwargs)
-            self.try_unavailable(stream)
 
         # returns the final result with a valid value meaning that all of the
         # flush operations have been successful (no frames pending in connection)
