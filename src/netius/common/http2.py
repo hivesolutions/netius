@@ -1287,9 +1287,13 @@ class HTTP2Stream(netius.Stream):
         return self.encodings
 
     def fragment(self, data):
-        if self.window < self.window_m:
-            yield data[:self.window]
-            data = data[self.window:]
+        reference = min(
+            self.connection.window,
+            self.window,
+            self.window_m
+        )
+        yield data[:reference]
+        data = data[reference:]
         while data:
             yield data[:self.window_m]
             data = data[self.window_m:]
