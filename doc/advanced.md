@@ -38,6 +38,8 @@ regarding problems and solutions for Python 3 and WSGI.
 
 ## Benchmarks
 
+### Apache Benchmark
+
 Running `ab -n 20000 -c 5 -k http://localhost:9090/` should achieve the following results:
 
 * `HelloServer` - 14.3 K req/sec
@@ -45,7 +47,26 @@ Running `ab -n 20000 -c 5 -k http://localhost:9090/` should achieve the followin
 
 These values have been verified for commit #38eab1f running in Python 2.7.11.
 
-The results are a resolut of executing the benchmark on `servidor4.hive`.
+The results are a result of executing the benchmark on `servidor4.hive`.
+
+### h2Load Benchmark
+
+`h2load -n200000 -c10 -m100 https://localhost:9090/`
+
+* `HelloServer` - 14.3 K req/sec
+* `WSGIServer` - 9.6 K req/sec
+
+## Compliance
+
+### HTTP2
+
+```
+scu install go
+export GOPATH=~/go
+mkdir -p ~/go
+go get github.com/summerwind/h2spec/cmd/h2spec  
+~/go/bin/h2spec -h localhost -p 9090 -t -k
+```
 
 ## Cryptography
 
