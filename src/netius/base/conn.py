@@ -611,7 +611,7 @@ class BaseConnection(observer.Observable):
             # exists and no access to the pending is prevented
             self.pending_lock.release()
 
-        # removes the current connection from the set of connection
+        # removes the current connection from the set of connections
         # that are monitored for any write event (no longer required)
         self.remove_write()
 
