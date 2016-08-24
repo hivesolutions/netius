@@ -468,6 +468,11 @@ class DatagramServer(Server):
 
     def on_exception(self, exception):
         print(exception)
+        import traceback
+        print "Exception in user code:"
+        print '-'*60
+        traceback.print_exc(file=sys.stdout)
+        print '-'*60
         #self.warning(exception)
         #self.log_stack()
 
@@ -756,12 +761,23 @@ class StreamServer(Server):
 
     def on_exception(self, exception, connection):
         print(exception)
+        import traceback
+        print "Exception in user code:"
+        print '-'*60
+        traceback.print_exc(file=sys.stdout)
+        print '-'*60
         #self.warning(exception)
         #self.log_stack()
         #connection.close()
 
     def on_exception_s(self, exception):
         print(exception)
+        import traceback
+        print "Exception in user code:"
+        print '-'*60
+        traceback.print_exc(file=sys.stdout)
+        print '-'*60
+
         #self.warning(exception)
         #self.log_stack()
 
