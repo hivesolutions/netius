@@ -1736,16 +1736,16 @@ class AbstractBase(observer.Observable):
             # must be implemented with the proper precautions
             method()
 
-        # in case the delayed list is empty resets the delay id so that
-        # it never gets into a very large number, would break performance
-        if not self._delayed: self._did = 0
-
         # iterates over all the pending callable tuple values and adds
         # them back to the delayed heap list so that they are called
         # latter on (not ready to be called now)
         for pending, pending_o in zip(pendings, pendings_o):
             heapq.heappush(self._delayed, pending)
             heapq.heappush(self._delayed_o, pending_o)
+
+        # in case the delayed list is empty resets the delay id so that
+        # it never gets into a very large number, would break performance
+        if not self._delayed: self._did = 0
 
     def _generate(self, hashed = True):
         """
