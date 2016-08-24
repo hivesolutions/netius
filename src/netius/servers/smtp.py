@@ -350,7 +350,7 @@ class SMTPConnection(netius.Connection):
         date_s = date_time.strftime("%a, %d %b %Y %H:%M:%S +0000")
         return "from %s " % self.chost +\
             "by %s (netius) with ESMTP id %s" % (self.host, self.identifier) +\
-            " for %s" % to_s if for_s else "" +\
+            (" for %s" % to_s if for_s else "") +\
             "; %s" % date_s
 
 class SMTPServer(netius.StreamServer):
