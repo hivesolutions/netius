@@ -262,6 +262,7 @@ class FileServer(netius.servers.HTTP2Server):
 
             is_dir = os.path.isdir(path_f)
             item_s = item_s + "/" if is_dir else item_s
+            item_q = netius.legacy.quote(item_s)
 
             _time = os.path.getmtime(path_f)
             date_time = datetime.datetime.utcfromtimestamp(_time)
@@ -280,7 +281,7 @@ class FileServer(netius.servers.HTTP2Server):
             buffer.append("<tr>")
             buffer.append("<td>")
             if style: buffer.append(icon)
-            buffer.append("<a href=\"%s\">%s</a>" % (item_s, item_s))
+            buffer.append("<a href=\"%s\">%s</a>" % (item_q, item_s))
             buffer.append("</td>")
             buffer.append("<td>%s</td>" % time_s)
             buffer.append("<td>%s</td>" % size_s)
