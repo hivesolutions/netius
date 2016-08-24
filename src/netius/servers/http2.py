@@ -41,7 +41,7 @@ import struct
 
 import netius.common
 
-import http
+from . import http
 
 class HTTP2Connection(http.HTTPConnection):
 
