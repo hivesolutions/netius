@@ -467,8 +467,9 @@ class DatagramServer(Server):
         pass
 
     def on_exception(self, exception):
-        self.warning(exception)
-        self.log_stack()
+        print(exception)
+        #self.warning(exception)
+        #self.log_stack()
 
     def on_expected(self, exception):
         self.debug(exception)
@@ -754,13 +755,15 @@ class StreamServer(Server):
         connection.close()
 
     def on_exception(self, exception, connection):
-        self.warning(exception)
-        self.log_stack()
-        connection.close()
+        print(exception)
+        #self.warning(exception)
+        #self.log_stack()
+        #connection.close()
 
     def on_exception_s(self, exception):
-        self.warning(exception)
-        self.log_stack()
+        print(exception)
+        #self.warning(exception)
+        #self.log_stack()
 
     def on_expected(self, exception, connection):
         self.debug(exception)
