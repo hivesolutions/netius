@@ -192,7 +192,7 @@ class FileServer(netius.servers.HTTP2Server):
             buffer.append("@import \"https://fonts.googleapis.com/css?family=Open+Sans\";")
             buffer.append("body {")
             buffer.append("color: #2d2d2d;")
-            buffer.append("font-family: \"Segoe UI\", \"Roboto\", \"Open Sans\", \"Helvetica\", \"Arial\", sans-serif;")
+            buffer.append("font-family: -apple-system, \"BlinkMacSystemFont\", \"Segoe UI\", \"Roboto\", \"Open Sans\", \"Helvetica\", \"Arial\", sans-serif;")
             buffer.append("font-size: 13px;")
             buffer.append("line-height: 18px;")
             buffer.append("}")
