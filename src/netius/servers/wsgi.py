@@ -210,6 +210,18 @@ class WSGIServer(http2.HTTP2Server):
         length = 0 if status_c in (204, 304) else length
         if length == 0: connection.set_encoding(http.PLAIN_ENCODING)
 
+        # tries to determine if the accept ranges value is set and if
+        # that's the case forces the plain encoding to avoid possible
+        # range missmatch due to re-encoding of the content
+        ranges = headers.get("Accept-Ranges", None)
+        if ranges == "bytes": connection.set_encoding(http.PLAIN_ENCODING)
+
+        # determines if the content range header is set, meaning that
+        # a partial chunk value is being sent if that's the case the
+        # plain encoding is forced to avoid further re-encoding issues
+        content_range = headers.get("Content-Range", None)
+        if content_range: connection.set_encoding(http.PLAIN_ENCODING)
+
         # verifies if the current connection is using a chunked based
         # stream as this will affect some of the decisions that are
         # going to be taken as part of response header creation
