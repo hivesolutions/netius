@@ -38,6 +38,7 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import re
+import mimetypes
 
 import netius
 
@@ -55,6 +56,21 @@ HEADER_NAME_REGEX = re.compile(b"([\x21-\x7e]+?):")
 """ The regular expression to be used for the matching of the
 name part of the header, this should be used do decide if a line
 corresponds to an header line or not """
+
+MIME_TYPES = (
+    (".csv", "text/csv"),
+    (".ini", "text/plain"),
+    (".log", "text/plain"),
+    (".mka", "audio/x-matroska"),
+    (".mkv", "video/x-matroska")
+)
+""" The sequence containing tuple associating the extension with
+the mime type or content type string """
+
+MIME_REGISTERED = False
+""" Flag that controls if the mime registration process has already
+been performed, avoiding possible duplicated registration that would
+spend unnecessary resources """  
 
 class Headers(list):
     """
@@ -213,3 +229,12 @@ def rfc822_parse(message, strip = True):
 def rfc822_join(headers, body):
     headers_s = headers.join()
     return headers_s + b"\r\n\r\n" + body
+
+def mime_register():
+    global MIME_REGISTERED
+    if MIME_REGISTERED: return
+    for extension, mime_type in MIME_TYPES:
+        mimetypes.add_type(mime_type, extension)
+    MIME_REGISTERED = True
+
+mime_register()

@@ -74,7 +74,7 @@ from .http2 import DATA, HEADERS, PRIORITY, RST_STREAM, SETTINGS, PUSH_PROMISE,\
     PING, GOAWAY, WINDOW_UPDATE, CONTINUATION, HTTP2_WINDOW, HTTP2_PREFACE,\
     HTTP2_TUPLES, HTTP2_NAMES, HTTP2_SETTINGS, HTTP2_SETTINGS_OPTIMAL, HTTP2_SETTINGS_T,\
     HTTP2_SETTINGS_OPTIMAL_T, HTTP2Parser, HTTP2Stream
-from .mime import rfc822_parse, rfc822_join
+from .mime import rfc822_parse, rfc822_join, mime_register
 from .parser import Parser
 from .pop import POPParser
 from .rsa import open_pem_key, write_pem_key, open_private_key, open_private_key_b64,\
