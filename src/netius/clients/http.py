@@ -504,17 +504,19 @@ class HTTPConnection(netius.Connection):
         is_chunked = self.is_chunked()
         is_gzip = self.is_gzip()
         is_deflate = self.is_deflate()
+        is_compressed = self.is_compressed()
+        has_length = "content-length" in headers
 
         if "transfer-encoding" in headers: del headers["transfer-encoding"]
         if "content-encoding" in headers: del headers["content-encoding"]
 
-        if is_chunked:
-            headers["transfer-encoding"] = "chunked"
-            if "content-length" in headers: del headers["content-length"]
+        if is_chunked: headers["transfer-encoding"] = "chunked"
 
         if is_gzip: headers["content-encoding"] = "gzip"
 
         if is_deflate: headers["content-encoding"] = "deflate"
+
+        if is_compressed and has_length: del headers["content-length"]
 
     def _headers_normalize(self, headers):
         for key, value in headers.items():

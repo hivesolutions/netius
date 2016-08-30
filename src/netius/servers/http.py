@@ -675,17 +675,19 @@ class HTTPServer(netius.StreamServer):
         is_chunked = connection.is_chunked()
         is_gzip = connection.is_gzip()
         is_deflate = connection.is_deflate()
+        is_compressed = connection.is_compressed()
+        has_length = "Content-Length" in headers
 
         if "Transfer-Encoding" in headers: del headers["Transfer-Encoding"]
         if "Content-Encoding" in headers: del headers["Content-Encoding"]
 
-        if is_chunked:
-            headers["Transfer-Encoding"] = "chunked"
-            if "Content-Length" in headers: del headers["Content-Length"]
+        if is_chunked: headers["Transfer-Encoding"] = "chunked"
 
         if is_gzip: headers["Content-Encoding"] = "gzip"
 
         if is_deflate: headers["Content-Encoding"] = "deflate"
+
+        if is_compressed and has_length: del headers["Content-Length"]
 
     def _headers_upper(self, headers):
         for key, value in headers.items():
