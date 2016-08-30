@@ -41,7 +41,7 @@ import struct
 import tempfile
 import contextlib
 
-import netius
+import netius.servers
 
 from . import http
 from . import util
@@ -1095,8 +1095,42 @@ class HTTP2Stream(netius.Stream):
         self.current = encoding
 
     def set_uncompressed(self):
-        if self.current >= CHUNKED_ENCODING: self.current = CHUNKED_ENCODING
-        else: self.current = PLAIN_ENCODING
+        if self.current >= netius.servers.CHUNKED_ENCODING:
+            self.current = netius.servers.CHUNKED_ENCODING
+        else: self.current = netius.servers.PLAIN_ENCODING
+
+    def set_plain(self):
+        self.set_encoding(netius.servers.PLAIN_ENCODING)
+
+    def set_chunked(self):
+        self.set_encoding(netius.servers.CHUNKED_ENCODING)
+
+    def set_gzip(self):
+        self.set_encoding(netius.servers.GZIP_ENCODING)
+
+    def set_deflate(self):
+        self.set_encoding(netius.servers.DEFLATE_ENCODING)
+
+    def is_plain(self):
+        return self.current == netius.servers.PLAIN_ENCODING
+
+    def is_chunked(self):
+        return self.current > netius.servers.PLAIN_ENCODING
+
+    def is_gzip(self):
+        return self.current == netius.servers.GZIP_ENCODING
+
+    def is_deflate(self):
+        return self.current == netius.servers.DEFLATE_ENCODING
+
+    def is_compressed(self):
+        return self.current > netius.servers.CHUNKED_ENCODING
+
+    def is_uncompressed(self):
+        return not self.is_compressed()
+
+    def is_flushed(self):
+        return self.current > netius.servers.PLAIN_ENCODING
 
     def is_exhausted(self):
         if self.pending_s > self.connection.max_pending: return True
