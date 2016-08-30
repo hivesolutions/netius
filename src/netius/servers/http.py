@@ -678,6 +678,7 @@ class HTTPServer(netius.StreamServer):
         is_deflate = connection.is_deflate()
         is_compressed = connection.is_compressed()
         has_length = "Content-Length" in headers
+        has_ranges = "Accept-Ranges" in headers
 
         if "Transfer-Encoding" in headers: del headers["Transfer-Encoding"]
         if "Content-Encoding" in headers: del headers["Content-Encoding"]
@@ -689,6 +690,7 @@ class HTTPServer(netius.StreamServer):
         if is_deflate: headers["Content-Encoding"] = "deflate"
 
         if is_compressed and has_length: del headers["Content-Length"]
+        if is_compressed and has_ranges: del headers["Accept-Ranges"]
 
     def _headers_upper(self, headers):
         for key, value in headers.items():

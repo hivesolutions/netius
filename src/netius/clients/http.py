@@ -506,6 +506,7 @@ class HTTPConnection(netius.Connection):
         is_deflate = self.is_deflate()
         is_compressed = self.is_compressed()
         has_length = "content-length" in headers
+        has_ranges = "accept-ranges" in headers
 
         if "transfer-encoding" in headers: del headers["transfer-encoding"]
         if "content-encoding" in headers: del headers["content-encoding"]
@@ -517,6 +518,7 @@ class HTTPConnection(netius.Connection):
         if is_deflate: headers["content-encoding"] = "deflate"
 
         if is_compressed and has_length: del headers["content-length"]
+        if is_compressed and has_ranges: del headers["accept-ranges"]
 
     def _headers_normalize(self, headers):
         for key, value in headers.items():
