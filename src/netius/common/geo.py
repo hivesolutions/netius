@@ -41,7 +41,7 @@ import os
 import sys
 import gzip
 
-import netius.clients
+import netius
 
 class GeoResolver(object):
 
@@ -118,6 +118,7 @@ class GeoResolver(object):
 
     @classmethod
     def _download_db(cls, path = DB_NAME):
+        import netius.clients
         result = netius.clients.HTTPClient.method_s(
             "GET",
             cls.DOWNLOAD_URL,

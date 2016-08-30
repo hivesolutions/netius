@@ -39,8 +39,6 @@ __license__ = "Apache License, Version 2.0"
 
 import os
 
-import netius.clients
-
 CA_URL = "https://curl.haxx.se/ca/cacert.pem"
 
 COMMON_PATH = os.path.dirname(__file__)
@@ -56,6 +54,7 @@ def ensure_ca(path = SSL_CA_PATH):
     _download_ca(path = path)
 
 def _download_ca(path = SSL_CA_PATH):
+    import netius.clients
     result = netius.clients.HTTPClient.method_s(
         "GET",
         CA_URL,
