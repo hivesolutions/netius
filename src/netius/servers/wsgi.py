@@ -49,6 +49,11 @@ SERVER_SOFTWARE = netius.IDENTIFIER
 current service that is running on the host, the values should
 include both the name and the version of it """
 
+COMPRESSED_LIMIT = 1048576
+""" The default maximum size value for the sending of compressed
+content, this should ensure proper resource usage avoiding extreme
+high levels of resource usage for compression of large files """
+
 class WSGIServer(http2.HTTP2Server):
     """
     Base class for the creation of a wsgi compliant server
@@ -207,20 +212,27 @@ class WSGIServer(http2.HTTP2Server):
         # encoding is set in order to avoid extra problems while using
         # chunked encoding with zero length based messages
         length = headers.get("Content-Length", -1)
+        length = int(length)
         length = 0 if status_c in (204, 304) else length
         if length == 0: connection.set_encoding(http.PLAIN_ENCODING)
 
+        # verifies if the length value of the message payload overflow
+        # the currently defined limit, if that's the case the connection
+        # is set as uncompressed to avoid unnecessary encoding that would
+        # consume a lot of resources (mostly processor)
+        if length > COMPRESSED_LIMIT: connection.set_uncompressed()
+
         # tries to determine if the accept ranges value is set and if
-        # that's the case forces the plain encoding to avoid possible
+        # that's the case forces the uncompressed encoding to avoid possible
         # range missmatch due to re-encoding of the content
         ranges = headers.get("Accept-Ranges", None)
-        if ranges == "bytes": connection.set_encoding(http.PLAIN_ENCODING)
+        if ranges == "bytes": connection.set_uncompressed()
 
         # determines if the content range header is set, meaning that
         # a partial chunk value is being sent if that's the case the
-        # plain encoding is forced to avoid further re-encoding issues
+        # uncompressed encoding is forced to avoid re-encoding issues
         content_range = headers.get("Content-Range", None)
-        if content_range: connection.set_encoding(http.PLAIN_ENCODING)
+        if content_range: connection.set_uncompressed()
 
         # verifies if the current connection is using a chunked based
         # stream as this will affect some of the decisions that are
