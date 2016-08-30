@@ -1094,6 +1094,10 @@ class HTTP2Stream(netius.Stream):
     def set_encoding(self, encoding):
         self.current = encoding
 
+    def set_uncompressed(self):
+        if self.current >= CHUNKED_ENCODING: self.current = CHUNKED_ENCODING
+        else: self.current = PLAIN_ENCODING
+
     def is_exhausted(self):
         if self.pending_s > self.connection.max_pending: return True
         if not self._available: return True

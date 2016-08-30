@@ -433,6 +433,10 @@ class HTTPConnection(netius.Connection):
     def set_encoding(self, encoding):
         self.current = encoding
 
+    def set_uncompressed(self):
+        if self.current >= CHUNKED_ENCODING: self.current = CHUNKED_ENCODING
+        else: self.current = PLAIN_ENCODING
+
     def set_plain(self):
         self.set_encoding(PLAIN_ENCODING)
 
