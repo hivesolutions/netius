@@ -439,7 +439,7 @@ class FileServer(netius.servers.HTTP2Server):
         )
 
     def on_not_modified(self, connection, path):
-        connection.set_encoding(netius.servers.PLAIN_ENCODING)
+        connection.set_encoding(netius.common.PLAIN_ENCODING)
         connection.send_response(
             data = "",
             code = 304,
