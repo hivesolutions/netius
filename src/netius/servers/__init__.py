@@ -52,8 +52,7 @@ from . import wsgi
 from .dhcp import DHCPRequest, DHCPServer
 from .echo import EchoServer
 from .ftp import FTPConnection, FTPServer
-from .http import PLAIN_ENCODING, CHUNKED_ENCODING, GZIP_ENCODING, DEFLATE_ENCODING,\
-    HTTPConnection, HTTPServer
+from .http import HTTPConnection, HTTPServer
 from .http2 import HTTP2Server
 from .mjpg import MJPGServer
 from .pop import POPConnection, POPServer

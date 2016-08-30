@@ -41,7 +41,7 @@ import struct
 import tempfile
 import contextlib
 
-import netius.servers
+import netius
 
 from . import http
 from . import util
@@ -1095,42 +1095,42 @@ class HTTP2Stream(netius.Stream):
         self.current = encoding
 
     def set_uncompressed(self):
-        if self.current >= netius.servers.CHUNKED_ENCODING:
-            self.current = netius.servers.CHUNKED_ENCODING
-        else: self.current = netius.servers.PLAIN_ENCODING
+        if self.current >= http.CHUNKED_ENCODING:
+            self.current = http.CHUNKED_ENCODING
+        else: self.current = http.PLAIN_ENCODING
 
     def set_plain(self):
-        self.set_encoding(netius.servers.PLAIN_ENCODING)
+        self.set_encoding(http.PLAIN_ENCODING)
 
     def set_chunked(self):
-        self.set_encoding(netius.servers.CHUNKED_ENCODING)
+        self.set_encoding(http.CHUNKED_ENCODING)
 
     def set_gzip(self):
-        self.set_encoding(netius.servers.GZIP_ENCODING)
+        self.set_encoding(http.GZIP_ENCODING)
 
     def set_deflate(self):
-        self.set_encoding(netius.servers.DEFLATE_ENCODING)
+        self.set_encoding(http.DEFLATE_ENCODING)
 
     def is_plain(self):
-        return self.current == netius.servers.PLAIN_ENCODING
+        return self.current == http.PLAIN_ENCODING
 
     def is_chunked(self):
-        return self.current > netius.servers.PLAIN_ENCODING
+        return self.current > http.PLAIN_ENCODING
 
     def is_gzip(self):
-        return self.current == netius.servers.GZIP_ENCODING
+        return self.current == http.GZIP_ENCODING
 
     def is_deflate(self):
-        return self.current == netius.servers.DEFLATE_ENCODING
+        return self.current == http.DEFLATE_ENCODING
 
     def is_compressed(self):
-        return self.current > netius.servers.CHUNKED_ENCODING
+        return self.current > http.CHUNKED_ENCODING
 
     def is_uncompressed(self):
         return not self.is_compressed()
 
     def is_flushed(self):
-        return self.current > netius.servers.PLAIN_ENCODING
+        return self.current > http.PLAIN_ENCODING
 
     def is_exhausted(self):
         if self.pending_s > self.connection.max_pending: return True

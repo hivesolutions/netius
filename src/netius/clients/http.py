@@ -42,24 +42,8 @@ import base64
 
 import netius.common
 
-PLAIN_ENCODING = 1
-""" Plain text encoding that does not transform the
-data from its based format, should be used only as
-a fallback method because of performance issues """
-
-CHUNKED_ENCODING = 2
-""" Chunked based encoding that allows the sending of
-the data as a series of length based parts """
-
-GZIP_ENCODING = 3
-""" The gzip based encoding used to compress data, this
-kind of encoding will always used chunked encoding so
-that the content may be send in parts """
-
-DEFLATE_ENCODING = 4
-""" The deflate based encoding used to compress data, this
-kind of encoding will always used chunked encoding so
-that the content may be send in parts """
+from netius.common import PLAIN_ENCODING, CHUNKED_ENCODING,\
+    GZIP_ENCODING, DEFLATE_ENCODING
 
 Z_PARTIAL_FLUSH = 1
 """ The zlib constant value representing the partial flush

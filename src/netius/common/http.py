@@ -80,6 +80,25 @@ FINISH_STATE = 4
 response has been processed, if a parse operation starts
 with this state the parsed is reseted """
 
+PLAIN_ENCODING = 1
+""" Plain text encoding that does not transform the
+data from its based format, should be used only as
+a fallback method because of performance issues """
+
+CHUNKED_ENCODING = 2
+""" Chunked based encoding that allows the sending of
+the data as a series of length based parts """
+
+GZIP_ENCODING = 3
+""" The gzip based encoding used to compress data, this
+kind of encoding will always used chunked encoding so
+that the content may be send in parts """
+
+DEFLATE_ENCODING = 4
+""" The deflate based encoding used to compress data, this
+kind of encoding will always used chunked encoding so
+that the content may be send in parts """
+
 HTTP_09 = 1
 """ The enumeration value for the temporary and beta http
 version 0.9 version (very rare) """
