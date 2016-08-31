@@ -656,11 +656,12 @@ class HTTPServer(netius.StreamServer):
         if parser.keep_alive: headers["Connection"] = "keep-alive"
         else: headers["Connection"] = "close"
 
-    def _apply_connection(self, connection, headers):
+    def _apply_connection(self, connection, headers, strict = True):
         is_chunked = connection.is_chunked()
         is_gzip = connection.is_gzip()
         is_deflate = connection.is_deflate()
         is_compressed = connection.is_compressed()
+        is_unlength = is_compressed or (strict and is_chunked) 
         has_length = "Content-Length" in headers
         has_ranges = "Accept-Ranges" in headers
 
@@ -673,7 +674,7 @@ class HTTPServer(netius.StreamServer):
 
         if is_deflate: headers["Content-Encoding"] = "deflate"
 
-        if is_compressed and has_length: del headers["Content-Length"]
+        if is_unlength and has_length: del headers["Content-Length"]
         if is_compressed and has_ranges: del headers["Accept-Ranges"]
 
     def _headers_upper(self, headers):

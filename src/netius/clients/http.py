@@ -484,11 +484,12 @@ class HTTPConnection(netius.Connection):
         if not "accept-encoding" in headers and self.encodings:
             headers["accept-encoding"] = self.encodings
 
-    def _apply_connection(self, headers):
+    def _apply_connection(self, headers, strict = True):
         is_chunked = self.is_chunked()
         is_gzip = self.is_gzip()
         is_deflate = self.is_deflate()
         is_compressed = self.is_compressed()
+        is_unlength = is_compressed or (strict and is_chunked) 
         has_length = "content-length" in headers
         has_ranges = "accept-ranges" in headers
 
@@ -501,7 +502,7 @@ class HTTPConnection(netius.Connection):
 
         if is_deflate: headers["content-encoding"] = "deflate"
 
-        if is_compressed and has_length: del headers["content-length"]
+        if is_unlength and has_length: del headers["content-length"]
         if is_compressed and has_ranges: del headers["accept-ranges"]
 
     def _headers_normalize(self, headers):
