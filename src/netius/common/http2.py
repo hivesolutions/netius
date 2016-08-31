@@ -1132,6 +1132,10 @@ class HTTP2Stream(netius.Stream):
     def is_flushed(self):
         return self.current > http.PLAIN_ENCODING
 
+    def is_measurable(self, strict = True):
+        if self.is_compressed(): return False
+        return True
+
     def is_exhausted(self):
         if self.pending_s > self.connection.max_pending: return True
         if not self._available: return True

@@ -397,6 +397,14 @@ class HTTPConnection(netius.Connection):
     def is_uncompressed(self):
         return not self.is_compressed()
 
+    def is_flushed(self):
+        return self.current > PLAIN_ENCODING
+
+    def is_measurable(self, strict = True):
+        if self.is_compressed(): return False
+        if strict and self.is_chunked(): return False
+        return True
+
     def on_data(self):
         message = self.parser.get_message()
         self.trigger("message", self, self.parser, message)
@@ -489,7 +497,7 @@ class HTTPConnection(netius.Connection):
         is_gzip = self.is_gzip()
         is_deflate = self.is_deflate()
         is_compressed = self.is_compressed()
-        is_unlength = is_compressed or (strict and is_chunked) 
+        is_measurable = self.is_measurable(strict = strict)
         has_length = "content-length" in headers
         has_ranges = "accept-ranges" in headers
 
@@ -502,7 +510,7 @@ class HTTPConnection(netius.Connection):
 
         if is_deflate: headers["content-encoding"] = "deflate"
 
-        if is_unlength and has_length: del headers["content-length"]
+        if not is_measurable and has_length: del headers["content-length"]
         if is_compressed and has_ranges: del headers["accept-ranges"]
 
     def _headers_normalize(self, headers):

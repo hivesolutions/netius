@@ -70,7 +70,7 @@ the mime type or content type string """
 MIME_REGISTERED = False
 """ Flag that controls if the mime registration process has already
 been performed, avoiding possible duplicated registration that would
-spend unnecessary resources """  
+spend unnecessary resources """
 
 class Headers(list):
     """
