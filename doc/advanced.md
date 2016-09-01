@@ -73,6 +73,8 @@ The results are a result of executing the benchmark on `servidor4.hive`.
 
 ### HTTP2
 
+The `h2spec` tools allows proper verification of the RFC 5741 statements on a quick fashion.
+
 ```
 scu install go
 export GOPATH=~/go
