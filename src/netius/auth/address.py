@@ -52,6 +52,9 @@ class AddressAuth(base.Auth):
         headers = kwargs.get("headers", {})
         if not host and not headers: return False
         address = headers.get("X-Forwarded-For", host)
+        address = headers.get("X-Client-IP", address)
+        address = headers.get("X-Real-IP", address)
+        address = address.split(",", 1)[0].strip()
         return netius.common.assert_ip4(
             address,
             allowed,
