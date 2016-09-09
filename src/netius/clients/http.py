@@ -329,7 +329,9 @@ class HTTPConnection(netius.Connection):
         for key, value in headers.items():
             key = netius.common.header_up(key)
             if not type(value) == list: value = (value,)
-            for _value in value: buffer.append("%s: %s\r\n" % (key, _value))
+            for _value in value:
+                _value = netius.legacy.ascii(_value)
+                buffer.append("%s: %s\r\n" % (key, _value))
         buffer.append("\r\n")
         buffer_data = "".join(buffer)
 
@@ -480,13 +482,15 @@ class HTTPConnection(netius.Connection):
         port = self.port
         data = self.data
 
+        length = len(data) if data else 0
+
         if port in (80, 443): host_s = host
         else: host_s = "%s:%d" % (host, port)
 
         if not "connection" in headers:
             headers["connection"] = "keep-alive"
         if not "content-length" in headers:
-            headers["content-length"] = len(data) if data else 0
+            headers["content-length"] = str(length)
         if not "host" in headers:
             headers["host"] = host_s
         if not "accept-encoding" in headers and self.encodings:
