@@ -237,10 +237,11 @@ def u(value, encoding = "utf-8", errors = "strict", force = False):
     if type(value) == UNICODE: return value
     return value.decode(encoding, errors)
 
-def ascii(value, errors = "replace"):
+def ascii(value, encoding = "utf-8", errors = "replace"):
+    if is_bytes(value): value = value.decode(encoding, errors = errors)
+    else: value = UNICODE(value)
+    value = value.encode("ascii", errors = errors)
     value = _str(value)
-    value = u(value, encoding = "ascii", errors = errors, force = True)
-    value = bytes(value, encoding = "ascii", errors = "replace", force = True)
     return value
 
 def orderable(value):
