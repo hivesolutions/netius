@@ -1529,7 +1529,7 @@ class HTTP2Stream(netius.Stream):
         for header in self.headers_l:
             key, value = header
             if not type(key) == str: key = str(key)
-            if not type(value) == str: value = str(value)
+            if not type(value) == str: value = str(value, "replace")
             is_special = key.startswith(":")
             exists = key in headers_m
             if exists:

@@ -623,7 +623,7 @@ class HTTPParser(parser.Parser):
             key = key.strip().lower()
             key = netius.legacy.str(key)
             value = value.strip()
-            value = netius.legacy.str(value)
+            value = netius.legacy.str(value, errors = "replace")
             exists = key in self.headers
 
             # in case the header already exists this indicates that
