@@ -58,6 +58,20 @@ Hello World\r\n\
 0\r\n\
 \r\n"
 
+EXTRA_SPACES_REQUEST = b"GET / HTTP/1.1\r\n\
+Date: Wed, 1 Jan 2014 00:00:00 GMT   \r\n\
+Server:Test Service/1.0.0  \r\n\
+Content-Length: 11\r\n\
+\r\n\
+Hello World"
+
+INVALID_STATUS_REQUEST = b"GET /\r\n\
+Date: Wed, 1 Jan 2014 00:00:00 GMT\r\n\
+Server: Test Service/1.0.0\r\n\
+Content-Length: 11\r\n\
+\r\n\
+Hello World"
+
 class HTTPParserTest(unittest.TestCase):
 
     def test_simple(self):
@@ -95,6 +109,34 @@ class HTTPParserTest(unittest.TestCase):
         self.assertEqual(headers["Date"], "Wed, 1 Jan 2014 00:00:00 GMT")
         self.assertEqual(headers["Server"], "Test Service/1.0.0")
         self.assertEqual(headers["Transfer-Encoding"], "chunked")
+
+    def test_malformed(self):
+        parser = netius.common.HTTPParser(
+            self,
+            type = netius.common.REQUEST,
+            store = True
+        )
+        parser.parse(EXTRA_SPACES_REQUEST)
+        message = parser.get_message()
+        headers = parser.get_headers()
+        self.assertEqual(parser.method, "get")
+        self.assertEqual(parser.version, netius.common.HTTP_11)
+        self.assertEqual(parser.path_s, "/")
+        self.assertEqual(parser.content_l, 11)
+        self.assertEqual(message, b"Hello World")
+        self.assertEqual(headers["Date"], "Wed, 1 Jan 2014 00:00:00 GMT")
+        self.assertEqual(headers["Server"], "Test Service/1.0.0")
+        self.assertEqual(headers["Content-Length"], "11")
+
+        parser = netius.common.HTTPParser(
+            self,
+            type = netius.common.REQUEST,
+            store = True
+        )
+        self.assertRaises(
+            netius.ParserError,
+            lambda: parser.parse(INVALID_STATUS_REQUEST)
+        )
 
     def test_file(self):
         parser = netius.common.HTTPParser(
