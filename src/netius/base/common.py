@@ -323,6 +323,8 @@ class AbstractBase(observer.Observable):
         self._forked = False
         self._child = False
         self._childs = []
+        self._events = {}
+        self._notified = []
         self._delayed = []
         self._delayed_o = []
         self._delayed_n = []
@@ -360,6 +362,20 @@ class AbstractBase(observer.Observable):
         # returns the selected polling mechanism class to the caller method
         # as expected by the current method
         return selected
+
+    def wait_event(self, callable, name = None):
+        # tries to retrieve the list of binds for the event
+        # to be "waited" for, this list should contain the
+        # complete list of callables to be called upon the
+        # event notification/trigger
+        binds = self._events.get(name, [])
+        if callable in binds: return
+
+        # adds the callable to the list of binds for the event
+        # the complete set of callables will be called whenever
+        # the a notification for the event occurs
+        binds.append(callable)
+        self._events[name] = binds
 
     def delay(self, callable, timeout = None, immediately = False, verify = False):
         # creates the original target value with a zero value (forced
@@ -537,6 +553,27 @@ class AbstractBase(observer.Observable):
         # of the event loop will condition the precision of the timeout
         self.delay(callable, timeout = timeout)
         return future
+
+    def wait(self, event, future = None):
+        # verifies if a future variable is meant to be re-used
+        # or if instead a new one should be created for the new
+        # sleep operation to be executed
+        future = future or Future()
+
+        # creates the callable that is going to be used to set
+        # the final value of the future variable
+        callable = lambda: future.set_result(None)
+
+        # waits the execution of the callable until the event with the
+        # provided name is notified/triggered, the execution should be
+        # triggered on the same event loop tick as the notification
+        self.wait_event(callable, name = event)
+        return future
+
+    def notify(self, event):
+        # adds the event with the provided name to the list of notifications
+        # that are going to be processed in the current tick operation
+        self._notified.append(event)
 
     def load(self, full = False):
         # in case the current structure is considered/marked as already loaded
@@ -934,6 +971,12 @@ class AbstractBase(observer.Observable):
         # runs the unload operation for the current base container this should
         # unset/unload some of the components for this base infra-structure
         self.unload()
+
+        # destroys the complete set of structures associated with the event
+        # notification, this should include both the map of events to binds
+        # association and the list of pending notifications to be processed
+        del self._events.empty()
+        del self._notified[:]
 
         # destroys the current information on the delays that are is longer
         # going to be executed as the poll/system is closing, this is required
@@ -1663,6 +1706,38 @@ class AbstractBase(observer.Observable):
         is_pending = not _socket._pending == None
         return is_pending
 
+    def _notifies(self):
+        """
+        Runs the notification process for the complete set of
+        pending notification in the notified list.
+
+        This tick operation may create tail recursion on callback
+        call and so the list is always processed as a queue.
+
+        The number of processed events is returned as part of the
+        result.
+
+        :rtype: int
+        :return: The number of processed pending notifications.
+        """
+
+        # starts the counter that is going to be used to count
+        # the number of processed notifications, start at zero
+        count = 0
+
+        # iterates while there are pending notifications to be
+        # processed, the complete set of bind callables will be
+        # called for each of the notifications
+        while self._notified:
+            event = self._notified.pop(0)
+            binds = self._events.get(event, [])
+            for callable in binds: callable()
+            count += 1
+
+        # returns the number of processed notifications to the
+        # the caller method
+        return count
+
     def _delays(self):
         """
         Calls the complete set of elements that are considered to
@@ -1674,6 +1749,10 @@ class AbstractBase(observer.Observable):
         The calling of the delayed methods takes into account a
         series of assumptions including the loop identifier in order
         to avoid loops in the delayed calls/insertions.
+
+        As part of the delay execution the pending notifications are
+        also going to be processed, they must be handled together so
+        that proper "recursion" is allowed (tail recursion).
         """
 
         # runs the merge delay lists operation, so that delay operations
@@ -1681,10 +1760,10 @@ class AbstractBase(observer.Observable):
         # the current execution (as expected)
         self.delay_m()
 
-        # in case there's no delayed items to be called returns immediately
-        # otherwise creates a copy of the delayed list and removes all
-        # of the elements from the current list in instance
-        if not self._delayed: return
+        # in case there's no delayed items to be called returns the control
+        # flow immediately, note that the notified elements (pending process)
+        # are also going to be verified for presence
+        if not self._delayed and not self._notified: return
 
         # retrieves the value for the current timestamp, to be used in
         # comparisons against the target timestamps of the callables
@@ -1699,7 +1778,13 @@ class AbstractBase(observer.Observable):
         # iterates over all the delayed callable tuples to try to find
         # (and call) the ones that are meant to be executed in the past
         # (have a target timestamp with a value less than the current)
-        while self._delayed:
+        while self._delayed or self._notified:
+
+            # runs the notifies verification cycle and if there's at
+            # least one processed event continues the loop meaning that
+            # the if test evaluations must be re-processed
+            if self._notifies(): continue
+
             # "pops" the current item from the delayed list to be used
             # in the execution of the current iteration cycle
             callable_t = heapq.heappop(self._delayed)

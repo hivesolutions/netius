@@ -130,5 +130,15 @@ def sleep(timeout):
     loop = get_loop()
     yield loop.sleep(timeout)
 
+def wait(event):
+    from .common import get_loop
+    loop = get_loop()
+    yield loop.wait(event)
+
+def notify(event):
+    from .common import get_loop
+    loop = get_loop()
+    return loop.notify(event)
+
 is_neo = sys.version_info[0] >= 3 and sys.version_info[1] >= 3
 if is_neo: from .async_neo import * #@UnusedWildImport

@@ -50,7 +50,7 @@ from . import server
 from . import stream
 from . import tls
 
-from .async import Future, coroutine, sleep
+from .async import Future, coroutine, sleep, wait, notify
 from .client import Client, DatagramClient, StreamClient
 from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     IDENTIFIER, UDP_TYPE, TCP_TYPE, Base, BaseThread, get_main, get_loop,\
