@@ -975,7 +975,7 @@ class AbstractBase(observer.Observable):
         # destroys the complete set of structures associated with the event
         # notification, this should include both the map of events to binds
         # association and the list of pending notifications to be processed
-        del self._events.empty()
+        self._events.empty()
         del self._notified[:]
 
         # destroys the current information on the delays that are is longer
