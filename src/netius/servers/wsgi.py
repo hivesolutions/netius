@@ -239,7 +239,7 @@ class WSGIServer(http2.HTTP2Server):
         # the currently defined limit, if that's the case the connection
         # is set as uncompressed to avoid unnecessary encoding that would
         # consume a lot of resources (mostly processor)
-        if length > COMPRESSED_LIMIT: connection.set_uncompressed()
+        if length > self.compressed_limit: connection.set_uncompressed()
 
         # tries to determine if the accept ranges value is set and if
         # that's the case forces the uncompressed encoding to avoid possible
