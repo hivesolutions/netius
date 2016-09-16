@@ -49,7 +49,7 @@ SERVER_SOFTWARE = netius.IDENTIFIER
 current service that is running on the host, the values should
 include both the name and the version of it """
 
-COMPRESSED_LIMIT = 1048576
+COMPRESSED_LIMIT = 5242880
 """ The default maximum size value for the sending of compressed
 content, this should ensure proper resource usage avoiding extreme
 high levels of resource usage for compression of large files """
@@ -61,12 +61,21 @@ class WSGIServer(http2.HTTP2Server):
     object as reference and a mount point.
     """
 
-    def __init__(self, app, mount = "", decode = True, *args, **kwargs):
+    def __init__(
+        self,
+        app,
+        mount = "",
+        decode = True,
+        compressed_limit = COMPRESSED_LIMIT,
+        *args,
+        **kwargs
+    ):
         http2.HTTP2Server.__init__(self, *args, **kwargs)
         self.app = app
         self.mount = mount
         self.mount_l = len(mount)
         self.decode = decode
+        self.compressed_limit = compressed_limit
 
     def on_connection_d(self, connection):
         http2.HTTP2Server.on_connection_d(self, connection)
@@ -79,6 +88,16 @@ class WSGIServer(http2.HTTP2Server):
         # runs the extra release queue operation for the connection so that
         # the (possible) associated queue is properly release (no leaks)
         self._release_queue(connection)
+
+    def on_serve(self):
+        http2.HTTP2Server.on_serve(self)
+        if self.env: self.compressed_limit = self.get_env(
+            "COMPRESSED_LIMIT", self.compressed_limit, cast = int
+        )
+        self.info(
+            "Starting WSGI server with %d bytes limit on compression ..." %\
+            self.compressed_limit
+        )
 
     def on_data_http(self, connection, parser):
         http2.HTTP2Server.on_data_http(self, connection, parser)
