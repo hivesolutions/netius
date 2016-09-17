@@ -54,6 +54,10 @@ class Thread(threading.Thread):
         self.owner = owner
         self._run = False
 
+    @classmethod
+    def available(self):
+        return True
+
     def stop(self):
         self._run = False
 
@@ -175,8 +179,10 @@ class EventPool(ThreadPool):
 
     def eventfd(self):
         if self._eventfd: return self._eventfd
-        if os.name == "nt": self._eventfd = SocketEventFile()
-        else: self._eventfd = UnixEventFile()
+        if UnixEventFile.available():
+            self._eventfd = UnixEventFile()
+        else:
+            self._eventfd = SocketEventFile()
         return self._eventfd
 
 class EventFile(object):
@@ -213,10 +219,20 @@ class UnixEventFile(EventFile):
         cls = self.__class__
         init_val = kwargs.get("init_val", 0)
         flags = kwargs.get("flags", 0)
+        libc = cls.libc()
+        self._rfileno = libc.eventfd(init_val, flags)
+        self._wfileno = self._rfileno
+
+    @classmethod
+    def available(cls):
+        if not os.name == "posix": return False
+        return True if cls.libc() else False
+
+    @classmethod
+    def libc(cls):
         try: cls._LIBC = cls._LIBC or ctypes.cdll.LoadLibrary("libc.so.6")
         except: return None
-        self._rfileno = self._LIBC.eventfd(init_val, flags)
-        self._wfileno = self._rfileno
+        return cls._LIBC
 
     def close(self):
         EventFile.close(self)
