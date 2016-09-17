@@ -230,7 +230,8 @@ class UnixEventFile(EventFile):
 
     @classmethod
     def libc(cls):
-        try: cls._LIBC = cls._LIBC or ctypes.cdll.LoadLibrary("libc.so.6")
+        if cls._LIBC: return cls._LIBC
+        try: cls._LIBC = ctypes.cdll.LoadLibrary("libc.so.6")
         except: return None
         return cls._LIBC
 
