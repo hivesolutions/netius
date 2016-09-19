@@ -253,10 +253,13 @@ class UnixEventFile(EventFile):
 class PipeEventFile(EventFile):
 
     def __init__(self, *args, **kwargs):
+        import fcntl
         EventFile.__init__(self, *args, **kwargs)
         self._rfileno, self._wfileno = os.pipe()
-        self._read_file = os.fdopen(self._rfileno, "r")
-        self._write_file = os.fdopen(self._wfileno, "w")
+        fcntl.fcntl(self._rfileno, fcntl.F_SETFL, os.O_NONBLOCK)
+        fcntl.fcntl(self._wfileno, fcntl.F_SETFL, os.O_NONBLOCK)
+        self._read_file = os.fdopen(self._rfileno, "rb", 0)
+        self._write_file = os.fdopen(self._wfileno, "wb", 0)
 
     @classmethod
     def available(cls):
