@@ -1181,9 +1181,14 @@ class AbstractBase(observer.Observable):
         if not self.poll: return
         self.poll.sub_read(eventfd)
 
+        # retrieves the class of the eventfd object and then uses it
+        # to retrieve the associated name for logging purposes
+        eventfd_cls = eventfd.__class__
+        eventfd_name = eventfd_cls.__name__
+
         # echoes a debug message indicating that a new read event
         # subscription has been created for the event fd of the pool
-        self.debug("Subscribed for read operations on event fd")
+        self.debug("Subscribed for read operations on event fd (%s)" % eventfd_name)
 
     def punregister(self, pool):
         # prints a debug message notifying the user that no more
