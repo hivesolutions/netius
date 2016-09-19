@@ -181,6 +181,8 @@ class EventPool(ThreadPool):
         if self._eventfd: return self._eventfd
         if UnixEventFile.available():
             self._eventfd = UnixEventFile()
+        elif PipeEventFile.available():
+            self._eventfd = PipeEventFile()
         else:
             self._eventfd = SocketEventFile()
         return self._eventfd
@@ -247,6 +249,37 @@ class UnixEventFile(EventFile):
 
     def _write(self, value):
         os.write(self._wfileno, ctypes.c_ulonglong(value))
+
+class PipeEventFile(EventFile):
+
+    def __init__(self, *args, **kwargs):
+        EventFile.__init__(self, *args, **kwargs)
+        self._rfileno, self._wfileno = os.pipe()
+        self._read_file = os.fdopen(self._rfileno, "r")
+        self._write_file = os.fdopen(self._wfileno, "w")
+
+    @classmethod
+    def available(cls):
+        if not os.name == "posix": return False
+        if not hasattr(os, "pipe"): return False
+        return True
+
+    def close(self):
+        EventFile.close(self)
+        self._read_file.close()
+        self._write_file.close()
+
+    def notify(self):
+        self._write(b"1")
+
+    def denotify(self):
+        self._read()
+
+    def _read(self, length = 4096):
+        return self._read_file.read(length)
+
+    def _write(self, data):
+        self._write_file.write(data)
 
 class SocketEventFile(EventFile):
 
