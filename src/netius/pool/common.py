@@ -256,8 +256,8 @@ class PipeEventFile(EventFile):
         import fcntl
         EventFile.__init__(self, *args, **kwargs)
         self._rfileno, self._wfileno = os.pipe()
-        fcntl.fcntl(self._rfileno, fcntl.F_SETFL, os.O_NONBLOCK)
-        fcntl.fcntl(self._wfileno, fcntl.F_SETFL, os.O_NONBLOCK)
+        fcntl.fcntl(self._rfileno, fcntl.F_SETFL, os.O_NONBLOCK) #@UndefinedVariable
+        fcntl.fcntl(self._wfileno, fcntl.F_SETFL, os.O_NONBLOCK) #@UndefinedVariable
         self._read_file = os.fdopen(self._rfileno, "rb", 0)
         self._write_file = os.fdopen(self._wfileno, "wb", 0)
 
