@@ -83,6 +83,8 @@ class HTTPClientTest(unittest.TestCase):
             timeout = 10,
             async = False
         )
+        self.assertNotEqual(result.get("error", None), "timeout")
+        self.assertNotEqual(result.get("message", None), "Timeout on receive")
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
         self.assertNotEqual(json.loads(result["data"].decode("utf-8")), None)
