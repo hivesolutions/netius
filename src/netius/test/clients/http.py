@@ -80,7 +80,7 @@ class HTTPClientTest(unittest.TestCase):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "http://%s/delay/1" % self.httpbin,
-            timeout = 10,
+            timeout = 30,
             async = False
         )
         self.assertNotEqual(result.get("error", None), "timeout")
