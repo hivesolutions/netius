@@ -901,11 +901,14 @@ class HTTPClient(netius.StreamClient):
 
             # creates both the buffer list and the request structure so that
             # they may be used for the correct construction of the request
-            # structure that is going to be send in the callback
+            # structure that is going to be send in the callback, then sets
+            # the identifier (memory address) of the request in the connection
             buffer = []
             request = dict(code = None, data = None)
+            connection._request = id(request)
 
             def on_finish(connection):
+                connection._request = None
                 if request["code"]: return
                 cls.set_error(
                     "closed",
@@ -951,6 +954,7 @@ class HTTPClient(netius.StreamClient):
         def receive_timeout():
             if not connection.is_open(): return
             if not has_request: return
+            if not connection._request == id(request): return
             if request["code"]: return
             current = time.time()
             last = request.get("last", 0)
