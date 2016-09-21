@@ -954,9 +954,9 @@ class HTTPClient(netius.StreamClient):
             last = request.get("last", 0)
             delta = current - last
             if delta < timeout:
-                self.delay(connect_timeout, timeout = timeout)
+                self.delay(receive_timeout, timeout = timeout)
                 return
-            has_request and cls.set_error(
+            cls.set_error(
                 "timeout",
                 message = "Timeout on receive",
                 request = request
