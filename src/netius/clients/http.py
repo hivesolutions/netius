@@ -951,6 +951,7 @@ class HTTPClient(netius.StreamClient):
         def receive_timeout():
             if not connection.is_open(): return
             if not has_request: return
+            if request["code"]: return
             current = time.time()
             last = request.get("last", 0)
             delta = current - last
