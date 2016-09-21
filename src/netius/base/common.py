@@ -856,9 +856,11 @@ class AbstractBase(observer.Observable):
         self.tname = cthread.getName()
         self._main = self.tname == "MainThread"
 
-        # in case the current thread is the main one, the global
-        # main instance is set as the current instance
-        if self._main: AbstractBase._MAIN = self
+        # in case the current thread is the main one, the global main instance
+        # is set as the current instance, just in case no main variable is
+        # already set otherwise corruption may occur (override of value)
+        if self._main and not AbstractBase._MAIN:
+            AbstractBase._MAIN = self
 
         # enters the main loop operation by printing a message
         # to the logger indicating this start, this stage
@@ -1012,9 +1014,11 @@ class AbstractBase(observer.Observable):
         # map to properly close them (avoids any leak of resources)
         for _socket in self.connections_m: _socket.close()
 
-        # in case the current thread is the main one and the global
-        # main instance is unset to an invalid value (main unloaded)
-        if self._main: AbstractBase._MAIN = None
+        # in case the current thread is the main one then in case the
+        # instance set as global main is this one unsets the value
+        # meaning that the main instance has been unloaded
+        if self._main and AbstractBase._MAIN == self:
+            AbstractBase._MAIN = None
 
         # closes the current poll mechanism so that no more issues arise
         # from an open poll system (memory leaks, etc.), note that this is

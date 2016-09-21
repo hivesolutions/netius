@@ -292,9 +292,11 @@ class BaseConnection(observer.Observable):
     def set_connected(self):
         self.remove_write()
         self.connecting = False
+        self.trigger("connect", self)
 
     def set_upgraded(self):
         self.upgrading = False
+        self.trigger("upgrade", self)
 
     def ensure_write(self, flush = True):
         # retrieves the identifier of the current thread and
@@ -514,6 +516,15 @@ class BaseConnection(observer.Observable):
 
     def is_pending(self):
         return self.status == PENDING
+
+    def is_connected(self):
+        return not self.connecting
+
+    def is_connecting(self):
+        return self.connecting
+
+    def is_upgrading(self):
+        return self.upgrading
 
     def is_throttleable(self):
         return True

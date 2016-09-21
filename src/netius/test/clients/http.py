@@ -67,6 +67,26 @@ class HTTPClientTest(unittest.TestCase):
         self.assertNotEqual(len(result["data"]), 0)
         self.assertNotEqual(json.loads(result["data"].decode("utf-8")), None)
 
+    def test_timeout(self):
+        result = netius.clients.HTTPClient.method_s(
+            "GET",
+            "http://%s/delay/3" % self.httpbin,
+            timeout = 1,
+            async = False
+        )
+        self.assertEqual(result["error"], "timeout")
+        self.assertEqual(result["message"], "Timeout on receive")
+
+        result = netius.clients.HTTPClient.method_s(
+            "GET",
+            "http://%s/delay/1" % self.httpbin,
+            timeout = 5,
+            async = False
+        )
+        self.assertEqual(result["code"], 200)
+        self.assertNotEqual(len(result["data"]), 0)
+        self.assertNotEqual(json.loads(result["data"].decode("utf-8")), None)
+
     def test_compression(self):
         result = netius.clients.HTTPClient.method_s(
             "GET",

@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import time
 import zlib
 import base64
 
@@ -626,6 +627,7 @@ class HTTPClient(netius.StreamClient):
         connection = None,
         async = True,
         daemon = True,
+        timeout = None,
         callback = None,
         on_close = None,
         on_headers = None,
@@ -654,6 +656,7 @@ class HTTPClient(netius.StreamClient):
             safe = safe,
             connection = connection,
             async = async,
+            timeout = timeout,
             callback = callback,
             on_close = on_close,
             on_headers = on_headers,
@@ -703,8 +706,9 @@ class HTTPClient(netius.StreamClient):
         return request
 
     @classmethod
-    def set_error(cls, error, message = None, request = None):
+    def set_error(cls, error, message = None, request = None, force = False):
         if request == None: request = dict()
+        if "error" in request and not force: return
         request["error"] = error
         request["message"] = message
         return request
@@ -785,6 +789,7 @@ class HTTPClient(netius.StreamClient):
         safe = False,
         connection = None,
         async = True,
+        timeout = None,
         callback = None,
         on_close = None,
         on_headers = None,
@@ -800,6 +805,7 @@ class HTTPClient(netius.StreamClient):
         # avoids the typical problem with re-usage of default attributes
         params = params or dict()
         headers = headers or dict()
+        timeout = timeout or 60
 
         # creates the message that is going to be used in the logging of
         # the current method request for debugging purposes, this may be
@@ -911,6 +917,7 @@ class HTTPClient(netius.StreamClient):
 
             def on_partial(connection, parser, data):
                 buffer.append(data)
+                request["last"] = time.time()
 
             def on_message(connection, parser, message):
                 cls.set_request(parser, buffer, request = request)
@@ -922,6 +929,40 @@ class HTTPClient(netius.StreamClient):
             on_close = on_finish
             on_data = on_partial
             callback = on_message
+
+        # creates the function that is going to be used to validate
+        # the on connect timeout so that whenever the timeout for
+        # the connection operation is exceeded an error is set int
+        # the connection and the connection is properly closed
+        def connect_timeout():
+            if not connection.is_open(): return
+            if connection.is_connected(): return
+            has_request and cls.set_error(
+                "timeout",
+                message = "Timeout on connect",
+                request = request
+            )
+            if self.auto_close: self.close()
+            if self.auto_pause: self.pause()
+
+        # creates a function that is going to be used to validate
+        # the receive operation of the connection (receive timeout)
+        def receive_timeout():
+            if not connection.is_open(): return
+            if not has_request: return
+            current = time.time()
+            last = request.get("last", 0)
+            delta = current - last
+            if delta < timeout:
+                self.delay(connect_timeout, timeout = timeout)
+                return
+            has_request and cls.set_error(
+                "timeout",
+                message = "Timeout on receive",
+                request = request
+            )
+            if self.auto_close: self.close()
+            if self.auto_pause: self.pause()
 
         # defines the proper return result value taking into account if
         # this is a synchronous or asynchronous request, one uses the
@@ -942,6 +983,11 @@ class HTTPClient(netius.StreamClient):
         # connection may not be open yet, if that's the case this
         # initial data will be queued for latter delivery (on connect)
         connection.send_request()
+
+        # schedules a delay operation to run the timeout connect operation in
+        # after the defined/provided timeout value
+        self.delay(connect_timeout, timeout = timeout)
+        self.delay(receive_timeout, timeout = timeout)
 
         # in case the current request is not meant to be handled as
         # asynchronous tries to start the current event loop (blocking
