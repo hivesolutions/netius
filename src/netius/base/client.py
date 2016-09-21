@@ -854,11 +854,15 @@ class StreamClient(Client):
             self.trigger("error", self, connection, exception)
             connection.close()
             raise
+
+        # otherwise the connect operation has finished correctly
+        # and the finish connect method should be called indicating
+        # that the connect operation has completed successfully
         else:
             self._connectf(connection)
 
         # in case the connection is not of type ssl the method
-        # may returns as there's nothing left to be done, as the
+        # may return as there's nothing left to be done, as the
         # rest of the method is dedicated to ssl tricks
         if not connection.ssl: return
 
