@@ -942,6 +942,7 @@ class HTTPClient(netius.StreamClient):
                 message = "Timeout on connect",
                 request = request
             )
+            connection.close()
             if self.auto_close: self.close()
             if self.auto_pause: self.pause()
 
@@ -961,6 +962,7 @@ class HTTPClient(netius.StreamClient):
                 message = "Timeout on receive",
                 request = request
             )
+            connection.close()
             if self.auto_close: self.close()
             if self.auto_pause: self.pause()
 
