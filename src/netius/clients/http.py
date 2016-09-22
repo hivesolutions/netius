@@ -992,8 +992,9 @@ class HTTPClient(netius.StreamClient):
         # initial data will be queued for latter delivery (on connect)
         connection.send_request()
 
-        # schedules a delay operation to run the timeout connect operation in
-        # after the defined/provided timeout value
+        # schedules a delay operation to run the timeout handlers for
+        # both connect and receive operations (these are considered the
+        # initial triggers for the such verifiers)
         self.delay(connect_timeout, timeout = timeout)
         self.delay(receive_timeout, timeout = timeout)
 
