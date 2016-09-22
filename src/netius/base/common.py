@@ -170,6 +170,14 @@ SSL_VALID_ERRORS = (
 """ The list containing the valid errors for the handshake
 operation of the ssl connection establishment """
 
+SSL_ERROR_NAMES = {
+    ssl.SSL_ERROR_WANT_READ : "SSL_ERROR_WANT_READ",
+    ssl.SSL_ERROR_WANT_WRITE : "SSL_ERROR_WANT_WRITE",
+    SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE : "SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE"
+}
+""" The dictionary containing the association between the
+various ssl errors and their string representation """
+
 SSL_VALID_REASONS = (
     "CERT_ALREADY_IN_HASH_TABLE",
 )
@@ -2133,7 +2141,8 @@ class AbstractBase(observer.Observable):
             error_v = error.args[0] if error.args else None
             if error_v in SSL_VALID_ERRORS:
                 _socket._pending = self._ssl_handshake
-                self.debug("Delaying SSL handshake '%d'" % error_v)
+                error_name = SSL_ERROR_NAMES.get(error_v, "SSL_UNDEFINED") 
+                self.debug("Delaying SSL handshake (%s)" % error_name)
             else: raise
 
     def _level(self, level):
