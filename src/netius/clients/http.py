@@ -969,8 +969,8 @@ class HTTPClient(netius.StreamClient):
 
             # determines if the connection is considered valid, either
             # the connection is not "yet" connected of the time between
-            # receivals is valid, and if that's the case delays a next
-            # timeout verification according to the timeout value
+            # receive operations is valid, and if that's the case delays
+            # the timeout verification according to the timeout value
             if not connection.is_connected() or delta < timeout:
                 self.delay(receive_timeout, timeout = timeout)
                 return
