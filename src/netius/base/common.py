@@ -2102,10 +2102,33 @@ class AbstractBase(observer.Observable):
         return socket_ssl
 
     def _ssl_handshake(self, _socket):
+        """
+        Low level SSL handshake operation that triggers or resumes
+        the handshake process.
+
+        It should be able to handle the exceptions raised by the the
+        concrete handshake operation so that
+
+        :type _socket: Socket
+        :param _socket: The socket that is going to be used in the
+        handshake operation, this should be a valid/open socket that
+        should be registered for both read and write in the poll.
+        """
+
         try:
+            # tries to runs the handshake process, this represents
+            # a series of small operations both of writing and reading
+            # that a required to establish and guarantee a secure
+            # connection from this moment on, note that this operation
+            # may fail (non blocking issues) and further retries must
+            # be attempted to finish establishing the connection
             _socket.do_handshake()
             _socket._pending = None
         except ssl.SSLError as error:
+            # tries to retrieve the error code from the argument information
+            # in the error, in case the error is defined in the list of
+            # valid errors, the handshake is delayed until either a write
+            # or read operation is available (retry process)
             error_v = error.args[0] if error.args else None
             if error_v in SSL_VALID_ERRORS:
                 _socket._pending = self._ssl_handshake
