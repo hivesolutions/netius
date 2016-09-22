@@ -51,6 +51,7 @@ import netius.pool
 import netius.adapters
 
 from . import log
+from . import util
 from . import errors
 
 from .conn import * #@UnusedWildImport
@@ -1513,7 +1514,7 @@ class AbstractBase(observer.Observable):
         return self.poll
 
     def get_id(self, unique = True):
-        base = NAME + "-" + self.name
+        base = NAME + "-" + util.camel_to_underscore(self.name)
         if not unique: return base
         return base + "-" + str(self._uuid)
 

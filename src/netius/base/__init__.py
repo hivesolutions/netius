@@ -49,6 +49,7 @@ from . import request
 from . import server
 from . import stream
 from . import tls
+from . import util
 
 from .async import Future, coroutine, sleep, wait, notify
 from .client import Client, DatagramClient, StreamClient
@@ -67,3 +68,4 @@ from .request import Request, Response
 from .server import Server, DatagramServer, StreamServer
 from .stream import Stream
 from .tls import match_hostname
+from .util import camel_to_underscore
