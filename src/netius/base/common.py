@@ -2109,6 +2109,7 @@ class AbstractBase(observer.Observable):
             error_v = error.args[0] if error.args else None
             if error_v in SSL_VALID_ERRORS:
                 _socket._pending = self._ssl_handshake
+                self.debug("Delaying SSL handshake '%d' error" % error_v)
             else: raise
 
     def _level(self, level):
