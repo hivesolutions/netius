@@ -952,22 +952,39 @@ class HTTPClient(netius.StreamClient):
         # creates a function that is going to be used to validate
         # the receive operation of the connection (receive timeout)
         def receive_timeout():
+            # runs the initial verification operations that will
+            # try to validate if the requirements for proper request
+            # validations are defined, if any of them is not the control
+            # full is returned immediately avoiding re-schedule of handler
             if not has_request: return
             if not connection.is_open(): return
-            if not connection.is_connected(): return
             if not connection._request == id(request): return
             if request["code"]: return
+
+            # retrieves the current time and the time of the last data
+            # receive operation and using that calculates the delta
             current = time.time()
             last = request.get("last", 0)
             delta = current - last
-            if delta < timeout:
+
+            # determines if the connection is considered valid, either
+            # the connection is not "yet" connected of the time between
+            # receivals is valid, and if that's the case delays a next
+            # timeout verification according to the timeout value
+            if not connection.is_connected() or delta < timeout:
                 self.delay(receive_timeout, timeout = timeout)
                 return
+
+            # sets the error information in the request so that the
+            # request handler is properly "notified" about the error
             cls.set_error(
                 "timeout",
                 message = "Timeout on receive",
                 request = request
             )
+
+            # closes the connection (it's no longer considered valid)
+            # and then verifies the various auto closing values
             connection.close()
             if self.auto_close: self.close()
             if self.auto_pause: self.pause()
