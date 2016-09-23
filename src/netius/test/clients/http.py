@@ -75,7 +75,7 @@ class HTTPClientTest(unittest.TestCase):
             async = False
         )
         self.assertEqual(result["error"], "timeout")
-        self.assertEqual(result["message"], "Timeout on receive")
+        self.assertEqual(result["message"].startswith("Timeout on receive"), True)
 
         result = netius.clients.HTTPClient.method_s(
             "GET",
@@ -84,7 +84,7 @@ class HTTPClientTest(unittest.TestCase):
             async = False
         )
         self.assertNotEqual(result.get("error", None), "timeout")
-        self.assertNotEqual(result.get("message", None), "Timeout on receive")
+        self.assertNotEqual(result.get("message", None).startswith("Timeout on receive"), True)
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
         self.assertNotEqual(json.loads(result["data"].decode("utf-8")), None)
