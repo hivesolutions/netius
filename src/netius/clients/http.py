@@ -969,6 +969,11 @@ class HTTPClient(netius.StreamClient):
             last = request.get("last", 0)
             delta = current - last
 
+            # retrieves the amount of bytes that have been received so
+            # far during the request handling this is going to be used
+            # for logging purposes on the error information to be printed
+            received = request.get("received", 0)
+
             # determines if the connection is considered valid, either
             # the connection is not "yet" connected of the time between
             # receive operations is valid, and if that's the case delays
@@ -977,11 +982,17 @@ class HTTPClient(netius.StreamClient):
                 self.delay(receive_timeout, timeout = timeout)
                 return
 
+            # tries to determine the proper message that is going to be
+            # set in the request error, this value should take into account
+            # the current development mode flag value
+            if self.is_devel(): message = "Timeout on receive (received %d bytes)" % received
+            else: message = "Timeout on receive"
+
             # sets the error information in the request so that the
             # request handler is properly "notified" about the error
             cls.set_error(
                 "timeout",
-                message = "Timeout on receive",
+                message = message,
                 request = request
             )
 
