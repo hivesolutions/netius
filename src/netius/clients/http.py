@@ -920,7 +920,7 @@ class HTTPClient(netius.StreamClient):
 
             def on_partial(connection, parser, data):
                 buffer.append(data)
-                received = request.get("bytes", 0)
+                received = request.get("received", 0)
                 request["received"] = received + len(data)
                 request["last"] = time.time()
 
