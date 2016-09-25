@@ -497,6 +497,41 @@ class StreamClient(Client):
         )
         return info
 
+    def validate_c(self, connection, close = True):
+        valid = True
+
+        while True:
+            try: data = connection.recv()
+            except ssl.SSLError as error:
+                error_v = error.args[0] if error.args else None
+                if error_v in SSL_VALID_ERRORS: continue
+                if close: connection.close()
+                valid = False
+                break
+            except socket.error as error:
+                error_v = error.args[0] if error.args else None
+                if error_v in VALID_ERRORS: continue
+                if close: connection.close()
+                valid = False
+                break
+            except BaseException:
+                if close: connection.close()
+                valid = False
+                break
+
+            # in case the control flow reached this level the
+            # receive operation has succeeded and a verification
+            # is performed to make sure that a valid that has been
+            # received, if that's not the case the connection is
+            # considered to be closed and proper arrangements are
+            # performed to ensure no corruption of connection
+            if data: continue
+            if close: connection.close()
+            valid = False
+            break
+
+        return valid
+
     def acquire_c(
         self,
         host,
@@ -523,35 +558,7 @@ class StreamClient(Client):
         while connection_l:
             connection = connection_l.pop()
 
-            while True:
-                try: data = connection.recv()
-                except ssl.SSLError as error:
-                    error_v = error.args[0] if error.args else None
-                    if error_v in SSL_VALID_ERRORS: continue
-                    connection.close()
-                    connection = None
-                    break
-                except socket.error as error:
-                    error_v = error.args[0] if error.args else None
-                    if error_v in VALID_ERRORS: continue
-                    connection.close()
-                    connection = None
-                    break
-                except BaseException:
-                    connection.close()
-                    connection = None
-                    break
-
-                # in case the control flow reached this level the
-                # receive operation has succeeded and a verification
-                # is performed to make sure that a valid that has been
-                # received, if that's not the case the connection is
-                # considered to be closed and proper arrangements are
-                # performed to ensure no corruption of connection
-                if data: continue
-                connection.close()
-                connection = None
-                break
+            if not self.validate_c(connection): connection = None
 
             # in case the connection has been invalidated (possible
             # disconnect) the current loop iteration is skipped and
