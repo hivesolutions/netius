@@ -700,7 +700,7 @@ class StreamClient(Client):
             socket.SO_SNDBUF,
             self.send_buffer
         )
-        self._socket_keepalive(_socket, timeout = 1, interval = 3, count = 1)
+        self._socket_keepalive(_socket)
 
         address = port if is_unix else (host, port)
         connection = self.new_connection(_socket, address, ssl = ssl)
