@@ -468,7 +468,8 @@ class BaseConnection(observer.Observable):
         # that has been submitted to be sent (as soon as possible)
         return data_l
 
-    def recv(self, size = CHUNK_SIZE):
+    def recv(self, size = CHUNK_SIZE, force = False):
+        if not self.status == OPEN and not force: return b""
         return self._recv(size = size)
 
     def info_dict(self, full = False):

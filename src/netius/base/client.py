@@ -577,7 +577,7 @@ class StreamClient(Client):
         # basic/default assumption on the connection is that it's
         # valid (per basis a connection is valid)
         valid = True
-        
+
         print("validate_c")
 
         # iterates continuously trying to read any pending data from
@@ -613,7 +613,7 @@ class StreamClient(Client):
                 if close: connection.close()
                 valid = False
                 break
-            
+
             print("DATA")
             print(data)
 
@@ -627,7 +627,7 @@ class StreamClient(Client):
             if close: connection.close()
             valid = False
             break
-        
+
         print("END validate_c")
         print(valid)
 
