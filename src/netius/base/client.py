@@ -512,17 +512,31 @@ class StreamClient(Client):
         connection_t = (host, port, ssl, key_file, cer_file)
         connection_l = self.free_map.get(connection_t, None)
 
+        connection = None
+
         # in case the connection list was successfully retrieved a new
         # connection is re-used by acquiring the connection
-        if connection_l:
+        while connection_l:
             connection = connection_l.pop()
+
+            while True:
+                try: data = connection.recv()
+                except: pass
+                if data: continue
+                connection.close()
+                connection = None
+                break
+
+            if not connection: continue
+
             self.acquire(connection)
+            break
 
         # otherwise a new connection must be created by establishing
         # a connection operation, this operation is not going to be
         # performed immediately as it's going to be deferred to the
         # next execution cycle (delayed execution)
-        else:
+        if not connection:
             connection = self.connect(
                 host,
                 port,
