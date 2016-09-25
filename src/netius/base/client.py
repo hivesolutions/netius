@@ -599,7 +599,7 @@ class StreamClient(Client):
             # connection and sets it as invalid
             try:
                 data = connection.recv()
-                if not data: raise RuntimeError("EOF received from connection")
+                if not data: raise errors.NetiusError("EOF received")
                 connection.send(b"")
             except ssl.SSLError as error:
                 error_v = error.args[0] if error.args else None
