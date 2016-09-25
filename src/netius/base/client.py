@@ -577,6 +577,8 @@ class StreamClient(Client):
         # basic/default assumption on the connection is that it's
         # valid (per basis a connection is valid)
         valid = True
+        
+        print("validate_c")
 
         # iterates continuously trying to read any pending data from
         # the connection, some of this data may indicate that the
@@ -590,21 +592,27 @@ class StreamClient(Client):
             # connection and sets it as invalid
             try: data = connection.recv()
             except ssl.SSLError as error:
+                print("ssl.SSLError")
                 error_v = error.args[0] if error.args else None
-                if error_v in SSL_VALID_ERRORS: break
+                if error_v in SSL_VALID_ERRORS: print("SSL_VALID_ERRORS"); break
                 if close: connection.close()
                 valid = False
                 break
             except socket.error as error:
                 error_v = error.args[0] if error.args else None
-                if error_v in VALID_ERRORS: break
+                print("socket.error")
+                if error_v in VALID_ERRORS: print("VALID_ERRORS"); break
                 if close: connection.close()
                 valid = False
                 break
             except BaseException:
+                print("BaseException")
                 if close: connection.close()
                 valid = False
                 break
+            
+            print("DATA")
+            print(data)
 
             # in case the control flow reached this level the
             # receive operation has succeeded and a verification
@@ -616,6 +624,9 @@ class StreamClient(Client):
             if close: connection.close()
             valid = False
             break
+        
+        print("END validate_c")
+        print(valid)
 
         # returns the final value on the connection validity test
         # indicating if the connection is ready for usage or not
