@@ -221,7 +221,7 @@ class EpollPoll(Poll):
             if event & select.EPOLLOUT: #@UndefinedVariable
                 socket = self.fd_m.get(fd, None)
                 socket and result[1].append(socket)
-            if event & select.EPOLLERR or event & select.EPOLLHUP or event & select.EPOLLRDHUP:  #@UndefinedVariable
+            if event & select.EPOLLERR or event & select.EPOLLHUP:  #@UndefinedVariable
                 socket = self.fd_m.get(fd, None)
                 socket and result[2].append(socket)
 
@@ -239,7 +239,7 @@ class EpollPoll(Poll):
         self.error_o[socket] = owner
         self.epoll.register( #@UndefinedVariable
             socket_fd,
-            select.EPOLLIN | select.EPOLLOUT | select.EPOLLERR | select.EPOLLHUP | select.EPOLLRDHUP | select.EPOLLET #@UndefinedVariable
+            select.EPOLLIN | select.EPOLLOUT | select.EPOLLERR | select.EPOLLHUP | select.EPOLLET #@UndefinedVariable
         )
 
     def sub_write(self, socket, owner = None):
