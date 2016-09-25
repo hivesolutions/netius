@@ -578,12 +578,18 @@ class StreamClient(Client):
         # valid (per basis a connection is valid)
         valid = True
 
-        print("validate_c")
+        # tries to retrieve the value of the error options value of
+        # the socket in case it's currently set unsets the valid flag
+        error = connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        if error: valid = False
 
         # iterates continuously trying to read any pending data from
         # the connection, some of this data may indicate that the
         # connection is no longer valid for usage
         while True:
+            # verifies if the value of the valid flag is false and
+            # if that's the case breaks the current loop immediately
+            if not valid: break
 
             # tries to read/receive any set of pending data from
             # the connection in case there's an exception and it's
@@ -601,7 +607,6 @@ class StreamClient(Client):
                 if error_v in SSL_VALID_ERRORS: print("SSL_VALID_ERRORS"); break
                 if close: connection.close()
                 valid = False
-                break
             except socket.error as error:
                 error_v = error.args[0] if error.args else None
                 print("socket.error")
@@ -609,13 +614,11 @@ class StreamClient(Client):
                 if error_v in VALID_ERRORS: print("VALID_ERRORS"); break
                 if close: connection.close()
                 valid = False
-                break
             except BaseException as exception:
                 print("BaseException")
                 print(exception)
                 if close: connection.close()
                 valid = False
-                break
 
         print("END validate_c")
         print(valid)
