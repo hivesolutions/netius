@@ -444,8 +444,10 @@ class BaseConnection(observer.Observable):
         # the size of the inner data buffer to be added (as requested)
         self.pending_s += data_l
 
-        # verifies if the write ready flag is set, for that
-        # case the send flushing operation must be performed
+        # verifies if the write ready flag is set, for that case the
+        # write flushing operation must be performed, so that all pending
+        # bytes to be sent in the connection may be flushed as fast as
+        # possible (avoiding extra loops in polling)
         if self.wready:
             # checks if the safe flag is set and if it is runs
             # the send operation right way otherwise "waits" until
