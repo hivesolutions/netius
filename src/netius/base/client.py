@@ -504,6 +504,7 @@ class StreamClient(Client):
         ssl = False,
         key_file = None,
         cer_file = None,
+        validate = False,
         callback = None
     ):
         # sets the initial value of the connection instance variable
@@ -526,7 +527,7 @@ class StreamClient(Client):
             # is still valid (open and ready), if that's not the case
             # unsets the connection variable
             connection = connection_l.pop()
-            if not self.validate_c(connection): connection = None
+            if validate and not self.validate_c(connection): connection = None
 
             # in case the connection has been invalidated (possible
             # disconnect) the current loop iteration is skipped and
