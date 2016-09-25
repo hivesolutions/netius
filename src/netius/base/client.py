@@ -601,27 +601,18 @@ class StreamClient(Client):
                 if not data: raise RuntimeError("EOF received from connection")
                 connection.send(b"")
             except ssl.SSLError as error:
-                print("ssl.SSLError")
-                print(error)
                 error_v = error.args[0] if error.args else None
-                if error_v in SSL_VALID_ERRORS: print("SSL_VALID_ERRORS"); break
+                if error_v in SSL_VALID_ERRORS: break
                 if close: connection.close()
                 valid = False
             except socket.error as error:
                 error_v = error.args[0] if error.args else None
-                print("socket.error")
-                print(error)
-                if error_v in VALID_ERRORS: print("VALID_ERRORS"); break
+                if error_v in VALID_ERRORS: break
                 if close: connection.close()
                 valid = False
-            except BaseException as exception:
-                print("BaseException")
-                print(exception)
+            except BaseException:
                 if close: connection.close()
                 valid = False
-
-        print("END validate_c")
-        print(valid)
 
         # returns the final value on the connection validity test
         # indicating if the connection is ready for usage or not
