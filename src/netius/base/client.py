@@ -867,9 +867,15 @@ class StreamClient(Client):
         process tested for finishing.
         """
 
+        # verifies if there was an error in the middle of the connection
+        # operation and if that's the case calls the proper callback and
+        # returns the control flow to the caller method
         error = connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
         if error: self.on_error(connection.socket); return
 
+        # checks if the current connection is ssl based and if that's the
+        # case starts the handshaking process (async non blocking) otherwise
+        # calls the on connect callback with the newly created connection
         if connection.ssl: self._ssl_handshake(connection.socket)
         else: self.on_connect(connection)
 
