@@ -1055,6 +1055,9 @@ class HTTPClient(netius.StreamClient):
 
     def on_connection_d(self, connection):
         netius.StreamClient.on_connection_d(self, connection)
+
+        # triggers the connection close event in the client and
+        # then removes the connection from the connection pool
         self.trigger("close", self, connection)
         self.remove_c(connection)
 
