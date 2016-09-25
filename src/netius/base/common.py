@@ -1904,25 +1904,34 @@ class AbstractBase(observer.Observable):
         identifier = identifier.upper()
         return indetifier
 
-    def _socket_keepalive(self, _socket):
+    def _socket_keepalive(
+        self,
+        _socket,
+        timeout = None,
+        interval = None,
+        count = None
+    ):
+        if timeout == None: timeout = self.keepalive_timeout
+        if interval == None: interval = self.keepalive_interval
+        if count == None: count = self.keepalive_count
         is_inet = _socket.family in (socket.AF_INET, socket.AF_INET6)
         is_inet and hasattr(_socket, "TCP_KEEPIDLE") and\
             self.socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPIDLE, #@UndefinedVariable
-                self.keepalive_timeout
+                timeout
             )
         is_inet and hasattr(_socket, "TCP_KEEPINTVL") and\
             self.socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPINTVL, #@UndefinedVariable
-                self.keepalive_interval
+                interval
             )
         is_inet and hasattr(_socket, "TCP_KEEPCNT") and\
             self.socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPCNT, #@UndefinedVariable
-                self.keepalive_count
+                count
             )
         hasattr(_socket, "SO_REUSEPORT") and\
             self.socket.setsockopt(
