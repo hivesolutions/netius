@@ -2178,9 +2178,12 @@ class AbstractBase(observer.Observable):
             # or read operation is available (retry process)
             error_v = error.args[0] if error.args else None
             if error_v in SSL_VALID_ERRORS:
+                if error_v == ssl.SSL_ERROR_WANT_WRITE and\
+                    not self.is_sub_write(_socket):
+                    self.sub_write(_socket)
+                elif self.is_sub_write(_socket):
+                    self.unsub_write(_socket)
                 _socket._pending = self._ssl_handshake
-                error_name = SSL_ERROR_NAMES.get(error_v, "SSL_UNDEFINED")
-                self.debug("Delaying SSL handshake (%s)" % error_name)
             else: raise
 
     def _level(self, level):
