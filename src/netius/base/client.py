@@ -500,6 +500,9 @@ class StreamClient(Client):
     def validate_c(self, connection, close = True):
         valid = True
 
+        # iterates continuously trying to read any pending data from
+        # the connection, some of this data may indicate that the
+        # connection is no longer valid for usage
         while True:
             try: data = connection.recv()
             except ssl.SSLError as error:
