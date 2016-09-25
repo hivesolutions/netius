@@ -497,44 +497,6 @@ class StreamClient(Client):
         )
         return info
 
-    def validate_c(self, connection, close = True):
-        valid = True
-
-        # iterates continuously trying to read any pending data from
-        # the connection, some of this data may indicate that the
-        # connection is no longer valid for usage
-        while True:
-            try: data = connection.recv()
-            except ssl.SSLError as error:
-                error_v = error.args[0] if error.args else None
-                if error_v in SSL_VALID_ERRORS: break
-                if close: connection.close()
-                valid = False
-                break
-            except socket.error as error:
-                error_v = error.args[0] if error.args else None
-                if error_v in VALID_ERRORS: break
-                if close: connection.close()
-                valid = False
-                break
-            except BaseException:
-                if close: connection.close()
-                valid = False
-                break
-
-            # in case the control flow reached this level the
-            # receive operation has succeeded and a verification
-            # is performed to make sure that a valid that has been
-            # received, if that's not the case the connection is
-            # considered to be closed and proper arrangements are
-            # performed to ensure no corruption of connection
-            if data: continue
-            if close: connection.close()
-            valid = False
-            break
-
-        return valid
-
     def acquire_c(
         self,
         host,
@@ -609,6 +571,55 @@ class StreamClient(Client):
         connection_t = connection.tuple
         connection_l = self.free_map.get(connection_t, [])
         if connection in connection_l: connection_l.remove(connection)
+
+    def validate_c(self, connection, close = True):
+        # sets the original valid flag value as true so that the
+        # basic/default assumption on the connection is that it's
+        # valid (per basis a connection is valid)
+        valid = True
+
+        # iterates continuously trying to read any pending data from
+        # the connection, some of this data may indicate that the
+        # connection is no longer valid for usage
+        while True:
+
+            # tries to read/receive any set of pending data from
+            # the connection in case there's an exception and it's
+            # considered valid ignores the exceptions and considers
+            # the connection valid (breaks loop) otherwise closes the
+            # connection and sets it as invalid
+            try: data = connection.recv()
+            except ssl.SSLError as error:
+                error_v = error.args[0] if error.args else None
+                if error_v in SSL_VALID_ERRORS: break
+                if close: connection.close()
+                valid = False
+                break
+            except socket.error as error:
+                error_v = error.args[0] if error.args else None
+                if error_v in VALID_ERRORS: break
+                if close: connection.close()
+                valid = False
+                break
+            except BaseException:
+                if close: connection.close()
+                valid = False
+                break
+
+            # in case the control flow reached this level the
+            # receive operation has succeeded and a verification
+            # is performed to make sure that a valid that has been
+            # received, if that's not the case the connection is
+            # considered to be closed and proper arrangements are
+            # performed to ensure no corruption of connection
+            if data: continue
+            if close: connection.close()
+            valid = False
+            break
+
+        # returns the final value on the connection validity test
+        # indicating if the connection is ready for usage or not
+        return valid
 
     def connect(
         self,
