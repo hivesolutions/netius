@@ -553,15 +553,22 @@ class StreamClient(Client):
                 connection = None
                 break
 
+            # in case the connection has been invalidated (possible
+            # disconnect) the current loop iteration is skipped and
+            # a new connection from the list of connections in pool
+            # is going to be searched and validated
             if not connection: continue
 
+            # runs the connection acquire operation that should take
+            # care of the proper acquisition notification process and
+            # then breaks the cycle (valid connection found)
             self.acquire(connection)
             break
 
-        # otherwise a new connection must be created by establishing
-        # a connection operation, this operation is not going to be
-        # performed immediately as it's going to be deferred to the
-        # next execution cycle (delayed execution)
+        # in case no connection is found a new one must be created by
+        # establishing a connect operation, this operation is not going
+        # to be performed immediately as it's going to be deferred to
+        # the next execution cycle (delayed execution)
         if not connection:
             connection = self.connect(
                 host,
