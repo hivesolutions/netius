@@ -506,22 +506,48 @@ class StreamClient(Client):
         cer_file = None,
         callback = None
     ):
+        # sets the initial value of the connection instance variable
+        # to invalid, this is going to be populated with a valid
+        # connection from either the pool of connections or a new one
+        connection = None
+
         # creates the tuple that is going to describe the connection
         # and tries to retrieve a valid connection from the map of
         # free connections (connection re-usage)
         connection_t = (host, port, ssl, key_file, cer_file)
         connection_l = self.free_map.get(connection_t, None)
 
-        connection = None
-
-        # in case the connection list was successfully retrieved a new
-        # connection is re-used by acquiring the connection
+        # iterates continuously trying to retrieve a valid and open
+        # connection from the list of connection that compose the
+        # pool of connections for the current client
         while connection_l:
             connection = connection_l.pop()
 
             while True:
                 try: data = connection.recv()
-                except: pass
+                except ssl.SSLError as error:
+                    error_v = error.args[0] if error.args else None
+                    if error_v in SSL_VALID_ERRORS: continue
+                    connection.close()
+                    connection = None
+                    break
+                except socket.error as error:
+                    error_v = error.args[0] if error.args else None
+                    if error_v in VALID_ERRORS: continue
+                    connection.close()
+                    connection = None
+                    break
+                except BaseException:
+                    connection.close()
+                    connection = None
+                    break
+
+                # in case the control flow reached this level the
+                # receive operation has succeeded and a verification
+                # is performed to make sure that a valid that has been
+                # received, if that's not the case the connection is
+                # considered to be closed and proper arrangements are
+                # performed to ensure no corruption of connection
                 if data: continue
                 connection.close()
                 connection = None
