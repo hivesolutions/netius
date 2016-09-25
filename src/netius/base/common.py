@@ -585,6 +585,21 @@ class AbstractBase(observer.Observable):
         self._notified.append(event)
 
     def load(self, full = False):
+        """
+        Starts the loading process for the current engine, this should be
+        a singleton (run once) operation to be executed once per instance.
+
+        Some of the responsibilities of the loading process should include:
+        logging loading, system signal binding and welcome message printing.
+
+        The method should be protected against double execution issues, meaning
+        that should be safely called at any stage of the life cycle.
+
+        :type full: bool
+        :param full: If the loading process should be performed completely,
+        meaning that even the long tasks should be executed.
+        """
+
         # in case the current structure is considered/marked as already loaded
         # there's no need to continue with the loading execution (returns immediately)
         if self._loaded: return
@@ -617,6 +632,20 @@ class AbstractBase(observer.Observable):
         self._loaded = True
 
     def unload(self, full = False):
+        """
+        Unloads the structures associated with the current engine, so that
+        the state of the current engine is reversed to the original one.
+
+        Note that this is not related in any way with the event loop and only
+        static structures are affected.
+
+        After a call to this method, the load method may be called again.
+
+        :type full: bool
+        :param full: If the complete set of structure unloading operations
+        should be performed, this is related with the full flag of load.
+        """
+
         # verifies if the current structure is considered/marked as already
         # "unloaded", if that's the case returns the control flow immediately
         # as there's nothing pending to be (undone)
