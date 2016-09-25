@@ -504,13 +504,13 @@ class StreamClient(Client):
             try: data = connection.recv()
             except ssl.SSLError as error:
                 error_v = error.args[0] if error.args else None
-                if error_v in SSL_VALID_ERRORS: continue
+                if error_v in SSL_VALID_ERRORS: break
                 if close: connection.close()
                 valid = False
                 break
             except socket.error as error:
                 error_v = error.args[0] if error.args else None
-                if error_v in VALID_ERRORS: continue
+                if error_v in VALID_ERRORS: break
                 if close: connection.close()
                 valid = False
                 break
@@ -556,8 +556,11 @@ class StreamClient(Client):
         # connection from the list of connection that compose the
         # pool of connections for the current client
         while connection_l:
+            # retrieves the first connection in the list (pop) and
+            # then validates it trying to determine if the connection
+            # is still valid (open and ready), if that's not the case
+            # unsets the connection variable
             connection = connection_l.pop()
-
             if not self.validate_c(connection): connection = None
 
             # in case the connection has been invalidated (possible
