@@ -590,7 +590,10 @@ class StreamClient(Client):
             # considered valid ignores the exceptions and considers
             # the connection valid (breaks loop) otherwise closes the
             # connection and sets it as invalid
-            try: data = connection.recv()
+            try:
+                data = connection.recv()
+                if not data: raise RuntimeError("EOF received from connection")
+                connection.send(b"")
             except ssl.SSLError as error:
                 print("ssl.SSLError")
                 print(error)
@@ -613,20 +616,6 @@ class StreamClient(Client):
                 if close: connection.close()
                 valid = False
                 break
-
-            print("DATA")
-            print(data)
-
-            # in case the control flow reached this level the
-            # receive operation has succeeded and a verification
-            # is performed to make sure that a valid that has been
-            # received, if that's not the case the connection is
-            # considered to be closed and proper arrangements are
-            # performed to ensure no corruption of connection
-            if data: continue
-            if close: connection.close()
-            valid = False
-            break
 
         print("END validate_c")
         print(valid)
