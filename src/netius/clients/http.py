@@ -807,6 +807,12 @@ class HTTPClient(netius.StreamClient):
         headers = headers or dict()
         timeout = timeout or 60
 
+        # runs the loading process, so that services like logging are
+        # available right away and may be used immediately as expected
+        # by the http method loader method, note that in case the loading
+        # process as already been executed the logic is ignored
+        self.load()
+
         # creates the message that is going to be used in the logging of
         # the current method request for debugging purposes, this may be
         # useful for a full record traceability of the request
