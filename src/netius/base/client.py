@@ -684,7 +684,7 @@ class StreamClient(Client):
         )
 
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        #_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         if is_inet: _socket.setsockopt(
             socket.IPPROTO_TCP,
             socket.TCP_NODELAY,
@@ -700,7 +700,7 @@ class StreamClient(Client):
             socket.SO_SNDBUF,
             self.send_buffer
         )
-        self._socket_keepalive(_socket)
+        #self._socket_keepalive(_socket)
 
         address = port if is_unix else (host, port)
         connection = self.new_connection(_socket, address, ssl = ssl)
