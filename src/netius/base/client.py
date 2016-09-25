@@ -593,6 +593,7 @@ class StreamClient(Client):
             try: data = connection.recv()
             except ssl.SSLError as error:
                 print("ssl.SSLError")
+                print(error)
                 error_v = error.args[0] if error.args else None
                 if error_v in SSL_VALID_ERRORS: print("SSL_VALID_ERRORS"); break
                 if close: connection.close()
@@ -601,12 +602,14 @@ class StreamClient(Client):
             except socket.error as error:
                 error_v = error.args[0] if error.args else None
                 print("socket.error")
+                print(error)
                 if error_v in VALID_ERRORS: print("VALID_ERRORS"); break
                 if close: connection.close()
                 valid = False
                 break
-            except BaseException:
+            except BaseException as exception:
                 print("BaseException")
+                print(exception)
                 if close: connection.close()
                 valid = False
                 break
