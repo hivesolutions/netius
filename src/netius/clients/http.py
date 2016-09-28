@@ -485,6 +485,7 @@ class HTTPConnection(netius.Connection):
         host = self.host
         port = self.port
         data = self.data
+        is_plain = self.is_plain()
 
         length = len(data) if data else 0
 
@@ -495,7 +496,7 @@ class HTTPConnection(netius.Connection):
             headers["connection"] = "keep-alive"
         if not "host" in headers:
             headers["host"] = host_s
-        if not "content-length" in headers and self.is_plain():
+        if not "content-length" in headers and is_plain:
             headers["content-length"] = str(length)
         if not "accept-encoding" in headers and self.encodings:
             headers["accept-encoding"] = self.encodings

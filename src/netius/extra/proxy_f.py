@@ -39,6 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import re
 
+import netius.common
 import netius.servers
 
 class ForwardProxyServer(netius.servers.ProxyServer):
@@ -54,6 +55,7 @@ class ForwardProxyServer(netius.servers.ProxyServer):
         method = parser.method.upper()
         path = parser.path_s
         version_s = parser.version_s
+        headers = parser.headers
 
         rejected = False
         for rule in self.rules.values():
@@ -88,10 +90,16 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             connection.proxy_c = None
             if proxy_c in self.conn_map: del self.conn_map[proxy_c]
 
+            encoding = headers.get("transfer-encoding", None)
+            is_chunked = encoding == "chunked"
+            encoding = netius.common.CHUNKED_ENCODING if is_chunked else\
+                netius.common.PLAIN_ENCODING
+
             _connection = self.http_client.method(
                 method,
                 path,
-                headers = parser.headers,
+                headers = headers,
+                encoding = encoding,
                 encodings = None,
                 safe = True,
                 connection = proxy_c
