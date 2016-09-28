@@ -257,6 +257,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         connection.proxy_c = None
         if proxy_c in self.conn_map: del self.conn_map[proxy_c]
 
+        # tries to determine the transfer encoding of the received request
+        # and using that determines the proper encoding to be applied
+        encoding = headers.get("transfer-encoding", None)
+        is_chunked = encoding == "chunked"
+        encoding = netius.common.CHUNKED_ENCODING if is_chunked else\
+            netius.common.PLAIN_ENCODING
+
         # calls the proper (http) method in the client this should acquire
         # a new connection and start the process of sending the request
         # to the associated http server (request handling)
@@ -264,6 +271,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             method,
             url,
             headers = headers,
+            encoding = encoding,
             encodings = None,
             safe = True,
             connection = proxy_c
