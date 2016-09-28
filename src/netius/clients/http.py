@@ -342,6 +342,9 @@ class HTTPConnection(netius.Connection):
         count += self.send_base(data, force = True)
         return count
 
+    def set_encoding(self, encoding):
+        self.current = encoding
+
     def set_encodings(self, encodings):
         self.encodings = encodings
 
@@ -490,10 +493,10 @@ class HTTPConnection(netius.Connection):
 
         if not "connection" in headers:
             headers["connection"] = "keep-alive"
-        if not "content-length" in headers:
-            headers["content-length"] = str(length)
         if not "host" in headers:
             headers["host"] = host_s
+        if not "content-length" in headers and self.is_plain():
+            headers["content-length"] = str(length)
         if not "accept-encoding" in headers and self.encodings:
             headers["accept-encoding"] = self.encodings
 
@@ -785,6 +788,7 @@ class HTTPClient(netius.StreamClient):
         headers = None,
         data = None,
         version = "HTTP/1.1",
+        encoding = PLAIN_ENCODING,
         encodings = "gzip, deflate",
         safe = False,
         connection = None,
@@ -885,6 +889,7 @@ class HTTPClient(netius.StreamClient):
             parsed = parsed,
             safe = safe
         )
+        connection.set_encoding(encoding)
         connection.set_encodings(encodings)
         connection.set_headers(headers)
         connection.set_data(data)
