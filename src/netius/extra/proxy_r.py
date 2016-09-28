@@ -258,7 +258,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if proxy_c in self.conn_map: del self.conn_map[proxy_c]
 
         # tries to determine the transfer encoding of the received request
-        # and using that determines the proper encoding to be applied
+        # and by using that determines the proper encoding to be applied
         encoding = headers.get("transfer-encoding", None)
         is_chunked = encoding == "chunked"
         encoding = netius.common.CHUNKED_ENCODING if is_chunked else\
