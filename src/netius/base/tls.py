@@ -51,14 +51,14 @@ def match_hostname(certificate, hostname):
 
     for key, value in subject_alt_name:
         if not key == "DNS": continue
-        if _dnsname_match(value, hostname): return
+        if dnsname_match(value, hostname): return
         dns_names.append(value)
 
     if not dns_names:
         for subject in certificate.get("subject", ()):
             for key, value in subject:
                 if not key == "commonName": continue
-                if _dnsname_match(value, hostname): return
+                if dnsname_match(value, hostname): return
                 dns_names.append(value)
 
     if len(dns_names) > 1:
@@ -76,21 +76,33 @@ def match_hostname(certificate, hostname):
             "No appropriate commonName or subjectAltName fields were found"
         )
 
-def _dnsname_match(dn, hostname, max_wildcards = 1):
+def dnsname_match(domain, hostname, max_wildcards = 1):
+    # creates the initial list of pats that are going to be used in
+    # the final match operation for wildcard matching
     pats = []
-    if not dn: return False
 
-    parts = dn.split(r".")
+    # in case no valid domain is passed an invalid result is returned
+    # immediately indicating that no match was possible
+    if not domain: return False
+
+    # splits the provided domain value around its components, taking
+    # into account the typical dot separator
+    parts = domain.split(r".")
     base = parts[0]
     remainder = parts[1:]
 
+    # determines the number of wildcard characters present in the
+    # base value for discovery in case this value overflow the maximum
+    # number of wildcards allowed raises an error
     wildcards = base.count("*")
     if wildcards > max_wildcards: raise errors.SecurityError(
-        "Too many wildcards in certificate DNS name: " + str(dn)
+        "Too many wildcards in certificate DNS name: " + str(domain)
     )
 
-    if not wildcards:
-        return dn.lower() == hostname.lower()
+    # in case there are no wildcards in the domain name runs the
+    # "normal" hostname validation process against the domain name
+    if wildcards == 0:
+        return domain.lower() == hostname.lower()
 
     if base == "*":
         pats.append("[^.]+")
@@ -103,4 +115,4 @@ def _dnsname_match(dn, hostname, max_wildcards = 1):
         pats.append(re.escape(fragment))
 
     pat = re.compile(r"\A" + r"\.".join(pats) + r"\Z", re.IGNORECASE)
-    return pat.match(hostname)
+    return True if pat.match(hostname) else False
