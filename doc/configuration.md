@@ -41,7 +41,7 @@ considered to be offline and is dropped
 if the current instance is a client the host verification will also be performed for the server side host
 * `SSL_HOST` (`str`) - The hostname that is going to be used in for domain verification, this value is only
 user in server to be able to verify client certificates  against an expected host
-* `SSL_SECURE` (`bool`) - If a secure suite of SSL should be provided/ensured (some protocols removed) (defaults to `True`)
+* `SSL_SECURE` (`bool`) - If a secure suite of SSL should be ensured (some protocols removed) (defaults to `True`)
 * `SSL_CONTEXTS` (`dict`) - The dictionary that associates the various domains that may be served with different
 context values (certificate, key, etc) for such domain
 * `CER_DATA` (`str`) - Equivalent to `CER_FILE` but with explicit (data) contents of the file (`\n` escaped)
