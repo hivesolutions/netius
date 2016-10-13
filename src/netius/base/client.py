@@ -665,12 +665,18 @@ class StreamClient(Client):
         is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX
         is_inet = family in (socket.AF_INET, socket.AF_INET6)
 
+        # runs a series of default operation for the ssl related attributes
+        # that are going to be used in the socket creation and wrapping
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
         ca_file = ca_file or SSL_CA_PATH
 
+        # determines if the ssl verify flag value is valid taking into account
+        # the provided value and defaulting to false value if not valid
         ssl_verify = ssl_verify or False
 
+        # creates the client socket value using the provided familty and socket
+        # type values and then sets it immediately as non blocking
         _socket = socket.socket(family, type)
         _socket.setblocking(0)
 
@@ -703,7 +709,14 @@ class StreamClient(Client):
         )
         self._socket_keepalive(_socket)
 
+        # constructs the address tuple taking into account if the
+        # socket is unix based or if instead it represents a "normal"
+        # one and the host and port must be used instead
         address = port if is_unix else (host, port)
+
+        # creates the connection object using the typical constructor
+        # and then sets the ssl host (for verification) if the verify
+        # ssl option is defined (secured and verified connection)
         connection = self.new_connection(_socket, address, ssl = ssl)
         if ssl_verify: connection.ssl_host = host
 
