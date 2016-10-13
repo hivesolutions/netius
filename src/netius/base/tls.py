@@ -39,8 +39,13 @@ __license__ = "Apache License, Version 2.0"
 
 import re
 import ssl
+import hashlib
 
 from . import errors
+
+def thumbprint(certificate):
+    digest = hashlib.sha1(certificate)
+    return digest.hexdigest()
 
 def match_hostname(certificate, hostname):
     if hasattr(ssl, "match_hostname"):
