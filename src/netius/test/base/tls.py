@@ -43,6 +43,9 @@ import netius
 
 class TlsTest(unittest.TestCase):
 
+    def test_match_hostname(self):
+        pass
+
     def test_dnsname_match(self):
         result = netius.dnsname_match("domain.com", "domain.com")
         self.assertEqual(result, True)

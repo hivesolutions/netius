@@ -87,7 +87,7 @@ def dnsname_match(domain, hostname, max_wildcards = 1):
 
     # splits the provided domain value around its components, taking
     # into account the typical dot separator
-    parts = domain.split(r".")
+    parts = domain.split(".")
     base = parts[0]
     remainder = parts[1:]
 
