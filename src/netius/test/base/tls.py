@@ -39,9 +39,14 @@ __license__ = "Apache License, Version 2.0"
 
 import unittest
 
-import netius
+import netius.common
 
 class TlsTest(unittest.TestCase):
+
+    def test_thumbprint(self):
+        key_der = netius.common.open_pem_key(netius.SSL_KEY_PATH)
+        result = netius.thumbprint(key_der)
+        self.assertEqual(result, "07a55ee5f6798c58000541dc66ab5f5519292aed")
 
     def test_match_hostname(self):
         certificate = dict(

@@ -50,11 +50,17 @@ PRIVATE_TOKEN = "RSA PRIVATE KEY"
 PUBLIC_TOKEN = "PUBLIC KEY"
 
 def open_pem_key(path, token = PRIVATE_TOKEN):
-    begin, end = pem_limiters(token)
+    is_file = not type(path) in netius.legacy.STRINGS
+    if is_file: file = path
+    else: file = open(path, "rb")
+    try:
+        data = file.read()
+    finally:
+        if not is_file: file.close()
+    return open_pem_data(data, token = token)
 
-    file = open(path, "rb")
-    try: data = file.read()
-    finally: file.close()
+def open_pem_data(data, token = PRIVATE_TOKEN):
+    begin, end = pem_limiters(token)
 
     begin_index = data.find(begin)
     end_index = data.find(end)

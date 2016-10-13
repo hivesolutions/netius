@@ -77,7 +77,7 @@ from .http2 import DATA, HEADERS, PRIORITY, RST_STREAM, SETTINGS, PUSH_PROMISE,\
 from .mime import rfc822_parse, rfc822_join, mime_register
 from .parser import Parser
 from .pop import POPParser
-from .rsa import open_pem_key, write_pem_key, open_private_key, open_private_key_b64,\
+from .rsa import open_pem_key, open_pem_data, write_pem_key, open_private_key, open_private_key_b64,\
     open_private_key_data, open_public_key, open_public_key_b64, open_public_key_data,\
     write_private_key, write_public_key, asn_private_key, asn_public_key, pem_to_der,\
     pem_limiters, private_to_public, assert_private, rsa_private, rsa_primes, rsa_exponents,\
