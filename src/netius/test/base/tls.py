@@ -44,7 +44,22 @@ import netius
 class TlsTest(unittest.TestCase):
 
     def test_match_hostname(self):
-        pass
+        certificate = dict(
+            subject = ((("commonName", "domain.com"),),),
+            subjectAltName = (
+                ("DNS", "api.domain.com"),
+                ("DNS", "embed.domain.com"),
+                ("DNS", "instore.domain.com"),
+                ("DNS", "domain.com"),
+                ("DNS", "www.domain.com")
+            ),
+            version = 3
+        )
+        netius.match_hostname(certificate, "domain.com")
+        self.assertRaises(
+            BaseException,
+            lambda: netius.match_hostname(certificate, "other.domain.com")
+        )
 
     def test_dnsname_match(self):
         result = netius.dnsname_match("domain.com", "domain.com")
