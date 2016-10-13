@@ -48,6 +48,10 @@ class TlsTest(unittest.TestCase):
         result = netius.thumbprint(key_der)
         self.assertEqual(result, "07a55ee5f6798c58000541dc66ab5f5519292aed")
 
+        cer_der = netius.common.open_pem_key(netius.SSL_CER_PATH, token = "CERTIFICATE")
+        result = netius.thumbprint(cer_der)
+        self.assertEqual(result, "5ccc67c8b27bc8f5d7c268d05ac5a284f549420b")
+
     def test_match_hostname(self):
         certificate = dict(
             subject = ((("commonName", "domain.com"),),),
