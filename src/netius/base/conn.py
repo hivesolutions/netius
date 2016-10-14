@@ -97,6 +97,7 @@ class BaseConnection(observer.Observable):
         self.address = address
         self.ssl = ssl
         self.ssl_host = None
+        self.ssl_thumbprint = None
         self.max_pending = max_pending
         self.min_pending = min_pending
         self.renable = True
@@ -488,15 +489,21 @@ class BaseConnection(observer.Observable):
         )
         return info
 
-    def ssl_certificate(self):
+    def ssl_certificate(self, binary = False):
         if not self.ssl: return None
-        return self.socket.getpeercert()
+        return self.socket.getpeercert(binary_form = binary)
 
     def ssl_verify_host(self, host = None):
         host = host or self.ssl_host
         if not host: return
         certificate = self.ssl_certificate()
         tls.match_hostname(certificate, host)
+
+    def ssl_verify_thumbprint(self, thumbprint = None):
+        thumbprint = thumbprint or self.ssl_thumbprint
+        if not thumbprint: return
+        certificate = self.ssl_certificate(binary = True)
+        tls.match_thumbprint(certificate, thumbprint)
 
     def ssl_protocol(self):
         return self.ssl_alpn_protocol() or self.ssl_npn_protocol()

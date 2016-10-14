@@ -47,6 +47,13 @@ def thumbprint(certificate):
     digest = hashlib.sha1(certificate)
     return digest.hexdigest()
 
+def match_thumbprint(certificate, exp_thumbprint):
+    cert_thumbprint = thumbprint(certificate)
+    if cert_thumbprint == exp_thumbprint: return
+    raise errors.SecurityError(
+        "Missmatch in certificate thumbprint"
+    )
+
 def match_hostname(certificate, hostname):
     if hasattr(ssl, "match_hostname"):
         return ssl.match_hostname(certificate, hostname)

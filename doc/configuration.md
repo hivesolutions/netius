@@ -41,6 +41,8 @@ considered to be offline and is dropped
 if the current instance is a client the host verification will also be performed for the server side host
 * `SSL_HOST` (`str`) - The hostname that is going to be used in for domain verification, this value is only
 user in server to be able to verify client certificates  against an expected host
+* `SSL_THUMBPRINT` (`str`) - The thumbprint (SHA1 digest of certificate) that is going to be used to verify the
+integrity of a peer/client certificate against the expected one
 * `SSL_SECURE` (`bool`) - If a secure suite of SSL should be ensured (some protocols removed) (defaults to `True`)
 * `SSL_CONTEXTS` (`dict`) - The dictionary that associates the various domains that may be served with different
 context values (certificate, key, etc) for such domain

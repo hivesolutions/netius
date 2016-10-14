@@ -1994,10 +1994,12 @@ class AbstractBase(observer.Observable):
         socket.context = context
         if not values: return
         ssl_host = values.get("ssl_host", None)
-        if not ssl_host: return
+        ssl_thumbprint = values.get("ssl_thumbprint", None)
+        if not ssl_host and not ssl_thumbprint: return
         connection = self.connections_m.get(socket, None)
         if not connection: return
         connection.ssl_host = ssl_host
+        connection.ssl_thumbprint = ssl_thumbprint
 
     def _ssl_ctx(self, values, context = None, secure = True):
         context = context or ssl.SSLContext(ssl.PROTOCOL_SSLv23)

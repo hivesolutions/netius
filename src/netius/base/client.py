@@ -851,6 +851,11 @@ class StreamClient(Client):
         # to be verified against the value in the certificate
         connection.ssl_verify_host()
 
+        # runs the connection thumbprint verification the will try to
+        # match the digest of the peer certificate against the one that
+        # is expected from it (similar to host verification)
+        connection.ssl_verify_thumbprint()
+
         # verifies if the connection is either connecting or upgrading
         # and calls the proper event handler for each event, this is
         # required because the connection workflow is probably dependent
