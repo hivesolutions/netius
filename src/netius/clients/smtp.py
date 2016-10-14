@@ -474,7 +474,8 @@ class SMTPClient(netius.StreamClient):
         password = None,
         ehlo = True,
         stls = False,
-        mark = True
+        mark = True,
+        callback = None
     ):
         # in case the mark flag is set the contents data is modified
         # and "marked" with the pre-defined header values of the client
@@ -483,13 +484,28 @@ class SMTPClient(netius.StreamClient):
 
         # creates the method that is able to generate handler for a
         # certain sequence of to based (email) addresses
-        def build_handler(tos):
+        def build_handler(tos, domain = None, tos_map = None):
+
+            def on_close(connection):
+                # verifies if the current handler has been build with a
+                # domain based clojure and if that's the case removes the
+                # reference of it from the map of tos, then verifies if the
+                # map is still valid and if that's the case returns and this
+                # is not considered the last remaining smtp session for the
+                # current send operation (still some open)
+                if domain: del tos_map[domain]
+                if tos_map: return
+
+                # verifies if the callback method is defined and if that's
+                # the case calls the callback indicating the end of the send
+                # operation (note that this may represent multiple smtp sessions)
+                callback and callback(self)
 
             def handler(response = None):
                 # in case there's a valid response provided must parse it
                 # to try to "recover" the final address that is going to be
                 # used in the establishment of the smtp connection
-                if response:
+                if response and response.answers:
                     # retrieves the first answer (probably the most accurate)
                     # and then unpacks it until the mx address is retrieved
                     first = response.answers[0]
@@ -521,6 +537,7 @@ class SMTPClient(netius.StreamClient):
                     username = username,
                     password = password
                 )
+                connection.bind("close", on_close)
                 return connection
 
             # returns the clojure bound handler method, ready
@@ -557,7 +574,7 @@ class SMTPClient(netius.StreamClient):
         for domain, tos in netius.legacy.iteritems(tos_map):
             # creates a new handler method bound to the to addresses
             # associated with the current domain in iteration
-            handler = build_handler(tos)
+            handler = build_handler(tos, domain = domain, tos_map = tos_map)
 
             # runs the dns query to be able to retrieve the proper
             # mail exchange host for the target email address and then

@@ -633,6 +633,8 @@ class StreamClient(Client):
         type = socket.SOCK_STREAM,
         env = True
     ):
+        # runs a series of pre-validations on the provided parameters, raising
+        # exceptions in case they do not comply with expected values
         if not host: raise errors.NetiusError("Invalid host for connect operation")
         if not port: raise errors.NetiusError("Invalid port for connect operation")
 
