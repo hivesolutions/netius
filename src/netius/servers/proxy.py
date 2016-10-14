@@ -62,6 +62,7 @@ class ProxyConnection(http2.HTTP2Connection):
 
     def open(self, *args, **kwargs):
         http2.HTTP2Connection.open(self, *args, **kwargs)
+        if not self.is_open(): return
         self.parser.store = False
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_partial", self.on_partial)

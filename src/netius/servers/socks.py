@@ -72,12 +72,14 @@ class SOCKSConnection(netius.Connection):
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
+        if not self.is_open(): return
         self.parser = netius.common.SOCKSParser(self)
         self.parser.bind("on_data", self.on_data)
         self.parser.bind("on_auth", self.on_auth)
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
+        if not self.is_closed(): return
         if self.parser: self.parser.destroy()
 
     def send_response(self, status = GRANTED):

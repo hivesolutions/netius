@@ -79,6 +79,7 @@ class HTTPConnection(netius.Connection):
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
+        if not self.is_open(): return
         self.parser = netius.common.HTTPParser(
             self,
             type = netius.common.REQUEST,
@@ -88,6 +89,7 @@ class HTTPConnection(netius.Connection):
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
+        if not self.is_closed(): return
         if self.parser: self.parser.destroy()
         if self.gzip_m: self._close_gzip(safe = True)
 

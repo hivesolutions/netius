@@ -69,6 +69,7 @@ class HTTP2Connection(http.HTTPConnection):
 
     def open(self, *args, **kwargs):
         http.HTTPConnection.open(self, *args, **kwargs)
+        if not self.is_open(): return
         if not self.legacy: self.set_h2()
 
     def info_dict(self, full = False):

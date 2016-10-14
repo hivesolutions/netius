@@ -87,11 +87,13 @@ class POPConnection(netius.Connection):
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
+        if not self.is_open(): return
         self.parser = netius.common.POPParser(self)
         self.parser.bind("on_line", self.on_line)
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
+        if not self.is_closed(): return
         if self.file: self.file.close(); self.file = None
         if self.parser: self.parser.destroy()
 
