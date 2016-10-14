@@ -675,7 +675,7 @@ class StreamClient(Client):
         # the provided value and defaulting to false value if not valid
         ssl_verify = ssl_verify or False
 
-        # creates the client socket value using the provided familty and socket
+        # creates the client socket value using the provided family and socket
         # type values and then sets it immediately as non blocking
         _socket = socket.socket(family, type)
         _socket.setblocking(0)
@@ -720,10 +720,15 @@ class StreamClient(Client):
         connection = self.new_connection(_socket, address, ssl = ssl)
         if ssl_verify: connection.ssl_host = host
 
+        # acquires the pending lock so that it's safe to add an element
+        # to the list of pending connection for connect, this lock is
+        # then released in the final part of the operation
         self._pending_lock.acquire()
         try: self.pendings.append(connection)
         finally: self._pending_lock.release()
 
+        # returns the "final" connection, that is now scheduled for connect
+        # to the caller method, it may now be used for operations
         return connection
 
     def acquire(self, connection):
