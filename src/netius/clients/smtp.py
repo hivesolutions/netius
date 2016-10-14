@@ -586,7 +586,7 @@ class SMTPClient(netius.StreamClient):
         # iterates over the complete set of domain and associated
         # to addresses list for each of them to run the mx based
         # query operation and then start the smtp session
-        for domain, tos in netius.legacy.iteritems(tos_map):
+        for domain, tos in netius.legacy.items(tos_map):
             # creates a new handler method bound to the to addresses
             # associated with the current domain in iteration
             handler = build_handler(tos, domain = domain, tos_map = tos_map)
