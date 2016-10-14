@@ -144,7 +144,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # is sent to all the recipients (better auto close support), note
         # that multiple smtp session may be created for the message so that
         # all the hosts associated with the recipients are notified
-        callback = lambda smtp_client: smtp_client.close()
+        #callback = lambda smtp_client: smtp_client.close()
 
         # generates a new smtp client for the sending of the message,
         # uses the current host for identification and then triggers
@@ -154,8 +154,8 @@ class RelaySMTPServer(netius.servers.SMTPServer):
             froms,
             tos,
             contents,
-            mark = False,
-            callback = callback
+            mark = False
+            #callback = callback
         )
 
     def date(self):
