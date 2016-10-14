@@ -501,7 +501,7 @@ class SMTPClient(netius.StreamClient):
         # certain sequence of to based (email) addresses
         def build_handler(tos, domain = None, tos_map = None):
 
-            def on_close(connection):
+            def on_close(connection = None):
                 # verifies if the current handler has been build with a
                 # domain based clojure and if that's the case removes the
                 # reference of it from the map of tos, then verifies if the
@@ -520,7 +520,17 @@ class SMTPClient(netius.StreamClient):
                 # in case there's a valid response provided must parse it
                 # to try to "recover" the final address that is going to be
                 # used in the establishment of the smtp connection
-                if response and response.answers:
+                if response:
+                    # in case there are not answers present in the response
+                    # of the dns resolution an exception must be raised, note
+                    # that the on close handler is called so that proper
+                    # fallback for this connections is handled
+                    if not response.answers:
+                        on_close()
+                        raise netius.NetiusError(
+                            "Not possible to resolve mx for '%s'" % domain
+                        )
+
                     # retrieves the first answer (probably the most accurate)
                     # and then unpacks it until the mx address is retrieved
                     first = response.answers[0]
