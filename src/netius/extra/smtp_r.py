@@ -140,14 +140,23 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # the information provided by the registry
         contents = self.dkim_contents(contents, email = first)
 
+        # creates the callback that will close the client once the message
+        # is sent to all the recipients (better auto close support), note
+        # that multiple smtp session may be created for the message so that
+        # all the hosts associated with the recipients are notified
+        callback = lambda smtp_client: smtp_client.close()
+
         # generates a new smtp client for the sending of the message,
         # uses the current host for identification and then triggers
         # the message event to send the message to the target host
-        smtp_client = netius.clients.SMTPClient(
-            auto_close = True,
-            host = self.host
+        smtp_client = netius.clients.SMTPClient(host = self.host)
+        smtp_client.message(
+            froms,
+            tos,
+            contents,
+            mark = False,
+            callback = callback
         )
-        smtp_client.message(froms, tos, contents, mark = False)
 
     def date(self):
         date_time = datetime.datetime.utcnow()
