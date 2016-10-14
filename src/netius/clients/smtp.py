@@ -508,8 +508,9 @@ class SMTPClient(netius.StreamClient):
                 _port = port or 25
 
                 # establishes the connection to the target host and port
-                # and using the provided key and certificate files an then
-                # sets the smtp information in the current connection
+                # and using the provided key and certificate files and then
+                # sets the smtp information in the current connection, after
+                # the connections is completed the smtp session should start
                 connection = self.connect(_host, _port)
                 if stls: connection.set_message_stls_seq(ehlo = ehlo)
                 else: connection.set_message_seq(ehlo = ehlo)
