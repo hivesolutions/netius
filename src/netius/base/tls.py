@@ -43,8 +43,8 @@ import hashlib
 
 from . import errors
 
-def thumbprint(certificate):
-    digest = hashlib.sha1(certificate)
+def thumbprint(certificate, hash = "sha1"):
+    digest = hashlib.new(hash, certificate)
     return digest.hexdigest()
 
 def match_thumbprint(certificate, exp_thumbprint):
