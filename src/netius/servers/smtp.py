@@ -305,7 +305,7 @@ class SMTPConnection(netius.Connection):
 
     def on_helo(self, message):
         host = message
-        self.hello(host)
+        self.helo(host)
 
     def on_ehlo(self, message):
         host = message
