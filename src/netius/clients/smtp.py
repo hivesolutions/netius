@@ -466,10 +466,17 @@ class SMTPClient(netius.StreamClient):
         contents,
         daemon = True,
         host = None,
+        mark = True,
         callback = None
     ):
         smtp_client = cls.get_client_s(thread = True, daemon = daemon, host = host)
-        smtp_client.message(froms, tos, contents, callback = callback)
+        smtp_client.message(
+            froms,
+            tos,
+            contents,
+            mark = mark,
+            callback = callback
+        )
 
     def message(
         self,
