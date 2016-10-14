@@ -459,9 +459,17 @@ class SMTPClient(netius.StreamClient):
         self.auto_close = auto_close
 
     @classmethod
-    def message_s(cls, froms, tos, contents, daemon = True, host = None):
+    def message_s(
+        cls,
+        froms,
+        tos,
+        contents,
+        daemon = True,
+        host = None,
+        callback = None
+    ):
         smtp_client = cls.get_client_s(thread = True, daemon = daemon, host = host)
-        smtp_client.message(froms, tos, contents)
+        smtp_client.message(froms, tos, contents, callback = callback)
 
     def message(
         self,
