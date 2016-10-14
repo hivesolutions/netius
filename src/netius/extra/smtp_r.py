@@ -149,7 +149,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # generates a new smtp client for the sending of the message,
         # uses the current host for identification and then triggers
         # the message event to send the message to the target host
-        smtp_client = netius.clients.SMTPClient(host = self.host)
+        smtp_client = netius.clients.SMTPClient(auto_close = True, host = self.host)
         smtp_client.message(
             froms,
             tos,
