@@ -1765,7 +1765,7 @@ class AbstractBase(observer.Observable):
         result.
 
         :rtype: int
-        :return: The number of processed pending notifications.
+        :return: The number of processed pending events/notifications.
         """
 
         # starts the counter that is going to be used to count
@@ -1777,7 +1777,7 @@ class AbstractBase(observer.Observable):
         # called for each of the notifications
         while self._notified:
             event = self._notified.pop(0)
-            binds = self._events.get(event, [])
+            binds = self._events.pop(event, [])
             for callable in binds: callable()
             count += 1
 
