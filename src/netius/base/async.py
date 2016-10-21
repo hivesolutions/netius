@@ -108,7 +108,7 @@ class Future(object):
     def ready(self):
         ready = True
         for callback in self.ready_callbacks: ready &= callback()
-        return ready or self.closed
+        return ready
 
     @property
     def closed(self):
