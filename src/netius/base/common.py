@@ -497,7 +497,7 @@ class AbstractBase(observer.Observable):
                 # going to be taken and the sequence should be closed as
                 # it's not longer going to be used (for sure), this means
                 # that the blocked coroutine is not going to be resumed
-                if future.closed: sequence.close(); break
+                if future.closed: sequence.close(); future.cancel(); break
 
                 # determines if the future is ready to receive new work
                 # this is done using a pipeline of callbacks that must
@@ -507,11 +507,16 @@ class AbstractBase(observer.Observable):
                 if not future.ready: self.delay(callable); break
 
                 # retrieves the next value from the generator and in case
-                # value is the last one (stop iteration) breaks the cycle,
-                # notice that if there's an exception raised in the middle
-                # of the generator iteration it's set on the future
+                # value is the last one (stop iteration) verifies if the
+                # is still considered running no value or exception set and
+                # if that's the case runs the default value set (approve)
+                # and then breaks the loop, notice that if there's an
+                # exception raised in the middle of the generator iteration
+                # it's set on the future (indirect notification)
                 try: value = next(sequence)
-                except StopIteration: break
+                except StopIteration:
+                    if future.running: future.approve()
+                    break
                 except BaseException as exception:
                     future.set_exception(exception)
                     break
