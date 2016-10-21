@@ -492,6 +492,13 @@ class AbstractBase(observer.Observable):
             # iterates continuously over the generator that may emit both
             # plain object values or future (delayed executions)
             while True:
+                # in case the future object is considered to be closed,
+                # (done using a pipeline of callbacks) no more steps are
+                # going to be taken and the sequence should be closed as
+                # it's not longer going to be used (for sure), this means
+                # that the blocked coroutine is not going to be resumed
+                if future.closed: sequence.close(); break
+
                 # determines if the future is ready to receive new work
                 # this is done using a pipeline of callbacks that must
                 # deliver a positive value so that the future is considered
