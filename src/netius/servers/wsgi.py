@@ -319,9 +319,13 @@ class WSGIServer(http2.HTTP2Server):
             def on_ready():
                 return connection.wready
 
+            def on_closed():
+                return connection.is_closed()
+
             data.add_partial_callback(on_partial)
             data.add_done_callback(on_done)
             data.add_ready_callback(on_ready)
+            data.add_closed_callback(on_closed)
             return
 
         # ensures that the provided data is a byte sequence as expected

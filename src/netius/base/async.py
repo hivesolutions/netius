@@ -48,13 +48,13 @@ class Future(object):
         self.status = 0
         self._result = None
         self._exception = None
+        self.cleanup()
+
+    def cleanup(self):
         self.done_callbacks = []
         self.partial_callbacks = []
         self.ready_callbacks = []
-
-    def cancel(self):
-        self.status = 2
-        self._done_callbacks()
+        self.closed_callbacks = []
 
     def cancelled(self):
         return self.status == 2
@@ -83,21 +83,38 @@ class Future(object):
     def add_ready_callback(self, function):
         self.ready_callbacks.append(function)
 
-    def set_result(self, result):
+    def add_closed_callback(self, function):
+        self.closed_callbacks.append(function)
+
+    def approve(self, cleanup = True):
+        self.set_result(None, cleanup = cleanup)
+
+    def cancel(self, cleanup = True):
+        self.set_exception(None, cleanup = cleanup)
+
+    def set_result(self, result, cleanup = True):
         self.status = 1
         self._result = result
         self._done_callbacks()
+        cleanup and self.cleanup()
 
-    def set_exception(self, exception):
+    def set_exception(self, exception, cleanup = True):
         self.status = 2
         self._exception = exception
         self._done_callbacks()
+        cleanup and self.cleanup()
 
     @property
     def ready(self):
         ready = True
         for callback in self.ready_callbacks: ready &= callback()
-        return ready
+        return ready or self.closed
+
+    @property
+    def closed(self):
+        closed = False
+        for callback in self.closed_callbacks: closed |= callback()
+        return closed
 
     def _done_callbacks(self):
         for callback in self.done_callbacks: callback(self)
