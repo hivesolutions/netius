@@ -313,7 +313,8 @@ class WSGIServer(http2.HTTP2Server):
             def on_done(future):
                 data = future.result()
                 exception = future.exception()
-                if exception: connection.close()
+                cancelled = future.cancelled() 
+                if exception or cancelled: connection.close()
                 else: connection.send_part(data, callback = self._send_part)
 
             def on_ready():
