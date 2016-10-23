@@ -392,8 +392,8 @@ class FTPConnection(netius.Connection):
             try: mode = os.stat(file_path)
             except: continue
             permissions = self._to_unix(mode)
-            timstamp = mode.st_mtime
-            date_time = datetime.datetime.utcfromtimestamp(timstamp)
+            timestamp = mode.st_mtime
+            date_time = datetime.datetime.utcfromtimestamp(timestamp)
             date_s = date_time.strftime("%b %d  %Y")
             line = "%s    1 %-8s %-8s %8lu %s %s\r\n" %\
                 (permissions, "ftp", "ftp", mode.st_size, date_s, entry)
