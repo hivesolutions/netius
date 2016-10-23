@@ -33,7 +33,7 @@ not traceable by tools like guppy.
 
 ### Heapy
 
-A simple yet powerfull utility that provides a mechanism to detect "pending" object between two pre-defined
+A simple yet powerful utility that provides a mechanism to detect "pending" object between two pre-defined
 snapshot positions (time values) and that allows a powerful memory leak detection mechanism.
 
 #### Example
