@@ -4,9 +4,11 @@
 
 * `HOST` (`str`) - The listening address of the server (eg: `127.0.0.1` or `0.0.0.0`)
 * `PORT` (`int`) - The port the server will listen at (eg: `8080`)
-* `SSL` (`bool`) - If the server is going to use SSL/TLS (Secure Sockets Layer)
 * `IPV6` (`bool`) - If IPv6 should be enabled for the server/client, by default the created socket is either IPV4
 or IPv6 only, note that under Linux dual stack is provided for "free" for IPv6 stacks (defaults to `False`)
+* `SSL` (`bool`) - If the server is going to use SSL/TLS (Secure Sockets Layer)
+* `UNIX_PATH` (`str`) - The path to the file that is going to be used for Unix domain sockets (defaults to `$PORT`),
+note that under the hood the port variable is used as the path for the socket
 * `BACKLOG` (`int`) - The number of connections to be hold waiting in queue while pending accept operation
 * `ALLOWED` (`list`) - Sequence of IP or Subnet addresses (eg: 172.16.0.0/16) that are considered to be allowed as clients
 for a given server, any client connection with an IP address not contained in the list will be dropped (defaults to `[]`)

@@ -128,6 +128,7 @@ class Server(Base):
         type = self.get_env("TYPE", type, cast = int) if env else type
         ipv6 = self.get_env("IPV6", ipv6, cast = bool) if env else ipv6
         ssl = self.get_env("SSL", ssl, cast = bool) if env else ssl
+        port = self.get_env("UNIX_PATH", port) if env else port
         key_file = self.get_env("KEY_FILE", key_file) if env else key_file
         cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
         ca_file = self.get_env("CA_FILE", ca_file) if env else ca_file
@@ -216,8 +217,8 @@ class Server(Base):
         ssl_verify = ssl_verify or False
 
         # verifies if the type of server that is going to be created is
-        # unix or internet based, this allowed the current infra-structure
-        # to work under a much more latency free unix sockets
+        # unix or internet based, this allows the current infra-structure
+        # to work under the much more latency free unix sockets
         is_unix = host == "unix"
 
         # checks the type of service that is meant to be created and
@@ -241,7 +242,7 @@ class Server(Base):
         # if that's the case the target (file path) is also removed, avoiding
         # a duplicated usage of the socket (required for address re-usage)
         address = port if is_unix else (host, port)
-        if is_unix: os.remove(address)
+        if is_unix and os.path.exists(address): os.remove(address)
 
         # binds the socket to the provided address value (per spec) and then
         # starts the listening in the socket with the provided backlog value
@@ -808,9 +809,10 @@ class StreamServer(Server):
         # verifies if the current address (host value) is present in
         # the currently defined allowed list and in case that's not
         # the case raises an exception indicating the issue
-        result = netius.common.assert_ip4(address[0], self.allowed)
+        host = address[0] if address else ""
+        result = netius.common.assert_ip4(host, self.allowed)
         if not result: raise errors.NetiusError(
-            "Address '%s' not present in allowed list" % address[0]
+            "Address '%s' not present in allowed list" % host
         )
 
         # verifies a series of pre-conditions on the socket so
