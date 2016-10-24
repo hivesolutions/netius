@@ -534,11 +534,19 @@ class HTTPParser(parser.Parser):
         return size_o - size
 
     def _parse_line(self, data):
+        # tries to find the final newline value in the provided
+        # data in case there's one it's considered that the the
+        # initial line must have been found
         index = data.find(b"\n")
         if index == -1: return 0
 
+        # adds the partial data (until line ending) to the buffer
+        # and then joins the buffer as the initial line, this value
+        # should not include the final newline characters, after that
+        # the buffer is cleared as new data is going to be stored for
+        # (remaining part of the request or response)
         self.buffer.append(data[:index])
-        self.line_s = b"".join(self.buffer)[:-1]
+        self.line_s = b"".join(self.buffer).rstrip()
         self.line_s = netius.legacy.str(self.line_s)
         del self.buffer[:]
 
@@ -547,6 +555,8 @@ class HTTPParser(parser.Parser):
         # next section of parsing headers (required for compliance)
         self.buffer.append(b"\r\n")
 
+        # splits the line around its various components, verifying than
+        # that the number of provided items is the expected one
         values = self.line_s.split(" ", 2)
         if not len(values) == 3:
             raise netius.ParserError("Invalid status line '%s'" % self.line_s)
