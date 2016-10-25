@@ -139,6 +139,11 @@ def dnsname_match(domain, hostname, max_wildcards = 1):
     return True if pat.match(hostname) else False
 
 def dump_certificate(certificate, certificate_binary, name = None):
+    # runs some pre-validation operations so that the dump parameters
+    # that are required are considered valid
+    if not certificate: return
+    if not certificate_binary: return
+
     # tries to retrieve the main subject name from the subject
     # alternative names, there may be no value and if that's the
     # case a default value is used instead
