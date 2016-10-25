@@ -44,10 +44,8 @@ import hashlib
 
 from . import config
 from . import errors
-from . import legacy
 
 def fingerprint(certificate, hash = "sha1"):
-    certificate = legacy.bytes(certificate)
     digest = hashlib.new(hash, certificate)
     return digest.hexdigest()
 
