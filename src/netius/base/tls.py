@@ -51,8 +51,8 @@ def fingerprint(certificate, hash = "sha1"):
     digest = hashlib.new(hash, certificate)
     return digest.hexdigest()
 
-def match_fingerprint(certificate, exp_fingerprint):
-    cert_fingerprint = fingerprint(certificate)
+def match_fingerprint(certificate, exp_fingerprint, hash = "sha1"):
+    cert_fingerprint = fingerprint(certificate, hash = hash)
     if cert_fingerprint == exp_fingerprint: return
     if config._is_devel():
         extra = ", expected '%s' got '%s'" %\
