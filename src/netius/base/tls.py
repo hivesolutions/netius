@@ -41,6 +41,7 @@ import re
 import ssl
 import hashlib
 
+from . import config
 from . import errors
 from . import legacy
 
@@ -52,8 +53,13 @@ def thumbprint(certificate, hash = "sha1"):
 def match_thumbprint(certificate, exp_thumbprint):
     cert_thumbprint = thumbprint(certificate)
     if cert_thumbprint == exp_thumbprint: return
+    if config._is_devel():
+        extra = ", expected '%s'' got '%s''" %\
+            (exp_thumbprint, cert_thumbprint)
+    else:
+        extra = ""
     raise errors.SecurityError(
-        "Missmatch in certificate thumbprint"
+        "Missmatch in certificate thumbprint" + extra
     )
 
 def match_hostname(certificate, hostname):
