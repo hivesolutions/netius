@@ -54,7 +54,7 @@ def match_thumbprint(certificate, exp_thumbprint):
     cert_thumbprint = thumbprint(certificate)
     if cert_thumbprint == exp_thumbprint: return
     if config._is_devel():
-        extra = ", expected '%s'' got '%s''" %\
+        extra = ", expected '%s' got '%s'" %\
             (exp_thumbprint, cert_thumbprint)
     else:
         extra = ""
