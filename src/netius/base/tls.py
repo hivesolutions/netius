@@ -139,14 +139,27 @@ def dnsname_match(domain, hostname, max_wildcards = 1):
     return True if pat.match(hostname) else False
 
 def dump_certificate(certificate, certificate_binary, name = None):
+    # tries to retrieve the main subject name from the subject
+    # alternative names, there may be no value and if that's the
+    # case a default value is used instead
     subject_alt_name = certificate.get("subjectAltName", ())
     if subject_alt_name: subject_name = subject_alt_name[0][1]
     else: subject_name = "certificate"
+
+    # "calculates" the final name for the certificate, taking
+    # into account the provided parameter and subject name, the
+    # constructs the file name value with the der suffix
     name = name or subject_name
     file_name = name + ".der"
+
+    # retrieves ths proper ssl path (where data is going to be
+    # stored) and creates such directory (if required)
     ssl_path = config.conf("SSL_PATH", "/tmp/ssl")
     file_path = os.path.join(ssl_path, file_name)
     if not os.path.exists(ssl_path): os.makedirs(ssl_path)
+
+    # opens the file for writing and then dumps the certificate
+    # binary information into the file, closing it afterwards
     file = open(file_path, "wb")
     try: file.write(certificate_binary)
     finally: file.close()
