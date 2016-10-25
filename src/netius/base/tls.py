@@ -38,6 +38,7 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import re
+import os
 import ssl
 import hashlib
 
@@ -136,3 +137,16 @@ def dnsname_match(domain, hostname, max_wildcards = 1):
 
     pat = re.compile(r"\A" + r"\.".join(pats) + r"\Z", re.IGNORECASE)
     return True if pat.match(hostname) else False
+
+def dump_certificate(certificate, certificate_binary, name = None):
+    subject_alt_name = certificate.get("subjectAltName", ())
+    if subject_alt_name: subject_name = subject_alt_name[0][1]
+    else: subject_name = "certificate"
+    name = name or subject_name
+    file_name = name + ".der"
+    ssl_path = config.conf("SSL_PATH", "/tmp/ssl")
+    file_path = os.path.join(ssl_path, file_name)
+    if not os.path.exists(ssl_path): os.makedirs(ssl_path)
+    file = open(file_path, "wb")
+    try: file.write(certificate_binary)
+    finally: file.close()

@@ -114,6 +114,7 @@ class Server(Base):
         ssl_verify = False,
         ssl_host = None,
         ssl_thumbprint = None,
+        ssl_dump = False,
         setuid = None,
         backlog = socket.SOMAXCONN,
         load = True,
@@ -136,6 +137,7 @@ class Server(Base):
         ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
         ssl_host = self.get_env("SSL_HOST", ssl_host) if env else ssl_host
         ssl_thumbprint = self.get_env("SSL_THUMBPRINT", ssl_thumbprint) if env else ssl_thumbprint
+        ssl_dump = self.get_env("SSL_DUMP", ssl_dump) if env else ssl_dump
         key_file = self.get_env("KEY_DATA", key_file, expand = True) if env else key_file
         cer_file = self.get_env("CER_DATA", cer_file, expand = True) if env else cer_file
         ca_file = self.get_env("CA_DATA", ca_file, expand = True) if env else ca_file
@@ -202,6 +204,7 @@ class Server(Base):
         self.ssl = ssl
         self.ssl_host = ssl_host
         self.ssl_thumbprint = ssl_thumbprint
+        self.ssl_dump = ssl_dump
         self.env = env
 
         # populates the key, certificate and certificate authority file
@@ -796,6 +799,12 @@ class StreamServer(Server):
         # process is going to be run instead
         if self.ssl_thumbprint: connection.ssl_verify_thumbprint(self.ssl_thumbprint)
         else: connection.ssl_verify_thumbprint()
+
+        # in case the ssl dump flag is set the dump operation is performed according
+        # to that flag, otherwise the default operation is performed, that in most
+        # of the cases should prevent the dump of the information
+        if self.ssl_dump: connection.ssl_dump_certificate(self.ssl_dump)
+        else: connection.ssl_dump_certificate()
 
         # in case the current connection is under the upgrade
         # status calls the proper event handler so that the

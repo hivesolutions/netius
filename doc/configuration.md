@@ -45,6 +45,9 @@ if the current instance is a client the host verification will also be performed
 user in server to be able to verify client certificates  against an expected host
 * `SSL_THUMBPRINT` (`str`) - The thumbprint (SHA1 digest of certificate) that is going to be used to verify the
 integrity of a peer/client certificate against the expected one
+* `SSL_DUMP` (`bool`) - If the certificate information should be dumped to the directory specified by the
+`SSL_PATH` configuration value (defaults to `False`)
+* `SSL_PATH` (`str`) - Path to the directory where the SSL dump information is going to be placed (defaults to `/tmp/ssl`) 
 * `SSL_SECURE` (`bool`) - If a secure suite of SSL should be ensured (some protocols removed) (defaults to `True`)
 * `SSL_CONTEXTS` (`dict`) - The dictionary that associates the various domains that may be served with different
 context values (certificate, key, etc) for such domain

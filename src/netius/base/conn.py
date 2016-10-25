@@ -98,6 +98,7 @@ class BaseConnection(observer.Observable):
         self.ssl = ssl
         self.ssl_host = None
         self.ssl_thumbprint = None
+        self.ssl_dump = False
         self.max_pending = max_pending
         self.min_pending = min_pending
         self.renable = True
@@ -504,6 +505,13 @@ class BaseConnection(observer.Observable):
         if not thumbprint: return
         certificate = self.ssl_certificate(binary = True)
         tls.match_thumbprint(certificate, thumbprint)
+
+    def ssl_dump_certificate(self, dump = False):
+        dump = dump or self.ssl_dump
+        if not dump: return
+        certificate = self.ssl_certificate()
+        certificate_binary = self.ssl_certificate(binary = True)
+        tls.dump_certificate(certificate, certificate_binary)
 
     def ssl_protocol(self):
         return self.ssl_alpn_protocol() or self.ssl_npn_protocol()
