@@ -43,7 +43,7 @@ considered to be offline and is dropped
 if the current instance is a client the host verification will also be performed for the server side host
 * `SSL_HOST` (`str`) - The hostname that is going to be used in for domain verification, this value is only
 user in server to be able to verify client certificates  against an expected host
-* `SSL_THUMBPRINT` (`str`) - The thumbprint (SHA1 digest of certificate) that is going to be used to verify the
+* `SSL_FINGERPRINT` (`str`) - The fingerprint (SHA1 digest of certificate) that is going to be used to verify the
 integrity of a peer/client certificate against the expected one
 * `SSL_DUMP` (`bool`) - If the certificate information should be dumped to the directory specified by the
 `SSL_PATH` configuration value (defaults to `False`)

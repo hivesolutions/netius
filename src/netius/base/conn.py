@@ -97,7 +97,7 @@ class BaseConnection(observer.Observable):
         self.address = address
         self.ssl = ssl
         self.ssl_host = None
-        self.ssl_thumbprint = None
+        self.ssl_fingerprint = None
         self.ssl_dump = False
         self.max_pending = max_pending
         self.min_pending = min_pending
@@ -500,11 +500,11 @@ class BaseConnection(observer.Observable):
         certificate = self.ssl_certificate()
         tls.match_hostname(certificate, host)
 
-    def ssl_verify_thumbprint(self, thumbprint = None):
-        thumbprint = thumbprint or self.ssl_thumbprint
-        if not thumbprint: return
+    def ssl_verify_fingerprint(self, fingerprint = None):
+        fingerprint = fingerprint or self.ssl_fingerprint
+        if not fingerprint: return
         certificate = self.ssl_certificate(binary = True)
-        tls.match_thumbprint(certificate, thumbprint)
+        tls.match_fingerprint(certificate, fingerprint)
 
     def ssl_dump_certificate(self, dump = False):
         dump = dump or self.ssl_dump

@@ -68,6 +68,6 @@ from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
 from .request import Request, Response
 from .server import Server, DatagramServer, StreamServer
 from .stream import Stream
-from .tls import thumbprint, match_thumbprint, match_hostname, dnsname_match,\
+from .tls import fingerprint, match_fingerprint, match_hostname, dnsname_match,\
     dump_certificate
 from .util import camel_to_underscore

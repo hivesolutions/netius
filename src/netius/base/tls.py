@@ -46,21 +46,21 @@ from . import config
 from . import errors
 from . import legacy
 
-def thumbprint(certificate, hash = "sha1"):
+def fingerprint(certificate, hash = "sha1"):
     certificate = legacy.bytes(certificate)
     digest = hashlib.new(hash, certificate)
     return digest.hexdigest()
 
-def match_thumbprint(certificate, exp_thumbprint):
-    cert_thumbprint = thumbprint(certificate)
-    if cert_thumbprint == exp_thumbprint: return
+def match_fingerprint(certificate, exp_fingerprint):
+    cert_fingerprint = fingerprint(certificate)
+    if cert_fingerprint == exp_fingerprint: return
     if config._is_devel():
         extra = ", expected '%s' got '%s'" %\
-            (exp_thumbprint, cert_thumbprint)
+            (exp_fingerprint, cert_fingerprint)
     else:
         extra = ""
     raise errors.SecurityError(
-        "Missmatch in certificate thumbprint" + extra
+        "Missmatch in certificate fingerprint" + extra
     )
 
 def match_hostname(certificate, hostname):

@@ -43,13 +43,13 @@ import netius.common
 
 class TlsTest(unittest.TestCase):
 
-    def test_thumbprint(self):
+    def test_fingerprint(self):
         key_der = netius.common.open_pem_key(netius.SSL_KEY_PATH)
-        result = netius.thumbprint(key_der)
+        result = netius.fingerprint(key_der)
         self.assertEqual(result, "07a55ee5f6798c58000541dc66ab5f5519292aed")
 
         cer_der = netius.common.open_pem_key(netius.SSL_CER_PATH, token = "CERTIFICATE")
-        result = netius.thumbprint(cer_der)
+        result = netius.fingerprint(cer_der)
         self.assertEqual(result, "5ccc67c8b27bc8f5d7c268d05ac5a284f549420b")
 
     def test_match_hostname(self):

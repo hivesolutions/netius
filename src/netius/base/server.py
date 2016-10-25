@@ -113,7 +113,7 @@ class Server(Base):
         ca_root = True,
         ssl_verify = False,
         ssl_host = None,
-        ssl_thumbprint = None,
+        ssl_fingerprint = None,
         ssl_dump = False,
         setuid = None,
         backlog = socket.SOMAXCONN,
@@ -136,7 +136,7 @@ class Server(Base):
         ca_root = self.get_env("CA_ROOT", ca_root, cast = bool) if env else ca_root
         ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
         ssl_host = self.get_env("SSL_HOST", ssl_host) if env else ssl_host
-        ssl_thumbprint = self.get_env("SSL_THUMBPRINT", ssl_thumbprint) if env else ssl_thumbprint
+        ssl_fingerprint = self.get_env("SSL_FINGERPRINT", ssl_fingerprint) if env else ssl_fingerprint
         ssl_dump = self.get_env("SSL_DUMP", ssl_dump) if env else ssl_dump
         key_file = self.get_env("KEY_DATA", key_file, expand = True) if env else key_file
         cer_file = self.get_env("CER_DATA", cer_file, expand = True) if env else cer_file
@@ -203,7 +203,7 @@ class Server(Base):
         self.type = type
         self.ssl = ssl
         self.ssl_host = ssl_host
-        self.ssl_thumbprint = ssl_thumbprint
+        self.ssl_fingerprint = ssl_fingerprint
         self.ssl_dump = ssl_dump
         self.env = env
 
@@ -793,12 +793,12 @@ class StreamServer(Server):
         if self.ssl_host: connection.ssl_verify_host(self.ssl_host)
         else: connection.ssl_verify_host()
 
-        # in case the ssl thumbprint verification process is enabled for the
+        # in case the ssl fingerprint verification process is enabled for the
         # current server the client certificates are going to be verified for
         # their integrity using this technique, otherwise the default verification
         # process is going to be run instead
-        if self.ssl_thumbprint: connection.ssl_verify_thumbprint(self.ssl_thumbprint)
-        else: connection.ssl_verify_thumbprint()
+        if self.ssl_fingerprint: connection.ssl_verify_fingerprint(self.ssl_fingerprint)
+        else: connection.ssl_verify_fingerprint()
 
         # in case the ssl dump flag is set the dump operation is performed according
         # to that flag, otherwise the default operation is performed, that in most
