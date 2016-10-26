@@ -393,7 +393,7 @@ class AbstractBase(observer.Observable):
         """
 
         try:
-            # calls the provided callback (method) with the
+            # calls the provided callable (method) with the
             # provided arguments and keyword arguments returning
             # the result to the caller method
             return callable(*args, **kwargs)
