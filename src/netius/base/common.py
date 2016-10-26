@@ -372,7 +372,7 @@ class AbstractBase(observer.Observable):
         # as expected by the current method
         return selected
 
-    def call_safe(callable, args = [], kwargs = {}):
+    def call_safe(self, callable, args = [], kwargs = {}):
         """
         Calls the provided callable object using a safe strategy
         meaning that in case there's an exception raised in the
@@ -2327,8 +2327,12 @@ class BaseThread(threading.Thread):
     def run(self):
         threading.Thread.run(self)
         if not self.owner: return
-        self.owner.start()
-        self.owner = None
+        self.owner._thread = self
+        try:
+            self.owner.start()
+        finally:
+            self.owner._thread = None
+            self.owner = None
 
 def get_main():
     return AbstractBase._MAIN
