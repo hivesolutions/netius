@@ -372,6 +372,38 @@ class AbstractBase(observer.Observable):
         # as expected by the current method
         return selected
 
+    def call_safe(callable, args = [], kwargs = {}):
+        """
+        Calls the provided callable object using a safe strategy
+        meaning that in case there's an exception raised in the
+        middle of the callable execution it is going to be caught
+        and the details of it logged.
+
+        :type callable: Function
+        :param callable: The callable function that is going to
+        be called using the safe approach.
+        :type args: List
+        :param args: The normal (non keyword) arguments to be sent
+        to the callable.
+        :type kwargs: Dictionary
+        :param kwargs: The set of keyword arguments that are going
+        to be sent to the callable.
+        :rtype: Object
+        :return: The result of the calling of the callable.
+        """
+
+        try:
+            # calls the provided callback (method) with the
+            # provided arguments and keyword arguments returning
+            # the result to the caller method
+            return callable(*args, **kwargs)
+        except BaseException as exception:
+            # in case there's an exception displays a warning
+            # about the raised exception and the logs the current
+            # stack so that the exception is traceable
+            self.warning(exception)
+            self.log_stack()
+
     def wait_event(self, callable, name = None):
         # tries to retrieve the list of binds for the event
         # to be "waited" for, this list should contain the

@@ -241,7 +241,7 @@ class DatagramClient(Client):
         if run: self.gc()
         self.delay(self.keep_gc, timeout)
 
-    def gc(self):
+    def gc(self, callbacks = True):
         # in case there're no requests pending in the current client
         # there's no need to start the garbage collection logic, as
         # this would required some (minimal) resources
@@ -269,11 +269,18 @@ class DatagramClient(Client):
             if request.timeout > current: break
             self.remove_request(request)
 
+            # in case the (call) callbacks flag is not set continues
+            # the current loop, meaning that the associated callbacks
+            # are not going to be called (as expected)
+            if not callbacks: continue
+
             # extracts the callback method from the request and in
             # case it is defined and valid calls it with an invalid
-            # argument meaning that an error has occurred
+            # argument meaning that an error has occurred, note that
+            # the call is encapsulated in a safe manner meaning that
+            # any exception raised will be gracefully caught
             callback = request.callback
-            callback and callback(None)
+            callback and self.call_safe(callback, args = [None])
 
     def add_request(self, request):
         # adds the current request object to the list of requests
