@@ -519,6 +519,12 @@ class SMTPClient(netius.StreamClient):
                 callback and callback(self)
 
             def handler(response = None):
+                # in case the provided response value is invalid returns
+                # immediately, as this should represent a resolution error,
+                # this is only done in case the host is also not defined
+                # as for such situations an address is not retrievable
+                if response == None and host == None: return
+
                 # in case there's a valid response provided must parse it
                 # to try to "recover" the final address that is going to be
                 # used in the establishment of the smtp connection
