@@ -84,7 +84,7 @@ class Thread(threading.Thread):
 
 class ThreadPool(object):
 
-    def __init__(self, base = Thread, count = 30):
+    def __init__(self, base = Thread, count = 32):
         self.base = base
         self.count = count
         self.instances = []
@@ -137,7 +137,7 @@ class ThreadPool(object):
 
 class EventPool(ThreadPool):
 
-    def __init__(self, base = Thread, count = 30):
+    def __init__(self, base = Thread, count = 32):
         ThreadPool.__init__(self, base = base, count = count)
         self.events = []
         self.event_lock = threading.RLock()
