@@ -493,14 +493,37 @@ class AbstractBase(observer.Observable):
         coroutine,
         args = [],
         kwargs = {},
-        thread = False,
+        thread = None,
         future = None,
         immediately = True
     ):
+        # tries to determine if the provided callable is really
+        # a coroutine and uses that condition to determine the
+        # default value for the thread argument
+        is_coroutine = hasattr(coroutine, "_is_coroutine")
+        if thread == None: thread = False if is_coroutine else True
+
         # verifies if a future variable is meant to be re-used
         # or if instead a new one should be created for the new
         # ensure execution operation
         future = future or Future()
+
+        # in case the provided coroutine callable is not really
+        # a coroutine and instead a "normal" function a conversion
+        # is required so that there's compatibility between the
+        # coroutine model and the typical sync model
+        if not is_coroutine:
+            # saves the "original" callable so that it may be latter
+            # used as part of the back calling process
+            coroutine_c = coroutine
+
+            # creates the coroutine that is going to be used to
+            # encapsulate the callable, note that the result of the
+            # callable is set as the result of the future (as expected)
+            def coroutine(future, *args, **kwargs):
+                yield
+                result = coroutine_c(*args, **kwargs)
+                future.set_result(result)
 
         # creates the generate sequence from the coroutine callable
         # by calling it with the newly created future instance, that
@@ -2345,7 +2368,7 @@ def get_poll():
     if not main: return None
     return main.poll
 
-def ensure(coroutine, args = [], kwargs = {}, thread = False):
+def ensure(coroutine, args = [], kwargs = {}, thread = None):
     loop = get_loop()
     return loop.ensure(
         coroutine,
