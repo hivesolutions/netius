@@ -56,6 +56,10 @@ context values (certificate, key, etc) for such domain
 * `KEY_DATA` (`str`) - Equivalent to `KEY_FILE` but with explicit (data) contents of the file (`\n` escaped)
 * `CA_DATA` (`str`) - Equivalent to `CA_FILE` but with explicit (data) contents of the file (`\n` escaped)
 
+#### File Serving
+
+* `INDEX_FILES` (`list`) - List of file names that should be considered for eligible for index operation (eg: `index.html`)
+
 #### Proxy
 
 * `DYNAMIC` (`bool`) - In case this value is active dynamic connection encoding is applied, meaning that extra
