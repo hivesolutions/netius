@@ -310,7 +310,7 @@ class HTTPConnection(netius.Connection):
         self.parsed = parsed
         self.safe = safe
 
-    def send_request(self):
+    def send_request(self, callback = None):
         method = self.method
         path = self.path
         version = self.version
@@ -338,10 +338,14 @@ class HTTPConnection(netius.Connection):
         buffer.append("\r\n")
         buffer_data = "".join(buffer)
 
-        count = self.send_plain(buffer_data, force = True)
+        if data: count = self.send_plain(buffer_data, force = True)
+        else: count = self.send_plain(buffer_data, force = True, callback = callback)
+
         if not data: return count
 
-        count += self.send_base(data, force = True)
+        # sends the payload information to the server side and sets
+        # the callback accordingly (to be called on final sending)
+        count += self.send_base(data, force = True, callback = callback)
         return count
 
     def set_encoding(self, encoding):
@@ -1035,13 +1039,16 @@ class HTTPClient(netius.StreamClient):
         # runs the sending of the initial request, even though the
         # connection may not be open yet, if that's the case this
         # initial data will be queued for latter delivery (on connect)
-        connection.send_request()
+        # notice that the receive timeout is scheduled on the callback
+        # of the send operation (as expected)
+        connection.send_request(callback = lambda c: self.delay(
+            receive_timeout, timeout = timeout
+        ))
 
-        # schedules a delay operation to run the timeout handlers for
-        # both connect and receive operations (these are considered the
-        # initial triggers for the such verifiers)
+        # schedules a delay operation to run the timeout handler for
+        # both connect operation (this is considered the initial
+        # triggers for the such verifiers)
         self.delay(connect_timeout, timeout = timeout)
-        self.delay(receive_timeout, timeout = timeout)
 
         # in case the current request is not meant to be handled as
         # asynchronous tries to start the current event loop (blocking
