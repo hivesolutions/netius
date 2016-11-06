@@ -57,7 +57,7 @@ from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     IDENTIFIER, TCP_TYPE, UDP_TYPE, SSL_KEY_PATH, SSL_CER_PATH, SSL_CA_PATH,\
     SSL_DH_PATH, Base, BaseThread, get_main, get_loop,\
     get_poll, ensure, ensure_pool
-from .config import conf, conf_prefix, conf_s
+from .config import conf, conf_prefix, conf_suffix, conf_s, conf_d
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
 from .errors import NetiusError, PauseError, DataError, ParserError,\

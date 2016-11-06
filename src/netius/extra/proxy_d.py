@@ -19,6 +19,9 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+__author__ = "João Magalhães <joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,23 +37,13 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from . import desktop
-from . import dhcp_s
-from . import file
-from . import filea
-from . import hello_w
-from . import hello
-from . import proxy_d
-from . import proxy_f
-from . import proxy_r
-from . import smtp_r
+import netius
 
-from .desktop import DesktopServer
-from .dhcp_s import DHCPServerS
-from .file import FileServer
-from .filea import FileAsyncServer
-from .hello import HelloServer
-from .proxy_d import DockerProxyServer
-from .proxy_f import ForwardProxyServer
-from .proxy_r import ReverseProxyServer
-from .smtp_r import RelaySMTPServer
+from . import proxy_r
+
+class DockerProxyServer(proxy_r.ReverseProxyServer):
+
+    def on_serve(self):
+        proxy_r.ReverseProxyServer.on_serve(self)
+        ports = netius.conf_suffix("_PORT")
+        print(ports)
