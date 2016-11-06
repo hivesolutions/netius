@@ -287,7 +287,7 @@ class DNSResponse(netius.Response):
 
 class DNSClient(netius.DatagramClient):
 
-    ns_file_s = None
+    ns_file_l = None
 
     @classmethod
     def query_s(
@@ -315,17 +315,17 @@ class DNSClient(netius.DatagramClient):
     @classmethod
     def ns_system(cls):
         ns = cls.ns_file()
-        if ns: return ns
+        if ns: return ns[0]
         ns = cls.ns_google()
-        if ns: return ns
+        if ns: return ns[0]
         return None
 
     @classmethod
     def ns_file(cls, force = False):
-        # verifies if the string value for the file based name server
+        # verifies if the list value for the file based name server
         # retrieval value is defined and if that's the case and the
         # force flag is not set returns it immediately
-        if cls.ns_file_s and not force: return cls.ns_file_s
+        if not cls.ns_file_l == None and not force: return cls.ns_file_l
 
         # verifies if the resolve file exists and if it does not returns
         # immediately indicating the impossibility to resolve the value
@@ -337,23 +337,26 @@ class DNSClient(netius.DatagramClient):
         try: data = file.read()
         except: file.close()
 
+        # starts the list that is going to store the various name server
+        # values, this is going to be populated with the file contents
+        cls.ns_file_l = []
+
         # splits the contents of the file around their lines and tries
-        # to find the name servers defined in it
+        # to find the name servers defined in it to be added to the list
         for line in data.split("\n"):
             line = line.strip()
             if not line.startswith("nameserver"): continue
             _header, ns = line.split(" ", 1)
             ns = ns.strip()
-            cls.ns_file_s = ns
-            return ns
+            cls.ns_file_l.append(ns)
 
-        # returns the default invalid value indicating that no name server
-        # as been retrieves/resolved from the file
-        return None
+        # returns the final value of the list of name servers loaded from
+        # the file (as expected by the call)
+        return cls.ns_file_l
 
     @classmethod
-    def ns_google(cls, primary = True):
-        return "8.8.8.8" if primary else "8.8.4.4"
+    def ns_google(cls):
+        return ["8.8.8.8", "8.8.4.4"]
 
     def query(self, name, type = "a", cls = "in", ns = None, callback = None):
         # retrieves the reference to the class associated with the
