@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import os
 import struct
 
 import netius.common
@@ -286,6 +287,8 @@ class DNSResponse(netius.Response):
 
 class DNSClient(netius.DatagramClient):
 
+    ns_file_s = None
+
     @classmethod
     def query_s(
         cls,
@@ -309,11 +312,43 @@ class DNSClient(netius.DatagramClient):
             callback = callback
         )
 
+    @classmethod
+    def ns_system(cls):
+        ns = cls.ns_file()
+        if ns: return ns
+        ns = cls.ns_google()
+        if ns: return ns
+        return None
+
+    @classmethod
+    def ns_file(cls, force = False):
+        if cls.ns_file_s and not force: return cls.ns_file_s
+        if not os.path.exists("/etc/resolv.conf"): return None
+        file = open("/etc/resolv.conf", "rb")
+        try: data = file.read()
+        except: file.close()
+        for line in data.split("\n"):
+            line = line.strip()
+            if not line.startswith("nameserver"): continue
+            _header, ns = line.split(" ", 1)
+            ns = ns.strip()
+            cls.ns_file_s = ns
+            return ns
+        return None
+
+    @classmethod
+    def ns_google(cls, primary = True):
+        return "8.8.8.8" if primary else "8.8.4.4"
+
     def query(self, name, type = "a", cls = "in", ns = None, callback = None):
+        # retrieves the reference to the class associated with the
+        # current instance to be used to access class operations
+        _cls = self.__class__
+
         # verifies if a target name server was specified for the query
         # in case it was not uses the default (globally provided) value
         # that may be used for generic queries assuming internet access
-        ns = ns or "8.8.8.8"
+        ns = ns or _cls.ns_system()
 
         # creates a new dns request object describing the query that was
         # just sent and then generates the request stream code that is
