@@ -322,11 +322,23 @@ class DNSClient(netius.DatagramClient):
 
     @classmethod
     def ns_file(cls, force = False):
+        # verifies if the string value for the file based nameserver
+        # retrieval value is defined and if that's the case and the
+        # force flag is not set returns it immediately
         if cls.ns_file_s and not force: return cls.ns_file_s
+
+        # verifies if the resolv file exists and if it does not returns
+        # immediately indicating the impossibility to resolve the value
         if not os.path.exists("/etc/resolv.conf"): return None
+
+        # opens the resolv file and reads the complete set of contents
+        # from it, closing the file afterwards
         file = open("/etc/resolv.conf", "rb")
         try: data = file.read()
         except: file.close()
+
+        # splits the contents of the file around their lines and tries
+        # to find the name servers defined in it
         for line in data.split("\n"):
             line = line.strip()
             if not line.startswith("nameserver"): continue
@@ -334,6 +346,9 @@ class DNSClient(netius.DatagramClient):
             ns = ns.strip()
             cls.ns_file_s = ns
             return ns
+
+        # returns the default invalid value indicating that no nameserver
+        # as been retrieves/resolved from the file
         return None
 
     @classmethod
