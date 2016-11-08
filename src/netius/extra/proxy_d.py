@@ -43,8 +43,21 @@ from . import proxy_r
 
 class DockerProxyServer(proxy_r.ReverseProxyServer):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, host_suffixes = [], *args, **kwargs):
         proxy_r.ReverseProxyServer.__init__(self, *args, **kwargs)
+        self.load_config(host_suffixes = host_suffixes)
+        self._build_docker()
+
+    def on_serve(self):
+        proxy_r.ReverseProxyServer.on_serve(self)
+        if self.env: self.host_suffixes = self.get_env(
+            "HOST_SUFFIXES",
+            self.host_suffixes,
+            cast = list
+        )
+        self._build_suffixes()
+
+    def _build_docker(self):
         linked = netius.conf_suffix("_PORT")
         for name, host in netius.legacy.iteritems(linked):
             base = name[:-5].lower()
@@ -53,6 +66,11 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             host = host.replace("tcp://", "http://")
             host = str(host)
             self.hosts[base] = host
+
+    def _build_suffixes(self):
+        for host_suffix in self.host_suffixes:
+            for host, value in netius.legacy.items(self.hosts):
+                self.hosts[host + "." + str(host_suffix)] = value
 
 if __name__ == "__main__":
     server = DockerProxyServer()
