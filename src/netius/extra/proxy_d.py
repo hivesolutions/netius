@@ -46,11 +46,13 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
     def __init__(self, *args, **kwargs):
         proxy_r.ReverseProxyServer.__init__(self, *args, **kwargs)
         linked = netius.conf_suffix("_PORT")
-        for name, host_token in netius.legacy.iteritems(linked):
+        for name, host in netius.legacy.iteritems(linked):
             base = name[:-5].lower()
             if name.endswith("_ENV_PORT"): continue
             if base[-1].isdigit(): continue
-            self.hosts[base] = host_token.replace("tcp://", "http://")
+            host = host.replace("tcp://", "http://")
+            host = str(host)
+            self.hosts[base] = host
 
 if __name__ == "__main__":
     server = DockerProxyServer()
