@@ -70,6 +70,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         strategy = "smart",
         reuse = True,
         sts = 0,
+        echo = False,
         *args,
         **kwargs
     ):
@@ -86,6 +87,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             strategy = strategy,
             reuse = reuse,
             sts = sts,
+            echo = echo,
             robin = dict(),
             smart = netius.common.PriorityDict()
         )
@@ -106,7 +108,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     def on_serve(self):
         netius.servers.ProxyServer.on_serve(self)
         if self.env: self.sts = self.get_env("STS", self.sts, cast = int)
+        if self.env: self.echo = self.get_env("ECHO", self.echo, cast = bool)
         if self.sts: self.info("Strict transport security set to %d seconds" % self.sts)
+        if self.echo: self._echo_hosts()
 
     def on_headers(self, connection, parser):
         netius.servers.ProxyServer.on_headers(self, connection, parser)
@@ -479,6 +483,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             if not match: continue
             return result, match
         return default, None
+
+    def _echo_hosts(self):
+        keys = netius.legacy.keys(self.hosts)
+        self.info("Host registration information")
+        for key in keys: self.info("%s => %s" % (key, self.hosts[key]))
 
 if __name__ == "__main__":
     import logging
