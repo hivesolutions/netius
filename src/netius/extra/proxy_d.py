@@ -61,8 +61,11 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
         linked = netius.conf_suffix("_PORT")
         for name, host in netius.legacy.iteritems(linked):
             base = name[:-5].lower()
+            name_ref = base.upper() + "_NAME"
+            name_value = netius.conf(name_ref, None)
             if name.endswith("_ENV_PORT"): continue
             if base[-1].isdigit(): continue
+            if not name_value: continue
             host = host.replace("tcp://", "http://")
             host = str(host)
             self.hosts[base] = host
