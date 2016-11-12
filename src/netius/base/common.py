@@ -1728,9 +1728,10 @@ class AbstractBase(observer.Observable):
         if not is_bytes: value = value.encode(encoding)
         value = value.replace(b"\\n", b"\n")
         fd, file_path = tempfile.mkstemp()
+        os.close(fd)
         file = open(file_path, "wb")
         try: file.write(value)
-        except: os.close(fd); file.close()
+        finally: file.close()
         return file_path
 
     def get_protocols(self):
