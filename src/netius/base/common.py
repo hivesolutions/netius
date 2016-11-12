@@ -1093,10 +1093,9 @@ class AbstractBase(observer.Observable):
         del self._delayed_o[:]
         del self._delayed_n[:]
 
-        # iterates over the complete list of expanded file paths to remove
-        # their corresponding files and then removes the proper list
-        for expanded in self._expanded: os.remove(expanded)
-        del self._expanded[:]
+        # runs the expand destroy operation so that the complete set of expanded
+        # values get their (temporary) files removed (garbage collection)
+        self._expand_destroy()
 
         # runs the destroy operation on the ssl component of the base
         # element so that no more ssl is available/used (avoids leaks)
@@ -2265,6 +2264,25 @@ class AbstractBase(observer.Observable):
                     self.unsub_write(_socket)
                 _socket._pending = self._ssl_handshake
             else: raise
+
+    def _expand_destroy(self):
+        """
+        Destroys the complete set of infra-structure (files) associated
+        with the expansion operation on environment values.
+
+        This is required to avoid any kind of file leaking, should be run
+        on the cleanup operation of the infra-structure.
+        """
+
+        # iterates over the complete list of expanded file paths to remove
+        # their corresponding files (graceful error handling)
+        for expanded in self._expanded:
+            try: os.remove(expanded)
+            except: pass
+
+        # deletes the complete set of path references from the expanded
+        # list so that it is not going to be used any longer
+        del self._expanded[:]
 
     def _level(self, level):
         """
