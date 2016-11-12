@@ -58,6 +58,10 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
         self._build_suffixes()
 
     def _build_docker(self):
+        self._build_hosts()
+        self._build_alias()
+
+    def _build_hosts(self):
         linked = netius.conf_suffix("_PORT")
         for name, host in netius.legacy.iteritems(linked):
             base = name[:-5].lower()
@@ -71,6 +75,14 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             host = str(host)
             self.hosts[base] = host
             self.hosts[base_dash] = host
+
+    def _build_alias(self):
+        linked = netius.conf_suffix("_ALIAS")
+        for name, host in netius.legacy.iteritems(linked):
+            base = name[:-6].lower()
+            base_dash = base.replace("_", "-")
+            self.alias[base] = host
+            self.alias[base_dash] = host
 
     def _build_suffixes(self):
         for host_suffix in self.host_suffixes:
