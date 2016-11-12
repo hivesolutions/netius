@@ -89,6 +89,8 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             self.info("Registering %s host suffix" % host_suffix)
             for host, value in netius.legacy.items(self.hosts):
                 self.hosts[host + "." + str(host_suffix)] = value
+            for alias, value in netius.legacy.items(self.alias):
+                self.alias[alias + "." + str(host_suffix)] = value
 
 if __name__ == "__main__":
     server = DockerProxyServer()
