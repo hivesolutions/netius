@@ -339,6 +339,7 @@ class AbstractBase(observer.Observable):
         self._delayed_n = []
         self._delayed_l = threading.RLock()
         self._extra_handlers = []
+        self._expanded = []
         self._ssl_init()
         self.set_state(STATE_STOP)
 
@@ -1092,6 +1093,11 @@ class AbstractBase(observer.Observable):
         del self._delayed_o[:]
         del self._delayed_n[:]
 
+        # iterates over the complete list of expanded file paths to remove
+        # their corresponding files and then removes the proper list
+        for expanded in self._expanded: os.remove(expanded)
+        del self._expanded[:]
+
         # runs the destroy operation on the ssl component of the base
         # element so that no more ssl is available/used (avoids leaks)
         self._ssl_destroy()
@@ -1705,6 +1711,9 @@ class AbstractBase(observer.Observable):
         current file system so that it may be correctly used by interfaces
         that require certain values to be file system based.
 
+        The generated file is going to be removed on the cleanup operation
+        so that no temporary file leaking occurs.
+
         In case the force value is provided the the file is created even
         for situations where the provided value is invalid/unset.
 
@@ -1732,6 +1741,7 @@ class AbstractBase(observer.Observable):
         file = open(file_path, "wb")
         try: file.write(value)
         finally: file.close()
+        self._expanded.append(file_path)
         return file_path
 
     def get_protocols(self):
