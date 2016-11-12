@@ -484,8 +484,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             return result, match
         return default, None
 
-    def _echo_hosts(self):
+    def _echo_hosts(self, sort = True):
         keys = netius.legacy.keys(self.hosts)
+        if sort: keys.sort()
         self.info("Host registration information")
         for key in keys: self.info("%s => %s" % (key, self.hosts[key]))
 
