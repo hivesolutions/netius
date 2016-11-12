@@ -64,6 +64,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         config = "proxy.json",
         regex = {},
         hosts = {},
+        alias = {},
         auth = {},
         auth_regex = {},
         redirect = {},
@@ -81,6 +82,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             path = config,
             regex = regex,
             hosts = hosts,
+            alias = alias,
             auth = auth,
             auth_regex = auth_regex,
             redirect = redirect,
@@ -110,7 +112,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if self.env: self.sts = self.get_env("STS", self.sts, cast = int)
         if self.env: self.echo = self.get_env("ECHO", self.echo, cast = bool)
         if self.sts: self.info("Strict transport security set to %d seconds" % self.sts)
-        if self.echo: self._echo_hosts()
+        if self.echo: self._echo()
 
     def on_headers(self, connection, parser):
         netius.servers.ProxyServer.on_headers(self, connection, parser)
@@ -124,6 +126,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         version_s = parser.version_s
         is_secure = connection.ssl
         host = headers.get("host", None)
+        host = self.alias.get(host, host)
 
         # tries to discover the proper address representation of the current
         # connections, note that the forwarded for header is only used in case
@@ -353,6 +356,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # url prefix is going to be used instead, the balancer operation
         # is then used to "resolve" the final prefix value from sequence
         host = headers.get("host", None)
+        host = self.alias.get(host, host)
         host_s = host.split(":", 1)[0] if host else host
         prefix = self.hosts.get(host_s, None)
         prefix = self.hosts.get(host, prefix)
@@ -484,11 +488,21 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             return result, match
         return default, None
 
+    def _echo(self, sort = True):
+        self._echo_hosts(sort = sort)
+        self._echo_alias(sort = sort)
+
     def _echo_hosts(self, sort = True):
         keys = netius.legacy.keys(self.hosts)
         if sort: keys.sort()
         self.info("Host registration information")
         for key in keys: self.info("%s => %s" % (key, self.hosts[key]))
+
+    def _echo_alias(self, sort = True):
+        keys = netius.legacy.keys(self.alias)
+        if sort: keys.sort()
+        self.info("Alias registration information")
+        for key in keys: self.info("%s => %s" % (key, self.alias[key]))
 
 if __name__ == "__main__":
     import logging
@@ -498,6 +512,9 @@ if __name__ == "__main__":
     )
     hosts = {
         "host.com" : "http://localhost"
+    }
+    alias = {
+        "alias.host.com" : "host.com"
     }
     auth = {
         "host.com" : netius.SimpleAuth("root", "root")
@@ -517,6 +534,7 @@ if __name__ == "__main__":
     server = ReverseProxyServer(
         regex = regex,
         hosts = hosts,
+        alias = alias,
         auth = auth,
         auth_regex = auth_regex,
         redirect = redirect,
