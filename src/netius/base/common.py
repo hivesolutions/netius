@@ -63,7 +63,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.11.16"
+VERSION = "1.11.17"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -1712,7 +1712,7 @@ class AbstractBase(observer.Observable):
         that require certain values to be file system based.
 
         The generated file is going to be removed on the cleanup operation
-        so that no temporary file leaking occurs.
+        so that no temporary file leaking occurs (garbage collection).
 
         In case the force value is provided the the file is created even
         for situations where the provided value is invalid/unset.
