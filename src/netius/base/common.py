@@ -2278,7 +2278,7 @@ class AbstractBase(observer.Observable):
         # their corresponding files (graceful error handling)
         for expanded in self._expanded:
             try: os.remove(expanded)
-            except: pass
+            except OSError: pass
 
         # deletes the complete set of path references from the expanded
         # list so that it is not going to be used any longer
