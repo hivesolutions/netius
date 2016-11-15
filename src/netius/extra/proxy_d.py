@@ -60,6 +60,7 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
     def _build_docker(self):
         self._build_hosts()
         self._build_alias()
+        self._build_passwords()
 
     def _build_hosts(self, alias = True):
         # tries to retrieve the complete set of configuration
@@ -114,6 +115,15 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             base_dash = base.replace("_", "-")
             self.alias[base] = host
             self.alias[base_dash] = host
+
+    def _build_passwords(self):
+        linked = netius.conf_suffix("_PASSWORD")
+        for name, password in netius.legacy.iteritems(linked):
+            base = name[:-9].lower()
+            base_dash = base.replace("_", "-")
+            simple_auth = netius.SimpleAuth(password = password)
+            self.auth[base] = simple_auth
+            self.auth[base_dash] = simple_auth
 
     def _build_suffixes(self, alias = True):
         for host_suffix in self.host_suffixes:
