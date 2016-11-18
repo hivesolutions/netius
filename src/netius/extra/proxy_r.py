@@ -358,8 +358,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # url prefix is going to be used instead, the balancer operation
         # is then used to "resolve" the final prefix value from sequence
         host = headers.get("host", None)
-        host = self.alias.get(host, host)
         host_s = host.rsplit(":", 1)[0] if host else host
+        host = self.alias.get(host_s, host)
+        host = self.alias.get(host, host)
         prefix = self.hosts.get(host_s, None)
         prefix = self.hosts.get(host, prefix)
         resolved = self.balancer(prefix)
