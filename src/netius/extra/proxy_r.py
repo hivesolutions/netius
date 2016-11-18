@@ -126,7 +126,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         version_s = parser.version_s
         is_secure = connection.ssl
         host = headers.get("host", None)
-        host_s = host.split(":", 1)[0] if host else host
+        host_s = host.rsplit(":", 1)[0] if host else host
         host = self.alias.get(host_s, host)
         host = self.alias.get(host, host)
 
@@ -202,7 +202,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         # verifies if the current host requires come kind of special authorization
         # process using the default basic http authorization process
-        auth = self.auth.get(host.split(":", 1)[0], None)
+        auth = self.auth.get(host.rsplit(":", 1)[0], None)
         auth, _match = self._resolve_regex(url, self.auth_regex, default = auth)
         if auth:
             # determines if the provided authentication method is a sequence
@@ -359,7 +359,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # is then used to "resolve" the final prefix value from sequence
         host = headers.get("host", None)
         host = self.alias.get(host, host)
-        host_s = host.split(":", 1)[0] if host else host
+        host_s = host.rsplit(":", 1)[0] if host else host
         prefix = self.hosts.get(host_s, None)
         prefix = self.hosts.get(host, prefix)
         resolved = self.balancer(prefix)
