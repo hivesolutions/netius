@@ -126,6 +126,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         version_s = parser.version_s
         is_secure = connection.ssl
         host = headers.get("host", None)
+        host_s = host.split(":", 1)[0] if host else host
+        host = self.alias.get(host_s, host)
         host = self.alias.get(host, host)
 
         # tries to discover the proper address representation of the current
