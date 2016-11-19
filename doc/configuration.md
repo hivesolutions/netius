@@ -60,6 +60,10 @@ context values (certificate, key, etc) for such domain
 
 * `INDEX_FILES` (`list`) - List of file names that should be considered for eligible for index operation (eg: `index.html`)
 
+#### HTTP
+
+* `SAFE` (`bool`) - If safe execution should be enforced, (eg: avoiding HTTP2 execution) (defaults to `False`)
+
 #### Proxy
 
 * `DYNAMIC` (`bool`) - In case this value is active dynamic connection encoding is applied, meaning that extra
