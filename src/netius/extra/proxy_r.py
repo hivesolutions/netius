@@ -494,6 +494,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     def _echo(self, sort = True):
         self._echo_hosts(sort = sort)
         self._echo_alias(sort = sort)
+        self._echo_redirect(sort = sort)
 
     def _echo_hosts(self, sort = True):
         keys = netius.legacy.keys(self.hosts)
