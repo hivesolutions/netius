@@ -507,6 +507,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         self.info("Alias registration information")
         for key in keys: self.info("%s => %s" % (key, self.alias[key]))
 
+    def _echo_redirect(self, sort = True):
+        keys = netius.legacy.keys(self.redirect)
+        if sort: keys.sort()
+        self.info("Redirect registration information")
+        for key in keys: self.info("%s => %s" % (key, self.redirect[key]))
+
 if __name__ == "__main__":
     import logging
     regex = (
