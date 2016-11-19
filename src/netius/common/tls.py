@@ -68,6 +68,9 @@ class TLSContextDict(dict):
     def cer_path(self, domain):
         raise netius.NotImplemented("Missing implementation")
 
+    def key_path(self, domain):
+        raise netius.NotImplemented("Missing implementation")
+
 class LetsEncryptDict(TLSContextDict):
 
     def __init__(self, owner, domains, *args, **kwargs):
