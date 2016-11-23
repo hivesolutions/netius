@@ -433,12 +433,13 @@ if __name__ == "__main__":
         DNSClient.cleanup_s()
 
         # unpacks the complete set of contents from
-        # the first answer so that only the address
-        # of the answer is available, then prints it
-        first = response.answers[0]
-        extra = first[4]
-        address = extra[1]
-        print(address)
+        # the various answers so that only the address
+        # of the answer is available, then prints them
+        for answer in response.answers:
+            extra = answer[4]
+            priority = extra[0]
+            address = extra[1]
+            print("%s => %d" % (address, priority))
 
     # runs the static version of a dns query, note that
     # the daemon flag is unset so that the global client
