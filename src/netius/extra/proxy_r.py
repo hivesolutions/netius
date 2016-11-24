@@ -510,6 +510,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             values = [_value for value in resolved for _value in value]
             self.hosts[host] = tuple(values)
 
+            print(self.hosts)
+
         # returns the callback (clojure) function that has just been created and
         # that is going to be called upon dns resolution
         return callback
