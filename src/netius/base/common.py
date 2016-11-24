@@ -988,6 +988,7 @@ class AbstractBase(observer.Observable):
 
     def resume(self):
         self.debug("Resuming '%s' service main loop (%.2fs) ..." % (self.name, self.poll_timeout))
+        self.on_resume()
         self.main()
 
     def close(self):
@@ -996,12 +997,12 @@ class AbstractBase(observer.Observable):
     def main(self):
         # sets the running flag that controls the running of the
         # main loop and then changes the current state to start
-        # as the main loop is going to start, then triggers the
-        # start event indicating the (re-)start of the even loop
+        # as the main loop is going to start, then executes the
+        # on start call indicating the (re-)start of the even loop
         self._running = True
         self._pausing = False
         self.set_state(STATE_START)
-        self.trigger("start", self)
+        self.on_start()
 
         # runs the event loop, this is a blocking method that should
         # be finished by the end of the execution of by pause
@@ -1012,7 +1013,7 @@ class AbstractBase(observer.Observable):
             self.info("Finishing '%s' service on user request ..." % self.name)
         except errors.PauseError:
             self.set_state(STATE_PAUSE)
-            self.trigger("pause", self)
+            self.on_pause()
             self.debug("Pausing '%s' service main loop" % self.name)
         except BaseException as exception:
             self.error(exception)
@@ -1022,7 +1023,7 @@ class AbstractBase(observer.Observable):
             self.log_stack(method = self.error)
         finally:
             if self.is_paused(): return
-            self.trigger("stop", self)
+            self.on_stop()
             self.debug("Finished '%s' service main loop" % self.name)
             self.cleanup()
             self.set_state(STATE_STOP)
@@ -1435,6 +1436,18 @@ class AbstractBase(observer.Observable):
         seed = str(uuid.uuid4())
         seed = legacy.bytes(seed)
         ssl.RAND_add(seed, 0.0)
+
+    def on_start(self):
+        self.trigger("start", self)
+
+    def on_stop(self):
+        self.trigger("stop", self)
+
+    def on_pause(self):
+        self.trigger("pause", self)
+
+    def on_resume(self):
+        self.trigger("resume", self)
 
     def info_dict(self, full = False):
         info = dict(
