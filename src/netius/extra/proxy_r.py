@@ -73,6 +73,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         reuse = True,
         sts = 0,
         resolve = True,
+        resolve_t = 120.0,
         echo = False,
         *args,
         **kwargs
@@ -110,16 +111,17 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
     def on_start(self):
         netius.servers.ProxyServer.on_start(self)
-        if self.resolve: self.dns_start()
+        if self.resolve: self.dns_start(timeout = self.resolve_t)
 
     def on_serve(self):
         netius.servers.ProxyServer.on_serve(self)
         if self.env: self.sts = self.get_env("STS", self.sts, cast = int)
         if self.env: self.echo = self.get_env("ECHO", self.echo, cast = bool)
         if self.env: self.resolve = self.get_env("RESOLVE", self.resolve, cast = bool)
+        if self.env: self.resolve_t = self.get_env("RESOLVE_TIMEOUT", self.resolve_t, cast = float)
         if self.env: self.strategy = self.get_env("STRATEGY", self.strategy)
         if self.sts: self.info("Strict transport security set to %d seconds" % self.sts)
-        if self.resolve: self.info("DNS based resolution enabled in prpxy")
+        if self.resolve: self.info("DNS based resolution enabled in proxy with %.2fs timeout" % self.resolve_t)
         if self.strategy: self.info("Using '%s' as load balancing strategy" % self.strategy)
         if self.echo: self._echo()
         self._set_strategy()
@@ -431,7 +433,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if sorter[0] == 0: sorter[1] = time.time() * -1
         queue[prefix] = sorter
 
-    def dns_start(self, timeout = 120):
+    def dns_start(self, timeout = 120.0):
         # creates the dictionary that is going to hold the original
         # values for the hosts, this is going to be required for later
         # computation of the resolved values
@@ -450,7 +452,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # the dns resolution process
         self.dns_tick(timeout = timeout)
 
-    def dns_tick(self, timeout = 120):
+    def dns_tick(self, timeout = 120.0):
         # iterates over the complete set of original hosts to run the tick
         # operation, this should perform dns queries for all values using
         # the default netius dns client

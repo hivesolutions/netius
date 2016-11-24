@@ -70,7 +70,11 @@ context values (certificate, key, etc) for such domain
 heuristics will be applied on a response basis to determine the proper encoding of the response (eg: plain, chunked, gzip, etc.)
 * `THROTTLE` (`bool`) - If throttling of the connection stream should be applied on both ways to avoid starvation
 of the producer consumer relation
-* `STRATEGY` (`str`) - The load balancing strategy that is going to be used for multiple back-end connections (default to `smart`)
+* `STRATEGY` (`str`) - The load balancing strategy that is going to be used for multiple back-end connections (defaults to `smart`)
+* `RESOLVE` (`bool`) - If the DNS based resolution of the hosts should be enabled meaning that from time to time the hostname
+associated with the target URLs is resolved (defaults to `True`)
+* `RESOLVE_TIMEOUT` (`float`) - The amount of seconds between DNS resolution queries (defaults to `120`)
+
 
 #### Proxy Reverse
 
