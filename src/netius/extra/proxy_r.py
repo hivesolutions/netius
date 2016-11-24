@@ -113,7 +113,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             is_sequence = isinstance(values, (list, tuple))
             if not is_sequence: values = (values,)
             resolved = [[value] for value in values]
-            self.hosts[host] = list(values)
+            self.hosts[host] = tuple(values)
             self.hosts_o[host] = (values, resolved)
 
         self.dns_tick()
