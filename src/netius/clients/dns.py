@@ -343,11 +343,11 @@ class DNSClient(netius.DatagramClient):
 
         # splits the contents of the file around their lines and tries
         # to find the name servers defined in it to be added to the list
-        for line in data.split("\n"):
+        for line in data.split(b"\n"):
             line = line.strip()
-            if not line.startswith("nameserver"): continue
-            _header, ns = line.split(" ", 1)
-            ns = ns.strip()
+            if not line.startswith(b"nameserver"): continue
+            _header, ns = line.split(b" ", 1)
+            ns = str(ns.strip())
             cls.ns_file_l.append(ns)
 
         # returns the final value of the list of name servers loaded from
