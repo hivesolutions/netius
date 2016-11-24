@@ -126,7 +126,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 value = values[index]
                 parsed = netius.legacy.urlparse(value)
                 hostname = parsed.hostname
-                callback = self.build_callback(
+                callback = self.build_dns_callback(
                     host,
                     value,
                     parsed,
@@ -142,10 +142,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         self.delay(self.dns_tick, timeout = 10)
 
-    def build_callback(
+    def build_dns_callback(
         self,
         host,
-        value,
+        hostname,
         parsed,
         index = 0,
         resolved = []
@@ -154,12 +154,26 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         port_s = ":" + str(parsed.port) if parsed.port else ""
 
         def callback(response):
+            # in case there's no valid dns response there's nothing to be
+            # done, control flow is returned immediately
+            if not response: return
+
+            # creates the list that is going to be used t store the complete
+            # set of resolved url for the current host value in resolution
             target = []
+
+            # iterates over the complete set of dns answers to re-build
+            # the target url value taking into account the resolved value
+            # this (ip based) url is going to be added to the list of target
+            # values to be added to the resolved list on proper index
             for answer in response.answers:
                 address = answer[4]
                 url = "%s://%s%s%s" % (parsed.scheme, address, port_s, path)
                 target.append(url)
 
+            # sets the target list of url for the proper index in the resolved
+            # list and then "re-join" the complete set of lists to obtain a
+            # plain sequence of urls for the current host
             resolved[index] = target
             values = [_value for value in resolved for _value in value]
             self.hosts[host] = tuple(values)
