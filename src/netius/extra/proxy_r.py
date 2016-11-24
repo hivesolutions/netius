@@ -41,6 +41,7 @@ import re
 import time
 
 import netius.common
+import netius.clients
 import netius.servers
 
 class ReverseProxyServer(netius.servers.ProxyServer):
@@ -94,9 +95,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             smart = netius.common.PriorityDict()
         )
         self.busy_conn = 0
-        self.balancer_m = getattr(self, "balancer_" + self.strategy)
-        self.acquirer_m = getattr(self, "acquirer_" + self.strategy)
-        self.releaser_m = getattr(self, "releaser_" + self.strategy)
+        self._set_strategy()
 
     def info_dict(self, full = False):
         info = netius.servers.ProxyServer.info_dict(self, full = full)
@@ -107,12 +106,75 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         )
         return info
 
+    def on_start(self):
+        netius.servers.ProxyServer.on_start(self)
+        self.hosts_o = dict()
+        for host, values in netius.legacy.items(self.hosts):
+            is_sequence = isinstance(values, (list, tuple))
+            if not is_sequence: values = (values,)
+            resolved = [[value] for value in values]
+            self.hosts[host] = list(values)
+            self.hosts_o[host] = (values, resolved)
+
+        self.dns_tick()
+
+    def dns_tick(self):
+        for host, composition in netius.legacy.items(self.hosts_o):
+            values, resolved = composition
+            values_l = len(values)
+            for index in netius.legacy.xrange(values_l):
+                value = values[index]
+                parsed = netius.legacy.urlparse(value)
+                hostname = parsed.hostname
+                callback = self.build_callback(
+                    host,
+                    value,
+                    parsed,
+                    index = index,
+                    resolved = resolved
+                )
+                netius.clients.DNSClient.query_s(
+                    hostname,
+                    type = "a",
+                    callback = callback,
+                    daemon = False
+                )
+
+        self.delay(self.dns_tick, timeout = 10)
+
+    def build_callback(
+        self,
+        host,
+        value,
+        parsed,
+        index = 0,
+        resolved = []
+    ):
+        path = parsed.path
+        port_s = ":" + str(parsed.port) if parsed.port else ""
+
+        def callback(response):
+            target = []
+            for answer in response.answers:
+                address = answer[4]
+                url = "%s://%s%s%s" % (parsed.scheme, address, port_s, path)
+                target.append(url)
+
+            resolved[index] = target
+            values = [_value for value in resolved for _value in value]
+            self.hosts[host] = tuple(values)
+
+        return callback
+
     def on_serve(self):
         netius.servers.ProxyServer.on_serve(self)
         if self.env: self.sts = self.get_env("STS", self.sts, cast = int)
         if self.env: self.echo = self.get_env("ECHO", self.echo, cast = bool)
+        if self.env: self.strategy = self.get_env("STRATEGY", self.strategy)
         if self.sts: self.info("Strict transport security set to %d seconds" % self.sts)
+        if self.strategy: self.info("Using '%s' as load balancing strategy" % self.strategy)
         if self.echo: self._echo()
+        self._set_strategy()
 
     def on_headers(self, connection, parser):
         netius.servers.ProxyServer.on_headers(self, connection, parser)
@@ -372,14 +434,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         return resolved
 
     def balancer(self, values):
-        is_sequence = type(values) in (list, tuple)
+        is_sequence = isinstance(values, (list, tuple))
         if not is_sequence: return values, None
         return self.balancer_m(values)
 
     def balancer_robin(self, values):
         index = self.robin.get(values, 0)
         prefix = values[index]
-        next = 0 if index + 1 == len(values) else index + 1
+        next = 0 if index + 1 >= len(values) else index + 1
         self.robin[values] = next
         return prefix, None
 
@@ -483,6 +545,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # is omitted and an ambiguous situation may be created raising the
         # level of incompatibility with user agents
         if parser_prx.keep_alive: parser_prx.headers["Connection"] = "keep-alive"
+
+    def _set_strategy(self):
+        self.balancer_m = getattr(self, "balancer_" + self.strategy)
+        self.acquirer_m = getattr(self, "acquirer_" + self.strategy)
+        self.releaser_m = getattr(self, "releaser_" + self.strategy)
 
     def _resolve_regex(self, value, regexes, default = None):
         for regex, result in regexes:

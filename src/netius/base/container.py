@@ -177,13 +177,13 @@ class Container(Base):
         base.logger = self.logger
         base.poll_owner = base == self.owner
 
-    def trigger_all(self, name, *args, **kwargs):
-        for base in self.bases: base.trigger(name, base, *args, **kwargs)
-
     def call_all(self, name, *args, **kwargs):
         for base in self.bases:
             method = getattr(base, name)
             method(*args, **kwargs)
+
+    def trigger_all(self, name, *args, **kwargs):
+        for base in self.bases: base.trigger(name, base, *args, **kwargs)
 
 class ContainerServer(server.StreamServer):
 

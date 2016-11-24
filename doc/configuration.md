@@ -70,6 +70,7 @@ context values (certificate, key, etc) for such domain
 heuristics will be applied on a response basis to determine the proper encoding of the response (eg: plain, chunked, gzip, etc.)
 * `THROTTLE` (`bool`) - If throttling of the connection stream should be applied on both ways to avoid starvation
 of the producer consumer relation
+* `STRATEGY` (`str`) - The load balancing strategy that is going to be used for multiple back-end connections (default to `smart`)
 
 #### Proxy Reverse
 
