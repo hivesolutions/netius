@@ -489,6 +489,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             # in case there's no valid dns response there's nothing to be
             # done, control flow is returned immediately
             if not response: return
+            if not response.answers: return
 
             # creates the list that is going to be used t store the complete
             # set of resolved url for the current host value in resolution

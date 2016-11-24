@@ -379,6 +379,10 @@ class DNSClient(netius.DatagramClient):
         )
         data = request.request()
 
+        # prints some debug information about the dns query that is going
+        # to be performed (provides some development capabilities)
+        self.debug("Running DNS query %s '%s in '%s'" % (type, name, ns))
+
         # adds the current request pending callback handing to the internal
         # management structures so that it becomes callable latter
         self.add_request(request)
