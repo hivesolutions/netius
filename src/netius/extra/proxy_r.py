@@ -457,7 +457,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                     daemon = False
                 )
 
+        # verifies if the requested timeout is zero and if that's the
+        # case only one execution of the dns tick is pretended, returns
+        # the control flow back to caller immediately
         if timeout == 0: return
+
+        # schedules a delayed execution taking into account the timeout
+        # that has been provided, this is going to update the various
+        # servers that are defined for the registered domains
         self.delay(self.dns_tick, timeout = timeout)
 
     def dns_callback(
