@@ -49,10 +49,6 @@ class Container(Base):
         self.bases = []
 
     def start(self, owner):
-        # registers for the start event on the current container so that when
-        # the start operation is completed the proper propagation may occur
-        self.bind("start", self.on_start)
-
         # sets the current polling structure of the owner in the container
         # it's important to use the already initialized poll in the container
         # so that the requested environment (host, port , etc.) is used note
@@ -147,12 +143,14 @@ class Container(Base):
         if not connection: return None
         return connection.info_dict(full = full)
 
-    def on_start(self, service):
+    def on_start(self):
+        Base.on_start(self)
         self.apply_all()
-        self.trigger_all("start")
+        self.call_all("on_start")
 
-    def on_stop(self, service):
-        self.trigger_all("stop")
+    def on_stop(self):
+        Base.on_stop(self)
+        self.call_all("on_stop")
 
     def add_base(self, base):
         self.apply_base(base)
@@ -181,6 +179,11 @@ class Container(Base):
 
     def trigger_all(self, name, *args, **kwargs):
         for base in self.bases: base.trigger(name, base, *args, **kwargs)
+
+    def call_all(self, name, *args, **kwargs):
+        for base in self.bases:
+            method = getattr(base, name)
+            method(*args, **kwargs)
 
 class ContainerServer(server.StreamServer):
 
