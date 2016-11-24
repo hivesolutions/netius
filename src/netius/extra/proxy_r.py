@@ -108,15 +108,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
     def on_start(self):
         netius.servers.ProxyServer.on_start(self)
-        self.hosts_o = dict()
-        for host, values in netius.legacy.items(self.hosts):
-            is_sequence = isinstance(values, (list, tuple))
-            if not is_sequence: values = (values,)
-            resolved = [[value] for value in values]
-            self.hosts[host] = tuple(values)
-            self.hosts_o[host] = (values, resolved)
-
-        self.dns_tick()
+        self.dns_start()
 
     def on_serve(self):
         netius.servers.ProxyServer.on_serve(self)
@@ -435,6 +427,18 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if sorter[0] == 0: sorter[1] = time.time() * -1
         queue[prefix] = sorter
 
+    def dns_start(self):
+        self.hosts_o = dict()
+
+        for host, values in netius.legacy.items(self.hosts):
+            is_sequence = isinstance(values, (list, tuple))
+            if not is_sequence: values = (values,)
+            resolved = [[value] for value in values]
+            self.hosts[host] = tuple(values)
+            self.hosts_o[host] = (values, resolved)
+
+        self.dns_tick()
+
     def dns_tick(self, timeout = 120):
         for host, composition in netius.legacy.items(self.hosts_o):
             values, resolved = composition
@@ -513,8 +517,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             resolved[index] = target
             values = [_value for value in resolved for _value in value]
             self.hosts[host] = tuple(values)
-
-            print(self.hosts)
 
         # returns the callback (clojure) function that has just been created and
         # that is going to be called upon dns resolution
