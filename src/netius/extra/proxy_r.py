@@ -93,6 +93,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             reuse = reuse,
             sts = sts,
             resolve = resolve,
+            resolve_t = resolve_t,
             echo = echo,
             robin = dict(),
             smart = netius.common.PriorityDict()
