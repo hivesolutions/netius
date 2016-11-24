@@ -347,7 +347,8 @@ class DNSClient(netius.DatagramClient):
             line = line.strip()
             if not line.startswith(b"nameserver"): continue
             _header, ns = line.split(b" ", 1)
-            ns = str(ns.strip())
+            ns = ns.strip()
+            ns = netius.legacy.str(ns)
             cls.ns_file_l.append(ns)
 
         # returns the final value of the list of name servers loaded from

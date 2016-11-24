@@ -440,10 +440,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             values, resolved = composition
             values_l = len(values)
             for index in netius.legacy.xrange(values_l):
+
                 value = values[index]
                 parsed = netius.legacy.urlparse(value)
                 hostname = parsed.hostname
 
+                # creates the callback function that is going to be called
+                # after the dns resolution for proper hosts setting
                 callback = self.dns_callback(
                     host,
                     value,
@@ -622,7 +625,7 @@ if __name__ == "__main__":
         (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}")
     )
     hosts = {
-        "host.com" : "http://localhost"
+        "host.com" : "http://host.com"
     }
     alias = {
         "alias.host.com" : "host.com"
