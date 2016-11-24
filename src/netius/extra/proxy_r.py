@@ -443,6 +443,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 value = values[index]
                 parsed = netius.legacy.urlparse(value)
                 hostname = parsed.hostname
+
                 callback = self.dns_callback(
                     host,
                     value,
@@ -450,6 +451,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                     index = index,
                     resolved = resolved
                 )
+
+                # runs the dns query execution for the hostname associated
+                # with the current load balancing url, the callback of this
+                # call should handle the addition of the value to hosts
                 netius.clients.DNSClient.query_s(
                     hostname,
                     type = "a",
