@@ -118,7 +118,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         self.dns_tick()
 
-    def dns_tick(self):
+    def dns_tick(self, timeout = 120):
         for host, composition in netius.legacy.items(self.hosts_o):
             values, resolved = composition
             values_l = len(values)
@@ -140,7 +140,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                     daemon = False
                 )
 
-        self.delay(self.dns_tick, timeout = 10)
+        if timeout == 0: return
+        self.delay(self.dns_tick, timeout = timeout)
 
     def build_dns_callback(
         self,
