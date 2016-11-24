@@ -69,9 +69,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         auth = {},
         auth_regex = {},
         redirect = {},
-        strategy = "smart",
+        strategy = "robin",
         reuse = True,
         sts = 0,
+        resolve = True,
         echo = False,
         *args,
         **kwargs
@@ -90,6 +91,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             strategy = strategy,
             reuse = reuse,
             sts = sts,
+            resolve = resolve,
             echo = echo,
             robin = dict(),
             smart = netius.common.PriorityDict()
@@ -108,14 +110,16 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
     def on_start(self):
         netius.servers.ProxyServer.on_start(self)
-        self.dns_start()
+        if self.resolve: self.dns_start()
 
     def on_serve(self):
         netius.servers.ProxyServer.on_serve(self)
         if self.env: self.sts = self.get_env("STS", self.sts, cast = int)
         if self.env: self.echo = self.get_env("ECHO", self.echo, cast = bool)
+        if self.env: self.resolve = self.get_env("RESOLVE", self.resolve, cast = bool)
         if self.env: self.strategy = self.get_env("STRATEGY", self.strategy)
         if self.sts: self.info("Strict transport security set to %d seconds" % self.sts)
+        if self.resolve: self.info("DNS based resolution enabled in prpxy")
         if self.strategy: self.info("Using '%s' as load balancing strategy" % self.strategy)
         if self.echo: self._echo()
         self._set_strategy()
@@ -427,9 +431,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if sorter[0] == 0: sorter[1] = time.time() * -1
         queue[prefix] = sorter
 
-    def dns_start(self):
+    def dns_start(self, timeout = 120):
+        # creates the dictionary that is going to hold the original
+        # values for the hosts, this is going to be required for later
+        # computation of the resolved values
         self.hosts_o = dict()
 
+        # iterates over the complete set of hosts to normalize their
+        # values and then store them in the original and legacy maps
         for host, values in netius.legacy.items(self.hosts):
             is_sequence = isinstance(values, (list, tuple))
             if not is_sequence: values = (values,)
@@ -437,14 +446,26 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             self.hosts[host] = tuple(values)
             self.hosts_o[host] = (values, resolved)
 
-        self.dns_tick()
+        # runs the initial tick for the dns execution, this should start
+        # the dns resolution process
+        self.dns_tick(timeout = timeout)
 
     def dns_tick(self, timeout = 120):
+        # iterates over the complete set of original hosts to run the tick
+        # operation, this should perform dns queries for all values using
+        # the default netius dns client
         for host, composition in netius.legacy.items(self.hosts_o):
+            # unpacks the original hosts value composition into the (url)
+            # values and the resolved list of lists
             values, resolved = composition
             values_l = len(values)
+
+            # iterates over the complete set of urls associated with the
+            # original host value
             for index in netius.legacy.xrange(values_l):
 
+                # retrieves the current value (url) in iteration and then
+                # parses it using the legacy infra-structure
                 value = values[index]
                 parsed = netius.legacy.urlparse(value)
                 hostname = parsed.hostname
@@ -477,7 +498,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # schedules a delayed execution taking into account the timeout
         # that has been provided, this is going to update the various
         # servers that are defined for the registered domains
-        self.delay(self.dns_tick, timeout = timeout)
+        tick = lambda: self.dns_tick(timeout = timeout)
+        self.delay(tick, timeout = timeout)
 
     def dns_callback(
         self,
