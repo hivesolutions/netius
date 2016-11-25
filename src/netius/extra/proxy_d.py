@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import re
+
 import netius
 
 from . import proxy_r
@@ -58,10 +60,32 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
         self._build_suffixes()
 
     def _build_docker(self):
+        self._build_regex()
         self._build_hosts()
         self._build_alias()
         self._build_passwords()
         self._build_redirect()
+
+    def _build_regex(self):
+        # converts the set of regex rules already registered into
+        # a list so that it can be edited
+        self.regex = list(self.regex)
+
+        # retrieves the complete set of configuration values with the
+        # regex suffix so that they are going to be used for the creation
+        # of the regex rules
+        linked = netius.conf_suffix("_REGEX")
+
+        # iterates over the complete set of linked regex values splitting
+        # the values around the proper token and adding them to the regex
+        for _name, value in netius.legacy.iteritems(linked):
+            regex, target = value.split("$", 1)
+            rule = (re.compile(regex), target)
+            self.regex.append(rule)
+
+        # converts the regex back to the tuple version of the
+        # regex, so that it's made according to standard rules
+        self.regex = tuple(self.regex)
 
     def _build_hosts(self, alias = True):
         # tries to retrieve the complete set of configuration
