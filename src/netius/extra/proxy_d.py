@@ -67,10 +67,6 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
         self._build_redirect()
 
     def _build_regex(self):
-        # converts the set of regex rules already registered into
-        # a list so that it can be edited
-        self.regex = list(self.regex)
-
         # retrieves the complete set of configuration values with the
         # regex suffix so that they are going to be used for the creation
         # of the regex rules
@@ -82,10 +78,6 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             regex, target = value.split("$", 1)
             rule = (re.compile(regex), target)
             self.regex.append(rule)
-
-        # converts the regex back to the tuple version of the
-        # regex, so that it's made according to standard rules
-        self.regex = tuple(self.regex)
 
     def _build_hosts(self, alias = True):
         # tries to retrieve the complete set of configuration
