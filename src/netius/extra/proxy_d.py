@@ -69,7 +69,7 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
     def _build_regex(self):
         # retrieves the complete set of configuration values with the
         # regex suffix so that they are going to be used for the creation
-        # of the regex rules
+        # of the regex rules (as expected)
         linked = netius.conf_suffix("_REGEX")
 
         # iterates over the complete set of linked regex values splitting
