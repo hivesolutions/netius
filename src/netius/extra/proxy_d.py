@@ -66,7 +66,7 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
         self._build_passwords()
         self._build_redirect()
 
-    def _build_regex(self):
+    def _build_regex(self, token = "$"):
         # retrieves the complete set of configuration values with the
         # regex suffix so that they are going to be used for the creation
         # of the regex rules (as expected)
@@ -75,7 +75,7 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
         # iterates over the complete set of linked regex values splitting
         # the values around the proper token and adding them to the regex
         for _name, value in netius.legacy.iteritems(linked):
-            regex, target = value.split("$", 1)
+            regex, target = value.split(token, 1)
             rule = (re.compile(regex), target)
             self.regex.append(rule)
 
