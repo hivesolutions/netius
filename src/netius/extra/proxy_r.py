@@ -188,8 +188,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             location = "%s://%s%s" % (protocol_t, redirect_t, path_t)
 
             # verifies if the current request already matched the redirection
-            # rule and if that't the case ignores the
-            is_match = host_o == redirect_t or host == redirect_t or host_s == redirect_t
+            # rule and if that't the case ignores the, note that the host value
+            # is verified against all the possible combinations
+            is_match = host_o == redirect_t or host == redirect_t or\
+                host_s == redirect_t
             is_match &= protocol == protocol_t
             is_match &= path == path_t
             redirect = not is_match
