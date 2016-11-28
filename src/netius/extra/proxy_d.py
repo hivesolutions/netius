@@ -65,6 +65,7 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
         self._build_alias()
         self._build_passwords()
         self._build_redirect()
+        self._build_ssl()
 
     def _build_regex(self, token = "$"):
         # retrieves the complete set of configuration values with the
@@ -151,6 +152,18 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             base_dash = base.replace("_", "-")
             self.redirect[base] = host
             self.redirect[base_dash] = host
+
+    def _build_ssl(self, alias = True):
+        linked = netius.conf_suffix("_SSL")
+        for name, _force in netius.legacy.iteritems(linked):
+            base = name[:-4].lower()
+            base_dash = base.replace("_", "-")
+            self.redirect[base] = (base, "https")
+            self.redirect[base_dash] = (base_dash, "https")
+            if not alias: continue
+            for key, value in netius.legacy.iteritems(self.alias):
+                if not value in (base, base_dash): continue
+                self.redirect[key] = (key, "https")
 
     def _build_suffixes(self, alias = True):
         for host_suffix in self.host_suffixes:

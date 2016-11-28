@@ -140,6 +140,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         is_secure = connection.ssl
         host = headers.get("host", None)
         host_s = host.rsplit(":", 1)[0] if host else host
+        host_o = host
         host = self.alias.get(host_s, host)
         host = self.alias.get(host, host)
 
@@ -163,19 +164,48 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # tries to determine if a proper (client side) redirection should operation
         # should be applied to the current request, if that's the case (match) an
         # immediate response is returned with proper redirection instructions
-        redirect = self.redirect.get(host, None)
+        redirect = self.redirect.get(host_s, None)
+        redirect = self.redirect.get(host, redirect)
         if redirect:
-            location = "%s://%s%s" % (protocol, redirect, path)
-            connection.send_response(
-                headers = dict(
-                    location = location
-                ),
-                version = version_s,
-                code = 303,
-                code_s = "See Other",
-                apply = True
-            )
-            return
+            # verifies if the redirect value is a sequence and if that's
+            # not the case converts the value into a tuple value
+            is_sequence = isinstance(redirect, (list, tuple))
+            if not is_sequence: redirect = (redirect,)
+
+            # converts the possible tuple value into a list so that it
+            # may be changed (mutable sequence is required)
+            redirect = list(redirect)
+
+            # adds the proper trail values to the redirect sequence so that
+            # both the protocol and the path are ensured to exist
+            if len(redirect) == 1: redirect += [protocol, path]
+            if len(redirect) == 2: redirect += [path]
+
+            # unpacks the redirect sequence and builds the new location
+            # value taking into account the proper values
+            redirect_t, protocol_t, path_t = redirect
+            location = "%s://%s%s" % (protocol_t, redirect_t, path_t)
+
+            # verifies if the current request already matched the redirection
+            # rule and if that't the case ignores the
+            is_match = host_o == redirect_t
+            is_match &= protocol == protocol_t
+            is_match &= path == path_t
+            redirect = not is_match
+
+            # sends the "final" response to the user agent, effectively
+            # redirecting it into the target redirect location, but only
+            # if the redirection is really required
+            if redirect:
+                return connection.send_response(
+                    headers = dict(
+                        location = location
+                    ),
+                    version = version_s,
+                    code = 303,
+                    code_s = "See Other",
+                    apply = True
+                )
 
         # tries to extract the various attributes of the current connection
         # that are going to be used for the routing operation, this attributes
@@ -200,7 +230,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # and propagated to the client connection (end user notification)
         if not prefix:
             self.debug("No valid proxy endpoint found")
-            connection.send_response(
+            return connection.send_response(
                 data = "No valid proxy endpoint found",
                 headers = dict(
                     connection = "close"
@@ -211,7 +241,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 apply = True,
                 callback = self._prx_close
             )
-            return
 
         # verifies if the current host requires come kind of special authorization
         # process using the default basic http authorization process
@@ -236,7 +265,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             # of the authentication methods was successful) sends the invalid
             # response to the client meaning that the current request is invalid
             if not result:
-                connection.send_response(
+                return connection.send_response(
                     data = "Not authorized",
                     headers = {
                         "connection" : "close",
@@ -248,7 +277,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                     apply = True,
                     callback = self._prx_close
                 )
-                return
 
         # runs the acquire operation for the current state, this should
         # update the current scheduling algorithm internal structures so
