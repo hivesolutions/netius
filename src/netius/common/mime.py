@@ -62,7 +62,8 @@ MIME_TYPES = (
     (".ini", "text/plain"),
     (".log", "text/plain"),
     (".mka", "audio/x-matroska"),
-    (".mkv", "video/x-matroska")
+    (".mkv", "video/x-matroska"),
+    (".woff", "application/font-woff")
 )
 """ The sequence containing tuple associating the extension with
 the mime type or content type string """
