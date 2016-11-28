@@ -58,6 +58,7 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             cast = list
         )
         self._build_suffixes()
+        self._build_redirect_ssl()
 
     def _build_docker(self):
         self._build_regex()
@@ -166,7 +167,7 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
                 if not is_match: continue
                 self.redirect[key] = (key, "https")
 
-    def _build_suffixes(self, alias = True):
+    def _build_suffixes(self, alias = True, redirect = True):
         for host_suffix in self.host_suffixes:
             self.info("Registering %s host suffix" % host_suffix)
             for name, value in netius.legacy.items(self.hosts):
