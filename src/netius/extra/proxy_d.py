@@ -154,9 +154,9 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             self.redirect[base_dash] = host
 
     def _build_ssl(self, alias = True):
-        linked = netius.conf_suffix("_SSL")
+        linked = netius.conf_suffix("_REDIRECT_SSL")
         for name, _force in netius.legacy.iteritems(linked):
-            base = name[:-4].lower()
+            base = name[:-13].lower()
             base_dash = base.replace("_", "-")
             self.redirect[base] = (base, "https")
             self.redirect[base_dash] = (base_dash, "https")
