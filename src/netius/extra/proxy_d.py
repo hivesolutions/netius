@@ -75,7 +75,9 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
         # iterates over the complete set of linked regex values splitting
         # the values around the proper token and adding them to the regex
         for _name, value in netius.legacy.iteritems(linked):
-            regex, target = value.split(token, 1)
+            value_s = value.split(token, 1)
+            if not len(value_s) == 2: continue
+            regex, target = value_s
             rule = (re.compile(regex), target)
             self.regex.append(rule)
 
