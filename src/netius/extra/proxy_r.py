@@ -164,8 +164,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # tries to determine if a proper (client side) redirection should operation
         # should be applied to the current request, if that's the case (match) an
         # immediate response is returned with proper redirection instructions
-        redirect = self.redirect.get(host_s, None)
-        redirect = self.redirect.get(host, redirect)
+        redirect = self.redirect.get(host, None)
+        redirect = self.redirect.get(host_s, redirect)
         redirect = self.redirect.get(host_o, redirect)
         if redirect:
             # verifies if the redirect value is a sequence and if that's
@@ -190,8 +190,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             # verifies if the current request already matched the redirection
             # rule and if that't the case ignores the, note that the host value
             # is verified against all the possible combinations
-            is_match = host_o == redirect_t or host == redirect_t or\
-                host_s == redirect_t
+            is_match = host_o == redirect_t or host_s == redirect_t or\
+                host == redirect_t
             is_match &= protocol == protocol_t
             is_match &= path == path_t
             redirect = not is_match
