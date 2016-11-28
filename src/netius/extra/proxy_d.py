@@ -162,7 +162,8 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             self.redirect[base_dash] = (base_dash, "https")
             if not alias: continue
             for key, value in netius.legacy.iteritems(self.alias):
-                if not value in (base, base_dash): continue
+                is_match = value in (base, base_dash)
+                if not is_match: continue
                 self.redirect[key] = (key, "https")
 
     def _build_suffixes(self, alias = True):
