@@ -140,6 +140,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         is_secure = connection.ssl
         host = headers.get("host", None)
         host_s = host.rsplit(":", 1)[0] if host else host
+        host_o = host
         host = self.alias.get(host_s, host)
         host = self.alias.get(host, host)
 
@@ -165,6 +166,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # immediate response is returned with proper redirection instructions
         redirect = self.redirect.get(host_s, None)
         redirect = self.redirect.get(host, redirect)
+        redirect = self.redirect.get(host_o, redirect)
         if redirect:
             # verifies if the redirect value is a sequence and if that's
             # not the case converts the value into a tuple value
@@ -187,7 +189,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
             # verifies if the current request already matched the redirection
             # rule and if that't the case ignores the
-            is_match = host == redirect_t or host_s == redirect_t
+            is_match = host_o == redirect_t or host == redirect_t or host_s == redirect_t
             is_match &= protocol == protocol_t
             is_match &= path == path_t
             redirect = not is_match
