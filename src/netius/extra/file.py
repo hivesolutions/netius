@@ -73,7 +73,7 @@ class FileServer(netius.servers.HTTP2Server):
         self,
         base_path = "",
         index_files = [],
-        list_dirs = False,
+        list_dirs = True,
         cors = False,
         cache = 0,
         *args,
