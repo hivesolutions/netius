@@ -59,6 +59,7 @@ context values (certificate, key, etc) for such domain
 #### File Serving
 
 * `INDEX_FILES` (`list`) - List of file names that should be considered for eligible for index operation (eg: `index.html`)
+* `LIST_DIRS` (`bool`) - If directory listing is enabled (may pose a security issue) (defaults to `True`)
 
 #### HTTP
 

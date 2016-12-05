@@ -73,6 +73,7 @@ class FileServer(netius.servers.HTTP2Server):
         self,
         base_path = "",
         index_files = [],
+        list_dirs = False,
         cors = False,
         cache = 0,
         *args,
@@ -81,6 +82,7 @@ class FileServer(netius.servers.HTTP2Server):
         netius.servers.HTTP2Server.__init__(self, *args, **kwargs)
         self.base_path = base_path
         self.index_files = index_files
+        self.list_dirs = list_dirs
         self.cors = cors
         self.cache = 0
 
@@ -106,6 +108,7 @@ class FileServer(netius.servers.HTTP2Server):
         netius.servers.HTTP2Server.on_serve(self)
         if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)
         if self.env: self.index_files = self.get_env("INDEX_FILES", self.index_files, cast = list)
+        if self.env: self.list_dirs = self.get_env("LIST_DIRS", self.list_dirs, cast = bool)
         if self.env: self.cors = self.get_env("CORS", self.cors, cast = bool)
         if self.env: self.cache = self.get_env("CACHE", self.cache, cast = int)
         self.base_path = os.path.abspath(self.base_path)
@@ -189,6 +192,10 @@ class FileServer(netius.servers.HTTP2Server):
             index_path = os.path.join(path, index_file)
             if not os.path.exists(index_path): continue
             return self.on_normal_file(connection, parser, index_path)
+
+        if not self.list_dirs:
+            self.on_no_file(connection)
+            return
 
         items = os.listdir(path)
         items.sort(key = self._sorter_build(path))
