@@ -155,9 +155,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             address = address.split(",", 1)[0].strip()
 
         # tries to retrieve the string based port version taking into account
-        # the port of the connection address and falling back to the forwarded
+        # the port of the server bind port and falling back to the forwarded
         # port in case the  "origin" is considered "trustable"
-        port = str(connection.address[1])
+        port = str(self.port)
         if self.trust_origin: port = headers.get("x-forwarded-port", port)
 
         # tries to discover the protocol representation of the current
