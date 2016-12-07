@@ -75,6 +75,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         resolve = True,
         resolve_t = 120.0,
         echo = False,
+        x_forwarded_port = None,
+        x_forwarded_proto = None,
         *args,
         **kwargs
     ):
@@ -95,6 +97,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             resolve = resolve,
             resolve_t = resolve_t,
             echo = echo,
+            x_forwarded_port = x_forwarded_port,
+            x_forwarded_proto = x_forwarded_proto,
             robin = dict(),
             smart = netius.common.PriorityDict()
         )
@@ -121,6 +125,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if self.env: self.resolve = self.get_env("RESOLVE", self.resolve, cast = bool)
         if self.env: self.resolve_t = self.get_env("RESOLVE_TIMEOUT", self.resolve_t, cast = float)
         if self.env: self.strategy = self.get_env("STRATEGY", self.strategy)
+        if self.env: self.x_forwarded_port = self.get_env("X_FORWARDED_PORT", self.x_forwarded_port)
+        if self.env: self.x_forwarded_proto = self.get_env("X_FORWARDED_PROTO", self.x_forwarded_proto)
         if self.sts: self.info("Strict transport security set to %d seconds" % self.sts)
         if self.resolve: self.info("DNS based resolution enabled in proxy with %.2fs timeout" % self.resolve_t)
         if self.strategy: self.info("Using '%s' as load balancing strategy" % self.strategy)
@@ -158,12 +164,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # the port of the server bind port and falling back to the forwarded
         # port in case the  "origin" is considered "trustable"
         port = str(self.port)
+        port = self.x_forwarded_port or port
         if self.trust_origin: port = headers.get("x-forwarded-port", port)
 
         # tries to discover the protocol representation of the current
         # connections, note that the forwarded for header is only used in case
         # the current "origin" is considered "trustable"
         protocol = "https" if is_secure else "http"
+        protocol = self.x_forwarded_proto or protocol
         if self.trust_origin: protocol = headers.get("x-forwarded-proto", protocol)
 
         # tries to determine if a proper (client side) redirection should operation
