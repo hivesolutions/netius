@@ -154,12 +154,17 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             address = headers.get("x-real-ip", address)
             address = address.split(",", 1)[0].strip()
 
+        # tries to retrieve the string based port version taking into account
+        # the port of the connection address and falling back to the forwarded
+        # port in case the  "origin" is considered "trustable"
+        port = str(connection.address[1])
+        if self.trust_origin: port = headers.get("x-forwarded-port", port)
+
         # tries to discover the protocol representation of the current
         # connections, note that the forwarded for header is only used in case
         # the current "origin" is considered "trustable"
-        protocol = None
+        protocol = "https" if is_secure else "http"
         if self.trust_origin: protocol = headers.get("x-forwarded-proto", protocol)
-        protocol = protocol or ("https" if is_secure else "http")
 
         # tries to determine if a proper (client side) redirection should operation
         # should be applied to the current request, if that's the case (match) an
@@ -300,6 +305,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         headers["x-client-ip"] = address
         headers["x-forwarded-for"] = address
         headers["x-forwarded-proto"] = protocol
+        headers["x-forwarded-port"] = port
+        headers["x-forwarded-host"] = host_o
 
         # verifies if the current connection already contains a valid
         # a proxy connection if that's the case that must be unset from
