@@ -140,9 +140,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         headers = parser.headers
         version_s = parser.version_s
         is_secure = connection.ssl
-        host = headers.get("host", None)
-        host_s = host.rsplit(":", 1)[0] if host else host
+        host = headers.get("host", "127.0.0.1")
+        host_p = host.rsplit(":", 1)
+        host_s = host_p[0]
         host_o = host
+        port_d = "80" if is_secure else "443"
+        port_s = host_p[1] if len(host_p) > 1 else port_d
         host = self.alias.get(host_s, host)
         host = self.alias.get(host, host)
 
@@ -157,9 +160,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             address = address.split(",", 1)[0].strip()
 
         # tries to retrieve the string based port version taking into account
-        # the port of the server bind port and falling back to the forwarded
-        # port in case the  "origin" is considered "trustable"
-        port = str(self.port)
+        # the port of the server bind port and the host based port and falling
+        # back to the forwarded port in case the  "origin" is considered "trustable"
+        port = port_s or str(self.port)
         if self.trust_origin: port = headers.get("x-forwarded-port", port)
 
         # tries to discover the protocol representation of the current
