@@ -144,7 +144,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         host_p = host.rsplit(":", 1)
         host_s = host_p[0]
         host_o = host
-        port_d = "80" if is_secure else "443"
+        port_d = "443" if is_secure else "80"
         port_s = host_p[1] if len(host_p) > 1 else port_d
         host = self.alias.get(host_s, host)
         host = self.alias.get(host, host)
