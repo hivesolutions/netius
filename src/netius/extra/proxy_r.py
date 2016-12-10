@@ -532,8 +532,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 netius.clients.DNSClient.query_s(
                     hostname,
                     type = "a",
-                    callback = callback,
-                    daemon = False
+                    callback = callback
                 )
 
         # verifies if the requested timeout is zero and if that's the
