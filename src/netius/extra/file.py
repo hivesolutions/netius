@@ -321,8 +321,12 @@ class FileServer(netius.servers.HTTP2Server):
 
         data = netius.legacy.bytes(data, encoding = "utf-8", force = True)
 
+        headers = dict()
+        headers["content-type"] = "text/html"
+
         connection.send_response(
             data = data,
+            headers = headers,
             code = 200,
             apply = True,
             callback = self._file_check_close
