@@ -186,7 +186,7 @@ def random_integer(number_bits):
     random_integer |= 1 << (number_bits - 1)
     return random_integer
 
-def host():
+def host(default = "127.0.0.1"):
     """
     Retrieves the host for the current machine,
     typically this would be the ipv4 address of
@@ -198,6 +198,10 @@ def host():
     The returned value is cached to avoid multiple
     blocking calls from blocking the processor.
 
+    :type default: String
+    :param default: The default value that is going to
+    be returned in case no resolution is possible, take
+    into account that this result is going to be cached.
     :rtype: Strong
     :return: The string that contains the host address
     as defined by specification for the current machine.
@@ -206,7 +210,8 @@ def host():
     global _HOST
     if _HOST: return _HOST
     hostname = socket.gethostname()
-    _HOST = socket.gethostbyname(hostname)
+    try: _HOST = socket.gethostbyname(hostname)
+    except socket.gaierror: _HOST = default
     is_unicode = type(_HOST) == netius.legacy.OLD_UNICODE
     if is_unicode: _HOST = _HOST.encode("utf-8")
     return _HOST
