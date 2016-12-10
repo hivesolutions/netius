@@ -43,6 +43,20 @@ import netius.common
 
 class UtilTest(unittest.TestCase):
 
+    def test_is_ip4(self):
+        result = netius.common.is_ip4("127.0.0.1")
+        self.assertEqual(result, True)
+
+        result = netius.common.is_ip4("172.16.0.0/16")
+        self.assertEqual(result, False)
+
+    def test_is_ip6(self):
+        result = netius.common.is_ip6("::1")
+        self.assertEqual(result, True)
+
+        result = netius.common.is_ip6("127.0.0.1")
+        self.assertEqual(result, False)
+
     def test_assert_ip4(self):
         allowed = ("127.0.0.1", "192.168.0.1", "172.16.0.0/16")
 
