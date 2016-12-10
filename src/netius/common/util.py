@@ -87,6 +87,20 @@ def header_up(name):
     values = [value.title() for value in values]
     return "-".join(values)
 
+def is_ip4(address):
+    address_p = address.split(".", 4)
+    if not len(address_p) == 4: return False
+    for part in address_p:
+        try: part_i = int(part)
+        except ValueError: return False
+        if part_i < 0: return False
+        if part_i > 255: return False
+    return True
+
+def is_ip6(address):
+    if is_ip4(address): return False
+    return True
+
 def assert_ip4(address, allowed, default = True):
     if not allowed: return default
     for item in allowed:

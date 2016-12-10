@@ -313,15 +313,15 @@ class DNSClient(netius.DatagramClient):
         )
 
     @classmethod
-    def ns_system(cls):
-        ns = cls.ns_file()
+    def ns_system(cls, type = "ip4"):
+        ns = cls.ns_file(type = type)
         if ns: return ns[0]
-        ns = cls.ns_google()
+        ns = cls.ns_google(type = type)
         if ns: return ns[0]
         return None
 
     @classmethod
-    def ns_file(cls, force = False):
+    def ns_file(cls, type = "ip4", force = False):
         # verifies if the list value for the file based name server
         # retrieval value is defined and if that's the case and the
         # force flag is not set returns it immediately
@@ -330,6 +330,10 @@ class DNSClient(netius.DatagramClient):
         # verifies if the resolve file exists and if it does not returns
         # immediately indicating the impossibility to resolve the value
         if not os.path.exists("/etc/resolv.conf"): return None
+
+        # retrieves the reference to the function that is going to validate
+        # if the provided nameserver complies with the proper (address) type
+        validator = getattr(netius.common, "is_" + type)
 
         # opens the resolve file and reads the complete set of contents
         # from it, closing the file afterwards
@@ -349,6 +353,8 @@ class DNSClient(netius.DatagramClient):
             _header, ns = line.split(b" ", 1)
             ns = ns.strip()
             ns = netius.legacy.str(ns)
+            is_valid = validator(ns)
+            if not is_valid: continue
             cls.ns_file_l.append(ns)
 
         # returns the final value of the list of name servers loaded from
@@ -356,8 +362,13 @@ class DNSClient(netius.DatagramClient):
         return cls.ns_file_l
 
     @classmethod
-    def ns_google(cls):
-        return ["8.8.8.8", "8.8.4.4"]
+    def ns_google(cls, type = "ip4"):
+        if type == "ip4": return ["8.8.8.8", "8.8.4.4"]
+        if type == "ip6": return [
+            "2001:4860:4860::8888",
+            "2001:4860:4860::8844"
+        ]
+        return []
 
     def query(self, name, type = "a", cls = "in", ns = None, callback = None):
         # retrieves the reference to the class associated with the
