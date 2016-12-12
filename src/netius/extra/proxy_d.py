@@ -68,15 +68,21 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
         self._build_redirect()
         self._build_redirect_ssl()
 
-    def _build_regex(self, token = "$"):
+    def _build_regex(self, token = "$", sort = True):
         # retrieves the complete set of configuration values with the
         # regex suffix so that they are going to be used for the creation
         # of the regex rules (as expected)
         linked = netius.conf_suffix("_REGEX")
 
+        # retrieves the complete set of names from the linked items and then
+        # in case the sort flag is set sorts their values (proper order)
+        names = netius.legacy.keys(linked)
+        if sort: names.sort()
+
         # iterates over the complete set of linked regex values splitting
         # the values around the proper token and adding them to the regex
-        for _name, value in netius.legacy.iteritems(linked):
+        for name in names:
+            value = linked[name]
             value_s = value.split(token, 1)
             if not len(value_s) == 2: continue
             regex, target = value_s
