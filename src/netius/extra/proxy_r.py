@@ -670,9 +670,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         return default, None
 
     def _echo(self, sort = True):
+        self._echo_regex(sort = sort)
         self._echo_hosts(sort = sort)
         self._echo_alias(sort = sort)
         self._echo_redirect(sort = sort)
+
+    def _echo_regex(self, sort = True):
+        self.info("Regex registration information")
+        for key, value in self.regex: self.info("%s => %s" % (key, value))
 
     def _echo_hosts(self, sort = True):
         keys = netius.legacy.keys(self.hosts)
