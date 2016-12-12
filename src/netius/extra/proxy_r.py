@@ -516,6 +516,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 parsed = netius.legacy.urlparse(value)
                 hostname = parsed.hostname
 
+                # validates that the parsed hostname is valid and ready
+                # to be queried as dns value, if that's not the case
+                # continues the loop skipping current iteration
+                if not hostname: continue
+
                 # creates the callback function that is going to be called
                 # after the dns resolution for proper hosts setting
                 callback = self.dns_callback(
