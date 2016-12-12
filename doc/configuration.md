@@ -75,7 +75,8 @@ of the producer consumer relation
 * `RESOLVE` (`bool`) - If the DNS based resolution of the hosts should be enabled meaning that from time to time the hostname
 associated with the target URLs is resolved (defaults to `True`)
 * `RESOLVE_TIMEOUT` (`float`) - The amount of seconds between DNS resolution queries (defaults to `120`)
-
+* `REUSE` (`bool`) - If HTTP connections/rules should be re-used from a proxy point of view, this options may pose a problem when
+different suffixes are used for the same host (defaults to `True`)
 
 #### Proxy Reverse
 

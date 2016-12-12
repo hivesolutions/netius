@@ -120,6 +120,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if self.env: self.echo = self.get_env("ECHO", self.echo, cast = bool)
         if self.env: self.resolve = self.get_env("RESOLVE", self.resolve, cast = bool)
         if self.env: self.resolve_t = self.get_env("RESOLVE_TIMEOUT", self.resolve_t, cast = float)
+        if self.env: self.reuse = self.get_env("REUSE", self.reuse, cast = bool)
         if self.env: self.strategy = self.get_env("STRATEGY", self.strategy)
         if self.env: self.x_forwarded_port = self.get_env("X_FORWARDED_PORT", None)
         if self.env: self.x_forwarded_proto = self.get_env("X_FORWARDED_PROTO", None)
