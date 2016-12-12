@@ -389,6 +389,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         _prefix, match = self._resolve_regex(url, self.regex)
         if not _prefix: return prefix, state
 
+        # prints a debug message about the matching that has just occurred
+        # so that proper debugging may take place if required
+        self.debug("Found regex prefix '%s' for '%s'" % (_prefix, url))
+
         # uses the resolved prefix value in the balancer to obtain the
         # proper final prefix and its associated state
         _prefix, _state = self.balancer(_prefix)
@@ -396,6 +400,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if groups: _prefix = _prefix.format(*groups)
         prefix = _prefix
         state = _state
+
+        # prints more debug information to be used for possible runtime debug
+        # this should represent the final resolution process
+        self.debug("Resolved regex prefix '%s' for '%s'" % (prefix, url))
 
         # returns the prefix and state values that have just been resolved
         # through regex based validation, this value may be unset for a mismatch
@@ -420,6 +428,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         prefix = self.hosts.get(host_s, None)
         prefix = self.hosts.get(host, prefix)
         resolved = self.balancer(prefix)
+
+        # prints more debug information to be used for possible runtime debug
+        # this should represent the final resolution process
+        self.debug("Resolved host prefix '%s' for '%s'" % (prefix, url))
 
         # returns the final "resolved" prefix value (in case there's any)
         # to the caller method, this should be used for url reconstruction
