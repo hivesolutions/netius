@@ -109,6 +109,7 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             # value to make sure that this value represents a valid
             # linked service/container
             if name.endswith("_ENV_PORT"): continue
+            if not name.find("_ENV_") == -1: continue
             if base[-1].isdigit(): continue
             if not name_value: continue
 
