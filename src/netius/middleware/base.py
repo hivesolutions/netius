@@ -38,4 +38,9 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 class Middleware(object):
-    pass
+
+    def on_connection_c(self, connection):
+        pass
+
+    def on_connection_d(self, connection):
+        pass

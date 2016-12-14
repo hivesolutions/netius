@@ -41,7 +41,7 @@ from .base import Middleware
 
 class ProxyMiddleware(Middleware):
 
-    def on_connection(self, socket):
+    def on_connection_c(self, connection):
         # @todo: must register the proper intention to perform a pending
         # operation in the socket
         pass
