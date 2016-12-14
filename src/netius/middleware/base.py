@@ -39,6 +39,9 @@ __license__ = "Apache License, Version 2.0"
 
 class Middleware(object):
 
+    def __init__(self, owner):
+        self.owner = owner
+
     def on_connection_c(self, connection):
         pass
 

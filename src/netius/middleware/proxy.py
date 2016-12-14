@@ -45,3 +45,8 @@ class ProxyMiddleware(Middleware):
         # @todo: must register the proper intention to perform a pending
         # operation in the socket
         pass
+
+    def _proxy_handshake(self, socket):
+        #@todo reads the data until the wanted values are found, then returns
+        # some data to the buffer, if not properly read
+        data = socket.read()
