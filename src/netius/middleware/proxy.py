@@ -48,5 +48,6 @@ class ProxyMiddleware(Middleware):
 
     def _proxy_handshake(self, socket):
         #@todo reads the data until the wanted values are found, then returns
-        # some data to the buffer, if not properly read
+        # some data to the buffer, if not properly read connnection.return(data)
+        # then the recv() call in the connection would return that value naturally
         data = socket.read()
