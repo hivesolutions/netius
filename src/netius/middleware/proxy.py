@@ -40,6 +40,14 @@ __license__ = "Apache License, Version 2.0"
 from .base import Middleware
 
 class ProxyMiddleware(Middleware):
+    """
+    Middleware that implements the PROXY protocol on starting
+    of a new connection enableing the passing of information
+    from the front-end server to a back-end server using a normal
+    TCP connection.
+    
+    :see: http://www.haproxy.org/download/1.5/doc/proxy-protocol.txt
+    """
 
     def on_connection_c(self, connection):
         # @todo: must register the proper intention to perform a pending
