@@ -42,6 +42,12 @@ class Middleware(object):
     def __init__(self, owner):
         self.owner = owner
 
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
     def on_connection_c(self, connection):
         pass
 

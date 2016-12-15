@@ -53,7 +53,7 @@ class ProxyMiddleware(Middleware):
     def on_connection_c(self, connection):
         # @todo: must register the proper intention to perform a pending
         # operation in the socket
-        pass
+        print("received" + str(connection))
 
     def _proxy_handshake(self, socket):
         #@todo reads the data until the wanted values are found, then returns
