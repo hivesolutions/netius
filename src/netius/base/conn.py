@@ -105,11 +105,14 @@ class BaseConnection(observer.Observable):
         self.wready = False
         self.pending_s = 0
         self.pending = []
+        self.restored = []
         self.pending_lock = threading.RLock()
+        self.restored_lock = threading.RLock()
 
     def destroy(self):
         observer.Observable.destroy(self)
         del self.pending[:]
+        del self.restored[:]
 
     def open(self, connect = False):
         # in case the current status of the connection is already open
@@ -372,6 +375,14 @@ class BaseConnection(observer.Observable):
         if not self.renable == True: return
         self.renable = False
         self.owner.unsub_read(self.socket)
+
+    def restore(self, data):
+        self.pending_lock.acquire()
+        try:
+            self.restored.insert(0, data)
+            self.restored_s += 1
+        finally:
+            self.pending_lock.release()
 
     def send(self, data, delay = True, force = False, callback = None):
         """
