@@ -953,6 +953,8 @@ class AbstractBase(observer.Observable):
         del self.middleware_l[:]
 
     def call_middleware(self, name, *args, **kwargs):
+        # iterates over the complete set of middleware instance to call the
+        # method with the provided name, with the provided arguments
         for middleware_i in self.middleware_l:
             method = getattr(middleware_i, name)
             method(*args, **kwargs)
