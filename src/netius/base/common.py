@@ -54,6 +54,8 @@ from . import log
 from . import util
 from . import errors
 
+from .. import middleware
+
 from .conn import * #@UnusedWildImport
 from .poll import * #@UnusedWildImport
 from .async import * #@UnusedWildImport
@@ -304,6 +306,7 @@ class AbstractBase(observer.Observable):
         self.handlers = handlers or (self.handler_stream,)
         self.level = kwargs.get("level", logging.INFO)
         self.diag = kwargs.get("diag", False)
+        self.middleware = kwargs.get("middleware", [])
         self.children = kwargs.get("children", 0)
         self.tid = None
         self.tname = None
@@ -320,6 +323,7 @@ class AbstractBase(observer.Observable):
         self.keepalive_count = kwargs.get("keepalive_count", KEEPALIVE_COUNT)
         self.poll_owner = True
         self.diag_app = None
+        self.middleware_l = []
         self.connections = []
         self.connections_m = {}
         self._uuid = uuid.uuid4()
@@ -685,6 +689,10 @@ class AbstractBase(observer.Observable):
         # interaction with the service for diagnostics/debugging
         self.load_diag()
 
+        # loads the complete set of middleware that has been registered for
+        # the current system (takes into account if it's considered the main one)
+        self.load_middleware()
+
         # calls the welcome handle this is meant to be used to print some
         # information about the finishing of the loading of the infra-structure
         # this is going to be called once per base system
@@ -722,6 +730,10 @@ class AbstractBase(observer.Observable):
         # triggers the operation that will start the unloading process of the
         # logging infra-structure of the current system
         if full: self.unload_logging()
+
+        # unloads the middleware infra-structure that has been created for the
+        # current service, no longer going to be used
+        self.unload_middleware()
 
         # marks the current system as unloaded as the complete set of operations
         # meant to start the unloading process have been finished
@@ -909,6 +921,41 @@ class AbstractBase(observer.Observable):
             threaded = True,
             conf = False
         )
+
+    def load_middleware(self, suffix = "Middleware"):
+        # iterates over the complete set of string that define the middleware
+        # that is going to be loaded and executes the loading process
+        for name in self.middleware:
+            # capitalizes the provided name and appends the suffix to it
+            # to created the proper (and complete) middleware class name
+            name_c = name.capitalize()
+            class_n = name_c + suffix
+
+            # retrieves the class (from the middleware module) that is going
+            # to be used for the current middleware
+            middleware_c = getattr(middleware, class_n)
+
+            # instantiates a new middleware class as a new instance and then
+            # runs the start method indicating the intention to start a new
+            # middleware (should properly start its internal structures)
+            middleware_i = middleware_c(self)
+            middleware_i.start()
+
+            # adds the middleware instance that has just been created to the
+            # list of middleware loaded for the current service
+            self.middleware_l.append(middleware_i)
+
+    def unload_middleware(self):
+        # iterates over the complete set of middleware instance to stop
+        # them (close internal structures) and then removes the middleware
+        # list so that they don't get used any longer
+        for middleware_i in self.middleware_l: middleware_i.stop()
+        del self.middleware_l[:]
+
+    def call_middleware(self, name, *args, **kwargs):
+        for middleware_i in self.middleware_l:
+            method = getattr(middleware_i, name)
+            method(*args, **kwargs)
 
     def bind_signals(
         self,
@@ -1397,6 +1444,7 @@ class AbstractBase(observer.Observable):
             "There are %d connections for '%s' ..." %
             (len(connection.owner.connections), connection.owner.name)
         )
+        self.call_middleware("on_connection_c", connection)
 
     def on_connection_d(self, connection):
         self.debug(
@@ -1407,6 +1455,7 @@ class AbstractBase(observer.Observable):
             "There are %d connections for '%s' ..." %
             (len(connection.owner.connections), connection.owner.name)
         )
+        self.call_middleware("on_connection_d", connection)
 
     def on_stream_c(self, stream):
         connection = stream.connection
