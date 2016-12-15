@@ -41,7 +41,7 @@ from .base import Middleware
 
 class ProxyMiddleware(Middleware):
     """
-    Middleware that implements the PROXY protocol on starting
+    Middleware that implements the PROXY protocol on creation
     of a new connection enabling the passing of information
     from the front-end server to a back-end server using a normal
     TCP connection. This protocol has been development originally

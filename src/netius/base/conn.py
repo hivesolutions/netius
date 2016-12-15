@@ -104,6 +104,7 @@ class BaseConnection(observer.Observable):
         self.renable = True
         self.wready = False
         self.pending_s = 0
+        self.restored_s = 0
         self.pending = []
         self.restored = []
         self.pending_lock = threading.RLock()
@@ -192,6 +193,11 @@ class BaseConnection(observer.Observable):
         # the list of pending information (invalidation the previous one)
         self.pending_s = 0
         del self.pending[:]
+
+        # resets the complete set of restored (to receive) data so that
+        # no more data is set as pending to read (invalidation)
+        self.restored_s = 0
+        del self.restored[:]
 
         # retrieves the reference to the owner object from the
         # current instance to be used to removed the socket from the
@@ -376,14 +382,6 @@ class BaseConnection(observer.Observable):
         self.renable = False
         self.owner.unsub_read(self.socket)
 
-    def restore(self, data):
-        self.pending_lock.acquire()
-        try:
-            self.restored.insert(0, data)
-            self.restored_s += 1
-        finally:
-            self.pending_lock.release()
-
     def send(self, data, delay = True, force = False, callback = None):
         """
         The main send call to be used by a proxy connection and
@@ -444,18 +442,10 @@ class BaseConnection(observer.Observable):
         tid = cthread.ident or 0
         is_safe = tid == self.owner.tid
 
-        # acquires the pending lock and then inserts the data into
-        # the list of pending information to sent to the client end
-        # point, notice that it's inserted at the beginning of the list
-        # as the pop operation is performed at the end of list, meaning
-        # that the fifo strategy is maintained
-        self.pending_lock.acquire()
-        try: self.pending.insert(0, data)
-        finally: self.pending_lock.release()
-
-        # increments the size of the pending data to be sent by
-        # the size of the inner data buffer to be added (as requested)
-        self.pending_s += data_l
+        # runs the pend operation that adds the current data to the
+        # structures that control the data pending in output to be
+        # sent in the proper (flush) write operation
+        self.pend(data)
 
         # verifies if the write ready flag is set, for that case the
         # write flushing operation must be performed, so that all pending
@@ -487,6 +477,61 @@ class BaseConnection(observer.Observable):
         if not self.status == OPEN and not force: return b""
         return self._recv(size = size)
 
+    def pend(self, data, back = True):
+        # calculates the size in bytes of the provided data so
+        # that it may be used latter for the incrementing of
+        # of the total size of pending bytes
+        data_l = len(data) if data else 0
+
+        # acquires the pending lock and then inserts the data into
+        # the list of pending information to sent to the client end
+        # point, notice that it's inserted at the beginning of the list
+        # as the pop operation is performed at the end of list, meaning
+        # that the fifo strategy is maintained
+        self.pending_lock.acquire()
+        try:
+            if back: self.pending.insert(0, data)
+            else: self.pending.append(data)
+        finally:
+            self.pending_lock.release()
+
+        # increments the size of the pending data to be sent by
+        # the size of the inner data buffer to be added (as requested)
+        self.pending_s += data_l
+
+    def restore(self, data, back = True):
+        """
+        Restore data to the pending (to receive) so that they are
+        going to be "received" in the next receive operation.
+
+        :type data: String
+        :param data: The buffer of data that is going to be restored
+        to the internal receive buffers.
+        :type back: bool
+        :param back: If the data should be restore to the "back" of
+        the internal buffers, or if instead it should be added to the
+        front (next to be received) part of the buffer.
+        """
+
+        # calculates the size in bytes of the provided data so
+        # that it may be used latter for the incrementing of
+        # of the total size of restored bytes
+        data_l = len(data) if data else 0
+
+        # acquires the restored lock (thread safety) and then adds
+        # the sequence of data to the restored buffer so that it's
+        # going to be used in the next receive operation
+        self.restored_lock.acquire()
+        try:
+            if back: self.restored.insert(0, data)
+            else: self.restored.append(data)
+        finally:
+            self.restored_lock.release()
+
+        # increments the size of the restored count by the size of
+        # the data that has just been restored
+        self.restored_s += data_l
+
     def info_dict(self, full = False):
         info = dict(
             status = self.status,
@@ -497,7 +542,8 @@ class BaseConnection(observer.Observable):
             ssl = self.ssl,
             renable = self.renable,
             wready = self.wready,
-            pending_s = self.pending_s
+            pending_s = self.pending_s,
+            restored_s = self.restored_s
         )
         return info
 
@@ -662,7 +708,18 @@ class BaseConnection(observer.Observable):
         self.remove_write()
 
     def _recv(self, size):
+        data = self._recv_restored(size)
+        if data: return data
         return self.socket.recv(size)
+
+    def _recv_restored(self, size):
+        if not self.restored_s: return b""
+        data = self.restored.pop()
+        data = data[:size]
+        remaining = data[size:]
+        self.restored_s -= len(data)
+        if remaining: self.restore(remaining, back = False)
+        return data
 
     def _shutdown(self, close = False, force = False, ignore = True):
         # in case the status of the current connection is
