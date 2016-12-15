@@ -1811,6 +1811,24 @@ class AbstractBase(observer.Observable):
         auth_c = getattr(netius.auth, name_f)
         return auth_c
 
+    def get_connection(self, socket):
+        """
+        "Resolves" the connection associated with the provided socket
+        returning the structured connection object for it.
+
+        In case no connection exists the method raises an exception
+        invalidating the current logic stack.
+
+        :type socket: Socket
+        :param socket: The socket for which the connection is going to
+        be returned.
+        :rtype: Connection
+        :return: The connection object associated with the provided
+        socket reference.
+        """
+
+        return self.connections_m[socket]
+
     def _pending(self, _socket):
         """
         Tries to perform the pending operations in the socket

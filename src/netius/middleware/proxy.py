@@ -59,4 +59,4 @@ class ProxyMiddleware(Middleware):
         #@todo reads the data until the wanted values are found, then returns
         # some data to the buffer, if not properly read connnection.return(data)
         # then the recv() call in the connection would return that value naturally
-        data = socket.read()
+        data = socket.recv()
