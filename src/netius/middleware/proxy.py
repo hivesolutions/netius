@@ -42,10 +42,11 @@ from .base import Middleware
 class ProxyMiddleware(Middleware):
     """
     Middleware that implements the PROXY protocol on starting
-    of a new connection enableing the passing of information
+    of a new connection enabling the passing of information
     from the front-end server to a back-end server using a normal
-    TCP connection.
-    
+    TCP connection. This protocol has been development originally
+    for the integration of an HAProxy server with back-end servers.
+
     :see: http://www.haproxy.org/download/1.5/doc/proxy-protocol.txt
     """
 
