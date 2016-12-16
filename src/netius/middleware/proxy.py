@@ -106,6 +106,10 @@ class ProxyMiddleware(Middleware):
                 if connection.ssl:
                     connection.socket._sslobj = _sslobj
 
+            # in case the received data represents that of a closed connection
+            # the connection is closed and the control flow returned
+            if data == b"": connection.close(); return
+
             # in case the received value is false, that indicates that the
             # execution has failed due to an exception (expected or unexpected)
             if data == False: return
@@ -132,14 +136,15 @@ class ProxyMiddleware(Middleware):
         del connection._proxy_buffer
 
         # determines the index/position of the end sequence in the
-        # buffer and then "translates" it into the data index
+        # buffer and then uses it to calculate the base for the
+        # calculus of the extra information in the data buffer
         buffer_i = buffer.index(b"\r\n")
-        data_i = buffer_i - buffer_l
+        data_b = buffer_i - buffer_l + 2
 
         # extracts the line for parsing and the extra data value (to
-        # be restored to connection) using the data index and the data
-        line = buffer[:data_i]
-        extra = data[data_i + 2:]
+        # be restored to connection) using the data base and the data
+        line = buffer[:buffer_i]
+        extra = data[data_b:]
 
         # in case there's valid extra data to be restored to the connection
         # performs the operation, effectively restoring it for receiving
