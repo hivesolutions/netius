@@ -53,7 +53,7 @@ import netius.common
 netius.common.ensure_setup()
 setuptools.setup(
     name = "netius",
-    version = "1.12.32",
+    version = "1.12.33",
     author = "Hive Solutions Lda.",
     author_email = "development@hive.pt",
     description = "Netius System",
@@ -70,6 +70,7 @@ setuptools.setup(
         "netius.common",
         "netius.examples",
         "netius.extra",
+        "netius.middleware",
         "netius.mock",
         "netius.pool",
         "netius.servers",
