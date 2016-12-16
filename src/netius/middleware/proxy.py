@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import netius
+
 from .base import Middleware
 
 class ProxyMiddleware(Middleware):
@@ -90,7 +92,7 @@ class ProxyMiddleware(Middleware):
 
         # verifies the end of line sequence is present in the buffer,
         # if that's the case we've reached a positive state
-        is_ready = "\r\n" in buffer
+        is_ready = b"\r\n" in buffer
 
         # in case no ready state has been reached, the buffer value
         # is saved for latter usage (as expected)
@@ -102,7 +104,7 @@ class ProxyMiddleware(Middleware):
 
         # determines the index/position of the end sequence in the
         # buffer and then "translates" it into the data index
-        buffer_i = buffer.index("\r\n")
+        buffer_i = buffer.index(b"\r\n")
         data_i = buffer_i - buffer_l
 
         # extracts the line for parsing and the extra data value (to
@@ -114,9 +116,13 @@ class ProxyMiddleware(Middleware):
         # performs the operation, effectively restoring it for receiving
         if extra: connection.restore(extra)
 
+        # forces the "conversion" of the line into a string so that it may
+        # be properly split into its components
+        line = netius.legacy.str(line)
+
         # splits the line of the protocol around its components and uses them
         # to change the current connection information (as expected)
-        header, protocol, source, destination, source_p, destination_p = line.split(b" ")
+        header, protocol, source, destination, source_p, destination_p = line.split(" ")
 
         # prints a debug message about the proxy header received, so that runtime
         # debugging is possible (and expected)
