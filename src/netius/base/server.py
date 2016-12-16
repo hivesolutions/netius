@@ -866,7 +866,7 @@ class StreamServer(Server):
         # registers the ssl handshake method as a starter method
         # for the connection, so that the handshake is properly
         # performed on the initial stage of the connection (as expected)
-        if self.ssl: connection.add_starter(self._ssl_handshake)
+        if self.ssl: connection.add_starter(self._ssl_handshake, back = False)
 
         # runs the initial try for the handshaking process, note that
         # this is an async process and further tries to the handshake

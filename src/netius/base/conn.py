@@ -297,7 +297,7 @@ class BaseConnection(observer.Observable):
         # adds the ssl handshake method as a starter for the current connection (to be
         # called before read) and then runs the kickoff starter operation to start
         # the connection "upgrading" process (as expected)
-        self.add_starter(self.owner._ssl_handshake)
+        self.add_starter(self.owner._ssl_handshake, back = False)
         self.run_starter()
 
     def set_connecting(self):
