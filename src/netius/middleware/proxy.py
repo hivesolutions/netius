@@ -49,9 +49,9 @@ class ProxyMiddleware(Middleware):
 
     :see: http://www.haproxy.org/download/1.5/doc/proxy-protocol.txt
     """
-    
+
     MAX_LENGTH = 108
-    """ The maximum length that the base packet may have, 
+    """ The maximum length that the base packet may have,
     this is a constant according to proxy send """
 
     def start(self):
@@ -67,22 +67,53 @@ class ProxyMiddleware(Middleware):
 
     def _proxy_handshake(self, connection):
         cls = self.__class__
-        
-        connection._proxy_buffer
-        buffer = connection._proxy_buffer
-        
-        #@todo reads the data until the wanted values are found, then returns
-        # some data to the buffer, if not properly read connnection.return(data)
-        # then the recv() call in the connection would return that value naturally
+
+        # tries to receive the maximum size of data that is required
+        # for the handling of the PROXY information
         data = connection.recv(cls.MAX_LENGTH)
-        
-        #@todo must return the proper data back to buffers
-        
-        is_ready = "\r\n" in data
-        if not is_ready:
-            #@todo implement the not is ready
-            pass
-                
-        print(repr(data))
+
+        # tries to determine if a proxy buffer already exist for the
+        # connection and if that's the case sets it as the initial
+        # buffer value adding then the "received" data to it
+        has_buffer = hasattr(connection, "_proxy_buffer")
+        if has_buffer: buffer = connection._proxy_buffer
+        else: buffer = b""
+        buffer_l = len(buffer)
+        buffer += data
+
+        # saves the "newly" created buffer as the proxy buffer for the
+        # current connection (may be used latter)
+        connection._proxy_buffer = buffer
+
+        # verifies the end of line sequence is present in the buffer,
+        # if that's the case we've reached a positive state
+        is_ready = "\r\n" in buffer
+
+        # in case no ready state has been reached, the buffer value
+        # is saved for latter usage (as expected)
+        if not is_ready: return
+
+        # removes the proxy buffer reference from the connection as
+        # its no longer going to be used
+        del connection._proxy_buffer
+
+        # determines the index/position of the end sequence in the
+        # buffer and then "translates" it into the data index
+        buffer_i = buffer.index("\r\n")
+        data_i = buffer_i - buffer_l
+
+        # extracts the line for parsing and the extra data value (to
+        # be restored to connection) using the data index and the data
+        line = data[:data_i]
+        extra = data[data_i + 2:]
+
+        # in case there's valid extra data to be restored to the connection
+        # performs the operation, effectively restoring it for receival
+        if extra: connection.restore(extra)
+
+        print(repr(line))
         print("handshaking the proxy")
+
+        # runs the end starter operation, indicating to the connection that
+        # the proxy header has been properly parsed
         connection.end_starter()
