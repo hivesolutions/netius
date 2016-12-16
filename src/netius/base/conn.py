@@ -294,10 +294,11 @@ class BaseConnection(observer.Observable):
         self.owner.sub_read(self.socket)
         self.owner.sub_error(self.socket)
 
-        # runs the initial handshake try out for the upgrading of the connection, this
-        # should only be performed after the initial subscription and handling of the
-        # "new" connection/socket so that no registration mismatch occur
-        self.owner._ssl_handshake(self.socket)
+        # adds the ssl handshake method as a starter for the current connection (to be
+        # called before read) and then runs the kickoff starter operation to start
+        # the connection "upgrading" process (as expected)
+        self.add_starter(self.owner._ssl_handshake, back = False)
+        self.run_starter()
 
     def set_connecting(self):
         self.connecting = True

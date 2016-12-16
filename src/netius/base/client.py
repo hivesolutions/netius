@@ -755,14 +755,6 @@ class StreamClient(Client):
             # the ssl connection handshake must be performed/retried
             if connection.connecting: self._connectf(connection)
 
-            # if the current connection state is upgrading the proper
-            # upgrading operations must be performed for example ssl
-            # handshaking and then the proper callbacks may be called
-            # as a consequence of that, note that if there's pending
-            # operations at the end of this call no data will be received
-            # and processed as a consequence
-            if connection.upgrading: self._upgradef(connection)
-
             # verifies if there's any pending operations in the
             # connection (eg: ssl handshaking) and performs it trying
             # to finish them, if they are still pending at the current
@@ -904,13 +896,6 @@ class StreamClient(Client):
         # calls the on connect callback with the newly created connection
         if connection.ssl: self._ssl_handshake(connection.socket)
         else: self.on_connect(connection)
-
-    def _upgradef(self, connection):
-        # adds the ssl handshake method as a starter for the current
-        # connection (to be called before read) and then runs the kickoff
-        # starter operation to start the connection "starting" process
-        connection.add_starter(self._ssl_handshake, back = False)
-        connection.run_starter()
 
     def _connects(self):
         self._pending_lock.acquire()
