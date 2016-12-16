@@ -74,6 +74,12 @@ class ProxyMiddleware(Middleware):
         # the safe (reading) mode is enabled
         safe = connection.ssl
 
+        # selects the proper receive method to be used to retrieve bytes
+        # from the client side taking into account if the connection is
+        # secured with ssl or not, note that the "special" ssl receive method
+        # allows one to receive raw information under an ssl socket/connection
+        recv = connection._recv_ssl if connection.ssl else connection.recv
+
         # in case the safe (read) mode is enabled the unit of counting
         # for the receive operation is one (single byte reading) to
         # allow no return of data (required for some environment eg: ssl)
@@ -87,24 +93,11 @@ class ProxyMiddleware(Middleware):
         else: buffer = b""
 
         # iterates continuously trying to retrieve the set of data that is
-        # required to
+        # required to parse the PROXy protocol header information
         while True:
-            # in case the current connection is ssl oriented the ssl object
-            # is removed (provides a way of reading direct data from the socket)
-            # and a backup of it is created, to restore it latter on
-            if connection.ssl:
-                _sslobj = connection.socket._sslobj
-                connection.socket._sslobj = None
-
             # tries to receive the maximum size of data that is required
-            # for the handling of the PROXY information, note that, note
-            # that the count value is flexible, at the end of the operation
-            # the ssl socket is restored to the original state
-            try:
-                data = self.owner.exec_safe(connection, connection.recv, count)
-            finally:
-                if connection.ssl:
-                    connection.socket._sslobj = _sslobj
+            # for the handling of the PROXY information
+            data = self.owner.exec_safe(connection, recv, count)
 
             # in case the received data represents that of a closed connection
             # the connection is closed and the control flow returned
