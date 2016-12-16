@@ -1908,37 +1908,28 @@ class AbstractBase(observer.Observable):
 
         return self.connections_m[socket]
 
-    def _pending(self, _socket):
+    def _pending(self, connection):
         """
-        Tries to perform the pending operations in the socket
-        and, these operations are set in the pending variable
-        of the socket structure.
+        Tries to perform the pending operations in the connection,
+        these operations are set in the pending variable of the
+        connection structure, so that it may be read latter on.
 
         The method returns if there are still pending operations
         after this method tick.
 
-        :type _socket: Socket
-        :param _socket: The socket object to be checked for
+        :type connection: Connection
+        :param connection: The connection object to be checked for
         pending operations and that is going to be used in the
         performing of these operations.
         :rtype: bool
         :return: If there are still pending operations to be
-        performed in the provided socket.
+        performed in the provided connection.
         """
 
-        # verifies if the pending attribute exists in the socket
-        # and that the value is valid, in case it's not there's
-        # no pending operation (method call) to be performed, and
-        # as such must return immediately with no pending value
-        if not hasattr(_socket, "_pending") or\
-            not _socket._pending: return False
-
-        # calls the pending callback method and verifies if the
-        # pending value still persists in the socket if that the
-        # case returns the is pending value to the caller method
-        _socket._pending(_socket)
-        is_pending = not _socket._pending == None
-        return is_pending
+        # calls the run (tick) starter operation that should start
+        # and run all the starters registered for the connection or
+        # continue any starter operation that is pending for it
+        return connection.run_starter()
 
     def _notifies(self):
         """
@@ -2337,17 +2328,18 @@ class AbstractBase(observer.Observable):
         )
         return socket_ssl
 
-    def _ssl_handshake(self, _socket):
+    def _ssl_handshake(self, connection):
         """
         Low level SSL handshake operation that triggers or resumes
         the handshake process.
 
         It should be able to handle the exceptions raised by the the
-        concrete handshake operation so that
+        concrete handshake operation so that no exception is raised
+        (unhandled) to the upper layers.
 
-        :type _socket: Socket
-        :param _socket: The socket that is going to be used in the
-        handshake operation, this should be a valid/open socket that
+        :type connection: Connection
+        :param connection: The connection that is going to be used in the
+        handshake operation, this should contain a valid/open socket that
         should be registered for both read and write in the poll.
         """
 
@@ -2358,8 +2350,18 @@ class AbstractBase(observer.Observable):
             # connection from this moment on, note that this operation
             # may fail (non blocking issues) and further retries must
             # be attempted to finish establishing the connection
+            _socket = connection.socket
             _socket.do_handshake()
-            _socket._pending = None
+
+            # sets the ssl handshake flag in the connection, effectively
+            # indicating that the ssl handshake process has finished
+            connection.ssl_handshake = True
+
+            # calls the end starter method in the connection so that the
+            # connection gets notified that the current starter in process
+            # has finished and that the next one should be called as
+            # soon as possible to go further in the connection initialization
+            connection.end_starter()
         except ssl.SSLError as error:
             # tries to retrieve the error code from the argument information
             # in the error, in case the error is defined in the list of
@@ -2372,7 +2374,6 @@ class AbstractBase(observer.Observable):
                     self.sub_write(_socket)
                 elif self.is_sub_write(_socket):
                     self.unsub_write(_socket)
-                _socket._pending = self._ssl_handshake
             else: raise
 
     def _expand_destroy(self):

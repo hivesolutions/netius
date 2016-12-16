@@ -59,12 +59,12 @@ class ProxyMiddleware(Middleware):
         self.owner.unbind("connection_c", self.on_connection_c)
 
     def on_connection_c(self, owner, connection):
-        # @todo: must register the proper intention to perform a pending
-        # operation in the socket
-        print("received" + str(connection))
+        connection.add_starter(self._proxy_handshake)
 
-    def _proxy_handshake(self, socket):
+    def _proxy_handshake(self, connection):
         #@todo reads the data until the wanted values are found, then returns
         # some data to the buffer, if not properly read connnection.return(data)
         # then the recv() call in the connection would return that value naturally
-        data = socket.recv()
+        #data = socket.recv()
+        print("handshaking the proxy")
+        connection.end_starter()

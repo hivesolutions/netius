@@ -702,10 +702,10 @@ class StreamServer(Server):
             if connection.upgrading: self._upgradef(connection)
 
             # verifies if there's any pending operations in the
-            # socket (eg: ssl handshaking) and performs them trying
+            # connection (eg: ssl handshaking) and performs it trying
             # to finish them, if they are still pending at the current
             # state returns immediately (waits for next loop)
-            if self._pending(_socket): return
+            if self._pending(connection): return
 
             # iterates continuously trying to read as much data as possible
             # when there's a failure to read more data it should raise an
@@ -867,15 +867,16 @@ class StreamServer(Server):
         connection = self.new_connection(socket_c, address, ssl = self.ssl)
         connection.open()
 
-        # in case the ssl mode is not enabled for the server there's
-        # nothing remaining to be done for the new connection
-        if not self.ssl: return
+        # registers the ssl handshake method as a starter method
+        # for the connection, so that the handshake is properly
+        # performed on the initial stage of the connection (as expected)
+        if self.ssl: connection.add_starter(self._ssl_handshake, back = False)
 
         # runs the initial try for the handshaking process, note that
         # this is an async process and further tries to the handshake
         # may come after this one (async operation) in case an exception
         # is raises the connection is closed (avoids possible errors)
-        try: self._ssl_handshake(socket_c)
+        try: connection.run_starter()
         except: connection.close(); raise
 
     def on_socket_d(self, socket_c):
@@ -883,25 +884,20 @@ class StreamServer(Server):
         if not connection: return
 
     def _upgradef(self, connection):
-        self._ssl_handshake(connection.socket)
+        connection.add_starter(self._ssl_handshake, back = False)
+        connection.run_starter()
 
-    def _ssl_handshake(self, _socket):
-        Server._ssl_handshake(self, _socket)
+    def _ssl_handshake(self, connection):
+        Server._ssl_handshake(self, connection)
 
-        # verifies if the socket still has operations pending,
-        # meaning that the handshake is still pending data and
-        # if that's the case returns immediately (nothing done)
-        if _socket._pending: return
+        # verifies if the socket still has finished the ssl handshaking
+        # process (by verifying the appropriate flag) and then if that's
+        # the case returns immediately (nothing done)
+        if connection.ssl_handshake: return
 
         # prints a debug information notifying the developer about
         # the finishing of the handshaking process for the connection
-        self.debug("Handshaking completed for socket")
-
-        # tries to retrieve the connection associated with the
-        # ssl socket and in case none is available returns
-        # immediately as there's nothing to be done here
-        connection = self.connections_m.get(_socket, None)
-        if not connection: return
+        self.debug("SSL Handshaking completed for connection")
 
         # calls the proper callback on the connection meaning
         # that ssl is now enabled for that socket/connection and so

@@ -98,6 +98,7 @@ class BaseConnection(observer.Observable):
         self.ssl = ssl
         self.ssl_host = None
         self.ssl_fingerprint = None
+        self.ssl_handshake = False
         self.ssl_dump = False
         self.max_pending = max_pending
         self.min_pending = min_pending
@@ -105,10 +106,12 @@ class BaseConnection(observer.Observable):
         self.wready = False
         self.pending_s = 0
         self.restored_s = 0
+        self.starters = []
         self.pending = []
         self.restored = []
         self.pending_lock = threading.RLock()
         self.restored_lock = threading.RLock()
+        self._starter = None
 
     def destroy(self):
         observer.Observable.destroy(self)
@@ -531,6 +534,51 @@ class BaseConnection(observer.Observable):
         # increments the size of the restored count by the size of
         # the data that has just been restored
         self.restored_s += data_l
+
+    def run_starter(self):
+        # iterates continuously around the set of registered
+        # starters for the current connection to try to run as
+        # much as possible all of their logic, some of them may
+        # fail as the complete set of resources are not available
+        # and should resume on next loop tick
+        while True:
+            # tries to retrieve the proper starter method to be
+            # used in the current iteration, either from the currently
+            # pending operation, next in line or as fallback an invalid
+            # one, that is going to invalidate the iteration
+            if self._starter: starter = self._starter
+            elif self.starters: starter = self.starters.pop()
+            else: starter = None
+
+            # in case there's no starter pending and no other is set
+            # in the queue for the connection (to be executed next)
+            # breaks the current loop (nothing left to be done)
+            if not starter: break
+
+            # sets the current starter as the starter currently selected
+            # by the loop set of operations
+            self._starter = starter
+            starter(self)
+
+            # tries to determine if the start has finished and if
+            # that's note the case breaks the loop, as stater should
+            # finish on the next loop tick
+            finished = self._starter == None
+            if not finished: return True
+
+        # returns the default invalid value, meaning that no more starter
+        # operations are pending for the the current connection
+        return False
+
+    def end_starter(self):
+        self._starter = None
+
+    def add_starter(self, starter, back = True):
+        if back: self.starters.insert(0, starter)
+        else: self.starters.append(starter)
+
+    def remove_starter(self, starter):
+        self.starters.remove(starter)
 
     def info_dict(self, full = False):
         info = dict(
