@@ -906,6 +906,9 @@ class StreamClient(Client):
         else: self.on_connect(connection)
 
     def _upgradef(self, connection):
+        # adds the ssl handshake method as a starter for the current
+        # connection (to be called before read) and then runs the kickoff
+        # starter operation to start the connection "starting" process
         connection.add_starter(self._ssl_handshake, back = False)
         connection.run_starter()
 
