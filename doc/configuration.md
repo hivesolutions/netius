@@ -16,6 +16,8 @@ for a given server, any client connection with an IP address not contained in th
 its information is considered reliable, this value is especially important for proxy to proxy relations (defaults to `False`)
 * `CHILDREN` (`int`) - Number of child processes that are meant to be created upon launch using a pre-fork approach. (defaults to `0`)
 * `CHILD` (`int`) - Same as `CHILDREN`
+* `MIDDLEWARE` (`list`) - The middleware (eg: proxy) as a set of strings that is going to be loaded into the instance the notation
+used should be underscore based
 
 #### Internal
 
