@@ -70,33 +70,62 @@ class ProxyMiddleware(Middleware):
     def _proxy_handshake(self, connection):
         cls = self.__class__
 
-        # tries to receive the maximum size of data that is required
-        # for the handling of the PROXY information, note that in case
-        # the received value is false, that indicates that the execution
-        # has failed due to an exception (expected or unexpected)
-        data = self.owner.exec_safe(connection, connection.recv, cls.MAX_LENGTH)
-        if data == False: return
+        # verifies if the connection is ssl based if that's the case
+        # the safe (reading) mode is enabled
+        safe = connection.ssl
 
-        # tries to determine if a proxy buffer already exist for the
-        # connection and if that's the case sets it as the initial
-        # buffer value adding then the "received" data to it
+        # in case the safe (read) mode is enabled the unit of counting
+        # for the receive operation is one (single byte reading) to
+        # allow no return of data (required for some environment eg: ssl)
+        count = 1 if safe else cls.MAX_LENGTH
+
+        # verifies if there's a previously set proxy buffer defined
+        # for the connection and if that's the case uses it otherwise
+        # starts a new empty buffer from scratch
         has_buffer = hasattr(connection, "_proxy_buffer")
         if has_buffer: buffer = connection._proxy_buffer
         else: buffer = b""
-        buffer_l = len(buffer)
-        buffer += data
 
-        # saves the "newly" created buffer as the proxy buffer for the
-        # current connection (may be used latter)
-        connection._proxy_buffer = buffer
+        # iterates continuously trying to retrieve the set of data that is
+        # required to
+        while True:
+            # in case the current connection is ssl oriented the ssl object
+            # is removed (provides a way of reading direct data from the socket)
+            # and a backup of it is created, to restore it latter on
+            if connection.ssl:
+                _sslobj = connection.socket._sslobj
+                connection.socket._sslobj = None
 
-        # verifies the end of line sequence is present in the buffer,
-        # if that's the case we've reached a positive state
-        is_ready = b"\r\n" in buffer
+            # tries to receive the maximum size of data that is required
+            # for the handling of the PROXY information, note that, note
+            # that the count value is flexible, at the end of the operation
+            # the ssl socket is restored to the original state
+            try:
+                data = self.owner.exec_safe(connection, connection.recv, count)
+            finally:
+                if connection.ssl:
+                    connection.socket._sslobj = _sslobj
 
-        # in case no ready state has been reached, the buffer value
-        # is saved for latter usage (as expected)
-        if not is_ready: return
+            # in case the received value is false, that indicates that the
+            # execution has failed due to an exception (expected or unexpected)
+            if data == False: return
+
+            # updates the "initial" buffer length taking into account
+            # the current buffer and then appends the new data to it
+            buffer_l = len(buffer)
+            buffer += data
+
+            # saves the "newly" created buffer as the proxy buffer for the
+            # current connection (may be used latter)
+            connection._proxy_buffer = buffer
+
+            # verifies the end of line sequence is present in the buffer,
+            # if that's the case we've reached a positive state
+            is_ready = b"\r\n" in buffer
+
+            # in case the ready state has been reached, the complete set of
+            # data is ready to be parsed and the loop is stopped
+            if is_ready: break
 
         # removes the proxy buffer reference from the connection as
         # its no longer going to be used
@@ -109,7 +138,7 @@ class ProxyMiddleware(Middleware):
 
         # extracts the line for parsing and the extra data value (to
         # be restored to connection) using the data index and the data
-        line = data[:data_i]
+        line = buffer[:data_i]
         extra = data[data_i + 2:]
 
         # in case there's valid extra data to be restored to the connection
