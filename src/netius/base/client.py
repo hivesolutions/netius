@@ -894,8 +894,12 @@ class StreamClient(Client):
         # checks if the current connection is ssl based and if that's the
         # case starts the handshaking process (async non blocking) otherwise
         # calls the on connect callback with the newly created connection
-        if connection.ssl: self._ssl_handshake(connection.socket)
+        if connection.ssl: connection.add_starter(self._ssl_handshake, back = False)
         else: self.on_connect(connection)
+
+        # runs the starter process (initial kick-off) so that all the starters
+        # registered for the connection may start to be executed
+        connection.run_starter()
 
     def _connects(self):
         self._pending_lock.acquire()
