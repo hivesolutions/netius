@@ -1616,6 +1616,28 @@ class AbstractBase(observer.Observable):
 
         return kwargs
 
+    def exec_safe(self, connection, callable, *args, **kwargs):
+        try:
+            return callable(*args, **kwargs)
+        except ssl.SSLError as error:
+            error_v = error.args[0] if error.args else None
+            error_m = error.reason if hasattr(error, "reason") else None
+            if error_v in SSL_SILENT_ERRORS:
+                self.on_expected(error, connection)
+            elif not error_v in SSL_VALID_ERRORS and\
+                not error_m in SSL_VALID_REASONS:
+                self.on_exception(error, connection)
+        except socket.error as error:
+            error_v = error.args[0] if error.args else None
+            if error_v in SILENT_ERRORS:
+                self.on_expected(error, connection)
+            elif not error_v in VALID_ERRORS:
+                self.on_exception(error, connection)
+        except BaseException as exception:
+            self.on_exception(exception, connection)
+
+        return False
+
     def is_devel(self):
         """
         Verifies if the current running environment is meant to be used

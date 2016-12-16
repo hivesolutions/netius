@@ -69,8 +69,11 @@ class ProxyMiddleware(Middleware):
         cls = self.__class__
 
         # tries to receive the maximum size of data that is required
-        # for the handling of the PROXY information
-        data = connection.recv(cls.MAX_LENGTH)
+        # for the handling of the PROXY information, note that in case
+        # the received value is false, that indicates that the execution
+        # has failed due to an exception (expected or unexpected)
+        data = self.owner.exec_safe(connection, connection.recv, cls.MAX_LENGTH)
+        if data == False: return
 
         # tries to determine if a proxy buffer already exist for the
         # connection and if that's the case sets it as the initial
@@ -108,11 +111,23 @@ class ProxyMiddleware(Middleware):
         extra = data[data_i + 2:]
 
         # in case there's valid extra data to be restored to the connection
-        # performs the operation, effectively restoring it for receival
+        # performs the operation, effectively restoring it for receiving
         if extra: connection.restore(extra)
 
-        print(repr(line))
-        print("handshaking the proxy")
+        # splits the line of the protocol around its components and uses them
+        # to change the current connection information (as expected)
+        header, protocol, source, destination, source_p, destination_p = line.split(b" ")
+
+        # prints a debug message about the proxy header received, so that runtime
+        # debugging is possible (and expected)
+        self.owner.debug(
+            "Received header %s %s %s:%s => %s:%s" %
+            (header, protocol, source, source_p, destination, destination_p)
+        )
+
+        # re-constructs the source address from the provided information, this is
+        # the major and most important fix to be done
+        connection.address = (source, int(source_p))
 
         # runs the end starter operation, indicating to the connection that
         # the proxy header has been properly parsed
