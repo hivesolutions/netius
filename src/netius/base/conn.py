@@ -764,7 +764,9 @@ class BaseConnection(observer.Observable):
     def _recv_ssl(self, size):
         data = self._recv_restored(size)
         if data: return data
-        return socket.socket.recv(self.socket, size)
+        has_socket = hasattr(self.socket, "_sock")
+        if has_socket: return self.socket._sock.recv(size)
+        else: return socket.socket.recv(self.socket, size)
 
     def _recv_restored(self, size):
         if not self.restored_s: return b""

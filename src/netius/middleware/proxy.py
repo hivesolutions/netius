@@ -152,7 +152,7 @@ class ProxyMiddleware(Middleware):
         header, protocol, source, destination, source_p, destination_p = line.split(" ")
 
         # prints a debug message about the proxy header received, so that runtime
-        # debugging is possible (and expected)
+        # debugging is possible (and expected for this is a sensible part)
         self.owner.debug(
             "Received header %s %s %s:%s => %s:%s" %
             (header, protocol, source, source_p, destination, destination_p)
