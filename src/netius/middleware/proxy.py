@@ -49,6 +49,10 @@ class ProxyMiddleware(Middleware):
 
     :see: http://www.haproxy.org/download/1.5/doc/proxy-protocol.txt
     """
+    
+    MAX_LENGTH = 108
+    """ The maximum length that the base packet may have, 
+    this is a constant according to proxy send """
 
     def start(self):
         Middleware.start(self)
@@ -62,9 +66,23 @@ class ProxyMiddleware(Middleware):
         connection.add_starter(self._proxy_handshake)
 
     def _proxy_handshake(self, connection):
+        cls = self.__class__
+        
+        connection._proxy_buffer
+        buffer = connection._proxy_buffer
+        
         #@todo reads the data until the wanted values are found, then returns
         # some data to the buffer, if not properly read connnection.return(data)
         # then the recv() call in the connection would return that value naturally
-        #data = socket.recv()
+        data = connection.recv(cls.MAX_LENGTH)
+        
+        #@todo must return the proper data back to buffers
+        
+        is_ready = "\r\n" in data
+        if not is_ready:
+            #@todo implement the not is ready
+            pass
+                
+        print(repr(data))
         print("handshaking the proxy")
         connection.end_starter()
