@@ -19,6 +19,9 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+__author__ = "João Magalhães <joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,10 +37,22 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from . import base
-from . import dummy
-from . import proxy
-
 from .base import Middleware
-from .dummy import DummyMiddleware
-from .proxy import ProxyMiddleware
+
+class DummyMiddleware(Middleware):
+    """
+    Simple middleware implementation for testing/debugging
+    purposes that may be used as reference for the implementation
+    of more complex middleware units.
+    """
+
+    def start(self):
+        Middleware.start(self)
+        self.owner.bind("connection_c", self.on_connection_c)
+
+    def stop(self):
+        Middleware.stop(self)
+        self.owner.unbind("connection_c", self.on_connection_c)
+
+    def on_connection_c(self, owner, connection):
+        print("Received connection from %s" % connection.address)
