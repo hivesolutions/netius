@@ -50,7 +50,15 @@ class ProxyMiddleware(Middleware):
     :see: http://www.haproxy.org/download/1.5/doc/proxy-protocol.txt
     """
 
-    def on_connection_c(self, connection):
+    def start(self):
+        Middleware.start(self)
+        self.owner.bind("connection_c", self.on_connection_c)
+
+    def stop(self):
+        Middleware.stop(self)
+        self.owner.unbind("connection_c", self.on_connection_c)
+
+    def on_connection_c(self, owner, connection):
         # @todo: must register the proper intention to perform a pending
         # operation in the socket
         print("received" + str(connection))

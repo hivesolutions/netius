@@ -47,9 +47,3 @@ class Middleware(object):
 
     def stop(self):
         pass
-
-    def on_connection_c(self, connection):
-        pass
-
-    def on_connection_d(self, connection):
-        pass
