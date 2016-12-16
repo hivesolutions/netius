@@ -55,4 +55,4 @@ class DummyMiddleware(Middleware):
         self.owner.unbind("connection_c", self.on_connection_c)
 
     def on_connection_c(self, owner, connection):
-        print("Received connection from %s" % connection.address)
+        print("Received connection from %s" % (connection.address,))
