@@ -1438,6 +1438,8 @@ class AbstractBase(observer.Observable):
         self.fpool.stop()
 
     def on_connection_c(self, connection):
+        # prints some debug information about the connection that has
+        # just been created (for possible debugging purposes)
         self.debug(
             "Connection '%s' from '%s' created ..." %
             (connection.id, connection.owner.name)
@@ -1446,9 +1448,14 @@ class AbstractBase(observer.Observable):
             "There are %d connections for '%s' ..." %
             (len(connection.owner.connections), connection.owner.name)
         )
-        self.call_middleware("on_connection_c", connection)
+
+        # triggers the event notifying any listener about the new connection
+        # that is now ready for operation to be performed in it
+        self.trigger("connection_c", self, connection)
 
     def on_connection_d(self, connection):
+        # prints some debug information about the connection
+        # that has just been scheduled for destruction
         self.debug(
             "Connection '%s' from '%s' deleted" %
             (connection.id, connection.owner.name)
@@ -1457,21 +1464,42 @@ class AbstractBase(observer.Observable):
             "There are %d connections for '%s' ..." %
             (len(connection.owner.connections), connection.owner.name)
         )
-        self.call_middleware("on_connection_d", connection)
+
+        # triggers the event notifying any listener about the
+        # deletion/destruction f the connection
+        self.trigger("connection_d", self, connection)
 
     def on_stream_c(self, stream):
+        # retrieves the reference to the connection that is associated
+        # with the stream that has been created
         connection = stream.connection
+
+        # prints some debug information on the stream that has just been
+        # created (may be used for debugging purposes)
         self.debug(
             "Stream '%s' from '%s' created ..." %
             (stream.identifier, connection.owner.name)
         )
 
+        # notifies any listener of the stream created event about the
+        # new stream (as expected per specification)
+        self.trigger("stream_c", self, stream)
+
     def on_stream_d(self, stream):
+        # retrieves the reference to the connection that is associated
+        # with the stream that has been deleted
         connection = stream.connection
+
+        # prints some debug information on the stream that has just been
+        # deleted (may be used for debugging purposes)
         self.debug(
             "Stream '%s' from '%s' deleted" %
             (stream.identifier, connection.owner.name)
         )
+
+        # notifies any listener of the stream deleted event about the
+        # new stream (as expected per specification
+        self.trigger("stream_d", self, stream)
 
     def on_fork(self):
         self.trigger("fork", self)
