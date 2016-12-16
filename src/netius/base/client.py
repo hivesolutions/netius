@@ -898,7 +898,9 @@ class StreamClient(Client):
         else: self.on_connect(connection)
 
         # runs the starter process (initial kick-off) so that all the starters
-        # registered for the connection may start to be executed
+        # registered for the connection may start to be executed, note that if
+        # the ssl handshake starter has been registered its first execution is
+        # going to be triggered by this call
         connection.run_starter()
 
     def _connects(self):
