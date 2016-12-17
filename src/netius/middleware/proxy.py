@@ -52,7 +52,7 @@ class ProxyMiddleware(Middleware):
     :see: http://www.haproxy.org/download/1.5/doc/proxy-protocol.txt
     """
 
-    MAX_LENGTH = 114
+    MAX_LENGTH = 118
     """ The maximum length that the base packet may have,
     this is a constant according to proxy send """
 
