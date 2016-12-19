@@ -99,6 +99,7 @@ class BaseConnection(observer.Observable):
         self.ssl_host = None
         self.ssl_fingerprint = None
         self.ssl_handshake = False
+        self.ssl_connecting = False
         self.ssl_dump = False
         self.max_pending = max_pending
         self.min_pending = min_pending

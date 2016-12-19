@@ -885,6 +885,11 @@ class StreamClient(Client):
         process tested for finishing.
         """
 
+        # in case the ssl connection is still undergoing the handshaking
+        # procedures (marked as connecting) ignores the call as this must
+        # be a duplicated call to this method (to be ignored)
+        if connection.ssl_connecting: return
+
         # verifies if there was an error in the middle of the connection
         # operation and if that's the case calls the proper callback and
         # returns the control flow to the caller method

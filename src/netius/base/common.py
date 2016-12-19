@@ -2378,8 +2378,9 @@ class AbstractBase(observer.Observable):
         try:
             # unsets the handshake flag associated with the ssl, meaning
             # that the connection is considered to be currently under the
-            # handshaking process (may success in the current tick)
+            # handshaking process (may succeed in the current tick)
             connection.ssl_handshake = False
+            connection.ssl_connecting = True
 
             # tries to runs the handshake process, this represents
             # a series of small operations both of writing and reading
@@ -2391,8 +2392,10 @@ class AbstractBase(observer.Observable):
             _socket.do_handshake()
 
             # sets the ssl handshake flag in the connection, effectively
-            # indicating that the ssl handshake process has finished
+            # indicating that the ssl handshake process has finished, note
+            # that the connecting flag is also unset (ssl connect finished)
             connection.ssl_handshake = True
+            connection.ssl_connecting = False
 
             # calls the end starter method in the connection so that the
             # connection gets notified that the current starter in process
