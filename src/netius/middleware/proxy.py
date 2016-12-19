@@ -90,7 +90,7 @@ class ProxyMiddleware(Middleware):
         # starts a new empty buffer from scratch
         has_buffer = hasattr(connection, "_proxy_buffer")
         if has_buffer: buffer = connection._proxy_buffer
-        else: buffer = b""
+        else: buffer = bytearray()
 
         # iterates continuously trying to retrieve the set of data that is
         # required to parse the PROXy protocol header information
@@ -144,7 +144,9 @@ class ProxyMiddleware(Middleware):
         if extra: connection.restore(extra)
 
         # forces the "conversion" of the line into a string so that it may
-        # be properly split into its components
+        # be properly split into its components, note that first the value
+        # is converted into a byte string and then into a proper string
+        line = bytes(line)
         line = netius.legacy.str(line)
 
         # splits the line of the protocol around its components and uses them
