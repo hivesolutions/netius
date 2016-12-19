@@ -2376,6 +2376,11 @@ class AbstractBase(observer.Observable):
         """
 
         try:
+            # unsets the handshake flag associated with the ssl, meaning
+            # that the connection is considered to be currently under the
+            # handshaking process (may success in the current tick)
+            connection.ssl_handshake = False
+
             # tries to runs the handshake process, this represents
             # a series of small operations both of writing and reading
             # that a required to establish and guarantee a secure

@@ -884,8 +884,8 @@ class StreamServer(Server):
 
         # verifies if the socket still has finished the ssl handshaking
         # process (by verifying the appropriate flag) and then if that's
-        # the case returns immediately (nothing done)
-        if connection.ssl_handshake: return
+        # not the case returns immediately (nothing done)
+        if not connection.ssl_handshake: return
 
         # prints a debug information notifying the developer about
         # the finishing of the handshaking process for the connection
