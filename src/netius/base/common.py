@@ -935,15 +935,10 @@ class AbstractBase(observer.Observable):
             # to be used for the current middleware
             middleware_c = getattr(middleware, class_n)
 
-            # instantiates a new middleware class as a new instance and then
-            # runs the start method indicating the intention to start a new
-            # middleware (should properly start its internal structures)
-            middleware_i = middleware_c(self)
-            middleware_i.start()
-
-            # adds the middleware instance that has just been created to the
-            # list of middleware loaded for the current service
-            self.middleware_l.append(middleware_i)
+            # runs the registration process for the middleware, meaning that
+            # the class is going to be instantiated and started and the proper
+            # internal structures will be updated in accordance
+            self.register_middleware(middleware_c)
 
     def unload_middleware(self):
         # iterates over the complete set of middleware instance to stop
@@ -951,6 +946,21 @@ class AbstractBase(observer.Observable):
         # list so that they don't get used any longer
         for middleware_i in self.middleware_l: middleware_i.stop()
         del self.middleware_l[:]
+
+    def register_middleware(self, middleware_c):
+        # instantiates a new middleware class as a new instance and then
+        # runs the start method indicating the intention to start a new
+        # middleware (should properly start its internal structures)
+        middleware_i = middleware_c(self)
+        middleware_i.start()
+
+        # adds the middleware instance that has just been created to the
+        # list of middleware loaded for the current service
+        self.middleware_l.append(middleware_i)
+
+        # returns the instance of middleware that has just been created
+        # while running the registration process
+        return middleware_i
 
     def call_middleware(self, name, *args, **kwargs):
         # iterates over the complete set of middleware instance to call the

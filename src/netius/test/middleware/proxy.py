@@ -36,3 +36,42 @@ __copyright__ = "Copyright (c) 2008-2016 Hive Solutions Lda."
 
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
+
+import unittest
+
+import netius.servers
+import netius.middleware
+
+class ProxyMiddlewareTest(unittest.TestCase):
+
+    def test_ipv4(self):
+        http_server = netius.servers.HTTPServer()
+
+        instance = http_server.register_middleware(
+            netius.middleware.ProxyMiddleware
+        )
+
+        connection = netius.Connection(owner = http_server)
+        connection.status = netius.OPEN
+
+        connection.restore(b"PROXY TCP4 192.168.1.1 192.168.1.2 32598 8080\r\n")
+        instance._proxy_handshake(connection)
+
+        self.assertEqual(connection.address, ("192.168.1.1", 32598))
+        self.assertEqual(len(connection.restored), 0)
+
+    def test_ipv6(self):
+        http_server = netius.servers.HTTPServer()
+
+        instance = http_server.register_middleware(
+            netius.middleware.ProxyMiddleware
+        )
+
+        connection = netius.Connection(owner = http_server)
+        connection.status = netius.OPEN
+
+        connection.restore(b"PROXY TCP4 fe80::787f:f63f:3176:d61b fe80::787f:f63f:3176:d61c 32598 8080\r\n")
+        instance._proxy_handshake(connection)
+
+        self.assertEqual(connection.address, ("fe80::787f:f63f:3176:d61b", 32598))
+        self.assertEqual(len(connection.restored), 0)
