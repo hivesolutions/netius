@@ -134,3 +134,5 @@ class MJPGServer(http2.HTTP2Server):
 if __name__ == "__main__":
     server = MJPGServer()
     server.serve(env = True)
+else:
+    __path__ = []

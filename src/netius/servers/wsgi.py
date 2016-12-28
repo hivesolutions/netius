@@ -472,3 +472,5 @@ if __name__ == "__main__":
 
     server = WSGIServer(app = app, level = logging.INFO)
     server.serve(env = True)
+else:
+    __path__ = []

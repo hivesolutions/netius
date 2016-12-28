@@ -68,3 +68,5 @@ if __name__ == "__main__":
     client.bind("connect", on_connect)
     client.bind("close", on_close)
     client.bind("data", on_data)
+else:
+    __path__ = []

@@ -242,3 +242,5 @@ if __name__ == "__main__":
     import logging
     server = SOCKSServer(level = logging.INFO)
     server.serve(env = True)
+else:
+    __path__ = []

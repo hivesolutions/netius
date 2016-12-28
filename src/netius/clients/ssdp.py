@@ -109,7 +109,6 @@ class SSDPClient(netius.DatagramClient):
         data and self.send(data, address)
 
 if __name__ == "__main__":
-
     def on_headers(client, parser, headers):
         print(headers)
         client.close()
@@ -117,3 +116,5 @@ if __name__ == "__main__":
     client = SSDPClient()
     client.discover("urn:schemas-upnp-org:device:InternetGatewayDevice:1")
     client.bind("headers", on_headers)
+else:
+    __path__ = []

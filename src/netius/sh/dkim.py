@@ -62,3 +62,5 @@ def sign(email_path, key_path, selector, domain):
 
 if __name__ == "__main__":
     base.sh_call(globals(), locals())
+else:
+    __path__ = []

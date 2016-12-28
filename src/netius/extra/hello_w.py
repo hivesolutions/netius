@@ -54,3 +54,5 @@ def app(environ, start_response):
 if __name__ == "__main__":
     server = netius.servers.WSGIServer(app = app)
     server.serve(env = True)
+else:
+    __path__ = []

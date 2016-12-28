@@ -133,3 +133,5 @@ if __name__ == "__main__":
     client.get("http://cascam.ou.edu/axis-cgi/mjpg/video.cgi?resolution=320x240")
     client.bind("frame", on_frame)
     client.bind("close", on_close)
+else:
+    __path__ = []

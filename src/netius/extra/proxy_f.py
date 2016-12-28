@@ -127,3 +127,5 @@ if __name__ == "__main__":
         level = logging.INFO
     )
     server.serve(env = True)
+else:
+    __path__ = []

@@ -672,3 +672,5 @@ if __name__ == "__main__":
 
     client = SMTPClient(auto_close = True)
     client.message([sender], [receiver], contents)
+else:
+    __path__ = []

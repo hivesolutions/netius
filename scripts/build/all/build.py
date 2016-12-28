@@ -66,3 +66,5 @@ def cleanup():
 if __name__ == "__main__":
     try: run()
     finally: cleanup()
+else:
+    __path__ = []

@@ -516,3 +516,5 @@ if __name__ == "__main__":
     import logging
     server = FTPServer(level = logging.DEBUG)
     server.serve(env = True)
+else:
+    __path__ = []

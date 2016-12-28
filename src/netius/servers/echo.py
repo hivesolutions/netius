@@ -48,3 +48,5 @@ class EchoServer(ws.WSServer):
 if __name__ == "__main__":
     server = EchoServer()
     server.serve(env = True)
+else:
+    __path__ = []

@@ -233,3 +233,5 @@ if __name__ == "__main__":
     client.bind("handshake", on_handshake)
     client.bind("message", on_message)
     client.bind("close", on_close)
+else:
+    __path__ = []

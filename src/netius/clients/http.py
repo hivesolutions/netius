@@ -1142,3 +1142,5 @@ if __name__ == "__main__":
     client.bind("partial", on_partial)
     client.bind("message", on_message)
     client.bind("close", on_close)
+else:
+    __path__ = []

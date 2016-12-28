@@ -893,3 +893,5 @@ if __name__ == "__main__":
     server = TorrentServer(level = logging.DEBUG)
     server.bind("start", on_start)
     server.serve(env = True)
+else:
+    __path__ = []

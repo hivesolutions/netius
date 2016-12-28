@@ -188,3 +188,5 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
 if __name__ == "__main__":
     server = DockerProxyServer()
     server.serve(env = True)
+else:
+    __path__ = []

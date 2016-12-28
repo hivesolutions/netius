@@ -91,3 +91,5 @@ if __name__ == "__main__":
     import logging
     server = HelloServer(level = logging.INFO)
     server.serve(env = True)
+else:
+    __path__ = []

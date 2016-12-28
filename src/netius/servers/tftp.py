@@ -265,3 +265,5 @@ if __name__ == "__main__":
     import logging
     server = TFTPServer(level = logging.DEBUG)
     server.serve(env = True)
+else:
+    __path__ = []

@@ -466,3 +466,5 @@ if __name__ == "__main__":
         callback = handler,
         daemon = False
     )
+else:
+    __path__ = []

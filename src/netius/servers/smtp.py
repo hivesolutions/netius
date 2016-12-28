@@ -461,3 +461,5 @@ if __name__ == "__main__":
     import logging
     server = SMTPServer(level = logging.DEBUG)
     server.serve(env = True)
+else:
+    __path__ = []

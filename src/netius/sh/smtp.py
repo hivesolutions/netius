@@ -68,3 +68,5 @@ def send(
 
 if __name__ == "__main__":
     base.sh_call(globals(), locals())
+else:
+    __path__ = []

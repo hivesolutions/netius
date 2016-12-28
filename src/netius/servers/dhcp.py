@@ -407,3 +407,5 @@ if __name__ == "__main__":
     import logging
     server = DHCPServer(level = logging.INFO)
     server.serve(env = True)
+else:
+    __path__ = []

@@ -535,3 +535,5 @@ if __name__ == "__main__":
 
     server = FileServer(level = logging.INFO)
     server.serve(env = True)
+else:
+    __path__ = []

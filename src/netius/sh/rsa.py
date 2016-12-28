@@ -58,3 +58,5 @@ def private_to_public(private_path, public_path):
 
 if __name__ == "__main__":
     base.sh_call(globals(), locals())
+else:
+    __path__ = []

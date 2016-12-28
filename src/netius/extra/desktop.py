@@ -58,3 +58,5 @@ class DesktopServer(netius.servers.MJPGServer):
 if __name__ == "__main__":
     server = DesktopServer()
     server.serve(env = True)
+else:
+    __path__ = []

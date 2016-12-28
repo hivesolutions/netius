@@ -94,3 +94,5 @@ if __name__ == "__main__":
 
     server = FileAsyncServer(level = logging.INFO)
     server.serve(env = True)
+else:
+    __path__ = []
