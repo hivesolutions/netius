@@ -142,20 +142,20 @@ def coroutine(function):
     routine._is_coroutine = True
     return routine
 
-def sleep(timeout):
+def sleep(timeout, future = None):
     from .common import get_loop
     loop = get_loop()
-    yield loop.sleep(timeout)
+    yield loop.sleep(timeout, future = future)
 
-def wait(event):
+def wait(event, future = None):
     from .common import get_loop
     loop = get_loop()
-    yield loop.wait(event)
+    yield loop.wait(event, future = future)
 
-def notify(event):
+def notify(event, data = None):
     from .common import get_loop
     loop = get_loop()
-    return loop.notify(event)
+    return loop.notify(event, data = data)
 
 is_neo = sys.version_info[0] >= 3 and sys.version_info[1] >= 3
 if is_neo: from .async_neo import * #@UnusedWildImport

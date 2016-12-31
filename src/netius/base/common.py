@@ -642,8 +642,9 @@ class AbstractBase(observer.Observable):
         future = future or Future()
 
         # creates the callable that is going to be used to set
-        # the final value of the future variable
-        callable = lambda: future.set_result(None)
+        # the final value of the future variable, the result
+        # set in the future represents the payload of the event
+        callable = lambda data: future.set_result(data)
 
         # waits the execution of the callable until the event with the
         # provided name is notified/triggered, the execution should be
@@ -651,10 +652,10 @@ class AbstractBase(observer.Observable):
         self.wait_event(callable, name = event)
         return future
 
-    def notify(self, event):
+    def notify(self, event, data = None):
         # adds the event with the provided name to the list of notifications
         # that are going to be processed in the current tick operation
-        self._notified.append(event)
+        self._notified.append((event, data))
 
     def load(self, full = False):
         """
@@ -1986,9 +1987,9 @@ class AbstractBase(observer.Observable):
         # processed, the complete set of bind callables will be
         # called for each of the notifications
         while self._notified:
-            event = self._notified.pop(0)
+            event, data = self._notified.pop(0)
             binds = self._events.pop(event, [])
-            for callable in binds: callable()
+            for callable in binds: callable(data)
             count += 1
 
         # returns the number of processed notifications to the
