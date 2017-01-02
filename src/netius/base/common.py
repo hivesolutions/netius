@@ -1370,6 +1370,8 @@ class AbstractBase(observer.Observable):
         if not self.poll: return
         self.poll.sub_read(eventfd)
 
+        print("adding callback")
+
         # registers for a callback operation in the event fd so that
         # it gets properly de-notified as expected when a read operation
         # is performed in it, this operations will be performed upon
@@ -1409,6 +1411,10 @@ class AbstractBase(observer.Observable):
         self.debug("Unsubscribed for read operations on event fd")
 
     def pcallback(self, event, socket):
+        # in case the task pool is not valid returns immediately as
+        # it cannot be de-notified as expected
+        if not self.tpool: return
+
         # runs the de-notify operation clearing the task pool from any
         # possible extra notification (avoid extra counter)
         self.tpool.denotify()
