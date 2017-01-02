@@ -326,6 +326,7 @@ class AbstractBase(observer.Observable):
         self.middleware_l = []
         self.connections = []
         self.connections_m = {}
+        self.callbacks_m = {}
         self._uuid = uuid.uuid4()
         self._lid = 0
         self._did = 0
@@ -601,7 +602,6 @@ class AbstractBase(observer.Observable):
                     # the proper partial value handling is performed (always on main thread)
                     if thread:
                         def handler():
-                            self.tpool.denotify()
                             future.partial(value)
                             callable()
 
@@ -660,15 +660,6 @@ class AbstractBase(observer.Observable):
         # in case this is considered to be the main thread there no need to
         # proceed with the task pool notification process (expensive)
         if self.is_main(): return
-
-        # creates the handler responsible for the removal of the event notification
-        # that makes the task pool awake the main event loop
-        def handler():
-            self.tpool.denotify()
-
-        # schedules a delayed operation that will "de-notify" the task pool
-        # avoiding further awake situations
-        self.delay_s(handler)
 
         # makes sure that the the task pool is started (required for proper
         # event notification) and then runs the notification process, should
@@ -1222,6 +1213,7 @@ class AbstractBase(observer.Observable):
         # deletes some of the internal data structures created for the instance
         # and that are considered as no longer required
         self.connections_m.clear()
+        self.callbacks_m.clear()
         del self.connections[:]
         del self._extra_handlers[:]
 
@@ -1377,6 +1369,12 @@ class AbstractBase(observer.Observable):
         if not eventfd: return
         if not self.poll: return
         self.poll.sub_read(eventfd)
+
+        # registers for a callback operation in the event fd so that
+        # it gets properly de-notified as expected when a read operation
+        # is performed in it, this operations will be performed upon
+        # the request for the read operation
+        self.callbacks_m[eventfd] = lambda e, s: self.tpool.denotify()
 
         # retrieves the class of the eventfd object and then uses it
         # to retrieve the associated name for logging purposes

@@ -424,6 +424,12 @@ class DatagramServer(Server):
         # is not currently being allowed
         if not self.renable == True: return
 
+        # tries to retrieve a proper callback for the socket
+        # that received the read operations and calls the
+        # proper callback as expected
+        callback = self.callbacks_m.get(_socket, None)
+        if callback: callback("read", _socket)
+
         try:
             # iterates continuously trying to read as much data as possible
             # when there's a failure to read more data it should raise an
@@ -452,6 +458,9 @@ class DatagramServer(Server):
             self.on_exception(exception)
 
     def on_write(self, _socket):
+        callback = self.callbacks_m.get(_socket, None)
+        if callback: callback("write", _socket)
+
         try:
             self._send(_socket)
         except ssl.SSLError as error:
@@ -472,7 +481,8 @@ class DatagramServer(Server):
             self.on_exception(exception)
 
     def on_error(self, _socket):
-        pass
+        callback = self.callbacks_m.get(_socket, None)
+        if callback: callback("error", _socket)
 
     def on_exception(self, exception):
         self.warning(exception)
@@ -687,6 +697,12 @@ class StreamServer(Server):
         pass
 
     def on_read(self, _socket):
+        # tries to retrieve a possible callback registered for the socket
+        # and if there's one calls it to be able to "append" extra operations
+        # to the execution of the read operation in the socket
+        callback = self.callbacks_m.get(_socket, None)
+        if callback: callback("read", _socket)
+
         # tries to retrieve the connection from the provided socket
         # object (using the associative map) in case there no connection
         # or the connection is not ready for return the control flow is
@@ -731,6 +747,9 @@ class StreamServer(Server):
             self.on_exception(exception, connection)
 
     def on_write(self, _socket):
+        callback = self.callbacks_m.get(_socket, None)
+        if callback: callback("write", _socket)
+
         connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
@@ -755,6 +774,9 @@ class StreamServer(Server):
             self.on_exception(exception, connection)
 
     def on_error(self, _socket):
+        callback = self.callbacks_m.get(_socket, None)
+        if callback: callback("error", _socket)
+
         connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return

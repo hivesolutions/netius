@@ -174,6 +174,9 @@ class DatagramClient(Client):
         self.requests_m.clear()
 
     def on_read(self, _socket):
+        callback = self.callbacks_m.get(_socket, None)
+        if callback: callback("read", _socket)
+
         try:
             # iterates continuously trying to read as much data as possible
             # when there's a failure to read more data it should raise an
@@ -199,6 +202,9 @@ class DatagramClient(Client):
             self.on_exception(exception)
 
     def on_write(self, _socket):
+        callback = self.callbacks_m.get(_socket, None)
+        if callback: callback("write", _socket)
+
         try:
             self._send(_socket)
         except ssl.SSLError as error:
@@ -219,7 +225,8 @@ class DatagramClient(Client):
             self.on_exception(exception)
 
     def on_error(self, _socket):
-        pass
+        callback = self.callbacks_m.get(_socket, None)
+        if callback: callback("error", _socket)
 
     def on_exception(self, exception):
         self.warning(exception)
@@ -739,6 +746,12 @@ class StreamClient(Client):
         self.delay(acquire)
 
     def on_read(self, _socket):
+        # tries to retrieve a possible callback registered for the socket
+        # and if there's one calls it to be able to "append" extra operations
+        # to the execution of the read operation in the socket
+        callback = self.callbacks_m.get(_socket, None)
+        if callback: callback("read", _socket)
+
         # retrieves the connection object associated with the
         # current socket that is going to be read in case there's
         # no connection available or the status is not open
@@ -789,6 +802,12 @@ class StreamClient(Client):
             self.on_exception(exception, connection)
 
     def on_write(self, _socket):
+        # tries to retrieve a possible callback registered for the socket
+        # and if there's one calls it to be able to "append" extra operations
+        # to the execution of the read operation in the socket
+        callback = self.callbacks_m.get(_socket, None)
+        if callback: callback("write", _socket)
+
         # retrieves the connection associated with the socket that
         # is ready for the write operation and verifies that it
         # exists and the current status of it is open (required)
@@ -822,6 +841,9 @@ class StreamClient(Client):
             self.on_exception(exception, connection)
 
     def on_error(self, _socket):
+        callback = self.callbacks_m.get(_socket, None)
+        if callback: callback("error", _socket)
+
         connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
