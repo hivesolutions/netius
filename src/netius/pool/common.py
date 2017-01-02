@@ -46,6 +46,8 @@ import netius
 
 CALLABLE_WORK = 1
 
+EFD_SEMAPHORE = 1
+
 class Thread(threading.Thread):
 
     def __init__(self, identifier, owner = None, *args, **kwargs):
@@ -220,7 +222,7 @@ class UnixEventFile(EventFile):
         EventFile.__init__(self, *args, **kwargs)
         cls = self.__class__
         init_val = kwargs.get("init_val", 0)
-        flags = kwargs.get("flags", 0)
+        flags = kwargs.get("flags", EFD_SEMAPHORE)
         libc = cls.libc()
         self._rfileno = libc.eventfd(init_val, flags)
         self._wfileno = self._rfileno
@@ -245,7 +247,10 @@ class UnixEventFile(EventFile):
         self._write(1)
 
     def denotify(self):
-        self._write(0)
+        self._read()
+
+    def _read(self, length = 8):
+        return os.read(self._rfileno, length)
 
     def _write(self, value):
         os.write(self._wfileno, ctypes.c_ulonglong(value))
