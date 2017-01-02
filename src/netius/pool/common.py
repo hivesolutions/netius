@@ -249,7 +249,7 @@ class UnixEventFile(EventFile):
     def denotify(self):
         data = self._read()
         import struct
-        value = struct.unpack("@G", data)
+        value = struct.unpack("@Q", data)
         print(value)
 
     def _read(self, length = 8):
