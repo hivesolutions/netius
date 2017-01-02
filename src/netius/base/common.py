@@ -1374,7 +1374,7 @@ class AbstractBase(observer.Observable):
         # it gets properly de-notified as expected when a read operation
         # is performed in it, this operations will be performed upon
         # the request for the read operation
-        self.add_callback(eventfd, lambda e, s: self.tpool.denotify())
+        self.add_callback(eventfd, self.pcallback)
 
         # retrieves the class of the eventfd object and then uses it
         # to retrieve the associated name for logging purposes
@@ -1399,9 +1399,19 @@ class AbstractBase(observer.Observable):
         if not self.poll: return
         self.poll.unsub_read(eventfd)
 
+        # unregisters from a callback operation in the event fd so that
+        # no more events are handled by the notifier, this is expected
+        # in order to avoid any leaks
+        self.remove_callback(eventfd, self.pcallback)
+
         # echoes a debug message indicating that a new read event
         # unsubscription has been created for the event fd of the pool
         self.debug("Unsubscribed for read operations on event fd")
+
+    def pcallback(self, event, socket):
+        # runs the de-notify operation clearing the task pool from any
+        # possible extra notification (avoid extra counter)
+        self.tpool.denotify()
 
     def tensure(self):
         if self.tpool: return
