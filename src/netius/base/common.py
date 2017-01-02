@@ -1370,13 +1370,15 @@ class AbstractBase(observer.Observable):
         if not self.poll: return
         self.poll.sub_read(eventfd)
 
-        print("adding callback")
+        # creates the callback clojure around the current context
+        # so that a proper callback can be used for the operations
+        pool._callback = lambda e, s: self.pcallback(e, s, pool)
 
         # registers for a callback operation in the event fd so that
         # it gets properly de-notified as expected when a read operation
         # is performed in it, this operations will be performed upon
         # the request for the read operation
-        self.add_callback(eventfd, self.pcallback)
+        self.add_callback(eventfd, pool._callback)
 
         # retrieves the class of the eventfd object and then uses it
         # to retrieve the associated name for logging purposes
@@ -1404,20 +1406,25 @@ class AbstractBase(observer.Observable):
         # unregisters from a callback operation in the event fd so that
         # no more events are handled by the notifier, this is expected
         # in order to avoid any leaks
-        self.remove_callback(eventfd, self.pcallback)
+        self.remove_callback(eventfd, pool._callback)
+
+        # unsets the value of the callback removing its reference from
+        # the pool as its no longer going to be used
+        del pool._callback
 
         # echoes a debug message indicating that a new read event
         # unsubscription has been created for the event fd of the pool
         self.debug("Unsubscribed for read operations on event fd")
 
-    def pcallback(self, event, socket):
-        # in case the task pool is not valid returns immediately as
-        # it cannot be de-notified as expected
-        if not self.tpool: return
+    def pcallback(self, event, socket, pool):
+        # runs a series of pre-validations on the callback so that
+        # no operations is performed for such conditions
+        if not pool: return
+        if not event == "read": return
 
-        # runs the de-notify operation clearing the task pool from any
+        # runs the de-notify operation clearing the pool from any
         # possible extra notification (avoid extra counter)
-        self.tpool.denotify()
+        pool.denotify()
 
     def tensure(self):
         if self.tpool: return
@@ -1440,7 +1447,7 @@ class AbstractBase(observer.Observable):
 
     def files(self):
         if not self.fpool: return
-        events = self.fpool.pop_all(denotify = True)
+        events = self.fpool.pop_all(denotify = False)
         for event in events:
             callback = event[-1]
             if not callback: continue
