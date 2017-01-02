@@ -260,6 +260,8 @@ class PipeEventFile(EventFile):
         fcntl.fcntl(self._wfileno, fcntl.F_SETFL, os.O_NONBLOCK) #@UndefinedVariable
         self._read_file = os.fdopen(self._rfileno, "rb", 0)
         self._write_file = os.fdopen(self._wfileno, "wb", 0)
+        self._lock = threading.RLock()
+        self._count = 0
 
     @classmethod
     def available(cls):
@@ -273,10 +275,20 @@ class PipeEventFile(EventFile):
         self._write_file.close()
 
     def notify(self):
-        self._write(b"1")
+        self._lock.acquire()
+        try:
+            self._write(b"1")
+            self._count += 1
+        finally:
+            self._lock.release()
 
     def denotify(self):
-        self._read()
+        self._lock.acquire()
+        try:
+            data = self._read()
+            self._count -= len(data)
+        finally:
+            self._lock.release()
 
     def _read(self, length = 4096):
         return self._read_file.read(length)
@@ -296,6 +308,8 @@ class SocketEventFile(EventFile):
         self._write_socket, _port = temp_socket.accept()
         self._rfileno = self._read_socket.fileno()
         self._wfileno = self._write_socket.fileno()
+        self._lock = threading.RLock()
+        self._count = 0
         temp_socket.close()
 
     def close(self):
@@ -304,10 +318,21 @@ class SocketEventFile(EventFile):
         self._write_socket.close()
 
     def notify(self):
-        self._write(b"1")
+        self._lock.acquire()
+        try:
+            self._write(b"1")
+            self._count += 1
+        finally:
+            self._lock.release()
 
     def denotify(self):
-        self._read()
+        self._lock.acquire()
+        try:
+            if self._count == 0: return
+            data = self._read()
+            self._count -= len(data)
+        finally:
+            self._lock.release()
 
     def _read(self, length = 4096):
         return self._read_socket.recv(length)
