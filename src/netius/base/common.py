@@ -1417,6 +1417,9 @@ class AbstractBase(observer.Observable):
         self.debug("Unsubscribed for read operations on event fd")
 
     def pcallback(self, event, socket, pool):
+        print("event")
+        print("pcallback")
+        
         # runs a series of pre-validations on the callback so that
         # no operations is performed for such conditions
         if not pool: return

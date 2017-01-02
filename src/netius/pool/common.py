@@ -248,7 +248,6 @@ class UnixEventFile(EventFile):
 
     def denotify(self):
         self._read()
-        print("denotify")
 
     def _read(self, length = 8):
         return os.read(self._rfileno, length)
