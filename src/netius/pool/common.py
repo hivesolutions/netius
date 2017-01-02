@@ -247,8 +247,10 @@ class UnixEventFile(EventFile):
         self._write(1)
 
     def denotify(self):
-        self._read()
-        print("_read")
+        data = self._read()
+        import struct
+        value = struct.unpack("@G", data)
+        print(value)
 
     def _read(self, length = 8):
         return os.read(self._rfileno, length)
