@@ -1447,7 +1447,7 @@ class AbstractBase(observer.Observable):
 
     def files(self):
         if not self.fpool: return
-        events = self.fpool.pop_all(denotify = False)
+        events = self.fpool.pop_all()
         for event in events:
             callback = event[-1]
             if not callback: continue
