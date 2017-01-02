@@ -1373,8 +1373,6 @@ class AbstractBase(observer.Observable):
         # creates the callback clojure around the current context
         # so that a proper callback can be used for the operations
         pool._callback = lambda e, s: self.pcallback(e, s, pool)
-        
-        print("add_callback")
 
         # registers for a callback operation in the event fd so that
         # it gets properly de-notified as expected when a read operation
@@ -1419,9 +1417,6 @@ class AbstractBase(observer.Observable):
         self.debug("Unsubscribed for read operations on event fd")
 
     def pcallback(self, event, socket, pool):
-        print("event")
-        print("pcallback")
-        
         # runs a series of pre-validations on the callback so that
         # no operations is performed for such conditions
         if not pool: return

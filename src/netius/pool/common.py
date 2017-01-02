@@ -40,6 +40,7 @@ __license__ = "Apache License, Version 2.0"
 import os
 import ctypes
 import socket
+import struct
 import threading
 
 import netius
@@ -247,10 +248,11 @@ class UnixEventFile(EventFile):
         self._write(1)
 
     def denotify(self):
-        data = self._read()
-        import struct
-        value = struct.unpack("@Q", data)
-        print(value)
+        while True:
+            data = self._read()
+            value, = struct.unpack("@Q", data)
+            if value > 1: continue
+            break
 
     def _read(self, length = 8):
         return os.read(self._rfileno, length)
