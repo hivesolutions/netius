@@ -657,6 +657,25 @@ class AbstractBase(observer.Observable):
         # that are going to be processed in the current tick operation
         self._notified.append((event, data))
 
+        # in case this is considered to be the main thread there no need to
+        # proceed with the task pool notification process (expensive)
+        if self.is_main(): return
+
+        # creates the handler responsible for the removal of the event notification
+        # that makes the task pool awake the main event loop
+        def handler():
+            self.tpool.denotify()
+
+        # schedules a delayed operation that will "de-notify" the task pool
+        # avoiding further awake situations
+        self.delay_s(handler)
+
+        # makes sure that the the task pool is started (required for proper
+        # event notification) and then runs the notification process, should
+        # "wake" the main event loop as soon as possible
+        self.tensure()
+        self.tpool.notify()
+
     def load(self, full = False):
         """
         Starts the loading process for the current engine, this should be
@@ -1087,6 +1106,9 @@ class AbstractBase(observer.Observable):
             self.debug("Finished '%s' service main loop" % self.name)
             self.cleanup()
             self.set_state(STATE_STOP)
+
+    def is_main(self):
+        return threading.current_thread().ident == self.tid
 
     def is_started(self):
         return self.get_state() == STATE_START
