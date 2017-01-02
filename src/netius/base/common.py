@@ -1373,6 +1373,8 @@ class AbstractBase(observer.Observable):
         # creates the callback clojure around the current context
         # so that a proper callback can be used for the operations
         pool._callback = lambda e, s: self.pcallback(e, s, pool)
+        
+        print("add_callback")
 
         # registers for a callback operation in the event fd so that
         # it gets properly de-notified as expected when a read operation
