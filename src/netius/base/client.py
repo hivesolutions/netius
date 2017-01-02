@@ -174,8 +174,9 @@ class DatagramClient(Client):
         self.requests_m.clear()
 
     def on_read(self, _socket):
-        callback = self.callbacks_m.get(_socket, None)
-        if callback: callback("read", _socket)
+        callbacks = self.callbacks_m.get(_socket, None)
+        if callbacks:
+            for callback in callbacks: callback("read", _socket)
 
         try:
             # iterates continuously trying to read as much data as possible
@@ -202,8 +203,9 @@ class DatagramClient(Client):
             self.on_exception(exception)
 
     def on_write(self, _socket):
-        callback = self.callbacks_m.get(_socket, None)
-        if callback: callback("write", _socket)
+        callbacks = self.callbacks_m.get(_socket, None)
+        if callbacks:
+            for callback in callbacks: callback("write", _socket)
 
         try:
             self._send(_socket)
@@ -225,8 +227,9 @@ class DatagramClient(Client):
             self.on_exception(exception)
 
     def on_error(self, _socket):
-        callback = self.callbacks_m.get(_socket, None)
-        if callback: callback("error", _socket)
+        callbacks = self.callbacks_m.get(_socket, None)
+        if callbacks:
+            for callback in callbacks: callback("error", _socket)
 
     def on_exception(self, exception):
         self.warning(exception)
@@ -749,8 +752,9 @@ class StreamClient(Client):
         # tries to retrieve a possible callback registered for the socket
         # and if there's one calls it to be able to "append" extra operations
         # to the execution of the read operation in the socket
-        callback = self.callbacks_m.get(_socket, None)
-        if callback: callback("read", _socket)
+        callbacks = self.callbacks_m.get(_socket, None)
+        if callbacks:
+            for callback in callbacks: callback("read", _socket)
 
         # retrieves the connection object associated with the
         # current socket that is going to be read in case there's
@@ -805,8 +809,9 @@ class StreamClient(Client):
         # tries to retrieve a possible callback registered for the socket
         # and if there's one calls it to be able to "append" extra operations
         # to the execution of the read operation in the socket
-        callback = self.callbacks_m.get(_socket, None)
-        if callback: callback("write", _socket)
+        callbacks = self.callbacks_m.get(_socket, None)
+        if callbacks:
+            for callback in callbacks: callback("write", _socket)
 
         # retrieves the connection associated with the socket that
         # is ready for the write operation and verifies that it
@@ -841,8 +846,9 @@ class StreamClient(Client):
             self.on_exception(exception, connection)
 
     def on_error(self, _socket):
-        callback = self.callbacks_m.get(_socket, None)
-        if callback: callback("error", _socket)
+        callbacks = self.callbacks_m.get(_socket, None)
+        if callbacks:
+            for callback in callbacks: callback("error", _socket)
 
         connection = self.connections_m.get(_socket, None)
         if not connection: return

@@ -1374,7 +1374,7 @@ class AbstractBase(observer.Observable):
         # it gets properly de-notified as expected when a read operation
         # is performed in it, this operations will be performed upon
         # the request for the read operation
-        self.callbacks_m[eventfd] = lambda e, s: self.tpool.denotify()
+        self.add_callback(eventfd, lambda e, s: self.tpool.denotify())
 
         # retrieves the class of the eventfd object and then uses it
         # to retrieve the associated name for logging purposes
@@ -1626,6 +1626,19 @@ class AbstractBase(observer.Observable):
             address = address,
             ssl = ssl
         )
+
+    def add_callback(self, socket, callback):
+        callbacks = self.callbacks_m.get(socket, [])
+        if callback in callbacks: return
+        callbacks.append(callback)
+        self.callbacks_m[socket] = callbacks
+
+    def remove_callback(self, socket, callback):
+        callbacks = self.callbacks_m.get(socket, [])
+        if not callback in callbacks: return
+        callbacks.remove(callback)
+        if callbacks: return
+        del self.callbacks_m[socket]
 
     def load_config(self, path = "config.json", **kwargs):
         kwargs = self.apply_config(path, kwargs)
