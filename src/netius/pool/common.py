@@ -255,6 +255,7 @@ class UnixEventFile(EventFile):
             value, = struct.unpack("@Q", data)
             if value > 1: continue
             break
+        data = self._read()
 
     def _read(self, length = 8):
         return os.read(self._rfileno, length)
