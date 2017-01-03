@@ -49,6 +49,8 @@ CALLABLE_WORK = 1
 
 EFD_SEMAPHORE = 1
 
+EFD_NONBLOCK = 2048
+
 class Thread(threading.Thread):
 
     def __init__(self, identifier, owner = None, *args, **kwargs):
@@ -223,7 +225,7 @@ class UnixEventFile(EventFile):
         EventFile.__init__(self, *args, **kwargs)
         cls = self.__class__
         init_val = kwargs.get("init_val", 0)
-        flags = kwargs.get("flags", EFD_SEMAPHORE)
+        flags = kwargs.get("flags", EFD_SEMAPHORE | EFD_NONBLOCK)
         libc = cls.libc()
         self._rfileno = libc.eventfd(init_val, flags)
         self._wfileno = self._rfileno
