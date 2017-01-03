@@ -40,16 +40,11 @@ __license__ = "Apache License, Version 2.0"
 import os
 import ctypes
 import socket
-import struct
 import threading
 
 import netius
 
 CALLABLE_WORK = 1
-
-EFD_SEMAPHORE = 1
-
-EFD_NONBLOCK = 2048
 
 class Thread(threading.Thread):
 
@@ -225,7 +220,7 @@ class UnixEventFile(EventFile):
         EventFile.__init__(self, *args, **kwargs)
         cls = self.__class__
         init_val = kwargs.get("init_val", 0)
-        flags = kwargs.get("flags", EFD_SEMAPHORE | EFD_NONBLOCK)
+        flags = kwargs.get("flags", 0)
         libc = cls.libc()
         self._rfileno = libc.eventfd(init_val, flags)
         self._wfileno = self._rfileno
@@ -250,11 +245,7 @@ class UnixEventFile(EventFile):
         self._write(1)
 
     def denotify(self):
-        while True:
-            data = self._read()
-            value, = struct.unpack("@Q", data)
-            if value > 1: continue
-            break
+        self._read()
 
     def _read(self, length = 8):
         return os.read(self._rfileno, length)
