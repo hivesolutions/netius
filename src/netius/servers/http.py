@@ -593,10 +593,17 @@ class HTTPServer(netius.StreamServer):
     headers and read of data.
     """
 
-    def __init__(self, encoding = "plain", *args, **kwargs):
+    def __init__(self, encoding = "plain", common_log = None, *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.encoding_s = encoding
+        self.common_log = common_log
         self.dynamic = False
+        self.common_file = None
+
+    def cleanup(self):
+        netius.StreamServer.cleanup(self)
+
+        if self.common_file: self.common_file.close()
 
     def info_dict(self, full = False):
         info = netius.StreamServer.info_dict(self, full = full)
@@ -610,8 +617,11 @@ class HTTPServer(netius.StreamServer):
     def on_serve(self):
         netius.StreamServer.on_serve(self)
         if self.env: self.encoding_s = self.get_env("ENCODING", self.encoding_s)
+        if self.env: self.common_log = self.get_env("COMMON_LOG", self.common_log)
+        if self.common_log: self.common_file = open(self.common_log, "wb")
         self.encoding = ENCODING_MAP.get(self.encoding_s, PLAIN_ENCODING)
         self.info("Starting HTTP server with '%s' encoding ..." % self.encoding_s)
+        if self.common_log: self.info("Logging with Common Log Format to '%s' ..." % self.common_log)
 
     def new_connection(self, socket, address, ssl = False):
         return HTTPConnection(
@@ -636,14 +646,14 @@ class HTTPServer(netius.StreamServer):
         code = 200,
         code_s = None
     ):
-        is_debug = self.is_debug()
-        is_debug and self._log_request(
+        self.common_file and self._log_request(
             connection,
             parser,
             headers = headers,
             version = version,
             code = code,
             code_s = code_s,
+            output = self._write_common,
             mode = "common"
         )
 
@@ -766,12 +776,20 @@ class HTTPServer(netius.StreamServer):
         # and the password associated with the authorization
         return username, password
 
+    def _write_common(self, message):
+        self.common_file.write(message + b"\n")
+        self.common_file.flush()
+
     def _log_request(self, connection, parser, *args, **kwargs):
         mode = kwargs.pop("mode", "basic")
         method = getattr(self, "_log_request_" + mode)
         return method(connection, parser, *args, **kwargs)
 
-    def _log_request_basic(self, connection, parser):
+    def _log_request_basic(self, connection, parser, output = None):
+        # runs the defaulting operation on the logger output
+        # method so that the default logger output is used instead
+        output = output or self.debug
+
         # unpacks the various values that are going to be part of
         # the log message to be printed in the debug
         is_tuple = type(connection.address) in (list, tuple)
@@ -784,7 +802,7 @@ class HTTPServer(netius.StreamServer):
         # that are part of the current message and then prints a
         # debug message with the contents of it
         message = "%s %s %s @ %s" % (method, path, version_s, ip_address)
-        self.debug(message)
+        output(message)
 
     def _log_request_common(
         self,
@@ -795,8 +813,13 @@ class HTTPServer(netius.StreamServer):
         code = 200,
         code_s = None,
         size_s = None,
-        username = "frank"
+        username = "frank",
+        output = None
     ):
+        # runs the defaulting operation on the logger output
+        # method so that the default logger output is used instead
+        output = output or self.debug
+
         # unpacks the various values that are going to be part of
         # the log message to be printed in the debug, these values
         # should come from either the connection or the parser
@@ -816,4 +839,4 @@ class HTTPServer(netius.StreamServer):
         message = "%s %s %s [%s] \"%s %s %s\" %d %s" % (
             ip_address, "-", username, date_s, method, path, version_s, code, size_s
         )
-        self.debug(message)
+        output(message)
