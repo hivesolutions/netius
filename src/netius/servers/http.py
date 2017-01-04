@@ -120,7 +120,11 @@ class HTTPConnection(netius.Connection):
 
         self.current = self.encoding
 
-        self.owner.on_flush_http(self.connection_ctx, self.parser_ctx)
+        self.owner.on_flush_http(
+            self.connection_ctx,
+            self.parser_ctx,
+            encoding = encoding
+        )
 
     def send_base(
         self,
@@ -367,7 +371,7 @@ class HTTPConnection(netius.Connection):
 
         # "notifies" the owner of the connection that the headers have been
         # sent all the http header information should be present
-        self.owner.on_headers_http(
+        self.owner.on_send_http(
             self.connection_ctx,
             self.parser_ctx,
             headers = headers,
@@ -620,10 +624,7 @@ class HTTPServer(netius.StreamServer):
         is_debug and self._log_request(connection, parser)
         connection.resolve_encoding(parser)
 
-    def on_flush_http(self, connection, parser):
-        pass
-
-    def on_headers_http(
+    def on_send_http(
         self,
         connection,
         parser,
@@ -641,6 +642,12 @@ class HTTPServer(netius.StreamServer):
             code = code,
             code_s = code_s,
             mode = "common"
+        )
+
+    def on_flush_http(self, connection, parser, encoding = None):
+        self.debug(
+            "Connection '%s' from '%s' with encoding flushed" %\
+            (connection.id, connection.owner.name)
         )
 
     def authorize(self, connection, parser, auth = None, **kwargs):
