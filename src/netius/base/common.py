@@ -569,7 +569,7 @@ class AbstractBase(observer.Observable):
 
                 # retrieves the next value from the generator and in case
                 # value is the last one (stop iteration) verifies if the
-                # is still considered running no value or exception set and
+                # is still considered running (no value or exception) set and
                 # if that's the case runs the default value set (approve)
                 # and then breaks the loop, notice that if there's an
                 # exception raised in the middle of the generator iteration
