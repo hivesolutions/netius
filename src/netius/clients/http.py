@@ -910,8 +910,6 @@ class HTTPClient(netius.StreamClient):
         connection.set_headers(headers)
         connection.set_data(data)
 
-        print(connection)
-
         # runs a series of unbind operation from the connection so that it
         # becomes "free" from any previous usage under different context
         connection.unbind("close")
