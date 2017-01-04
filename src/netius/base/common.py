@@ -619,6 +619,13 @@ class AbstractBase(observer.Observable):
         self.delay(callable, immediately = immediately)
         return future
 
+    def wakeup(self):
+        # makes sure that the the task pool is started (required for proper
+        # event notification) and then runs the notification process, should
+        # "wake" the main event loop as soon as possible
+        self.tensure()
+        self.tpool.notify()
+
     def sleep(self, timeout, future = None):
         # verifies if a future variable is meant to be re-used
         # or if instead a new one should be created for the new

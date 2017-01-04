@@ -142,6 +142,11 @@ def coroutine(function):
     routine._is_coroutine = True
     return routine
 
+def wakeup():
+    from .common import get_loop
+    loop = get_loop()
+    yield loop.wakeup()
+
 def sleep(timeout, future = None):
     from .common import get_loop
     loop = get_loop()
