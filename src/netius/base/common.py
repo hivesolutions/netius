@@ -424,7 +424,14 @@ class AbstractBase(observer.Observable):
         binds.append(callable)
         self._events[name] = binds
 
-    def delay(self, callable, timeout = None, immediately = False, verify = False):
+    def delay(
+        self,
+        callable,
+        timeout = None,
+        immediately = False,
+        verify = False,
+        wakeup = False
+    ):
         # creates the original target value with a zero value (forced
         # execution in next tick) in case the timeout value is set the
         # value is incremented to the current time, then created the
@@ -447,6 +454,11 @@ class AbstractBase(observer.Observable):
         callable_t = legacy.orderable(callable_t)
         heapq.heappush(self._delayed, callable_t)
         heapq.heappush(self._delayed_o, callable_o)
+
+        # in case the wakeup flag is set this delay operation should have
+        # been called from a different thread and the event loop should
+        # wakeup as soon as possible to handle the event
+        if wakeup: self.wakeup()
 
         # increments the "delay" identifier by one, this identifier is
         # used to correctly identify a delayed object so that for the
@@ -619,7 +631,12 @@ class AbstractBase(observer.Observable):
         self.delay(callable, immediately = immediately)
         return future
 
-    def wakeup(self):
+    def wakeup(self, force = False):
+        # verifies if this is the main thread and if that's not the case
+        # and the force flag is not set ignore the wakeup operation, avoding
+        # extra usage of resources (not required)
+        if self.is_main() and not force: return
+
         # makes sure that the the task pool is started (required for proper
         # event notification) and then runs the notification process, should
         # "wake" the main event loop as soon as possible
