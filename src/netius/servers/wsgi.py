@@ -337,6 +337,10 @@ class WSGIServer(http2.HTTP2Server):
             def on_closed():
                 return connection.is_closed()
 
+            # registers the various callbacks that are going to be
+            # handling the various operations on the future element
+            # so that the iterator may go further into the next
+            # elements, after the processing of this future
             data.add_partial_callback(on_partial)
             data.add_done_callback(on_done)
             data.add_ready_callback(on_ready)
