@@ -308,14 +308,18 @@ class WSGIServer(http2.HTTP2Server):
         if is_future:
             def on_partial(future, value):
                 if not value: return
-                connection.send_part(value)
+                connection.send_part(value, final = False)
 
             def on_done(future):
-                data = future.result()
+                data = future.result() or b""
                 exception = future.exception()
                 cancelled = future.cancelled()
                 if exception or cancelled: connection.close()
-                else: connection.send_part(data, callback = self._send_part)
+                else: connection.send_part(
+                    data,
+                    final = False,
+                    callback = self._send_part
+                )
 
             def on_ready():
                 return connection.wready
