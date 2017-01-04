@@ -656,7 +656,7 @@ class HTTPClient(netius.StreamClient):
             **kwargs
         )
 
-        return http_client.method(
+        result = http_client.method(
             method,
             url,
             params = params,
@@ -673,6 +673,15 @@ class HTTPClient(netius.StreamClient):
             on_data = on_data,
             on_result = on_result
         )
+
+        # in case the async mode is active, the http client loop
+        # must be awaken so that the set of operations are processed
+        # as soon as possible in that thread
+        if async: http_client.wakeup()
+
+        # returns the "final" result to the caller method so that
+        # it may be used/processed by it (as expected)
+        return result
 
     @classmethod
     def to_response(cls, map, raise_e = True):
@@ -900,6 +909,8 @@ class HTTPClient(netius.StreamClient):
         connection.set_encodings(encodings)
         connection.set_headers(headers)
         connection.set_data(data)
+
+        print(connection)
 
         # runs a series of unbind operation from the connection so that it
         # becomes "free" from any previous usage under different context

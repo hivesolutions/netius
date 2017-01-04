@@ -145,7 +145,7 @@ def coroutine(function):
 def wakeup():
     from .common import get_loop
     loop = get_loop()
-    yield loop.wakeup()
+    return loop.wakeup()
 
 def sleep(timeout, future = None):
     from .common import get_loop
