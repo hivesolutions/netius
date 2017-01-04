@@ -647,7 +647,7 @@ class HTTPServer(netius.StreamServer):
     def on_flush_http(self, connection, parser, encoding = None):
         self.debug(
             "Connection '%s' from '%s' with encoding flushed" %\
-            (connection.id, connection.owner.name)
+            (connection.id, self.name)
         )
 
     def authorize(self, connection, parser, auth = None, **kwargs):
