@@ -784,17 +784,25 @@ class HTTPServer(netius.StreamServer):
         version = None,
         code = 200,
         code_s = None,
+        size_s = None,
         username = "frank"
     ):
+        # unpacks the various values that are going to be part of
+        # the log message to be printed in the debug, these values
+        # should come from either the connection or the parser
         is_tuple = type(connection.address) in (list, tuple)
         ip_address = connection.address[0] if is_tuple else connection.address
         method = parser.method.upper()
         path = parser.get_path()
         version_s = parser.version_s
 
+        # creates some composite values taking into account the various
+        # parameters that have bean provided
         date_s = datetime.datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
-        size_s = headers.get("Content-Length", "0")
+        size_s = size_s or headers.get("Content-Length", "-1")
 
+        # creates the complete message in the "Common Log Format" and then
+        # prints a debug message with that same contents
         message = "%s %s %s [%s] \"%s %s %s\" %d %s" % (
             ip_address, "-", username, date_s, method, path, version_s, code, size_s
         )
