@@ -342,7 +342,7 @@ class WSGIServer(http2.HTTP2Server):
         # the connection state is defined in the proper way (closed or
         # kept untouched) otherwise sends the retrieved data setting the
         # callback to the current method so that more that is sent
-        if is_final: connection.flush(callback = self._final)
+        if is_final: connection.flush_s(callback = self._final)
         else: connection.send_part(
             data,
             final = False,

@@ -126,6 +126,9 @@ class HTTPConnection(netius.Connection):
             encoding = encoding
         )
 
+    def flush_s(self, stream = None, callback = None):
+        return self.flush(stream = stream, callback = callback)
+
     def send_base(
         self,
         data,

@@ -1352,6 +1352,11 @@ class HTTP2Stream(netius.Stream):
         with self.ctx_request(args, kwargs):
             return self.connection.flush(*args, **kwargs)
 
+    def flush_s(self, *args, **kwargs):
+        if not self.is_open(): return 0
+        with self.ctx_request(args, kwargs):
+            return self.connection.flush_s(*args, **kwargs)
+
     def send_response(self, *args, **kwargs):
         if not self.is_open(): return 0
         with self.ctx_request(args, kwargs):

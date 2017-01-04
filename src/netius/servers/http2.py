@@ -84,6 +84,15 @@ class HTTP2Connection(http.HTTPConnection):
         )
         return info
 
+    def flush_s(self, stream = None, callback = None):
+        return self.send_part(
+            b"",
+            stream = stream,
+            final = True,
+            flush = True,
+            callback = callback
+        )
+
     def set_h2(self):
         self.legacy = False
         if self.parser: self.parser.destroy()

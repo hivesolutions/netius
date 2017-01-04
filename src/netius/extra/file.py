@@ -511,7 +511,7 @@ class FileServer(netius.servers.HTTP2Server):
         connection.bytes_p = None
         is_keep_alive = connection.parser.keep_alive
         callback = None if is_keep_alive else self._file_close
-        connection.flush(callback = callback)
+        connection.flush_s(callback = callback)
         self._next_queue(connection)
 
     def _file_close(self, connection):

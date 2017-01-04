@@ -427,7 +427,7 @@ class ProxyServer(http2.HTTP2Server):
         # runs the final flush operation in the connection making sure that
         # every data that is pending is properly flushed, this is especially
         # important for chunked or compressed connections
-        connection.flush(callback = callback)
+        connection.flush_s(callback = callback)
 
     def _on_prx_partial(self, client, parser, data):
         # retrieves the owner of the proxy parser as the proxy connection
