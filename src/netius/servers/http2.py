@@ -399,6 +399,17 @@ class HTTP2Connection(http.HTTPConnection):
             callback = callback
         )
 
+        # "notifies" the owner of the connection that the headers have been
+        # sent all the http header information should be present
+        self.owner.on_headers_http(
+            self.connection_ctx,
+            self.parser_ctx,
+            headers = headers,
+            version = version,
+            code = code,
+            code_s = code_s
+        )
+
         # returns the final number of bytes that have been sent during the current
         # operation of sending headers to the other peer
         return count

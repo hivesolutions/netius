@@ -39,6 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import zlib
 import base64
+import datetime
 import contextlib
 
 import netius.common
@@ -118,6 +119,8 @@ class HTTPConnection(netius.Connection):
             self._flush_plain(stream = stream, callback = callback)
 
         self.current = self.encoding
+
+        self.owner.on_flush_http(self.connection_ctx, self.parser_ctx)
 
     def send_base(
         self,
@@ -355,12 +358,27 @@ class HTTPConnection(netius.Connection):
 
         # sends the buffer data to the connection peer so that it gets notified
         # about the headers for the current communication/message
-        return self.send_plain(
+        count = self.send_plain(
             buffer_data,
             stream = stream,
             delay = delay,
             callback = callback
         )
+
+        # "notifies" the owner of the connection that the headers have been
+        # sent all the http header information should be present
+        self.owner.on_headers_http(
+            self.connection_ctx,
+            self.parser_ctx,
+            headers = headers,
+            version = version,
+            code = code,
+            code_s = code_s
+        )
+
+        # returns the final number of bytes that have been sent during the current
+        # operation of sending headers to the other peer
+        return count
 
     def send_part(
         self,
@@ -602,6 +620,29 @@ class HTTPServer(netius.StreamServer):
         is_debug and self._log_request(connection, parser)
         connection.resolve_encoding(parser)
 
+    def on_flush_http(self, connection, parser):
+        pass
+
+    def on_headers_http(
+        self,
+        connection,
+        parser,
+        headers = None,
+        version = None,
+        code = 200,
+        code_s = None
+    ):
+        is_debug = self.is_debug()
+        is_debug and self._log_request(
+            connection,
+            parser,
+            headers = headers,
+            version = version,
+            code = code,
+            code_s = code_s,
+            mode = "common"
+        )
+
     def authorize(self, connection, parser, auth = None, **kwargs):
         # determines the proper authorization method to be used
         # taking into account either the provided method or the
@@ -715,7 +756,12 @@ class HTTPServer(netius.StreamServer):
         # and the password associated with the authorization
         return username, password
 
-    def _log_request(self, connection, parser):
+    def _log_request(self, connection, parser, *args, **kwargs):
+        mode = kwargs.pop("mode", "basic")
+        method = getattr(self, "_log_request_" + mode)
+        return method(connection, parser, *args, **kwargs)
+
+    def _log_request_basic(self, connection, parser):
         # unpacks the various values that are going to be part of
         # the log message to be printed in the debug
         is_tuple = type(connection.address) in (list, tuple)
@@ -728,4 +774,28 @@ class HTTPServer(netius.StreamServer):
         # that are part of the current message and then prints a
         # debug message with the contents of it
         message = "%s %s %s @ %s" % (method, path, version_s, ip_address)
+        self.debug(message)
+
+    def _log_request_common(
+        self,
+        connection,
+        parser,
+        headers = None,
+        version = None,
+        code = 200,
+        code_s = None,
+        username = "frank"
+    ):
+        is_tuple = type(connection.address) in (list, tuple)
+        ip_address = connection.address[0] if is_tuple else connection.address
+        method = parser.method.upper()
+        path = parser.get_path()
+        version_s = parser.version_s
+
+        date_s = datetime.datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
+        size_s = headers.get("Content-Length", "0")
+
+        message = "%s %s %s [%s] \"%s %s %s\" %d %s" % (
+            ip_address, "-", username, date_s, method, path, version_s, code, size_s
+        )
         self.debug(message)
