@@ -67,6 +67,7 @@ context values (certificate, key, etc) for such domain
 #### HTTP
 
 * `SAFE` (`bool`) - If safe execution should be enforced, (eg: avoiding HTTP2 execution) (defaults to `False`)
+* `COMMON_LOG` (`str`) - The path to the file to log the HTTP request in "Common Log Format (defaults to `None`)
 
 #### Proxy
 
