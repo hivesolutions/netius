@@ -1502,11 +1502,11 @@ class AbstractBase(observer.Observable):
         # prints some debug information about the connection that has
         # just been created (for possible debugging purposes)
         self.debug(
-            "Connection '%s' from '%s' created ..." %
+            "Connection '%s' from '%s' created" %
             (connection.id, connection.owner.name)
         )
         self.debug(
-            "There are %d connections for '%s' ..." %
+            "There are %d connections for '%s'" %
             (len(connection.owner.connections), connection.owner.name)
         )
 
@@ -1522,7 +1522,7 @@ class AbstractBase(observer.Observable):
             (connection.id, connection.owner.name)
         )
         self.debug(
-            "There are %d connections for '%s' ..." %
+            "There are %d connections for '%s'" %
             (len(connection.owner.connections), connection.owner.name)
         )
 
@@ -1538,7 +1538,7 @@ class AbstractBase(observer.Observable):
         # prints some debug information on the stream that has just been
         # created (may be used for debugging purposes)
         self.debug(
-            "Stream '%s' from '%s' created ..." %
+            "Stream '%s' from '%s' created" %
             (stream.identifier, connection.owner.name)
         )
 
