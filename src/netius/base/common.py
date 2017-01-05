@@ -312,6 +312,7 @@ class AbstractBase(observer.Observable):
         self.tname = None
         self.logger = None
         self.logging = None
+        self.npool = None
         self.tpool = None
         self.fpool = None
         self.poll_c = kwargs.get("poll", poll)
@@ -635,15 +636,15 @@ class AbstractBase(observer.Observable):
 
     def wakeup(self, force = False):
         # verifies if this is the main thread and if that's not the case
-        # and the force flag is not set ignore the wakeup operation, avoding
+        # and the force flag is not set ignore the wakeup operation, avoiding
         # extra usage of resources (not required)
         if self.is_main() and not force: return
 
-        # makes sure that the the task pool is started (required for proper
+        # makes sure that the the notify pool is started (required for proper
         # event notification) and then runs the notification process, should
         # "wake" the main event loop as soon as possible
-        self.tensure()
-        self.tpool.notify()
+        self.nensure()
+        self.npool.notify()
 
     def sleep(self, timeout, future = None):
         # verifies if a future variable is meant to be re-used
@@ -687,11 +688,9 @@ class AbstractBase(observer.Observable):
         # proceed with the task pool notification process (expensive)
         if self.is_main(): return
 
-        # makes sure that the the task pool is started (required for proper
-        # event notification) and then runs the notification process, should
-        # "wake" the main event loop as soon as possible
-        self.tensure()
-        self.tpool.notify()
+        # runs the wakeup operation making sure that as soon as possible the
+        # main event loop gets unblocked for event processing
+        self.wakeup()
 
     def load(self, full = False):
         """
@@ -1049,6 +1048,11 @@ class AbstractBase(observer.Observable):
         # become ready for the polling cycle, the inverse operation
         # (close) should be performed as part of the cleanup
         self.poll.open(timeout = self.poll_timeout)
+
+        # makes sure that the notify pool is created so that the event
+        # notification (required for multi threaded environments) is created
+        # and ready to be used (as expected)
+        self.nensure()
 
         # retrieves the complete set of information regarding the current
         # thread that is being used for the starting of the loop, this data
@@ -1451,6 +1455,21 @@ class AbstractBase(observer.Observable):
         # runs the de-notify operation clearing the pool from any
         # possible extra notification (avoid extra counter)
         pool.denotify()
+
+    def nensure(self):
+        if self.npool: return
+        self.nstart()
+
+    def nstart(self):
+        if self.npool: return
+        self.npool = netius.pool.NotifyPool()
+        self.npool.start()
+        self.pregister(self.npool)
+
+    def nustop(self):
+        if not self.npool: return
+        self.punregister(self.npool)
+        self.npool.stop()
 
     def tensure(self):
         if self.tpool: return
