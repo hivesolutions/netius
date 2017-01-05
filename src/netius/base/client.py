@@ -178,6 +178,11 @@ class DatagramClient(Client):
         if callbacks:
             for callback in callbacks: callback("read", _socket)
 
+        # verifies if the provided socket for reading is the same
+        # as the one registered in the client if that's not the case
+        # return immediately to avoid unwanted operations
+        if not _socket == self.socket: return
+
         try:
             # iterates continuously trying to read as much data as possible
             # when there's a failure to read more data it should raise an
@@ -207,6 +212,11 @@ class DatagramClient(Client):
         if callbacks:
             for callback in callbacks: callback("write", _socket)
 
+        # verifies if the provided socket for writing is the same
+        # as the one registered in the client if that's not the case
+        # return immediately to avoid unwanted operations
+        if not _socket == self.socket: return
+
         try:
             self._send(_socket)
         except ssl.SSLError as error:
@@ -230,6 +240,11 @@ class DatagramClient(Client):
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
             for callback in callbacks: callback("error", _socket)
+
+        # verifies if the provided socket for error is the same
+        # as the one registered in the client if that's not the case
+        # return immediately to avoid unwanted operations
+        if not _socket == self.socket: return
 
     def on_exception(self, exception):
         self.warning(exception)

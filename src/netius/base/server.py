@@ -419,17 +419,22 @@ class DatagramServer(Server):
         Server.serve(self, type = type, *args, **kwargs)
 
     def on_read(self, _socket):
-        # in case the read enabled flag is not currently set
-        # must return immediately because the read operation
-        # is not currently being allowed
-        if not self.renable == True: return
-
         # tries to retrieve a proper callback for the socket
         # that received the read operations and calls the
         # proper callback as expected
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
             for callback in callbacks: callback("read", _socket)
+
+        # in case the read enabled flag is not currently set
+        # must return immediately because the read operation
+        # is not currently being allowed
+        if not self.renable == True: return
+
+        # verifies if the provided socket for reading is the same
+        # as the one registered in the client if that's not the case
+        # return immediately to avoid unwanted operations
+        if not _socket == self.socket: return
 
         try:
             # iterates continuously trying to read as much data as possible
@@ -463,6 +468,11 @@ class DatagramServer(Server):
         if callbacks:
             for callback in callbacks: callback("write", _socket)
 
+        # verifies if the provided socket for writing is the same
+        # as the one registered in the client if that's not the case
+        # return immediately to avoid unwanted operations
+        if not _socket == self.socket: return
+
         try:
             self._send(_socket)
         except ssl.SSLError as error:
@@ -486,6 +496,11 @@ class DatagramServer(Server):
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
             for callback in callbacks: callback("error", _socket)
+
+        # verifies if the provided socket for error is the same
+        # as the one registered in the client if that's not the case
+        # return immediately to avoid unwanted operations
+        if not _socket == self.socket: return
 
     def on_exception(self, exception):
         self.warning(exception)
