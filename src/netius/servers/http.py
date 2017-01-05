@@ -776,7 +776,12 @@ class HTTPServer(netius.StreamServer):
         # and the password associated with the authorization
         return username, password
 
-    def _write_common(self, message):
+    def _write_common(self, message, encoding = "utf-8"):
+        message = netius.legacy.bytes(
+            message,
+            encoding = encoding,
+            force = True
+        )
         self.common_file.write(message + b"\n")
         self.common_file.flush()
 
