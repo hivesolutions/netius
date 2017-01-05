@@ -455,17 +455,12 @@ class AbstractBase(observer.Observable):
         heapq.heappush(self._delayed, callable_t)
         heapq.heappush(self._delayed_o, callable_o)
 
-        # in case the wakeup flag is set this delay operation should have
-        # been called from a different thread and the event loop should
-        # wakeup as soon as possible to handle the event
-        if wakeup: self.wakeup()
-
         # increments the "delay" identifier by one, this identifier is
         # used to correctly identify a delayed object so that for the
         # same target value a sorting is performed (fifo like)
         self._did += 1
 
-    def delay_s(self, callable):
+    def delay_s(self, callable, wakeup = True):
         """
         Safe version of the delay operation to be used to insert a callable
         from a different thread (implied lock mechanisms).
@@ -477,6 +472,9 @@ class AbstractBase(observer.Observable):
         :type callable: Function
         :param callable: The callable that should be called on the next tick
         according to the event loop rules.
+        :type wakeup: bool
+        :param wakeup: If the main event loop should be awaken so that the
+        callable is processed as soon as possible.
         """
 
         # acquires the lock that controls the access to the delayed for next
@@ -486,6 +484,11 @@ class AbstractBase(observer.Observable):
         self._delayed_l.acquire()
         try: self._delayed_n.append(callable)
         finally: self._delayed_l.release()
+
+        # in case the wakeup flag is set this delay operation should have
+        # been called from a different thread and the event loop should
+        # awaken as soon as possible to handle the event
+        if wakeup: self.wakeup()
 
     def delay_m(self):
         """
@@ -618,7 +621,6 @@ class AbstractBase(observer.Observable):
                             callable()
 
                         self.delay_s(handler)
-                        self.tpool.notify()
                         break
 
                     # otherwise we're already on the main thread so a simple partial callback

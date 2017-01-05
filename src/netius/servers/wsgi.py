@@ -308,18 +308,14 @@ class WSGIServer(http2.HTTP2Server):
         if is_future:
             def on_partial(future, value):
                 if not value: return
-                if not self.is_main(): return self.delay(
-                    lambda: on_partial(future, value),
-                    immediately = True,
-                    wakeup = True
+                if not self.is_main(): return self.delay_s(
+                    lambda: on_partial(future, value)
                 )
                 connection.send_part(value, final = False)
 
             def on_done(future):
-                if not self.is_main(): return self.delay(
-                    lambda: on_done(future),
-                    immediately = True,
-                    wakeup = True
+                if not self.is_main(): return self.delay_s(
+                    lambda: on_done(future)
                 )
                 data = future.result() or b""
                 exception = future.exception()
