@@ -1471,7 +1471,7 @@ class AbstractBase(observer.Observable):
         self.npool.start()
         self.pregister(self.npool)
 
-    def nustop(self):
+    def nstop(self):
         if not self.npool: return
         self.punregister(self.npool)
         self.npool.stop()
