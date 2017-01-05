@@ -618,7 +618,7 @@ class HTTPServer(netius.StreamServer):
         netius.StreamServer.on_serve(self)
         if self.env: self.encoding_s = self.get_env("ENCODING", self.encoding_s)
         if self.env: self.common_log = self.get_env("COMMON_LOG", self.common_log)
-        if self.common_log: self.common_file = open(self.common_log, "wb")
+        if self.common_log: self.common_file = open(self.common_log, "wb+")
         self.encoding = ENCODING_MAP.get(self.encoding_s, PLAIN_ENCODING)
         self.info("Starting HTTP server with '%s' encoding ..." % self.encoding_s)
         if self.common_log: self.info("Logging with Common Log Format to '%s' ..." % self.common_log)
