@@ -1205,6 +1205,11 @@ class AbstractBase(observer.Observable):
         # element so that no more ssl is available/used (avoids leaks)
         self._ssl_destroy()
 
+        # verifies if there's a valid (and open) notify pool, if that's
+        # the case starts the stop process for it so that there's no
+        # leaking of task descriptors and other structures
+        if self.npool: self.nstop()
+
         # verifies if there's a valid (and open) task pool, if that's
         # the case starts the stop process for it so that there's no
         # leaking of task descriptors and other structures
