@@ -1403,7 +1403,7 @@ class AbstractBase(observer.Observable):
         if not eventfd: self.warning("Starting pool without eventfd")
         if not eventfd: return
         if not self.poll: return
-        self.poll.sub_read(eventfd)
+        self.sub_read(eventfd)
 
         # creates the callback clojure around the current context
         # so that a proper callback can be used for the operations
@@ -1436,7 +1436,7 @@ class AbstractBase(observer.Observable):
         if not eventfd: self.warning("Stopping pool without eventfd")
         if not eventfd: return
         if not self.poll: return
-        self.poll.unsub_read(eventfd)
+        self.unsub_read(eventfd)
 
         # unregisters from a callback operation in the event fd so that
         # no more events are handled by the notifier, this is expected
