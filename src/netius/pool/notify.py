@@ -19,6 +19,9 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+__author__ = "João Magalhães <joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -35,11 +38,8 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 from . import common
-from . import file
-from . import notify
-from . import task
 
-from .common import Thread, ThreadPool, EventPool, EventFile, UnixEventFile, SocketEventFile
-from .file import FileThread, FilePool
-from .notify import NotifyPool
-from .task import TaskThread, TaskPool
+class NotifyPool(common.EventPool):
+
+    def __init__(self):
+        common.EventPool.__init__(self, count = 0)
