@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import ssl
 import struct
 
 import netius.common
@@ -1093,6 +1094,7 @@ class HTTP2Server(http.HTTPServer):
         self.settings = settings
         self.settings_t = netius.legacy.items(self.settings)
         self.has_h2 = self._has_h2()
+        self.has_all_h2 = self._has_all_h2()
         self._protocols = []
         self.safe = self.get_env("SAFE", self.safe, cast = bool)
         http.HTTPServer.__init__(self, *args, **kwargs)
@@ -1102,7 +1104,8 @@ class HTTP2Server(http.HTTPServer):
         info.update(
             legacy = self.legacy,
             safe = self.safe,
-            has_h2 = self.has_h2
+            has_h2 = self.has_h2,
+            has_all_h2 = self.has_all_h2
         )
         return info
 
@@ -1143,6 +1146,7 @@ class HTTP2Server(http.HTTPServer):
         safe_s = "with" if self.safe else "without"
         self.info("Starting HTTP2 server %s safe mode ..." % safe_s)
         if not self.has_h2: self.info("No support for HTTP2 is available ...")
+        elif not self.has_all_h2: self.info("Limited support for HTTP2 is available ...")
         for setting, name in netius.common.HTTP2_TUPLES:
             if not self.env: continue
             value = self.get_env(name, None, cast = int)
@@ -1205,10 +1209,22 @@ class HTTP2Server(http.HTTPServer):
         if not self._has_hpack(): return False
         return True
 
+    def _has_all_h2(self):
+        if not self._has_hpack(): return False
+        if not self._has_alpn(): return False
+        if not self._has_npn(): return False
+        return True
+
     def _has_hpack(self):
         try: import hpack #@UnusedImport
         except: return False
         return True
+
+    def _has_alpn(self):
+        return ssl.HAS_ALPN
+
+    def _has_npn(self):
+        return ssl.HAS_NPN
 
     def _handle_exception(self, exception, connection):
         stream = exception.get_kwarg("stream")
