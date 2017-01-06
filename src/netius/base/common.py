@@ -431,9 +431,19 @@ class AbstractBase(observer.Observable):
         timeout = None,
         immediately = False,
         verify = False,
-        wakeup = False,
         safe = True
     ):
+        # in case the safe flag is set and the thread trying to add
+        # delayed elements is not the main the proper (safe) method
+        # is used meaning a safe execution is targeted
+        if safe and not self.is_main():
+            return self.delay_s(
+                callable,
+                timeout = timeout,
+                immediately = immediately,
+                verify = verify
+            )
+
         # creates the original target value with a zero value (forced
         # execution in next tick) in case the timeout value is set the
         # value is incremented to the current time, then created the
@@ -449,12 +459,6 @@ class AbstractBase(observer.Observable):
         is_duplicate = verify and callable_o in self._delayed_o
         if is_duplicate: return
 
-        # in case the safe flag is set and the thread trying to add
-        # delayed elements is not the main one a warning is sent
-        if safe and not self.is_main(): self.warning(
-            "Trying to delay from other thread, may cause race condition"
-        )
-
         # creates the "final" callable tuple with the target time, the
         # callable and the loop id (lid) then inserts both the delayed
         # (original) callable tuple and the callable tuple in the lists
@@ -468,7 +472,14 @@ class AbstractBase(observer.Observable):
         # same target value a sorting is performed (fifo like)
         self._did += 1
 
-    def delay_s(self, callable, wakeup = True):
+    def delay_s(
+        self,
+        callable,
+        timeout = None,
+        immediately = True,
+        verify = False,
+        wakeup = True
+    ):
         """
         Safe version of the delay operation to be used to insert a callable
         from a different thread (implied lock mechanisms).
@@ -480,17 +491,31 @@ class AbstractBase(observer.Observable):
         :type callable: Function
         :param callable: The callable that should be called on the next tick
         according to the event loop rules.
+        :type timeout: int
+        :param timeout: The timeout for the callable to be called, this value
+        may not reflect an accurate value and depends greatly on the minimum
+        resolution value of the polling mechanism.
+        :type immediately: bool
+        :param immediately: If the callable should be called as soon as possible,
+        this is equivalent to setting timeout to -1.
+        :type verify: bool
+        :param verify: If the delayed sequences should be verified for possible
+        duplicated, avoiding possible issues.
         :type wakeup: bool
         :param wakeup: If the main event loop should be awaken so that the
         callable is processed as soon as possible.
         """
+
+        # creates the next element tuple that is going to be scheduled according
+        # to the definition provided to the method
+        next = (callable, timeout, immediately, verify)
 
         # acquires the lock that controls the access to the delayed for next
         # tick list and then adds the callable to such list, please note that
         # the delayed (next) list is only going to be joined/merged with delay
         # operations and list on the next tick (through the merge operation)
         self._delayed_l.acquire()
-        try: self._delayed_n.append(callable)
+        try: self._delayed_n.append(next)
         finally: self._delayed_l.release()
 
         # in case the wakeup flag is set this delay operation should have
@@ -511,7 +536,14 @@ class AbstractBase(observer.Observable):
 
         # iterates over the complete set of next elements in the delay next list
         # and schedules them as delay for the next tick execution
-        for next in self._delayed_n: self.delay(next, immediately = True)
+        for next in self._delayed_n:
+            callable, timeout, immediately, verify = next
+            self.delay(
+                callable,
+                timeout = timeout,
+                immediately = immediately,
+                verify = verify
+            )
 
         # deletes the complete set of elements present in the delay next list, this
         # is considered to be equivalent to the empty operation
