@@ -431,7 +431,7 @@ class AbstractBase(observer.Observable):
         timeout = None,
         immediately = False,
         verify = False,
-        safe = True
+        safe = False
     ):
         # in case the safe flag is set and the thread trying to add
         # delayed elements is not the main the proper (safe) method

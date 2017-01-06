@@ -400,7 +400,8 @@ class DatagramClient(Client):
             else: self.delay(
                 self._flush_write,
                 immediately = True,
-                verify = True
+                verify = True,
+                safe = True
             )
         else:
             self.ensure_write()
