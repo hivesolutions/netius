@@ -328,7 +328,7 @@ class BaseConnection(observer.Observable):
         # safe and so it must be delayed to be executed in the
         # next loop of the thread cycle, must return immediately
         # to avoid extra subscription operations
-        if not is_safe: self.owner.delay(self.ensure_write); return
+        if not is_safe: return self.owner.delay(self.ensure_write, safe = True)
 
         # verifies if the status of the connection is open and
         # in case it's not returns immediately as there's no reason
@@ -466,7 +466,8 @@ class BaseConnection(observer.Observable):
             else: self.owner.delay(
                 self._flush_write,
                 immediately = True,
-                verify = True
+                verify = True,
+                safe = True
             )
 
         # otherwise the write stream is not ready and so the

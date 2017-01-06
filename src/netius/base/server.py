@@ -526,7 +526,7 @@ class DatagramServer(Server):
         # safe and so it must be delayed to be executed in the
         # next loop of the thread cycle, must return immediately
         # to avoid extra subscription operations
-        if not is_safe: self.delay(self.ensure_write); return
+        if not is_safe: return self.delay(self.ensure_write, safe = True)
 
         # adds the current socket to the list of write operations
         # so that it's going to be available for writing as soon
@@ -568,7 +568,8 @@ class DatagramServer(Server):
             else: self.delay(
                 self._flush_write,
                 immediately = True,
-                verify = True
+                verify = True,
+                safe = True
             )
         else:
             self.ensure_write()
