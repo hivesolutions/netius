@@ -431,7 +431,8 @@ class AbstractBase(observer.Observable):
         timeout = None,
         immediately = False,
         verify = False,
-        wakeup = False
+        wakeup = False,
+        safe = True
     ):
         # creates the original target value with a zero value (forced
         # execution in next tick) in case the timeout value is set the
@@ -447,6 +448,12 @@ class AbstractBase(observer.Observable):
         # case it does returns immediately to avoid duplicated values
         is_duplicate = verify and callable_o in self._delayed_o
         if is_duplicate: return
+
+        # in case the safe flag is set and the thread trying to add
+        # delayed elements is not the main one a warning is sent
+        if safe and not self.is_main(): self.warning(
+            "Trying to delay from other thread, may cause race condition"
+        )
 
         # creates the "final" callable tuple with the target time, the
         # callable and the loop id (lid) then inserts both the delayed
