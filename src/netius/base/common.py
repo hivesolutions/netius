@@ -673,7 +673,7 @@ class AbstractBase(observer.Observable):
         self.delay(callable, immediately = immediately)
         return future
 
-    def wakeup(self, force = False):
+    def wakeup(self, force = False, ensure = False):
         # verifies if this is the main thread and if that's not the case
         # and the force flag is not set ignore the wakeup operation, avoiding
         # extra usage of resources (not required)
@@ -682,7 +682,8 @@ class AbstractBase(observer.Observable):
         # makes sure that the the notify pool is started (required for proper
         # event notification) and then runs the notification process, should
         # "wake" the main event loop as soon as possible
-        self.nensure()
+        if ensure: self.nensure()
+        if not self.npool: return
         self.npool.notify()
 
     def sleep(self, timeout, future = None):
