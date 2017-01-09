@@ -702,7 +702,7 @@ class AbstractBase(observer.Observable):
         self.delay(callable, timeout = timeout)
         return future
 
-    def wait(self, event, future = None):
+    def wait(self, event, timeout = None, future = None):
         # verifies if a future variable is meant to be re-used
         # or if instead a new one should be created for the new
         # sleep operation to be executed
@@ -711,12 +711,28 @@ class AbstractBase(observer.Observable):
         # creates the callable that is going to be used to set
         # the final value of the future variable, the result
         # set in the future represents the payload of the event
-        callable = lambda data: future.set_result(data)
+        def callable(data):
+            if future.cancelled(): return
+            future.set_result(data)
+
+        # creates the callable that is going to be called in case
+        # the timeout has been reached, this avoids constant waiting
+        # for an event to happen (dead lock)
+        def canceler():
+            if future.done(): return
+            future.cancel()
 
         # waits the execution of the callable until the event with the
         # provided name is notified/triggered, the execution should be
         # triggered on the same event loop tick as the notification
         self.wait_event(callable, name = event)
+
+        # in case a valid timeout is set schedules the canceler operation
+        # to be performed (to unblock the waiting element)
+        if timeout: self.delay(canceler, timeout = timeout)
+
+        # returns the provided future or a new one in case none has been
+        # provided, this will be used for proper event registration
         return future
 
     def notify(self, event, data = None):

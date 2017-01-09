@@ -152,10 +152,10 @@ def sleep(timeout, future = None):
     loop = get_loop()
     yield loop.sleep(timeout, future = future)
 
-def wait(event, future = None):
+def wait(event, timeout = None, future = None):
     from .common import get_loop
     loop = get_loop()
-    yield loop.wait(event, future = future)
+    yield loop.wait(event, timeout = timeout, future = future)
 
 def notify(event, data = None):
     from .common import get_loop
