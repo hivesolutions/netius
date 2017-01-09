@@ -341,6 +341,9 @@ class WSGIServer(http2.HTTP2Server):
             data.add_done_callback(on_done)
             data.add_ready_callback(on_ready)
             data.add_closed_callback(on_closed)
+
+            # sets the current fg
+            connection.future = data;
             return
 
         # ensures that the provided data is a byte sequence as expected
@@ -380,9 +383,18 @@ class WSGIServer(http2.HTTP2Server):
         connection.close(flush = True)
 
     def _release(self, connection):
+        self._release_future(connection)
         self._release_iterator(connection)
         self._release_environ(connection)
         self._release_parser(connection)
+
+    def _release_future(self, connection):
+        future = hasattr(connection, "future") and connection.future
+        if not future: return
+
+        future.cancel()
+
+        connection.future = None
 
     def _release_iterator(self, connection):
         # verifies if there's an iterator object currently defined

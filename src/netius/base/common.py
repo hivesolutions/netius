@@ -425,6 +425,15 @@ class AbstractBase(observer.Observable):
         binds.append(callable)
         self._events[name] = binds
 
+    def unwait_event(self, callable, name = None):
+        binds = self._events.get(name, [])
+        if not callable in binds: return
+
+        binds.remove(callable)
+
+        if binds: self._events[name] = binds
+        else: del self._events[name]
+
     def delay(
         self,
         callable,
@@ -721,6 +730,11 @@ class AbstractBase(observer.Observable):
         def canceler():
             if future.done(): return
             future.cancel()
+
+        def on_callback(future):
+            self.unwait_event(callable, name = event)
+
+        future.add_done_callback(on_callback)
 
         # waits the execution of the callable until the event with the
         # provided name is notified/triggered, the execution should be
