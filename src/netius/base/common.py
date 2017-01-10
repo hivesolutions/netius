@@ -595,6 +595,19 @@ class AbstractBase(observer.Observable):
                 result = coroutine_c(*args, **kwargs)
                 future.set_result(result)
 
+        # creates the function that is going to "propagate" the cancel
+        # operation from the "parent" future to the child one
+        def cleanup(future):
+            if not future.cancelled(): return
+            if not hasattr(future, "child"): return
+            if not future.child: return
+            future.child.cancel()
+
+        # adds the cleanup function as a done callback so that whenever
+        # the future is canceled a child future is also canceled, this
+        # propagation of operations allows for proper cleanup
+        future.add_done_callback(cleanup)
+
         # creates the generate sequence from the coroutine callable
         # by calling it with the newly created future instance, that
         # will be used for the control of the execution
@@ -613,6 +626,11 @@ class AbstractBase(observer.Observable):
         # or concrete values, for each situation a proper operation must
         # be applied to complete the final task in the proper way
         def step(_future):
+
+            # unsets any possible reference to a child element as it must
+            # have been processed if the control flow reached this point,
+            # this avoids duplicated approval of child futures
+            future.child = None
 
             # iterates continuously over the generator that may emit both
             # plain object values or future (delayed executions)
@@ -651,8 +669,10 @@ class AbstractBase(observer.Observable):
                 is_future = isinstance(value, Future)
 
                 # in case the current value is a future schedules it for execution
-                # taking into account the proper thread execution model
+                # taking into account the proper thread execution model, note that
+                # the future is set as a child of the current "parent" future
                 if is_future:
+                    future.child = value
                     value.add_done_callback(callable)
                     break
 
