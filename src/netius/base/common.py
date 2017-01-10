@@ -596,7 +596,8 @@ class AbstractBase(observer.Observable):
                 future.set_result(result)
 
         # creates the function that is going to "propagate" the cancel
-        # operation from the "parent" future to the child one
+        # operation from the "parent" future to the child one, this
+        # should also close the associated generator
         def cleanup(future):
             if not future.cancelled(): return
             if not hasattr(future, "child"): return
