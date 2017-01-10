@@ -394,11 +394,18 @@ class WSGIServer(http2.HTTP2Server):
         self._release_parser(connection)
 
     def _release_future(self, connection):
+        # verifies if there's a future associated/running under the
+        # current connection, if that's not the case returns immediately
         future = hasattr(connection, "future") and connection.future
         if not future: return
 
+        # runs the cancel operation on the future, note that this
+        # operation is only performed in case the future is still
+        # under the running state (normal operation)
         future.cancel()
 
+        # unsets the future from the connection as it's no longer
+        # associated with it (as it's considered closed)
         connection.future = None
 
     def _release_iterator(self, connection):
