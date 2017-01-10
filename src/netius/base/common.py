@@ -426,11 +426,18 @@ class AbstractBase(observer.Observable):
         self._events[name] = binds
 
     def unwait_event(self, callable, name = None):
-        binds = self._events.get(name, [])
-        if not callable in binds: return
+        # tries to retrieve the list of binds for the event
+        # and verifies that the callable is present on them
+        # and if that's not the case ignores the operation
+        binds = self._events.get(name, None)
+        if not binds or not callable in binds: return
 
+        # removes the callable from the binds list so that
+        # it's no longer going to be called
         binds.remove(callable)
 
+        # verifies if the binds list is still valid deleting
+        # it from the map of events otherwise
         if binds: self._events[name] = binds
         else: del self._events[name]
 
@@ -752,10 +759,16 @@ class AbstractBase(observer.Observable):
             if future.done(): return
             future.cancel()
 
-        def on_callback(future):
+        # creates the callback function that is going to be called
+        # whenever the future is completed (either error or success)
+        # this should run the series of cleanup operations
+        def cleanup(future):
             self.unwait_event(callable, name = event)
 
-        future.add_done_callback(on_callback)
+        # registers the cleanup function for the done operation so that
+        # the waiting for the event is canceled whenever the future is
+        # completed with either success or error
+        future.add_done_callback(cleanup)
 
         # waits the execution of the callable until the event with the
         # provided name is notified/triggered, the execution should be
