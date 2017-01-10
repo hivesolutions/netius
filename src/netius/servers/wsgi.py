@@ -326,6 +326,7 @@ class WSGIServer(http2.HTTP2Server):
                     final = False,
                     callback = self._send_part
                 )
+                connection.future = None
 
             def on_ready():
                 return connection.wready

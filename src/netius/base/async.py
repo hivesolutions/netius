@@ -92,13 +92,15 @@ class Future(object):
     def cancel(self, cleanup = True):
         self.set_exception(None, cleanup = cleanup)
 
-    def set_result(self, result, cleanup = True):
+    def set_result(self, result, cleanup = True, force = False):
+        if self.status == 1 and not force: return
         self.status = 1
         self._result = result
         self._done_callbacks()
         cleanup and self.cleanup()
 
-    def set_exception(self, exception, cleanup = True):
+    def set_exception(self, exception, cleanup = True, force = False):
+        if self.status == 2 and not force: return
         self.status = 2
         self._exception = exception
         self._done_callbacks()
