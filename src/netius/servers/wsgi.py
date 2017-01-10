@@ -342,8 +342,12 @@ class WSGIServer(http2.HTTP2Server):
             data.add_ready_callback(on_ready)
             data.add_closed_callback(on_closed)
 
-            # sets the current fg
-            connection.future = data;
+            # sets the current future object in the connection so that
+            # it may be latter usage for possible release
+            connection.future = data
+
+            # returns the control flow immediately as there's nothing
+            # left to be done for a future operation at the moment
             return
 
         # ensures that the provided data is a byte sequence as expected
