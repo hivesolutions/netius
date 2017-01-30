@@ -80,6 +80,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     ):
         netius.servers.ProxyServer.__init__(self, *args, **kwargs)
         if isinstance(regex, dict): regex = netius.legacy.items(regex)
+        if isinstance(auth_regex, dict): auth_regex = netius.legacy.items(auth_regex)
         if not isinstance(hosts, dict): hosts = dict(hosts)
         self.load_config(
             path = config,
