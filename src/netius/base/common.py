@@ -574,6 +574,42 @@ class AbstractBase(observer.Observable):
         future = None,
         immediately = True
     ):
+        """
+        Main method for the queuing/startup of an asynchronous coroutine
+        of async method, this should be called at the most higher level
+        of the execution of a chained coroutine sequence.
+
+        The method should create a proper sequence/pipelined handling of
+        the various chained coroutine calls so that they are called one
+        after the other using futures for such handling.
+
+        Multiple calls to this method should generate different async
+        contexts.
+
+        :type coroutine: Coroutine
+        :param coroutine: The callable or coroutine that is going to be
+        "inserted" for an asynchronous execution.
+        :type args: List
+        :param args: The list of "normal" arguments to be sent to the
+        coroutine as parts of its signature.
+        :type kwargs: Dictionary
+        :param kwargs: The keyword arguments to be sent to the coroutine.
+        :type thread: bool
+        :param thread: If the execution of the coroutine should be done
+        using a different thread (via thread pool), this may be interesting
+        if the coroutine includes blocking i/o calls.
+        :type future: Future
+        :param future: If provided ensures that non new future object is going
+        to be created for this async context to be created.
+        :type immediately: bool
+        :param immediately: If the callback should be scheduler in the event
+        pool to be executed immediately (as soon as possible).
+        :rtype: Future
+        :return: The future that has been created for this new async context
+        or the provided one if one was provided (this is considered to be the
+        parent future of the complete coroutine chain).
+        """
+
         # tries to determine if the provided callable is really
         # a coroutine and uses that condition to determine the
         # default value for the thread argument
