@@ -49,14 +49,29 @@ def coroutine(function):
     else:
         @functools.wraps(function)
         def routine(*args, **kwargs):
+            # verifies if the first (unnamed argument) of the call
+            # of the future is a future and if that's not the case
+            # inserts a newly created object into the arguments
+            has_future = True if args and isinstance(args[0], Future) else False
+            if not has_future: args.insert(0, Future())
+
+            # calls the underlying function with the expected arguments
+            # and keyword arguments (proper call propagation)
             result = function(*args, **kwargs)
 
+            # verifies the data type of the resulting object so that a
+            # proper yielding operation or return will take place
             is_future = isinstance(result, Future)
             is_generator = inspect.isgenerator(result)
 
+            # in case the returned value is either a future or a generator
+            # the complete set of yielded elements are propagated and
+            # the result is stored as the "new" result
             if is_future or is_generator:
                 result = yield from result
 
+            # returns the "final" result to the caller method as expected
+            # this allows generated propagation
             return result
 
     routine._is_coroutine = True
