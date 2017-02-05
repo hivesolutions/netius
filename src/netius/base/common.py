@@ -579,16 +579,21 @@ class AbstractBase(observer.Observable):
         of async method, this should be called at the most higher level
         of the execution of a chained coroutine sequence.
 
+        It should ensure that the provided callable is wrapped into a
+        coroutine if that's the case, so that chained calling is not
+        violated by a non compliant element.
+
         The method should create a proper sequence/pipelined handling of
         the various chained coroutine calls so that they are called one
         after the other using futures for such handling.
 
         Multiple calls to this method should generate different async
-        contexts.
+        contexts (with different parent future instances).
 
-        :type coroutine: Coroutine
+        :type coroutine: Coroutine/Callable
         :param coroutine: The callable or coroutine that is going to be
-        "inserted" for an asynchronous execution.
+        "inserted" for an asynchronous execution, if a callable is provided
+        a coroutine is created wrapping the execution of such callable.
         :type args: List
         :param args: The list of "normal" arguments to be sent to the
         coroutine as parts of its signature.
