@@ -585,7 +585,8 @@ class AbstractBase(observer.Observable):
 
         The method should create a proper sequence/pipelined handling of
         the various chained coroutine calls so that they are called one
-        after the other using futures for such handling.
+        after the other using futures for such handling. The final "simple"
+        abstraction should expose one "parent" future object as the interface.
 
         Multiple calls to this method should generate different async
         contexts (with different parent future instances).
