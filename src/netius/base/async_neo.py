@@ -40,6 +40,8 @@ __license__ = "Apache License, Version 2.0"
 import inspect
 import functools
 
+from . import legacy
+
 class AwaitWrapper(object):
 
     def __init__(self, generator):
@@ -54,6 +56,42 @@ class AwaitWrapper(object):
 
     def __next__(self):
         return next(self.generator)
+
+    def next(self):
+        return self.__next__()
+
+class AyncWrapper(object):
+
+    def __init__(self, async_iter):
+        self.async_iter = async_iter
+        self.current = None
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            if self.current == None: self.current = self.async_iter.asend(None)
+            try: return next(self.current)
+            except StopIteration as exception:
+                self.current = None
+                return exception.args[0]
+        except StopAsyncIteration: #@UndefinedVariable
+            raise StopIteration
+
+    def next(self):
+        return self.__next__()
+
+class CoroutineWrapper(object):
+
+    def __init__(self, coroutine):
+        self.coroutine = coroutine
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.coroutine.send(None)
 
     def next(self):
         return self.__next__()
@@ -88,6 +126,34 @@ def coroutine(function):
 
     routine._is_coroutine = True
     return routine
+
+def ensure_generator(value):
+    if legacy.is_generator(value):
+        return True, value
+
+    if hasattr(inspect, "isasyncgen") and\
+        inspect.isasyncgen(value): #@UndefinedVariable
+        return True, AyncWrapper(value)
+
+    if hasattr(inspect, "iscoroutine") and\
+        inspect.iscoroutine(value): #@UndefinedVariable
+        return True, CoroutineWrapper(value)
+
+    return False, value
+
+def is_coroutine(callable):
+    if hasattr(coroutine, "_is_coroutine"):
+        return True
+
+    if hasattr(inspect, "iscoroutine") and\
+        inspect.iscoroutine(callable): #@UndefinedVariable
+        return True
+
+    if hasattr(inspect, "iscoroutinefunction") and\
+        inspect.iscoroutinefunction(callable): #@UndefinedVariable
+        return True
+
+    return False
 
 def _sleep(timeout):
     from .common import get_loop

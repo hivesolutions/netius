@@ -42,6 +42,8 @@ import sys
 import inspect
 import functools
 
+from . import legacy
+
 class Future(object):
 
     def __init__(self):
@@ -153,6 +155,14 @@ def coroutine(function):
 
     routine._is_coroutine = True
     return routine
+
+def ensure_generator(value):
+    if legacy.is_generator(value): return True, value
+    return False, value
+
+def is_coroutine(callable):
+    if hasattr(coroutine, "_is_coroutine"): return True
+    return False
 
 def wakeup(force = False):
     from .common import get_loop

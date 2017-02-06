@@ -52,6 +52,7 @@ import netius.adapters
 
 from . import log
 from . import util
+from . import async
 from . import errors
 
 from .. import middleware
@@ -619,7 +620,7 @@ class AbstractBase(observer.Observable):
         # tries to determine if the provided callable is really
         # a coroutine and uses that condition to determine the
         # default value for the thread argument
-        is_coroutine = hasattr(coroutine, "_is_coroutine")
+        is_coroutine = async.is_coroutine(coroutine)
         if thread == None: thread = False if is_coroutine else True
 
         # verifies if a future variable is meant to be re-used
@@ -670,6 +671,13 @@ class AbstractBase(observer.Observable):
         # determined to be receiving the future as first argument
         if is_future: sequence = coroutine(future, *args, **kwargs)
         else: sequence = coroutine(*args, **kwargs)
+
+        # calls the ensure generator method so that the provided sequence
+        # gets properly "normalized" into the expected generator structure
+        # in case the normalization is not possible a proper exception is
+        # raised indicating the "critical" problem
+        is_generator, sequence = async.ensure_generator(sequence)
+        if not is_generator: raise errors.AssertionError("Expected generator")
 
         # creates the callable that is going to be used to call
         # the coroutine with the proper future variable as argument
