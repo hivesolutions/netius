@@ -40,14 +40,16 @@ __license__ = "Apache License, Version 2.0"
 import netius
 
 @netius.coroutine
-def compute(x, y):
+def compute(future, x, y):
     print("Compute %s + %s ..." % (x, y))
-    yield from netius.sleep(1.0)
-    return x + y
+    for value in netius.sleep(1.0): yield value
+    future.set_result(x + y)
 
 @netius.coroutine
 def print_sum(x, y):
-    result = yield from compute(x, y)
+    future = netius.Future()
+    for value in compute(future, x, y): yield value
+    result = future.result()
     print("%s + %s = %s" % (x, y, result))
 
 loop = netius.get_loop()
