@@ -131,12 +131,6 @@ def coroutine(function):
     else:
         @functools.wraps(function)
         def routine(*args, **kwargs):
-            # verifies if the first (unnamed argument) of the call
-            # of the future is a future and if that's not the case
-            # inserts a newly created object into the arguments
-            has_future = True if args and isinstance(args[0], Future) else False
-            if not has_future: args.insert(0, Future())
-
             # calls the underlying function with the expected arguments
             # and keyword arguments (proper call propagation)
             result = function(*args, **kwargs)
