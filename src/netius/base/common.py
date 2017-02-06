@@ -658,10 +658,18 @@ class AbstractBase(observer.Observable):
         # propagation of operations allows for proper cleanup
         future.add_done_callback(cleanup)
 
+        # retrieves the argument spec of the provided coroutine to check
+        # if the provided coroutine requires a future to be passed
+        spec = legacy.getargspec(coroutine)
+        is_future = spec[0] and spec[0][0] == "future"
+
         # creates the generate sequence from the coroutine callable
         # by calling it with the newly created future instance, that
-        # will be used for the control of the execution
-        sequence = coroutine(future, *args, **kwargs)
+        # will be used for the control of the execution, notice that
+        # the future is only passed in case the coroutine has been
+        # determined to be receiving the future as first argument
+        if is_future: sequence = coroutine(future, *args, **kwargs)
+        else: sequence = coroutine(*args, **kwargs)
 
         # creates the callable that is going to be used to call
         # the coroutine with the proper future variable as argument
