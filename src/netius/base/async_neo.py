@@ -40,6 +40,24 @@ __license__ = "Apache License, Version 2.0"
 import inspect
 import functools
 
+class AwaitWrapper(object):
+
+    def __init__(self, generator):
+        self.generator = generator
+
+    def __await__(self):
+        value = yield from self.generator
+        return value
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self.generator)
+
+    def next(self):
+        return self.__next__()
+
 def coroutine(function):
 
     from .async import Future
@@ -71,8 +89,21 @@ def coroutine(function):
     routine._is_coroutine = True
     return routine
 
-def sleep(timeout):
+def _sleep(timeout):
     from .common import get_loop
     loop = get_loop()
     yield loop.sleep(timeout)
     return timeout
+
+def _wait(event, timeout = None, future = None):
+    from .common import get_loop
+    loop = get_loop()
+    yield loop.wait(event, timeout = timeout, future = future)
+
+def sleep(*args, **kwargs):
+    generator = _sleep(*args, **kwargs)
+    return AwaitWrapper(generator)
+
+def wait(*args, **kwargs):
+    generator = _wait(*args, **kwargs)
+    return AwaitWrapper(generator)
