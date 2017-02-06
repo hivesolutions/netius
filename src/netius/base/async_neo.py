@@ -142,11 +142,7 @@ def ensure_generator(value):
     return False, value
 
 def is_coroutine(callable):
-    if hasattr(coroutine, "_is_coroutine"):
-        return True
-
-    if hasattr(inspect, "iscoroutine") and\
-        inspect.iscoroutine(callable): #@UndefinedVariable
+    if hasattr(callable, "_is_coroutine"):
         return True
 
     if hasattr(inspect, "iscoroutinefunction") and\
