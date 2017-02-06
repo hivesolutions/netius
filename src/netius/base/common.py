@@ -301,7 +301,8 @@ class AbstractBase(observer.Observable):
 
     def __init__(self, name = None, handlers = None, *args, **kwargs):
         observer.Observable.__init__(self, *args, **kwargs)
-        poll = AbstractBase.test_poll()
+        cls = self.__class__
+        poll = cls.test_poll()
         self.name = name or self.__class__.__name__
         self.handler_stream = logging.StreamHandler()
         self.handlers = handlers or (self.handler_stream,)
@@ -767,6 +768,36 @@ class AbstractBase(observer.Observable):
         # immediately if possible (event on the same iteration)
         self.delay(callable, immediately = immediately)
         return future
+
+    def run_until_complete(
+        self,
+        coroutine,
+        args = [],
+        kwargs = {},
+        thread = None
+    ):
+        # creates the callback function that is going to be called when
+        # the future associated with the provided ensure context gets
+        # finished (on done callback)
+        def cleanup(future):
+            self.stop()
+
+        # ensures that the provided coroutine get executed under a new
+        # context and retrieves the resulting future
+        future = self.ensure(
+            coroutine,
+            args = args,
+            kwargs = kwargs,
+            thread = thread
+        )
+
+        # defines the cleanup operation (loop stop) as the target for the
+        # done operation on the future (allows cleanup)
+        future.add_done_callback(cleanup)
+
+        # starts the current event loop, this is a blocking operation until
+        # the done callback is called to stop the loop
+        self.start()
 
     def wakeup(self, force = False):
         # verifies if this is the main thread and if that's not the case
@@ -1996,6 +2027,10 @@ class AbstractBase(observer.Observable):
         self.logger.log(level, message)
 
     def build_poll(self):
+        # retrieves the reference to the parent class associated with
+        # the current instance, it's going t be used for class methods
+        cls = self.__class__
+
         # verifies if the currently set polling mechanism is open in
         # case it's ther's no need to re-build the polling mechanism
         # otherwise rebuilds the polling mechanism with the current
@@ -2005,7 +2040,7 @@ class AbstractBase(observer.Observable):
         # runs the testing of the poll again and verifies if the polling
         # class has changed in case it did not returns the current poll
         # instance as expected by the current infra-structure
-        poll_c = AbstractBase.test_poll(preferred = self.poll_name)
+        poll_c = cls.test_poll(preferred = self.poll_name)
         if poll_c == self.poll_c: return self.poll
 
         # updates the polling class with the new value and re-creates
@@ -2806,11 +2841,14 @@ class BaseThread(threading.Thread):
             self.owner._thread = None
             self.owner = None
 
-def get_main():
+def get_main(ensure = True):
+    if not AbstractBase._MAIN and ensure:
+        instance = AbstractBase()
+        AbstractBase._MAIN = instance
     return AbstractBase._MAIN
 
-def get_loop():
-    return get_main()
+def get_loop(ensure = True):
+    return get_main(ensure = ensure)
 
 def get_poll():
     main = get_main()
