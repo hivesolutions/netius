@@ -1631,6 +1631,10 @@ class AbstractBase(observer.Observable):
         if not self.poll: return
         self.unsub_read(eventfd)
 
+        # verifies if the callback operation in the event fd is defined
+        # for the pool and if that's not the case returns immediately
+        if not hasattr(pool, "_callback"): return
+
         # unregisters from a callback operation in the event fd so that
         # no more events are handled by the notifier, this is expected
         # in order to avoid any leaks
