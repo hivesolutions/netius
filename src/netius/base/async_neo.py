@@ -169,3 +169,8 @@ def sleep(*args, **kwargs):
 def wait(*args, **kwargs):
     generator = _wait(*args, **kwargs)
     return AwaitWrapper(generator)
+
+def future_iter(self):
+    if not self.done(): yield self
+    if not self.done(): return None
+    return self.result()

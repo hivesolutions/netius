@@ -192,5 +192,18 @@ def notify(event, data = None):
     loop = get_loop()
     return loop.notify(event, data = data)
 
+# defines the initial value of the "new" future iterator to
+# be created (overriding the default one) as invalid, meaning
+# that no operation of method overriding is going to be performed
+future_iter = None
+
+# verifies if the current python interpreter version supports
+# the new version of the async implementation and if that's the
+# case runs the additional import of symbols, this should override
+# most of the symbols that have just been created
 is_neo = sys.version_info[0] >= 3 and sys.version_info[1] >= 3
 if is_neo: from .async_neo import * #@UnusedWildImport
+
+# in case a new future iterator generator method is defined sets
+# it in the future class effectively overriding the default one
+if future_iter: Future.__iter__ = future_iter
