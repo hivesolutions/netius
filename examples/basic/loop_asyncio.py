@@ -44,7 +44,7 @@ import asyncio
 @asyncio.coroutine
 def compute(x, y):
     print("Compute %s + %s ..." % (x, y))
-    yield from netius.sleep(1.0)
+    yield from asyncio.sleep(1.0)
     return x + y
 
 @asyncio.coroutine

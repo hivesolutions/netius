@@ -52,6 +52,9 @@ class Future(object):
         self._exception = None
         self.cleanup()
 
+    def __iter__(self):
+        if not self.done(): yield self
+
     def cleanup(self):
         self.done_callbacks = []
         self.partial_callbacks = []
@@ -125,6 +128,11 @@ class Future(object):
 
     def _partial_callbacks(self, value):
         for callback in self.partial_callbacks: callback(self, value)
+
+class Handle(object):
+
+    def cancel(self):
+        pass
 
 def coroutine(function):
 
