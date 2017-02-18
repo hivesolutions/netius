@@ -2442,8 +2442,13 @@ class AbstractBase(observer.Observable):
             # calls the callback method as the delayed operation is
             # now meant to be run, this is an operation that may change
             # the current list of delayed object (causing cycles) and so
-            # must be implemented with the proper precautions
-            method()
+            # must be implemented with the proper precautions, note that
+            # proper exception is set so that proper top level handling
+            # is defined and logging is performed
+            try: method()
+            except BaseException as exception:
+                self.error(exception)
+                self.log_stack(method = self.warning)
 
         # iterates over all the pending callable tuple values and adds
         # them back to the delayed heap list so that they are called

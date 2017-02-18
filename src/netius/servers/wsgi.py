@@ -320,7 +320,11 @@ class WSGIServer(http2.HTTP2Server):
                 data = future.result() or b""
                 exception = future.exception()
                 cancelled = future.cancelled()
-                if exception or cancelled: connection.close()
+                is_exception = isinstance(exception, BaseException)
+                if exception or cancelled:
+                    connection.close()
+                    if is_exception: raise exception
+                    else: raise RuntimeError("Problem handling future")
                 else: connection.send_part(
                     data,
                     final = False,
