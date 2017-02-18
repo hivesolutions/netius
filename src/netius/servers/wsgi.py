@@ -314,17 +314,37 @@ class WSGIServer(http2.HTTP2Server):
                 connection.send_part(value, final = False)
 
             def on_done(future):
+                # in case the current threads is not the main one (running using
+                # thread pool) delays the current callback to be called upon
+                # the next main event loop ticks
                 if not self.is_main(): return self.delay_s(
                     lambda: on_done(future)
                 )
+
+                # extracts the result from the future defaulting it to the
+                # base empty string value
                 data = future.result() or b""
+
+                # tries to extract a possible exception and the cancelled
+                # state from the current future and then validates the exception
+                # for proper inheritance from the base exception, this is
+                # required to make sure it's possible to raise it
                 exception = future.exception()
                 cancelled = future.cancelled()
                 is_exception = isinstance(exception, BaseException)
+
+                # verifies if the future has been either canceled or an
+                # exception has been raised for it (error situation) and
+                # if that's the case closes the connection as raises the
+                # exception so that the event loop handles it gracefully
                 if exception or cancelled:
                     connection.close()
                     if is_exception: raise exception
                     else: raise RuntimeError("Problem handling future")
+
+                # otherwise it's normal data and must be sent through the
+                # connection, note that the current cycle is marked as
+                # not final (default behaviour)
                 else: connection.send_part(
                     data,
                     final = False,
