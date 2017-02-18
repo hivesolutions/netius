@@ -321,6 +321,10 @@ class WSGIServer(http2.HTTP2Server):
                     lambda: on_done(future)
                 )
 
+                # unsets the future from the connection as it has been
+                # completely processed, not going to be used anymore
+                connection.future = None
+
                 # extracts the result from the future defaulting it to the
                 # base empty string value
                 data = future.result() or b""
@@ -350,7 +354,6 @@ class WSGIServer(http2.HTTP2Server):
                     final = False,
                     callback = self._send_part
                 )
-                connection.future = None
 
             def on_ready():
                 return connection.wready
