@@ -88,6 +88,7 @@ class AyncWrapper(object):
             try: return next(self.current)
             except StopIteration as exception:
                 self.current = None
+                if not exception.args: return None
                 return exception.args[0]
         except StopAsyncIteration: #@UndefinedVariable
             raise StopIteration
