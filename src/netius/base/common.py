@@ -485,7 +485,7 @@ class AbstractBase(observer.Observable):
         callable_o = (target, callable)
         callable_o = legacy.orderable(callable_o)
 
-        # in case the verify flag is set, must verify id the callable
+        # in case the verify flag is set, must verify if the callable
         # is already inserted in the list of delayed operations in
         # case it does returns immediately to avoid duplicated values
         is_duplicate = verify and callable_o in self._delayed_o

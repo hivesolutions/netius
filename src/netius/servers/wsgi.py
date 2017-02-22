@@ -349,10 +349,18 @@ class WSGIServer(http2.HTTP2Server):
                 # otherwise it's normal data and must be sent through the
                 # connection, note that the current cycle is marked as
                 # not final (default behaviour)
-                else: connection.send_part(
+                elif not netius.is_neo(): connection.send_part(
                     data,
                     final = False,
                     callback = self._send_part
+                )
+
+                # runs the send part operation on the next tick so that it
+                # gets handled as fast as possible, this should continue the
+                # iteration on the overall async generator
+                else: self.delay(
+                    lambda: self._send_part(connection),
+                    immediately = True
                 )
 
             def on_ready():
