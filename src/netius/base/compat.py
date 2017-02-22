@@ -99,5 +99,44 @@ class AbstractLoop(object):
         future._loop = self
         return future
 
+    def create_task(self, coroutine):
+        future = self.ensure(coroutine)
+        task = async.Task(future)
+        return task
+
+    def run_until_complete(
+        self,
+        coroutine,
+        args = [],
+        kwargs = {},
+        thread = None
+    ):
+        # creates the callback function that is going to be called when
+        # the future associated with the provided ensure context gets
+        # finished (on done callback)
+        def cleanup(future):
+            self.stop()
+
+        # tries to determine if the provided object is in fact a coroutine
+        # or if instead it is a "simple" future object ready to be used
+        is_coroutine = async.is_coroutine(coroutine)
+
+        # ensures that the provided coroutine get executed under a new
+        # context and retrieves the resulting future
+        future = self.ensure(
+            coroutine,
+            args = args,
+            kwargs = kwargs,
+            thread = thread
+        ) if is_coroutine else coroutine
+
+        # defines the cleanup operation (loop stop) as the target for the
+        # done operation on the future (allows cleanup)
+        future.add_done_callback(cleanup)
+
+        # starts the current event loop, this is a blocking operation until
+        # the done callback is called to stop the loop
+        self.start()
+
     def get_debug(self):
         return self.is_debug()

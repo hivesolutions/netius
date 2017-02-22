@@ -37,7 +37,7 @@ __license__ = "Apache License, Version 2.0"
 from . import async
 from . import client
 from . import common
-from . import compat 
+from . import compat
 from . import config
 from . import conn
 from . import container
@@ -52,7 +52,7 @@ from . import stream
 from . import tls
 from . import util
 
-from .async import Future, Handle, coroutine, ensure_generator, is_coroutine,\
+from .async import Future, Task, Handle, coroutine, ensure_generator, is_coroutine,\
     is_neo, wakeup, sleep, wait, notify
 from .client import Client, DatagramClient, StreamClient
 from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\

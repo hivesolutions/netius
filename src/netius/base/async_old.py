@@ -129,6 +129,18 @@ class Future(object):
     def _partial_callbacks(self, value):
         for callback in self.partial_callbacks: callback(self, value)
 
+    def _wrap(self, future):
+        self.status = future.status
+        self._result = future._result
+        self._exception = future._result
+
+class Task(Future):
+
+    def __init__(self, future = None):
+        Future.__init__(self)
+        self._source_traceback = None
+        if future: self._wrap(future)
+
 class Handle(object):
 
     def cancel(self):

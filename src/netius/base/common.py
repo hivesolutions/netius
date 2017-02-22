@@ -784,36 +784,6 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         self.delay(callable, immediately = immediately)
         return future
 
-    def run_until_complete(
-        self,
-        coroutine,
-        args = [],
-        kwargs = {},
-        thread = None
-    ):
-        # creates the callback function that is going to be called when
-        # the future associated with the provided ensure context gets
-        # finished (on done callback)
-        def cleanup(future):
-            self.stop()
-
-        # ensures that the provided coroutine get executed under a new
-        # context and retrieves the resulting future
-        future = self.ensure(
-            coroutine,
-            args = args,
-            kwargs = kwargs,
-            thread = thread
-        )
-
-        # defines the cleanup operation (loop stop) as the target for the
-        # done operation on the future (allows cleanup)
-        future.add_done_callback(cleanup)
-
-        # starts the current event loop, this is a blocking operation until
-        # the done callback is called to stop the loop
-        self.start()
-
     def wakeup(self, force = False):
         # verifies if this is the main thread and if that's not the case
         # and the force flag is not set ignore the wakeup operation, avoiding
