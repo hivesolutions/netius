@@ -172,6 +172,9 @@ def is_coroutine(callable):
     if hasattr(callable, "_is_coroutine"): return True
     return False
 
+def is_neo():
+    return sys.version_info[0] >= 3 and sys.version_info[1] >= 3
+
 def wakeup(force = False):
     from .common import get_loop
     loop = get_loop()
@@ -201,8 +204,7 @@ future_iter = None
 # the new version of the async implementation and if that's the
 # case runs the additional import of symbols, this should override
 # most of the symbols that have just been created
-is_neo = sys.version_info[0] >= 3 and sys.version_info[1] >= 3
-if is_neo: from .async_neo import * #@UnusedWildImport
+if is_neo(): from .async_neo import * #@UnusedWildImport
 
 # in case a new future iterator generator method is defined sets
 # it in the future class effectively overriding the default one

@@ -52,7 +52,7 @@ from . import tls
 from . import util
 
 from .async import Future, Handle, coroutine, ensure_generator, is_coroutine,\
-    wakeup, sleep, wait, notify
+    is_neo, wakeup, sleep, wait, notify
 from .client import Client, DatagramClient, StreamClient
 from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     IDENTIFIER, TCP_TYPE, UDP_TYPE, SSL_KEY_PATH, SSL_CER_PATH, SSL_CA_PATH,\
