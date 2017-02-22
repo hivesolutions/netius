@@ -53,6 +53,7 @@ import netius.adapters
 from . import log
 from . import util
 from . import async
+from . import compat
 from . import errors
 
 from .. import middleware
@@ -286,7 +287,7 @@ SSL_DH_PATH = os.path.join(EXTRAS_PATH, "dh.pem")
 if not os.path.exists(SSL_CA_PATH): SSL_CA_PATH = None
 if not os.path.exists(SSL_DH_PATH): SSL_DH_PATH = None
 
-class AbstractBase(observer.Observable):
+class AbstractBase(observer.Observable, compat.AbstractLoop):
     """
     Base network structure to be used by all the network
     capable infra-structures (eg: servers and clients).
@@ -812,51 +813,6 @@ class AbstractBase(observer.Observable):
         # starts the current event loop, this is a blocking operation until
         # the done callback is called to stop the loop
         self.start()
-
-    def create_future(self):
-        """
-        Creates a future object that is bound to the current event loop context,
-        this allows for latter access to the owning loop.
-
-        This behaviour is required to ensure compatibility with the "legacy"
-        asyncio support, ensuring seamless compatibility.
-
-        :rtype: Future
-        :return: The generated future that should be bound to the current context.
-        """
-
-        # creates a normal future object, setting the current instance as
-        # the loop, then returns the future to the caller method
-        future = Future()
-        future._loop = self
-        return future
-
-    def call_later(self, delay, callback, *args, **kwargs):
-        """
-        Calls the provided callback with the provided parameters after the defined
-        delay (in seconds), should ensure proper sleep operation.
-
-        :type delay: float
-        :param delay: The delay in seconds after which the callback is going to be
-        called with the provided arguments.
-        :type callback: Function
-        :param callback: The function to be called after the provided delay.
-        :rtype: Handle
-        :return: The handle object to the operation, that may be used to cancel it.
-        """
-
-        # creates the callable to be called after the timeout, note the
-        # clojure around the "normal" and keyword based arguments
-        callable = lambda: callback(*args, **kwargs)
-
-        # schedules the delay call of the created callable according to
-        # the provided (amount of) sleep time
-        self.delay(callable, timeout = delay)
-
-        # creates the handle to control the operation and then returns the
-        # object to the caller method, allowing operation
-        handle = Handle()
-        return handle
 
     def wakeup(self, force = False):
         # verifies if this is the main thread and if that's not the case
