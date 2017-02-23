@@ -174,7 +174,12 @@ class AbstractLoop(object):
             connection._set_compat(protocol)
             future.set_result((connection, protocol))
 
-        connection = self.connect(host, port, ssl = ssl)
+        connection = self.connect(
+            host,
+            port,
+            ssl = ssl,
+            ensure_loop = False
+        )
         connection.bind("connect", connect)
 
         yield future

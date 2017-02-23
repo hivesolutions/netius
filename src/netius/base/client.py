@@ -105,7 +105,7 @@ class Client(Base):
         Ensures that the proper main loop thread requested in the building
         of the entity is started if that was requested.
 
-        This mechanisms is required because the thread construction and
+        This mechanism is required because the thread construction and
         starting should be deferred until an operation in the connection
         is requested (lazy thread construction).
 
@@ -376,8 +376,15 @@ class DatagramClient(Client):
         self.renable = False
         self.unsub_read(self.socket)
 
-    def send(self, data, address, delay = True, callback = None):
-        self.ensure_loop()
+    def send(
+        self,
+        data,
+        address,
+        delay = True,
+        ensure_loop = True,
+        callback = None
+    ):
+        if ensure_loop: self.ensure_loop()
 
         data = legacy.bytes(data)
         data_l = len(data)
@@ -658,6 +665,7 @@ class StreamClient(Client):
         ssl_verify = False,
         family = socket.AF_INET,
         type = socket.SOCK_STREAM,
+        ensure_loop = True,
         env = True
     ):
         # runs a series of pre-validations on the provided parameters, raising
@@ -680,7 +688,7 @@ class StreamClient(Client):
         # ensures that a proper loop cycle is available for the current
         # client, otherwise the connection operation would become stalled
         # because there's no listening of events for it
-        self.ensure_loop()
+        if ensure_loop: self.ensure_loop()
 
         # ensures that the proper socket family is defined in case the
         # requested host value is unix socket oriented, this step greatly

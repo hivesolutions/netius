@@ -492,6 +492,7 @@ class SMTPClient(netius.StreamClient):
         ehlo = True,
         stls = False,
         mark = True,
+        ensure_loop = True,
         callback = None
     ):
         # in case the mark flag is set the contents data is modified
@@ -589,7 +590,7 @@ class SMTPClient(netius.StreamClient):
         # smtp client does not become orphan as no connection has been
         # established as of this moment (as expected) and the dns client
         # is going to be run as a daemon (avoids process exit)
-        self.ensure_loop()
+        if ensure_loop: self.ensure_loop()
 
         # creates the map that is going to be used to associate each of
         # the domains with the proper to (email) addresses, this is going
