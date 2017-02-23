@@ -233,18 +233,25 @@ class AbstractLoop(object):
 
 class AbstractTransport(object):
 
+    def abort(self):
+        self.close()
+
     def write(self, data):
         self.send(data)
 
     def get_extra_info(self, name, default = None):
-        if name == "socket": return self._socket
+        if name == "socket": return self.socket
         else: return default
+
+    def is_closing(self):
+        return self.is_closed()
 
     def _on_data(self, connection, data):
         self._protocol.data_received(data)
 
     def _on_close(self, connection):
         self._protocol.eof_received()
+        self._protocol.connection_lost(None)
 
     def _set_compat(self, protocol):
         self._set_binds()
@@ -254,5 +261,6 @@ class AbstractTransport(object):
         self.bind("data", self._on_data)
         self.bind("close", self._on_close)
 
-    def _set_protocol(self, protocol):
+    def _set_protocol(self, protocol, mark = True):
         self._protocol = protocol
+        if mark: self._protocol.connection_made(self)
