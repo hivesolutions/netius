@@ -2849,14 +2849,14 @@ class BaseThread(threading.Thread):
             self.owner._thread = None
             self.owner = None
 
-def get_main(ensure = True):
+def get_main(factory = AbstractBase, ensure = True):
     if not AbstractBase.get_main() and ensure:
-        instance = AbstractBase()
+        instance = factory()
         AbstractBase.set_main(instance)
     return AbstractBase.get_main()
 
-def get_loop(ensure = True):
-    return get_main(ensure = ensure)
+def get_loop(factory = AbstractBase, ensure = True):
+    return get_main(factory = factory, ensure = ensure)
 
 def get_poll():
     main = get_main()
