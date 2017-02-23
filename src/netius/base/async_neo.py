@@ -194,12 +194,7 @@ def wait(*args, **kwargs):
     generator = _wait(*args, **kwargs)
     return AwaitWrapper(generator)
 
-def future_iter(self):
-    if not self.done(): yield self
-    if not self.done(): return None
-    return self.result()
-
-def future_return(coroutine):
+def coroutine_return(coroutine):
     """
     Allows for the abstraction of the return value of a coroutine
     object to be the result of the future yield as the first element
@@ -217,3 +212,8 @@ def future_return(coroutine):
         yield value
         future = value
     return future.result()
+
+def future_iter(self):
+    if not self.done(): yield self
+    if not self.done(): return None
+    return self.result()

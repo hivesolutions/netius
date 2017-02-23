@@ -106,7 +106,7 @@ class AbstractLoop(object):
 
     def create_connection(self, *args, **kwargs):
         coroutine = self._create_connection(*args, **kwargs)
-        return async.future_return(coroutine)
+        return async.coroutine_return(coroutine)
 
     def run_until_complete(
         self,

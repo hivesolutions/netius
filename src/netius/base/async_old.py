@@ -215,7 +215,7 @@ def notify(event, data = None):
     loop = get_loop()
     return loop.notify(event, data = data)
 
-def future_return(coroutine):
+def coroutine_return(coroutine):
     """
     Allows for the abstraction of the return value of a coroutine
     object to be the result of the future yield as the first element
