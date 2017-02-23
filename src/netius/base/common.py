@@ -402,8 +402,8 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         except: return
         if hasattr(asyncio, "_patched"): return
         if hasattr(asyncio.tasks, "_PyTask"):
-            asyncio.Task = asyncio.tasks._PyTask
-            asyncio.tasks.Task = asyncio.tasks._PyTask
+            asyncio.Task = asyncio.tasks._PyTask #@UndefinedVariable
+            asyncio.tasks.Task = asyncio.tasks._PyTask #@UndefinedVariable
         asyncio._patched = True
 
     def call_safe(self, callable, args = [], kwargs = {}):
