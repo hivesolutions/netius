@@ -206,6 +206,8 @@ class AbstractLoop(object):
         *args,
         **kwargs
     ):
+        family = family or socket.AF_INET
+
         future = self.create_future()
 
         def connect(connection):
@@ -217,7 +219,7 @@ class AbstractLoop(object):
             host,
             port,
             ssl = ssl,
-            family = family or socket.AF_INET,
+            family = family,
             ensure_loop = False
         )
         connection.bind("connect", connect)
