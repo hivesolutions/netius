@@ -48,6 +48,8 @@ def print_http(url):
     data = yield from response.read()
     print(data)
 
-loop = netius.get_loop(factory = netius.StreamClient)
-loop.run_until_complete(print_http, args = ["https://www.flickr.com/"])
+use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
+if use_asyncio: loop = asyncio.get_event_loop()
+else: loop = netius.get_loop(factory = netius.StreamClient)
+loop.run_until_complete(print_http("https://www.flickr.com/"))
 loop.close()

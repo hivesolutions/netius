@@ -137,7 +137,8 @@ class AbstractLoop(object):
 
         # tries to determine if the provided object is in fact a coroutine
         # or if instead it is a "simple" future object ready to be used
-        is_coroutine = async.is_coroutine(coroutine)
+        is_coroutine = async.is_coroutine(coroutine) or\
+            async.is_coroutine_object(coroutine)
 
         # ensures that the provided coroutine get executed under a new
         # context and retrieves the resulting future
