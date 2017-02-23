@@ -217,6 +217,7 @@ class AbstractLoop(object):
             host,
             port,
             ssl = ssl,
+            family = family or socket.AF_INET,
             ensure_loop = False
         )
         connection.bind("connect", connect)
