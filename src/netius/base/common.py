@@ -635,9 +635,12 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
 
         # tries to determine if the provided callable is really
         # a coroutine and uses that condition to determine the
-        # default value for the thread argument
+        # default value for the thread argument, notice that the
+        # verification is also performed for the coroutine object
         is_coroutine = async.is_coroutine(coroutine)
-        if thread == None: thread = False if is_coroutine else True
+        is_coroutine_object = async.is_coroutine_object(coroutine)
+        is_defined = is_coroutine or is_coroutine_object
+        if thread == None: thread = False if is_defined else True
 
         # verifies if a future variable is meant to be re-used
         # or if instead a new one should be created for the new
@@ -648,7 +651,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # a coroutine and instead a "normal" function a conversion
         # is required so that there's compatibility between the
         # coroutine model and the typical sync model
-        if not is_coroutine:
+        if not is_defined:
             # saves the "original" callable so that it may be latter
             # used as part of the back calling process
             coroutine_c = coroutine
@@ -675,18 +678,29 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # propagation of operations allows for proper cleanup
         future.add_done_callback(cleanup)
 
-        # retrieves the argument spec of the provided coroutine to check
-        # if the provided coroutine requires a future to be passed
-        spec = legacy.getargspec(coroutine)
-        is_future = spec[0] and spec[0][0] == "future"
+        # verifies if the currently provided coroutine is in fact (already)
+        # a coroutine object, if that's the case the sequence (generator)
+        # is already present and the coroutine is simply assigned to the
+        # sequence without any kind of conversion
+        if is_coroutine_object:
+            sequence = coroutine
 
-        # creates the generate sequence from the coroutine callable
-        # by calling it with the newly created future instance, that
-        # will be used for the control of the execution, notice that
-        # the future is only passed in case the coroutine has been
-        # determined to be receiving the future as first argument
-        if is_future: sequence = coroutine(future, *args, **kwargs)
-        else: sequence = coroutine(*args, **kwargs)
+        # otherwise the sequence must be created by calling the coroutine
+        # (function) with the proper set of arguments, notice that the signature
+        # is inspected to determine if a future argument is required
+        else:
+            # retrieves the argument spec of the provided coroutine to check
+            # if the provided coroutine requires a future to be passed
+            spec = legacy.getargspec(coroutine)
+            is_future = spec[0] and spec[0][0] == "future"
+
+            # creates the generate sequence from the coroutine callable
+            # by calling it with the newly created future instance, that
+            # will be used for the control of the execution, notice that
+            # the future is only passed in case the coroutine has been
+            # determined to be receiving the future as first argument
+            if is_future: sequence = coroutine(future, *args, **kwargs)
+            else: sequence = coroutine(*args, **kwargs)
 
         # calls the ensure generator method so that the provided sequence
         # gets properly "normalized" into the expected generator structure
