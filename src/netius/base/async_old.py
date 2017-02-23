@@ -184,6 +184,10 @@ def is_coroutine(callable):
     if hasattr(callable, "_is_coroutine"): return True
     return False
 
+def is_coroutine_object(generator):
+    if legacy.is_generator(generator): return True
+    return False
+
 def is_neo():
     return sys.version_info[0] >= 3 and sys.version_info[1] >= 3
 

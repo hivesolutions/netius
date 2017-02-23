@@ -165,6 +165,16 @@ def is_coroutine(callable):
 
     return False
 
+def is_coroutine_object(generator):
+    if legacy.is_generator(generator):
+        return True
+
+    if hasattr(inspect, "iscoroutine") and\
+        inspect.iscoroutine(callable): #@UndefinedVariable
+        return True
+
+    return False
+
 def _sleep(timeout):
     from .common import get_loop
     loop = get_loop()
