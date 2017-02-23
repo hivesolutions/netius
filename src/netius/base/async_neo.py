@@ -214,6 +214,18 @@ def coroutine_return(coroutine):
     return future.result()
 
 def future_iter(self):
+    """
+    The default iterator function that is going to be used, so that
+    it's possible to run a yield from operation on a simple future
+    object (provides generator syntax compatibility).
+
+    This is mostly used on the co-routine based wrapping.
+
+    :rtype: Generator
+    :return: The generator that is used to propagate the future from
+    a coroutine as a generator.
+    """
+
     if not self.done(): yield self
     if not self.done(): return None
     return self.result()
