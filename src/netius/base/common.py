@@ -391,9 +391,19 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         if not set_legacy: return
         try: import asyncio
         except: return
+        cls.patch_asyncio()
         policy = asyncio.get_event_loop_policy()
         policy._local._set_called = True
         policy._local._loop = instance
+
+    @classmethod
+    def patch_asyncio(cls):
+        try: import asyncio
+        except: return
+        if hasattr(asyncio, "_patched"): return
+        asyncio._patched = True
+        asyncio.Task = asyncio.tasks._PyTask
+        asyncio.tasks.Task = asyncio.tasks._PyTask
 
     def call_safe(self, callable, args = [], kwargs = {}):
         """

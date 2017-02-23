@@ -46,8 +46,9 @@ from . import legacy
 
 class Future(object):
 
-    def __init__(self):
+    def __init__(self, loop = None):
         self.status = 0
+        self._loop = loop
         self._result = None
         self._exception = None
         self.cleanup()
@@ -135,6 +136,7 @@ class Future(object):
         self.partial_callbacks = future.partial_callbacks
         self.ready_callbacks = future.ready_callbacks
         self.closed_callbacks = future.closed_callbacks
+        self._loop = future._loop
         self._result = future._result
         self._exception = future._result
 

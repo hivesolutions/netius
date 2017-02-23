@@ -38,8 +38,10 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import time
+import socket
 
 from . import async
+from . import errors
 
 class AbstractLoop(object):
     """
@@ -108,6 +110,14 @@ class AbstractLoop(object):
         coroutine = self._create_connection(*args, **kwargs)
         return async.coroutine_return(coroutine)
 
+    def getaddrinfo(self, *args, **kwargs):
+        coroutine = self._getaddrinfo(*args, **kwargs)
+        return async.coroutine_return(coroutine)
+
+    def getnameinfo(self, *args, **kwargs):
+        coroutine = self._getnameinfo(*args, **kwargs)
+        return async.coroutine_return(coroutine)
+
     def run_until_complete(
         self,
         coroutine,
@@ -142,6 +152,11 @@ class AbstractLoop(object):
         # done operation on the future (allows cleanup)
         future.add_done_callback(cleanup)
 
+        # updates the current task associated with the event loop, note that
+        # this operation required proper asyncio patching, causing possible
+        # issues with other event loop
+        self._set_current_task(future)
+
         # starts the current event loop, this is a blocking operation until
         # the done callback is called to stop the loop
         self.start()
@@ -151,6 +166,30 @@ class AbstractLoop(object):
 
     def is_closed(self):
         return self.is_stopped()
+
+    def _getaddrinfo(
+        self,
+        host,
+        port,
+        family = 0,
+        type = 0,
+        proto = 0,
+        flags = 0
+    ):
+        future = self.create_future()
+        result = socket.getaddrinfo(
+            host,
+            port,
+            family,
+            type,
+            proto,
+            flags = flags
+        )
+        self.delay(lambda: future.set_result(result), immediately = True)
+        yield future
+
+    def _getnameinfo(self, sockaddr, flags = 0):
+        raise errors.NotImplemented()
 
     def _create_connection(
         self,
@@ -183,6 +222,10 @@ class AbstractLoop(object):
         connection.bind("connect", connect)
 
         yield future
+
+    def _set_current_task(self, task):
+        import asyncio
+        asyncio.Task._current_tasks[self] = task
 
 class AbstractTransport(object):
 
