@@ -170,7 +170,7 @@ def is_coroutine_object(generator):
         return True
 
     if hasattr(inspect, "iscoroutine") and\
-        inspect.iscoroutine(callable): #@UndefinedVariable
+        inspect.iscoroutine(generator): #@UndefinedVariable
         return True
 
     return False
