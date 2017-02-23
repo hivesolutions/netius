@@ -235,6 +235,10 @@ class AbstractTransport(object):
     def write(self, data):
         self.send(data)
 
+    def get_extra_info(self, name, default = None):
+        if name == "socket": return self._socket
+        else: return default
+
     def _on_data(self, connection, data):
         self._protocol.data_received(data)
 
