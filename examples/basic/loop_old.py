@@ -53,5 +53,5 @@ def print_sum(x, y):
     print("%s + %s = %s" % (x, y, result))
 
 loop = netius.get_loop()
-loop.run_until_complete(print_sum, args = (1, 2))
+loop.run_until_complete(print_sum(1, 2))
 loop.close()
