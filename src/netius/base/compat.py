@@ -171,7 +171,7 @@ class AbstractLoop(object):
 
         def connect(connection):
             protocol = protocol_factory()
-            connection._set_protocol(protocol)
+            connection._set_compat(protocol)
             future.set_result((connection, protocol))
 
         connection = self.connect(host, port, ssl = ssl)
@@ -183,6 +183,20 @@ class AbstractTransport(object):
 
     def write(self, data):
         self.send(data)
+
+    def _on_data(self, connection, data):
+        self._protocol.data_received(data)
+
+    def _on_close(self, connection):
+        self._protocol.eof_received()
+
+    def _set_compat(self, protocol):
+        self._set_binds()
+        self._set_protocol(protocol)
+
+    def _set_binds(self):
+        self.bind("data", self._on_data)
+        self.bind("close", self._on_close)
 
     def _set_protocol(self, protocol):
         self._protocol = protocol

@@ -914,7 +914,7 @@ class StreamClient(Client):
         pass
 
     def on_data(self, connection, data):
-        pass
+        connection.set_data(data)
 
     def _connectf(self, connection):
         """

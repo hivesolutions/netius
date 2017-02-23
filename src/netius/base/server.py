@@ -853,7 +853,7 @@ class StreamServer(Server):
         if connection.upgrading: self.on_upgrade(connection)
 
     def on_data(self, connection, data):
-        pass
+        connection.set_data(data)
 
     def on_socket_c(self, socket_c, address):
         # verifies if the current address (host value) is present in

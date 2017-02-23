@@ -315,6 +315,9 @@ class BaseConnection(observer.Observable, compat.AbstractTransport):
         self.upgrading = False
         self.trigger("upgrade", self)
 
+    def set_data(self, data):
+        self.trigger("data", self, data)
+
     def ensure_write(self, flush = True):
         # retrieves the identifier of the current thread and
         # checks if it's the same as the one defined in the
