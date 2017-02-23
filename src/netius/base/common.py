@@ -401,9 +401,10 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         try: import asyncio
         except: return
         if hasattr(asyncio, "_patched"): return
+        if hasattr(asyncio.tasks, "_PyTask"):
+            asyncio.Task = asyncio.tasks._PyTask
+            asyncio.tasks.Task = asyncio.tasks._PyTask
         asyncio._patched = True
-        asyncio.Task = asyncio.tasks._PyTask
-        asyncio.tasks.Task = asyncio.tasks._PyTask
 
     def call_safe(self, callable, args = [], kwargs = {}):
         """
