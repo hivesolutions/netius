@@ -104,6 +104,23 @@ class AbstractLoop(object):
         task = async.Task(future)
         return task
 
+    def create_connection(
+        self,
+        protocol_factory,
+        host = None,
+        port = None,
+        ssl = None,
+        family = 0,
+        proto = 0,
+        flags = 0,
+        sock = None,
+        local_addr = None,
+        server_hostname = None,
+        *args,
+        **kwargs
+    ):
+        pass
+
     def run_until_complete(
         self,
         coroutine,
