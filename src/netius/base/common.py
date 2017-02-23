@@ -608,7 +608,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         Multiple calls to this method should generate different async
         contexts (with different parent future instances).
 
-        :type coroutine: Coroutine/Callable
+        :type coroutine: Coroutine/CoroutineObject/Callable
         :param coroutine: The callable or coroutine that is going to be
         "inserted" for an asynchronous execution, if a callable is provided
         a coroutine is created wrapping the execution of such callable.
