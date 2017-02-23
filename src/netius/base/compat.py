@@ -119,7 +119,19 @@ class AbstractLoop(object):
         *args,
         **kwargs
     ):
-        pass
+        future = self.create_future()
+
+        def connect(connection):
+            protocol = protocol_factory()
+            connection._set_protocol(protocol)
+            future.set_result((connection, protocol))
+
+        connection = self.connect(host, port, ssl = ssl)
+        connection.bind("connect", connect)
+
+        yield future
+
+        return future.result()
 
     def run_until_complete(
         self,
@@ -164,3 +176,11 @@ class AbstractLoop(object):
 
     def is_closed(self):
         return self.is_stopped()
+
+class AbstractTransport(object):
+
+    def write(self, data):
+        self.send(data)
+
+    def _set_protocol(self, protocol):
+        self._protocol = protocol

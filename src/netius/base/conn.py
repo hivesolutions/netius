@@ -47,6 +47,7 @@ import threading
 
 from . import tls
 from . import config
+from . import compat
 from . import legacy
 from . import observer
 
@@ -66,7 +67,7 @@ CHUNK_SIZE = 16384
 """ The size of the chunk to be used while received
 data from the service socket """
 
-class BaseConnection(observer.Observable):
+class BaseConnection(observer.Observable, compat.AbstractTransport):
     """
     Abstract connection object that should encapsulate
     a socket object enabling it to be accessed in much
