@@ -786,7 +786,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
 
                 # determines if the value retrieved from the generator is a
                 # future and if that's the case schedules a proper execution
-                is_future = isinstance(value, Future)
+                is_future = async.is_future(value)
 
                 # in case the current value is a future schedules it for execution
                 # taking into account the proper thread execution model, note that

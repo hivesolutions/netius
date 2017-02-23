@@ -46,13 +46,6 @@ from . import async_old
 try: import asyncio
 except: asyncio = None
 
-if asyncio and False:
-    class Future(async_old.Future, asyncio.Future):
-
-        def __init__(self, *args, **kwargs):
-            async_old.Future.__init__(self, *args, **kwargs)
-            asyncio.Future.__init__(self, *args, **kwargs)
-
 class AwaitWrapper(object):
 
     def __init__(self, generator, generate = False):
@@ -123,8 +116,6 @@ class CoroutineWrapper(object):
 
 def coroutine(function):
 
-    from .async import Future
-
     if inspect.isgeneratorfunction(function):
         routine = function
     else:
@@ -136,7 +127,7 @@ def coroutine(function):
 
             # verifies the data type of the resulting object so that a
             # proper yielding operation or return will take place
-            is_future = isinstance(result, Future)
+            is_future = is_future(result)
             is_generator = inspect.isgenerator(result)
 
             # in case the returned value is either a future or a generator
@@ -187,6 +178,11 @@ def is_coroutine_object(generator):
         inspect.iscoroutine(generator): #@UndefinedVariable
         return True
 
+    return False
+
+def is_future(future):
+    if isinstance(future, async_old.Future): return True
+    if asyncio and isinstance(future, asyncio.Future): return True
     return False
 
 def _sleep(timeout, compat = True):

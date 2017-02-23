@@ -53,8 +53,8 @@ from . import tls
 from . import util
 
 from .async import Future, Task, Handle, coroutine, ensure_generator, get_asyncio,\
-    is_coroutine, is_coroutine_object, is_neo, is_await, wakeup, sleep, wait, notify,\
-    coroutine_return
+    is_coroutine, is_coroutine_object, is_future, is_neo, is_await, wakeup, sleep,\
+    wait, notify, coroutine_return
 from .client import Client, DatagramClient, StreamClient
 from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     IDENTIFIER, TCP_TYPE, UDP_TYPE, SSL_KEY_PATH, SSL_CER_PATH, SSL_CA_PATH,\

@@ -304,7 +304,7 @@ class WSGIServer(http2.HTTP2Server):
         # verifies if the current value in iteration is a future element
         # and if that's the case creates the proper callback to be used
         # for the handling on the end of the iteration
-        is_future = isinstance(data, netius.Future)
+        is_future = netius.is_future(data)
         if is_future:
             def on_partial(future, value):
                 if not value: return

@@ -183,7 +183,7 @@ def coroutine(function):
 
             # verifies the data type of the resulting object so that a
             # proper yielding operation or return will take place
-            is_future = isinstance(result, Future)
+            is_future = is_future(result)
             is_generator = inspect.isgenerator(result)
 
             # in case the result is either a future or a generator the
@@ -213,6 +213,10 @@ def is_coroutine(callable):
 
 def is_coroutine_object(generator):
     if legacy.is_generator(generator): return True
+    return False
+
+def is_future(future):
+    if isinstance(future, Future): return True
     return False
 
 def is_neo():
