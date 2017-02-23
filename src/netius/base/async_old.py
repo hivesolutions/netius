@@ -214,3 +214,19 @@ def notify(event, data = None):
     from .common import get_loop
     loop = get_loop()
     return loop.notify(event, data = data)
+
+def future_return(coroutine):
+    """
+    Allows for the abstraction of the return value of a coroutine
+    object to be the result of the future yield as the first element
+    of the generator.
+
+    This allows the possibility to provide compatibility with the legacy
+    not return allowed generators.
+
+    :type coroutine: CoroutineObject
+    :param coroutine: The coroutine object that is going to be yield back
+    and have its last future result returned from the generator.
+    """
+
+    for value in coroutine: yield value

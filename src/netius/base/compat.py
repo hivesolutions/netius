@@ -104,34 +104,9 @@ class AbstractLoop(object):
         task = async.Task(future)
         return task
 
-    def create_connection(
-        self,
-        protocol_factory,
-        host = None,
-        port = None,
-        ssl = None,
-        family = 0,
-        proto = 0,
-        flags = 0,
-        sock = None,
-        local_addr = None,
-        server_hostname = None,
-        *args,
-        **kwargs
-    ):
-        future = self.create_future()
-
-        def connect(connection):
-            protocol = protocol_factory()
-            connection._set_protocol(protocol)
-            future.set_result((connection, protocol))
-
-        connection = self.connect(host, port, ssl = ssl)
-        connection.bind("connect", connect)
-
-        yield future
-
-        return future.result()
+    def create_connection(self, *args, **kwargs):
+        coroutine = self._create_connection(*args, **kwargs)
+        return async.future_return(coroutine)
 
     def run_until_complete(
         self,
@@ -176,6 +151,33 @@ class AbstractLoop(object):
 
     def is_closed(self):
         return self.is_stopped()
+
+    def _create_connection(
+        self,
+        protocol_factory,
+        host = None,
+        port = None,
+        ssl = None,
+        family = 0,
+        proto = 0,
+        flags = 0,
+        sock = None,
+        local_addr = None,
+        server_hostname = None,
+        *args,
+        **kwargs
+    ):
+        future = self.create_future()
+
+        def connect(connection):
+            protocol = protocol_factory()
+            connection._set_protocol(protocol)
+            future.set_result((connection, protocol))
+
+        connection = self.connect(host, port, ssl = ssl)
+        connection.bind("connect", connect)
+
+        yield future
 
 class AbstractTransport(object):
 

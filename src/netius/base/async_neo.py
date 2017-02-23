@@ -198,3 +198,22 @@ def future_iter(self):
     if not self.done(): yield self
     if not self.done(): return None
     return self.result()
+
+def future_return(coroutine):
+    """
+    Allows for the abstraction of the return value of a coroutine
+    object to be the result of the future yield as the first element
+    of the generator.
+
+    This allows the possibility to provide compatibility with the legacy
+    not return allowed generators.
+
+    :type coroutine: CoroutineObject
+    :param coroutine: The coroutine object that is going to be yield back
+    and have its last future result returned from the generator.
+    """
+
+    for value in coroutine:
+        yield value
+        future = value
+    return future.result()
