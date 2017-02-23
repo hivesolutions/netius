@@ -65,7 +65,10 @@ def print_http_headers(url, encoding = "utf-8"):
 
     writer.close()
 
-loop = netius.get_loop(factory = netius.StreamClient)
+use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
+if use_asyncio: loop = asyncio.get_event_loop()
+else: loop = netius.get_loop(factory = netius.StreamClient)
+
 task = asyncio.ensure_future(print_http_headers("https://www.flickr.com/"))
 loop.run_until_complete(task)
 loop.close()
