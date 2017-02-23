@@ -44,24 +44,23 @@ import urllib.parse
 import netius
 
 @asyncio.coroutine
-def print_http_headers(url):
+def print_http_headers(url, encoding = "utf-8"):
     url = urllib.parse.urlsplit(url)
     if url.scheme == "https":
-        connect = asyncio.open_connection(url.hostname, 443, ssl=True)
+        connect = asyncio.open_connection(url.hostname, 443, ssl = True)
     else:
         connect = asyncio.open_connection(url.hostname, 80)
     reader, writer = yield from connect
-    query = (
-        "HEAD {path} HTTP/1.0\r\n" + "Host: {hostname}\r\n" + "\r\n"
-    ).format(path=url.path or "/", hostname=url.hostname)
-    writer.write(query.encode("latin-1"))
+    query = "HEAD {path} HTTP/1.0\r\n" + "Host: {hostname}\r\n" + "\r\n"
+    query = query.format(path = url.path or "/", hostname = url.hostname)
+    writer.write(query.encode(encoding))
+
     while True:
         line = yield from reader.readline()
-        if not line:
-            break
-        line = line.decode("latin1").rstrip()
-        if line:
-            print("HTTP header> %s" % line)
+        if not line: break
+        line = line.decode(encoding).rstrip()
+        if line: print("HTTP header> %s" % line)
+
     writer.close()
 
 loop = netius.get_loop()
