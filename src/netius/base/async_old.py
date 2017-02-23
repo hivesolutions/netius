@@ -102,15 +102,13 @@ class Future(object):
         if not force and not self.running(): return
         self.status = 1
         self._result = result
-        self._done_callbacks()
-        cleanup and self.cleanup()
+        self._done_callbacks(cleanup = cleanup)
 
     def set_exception(self, exception, cleanup = True, force = False):
         if not force and not self.running(): return
         self.status = 2
         self._exception = exception
-        self._done_callbacks()
-        cleanup and self.cleanup()
+        self._done_callbacks(cleanup = cleanup)
 
     @property
     def ready(self):
@@ -124,10 +122,24 @@ class Future(object):
         for callback in self.closed_callbacks: closed |= callback()
         return closed
 
-    def _done_callbacks(self):
+    def _done_callbacks(self, cleanup = False, delayed = True):
+        if not self.done_callbacks: return
+        if delayed and self._loop: return self._loop.delay(
+            lambda: self._done_callbacks(
+                cleanup = cleanup,
+                delayed = False
+            ),
+            immediately = True
+        )
         for callback in self.done_callbacks: callback(self)
+        if cleanup: self.cleanup()
 
-    def _partial_callbacks(self, value):
+    def _partial_callbacks(self, value, delayed = True):
+        if not self.partial_callbacks: return
+        if delayed and self._loop: return self._loop.delay(
+            lambda: self._partial_callbacks(delayed = False),
+            immediately = True
+        )
         for callback in self.partial_callbacks: callback(self, value)
 
     def _wrap(self, future):
