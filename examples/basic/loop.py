@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import asyncio
+
 import netius
 
 @netius.coroutine
@@ -50,6 +52,9 @@ def print_sum(x, y):
     result = yield from compute(x, y)
     print("%s + %s = %s" % (x, y, result))
 
-loop = netius.get_loop()
-loop.run_until_complete(print_sum, args = (1, 2))
+use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
+if use_asyncio: loop = asyncio.get_event_loop()
+else: loop = netius.get_loop(factory = netius.StreamClient)
+
+loop.run_until_complete(print_sum(1, 2))
 loop.close()
