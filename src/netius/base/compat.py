@@ -52,9 +52,15 @@ class AbstractLoop(object):
     def time(self):
         return time.time()
 
+    def call_soon(self, callback, *args):
+        return self._call_delay(callback, args, immediately = True)
+
+    def call_soon_threadsafe(self, callback, *args):
+        return self._call_delay(callback, args, immediately = True, safe = True)
+
     def call_at(self, when, callback, *args):
         delay = when - self.time()
-        return self.call_later(delay, callback, *args)
+        return self._call_delay(callback, args, timeout = delay)
 
     def call_later(self, delay, callback, *args):
         """
@@ -70,18 +76,7 @@ class AbstractLoop(object):
         :return: The handle object to the operation, that may be used to cancel it.
         """
 
-        # creates the callable to be called after the timeout, note the
-        # clojure around the "normal" arguments (allows proper propagation)
-        callable = lambda: callback(*args)
-
-        # schedules the delay call of the created callable according to
-        # the provided (amount of) sleep time
-        self.delay(callable, timeout = delay)
-
-        # creates the handle to control the operation and then returns the
-        # object to the caller method, allowing operation
-        handle = async.Handle()
-        return handle
+        return self._call_delay(callback, args, timeout = delay)
 
     def create_future(self):
         """
@@ -231,6 +226,34 @@ class AbstractLoop(object):
         import asyncio
         asyncio.Task._current_tasks[self] = task
 
+    def _call_delay(
+        self,
+        callback,
+        args,
+        timeout = None,
+        immediately = False,
+        verify = False,
+        safe = False
+    ):
+        # creates the callable to be called after the timeout, note the
+        # clojure around the "normal" arguments (allows proper propagation)
+        callable = lambda: callback(*args)
+
+        # schedules the delay call of the created callable according to
+        # the provided set of options expected by the delay operation
+        self.delay(
+            callable,
+            timeout = timeout,
+            immediately = immediately,
+            verify = verify,
+            safe = safe
+        )
+
+        # creates the handle to control the operation and then returns the
+        # object to the caller method, allowing operation
+        handle = async.Handle()
+        return handle
+
 class AbstractTransport(object):
 
     def abort(self):
@@ -242,6 +265,12 @@ class AbstractTransport(object):
     def get_extra_info(self, name, default = None):
         if name == "socket": return self.socket
         else: return default
+
+    def set_protocol(self, protocol):
+        self._set_protocol(protocol, mark = False)
+
+    def get_protocol(self):
+        return self._protocol
 
     def is_closing(self):
         return self.is_closed()
