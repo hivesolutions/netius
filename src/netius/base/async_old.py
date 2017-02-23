@@ -49,6 +49,7 @@ class Future(object):
     def __init__(self, loop = None):
         self.status = 0
         self._loop = loop
+        self._blocking = False
         self._result = None
         self._exception = None
         self.cleanup()
@@ -124,21 +125,20 @@ class Future(object):
 
     def _done_callbacks(self, cleanup = False, delayed = True):
         if not self.done_callbacks: return
-        if delayed and self._loop: return self._loop.delay(
-            lambda: self._done_callbacks(
-                cleanup = cleanup,
-                delayed = False
-            ),
-            immediately = True
-        )
+        if delayed and self._loop:
+            return self._delay(
+                lambda: self._done_callbacks(
+                    cleanup = cleanup,
+                    delayed = False
+                )
+            )
         for callback in self.done_callbacks: callback(self)
         if cleanup: self.cleanup()
 
     def _partial_callbacks(self, value, delayed = True):
         if not self.partial_callbacks: return
-        if delayed and self._loop: return self._loop.delay(
-            lambda: self._partial_callbacks(delayed = False),
-            immediately = True
+        if delayed and self._loop: return self._delay(
+            lambda: self._partial_callbacks(delayed = False)
         )
         for callback in self.partial_callbacks: callback(self, value)
 
@@ -149,8 +149,14 @@ class Future(object):
         self.ready_callbacks = future.ready_callbacks
         self.closed_callbacks = future.closed_callbacks
         self._loop = future._loop
+        self._blocking = future._blocking
         self._result = future._result
         self._exception = future._result
+
+    def _delay(self, callable):
+        has_delay = hasattr(self._loop, "delay")
+        if has_delay: return self._loop.delay(callable, immediately = True)
+        return self._loop.call_soon(callable)
 
 class Task(Future):
 
@@ -198,6 +204,9 @@ def ensure_generator(value):
     if legacy.is_generator(value): return True, value
     return False, value
 
+def get_asyncio():
+    return None
+
 def is_coroutine(callable):
     if hasattr(callable, "_is_coroutine"): return True
     return False
@@ -209,20 +218,24 @@ def is_coroutine_object(generator):
 def is_neo():
     return sys.version_info[0] >= 3 and sys.version_info[1] >= 3
 
+def is_await():
+    return sys.version_info[0] >= 3 and sys.version_info[1] >= 6
+
 def wakeup(force = False):
     from .common import get_loop
     loop = get_loop()
     return loop.wakeup(force = force)
 
-def sleep(timeout, future = None):
+def sleep(timeout, compat = True, future = None):
     from .common import get_loop
     loop = get_loop()
-    yield loop.sleep(timeout, future = future)
+    sleep = loop._sleep if compat else loop.sleep
+    for value in loop.sleep(timeout, future = future): yield value
 
 def wait(event, timeout = None, future = None):
     from .common import get_loop
     loop = get_loop()
-    yield loop.wait(event, timeout = timeout, future = future)
+    for value in loop.wait(event, timeout = timeout, future = future): yield value
 
 def notify(event, data = None):
     from .common import get_loop

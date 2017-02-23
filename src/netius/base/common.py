@@ -382,24 +382,38 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         return selected
 
     @classmethod
+    def get_loop(cls, asyncio = False):
+        loop = cls.get_asyncio() if asyncio else None
+        loop = loop or cls.get_main()
+        return loop
+
+    @classmethod
     def get_main(cls):
         return cls._MAIN
+
+    @classmethod
+    def get_asyncio(cls):
+        asyncio = async.get_asyncio()
+        if not asyncio: return
+        return asyncio.get_event_loop()
 
     @classmethod
     def set_main(cls, instance, set_legacy = True):
         cls._MAIN = instance
         if not set_legacy: return
-        try: import asyncio
-        except: return
+        asyncio = async.get_asyncio()
+        if not asyncio: return
         cls.patch_asyncio()
         policy = asyncio.get_event_loop_policy()
-        policy._local._set_called = True
-        policy._local._loop = instance
+        if not policy._local._set_called:
+            policy._local._set_called = True
+        if not policy._local._loop:
+            policy._local._loop = instance
 
     @classmethod
     def patch_asyncio(cls):
-        try: import asyncio
-        except: return
+        asyncio = async.get_asyncio()
+        if not asyncio: return
         if hasattr(asyncio, "_patched"): return
         if hasattr(asyncio.tasks, "_PyTask"):
             asyncio.Task = asyncio.tasks._PyTask #@UndefinedVariable
@@ -655,7 +669,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # verifies if a future variable is meant to be re-used
         # or if instead a new one should be created for the new
         # ensure execution operation
-        future = future or Future()
+        future = future or self.build_future()
 
         # in case the provided coroutine callable is not really
         # a coroutine and instead a "normal" function a conversion
@@ -825,11 +839,11 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # verifies if a future variable is meant to be re-used
         # or if instead a new one should be created for the new
         # sleep operation to be executed
-        future = future or Future()
+        future = future or self.build_future()
 
         # creates the callable that is going to be used to set
         # the final value of the future variable
-        callable = lambda: future.set_result(None)
+        callable = lambda: future.set_result(timeout)
 
         # delays the execution of the callable so that it is executed
         # after the requested amount of timeout, note that the resolution
@@ -841,7 +855,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # verifies if a future variable is meant to be re-used
         # or if instead a new one should be created for the new
         # sleep operation to be executed
-        future = future or Future()
+        future = future or self.build_future()
 
         # creates the callable that is going to be used to set
         # the final value of the future variable, the result
@@ -1981,18 +1995,23 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         return self.is_debug()
 
     def is_debug(self):
+        if not self.logger: return False
         return self.logger.isEnabledFor(logging.DEBUG)
 
     def is_info(self):
+        if not self.logger: return False
         return self.logger.isEnabledFor(logging.INFO)
 
     def is_warning(self):
+        if not self.logger: return False
         return self.logger.isEnabledFor(logging.WARNING)
 
     def is_error(self):
+        if not self.logger: return False
         return self.logger.isEnabledFor(logging.ERROR)
 
     def is_critical(self):
+        if not self.logger: return False
         return self.logger.isEnabledFor(logging.CRITICAL)
 
     def debug(self, object):
@@ -2062,6 +2081,22 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         self.poll_c = poll_c
         self.poll = self.poll_c()
         return self.poll
+
+    def build_future(self):
+        """
+        Creates a future object that is bound to the current event
+        loop context, this allows for latter access to the owning loop.
+
+        :rtype: Future
+        :return: The generated future that should be bound to the
+        current context.
+        """
+
+        # creates a normal future object, setting the current loop (global) as
+        # the loop, then returns the future to the caller method
+        loop = self.get_loop(asyncio = True)
+        future = async.Future(loop = loop)
+        return future
 
     def get_id(self, unique = True):
         base = NAME + "-" + util.camel_to_underscore(self.name)
@@ -2872,6 +2907,11 @@ def get_poll():
     main = get_main()
     if not main: return None
     return main.poll
+
+def build_future():
+    main = get_main()
+    if not main: return None
+    return main.build_future()
 
 def ensure(coroutine, args = [], kwargs = {}, thread = None):
     loop = get_loop()

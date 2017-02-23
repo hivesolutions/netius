@@ -41,6 +41,17 @@ import inspect
 import functools
 
 from . import legacy
+from . import async_old
+
+try: import asyncio
+except: asyncio = None
+
+if asyncio and False:
+    class Future(async_old.Future, asyncio.Future):
+
+        def __init__(self, *args, **kwargs):
+            async_old.Future.__init__(self, *args, **kwargs)
+            asyncio.Future.__init__(self, *args, **kwargs)
 
 class AwaitWrapper(object):
 
@@ -155,6 +166,9 @@ def ensure_generator(value):
 
     return False, value
 
+def get_asyncio():
+    return asyncio
+
 def is_coroutine(callable):
     if hasattr(callable, "_is_coroutine"):
         return True
@@ -175,16 +189,22 @@ def is_coroutine_object(generator):
 
     return False
 
-def _sleep(timeout):
+def _sleep(timeout, compat = True):
     from .common import get_loop
     loop = get_loop()
-    yield loop.sleep(timeout)
-    return timeout
+    sleep = loop._sleep if compat else loop.sleep
+    result = yield from sleep(timeout)
+    return result
 
 def _wait(event, timeout = None, future = None):
     from .common import get_loop
     loop = get_loop()
-    yield loop.wait(event, timeout = timeout, future = future)
+    result = yield from loop.wait(
+        event,
+        timeout = timeout,
+        future = future
+    )
+    return result
 
 def sleep(*args, **kwargs):
     generator = _sleep(*args, **kwargs)
@@ -226,6 +246,8 @@ def future_iter(self):
     a coroutine as a generator.
     """
 
-    if not self.done(): yield self
+    if not self.done():
+        self._blocking = True
+        yield self
     if not self.done(): return None
     return self.result()

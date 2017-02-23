@@ -47,7 +47,7 @@ def compute(future, x, y):
 
 @netius.coroutine
 def print_sum(x, y):
-    future = netius.Future()
+    future = netius.build_future()
     for value in compute(future, x, y): yield value
     result = future.result()
     print("%s + %s = %s" % (x, y, result))

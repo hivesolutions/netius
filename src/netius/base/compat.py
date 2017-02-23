@@ -79,22 +79,7 @@ class AbstractLoop(object):
         return self._call_delay(callback, args, timeout = delay)
 
     def create_future(self):
-        """
-        Creates a future object that is bound to the current event loop context,
-        this allows for latter access to the owning loop.
-
-        This behaviour is required to ensure compatibility with the "legacy"
-        asyncio support, ensuring seamless compatibility.
-
-        :rtype: Future
-        :return: The generated future that should be bound to the current context.
-        """
-
-        # creates a normal future object, setting the current instance as
-        # the loop, then returns the future to the caller method
-        future = async.Future()
-        future._loop = self
-        return future
+        return self.build_future()
 
     def create_task(self, coroutine):
         future = self.ensure(coroutine)
@@ -223,7 +208,8 @@ class AbstractLoop(object):
         yield future
 
     def _set_current_task(self, task):
-        import asyncio
+        asyncio = async.get_asyncio()
+        if not asyncio: return
         asyncio.Task._current_tasks[self] = task
 
     def _call_delay(
@@ -253,6 +239,22 @@ class AbstractLoop(object):
         # object to the caller method, allowing operation
         handle = async.Handle()
         return handle
+
+    def _sleep(self, timeout, future = None):
+        # verifies if a future variable is meant to be re-used
+        # or if instead a new one should be created for the new
+        # sleep operation to be executed
+        future = future or self.create_future()
+
+        # creates the callable that is going to be used to set
+        # the final value of the future variable
+        callable = lambda: future.set_result(timeout)
+
+        # delays the execution of the callable so that it is executed
+        # after the requested amount of timeout, note that the resolution
+        # of the event loop will condition the precision of the timeout
+        future._loop.call_later(timeout, callable)
+        return future
 
 class AbstractTransport(object):
 
