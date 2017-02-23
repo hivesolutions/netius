@@ -144,3 +144,6 @@ class AbstractLoop(object):
 
     def get_debug(self):
         return self.is_debug()
+
+    def is_closed(self):
+        return self.is_stopped()
