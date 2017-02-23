@@ -131,6 +131,10 @@ class Future(object):
 
     def _wrap(self, future):
         self.status = future.status
+        self.done_callbacks = future.done_callbacks
+        self.partial_callbacks = future.partial_callbacks
+        self.ready_callbacks = future.ready_callbacks
+        self.closed_callbacks = future.closed_callbacks
         self._result = future._result
         self._exception = future._result
 

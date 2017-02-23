@@ -115,6 +115,10 @@ class AbstractLoop(object):
         # the future associated with the provided ensure context gets
         # finished (on done callback)
         def cleanup(future):
+            exception = future.exception()
+            if exception:
+                self.warning(exception)
+                self.log_stack()
             self.stop()
 
         # tries to determine if the provided object is in fact a coroutine
