@@ -236,6 +236,9 @@ def is_future(future):
 def is_neo():
     return sys.version_info[0] >= 3 and sys.version_info[1] >= 3
 
+def is_asyncio():
+    return sys.version_info[0] >= 3 and sys.version_info[1] >= 4
+
 def is_await():
     return sys.version_info[0] >= 3 and sys.version_info[1] >= 6
 

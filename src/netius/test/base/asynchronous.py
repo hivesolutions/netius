@@ -55,12 +55,16 @@ class AsynchronousTest(unittest.TestCase):
         self.assertEqual(isinstance(future, netius.Future), True)
         self.assertNotEqual(future._loop, None)
         self.assertEqual(isinstance(future._loop, netius.Base), True)
-        
+
         loop = netius.get_loop()
 
         self.assertNotEqual(loop, None)
-        self.assertEqual(isinstance(loop, netius.BaseLoop), True)
-        self.assertEqual(isinstance(loop, netius.CompatLoop), True)
+
+        if netius.is_asyncio():
+            self.assertEqual(isinstance(loop, netius.BaseLoop), True)
+            self.assertEqual(isinstance(loop, netius.CompatLoop), True)
+        else:
+            self.assertEqual(isinstance(loop, netius.Base), True)
 
     @netius.async_test
     def test_sleep(self):
