@@ -72,10 +72,17 @@ REGISTRY = {
 
 class RelaySMTPServerTest(unittest.TestCase):
 
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        self.server = netius.extra.RelaySMTPServer()
+
+    def tearDown(self):
+        unittest.TestCase.tearDown(self)
+        self.server.cleanup()
+
     def test_dkim(self):
-        smtp_r = netius.extra.RelaySMTPServer()
-        smtp_r.dkim = REGISTRY
-        result = smtp_r.dkim_contents(
+        self.server.dkim = REGISTRY
+        result = self.server.dkim_contents(
             MESSAGE,
             email = "email@netius.hive.pt",
             creation = 1464003802

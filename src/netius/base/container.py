@@ -207,7 +207,19 @@ class ContainerServer(server.StreamServer):
 
     def cleanup(self):
         server.StreamServer.cleanup(self)
+
+        # saves the container reference so that it may be used latter
+        # and then unsets it under the current instance
+        container = self.container
         self.container = None
+
+        # verifies if the container is valid and if that's not the case
+        # returns the control flow immediately (as expected)
+        if not container: return
+
+        # runs the cleanup operation on the cleanup, this should properly
+        # propagate the operation to the owner container (as expected)
+        container.cleanup()
 
     def add_base(self, base):
         self.container.add_base(base)

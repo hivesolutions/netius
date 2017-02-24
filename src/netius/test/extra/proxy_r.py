@@ -44,9 +44,9 @@ import netius.extra
 
 class ReverseProxyServerTest(unittest.TestCase):
 
-    def test_alias(self):
-        Parser = collections.namedtuple("Parser", "headers")
-        proxy_r = netius.extra.ReverseProxyServer(
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        self.server = netius.extra.ReverseProxyServer(
             hosts = {
                 "host.com" : "http://localhost"
             },
@@ -54,6 +54,13 @@ class ReverseProxyServerTest(unittest.TestCase):
                 "alias.host.com" : "host.com"
             }
         )
+
+    def tearDown(self):
+        unittest.TestCase.tearDown(self)
+        self.server.cleanup()
+
+    def test_alias(self):
+        Parser = collections.namedtuple("Parser", "headers")
         parser = Parser(headers = dict(host = "alias.host.com"))
-        result = proxy_r.rules_host(None, parser)
+        result = self.server.rules_host(None, parser)
         self.assertEqual(result, ("http://localhost", None))

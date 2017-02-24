@@ -83,7 +83,7 @@ class Server(Base):
 
         # tries to close the service socket, as this is the one that
         # has no connection associated and is independent
-        try: self.socket.close()
+        try: self.socket and self.socket.close()
         except: pass
 
         # unsets the socket attribute as the socket should now be closed

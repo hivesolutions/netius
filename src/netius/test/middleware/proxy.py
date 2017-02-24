@@ -45,13 +45,11 @@ class ProxyMiddlewareTest(unittest.TestCase):
 
     def setUp(self):
         unittest.TestCase.setUp(self)
-
         self.server = netius.Server(poll = netius.Poll)
         self.server.poll.open()
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
-
         self.server.cleanup()
 
     def test_ipv4(self):

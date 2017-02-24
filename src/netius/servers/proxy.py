@@ -163,9 +163,19 @@ class ProxyServer(http2.HTTP2Server):
 
     def cleanup(self):
         http2.HTTP2Server.cleanup(self)
+
+        # saves the container reference so that it may be used latter
+        # and then unsets it under the current instance
+        container = self.container
         self.container = None
-        self.http_client.destroy()
-        self.raw_client.destroy()
+
+        # verifies if the container is valid and if that's not the case
+        # returns the control flow immediately (as expected)
+        if not container: return
+
+        # runs the cleanup operation on the cleanup, this should properly
+        # propagate the operation to the owner container (as expected)
+        container.cleanup()
 
     def info_dict(self, full = False):
         info = http2.HTTP2Server.info_dict(self, full = full)
