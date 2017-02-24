@@ -177,6 +177,11 @@ class ProxyServer(http2.HTTP2Server):
         # propagate the operation to the owner container (as expected)
         container.cleanup()
 
+        # unsets the references to the inner clients that compose the
+        # proxy server, avoids possible memory leaks
+        self.http_client = None
+        self.raw_client = None
+
     def info_dict(self, full = False):
         info = http2.HTTP2Server.info_dict(self, full = full)
         info.update(
