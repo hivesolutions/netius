@@ -328,7 +328,7 @@ class HTTPConnection(netius.Connection):
         if safe: self._headers_normalize(headers)
 
         buffer = []
-        buffer.append("%s %s %s\r\n" % (method, path, version))´
+        buffer.append("%s %s %s\r\n" % (method, path, version))
         print(buffer)
         for key, value in headers.items():
             key = netius.common.header_up(key)
