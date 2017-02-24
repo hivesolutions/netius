@@ -52,7 +52,7 @@ class ProxyMiddlewareTest(unittest.TestCase):
     def tearDown(self):
         unittest.TestCase.tearDown(self)
 
-        self.server.poll.close()
+        self.server.cleanup()
 
     def test_ipv4(self):
         instance = self.server.register_middleware(
@@ -81,7 +81,7 @@ class ProxyMiddlewareTest(unittest.TestCase):
 
         self.assertEqual(connection.address, ("fe80::787f:f63f:3176:d61b", 32598))
         self.assertEqual(len(connection.restored), 0)
-
+        
     def test_starter(self):
         self.server.register_middleware(
             netius.middleware.ProxyMiddleware
