@@ -82,10 +82,10 @@ class LoopCompat(object):
         return self._call_delay(callback, args, timeout = delay)
 
     def create_future(self):
-        return self.build_future()
+        return self._loop.build_future()
 
     def create_task(self, coroutine):
-        future = self.ensure(coroutine)
+        future = self._loop.ensure(coroutine)
         task = asynchronous.Task(future)
         return task
 
