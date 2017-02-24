@@ -1066,11 +1066,6 @@ class AbstractBase(observer.Observable):
         pass
 
     def load_logging(self, level = logging.DEBUG, format = LOG_FORMAT, unique = False):
-        # verifies if the current context of loading is unit testing
-        # and if that's the case returns immediately, as we don't want
-        # to re-load the logging process all over again
-        if legacy.is_unittest(): return
-
         # verifies if there's a logger already set in the current service
         # if that's the case ignores the call no double reloading allowed
         if self.logger: return
@@ -1129,6 +1124,10 @@ class AbstractBase(observer.Observable):
         for handler in self.handlers:
             if not handler: continue
             self.logger.removeHandler(handler)
+
+        # closes the base stream handler as it's no longer going to
+        # be used for any kind of logging operation (avoids leaks)
+        self.handler_stream.close()
 
         # iterates over the complete set of (built) extra handlers
         # and runs the close operation for each of them, as they are
