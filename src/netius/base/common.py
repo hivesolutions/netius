@@ -1453,7 +1453,7 @@ class AbstractBase(observer.Observable):
     def unsub_error(self, socket):
         return self.poll.unsub_error(socket)
 
-    def cleanup(self):
+    def cleanup(self, destroy = True):
         # runs the unload operation for the current base container this should
         # unset/unload some of the components for this base infra-structure
         self.unload()
@@ -1525,6 +1525,10 @@ class AbstractBase(observer.Observable):
         self.callbacks_m.clear()
         del self.connections[:]
         del self._extra_handlers[:]
+
+        # runs the destroy operation for the current instance, this should remove
+        # the most obscure parts of the current instance
+        if destroy: self.destroy()
 
     def loop(self):
         # iterates continuously while the running flag is set, once
