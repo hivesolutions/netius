@@ -1027,7 +1027,7 @@ class AbstractBase(observer.Observable):
         # will be done after this first call to the loading (no duplicates)
         self._loaded = True
 
-    def unload(self, full = False):
+    def unload(self, full = True):
         """
         Unloads the structures associated with the current engine, so that
         the state of the current engine is reversed to the original one.
@@ -1066,6 +1066,15 @@ class AbstractBase(observer.Observable):
         pass
 
     def load_logging(self, level = logging.DEBUG, format = LOG_FORMAT, unique = False):
+        # verifies if the current context of loading is unit testing
+        # and if that's the case returns immediately, as we don't want
+        # to re-load the logging process all over again
+        if legacy.is_unittest(): return
+
+        # verifies if there's a logger already set in the current service
+        # if that's the case ignores the call no double reloading allowed
+        if self.logger: return
+
         # normalizes the provided level value so that it represents
         # a proper and understandable value, then starts the formatter
         # that is going to be used and retrieves the (possibly unique)
@@ -1102,6 +1111,11 @@ class AbstractBase(observer.Observable):
             self.logger.addHandler(handler)
 
     def unload_logging(self):
+        # verifies if there's a valid logger instance set in the
+        # current service, in case there's not returns immediately
+        # as there's nothing remaining to be done here
+        if not self.logger: return
+
         # updates the counter value for the logger and validates
         # that no more "clients" are using the logger so that it
         # may be properly destroyed (as expected)
@@ -1120,6 +1134,10 @@ class AbstractBase(observer.Observable):
         # and runs the close operation for each of them, as they are
         # no longer considered required for logging purposes
         for handler in self._extra_handlers: handler.close()
+
+        # unset the logger reference in the current service so that
+        # it's not possible to use it any longer
+        self.logger = None
 
     def extra_logging(self, level, formatter):
         """
