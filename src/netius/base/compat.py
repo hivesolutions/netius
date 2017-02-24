@@ -103,14 +103,17 @@ class LoopCompat(object):
 
     def run_until_complete(self, future):
         self._set_current_task(future)
-        try: return self.run_coroutine(future)
+        try: return self._loop.run_coroutine(future)
         finally: self._unset_current_task()
 
+    def close(self):
+        self._loop.close()
+
     def get_debug(self):
-        return self.is_debug()
+        return self._loop.is_debug()
 
     def is_closed(self):
-        return self.is_stopped()
+        return self._loop.is_stopped()
 
     def _getaddrinfo(
         self,
@@ -161,7 +164,7 @@ class LoopCompat(object):
             transport._set_compat(protocol)
             future.set_result((transport, protocol))
 
-        connection = self.connect(
+        connection = self._loop.connect(
             host,
             port,
             ssl = ssl,
