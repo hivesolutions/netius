@@ -829,15 +829,17 @@ class AbstractBase(observer.Observable):
         coroutine,
         args = [],
         kwargs = {},
+        close = None,
         thread = None
     ):
         # creates the callback function that is going to be called when
         # the future associated with the provided ensure context gets
         # finished (on done callback)
         def cleanup(future):
-            # calls the pause method for the current loop, effectively ending
-            # the loop as soon as possible (next tick)
-            self.pause()
+            # calls the stop or pause method for the current loop, effectively
+            # ending the loop as soon as possible (next tick), notice that in
+            # the close method is called no more loop re-usage is possible
+            self.close() if close else self.pause()
 
             # tries to retrieve a possible exception associated with
             # the future, in case it does not exists ignores the current

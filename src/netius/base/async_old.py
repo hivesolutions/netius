@@ -200,19 +200,23 @@ def coroutine(function):
     routine._is_coroutine = True
     return routine
 
-def async_test(function):
+def async_test(close = True):
 
-    from . import common
-    from . import asynchronous
+    def decorator(function):
 
-    @functools.wraps(function)
-    def wrapper(*args, **kwargs):
-        function_c = asynchronous.coroutine(function)
-        future = function_c(*args, **kwargs)
-        loop = common.get_main()
-        return loop.run_coroutine(future)
+        from . import common
+        from . import asynchronous
 
-    return wrapper
+        @functools.wraps(function)
+        def wrapper(*args, **kwargs):
+            function_c = asynchronous.coroutine(function)
+            future = function_c(*args, **kwargs)
+            loop = common.get_main()
+            return loop.run_coroutine(future, close = close)
+
+        return wrapper
+
+    return decorator
 
 def ensure_generator(value):
     if legacy.is_generator(value): return True, value
