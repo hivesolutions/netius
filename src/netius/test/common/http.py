@@ -88,17 +88,20 @@ class HTTPParserTest(unittest.TestCase):
             type = netius.common.REQUEST,
             store = True
         )
-        parser.parse(SIMPLE_REQUEST)
-        message = parser.get_message()
-        headers = parser.get_headers()
-        self.assertEqual(parser.method, "get")
-        self.assertEqual(parser.version, netius.common.HTTP_11)
-        self.assertEqual(parser.path_s, "http://localhost")
-        self.assertEqual(parser.content_l, 11)
-        self.assertEqual(message, b"Hello World")
-        self.assertEqual(headers["Date"], "Wed, 1 Jan 2014 00:00:00 GMT")
-        self.assertEqual(headers["Server"], "Test Service/1.0.0")
-        self.assertEqual(headers["Content-Length"], "11")
+        try:
+            parser.parse(SIMPLE_REQUEST)
+            message = parser.get_message()
+            headers = parser.get_headers()
+            self.assertEqual(parser.method, "get")
+            self.assertEqual(parser.version, netius.common.HTTP_11)
+            self.assertEqual(parser.path_s, "http://localhost")
+            self.assertEqual(parser.content_l, 11)
+            self.assertEqual(message, b"Hello World")
+            self.assertEqual(headers["Date"], "Wed, 1 Jan 2014 00:00:00 GMT")
+            self.assertEqual(headers["Server"], "Test Service/1.0.0")
+            self.assertEqual(headers["Content-Length"], "11")
+        finally:
+            parser.clear()
 
     def test_chunked(self):
         parser = netius.common.HTTPParser(
@@ -106,17 +109,20 @@ class HTTPParserTest(unittest.TestCase):
             type = netius.common.REQUEST,
             store = True
         )
-        parser.parse(CHUNKED_REQUEST)
-        message = parser.get_message()
-        headers = parser.get_headers()
-        self.assertEqual(parser.method, "get")
-        self.assertEqual(parser.version, netius.common.HTTP_11)
-        self.assertEqual(parser.path_s, "http://localhost")
-        self.assertEqual(parser.transfer_e, "chunked")
-        self.assertEqual(message, b"Hello World")
-        self.assertEqual(headers["Date"], "Wed, 1 Jan 2014 00:00:00 GMT")
-        self.assertEqual(headers["Server"], "Test Service/1.0.0")
-        self.assertEqual(headers["Transfer-Encoding"], "chunked")
+        try:
+            parser.parse(CHUNKED_REQUEST)
+            message = parser.get_message()
+            headers = parser.get_headers()
+            self.assertEqual(parser.method, "get")
+            self.assertEqual(parser.version, netius.common.HTTP_11)
+            self.assertEqual(parser.path_s, "http://localhost")
+            self.assertEqual(parser.transfer_e, "chunked")
+            self.assertEqual(message, b"Hello World")
+            self.assertEqual(headers["Date"], "Wed, 1 Jan 2014 00:00:00 GMT")
+            self.assertEqual(headers["Server"], "Test Service/1.0.0")
+            self.assertEqual(headers["Transfer-Encoding"], "chunked")
+        finally:
+            parser.clear()
 
     def test_malformed(self):
         parser = netius.common.HTTPParser(
@@ -124,45 +130,54 @@ class HTTPParserTest(unittest.TestCase):
             type = netius.common.REQUEST,
             store = True
         )
-        parser.parse(EXTRA_SPACES_REQUEST)
-        message = parser.get_message()
-        headers = parser.get_headers()
-        self.assertEqual(parser.method, "get")
-        self.assertEqual(parser.version, netius.common.HTTP_11)
-        self.assertEqual(parser.path_s, "/")
-        self.assertEqual(parser.content_l, 11)
-        self.assertEqual(message, b"Hello World")
-        self.assertEqual(headers["Date"], "Wed, 1 Jan 2014 00:00:00 GMT")
-        self.assertEqual(headers["Server"], "Test Service/1.0.0")
-        self.assertEqual(headers["Content-Length"], "11")
+        try:
+            parser.parse(EXTRA_SPACES_REQUEST)
+            message = parser.get_message()
+            headers = parser.get_headers()
+            self.assertEqual(parser.method, "get")
+            self.assertEqual(parser.version, netius.common.HTTP_11)
+            self.assertEqual(parser.path_s, "/")
+            self.assertEqual(parser.content_l, 11)
+            self.assertEqual(message, b"Hello World")
+            self.assertEqual(headers["Date"], "Wed, 1 Jan 2014 00:00:00 GMT")
+            self.assertEqual(headers["Server"], "Test Service/1.0.0")
+            self.assertEqual(headers["Content-Length"], "11")
+        finally:
+            parser.clear()
 
         parser = netius.common.HTTPParser(
             self,
             type = netius.common.REQUEST,
             store = True
         )
-        parser.parse(INVALID_HEADERS_REQUEST)
-        message = parser.get_message()
-        headers = parser.get_headers()
-        self.assertEqual(parser.method, "get")
-        self.assertEqual(parser.version, netius.common.HTTP_11)
-        self.assertEqual(parser.path_s, "/")
-        self.assertEqual(parser.content_l, 11)
-        self.assertEqual(message, b"Hello World")
-        self.assertEqual(headers["Date"], "Wed, 1 Jan 2014 00:00:00 GMT")
-        self.assertEqual(headers["Server"], "Test Service/1.0.0")
-        self.assertEqual(headers["Content-Length"], "11")
-        self.assertEqual(headers["X-Invalid-Header"], "Ol\xc3\xa1 Mundo")
+        try:
+            parser.parse(INVALID_HEADERS_REQUEST)
+            message = parser.get_message()
+            headers = parser.get_headers()
+            self.assertEqual(parser.method, "get")
+            self.assertEqual(parser.version, netius.common.HTTP_11)
+            self.assertEqual(parser.path_s, "/")
+            self.assertEqual(parser.content_l, 11)
+            self.assertEqual(message, b"Hello World")
+            self.assertEqual(headers["Date"], "Wed, 1 Jan 2014 00:00:00 GMT")
+            self.assertEqual(headers["Server"], "Test Service/1.0.0")
+            self.assertEqual(headers["Content-Length"], "11")
+            self.assertEqual(headers["X-Invalid-Header"], "Ol\xc3\xa1 Mundo")
+        finally:
+            parser.clear()
 
         parser = netius.common.HTTPParser(
             self,
             type = netius.common.REQUEST,
             store = True
         )
-        self.assertRaises(
-            netius.ParserError,
-            lambda: parser.parse(INVALID_STATUS_REQUEST)
-        )
+        try:
+            self.assertRaises(
+                netius.ParserError,
+                lambda: parser.parse(INVALID_STATUS_REQUEST)
+            )
+        finally:
+            parser.clear()
 
     def test_file(self):
         parser = netius.common.HTTPParser(
@@ -171,16 +186,19 @@ class HTTPParserTest(unittest.TestCase):
             store = True,
             file_limit = -1
         )
-        parser.parse(CHUNKED_REQUEST)
-        message = parser.get_message()
-        message_b = parser.get_message_b()
-        self.assertEqual(message, b"Hello World")
-        self.assertNotEqual(parser.message_f, None)
-        self.assertNotEqual(parser.message_f.read, None)
-        self.assertNotEqual(message_b, None)
-        self.assertNotEqual(message_b.read, None)
-        self.assertEqual(message_b.read(), b"Hello World")
-        self.assertEqual(parser.message, [])
+        try:
+            parser.parse(CHUNKED_REQUEST)
+            message = parser.get_message()
+            message_b = parser.get_message_b()
+            self.assertEqual(message, b"Hello World")
+            self.assertNotEqual(parser.message_f, None)
+            self.assertNotEqual(parser.message_f.read, None)
+            self.assertNotEqual(message_b, None)
+            self.assertNotEqual(message_b.read, None)
+            self.assertEqual(message_b.read(), b"Hello World")
+            self.assertEqual(parser.message, [])
+        finally:
+            parser.clear()
 
     def test_no_store(self):
         parser = netius.common.HTTPParser(
@@ -189,9 +207,12 @@ class HTTPParserTest(unittest.TestCase):
             store = False,
             file_limit = -1
         )
-        parser.parse(CHUNKED_REQUEST)
-        message = parser.get_message()
-        self.assertEqual(message, b"")
+        try:
+            parser.parse(CHUNKED_REQUEST)
+            message = parser.get_message()
+            self.assertEqual(message, b"")
+        finally:
+            parser.clear()
 
     def test_clear(self):
         parser = netius.common.HTTPParser(
