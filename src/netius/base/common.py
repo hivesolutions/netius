@@ -2963,8 +2963,16 @@ def get_main(factory = AbstractBase, ensure = True):
         AbstractBase.set_main(instance)
     return AbstractBase.get_main()
 
-def get_loop(factory = AbstractBase, ensure = True):
-    return get_main(factory = factory, ensure = ensure)
+def get_loop(factory = AbstractBase, ensure = True, asyncio = True):
+    loop = AbstractBase.get_loop(asyncio = asyncio)
+    loop = loop or get_main(
+        factory = factory,
+        ensure = ensure
+    )
+    return loop
+
+def get_event_loop(*args, **kwargs):
+    return get_loop(*args, **kwargs)
 
 def get_poll():
     main = get_main()
