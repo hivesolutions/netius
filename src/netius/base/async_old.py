@@ -200,7 +200,7 @@ def coroutine(function):
     routine._is_coroutine = True
     return routine
 
-def async_test(close = True):
+def async_test(factory = None, close = True):
 
     def decorator(function):
 
@@ -211,7 +211,7 @@ def async_test(close = True):
         def wrapper(*args, **kwargs):
             function_c = asynchronous.coroutine(function)
             future = function_c(*args, **kwargs)
-            loop = common.get_main()
+            loop = common.get_main(factory = factory)
             return loop.run_coroutine(future, close = close)
 
         return wrapper

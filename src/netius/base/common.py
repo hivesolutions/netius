@@ -2961,16 +2961,17 @@ class BaseThread(threading.Thread):
             self.owner._thread = None
             self.owner = None
 
-def ensure_main(factory = AbstractBase):
+def ensure_main(factory = None):
     if AbstractBase.get_main(): return
+    factory = factory or AbstractBase
     instance = factory()
     AbstractBase.set_main(instance)
 
-def get_main(factory = AbstractBase, ensure = True):
+def get_main(factory = None, ensure = True):
     if ensure: ensure_main(factory = factory)
     return AbstractBase.get_main()
 
-def get_loop(factory = AbstractBase, ensure = True, asyncio = True):
+def get_loop(factory = None, ensure = True, asyncio = True):
     if ensure: ensure_main(factory = factory)
     loop = AbstractBase.get_loop(asyncio = asyncio)
     loop = loop or get_main(factory = factory)
