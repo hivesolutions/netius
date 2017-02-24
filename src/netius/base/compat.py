@@ -109,7 +109,7 @@ class AbstractLoop(object):
         # the future associated with the provided ensure context gets
         # finished (on done callback)
         def cleanup(future):
-            # calls the stop method for the current loop, effectivly ending
+            # calls the stop method for the current loop, effectively ending
             # the loop as soon as possible (next tick)
             self.stop()
 
@@ -206,8 +206,9 @@ class AbstractLoop(object):
 
         def connect(connection):
             protocol = protocol_factory()
-            connection._set_compat(protocol)
-            future.set_result((connection, protocol))
+            transport = TransportCompat(connection)
+            transport._set_compat(protocol)
+            future.set_result((transport, protocol))
 
         connection = self.connect(
             host,
@@ -269,16 +270,30 @@ class AbstractLoop(object):
         future._loop.call_later(timeout, callable)
         return future
 
-class AbstractTransport(object):
+class TransportCompat(object):
+    """
+    Decorator class to be used to add the functionality of a
+    transport layer as defined by the asyncio.
+
+    Allows adding the functionality to an internal netius
+    (or equivalent) object.
+    """
+
+    def __init__(self, connection):
+        self._connection = connection
+        self._protocol = None
+
+    def close(self):
+        self._connection.close()
 
     def abort(self):
-        self.close()
+        self._connection.close()
 
     def write(self, data):
-        self.send(data)
+        self._connection.send(data)
 
     def get_extra_info(self, name, default = None):
-        if name == "socket": return self.socket
+        if name == "socket": return self._connection.socket
         else: return default
 
     def set_protocol(self, protocol):
@@ -288,7 +303,7 @@ class AbstractTransport(object):
         return self._protocol
 
     def is_closing(self):
-        return self.is_closed()
+        return self._connection.is_closed()
 
     def _on_data(self, connection, data):
         self._protocol.data_received(data)
@@ -302,8 +317,8 @@ class AbstractTransport(object):
         self._set_protocol(protocol)
 
     def _set_binds(self):
-        self.bind("data", self._on_data)
-        self.bind("close", self._on_close)
+        self._connection.bind("data", self._on_data)
+        self._connection.bind("close", self._on_close)
 
     def _set_protocol(self, protocol, mark = True):
         self._protocol = protocol

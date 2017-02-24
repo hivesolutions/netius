@@ -53,6 +53,7 @@ import netius.adapters
 from . import log
 from . import util
 from . import async
+from . import compat
 from . import errors
 
 from .. import middleware
