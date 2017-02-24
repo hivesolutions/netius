@@ -238,6 +238,10 @@ class LoopCompat(base_loop):
         future._loop.call_later(timeout, callable)
         return future
 
+    @property
+    def _thread_id(self):
+        return self._loop.tid
+
 class TransportCompat(base_transport):
     """
     Decorator class to be used to add the functionality of a
