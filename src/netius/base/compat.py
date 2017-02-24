@@ -109,9 +109,9 @@ class AbstractLoop(object):
         # the future associated with the provided ensure context gets
         # finished (on done callback)
         def cleanup(future):
-            # calls the stop method for the current loop, effectively ending
+            # calls the pause method for the current loop, effectively ending
             # the loop as soon as possible (next tick)
-            self.stop()
+            self.pause()
 
             # tries to retrieve a possible exception associated with
             # the future, in case it does not exists ignores the current
@@ -148,8 +148,10 @@ class AbstractLoop(object):
         self._set_current_task(future)
 
         # starts the current event loop, this is a blocking operation until
-        # the done callback is called to stop the loop
-        self.start()
+        # the done callback is called to stop the loop, notice that the current
+        # task is unset after the end of the blocking execution
+        try: self.start()
+        finally: self._unset_current_task()
 
         # returns the "final" future result value, as this is considered to
         # be the result of the execution (expected)
@@ -225,6 +227,11 @@ class AbstractLoop(object):
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
         asyncio.Task._current_tasks[self] = task
+        
+    def _unset_current_task(self):
+        asyncio = asynchronous.get_asyncio()
+        if not asyncio: return
+        asyncio.Task._current_tasks.pop(self, None)
 
     def _call_delay(
         self,
