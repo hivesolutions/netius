@@ -412,6 +412,10 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
             policy._local._loop = instance
 
     @classmethod
+    def unset_main(cls, set_legacy = True):
+        cls.set_main(None, set_legacy = set_legacy)
+
+    @classmethod
     def patch_asyncio(cls):
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
@@ -1465,7 +1469,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # instance set as global main is this one unsets the value
         # meaning that the main instance has been unloaded
         if self._main and AbstractBase.get_main() == self:
-            AbstractBase.set_main(None)
+            AbstractBase.unset_main()
 
         # closes the current poll mechanism so that no more issues arise
         # from an open poll system (memory leaks, etc.), note that this is
