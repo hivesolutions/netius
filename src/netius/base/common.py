@@ -405,7 +405,7 @@ class AbstractBase(observer.Observable):
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
         cls.patch_asyncio()
-        if instance: loop = compat.LoopCompat(instance)
+        if instance: loop = compat.CompatLoop(instance)
         else: loop = None
         asyncio.set_event_loop(loop)
 

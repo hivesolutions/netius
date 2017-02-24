@@ -44,7 +44,7 @@ import netius
 class AsynchronousTest(unittest.TestCase):
 
     def test_basic(self):
-        loop = netius.get_loop()
+        loop = netius.get_loop(asyncio = False)
 
         self.assertNotEqual(loop, None)
         self.assertEqual(isinstance(loop, netius.Base), True)
@@ -55,6 +55,12 @@ class AsynchronousTest(unittest.TestCase):
         self.assertEqual(isinstance(future, netius.Future), True)
         self.assertNotEqual(future._loop, None)
         self.assertEqual(isinstance(future._loop, netius.Base), True)
+        
+        loop = netius.get_loop()
+
+        self.assertNotEqual(loop, None)
+        self.assertEqual(isinstance(loop, netius.BaseLoop), True)
+        self.assertEqual(isinstance(loop, netius.CompatLoop), True)
 
     @netius.async_test
     def test_sleep(self):
