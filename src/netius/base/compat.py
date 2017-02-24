@@ -271,8 +271,6 @@ class AbstractLoop(object):
         # the final value of the future variable
         callable = lambda: future.set_result(timeout)
 
-        print("vai chamar mais tarde em %s" % str(future._loop))
-
         # delays the execution of the callable so that it is executed
         # after the requested amount of timeout, note that the resolution
         # of the event loop will condition the precision of the timeout

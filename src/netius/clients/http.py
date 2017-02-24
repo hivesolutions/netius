@@ -329,7 +329,6 @@ class HTTPConnection(netius.Connection):
 
         buffer = []
         buffer.append("%s %s %s\r\n" % (method, path, version))
-        print(buffer)
         for key, value in headers.items():
             key = netius.common.header_up(key)
             if not type(value) == list: value = (value,)
@@ -1130,27 +1129,10 @@ class HTTPClient(netius.StreamClient):
 if __name__ == "__main__":
     buffer = []
 
-    def on_headers(client, parser, headers):
-        print(parser.code_s + " " + parser.status_s)
-
-    def on_partial(client, parser, data):
-        data = data
-        data and buffer.append(data)
-
-    def on_message(client, parser, message):
-        request = HTTPClient.set_request(parser, buffer)
-        print(request["headers"])
-        print(request["data"] or b"[empty data]")
-        client.close()
-
-    def on_close(client, connection):
-        client.close()
-
-    client = HTTPClient()
-    client.get("https://www.flickr.com/")
-    client.bind("headers", on_headers)
-    client.bind("partial", on_partial)
-    client.bind("message", on_message)
-    client.bind("close", on_close)
+    result = HTTPClient.method_s(
+        "GET",
+        "https://www.flickr.com/",
+        async = False
+    )
 else:
     __path__ = []
