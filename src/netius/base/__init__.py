@@ -34,7 +34,7 @@ __copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from . import async
+from . import asynchronous
 from . import client
 from . import common
 from . import compat
@@ -52,7 +52,7 @@ from . import stream
 from . import tls
 from . import util
 
-from .async import Future, Task, Handle, coroutine, async_test, ensure_generator,\
+from .asynchronous import Future, Task, Handle, coroutine, async_test, ensure_generator,\
     get_asyncio, is_coroutine, is_coroutine_object, is_future, is_neo, is_await,\
     wakeup, sleep, wait, notify, coroutine_return
 from .client import Client, DatagramClient, StreamClient

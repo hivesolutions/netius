@@ -40,8 +40,8 @@ __license__ = "Apache License, Version 2.0"
 import time
 import socket
 
-from . import async
 from . import errors
+from . import asynchronous
 
 class AbstractLoop(object):
     """
@@ -83,20 +83,20 @@ class AbstractLoop(object):
 
     def create_task(self, coroutine):
         future = self.ensure(coroutine)
-        task = async.Task(future)
+        task = asynchronous.Task(future)
         return task
 
     def create_connection(self, *args, **kwargs):
         coroutine = self._create_connection(*args, **kwargs)
-        return async.coroutine_return(coroutine)
+        return asynchronous.coroutine_return(coroutine)
 
     def getaddrinfo(self, *args, **kwargs):
         coroutine = self._getaddrinfo(*args, **kwargs)
-        return async.coroutine_return(coroutine)
+        return asynchronous.coroutine_return(coroutine)
 
     def getnameinfo(self, *args, **kwargs):
         coroutine = self._getnameinfo(*args, **kwargs)
-        return async.coroutine_return(coroutine)
+        return asynchronous.coroutine_return(coroutine)
 
     def run_until_complete(
         self,
@@ -126,8 +126,8 @@ class AbstractLoop(object):
 
         # tries to determine if the provided object is in fact a coroutine
         # or if instead it is a "simple" future object ready to be used
-        is_coroutine = async.is_coroutine(coroutine) or\
-            async.is_coroutine_object(coroutine)
+        is_coroutine = asynchronous.is_coroutine(coroutine) or\
+            asynchronous.is_coroutine_object(coroutine)
 
         # ensures that the provided coroutine get executed under a new
         # context and retrieves the resulting future
@@ -222,7 +222,7 @@ class AbstractLoop(object):
         yield future
 
     def _set_current_task(self, task):
-        asyncio = async.get_asyncio()
+        asyncio = asynchronous.get_asyncio()
         if not asyncio: return
         asyncio.Task._current_tasks[self] = task
 
@@ -251,7 +251,7 @@ class AbstractLoop(object):
 
         # creates the handle to control the operation and then returns the
         # object to the caller method, allowing operation
-        handle = async.Handle()
+        handle = asynchronous.Handle()
         return handle
 
     def _sleep(self, timeout, future = None):

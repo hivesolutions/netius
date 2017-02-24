@@ -52,15 +52,15 @@ import netius.adapters
 
 from . import log
 from . import util
-from . import async
 from . import compat
 from . import errors
+from . import asynchronous
 
 from .. import middleware
 
 from .conn import * #@UnusedWildImport
 from .poll import * #@UnusedWildImport
-from .async import * #@UnusedWildImport
+from .asynchronous import * #@UnusedWildImport
 
 NAME = "netius"
 """ The global infra-structure name to be used in the
@@ -394,7 +394,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
 
     @classmethod
     def get_asyncio(cls):
-        asyncio = async.get_asyncio()
+        asyncio = asynchronous.get_asyncio()
         if not asyncio: return
         return asyncio.get_event_loop()
 
@@ -402,7 +402,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
     def set_main(cls, instance, set_legacy = True):
         cls._MAIN = instance
         if not set_legacy: return
-        asyncio = async.get_asyncio()
+        asyncio = asynchronous.get_asyncio()
         if not asyncio: return
         cls.patch_asyncio()
         policy = asyncio.get_event_loop_policy()
@@ -413,7 +413,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
 
     @classmethod
     def patch_asyncio(cls):
-        asyncio = async.get_asyncio()
+        asyncio = asynchronous.get_asyncio()
         if not asyncio: return
         if hasattr(asyncio, "_patched"): return
         if hasattr(asyncio.tasks, "_PyTask"):
@@ -662,8 +662,8 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # a coroutine and uses that condition to determine the
         # default value for the thread argument, notice that the
         # verification is also performed for the coroutine object
-        is_coroutine = async.is_coroutine(coroutine)
-        is_coroutine_object = async.is_coroutine_object(coroutine)
+        is_coroutine = asynchronous.is_coroutine(coroutine)
+        is_coroutine_object = asynchronous.is_coroutine_object(coroutine)
         is_defined = is_coroutine or is_coroutine_object
         if thread == None: thread = False if is_defined else True
 
@@ -731,7 +731,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # gets properly "normalized" into the expected generator structure
         # in case the normalization is not possible a proper exception is
         # raised indicating the "critical" problem
-        is_generator, sequence = async.ensure_generator(sequence)
+        is_generator, sequence = asynchronous.ensure_generator(sequence)
         if not is_generator: raise errors.AssertionError("Expected generator")
 
         # creates the callable that is going to be used to call
@@ -787,7 +787,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
 
                 # determines if the value retrieved from the generator is a
                 # future and if that's the case schedules a proper execution
-                is_future = async.is_future(value)
+                is_future = asynchronous.is_future(value)
 
                 # in case the current value is a future schedules it for execution
                 # taking into account the proper thread execution model, note that
@@ -2096,7 +2096,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # creates a normal future object, setting the current loop (global) as
         # the loop, then returns the future to the caller method
         loop = self.get_loop(asyncio = True)
-        future = async.Future(loop = loop)
+        future = asynchronous.Future(loop = loop)
         return future
 
     def get_id(self, unique = True):
