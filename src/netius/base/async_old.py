@@ -203,10 +203,11 @@ def coroutine(function):
 def async_test(function):
 
     from . import common
+    from . import asynchronous
 
     @functools.wraps(function)
     def wrapper(*args, **kwargs):
-        function_c = coroutine(function)
+        function_c = asynchronous.coroutine(function)
         future = function_c(*args, **kwargs)
         loop = common.get_loop()
         return loop.run_until_complete(future)
