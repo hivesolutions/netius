@@ -44,9 +44,10 @@ from . import errors
 from . import asynchronous
 
 asyncio = asynchronous.get_asyncio() if asynchronous.is_neo() else None
-base = asyncio.BaseEventLoop if asyncio else object
+base_loop = asyncio.BaseEventLoop if asyncio else object
+base_transport = asyncio.BaseTransport if asyncio else object
 
-class LoopCompat(base):
+class LoopCompat(base_loop):
     """
     Top level compatibility class that adds compatibility support
     for the asyncio event loop strategy.
@@ -232,7 +233,7 @@ class LoopCompat(base):
         future._loop.call_later(timeout, callable)
         return future
 
-class TransportCompat(object):
+class TransportCompat(base_transport):
     """
     Decorator class to be used to add the functionality of a
     transport layer as defined by the asyncio.
