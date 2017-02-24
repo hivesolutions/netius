@@ -423,6 +423,18 @@ class AbstractBase(observer.Observable):
             asyncio.tasks.Task = asyncio.tasks._PyTask #@UndefinedVariable
         asyncio._patched = True
 
+    def destroy(self):
+        observer.Observable.destroy(self)
+
+        # iterates over the complete set of sockets in the connections
+        # map to properly close them (avoids any leak of resources)
+        for _socket in self.connections_m: _socket.close()
+
+        # clears some of the internal structure so that they don't
+        # get called any longer (as expected)
+        self.connections_m.clear()
+        self.callbacks_m.clear()
+
     def call_safe(self, callable, args = [], kwargs = {}):
         """
         Calls the provided callable object using a safe strategy
