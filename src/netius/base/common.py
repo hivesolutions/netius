@@ -1331,7 +1331,9 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # runs the event loop, this is a blocking method that should
         # be finished by the end of the execution of by pause
         try:
+            print("entering loop")
             self.loop()
+            print("finalize loop")
             self.finalize()
         except (KeyboardInterrupt, SystemExit):
             self.info("Finishing '%s' service on user request ..." % self.name)
