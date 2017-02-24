@@ -41,7 +41,7 @@ import unittest
 
 import netius
 
-class AsyncTest(unittest.TestCase):
+class AsynchronousTest(unittest.TestCase):
 
     def test_basic(self):
         loop = netius.get_loop()
