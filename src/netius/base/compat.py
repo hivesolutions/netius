@@ -43,11 +43,14 @@ import socket
 from . import errors
 from . import asynchronous
 
-class AbstractLoop(object):
+class LoopCompat(object):
     """
-    Top level abstract class that adds compatibility support for
-    the asyncio event loop strategy.
+    Top level compatibility class that adds compatibility support
+    for the asyncio event loop strategy.
     """
+
+    def __init__(self, loop):
+        self._loop = loop
 
     def time(self):
         return time.time()
@@ -64,12 +67,12 @@ class AbstractLoop(object):
 
     def call_later(self, delay, callback, *args):
         """
-        Calls the provided callback with the provided parameters after the defined
-        delay (in seconds), should ensure proper sleep operation.
+        Calls the provided callback with the provided parameters after
+        the defined delay (in seconds), should ensure proper sleep operation.
 
         :type delay: float
-        :param delay: The delay in seconds after which the callback is going to be
-        called with the provided arguments.
+        :param delay: The delay in seconds after which the callback is going
+        to be called with the provided arguments.
         :type callback: Function
         :param callback: The function to be called after the provided delay.
         :rtype: Handle
@@ -99,7 +102,9 @@ class AbstractLoop(object):
         return asynchronous.coroutine_return(coroutine)
 
     def run_until_complete(self, future):
-        return self.run_coroutine(future)
+        self._set_current_task(future)
+        try: return self.run_coroutine(future)
+        finally: self._unset_current_task()
 
     def get_debug(self):
         return self.is_debug()

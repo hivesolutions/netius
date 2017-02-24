@@ -287,7 +287,7 @@ SSL_DH_PATH = os.path.join(EXTRAS_PATH, "dh.pem")
 if not os.path.exists(SSL_CA_PATH): SSL_CA_PATH = None
 if not os.path.exists(SSL_DH_PATH): SSL_DH_PATH = None
 
-class AbstractBase(observer.Observable, compat.AbstractLoop):
+class AbstractBase(observer.Observable):
     """
     Base network structure to be used by all the network
     capable infra-structures (eg: servers and clients).
@@ -405,9 +405,11 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
         cls.patch_asyncio()
+        if instance: loop = compat.LoopCompat(instance)
+        else: loop = None
         policy = asyncio.get_event_loop_policy()
         policy._local._set_called = True
-        policy._local._loop = instance
+        policy._local._loop = loop
 
     @classmethod
     def unset_main(cls, set_legacy = True):
@@ -868,16 +870,9 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # done operation on the future (allows cleanup)
         future.add_done_callback(cleanup)
 
-        # updates the current task associated with the event loop, note that
-        # this operation required proper asyncio patching, causing possible
-        # issues with other event loop
-        self._set_current_task(future)
-
         # starts the current event loop, this is a blocking operation until
-        # the done callback is called to stop the loop, notice that the current
-        # task is unset after the end of the blocking execution
-        try: self.start()
-        finally: self._unset_current_task()
+        # the done callback is called to stop the loop
+        self.start()
 
         # returns the "final" future result value, as this is considered to
         # be the result of the execution (expected)
