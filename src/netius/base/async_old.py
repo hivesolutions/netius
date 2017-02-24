@@ -200,7 +200,7 @@ def coroutine(function):
     routine._is_coroutine = True
     return routine
 
-def async_test(factory = None, close = True):
+def async_test_all(factory = None, close = True):
 
     def decorator(function):
 
@@ -217,6 +217,10 @@ def async_test(factory = None, close = True):
         return wrapper
 
     return decorator
+
+def async_test(function):
+    decorator = async_test_all()
+    return decorator(function)
 
 def ensure_generator(value):
     if legacy.is_generator(value): return True, value

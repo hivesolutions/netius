@@ -66,7 +66,7 @@ class AsynchronousTest(unittest.TestCase):
         else:
             self.assertEqual(isinstance(loop, netius.Base), True)
 
-    @netius.async_test()
+    @netius.async_test
     def test_sleep(self):
         for value in netius.sleep(1.0):
             yield value
