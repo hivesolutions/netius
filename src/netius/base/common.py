@@ -407,9 +407,7 @@ class AbstractBase(observer.Observable):
         cls.patch_asyncio()
         if instance: loop = compat.LoopCompat(instance)
         else: loop = None
-        policy = asyncio.get_event_loop_policy()
-        policy._local._set_called = True
-        policy._local._loop = loop
+        asyncio.set_event_loop(loop)
 
     @classmethod
     def unset_main(cls, set_legacy = True):

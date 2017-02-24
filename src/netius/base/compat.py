@@ -43,7 +43,10 @@ import socket
 from . import errors
 from . import asynchronous
 
-class LoopCompat(object):
+asyncio = asynchronous.get_asyncio() if asynchronous.is_neo() else None
+base = asyncio.BaseEventLoop if asyncio else object
+
+class LoopCompat(base):
     """
     Top level compatibility class that adds compatibility support
     for the asyncio event loop strategy.
