@@ -81,7 +81,7 @@ class ProxyMiddlewareTest(unittest.TestCase):
 
         self.assertEqual(connection.address, ("fe80::787f:f63f:3176:d61b", 32598))
         self.assertEqual(len(connection.restored), 0)
-        
+
     def test_starter(self):
         self.server.register_middleware(
             netius.middleware.ProxyMiddleware
