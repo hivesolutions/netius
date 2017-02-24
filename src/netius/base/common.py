@@ -748,6 +748,8 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # be applied to complete the final task in the proper way
         def step(_future):
 
+            print("step")
+
             # unsets any possible reference to a child element as it must
             # have been processed if the control flow reached this point,
             # this avoids duplicated approval of child futures
@@ -784,6 +786,9 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
                 except BaseException as exception:
                     future.set_exception(exception)
                     break
+
+                print("received value")
+                print(value)
 
                 # determines if the value retrieved from the generator is a
                 # future and if that's the case schedules a proper execution
@@ -2375,7 +2380,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # inserts from different threads may be used and processed under
         # the current execution (as expected)
         self.delay_m()
-        
+
         print("delays")
         print(self._delayed)
 
