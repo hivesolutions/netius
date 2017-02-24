@@ -42,9 +42,9 @@ import unittest
 import netius
 
 class AsyncTest(unittest.TestCase):
-    
+
     def test_basic(self):
         loop = netius.get_loop()
-        
+
         self.assertNotEqual(loop, None)
         self.assertEqual(isinstance(loop, netius.Base), True)
