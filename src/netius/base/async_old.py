@@ -247,6 +247,7 @@ def wakeup(force = False):
 def sleep(timeout, compat = True, future = None):
     from .common import get_loop
     loop = get_loop()
+    compat &= hasattr(loop, "_sleep")
     sleep = loop._sleep if compat else loop.sleep
     for value in loop.sleep(timeout, future = future): yield value
 

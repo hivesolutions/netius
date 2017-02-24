@@ -188,6 +188,7 @@ def is_future(future):
 def _sleep(timeout, compat = True):
     from .common import get_loop
     loop = get_loop()
+    compat &= hasattr(loop, "_sleep")
     sleep = loop._sleep if compat else loop.sleep
     result = yield from sleep(timeout)
     return result

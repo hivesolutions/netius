@@ -130,7 +130,7 @@ class LoopCompat(object):
             proto,
             flags = flags
         )
-        self.delay(lambda: future.set_result(result), immediately = True)
+        self._loop.delay(lambda: future.set_result(result), immediately = True)
         yield future
 
     def _getnameinfo(self, sockaddr, flags = 0):
@@ -197,7 +197,7 @@ class LoopCompat(object):
 
         # schedules the delay call of the created callable according to
         # the provided set of options expected by the delay operation
-        self.delay(
+        self._loop.delay(
             callable,
             timeout = timeout,
             immediately = immediately,
