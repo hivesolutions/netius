@@ -109,11 +109,20 @@ class AbstractLoop(object):
         # the future associated with the provided ensure context gets
         # finished (on done callback)
         def cleanup(future):
-            exception = future.exception()
-            if exception:
-                self.warning(exception)
-                self.log_stack()
+            # calls the stop method for the current loop, effectivly ending
+            # the loop as soon as possible (next tick)
             self.stop()
+
+            # tries to retrieve a possible exception associated with
+            # the future, in case it does not exists ignores the current
+            # execution and returns the control flow immediately
+            exception = future.exception()
+            if not exception: return
+
+            # prints a warning message about the exception that has just
+            # been raised and then logs the current stack trace
+            self.warning(exception)
+            self.log_stack()
 
         # tries to determine if the provided object is in fact a coroutine
         # or if instead it is a "simple" future object ready to be used
@@ -141,6 +150,10 @@ class AbstractLoop(object):
         # starts the current event loop, this is a blocking operation until
         # the done callback is called to stop the loop
         self.start()
+
+        # returns the "final" future result value, as this is considered to
+        # be the result of the execution (expected)
+        return future.result()
 
     def get_debug(self):
         return self.is_debug()
