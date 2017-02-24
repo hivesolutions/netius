@@ -227,7 +227,7 @@ class AbstractLoop(object):
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
         asyncio.Task._current_tasks[self] = task
-        
+
     def _unset_current_task(self):
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return

@@ -1297,7 +1297,8 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         self.main()
 
     def stop(self):
-        self._running = False
+        if self.is_paused(): self.finish()
+        else: self._running = False
 
     def pause(self):
         self._running = False
@@ -1310,6 +1311,12 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
 
     def close(self):
         self.stop()
+
+    def finish(self):
+        self.debug("Finishing '%s' service main loop" % self.name)
+        self.on_stop()
+        self.cleanup()
+        self.set_state(STATE_STOP)
 
     def main(self):
         # sets the running flag that controls the running of the
@@ -1329,9 +1336,9 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         except (KeyboardInterrupt, SystemExit):
             self.info("Finishing '%s' service on user request ..." % self.name)
         except errors.PauseError:
+            self.debug("Pausing '%s' service main loop" % self.name)
             self.set_state(STATE_PAUSE)
             self.on_pause()
-            self.debug("Pausing '%s' service main loop" % self.name)
         except BaseException as exception:
             self.error(exception)
             self.log_stack(method = self.warning)
@@ -1340,10 +1347,7 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
             self.log_stack(method = self.error)
         finally:
             if self.is_paused(): return
-            self.on_stop()
-            self.debug("Finished '%s' service main loop" % self.name)
-            self.cleanup()
-            self.set_state(STATE_STOP)
+            self.finish()
 
     def is_main(self):
         return threading.current_thread().ident == self.tid
