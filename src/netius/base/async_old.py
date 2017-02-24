@@ -200,6 +200,19 @@ def coroutine(function):
     routine._is_coroutine = True
     return routine
 
+def async_test(function):
+
+    from . import common
+
+    @functools.wraps(function)
+    def wrapper(*args, **kwargs):
+        function_c = coroutine(function)
+        future = function_c(*args, **kwargs)
+        loop = common.get_loop()
+        loop.run_until_complete(future)
+
+    return wrapper
+
 def ensure_generator(value):
     if legacy.is_generator(value): return True, value
     return False, value

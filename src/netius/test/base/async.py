@@ -55,3 +55,14 @@ class AsyncTest(unittest.TestCase):
         self.assertEqual(isinstance(future, netius.Future), True)
         self.assertNotEqual(future._loop, None)
         self.assertEqual(isinstance(future._loop, netius.Base), True)
+
+    @netius.async_test
+    def test_sleep(self):
+        for value in netius.sleep(1.0):
+            yield value
+            future = value
+        timeout = future.result()
+
+        self.assertEqual(timeout, 1.0)
+        self.assertEqual(isinstance(future, netius.Future), True)
+        self.assertEqual(future.done(), True)
