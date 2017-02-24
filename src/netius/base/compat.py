@@ -56,6 +56,11 @@ class LoopCompat(base_loop):
     def __init__(self, loop):
         self._loop = loop
 
+    def __getattr__(self, name):
+        if hasattr(self._loop, name):
+            return getattr(self._loop, name)
+        raise AttributeError("'%s' not found" % name)
+
     def time(self):
         return time.time()
 
