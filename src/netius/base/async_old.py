@@ -210,7 +210,7 @@ def async_test(function):
         function_c = asynchronous.coroutine(function)
         future = function_c(*args, **kwargs)
         loop = common.get_loop()
-        return loop.run_until_complete(future)
+        return loop.run_coroutine(future)
 
     return wrapper
 

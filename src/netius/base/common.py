@@ -824,6 +824,65 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         self.delay(callable, immediately = immediately)
         return future
 
+    def run_coroutine(
+        self,
+        coroutine,
+        args = [],
+        kwargs = {},
+        thread = None
+    ):
+        # creates the callback function that is going to be called when
+        # the future associated with the provided ensure context gets
+        # finished (on done callback)
+        def cleanup(future):
+            # calls the pause method for the current loop, effectively ending
+            # the loop as soon as possible (next tick)
+            self.pause()
+
+            # tries to retrieve a possible exception associated with
+            # the future, in case it does not exists ignores the current
+            # execution and returns the control flow immediately
+            exception = future.exception()
+            if not exception: return
+
+            # prints a warning message about the exception that has just
+            # been raised and then logs the current stack trace
+            self.warning(exception)
+            self.log_stack()
+
+        # tries to determine if the provided object is in fact a coroutine
+        # or if instead it is a "simple" future object ready to be used
+        is_coroutine = asynchronous.is_coroutine(coroutine) or\
+            asynchronous.is_coroutine_object(coroutine)
+
+        # ensures that the provided coroutine get executed under a new
+        # context and retrieves the resulting future
+        future = self.ensure(
+            coroutine,
+            args = args,
+            kwargs = kwargs,
+            thread = thread
+        ) if is_coroutine else coroutine
+
+        # defines the cleanup operation (loop stop) as the target for the
+        # done operation on the future (allows cleanup)
+        future.add_done_callback(cleanup)
+
+        # updates the current task associated with the event loop, note that
+        # this operation required proper asyncio patching, causing possible
+        # issues with other event loop
+        self._set_current_task(future)
+
+        # starts the current event loop, this is a blocking operation until
+        # the done callback is called to stop the loop, notice that the current
+        # task is unset after the end of the blocking execution
+        try: self.start()
+        finally: self._unset_current_task()
+
+        # returns the "final" future result value, as this is considered to
+        # be the result of the execution (expected)
+        return future.result()
+
     def wakeup(self, force = False):
         # verifies if this is the main thread and if that's not the case
         # and the force flag is not set ignore the wakeup operation, avoiding
