@@ -1129,10 +1129,27 @@ class HTTPClient(netius.StreamClient):
 if __name__ == "__main__":
     buffer = []
 
-    result = HTTPClient.method_s(
-        "GET",
-        "https://www.flickr.com/",
-        async = False
-    )
+    def on_headers(client, parser, headers):
+        print(parser.code_s + " " + parser.status_s)
+
+    def on_partial(client, parser, data):
+        data = data
+        data and buffer.append(data)
+
+    def on_message(client, parser, message):
+        request = HTTPClient.set_request(parser, buffer)
+        print(request["headers"])
+        print(request["data"] or b"[empty data]")
+        client.close()
+
+    def on_close(client, connection):
+        client.close()
+
+    client = HTTPClient()
+    client.get("https://www.flickr.com/")
+    client.bind("headers", on_headers)
+    client.bind("partial", on_partial)
+    client.bind("message", on_message)
+    client.bind("close", on_close)
 else:
     __path__ = []
