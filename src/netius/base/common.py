@@ -2375,6 +2375,9 @@ class AbstractBase(observer.Observable, compat.AbstractLoop):
         # inserts from different threads may be used and processed under
         # the current execution (as expected)
         self.delay_m()
+        
+        print("delays")
+        print(self._delayed)
 
         # in case there's no delayed items to be called returns the control
         # flow immediately, note that the notified elements (pending process)
