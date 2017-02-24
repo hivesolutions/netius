@@ -51,8 +51,11 @@ class DesktopServer(netius.servers.MJPGServer):
         if not PIL: return None
         image = PIL.ImageGrab.grab()
         buffer = netius.legacy.BytesIO()
-        image.save(buffer, "JPEG")
-        data = buffer.getvalue()
+        try:
+            image.save(buffer, "JPEG")
+            data = buffer.getvalue()
+        finally:
+            buffer.close()
         return data
 
 if __name__ == "__main__":
