@@ -2142,11 +2142,14 @@ class AbstractBase(observer.Observable):
         self.poll = self.poll_c()
         return self.poll
 
-    def build_future(self):
+    def build_future(self, asyncio = True):
         """
         Creates a future object that is bound to the current event
         loop context, this allows for latter access to the owning loop.
 
+        :type asyncio: bool
+        :param asyncio: If the asyncio loop retrieval strategy should be
+        used or if instead the netius native one should be used.
         :rtype: Future
         :return: The generated future that should be bound to the
         current context.
@@ -2154,7 +2157,7 @@ class AbstractBase(observer.Observable):
 
         # creates a normal future object, setting the current loop (global) as
         # the loop, then returns the future to the caller method
-        loop = self.get_loop(asyncio = True)
+        loop = self.get_loop(asyncio = asyncio)
         future = asynchronous.Future(loop = loop)
         return future
 
@@ -2968,10 +2971,10 @@ def get_poll():
     if not main: return None
     return main.poll
 
-def build_future():
+def build_future(asyncio = True):
     main = get_main()
     if not main: return None
-    return main.build_future()
+    return main.build_future(asyncio = asyncio)
 
 def ensure(coroutine, args = [], kwargs = {}, thread = None):
     loop = get_loop()
