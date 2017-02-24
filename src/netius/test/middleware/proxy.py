@@ -43,15 +43,23 @@ import netius.middleware
 
 class ProxyMiddlewareTest(unittest.TestCase):
 
-    def test_ipv4(self):
-        server = netius.Server(poll = netius.Poll)
-        server.poll.open()
+    def setUp(self):
+        unittest.TestCase.setUp(self)
 
-        instance = server.register_middleware(
+        self.server = netius.Server(poll = netius.Poll)
+        self.server.poll.open()
+
+    def tearDown(self):
+        unittest.TestCase.tearDown(self)
+
+        self.server.poll.close()
+
+    def test_ipv4(self):
+        instance = self.server.register_middleware(
             netius.middleware.ProxyMiddleware
         )
 
-        connection = netius.Connection(owner = server)
+        connection = netius.Connection(owner = self.server)
         connection.open()
 
         connection.restore(b"PROXY TCP4 192.168.1.1 192.168.1.2 32598 8080\r\n")
@@ -61,14 +69,11 @@ class ProxyMiddlewareTest(unittest.TestCase):
         self.assertEqual(len(connection.restored), 0)
 
     def test_ipv6(self):
-        server = netius.Server(poll = netius.Poll)
-        server.poll.open()
-
-        instance = server.register_middleware(
+        instance = self.server.register_middleware(
             netius.middleware.ProxyMiddleware
         )
 
-        connection = netius.Connection(owner = server)
+        connection = netius.Connection(owner = self.server)
         connection.open()
 
         connection.restore(b"PROXY TCP4 fe80::787f:f63f:3176:d61b fe80::787f:f63f:3176:d61c 32598 8080\r\n")
@@ -78,14 +83,11 @@ class ProxyMiddlewareTest(unittest.TestCase):
         self.assertEqual(len(connection.restored), 0)
 
     def test_starter(self):
-        server = netius.Server(poll = netius.Poll)
-        server.poll.open()
-
-        server.register_middleware(
+        self.server.register_middleware(
             netius.middleware.ProxyMiddleware
         )
 
-        connection = netius.Connection(owner = server)
+        connection = netius.Connection(owner = self.server)
         connection.open()
 
         connection.restore(b"PROXY TCP4 192.168.1.1 192.168.1.2 32598 8080\r\n")
@@ -94,7 +96,7 @@ class ProxyMiddlewareTest(unittest.TestCase):
         self.assertEqual(connection.address, ("192.168.1.1", 32598))
         self.assertEqual(len(connection.restored), 0)
 
-        connection = netius.Connection(owner = server)
+        connection = netius.Connection(owner = self.server)
         connection.open()
 
         connection.restore(b"PROXY TCP4 192.168.1.3 ")
