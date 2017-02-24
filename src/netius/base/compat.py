@@ -44,7 +44,7 @@ from . import errors
 from . import asynchronous
 
 asyncio = asynchronous.get_asyncio() if asynchronous.is_neo() else None
-BaseLoop = asyncio.BaseEventLoop if asyncio else object
+BaseLoop = asyncio.AbstractEventLoop if asyncio else object
 BaseTransport = asyncio.BaseTransport if asyncio else object
 
 class CompatLoop(BaseLoop):
