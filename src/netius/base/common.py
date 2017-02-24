@@ -851,7 +851,7 @@ class AbstractBase(observer.Observable):
             # calls the stop or pause method for the current loop, effectively
             # ending the loop as soon as possible (next tick), notice that in
             # the close method is called no more loop re-usage is possible
-            self.close() if close else self.pause()
+            self.stop() if close else self.pause()
 
             # tries to retrieve a possible exception associated with
             # the future, in case it does not exists ignores the current
