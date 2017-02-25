@@ -77,29 +77,6 @@ class AwaitWrapper(object):
         return self.generator
         yield
 
-class AyncWrapper(object):
-
-    def __init__(self, async_iter):
-        self.async_iter = async_iter
-        self.current = None
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        try:
-            if self.current == None: self.current = self.async_iter.asend(None)
-            try: return next(self.current)
-            except StopIteration as exception:
-                self.current = None
-                if not exception.args: return None
-                return exception.args[0]
-        except StopAsyncIteration: #@UndefinedVariable
-            raise StopIteration()
-
-    def next(self):
-        return self.__next__()
-
 class CoroutineWrapper(object):
 
     def __init__(self, coroutine):
@@ -147,10 +124,6 @@ def ensure_generator(value):
     if legacy.is_generator(value):
         return True, value
 
-    if hasattr(inspect, "isasyncgen") and\
-        inspect.isasyncgen(value): #@UndefinedVariable
-        return True, AyncWrapper(value)
-
     if hasattr(inspect, "iscoroutine") and\
         inspect.iscoroutine(value): #@UndefinedVariable
         return True, CoroutineWrapper(value)
@@ -176,10 +149,6 @@ def is_coroutine_object(generator):
 
     if hasattr(inspect, "iscoroutine") and\
         inspect.iscoroutine(generator): #@UndefinedVariable
-        return True
-
-    if hasattr(inspect, "isasyncgen") and\
-        inspect.isasyncgen(generator): #@UndefinedVariable
         return True
 
     return False
