@@ -1567,12 +1567,17 @@ class AbstractBase(observer.Observable):
     def loop(self):
         # iterates continuously while the running flag is set, once
         # it becomes unset the loop breaks at the next execution cycle
-        while self._running:
+        while True:
             # calls the base tick int handler indicating that a new
             # tick loop iteration is going to be started, all the
             # "in between loop" operation should be performed in this
             # callback as this is the "space" they have for execution
             self.ticks()
+
+            # in case running flag is disabled it's time to break the
+            # cycle (just before the possible block) as it would imply
+            # extra time before we could stop the event loop
+            if not self._running: break
 
             # updates the current state to poll to indicate
             # that the base service is selecting the connections
@@ -2506,6 +2511,12 @@ class AbstractBase(observer.Observable):
             # target (timestamp value) and a method to be called in
             # case the target timestamp is valid (in the past)
             target, _did, method, lid = callable_t
+
+            # defines the proper target value that is going to be used
+            # for the comparison against the current time reference
+            # this is performed by defaulting the value against negative
+            # ensuring immediate execution of the associated callable
+            if target == None: target = -1
 
             # tests if the current target is valid (less than or
             # equals to the current time value) and in case it's
