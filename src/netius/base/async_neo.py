@@ -95,7 +95,7 @@ class AyncWrapper(object):
                 if not exception.args: return None
                 return exception.args[0]
         except StopAsyncIteration: #@UndefinedVariable
-            raise StopIteration
+            raise StopIteration()
 
     def next(self):
         return self.__next__()
@@ -176,6 +176,10 @@ def is_coroutine_object(generator):
 
     if hasattr(inspect, "iscoroutine") and\
         inspect.iscoroutine(generator): #@UndefinedVariable
+        return True
+
+    if hasattr(inspect, "isasyncgen") and\
+        inspect.isasyncgen(generator): #@UndefinedVariable
         return True
 
     return False

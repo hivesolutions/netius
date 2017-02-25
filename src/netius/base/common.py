@@ -856,8 +856,8 @@ class AbstractBase(observer.Observable):
 
         # tries to determine if the provided object is in fact a coroutine
         # or if instead it is a "simple" future object ready to be used
-        is_coroutine = asynchronous.is_coroutine(coroutine) or\
-            asynchronous.is_coroutine_object(coroutine)
+        is_future = asynchronous.is_future(coroutine)
+        is_coroutine = not is_future
 
         # ensures that the provided coroutine get executed under a new
         # context and retrieves the resulting future

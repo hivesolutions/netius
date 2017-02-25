@@ -44,6 +44,7 @@ import netius
 @netius.coroutine
 def compute(x, y):
     print("Compute %s + %s ..." % (x, y))
+    yield from netius.sleep(1.0)
     return x + y
 
 use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
