@@ -44,14 +44,13 @@ import netius
 @netius.coroutine
 def compute(x, y):
     print("Compute %s + %s ..." % (x, y))
-    yield from netius.sleep(1.0)
     return x + y
 
 use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
 if use_asyncio: loop = asyncio.get_event_loop()
 else: loop = netius.get_loop(factory = netius.StreamClient)
 
-future = loop.run_until_complete(compute(1, 2))
+result = loop.run_until_complete(compute(1, 2))
 loop.close()
 
-print(future.result())
+print(result)

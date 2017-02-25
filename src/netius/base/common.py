@@ -879,9 +879,9 @@ class AbstractBase(observer.Observable):
         # tries to retrieve a possible exception associated with
         # the future, in case it does not exist ignores the current
         # execution and returns the control flow immediately with
-        # the future instance, that should contain the result
+        # the future's result, to be used by the caller
         exception = future.exception()
-        if not exception: return future
+        if not exception: return future.result()
 
         # raises the exception to the upper layers so that it's properly
         # handled by them, this is the expected behaviour by this sync

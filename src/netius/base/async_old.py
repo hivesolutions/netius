@@ -188,13 +188,13 @@ def coroutine(function):
 
             # verifies the data type of the resulting object so that a
             # proper yielding operation or return will take place
-            is_future = is_future(result)
+            is_future_ = is_future(result)
             is_generator = inspect.isgenerator(result)
 
             # in case the result is either a future or a generator the
             # complete set of values are properly yield to the caller
             # method as expected
-            if is_future or is_generator:
+            if is_future_ or is_generator:
                 for value in result: yield value
 
             # otherwise the single resulting value is yield to the
