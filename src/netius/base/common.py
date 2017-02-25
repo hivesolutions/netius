@@ -791,8 +791,9 @@ class AbstractBase(observer.Observable):
                 # exception raised in the middle of the generator iteration
                 # it's set on the future (indirect notification)
                 try: value = next(sequence)
-                except StopIteration:
-                    if future.running: future.approve()
+                except StopIteration as exception:
+                    result = exception.args[0] if exception.args else None
+                    if future.running: future.set_result(result)
                     break
                 except BaseException as exception:
                     future.set_exception(exception)
@@ -878,9 +879,9 @@ class AbstractBase(observer.Observable):
         # tries to retrieve a possible exception associated with
         # the future, in case it does not exist ignores the current
         # execution and returns the control flow immediately with
-        # the result associated with the future
+        # the future instance, that should contain the result
         exception = future.exception()
-        if not exception: return future.result()
+        if not exception: return future
 
         # raises the exception to the upper layers so that it's properly
         # handled by them, this is the expected behaviour by this sync
