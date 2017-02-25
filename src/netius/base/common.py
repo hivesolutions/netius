@@ -841,28 +841,17 @@ class AbstractBase(observer.Observable):
         coroutine,
         args = [],
         kwargs = {},
-        close = None,
-        thread = None
+        thread = None,
+        close = None
     ):
         # creates the callback function that is going to be called when
         # the future associated with the provided ensure context gets
         # finished (on done callback)
         def cleanup(future):
             # calls the stop or pause method for the current loop, effectively
-            # ending the loop as soon as possible (next tick), notice that in
+            # ending the loop as soon as possible (next tick), notice that if
             # the close method is called no more loop re-usage is possible
             self.stop() if close else self.pause()
-
-            # tries to retrieve a possible exception associated with
-            # the future, in case it does not exists ignores the current
-            # execution and returns the control flow immediately
-            exception = future.exception()
-            if not exception: return
-
-            # prints a warning message about the exception that has just
-            # been raised and then logs the current stack trace
-            self.warning(exception)
-            self.log_stack()
 
         # tries to determine if the provided object is in fact a coroutine
         # or if instead it is a "simple" future object ready to be used
@@ -886,9 +875,17 @@ class AbstractBase(observer.Observable):
         # the done callback is called to stop the loop
         self.start()
 
-        # returns the "final" future result value, as this is considered to
-        # be the result of the execution (expected)
-        return future.result()
+        # tries to retrieve a possible exception associated with
+        # the future, in case it does not exist ignores the current
+        # execution and returns the control flow immediately with
+        # the result associated with the future
+        exception = future.exception()
+        if not exception: return future.result()
+
+        # raises the exception to the upper layers so that it's properly
+        # handled by them, this is the expected behaviour by this sync
+        # execution mode of the coroutine inside an event loop
+        raise exception
 
     def wakeup(self, force = False):
         # verifies if this is the main thread and if that's not the case
