@@ -53,3 +53,5 @@ else: loop = netius.get_loop(factory = netius.StreamClient)
 
 future = loop.run_until_complete(compute(1, 2))
 loop.close()
+
+print(future.result())
