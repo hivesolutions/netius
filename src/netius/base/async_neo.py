@@ -48,6 +48,8 @@ except: asyncio = None
 
 class AwaitWrapper(object):
 
+    _is_generator = True
+
     def __init__(self, generator, generate = False):
         if generate: generator = self.generate(generator)
         self.generator = generator
