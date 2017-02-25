@@ -119,8 +119,9 @@ def coroutine(function):
 
     @functools.wraps(function)
     def wrapper(*args, **kwargs):
-        result = AwaitWrapper(routine(*args, **kwargs))
-        return result
+        generator = routine(*args, **kwargs)
+        awaitable = AwaitWrapper(generator)
+        return awaitable
 
     wrapper._is_coroutine = True
     return wrapper
