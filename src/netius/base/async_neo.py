@@ -117,8 +117,13 @@ def coroutine(function):
             # this allows generated propagation
             return result
 
-    routine._is_coroutine = True
-    return routine
+    @functools.wraps(function)
+    def wrapper(*args, **kwargs):
+        result = AwaitWrapper(routine(*args, **kwargs))
+        return result
+
+    wrapper._is_coroutine = True
+    return wrapper
 
 def ensure_generator(value):
     if legacy.is_generator(value):

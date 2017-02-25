@@ -42,15 +42,13 @@ import asyncio
 import netius
 
 async def compute(x, y):
-    result = None
-    async for value in _compute(x, y):
-        result = value
-    return result
+    return (await _compute(x, y))
 
-async def _compute(x, y):
+@netius.coroutine
+def _compute(x, y):
     print("Compute %s + %s ..." % (x, y))
-    await netius.sleep(1.0)
-    yield x + y
+    yield from netius.sleep(1.0)
+    return x + y
 
 use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
 if use_asyncio: loop = asyncio.get_event_loop()
