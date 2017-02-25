@@ -1328,6 +1328,11 @@ class AbstractBase(observer.Observable):
         # resume operation instead as that's the expected operation
         if self.is_paused(): return self.resume()
 
+        # in case the event loop is already running then a new sub-
+        # context based loop should be created in order to block the
+        # current execution stack (as expected)
+        if self._running: return self.block()
+
         # re-builds the polling structure with the new name this
         # is required so that it's possible to change the polling
         # mechanism in the middle of the loading process
@@ -1586,6 +1591,10 @@ class AbstractBase(observer.Observable):
             self.reads(reads)
             self.writes(writes)
             self.errors(errors)
+
+    def block(self):
+        try: self.loop()
+        finally: self._running = True
 
     def fork(self):
         # ensures that the children value is converted as an

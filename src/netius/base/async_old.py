@@ -72,6 +72,9 @@ class Future(object):
     def done(self):
         return self.status == 1
 
+    def finished(self):
+        return self.status in (1, 2)
+
     def result(self):
         return self._result
 
@@ -83,6 +86,8 @@ class Future(object):
 
     def add_done_callback(self, function):
         self.done_callbacks.append(function)
+        if not self.finished(): return
+        self._done_callbacks()
 
     def add_partial_callback(self, function):
         self.partial_callbacks.append(function)
@@ -123,7 +128,7 @@ class Future(object):
         for callback in self.closed_callbacks: closed |= callback()
         return closed
 
-    def _done_callbacks(self, cleanup = False, delayed = True):
+    def _done_callbacks(self, cleanup = True, delayed = True):
         if not self.done_callbacks: return
         if delayed and self._loop:
             return self._delay(
