@@ -61,7 +61,7 @@ def print_http_headers(url, encoding = "utf-8"):
         line = yield from reader.readline()
         if not line: break
         line = line.decode(encoding).rstrip()
-        if line: print("HTTP header> %s" % line)
+        if line: print(line)
 
     writer.close()
 
