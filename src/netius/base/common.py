@@ -1331,7 +1331,7 @@ class AbstractBase(observer.Observable):
         # in case the event loop is already running then a new sub-
         # context based loop should be created in order to block the
         # current execution stack (as expected)
-        if self._running: return self.block()
+        if self.is_running(): return self.block()
 
         # re-builds the polling structure with the new name this
         # is required so that it's possible to change the polling
