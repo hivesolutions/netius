@@ -121,6 +121,12 @@ class CompatLoop(BaseLoop):
     def get_debug(self):
         return self._loop.is_debug()
 
+    def set_debug(self, enabled):
+        pass
+
+    def is_running(self):
+        return self._loop.is_running()
+
     def is_closed(self):
         return self._loop.is_stopped()
 

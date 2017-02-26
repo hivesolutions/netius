@@ -1439,6 +1439,9 @@ class AbstractBase(observer.Observable):
     def is_main(self):
         return threading.current_thread().ident == self.tid
 
+    def is_running(self):
+        return self._running
+
     def is_started(self):
         return self.get_state() == STATE_START
 
