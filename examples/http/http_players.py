@@ -65,8 +65,9 @@ async def get_players(player_args):
     url = BASE_URL + endpoint
 
     print("Getting all players...")
+
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=HEADERS, params=params) as resp:
+        async with session.get(url, headers = HEADERS, params = params) as resp:
             data = await resp.json()
 
     player_args.extend(
@@ -80,7 +81,7 @@ async def get_player(player_id, player_name):
     print("Getting player %s" % player_name)
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=HEADERS, params=params) as resp:
+        async with session.get(url, headers = HEADERS, params = params) as resp:
             print(resp)
             data = await resp.text()
 
