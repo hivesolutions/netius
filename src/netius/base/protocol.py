@@ -40,4 +40,31 @@ __license__ = "Apache License, Version 2.0"
 from . import observer
 
 class Protocol(observer.Observable):
-    pass
+
+    def connection_made(self, transport):
+        pass
+
+    def connection_lost(self, exception):
+        pass
+
+    def pause_writing(self):
+        pass
+
+    def resume_writing(self):
+        pass
+
+class DatagramProtocol(Protocol):
+
+    def on_data(self, data, address):
+        pass
+
+    def on_eof(self, address):
+        pass
+
+class StreamProtocol(Protocol):
+
+    def on_data(self, data):
+        pass
+
+    def on_eof(self):
+        pass
