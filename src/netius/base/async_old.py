@@ -192,9 +192,17 @@ class ThreadPoolExecutor(Executor):
         self.owner = owner
 
     def submit(self, callable, *args, **kwargs):
-        #future = executor.submit(pow, 323, 1235)
-        #print(future.result())
-        pass
+        future = self.owner.build_future()
+        callback = lambda result: self.owner.delay_s(
+            lambda: future.set_result(result)
+        )
+        self.owner.texecute(
+            callable,
+            args = args,
+            kwargs = kwargs,
+            callback = callback
+        )
+        return future
 
 def coroutine(function):
 
