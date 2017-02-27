@@ -127,7 +127,7 @@ class CompatLoop(BaseLoop):
         finally: self._unset_current_task()
 
     def run_forever(self):
-        return self._loop.run_endlessly()
+        return self._loop.run_endless()
 
     def run_in_executor(self, *args, **kwargs):
         coroutine = self._run_in_executor(*args, **kwargs)

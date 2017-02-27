@@ -867,6 +867,11 @@ class AbstractBase(observer.Observable):
 
         return future
 
+    def run_endless(self):
+        # starts the current event loop, this is a blocking operation until
+        # the done callback is called to stop the loop
+        self.start()
+
     def run_coroutine(
         self,
         coroutine,
@@ -1745,6 +1750,29 @@ class AbstractBase(observer.Observable):
 
     def errors(self, errors, state = True):
         if state: self.set_state(STATE_ERRROR)
+
+    def datagram(self, family = socket.AF_INET, type = socket.SOCK_DGRAM):
+        # prints a small debug message about the udp socket that is going
+        # to be created for the client's connection
+        self.debug("Creating datagram connection ...")
+
+        # creates the socket that it's going to be used for the listening
+        # of new connections (client socket) and sets it as non blocking
+        _socket = socket.socket(family, type)
+        _socket.setblocking(0)
+
+        # sets the various options in the service socket so that it becomes
+        # ready for the operation with the highest possible performance
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+        # creates a new connection object representing the datagram socket
+        # that has just been created to be used for upper level operations
+        connection = self.new_connection(_socket, None)
+
+        # returns the connection to the caller method so that it may be used
+        # for operation from now on (latter usage)
+        return connection
 
     def pregister(self, pool):
         # prints a debug message stating that a new pool is
