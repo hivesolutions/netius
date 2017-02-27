@@ -861,8 +861,7 @@ class AbstractBase(observer.Observable):
         netius.clients.DNSClient.query_s(
             hostname,
             type = type,
-            callback = handler,
-            daemon = False
+            callback = handler
         )
 
         return future

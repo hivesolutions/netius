@@ -290,30 +290,6 @@ class DNSProtocol(netius.DatagramProtocol):
     ns_file_l = None
 
     @classmethod
-    def query_s(
-        cls,
-        name,
-        type = "a",
-        cls_ = "in",
-        ns = None,
-        callback = None,
-        thread = True,
-        daemon = True
-    ):
-        # retrieves the reference to the global static dns client that
-        # is going to be used and the performs the query operation in it
-        # so that the proper network request is sent and then the callback
-        # function is called with the proper response object
-        dns_client = cls.get_client_s(thread = thread, daemon = daemon)
-        dns_client.query(
-            name,
-            type = type,
-            cls = cls_,
-            ns = ns,
-            callback = callback
-        )
-
-    @classmethod
     def ns_system(cls, type = "ip4"):
         ns = cls.ns_file(type = type)
         if ns: return ns[0]
@@ -448,8 +424,6 @@ class DNSClient(netius.DatagramClient):
         cls_ = "in",
         ns = None,
         callback = None,
-        thread = True,
-        daemon = True,
         loop = None
     ):
         loop = loop or netius.get_loop()
@@ -503,8 +477,7 @@ if __name__ == "__main__":
     loop = DNSClient.query_s(
         "gmail.com",
         type = "mx",
-        callback = handler,
-        daemon = False
+        callback = handler
     )
     loop.run_forever()
 else:
