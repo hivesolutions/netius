@@ -439,16 +439,50 @@ class DNSProtocol(netius.DatagramProtocol):
 class DNSClient(netius.DatagramClient):
 
     @classmethod
-    def query_s(cls, *args, **kwargs):
-        #coro = loop.create_connection(
-        #   lambda: EchoClientProtocol(message, loop),
-        #   '127.0.0.1', 8888
-        #)
-        #loop.run_until_complete(coro)
-        return DNSProtocol.query_s(*args, **kwargs)
+    def query_s(
+        cls,
+        name,
+        type = "a",
+        cls_ = "in",
+        ns = None,
+        callback = None,
+        thread = True,
+        daemon = True,
+        loop = None
+    ):
+        import asyncio
+
+        ns = ns or DNSProtocol.ns_system()
+        address = (ns, 53)
+
+        loop = loop or netius.get_event_loop()
+
+        #### start of connect (eg: connect(callback))
+
+        connect = loop.create_datagram_endpoint(
+            lambda: DNSProtocol(),
+            remote_addr = address
+        )
+        _transport, protocol = loop.run_until_complete(connect)
+
+        #### end of connect compatibility required
+
+        protocol.query(
+            name,
+            type = type,
+            cls = cls_,
+            ns = ns,
+            callback = callback
+        )
+
+        loop.run_forever()
 
 if __name__ == "__main__":
     def handler(response):
+        import asyncio
+        loop = asyncio.get_event_loop()
+        loop.stop()
+
         # in case the provided response is not valid
         # a timeout message is printed to indicate the
         # problem with the resolution
@@ -458,6 +492,7 @@ if __name__ == "__main__":
         # client so that the system is able to exit
         # without this the system would be stuck in
         # the base system thread
+
         DNSClient.cleanup_s()
 
         # unpacks the complete set of contents from
@@ -472,7 +507,7 @@ if __name__ == "__main__":
     # runs the static version of a dns query, note that
     # the daemon flag is unset so that the global client
     # runs in foreground avoiding the exit of the process
-    DNSClient.query_s(
+    loop = DNSClient.query_s(
         "gmail.com",
         type = "mx",
         callback = handler,
