@@ -71,7 +71,7 @@ from .errors import NetiusError, PauseError, DataError, ParserError,\
 from .log import SILENT, rotating_handler, smtp_handler
 from .observer import Observable
 from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
-from .protocol import Protocol
+from .protocol import Protocol, DatagramProtocol, StreamProtocol
 from .request import Request, Response
 from .server import Server, DatagramServer, StreamServer
 from .stream import Stream
