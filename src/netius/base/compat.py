@@ -133,6 +133,9 @@ class CompatLoop(BaseLoop):
         coroutine = self._run_in_executor(*args, **kwargs)
         return asynchronous.coroutine_return(coroutine)
 
+    def stop(self):
+        self._loop.stop()
+
     def close(self):
         self._loop.close()
 
@@ -207,7 +210,7 @@ class CompatLoop(BaseLoop):
 
         def connect(connection):
             protocol = protocol_factory()
-            transport = CompatTransport(connection)
+            transport = CompatTransportStream(connection)
             transport._set_compat(protocol)
             future.set_result((transport, protocol))
 
@@ -243,7 +246,7 @@ class CompatLoop(BaseLoop):
 
         def connect(connection):
             protocol = protocol_factory()
-            transport = CompatTransport(connection)
+            transport = CompatTransportDatagram(connection)
             transport._set_compat(protocol)
             future.set_result((transport, protocol))
 
@@ -350,11 +353,10 @@ class CompatTransport(BaseTransport):
         return self._connection.is_closed()
 
     def _on_data(self, connection, data):
-        self._protocol.data_received(data)
+        pass
 
     def _on_close(self, connection):
-        self._protocol.eof_received()
-        self._protocol.connection_lost(None)
+        pass
 
     def _set_compat(self, protocol):
         self._set_binds()
@@ -367,3 +369,21 @@ class CompatTransport(BaseTransport):
     def _set_protocol(self, protocol, mark = True):
         self._protocol = protocol
         if mark: self._protocol.connection_made(self)
+
+class CompatTransportDatagram(CompatTransport):
+
+    def _on_data(self, connection, data):
+        data, address = data
+        self._protocol.datagram_received(data, address)
+
+    def _on_close(self, connection):
+        pass
+
+class CompatTransportStream(CompatTransport):
+
+    def _on_data(self, connection, data, address):
+        self._protocol.data_received(data)
+
+    def _on_close(self, connection):
+        self._protocol.eof_received()
+        self._protocol.connection_lost(None)

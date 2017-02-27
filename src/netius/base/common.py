@@ -1744,12 +1744,15 @@ class AbstractBase(observer.Observable):
 
     def reads(self, reads, state = True):
         if state: self.set_state(STATE_READ)
+        for read in reads: self.on_read(read)
 
     def writes(self, writes, state = True):
         if state: self.set_state(STATE_WRITE)
+        for write in writes: self.on_write(write)
 
     def errors(self, errors, state = True):
         if state: self.set_state(STATE_ERRROR)
+        for error in errors: self.on_error(error)
 
     def datagram(self, family = socket.AF_INET, type = socket.SOCK_DGRAM):
         # creates the socket that it's going to be used for the listening
@@ -1764,7 +1767,10 @@ class AbstractBase(observer.Observable):
 
         # creates a new connection object representing the datagram socket
         # that has just been created to be used for upper level operations
-        connection = self.new_connection(_socket, None)
+        # and then immediately sets it as connected
+        connection = self.new_connection(_socket, datagram = True)
+        connection.open()
+        connection.set_connected()
 
         # returns the connection to the caller method so that it may be used
         # for operation from now on (latter usage)
@@ -1834,6 +1840,8 @@ class AbstractBase(observer.Observable):
         _socket = socket.socket(family, type)
         _socket.setblocking(0)
 
+        # in case the ssl option is enabled the socket should be wrapped into
+        # a proper ssl socket interface so that it may be operated accordingly
         if ssl: _socket = self._ssl_wrap(
             _socket,
             key_file = key_file,
@@ -2139,6 +2147,117 @@ class AbstractBase(observer.Observable):
     def on_resume(self):
         self.trigger("resume", self)
 
+    def on_read(self, _socket):
+        # tries to retrieve a possible callback registered for the socket
+        # and if there's one calls it to be able to "append" extra operations
+        # to the execution of the read operation in the socket
+        callbacks = self.callbacks_m.get(_socket, None)
+        if callbacks:
+            for callback in callbacks: callback("read", _socket)
+
+        # retrieves the connection object associated with the
+        # current socket that is going to be read in case there's
+        # no connection available or the status is not open
+        # must return the control flow immediately to the caller
+        connection = self.connections_m.get(_socket, None)
+        if not connection: return
+        if not connection.status == OPEN: return
+        if not connection.renable == True: return
+
+        try:
+            # in case the connection is under the connecting state
+            # the socket must be verified for errors and in case
+            # there's none the connection must proceed, for example
+            # the ssl connection handshake must be performed/retried
+            if connection.connecting: self._connectf(connection)
+
+            # verifies if there's any pending operations in the
+            # connection (eg: ssl handshaking) and performs it trying
+            # to finish them, if they are still pending at the current
+            # state returns immediately (waits for next loop)
+            if self._pending(connection): return
+
+            # iterates continuously trying to read as much data as possible
+            # when there's a failure to read more data it should raise an
+            # exception that should be handled properly
+            while True:
+                data = connection.recv(CHUNK_SIZE)
+                if data: self.on_data(connection, data)
+                else: connection.close(); break
+                if not connection.status == OPEN: break
+                if not connection.renable == True: break
+                if not connection.socket == _socket: break
+        except ssl.SSLError as error:
+            error_v = error.args[0] if error.args else None
+            error_m = error.reason if hasattr(error, "reason") else None
+            if error_v in SSL_SILENT_ERRORS:
+                self.on_expected(error, connection)
+            elif not error_v in SSL_VALID_ERRORS and\
+                not error_m in SSL_VALID_REASONS:
+                self.on_exception(error, connection)
+        except socket.error as error:
+            error_v = error.args[0] if error.args else None
+            if error_v in SILENT_ERRORS:
+                self.on_expected(error, connection)
+            elif not error_v in VALID_ERRORS:
+                self.on_exception(error, connection)
+        except BaseException as exception:
+            self.on_exception(exception, connection)
+
+    def on_write(self, _socket):
+        # tries to retrieve a possible callback registered for the socket
+        # and if there's one calls it to be able to "append" extra operations
+        # to the execution of the read operation in the socket
+        callbacks = self.callbacks_m.get(_socket, None)
+        if callbacks:
+            for callback in callbacks: callback("write", _socket)
+
+        # retrieves the connection associated with the socket that
+        # is ready for the write operation and verifies that it
+        # exists and the current status of it is open (required)
+        connection = self.connections_m.get(_socket, None)
+        if not connection: return
+        if not connection.status == OPEN: return
+
+        # in case the connection is under the connecting state
+        # the socket must be verified for errors and in case
+        # there's none the connection must proceed, for example
+        # the ssl connection handshake must be performed/retried
+        if connection.connecting: self._connectf(connection)
+
+        try:
+            connection._send()
+        except ssl.SSLError as error:
+            error_v = error.args[0] if error.args else None
+            error_m = error.reason if hasattr(error, "reason") else None
+            if error_v in SSL_SILENT_ERRORS:
+                self.on_expected(error, connection)
+            elif not error_v in SSL_VALID_ERRORS and\
+                not error_m in SSL_VALID_REASONS:
+                self.on_exception(error, connection)
+        except socket.error as error:
+            error_v = error.args[0] if error.args else None
+            if error_v in SILENT_ERRORS:
+                self.on_expected(error, connection)
+            elif not error_v in VALID_ERRORS:
+                self.on_exception(error, connection)
+        except BaseException as exception:
+            self.on_exception(exception, connection)
+
+    def on_error(self, _socket):
+        callbacks = self.callbacks_m.get(_socket, None)
+        if callbacks:
+            for callback in callbacks: callback("error", _socket)
+
+        connection = self.connections_m.get(_socket, None)
+        if not connection: return
+        if not connection.status == OPEN: return
+
+        connection.close()
+
+    def on_data(self, connection, data):
+        connection.set_data(data)
+
     def info_dict(self, full = False):
         info = dict(
             loaded = self._loaded,
@@ -2180,7 +2299,13 @@ class AbstractBase(observer.Observable):
         if not connection: return None
         return connection.info_dict(full = full)
 
-    def new_connection(self, socket, address, ssl = False):
+    def new_connection(
+        self,
+        socket,
+        address = None,
+        datagram = False,
+        ssl = False
+    ):
         """
         Creates a new connection for the provided socket
         object and string based address, the returned
@@ -2192,6 +2317,9 @@ class AbstractBase(observer.Observable):
         :type address: String
         :param address: The address as a string to be used to
         describe the connection object to be created.
+        :type datagram: bool
+        :param datagram: If the connection to be created should
+        be datagram based or not.
         :type ssl: bool
         :param ssl: If the connection to be created is meant to
         be secured using the ssl framework for encryption.
@@ -2204,6 +2332,7 @@ class AbstractBase(observer.Observable):
             owner = self,
             socket = socket,
             address = address,
+            datagram = datagram,
             ssl = ssl
         )
 
