@@ -55,7 +55,7 @@ HEADERS = {
 async def get_players(player_args):
     endpoint = "/commonallplayers"
     params = {"leagueid": "00", "season": "2016-17", "isonlycurrentseason": "1"}
-    url = f"{base_url}{endpoint}"
+    url = base_url + endpoint
     print("Getting all players...")
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=HEADERS, params=params) as resp:
@@ -66,14 +66,15 @@ async def get_players(player_args):
 async def get_player(player_id, player_name):
     endpoint = "/commonplayerinfo"
     params = {"playerid": player_id}
-    url = f"{base_url}{endpoint}"
-    print(f"Getting player {player_name}")
+    url = base_url + endpoint
+    print("Getting player %s" % player_name)
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=HEADERS, params=params) as resp:
             print(resp)
             data = await resp.text()
     async with aiofiles.open(
-            f"{player_name.replace(' ', '_')}.json", "w") as file:
+            "%s.json" % player_name.replace(" ", "_"), "w"
+        ) as file:
         await file.write(data)
 
 use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
