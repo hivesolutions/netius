@@ -436,6 +436,17 @@ class DNSProtocol(netius.DatagramProtocol):
         if not request.callback: return
         request.callback(response)
 
+class DNSClient(netius.DatagramClient):
+
+    @classmethod
+    def query_s(cls, *args, **kwargs):
+        #coro = loop.create_connection(
+        #   lambda: EchoClientProtocol(message, loop),
+        #   '127.0.0.1', 8888
+        #)
+        #loop.run_until_complete(coro)
+        return DNSProtocol.query_s(*args, **kwargs)
+
 if __name__ == "__main__":
     def handler(response):
         # in case the provided response is not valid
