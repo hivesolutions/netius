@@ -172,8 +172,13 @@ class Task(Future):
 
 class Handle(object):
 
+    def __init__(self, callable_t = None):
+        self._callable_t = callable_t
+
     def cancel(self):
-        pass
+        if not self._callable_t: return
+        options = self._callable_t[4]
+        options[0] = False
 
 def coroutine(function):
 

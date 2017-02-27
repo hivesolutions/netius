@@ -226,8 +226,9 @@ class CompatLoop(BaseLoop):
         callable = lambda: callback(*args)
 
         # schedules the delay call of the created callable according to
-        # the provided set of options expected by the delay operation
-        self._loop.delay(
+        # the provided set of options expected by the delay operation the
+        # callback tuple is returned so that a proper handle may be created
+        callable_t = self._loop.delay(
             callable,
             timeout = timeout,
             immediately = immediately,
@@ -236,8 +237,8 @@ class CompatLoop(BaseLoop):
         )
 
         # creates the handle to control the operation and then returns the
-        # object to the caller method, allowing operation
-        handle = asynchronous.Handle()
+        # object to the caller method, allowing operation cancellation
+        handle = asynchronous.Handle(callable_t = callable_t)
         return handle
 
     def _sleep(self, timeout, future = None):

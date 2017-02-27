@@ -531,10 +531,14 @@ class AbstractBase(observer.Observable):
         is_duplicate = verify and callable_o in self._delayed_o
         if is_duplicate: return
 
+        # creates the list that is going to be used to populate the
+        # options to be used by the calling tuple
+        options = [True]
+
         # creates the "final" callable tuple with the target time, the
         # callable and the loop id (lid) then inserts both the delayed
         # (original) callable tuple and the callable tuple in the lists
-        callable_t = (target, self._did, callable, self._lid)
+        callable_t = (target, self._did, callable, self._lid, options)
         callable_t = legacy.orderable(callable_t)
         heapq.heappush(self._delayed, callable_t)
         heapq.heappush(self._delayed_o, callable_o)
@@ -543,6 +547,10 @@ class AbstractBase(observer.Observable):
         # used to correctly identify a delayed object so that for the
         # same target value a sorting is performed (fifo like)
         self._did += 1
+
+        # returns the callable tuple that may be latter used to control
+        # the execution or not of the delayed operation (cancellation)
+        return callable_t
 
     def delay_s(
         self,
@@ -2513,7 +2521,7 @@ class AbstractBase(observer.Observable):
             # unpacks the current callable tuple in iteration into a
             # target (timestamp value) and a method to be called in
             # case the target timestamp is valid (in the past)
-            target, _did, method, lid = callable_t
+            target, _did, method, lid, options = callable_t
 
             # defines the proper target value that is going to be used
             # for the comparison against the current time reference
@@ -2540,6 +2548,14 @@ class AbstractBase(observer.Observable):
                 pendings.append(callable_t)
                 pendings_o.append(callable_o)
                 continue
+
+            # unpacks the multiple options so that it's possible to determine
+            # the way the delayed operation is going to be executed
+            run, = options
+
+            # in case the method is not meant to be run, probably canceled
+            # the execution of it should be properly ignored
+            if not run: continue
 
             # calls the callback method as the delayed operation is
             # now meant to be run, this is an operation that may change
