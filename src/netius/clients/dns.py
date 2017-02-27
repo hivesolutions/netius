@@ -480,5 +480,6 @@ if __name__ == "__main__":
         callback = handler
     )
     loop.run_forever()
+    loop.close()
 else:
     __path__ = []
