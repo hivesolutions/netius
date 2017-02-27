@@ -457,25 +457,24 @@ class DNSClient(netius.DatagramClient):
         ns = ns or cls.protocol.ns_system()
         address = (ns, 53)
 
-        #### start of connect (eg: connect(callback))
+        def on_connect(future):
+            _transport, protocol = future.result()
+            protocol.query(
+                name,
+                type = type,
+                cls = cls_,
+                ns = ns,
+                callback = callback
+            )
 
         connect = loop.create_datagram_endpoint(
             lambda: cls.protocol(),
             remote_addr = address
         )
-        _transport, protocol = loop.run_until_complete(connect)
+        future = loop.create_task(connect)
+        future.add_done_callback(on_connect)
 
-        #### end of connect compatibility required
-
-        protocol.query(
-            name,
-            type = type,
-            cls = cls_,
-            ns = ns,
-            callback = callback
-        )
-
-        loop.run_forever()
+        return loop
 
 if __name__ == "__main__":
     def handler(response):
@@ -501,11 +500,12 @@ if __name__ == "__main__":
     # runs the static version of a dns query, note that
     # the daemon flag is unset so that the global client
     # runs in foreground avoiding the exit of the process
-    DNSClient.query_s(
+    loop = DNSClient.query_s(
         "gmail.com",
         type = "mx",
         callback = handler,
         daemon = False
     )
+    loop.run_forever()
 else:
     __path__ = []
