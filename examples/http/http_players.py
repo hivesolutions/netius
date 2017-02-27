@@ -54,8 +54,6 @@ HEADERS = {
     ),
 }
 
-counter = 0
-
 async def get_players(player_args):
     endpoint = "/commonallplayers"
 
@@ -90,10 +88,6 @@ async def get_player(player_id, player_name):
             "players/%s.json" % player_name.replace(" ", "_"), "w"
         ) as file:
         await file.write(data)
-
-    global counter
-    counter += 1
-    print(counter)
 
 use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
 if use_asyncio: loop = asyncio.get_event_loop()
