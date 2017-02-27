@@ -58,19 +58,19 @@ counter = 0
 
 async def get_players(player_args):
     endpoint = "/commonallplayers"
-    
+
     params = dict(
         leagueid = "00",
         season = "2016-17",
         isonlycurrentseason = "1"
     )
     url = BASE_URL + endpoint
-    
+
     print("Getting all players...")
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=HEADERS, params=params) as resp:
             data = await resp.json()
-    
+
     player_args.extend(
         [(item[0], item[2]) for item in data["resultSets"][0]["rowSet"]])
 
@@ -78,19 +78,19 @@ async def get_player(player_id, player_name):
     endpoint = "/commonplayerinfo"
     params = dict(playerid = player_id)
     url = BASE_URL + endpoint
-    
+
     print("Getting player %s" % player_name)
-    
+
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=HEADERS, params=params) as resp:
             print(resp)
-            data = await resp.text()        
-    
+            data = await resp.text()
+
     async with aiofiles.open(
             "players/%s.json" % player_name.replace(" ", "_"), "w"
         ) as file:
         await file.write(data)
-    
+
     global counter
     counter += 1
     print(counter)
