@@ -60,6 +60,7 @@ class CompatLoop(BaseLoop):
 
     def __init__(self, loop):
         self._loop = loop
+        self._task_factory = asynchronous.Task
 
     def __getattr__(self, name):
         if hasattr(self._loop, name):
@@ -100,7 +101,7 @@ class CompatLoop(BaseLoop):
 
     def create_task(self, coroutine):
         future = self._loop.ensure(coroutine)
-        task = asynchronous.Task(future)
+        task = self._task_factory(future)
         return task
 
     def create_connection(self, *args, **kwargs):
@@ -128,6 +129,12 @@ class CompatLoop(BaseLoop):
 
     def set_debug(self, enabled):
         pass
+
+    def get_task_factory(self):
+        return self._task_factory
+
+    def set_task_factory(self, factory):
+        self._task_factory = factory
 
     def is_running(self):
         return self._loop.is_running()
