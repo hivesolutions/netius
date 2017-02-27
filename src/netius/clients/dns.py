@@ -297,13 +297,14 @@ class DNSClient(netius.DatagramClient):
         cls_ = "in",
         ns = None,
         callback = None,
+        thread = True,
         daemon = True
     ):
         # retrieves the reference to the global static dns client that
         # is going to be used and the performs the query operation in it
         # so that the proper network request is sent and then the callback
         # function is called with the proper response object
-        dns_client = cls.get_client_s(thread = True, daemon = daemon)
+        dns_client = cls.get_client_s(thread = thread, daemon = daemon)
         dns_client.query(
             name,
             type = type,
