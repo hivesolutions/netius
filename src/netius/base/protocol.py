@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+from . import request
 from . import observer
 
 class Protocol(observer.Observable):
@@ -58,10 +59,15 @@ class Protocol(observer.Observable):
 
 class DatagramProtocol(Protocol):
 
-    def set_data(self, data, address):
+    def __init__(self):
+        Protocol.__init__(self)
+        self.requests = []
+        self.requests_m = {}
+
+    def datagram_received(self, data, address):
         self.on_data(address, data)
 
-    def set_eof(self, address):
+    def error_received(self, exception):
         pass
 
     def on_data(self, address, data):
@@ -73,12 +79,29 @@ class DatagramProtocol(Protocol):
     def send_to(self, data, address):
         return self._transport.sendto(data, address)
 
+    def add_request(self, request):
+        # adds the current request object to the list of requests
+        # that are pending a valid response, a garbage collector
+        # system should be able to erase this request from the
+        # pending list in case a timeout value has passed
+        self.requests.append(request)
+        self.requests_m[request.id] = request
+
+    def remove_request(self, request):
+        self.requests.remove(request)
+        del self.requests_m[request.id]
+
+    def get_request(self, id):
+        is_response = isinstance(id, request.Response)
+        if is_response: id = id.get_id()
+        return self.requests_m.get(id, None)
+
 class StreamProtocol(Protocol):
 
-    def set_data(self, data):
+    def data_received(self, data):
         self.on_data(data)
 
-    def set_eof(self):
+    def eof_received(self):
         pass
 
     def on_data(self, data):
