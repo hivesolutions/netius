@@ -37,13 +37,15 @@ __copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import os
+
 import asyncio
 import aiofiles
 import aiohttp
 
 import netius
 
-base_url = "http://stats.nba.com/stats"
+BASE_URL = "http://stats.nba.com/stats"
 HEADERS = {
     "user-agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) "
@@ -52,34 +54,52 @@ HEADERS = {
     ),
 }
 
+counter = 0
+
 async def get_players(player_args):
     endpoint = "/commonallplayers"
-    params = {"leagueid": "00", "season": "2016-17", "isonlycurrentseason": "1"}
-    url = base_url + endpoint
+    
+    params = dict(
+        leagueid = "00",
+        season = "2016-17",
+        isonlycurrentseason = "1"
+    )
+    url = BASE_URL + endpoint
+    
     print("Getting all players...")
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=HEADERS, params=params) as resp:
             data = await resp.json()
+    
     player_args.extend(
         [(item[0], item[2]) for item in data["resultSets"][0]["rowSet"]])
 
 async def get_player(player_id, player_name):
     endpoint = "/commonplayerinfo"
-    params = {"playerid": player_id}
-    url = base_url + endpoint
+    params = dict(playerid = player_id)
+    url = BASE_URL + endpoint
+    
     print("Getting player %s" % player_name)
+    
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=HEADERS, params=params) as resp:
             print(resp)
-            data = await resp.text()
+            data = await resp.text()        
+    
     async with aiofiles.open(
-            "%s.json" % player_name.replace(" ", "_"), "w"
+            "players/%s.json" % player_name.replace(" ", "_"), "w"
         ) as file:
         await file.write(data)
+    
+    global counter
+    counter += 1
+    print(counter)
 
 use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
 if use_asyncio: loop = asyncio.get_event_loop()
 else: loop = netius.get_loop(factory = netius.StreamClient)
+
+os.makedirs("players", exist_ok = True)
 
 player_args = []
 loop.run_until_complete(get_players(player_args))
@@ -88,3 +108,4 @@ loop.run_until_complete(
         *(get_player(*args) for args in player_args)
     )
 )
+loop.close()
