@@ -51,6 +51,11 @@ class CompatLoop(BaseLoop):
     """
     Top level compatibility class that adds compatibility support
     for the asyncio event loop strategy.
+
+    This is required to be able to access netius event loop on a
+    asyncio like manner.
+
+    :see: https://docs.python.org/3/library/asyncio-eventloop.html
     """
 
     def __init__(self, loop):
