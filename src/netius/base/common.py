@@ -844,6 +844,29 @@ class AbstractBase(observer.Observable):
         self.delay(callable, immediately = immediately)
         return future
 
+    def resolve_hostname(self, hostname, type = "a"):
+        import netius.clients
+
+        future = self.build_future()
+
+        def handler(response):
+            if not response: raise RuntimeError("Timeout in resolution") #@todo put the correct exception
+            if not response.answers: raise RuntimeError("Unable to resolve") #@todo put the correct exception
+
+            answer = response.answers[0]
+            address = answer[4]
+
+            future.set_result(address)
+
+        netius.clients.DNSClient.query_s(
+            hostname,
+            type = type,
+            callback = handler,
+            daemon = False
+        )
+
+        return future
+
     def run_coroutine(
         self,
         coroutine,
