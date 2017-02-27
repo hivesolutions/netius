@@ -296,6 +296,9 @@ class CompatTransport(BaseTransport):
     def write(self, data):
         self._connection.send(data)
 
+    def sendto(self, data, addr = None):
+        raise errors.NotImplemented("Missing implementation")
+
     def get_extra_info(self, name, default = None):
         if name == "socket": return self._connection.socket
         else: return default
