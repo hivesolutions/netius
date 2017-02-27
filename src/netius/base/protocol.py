@@ -64,6 +64,12 @@ class DatagramProtocol(Protocol):
     def on_eof(self, address):
         pass
 
+    def send(self, data, address):
+        return self.send_to(data, address)
+
+    def send_to(self, data, address):
+        return self._transport.sendto(data, address)
+
 class StreamProtocol(Protocol):
 
     def on_data(self, data):
@@ -71,3 +77,6 @@ class StreamProtocol(Protocol):
 
     def on_eof(self):
         pass
+
+    def send(self, data):
+        return self._transport.send(data)
