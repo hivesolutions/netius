@@ -390,10 +390,14 @@ class BaseConnection(observer.Observable):
         self.renable = False
         self.owner.unsub_read(self.socket)
 
-    def send(self, data, delay = True, force = False, callback = None):
+    def send(self, data, address = None, delay = True, force = False, callback = None):
         """
         The main send call to be used by a proxy connection and
         from different threads.
+
+        This method is the equivalent on a socket basis to both the
+        send and the send to method, meaning that datagram send operations
+        are also allowed by using the address parameter.
 
         In case the sending should be forced as delayed (next tick)
         the delay flag should be set and the sending will be delayed.
@@ -411,6 +415,9 @@ class BaseConnection(observer.Observable):
         :type data: String
         :param data: The buffer containing the data to be sent
         through this connection to the other endpoint.
+        :type address: Tuple
+        :param address: The target address for the send operation,
+        this is relevant only for datagram based connections.
         :type delay: bool
         :param delay: If the send operation should be delayed until
         the next tick operation or if it should be performed as
