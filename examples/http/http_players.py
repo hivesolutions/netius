@@ -54,17 +54,17 @@ HEADERS = {
     ),
 }
 
-async def get_players(player_args):
+async def get_players(player_args, season = "2016-17"):
     endpoint = "/commonallplayers"
 
     params = dict(
+        season = season,
         leagueid = "00",
-        season = "2016-17",
         isonlycurrentseason = "1"
     )
     url = BASE_URL + endpoint
 
-    print("Getting all players...")
+    print("Getting all players for season %s ..." % season)
 
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers = HEADERS, params = params) as resp:
@@ -82,8 +82,8 @@ async def get_player(player_id, player_name):
 
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers = HEADERS, params = params) as resp:
-            print(resp)
             data = await resp.text()
+            print(data)
 
     async with aiofiles.open(
             "players/%s.json" % player_name.replace(" ", "_"), "w"
