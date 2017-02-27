@@ -85,21 +85,6 @@ class Client(Base):
         if not cls._client: return
         cls._client.close()
 
-    def reads(self, reads, state = True):
-        Base.reads(self, reads, state = state)
-        for read in reads:
-            self.on_read(read)
-
-    def writes(self, writes, state = True):
-        Base.writes(self, writes, state = state)
-        for write in writes:
-            self.on_write(write)
-
-    def errors(self, errors, state = True):
-        Base.errors(self, errors, state = state)
-        for error in errors:
-            self.on_error(error)
-
     def ensure_loop(self, env = True):
         """
         Ensures that the proper main loop thread requested in the building
