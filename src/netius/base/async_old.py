@@ -42,6 +42,7 @@ import sys
 import inspect
 import functools
 
+from . import errors
 from . import legacy
 
 class Future(object):
@@ -179,6 +180,21 @@ class Handle(object):
         if not self._callable_t: return
         options = self._callable_t[4]
         options[0] = False
+
+class Executor(object):
+
+    def submit(self, callable, *args, **kwargs):
+        raise errors.NotImplemented("Missing implementation")
+
+class ThreadPoolExecutor(Executor):
+
+    def __init__(self, owner):
+        self.owner = owner
+
+    def submit(self, callable, *args, **kwargs):
+        #future = executor.submit(pow, 323, 1235)
+        #print(future.result())
+        pass
 
 def coroutine(function):
 
