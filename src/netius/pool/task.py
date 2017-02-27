@@ -51,14 +51,15 @@ class TaskThread(common.Thread):
             "Cannot execute type '%d'" % type
         )
 
-        callable, args, kwargs = work[1:]
-        callable(*args, **kwargs)
+        callable, args, kwargs, callback = work[1:]
+        result = callable(*args, **kwargs)
+        if callback: callback(result)
 
 class TaskPool(common.EventPool):
 
     def __init__(self, base = TaskThread, count = 10):
         common.EventPool.__init__(self, base = base, count = count)
 
-    def execute(self, callable, args = [], kwargs = {}):
-        work = (TASK_WORK, callable, args, kwargs)
+    def execute(self, callable, args = [], kwargs = {}, callback = None):
+        work = (TASK_WORK, callable, args, kwargs, callback)
         self.push(work)

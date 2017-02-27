@@ -122,9 +122,9 @@ class CompatLoop(BaseLoop):
         try: return self._loop.run_coroutine(future)
         finally: self._unset_current_task()
 
-    def run_in_executor(self, executor, func, *args):
-        executor = executor or self._executor
-        return executor.submit(pow, *args)
+    def run_in_executor(self, *args, **kwargs):
+        coroutine = self._run_in_executor(*args, **kwargs)
+        return asynchronous.coroutine_return(coroutine)
 
     def close(self):
         self._loop.close()
@@ -173,6 +173,11 @@ class CompatLoop(BaseLoop):
 
     def _getnameinfo(self, sockaddr, flags = 0):
         raise errors.NotImplemented("Missing implementation")
+
+    def _run_in_executor(self, executor, func, *args):
+        executor = executor or self._executor
+        future = executor.submit(func, *args)
+        yield future
 
     def _create_connection(
         self,
