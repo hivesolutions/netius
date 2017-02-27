@@ -340,7 +340,7 @@ class DNSProtocol(netius.DatagramProtocol):
         # from it, closing the file afterwards
         file = open("/etc/resolv.conf", "rb")
         try: data = file.read()
-        except: file.close()
+        finally: file.close()
 
         # starts the list that is going to store the various name server
         # values, this is going to be populated with the file contents
