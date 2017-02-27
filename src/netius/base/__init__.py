@@ -46,6 +46,7 @@ from . import legacy
 from . import log
 from . import observer
 from . import poll
+from . import protocol
 from . import request
 from . import server
 from . import stream
@@ -70,6 +71,7 @@ from .errors import NetiusError, PauseError, DataError, ParserError,\
 from .log import SILENT, rotating_handler, smtp_handler
 from .observer import Observable
 from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
+from .protocol import Protocol
 from .request import Request, Response
 from .server import Server, DatagramServer, StreamServer
 from .stream import Stream
