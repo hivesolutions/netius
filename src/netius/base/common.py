@@ -3346,6 +3346,11 @@ def get_loop(factory = None, ensure = True, asyncio = True):
 def get_event_loop(*args, **kwargs):
     return get_loop(*args, **kwargs)
 
+def stop_loop(asyncio = True):
+    loop = get_loop(ensure = False, asyncio = asyncio)
+    if not loop: return
+    loop.stop()
+
 def get_poll():
     main = get_main()
     if not main: return None
