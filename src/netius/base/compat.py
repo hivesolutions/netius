@@ -61,6 +61,7 @@ class CompatLoop(BaseLoop):
     def __init__(self, loop):
         self._loop = loop
         self._task_factory = asynchronous.Task
+        self._executor = asynchronous.ThreadPoolExecutor(loop)
 
     def __getattr__(self, name):
         if hasattr(self._loop, name):
@@ -122,7 +123,8 @@ class CompatLoop(BaseLoop):
         finally: self._unset_current_task()
 
     def run_in_executor(self, executor, func, *args):
-        pass
+        executor = executor or self._executor
+        return executor.submit(pow, *args)
 
     def close(self):
         self._loop.close()
@@ -132,6 +134,9 @@ class CompatLoop(BaseLoop):
 
     def set_debug(self, enabled):
         pass
+
+    def set_default_executor(self, executor):
+        self._executor = executor
 
     def get_task_factory(self):
         return self._task_factory
