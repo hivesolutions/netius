@@ -332,7 +332,7 @@ class DNSClient(netius.DatagramClient):
         if not os.path.exists("/etc/resolv.conf"): return None
 
         # retrieves the reference to the function that is going to validate
-        # if the provided nameserver complies with the proper (address) type
+        # if the provided name server complies with the proper (address) type
         validator = getattr(netius.common, "is_" + type)
 
         # opens the resolve file and reads the complete set of contents
