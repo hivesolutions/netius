@@ -58,10 +58,13 @@ class Protocol(observer.Observable):
 
 class DatagramProtocol(Protocol):
 
-    def on_data(self, data, address):
+    def set_data(self, data, address):
+        self.on_data(address, data)
+
+    def set_eof(self, address):
         pass
 
-    def on_eof(self, address):
+    def on_data(self, address, data):
         pass
 
     def send(self, data, address):
@@ -72,10 +75,13 @@ class DatagramProtocol(Protocol):
 
 class StreamProtocol(Protocol):
 
-    def on_data(self, data):
+    def set_data(self, data):
+        self.on_data(data)
+
+    def set_eof(self):
         pass
 
-    def on_eof(self):
+    def on_data(self, data):
         pass
 
     def send(self, data):
