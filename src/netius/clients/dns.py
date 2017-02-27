@@ -285,7 +285,7 @@ class DNSResponse(netius.Response):
         short, = struct.unpack("!L", _data)
         return (index + 4, short)
 
-class DNSClient(netius.DatagramClient):
+class DNSProtocol(netius.DatagramProtocol):
 
     ns_file_l = None
 
