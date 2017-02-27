@@ -109,6 +109,10 @@ class CompatLoop(BaseLoop):
         coroutine = self._create_connection(*args, **kwargs)
         return asynchronous.coroutine_return(coroutine)
 
+    def create_datagram_endpoint(self, *args, **kwargs):
+        coroutine = self._create_datagram_endpoint(*args, **kwargs)
+        return asynchronous.coroutine_return(coroutine)
+
     def getaddrinfo(self, *args, **kwargs):
         coroutine = self._getaddrinfo(*args, **kwargs)
         return asynchronous.coroutine_return(coroutine)
@@ -121,6 +125,9 @@ class CompatLoop(BaseLoop):
         self._set_current_task(future)
         try: return self._loop.run_coroutine(future)
         finally: self._unset_current_task()
+
+    def run_forever(self):
+        return self._loop.run_endlessly()
 
     def run_in_executor(self, *args, **kwargs):
         coroutine = self._run_in_executor(*args, **kwargs)
@@ -215,6 +222,36 @@ class CompatLoop(BaseLoop):
 
         yield future
 
+    def _create_datagram_endpoint(
+        self,
+        protocol_factory,
+        local_addr = None,
+        remote_addr = None,
+        family = 0,
+        proto = 0,
+        flags = 0,
+        reuse_address = None,
+        reuse_port = None,
+        allow_broadcast = None,
+        sock = None,
+        *args,
+        **kwargs
+    ):
+        family = family or socket.AF_INET
+
+        future = self.create_future()
+
+        def connect(connection):
+            protocol = protocol_factory()
+            transport = CompatTransport(connection)
+            transport._set_compat(protocol)
+            future.set_result((transport, protocol))
+
+        connection = self._loop.datagram()
+
+        self._loop.delay(lambda: connect(connection))
+        yield future
+
     def _set_current_task(self, task):
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
@@ -297,7 +334,7 @@ class CompatTransport(BaseTransport):
         self._connection.send(data)
 
     def sendto(self, data, addr = None):
-        raise errors.NotImplemented("Missing implementation")
+        self._connection.send(data, address = addr)
 
     def get_extra_info(self, name, default = None):
         if name == "socket": return self._connection.socket
