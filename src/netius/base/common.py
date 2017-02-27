@@ -1752,10 +1752,6 @@ class AbstractBase(observer.Observable):
         if state: self.set_state(STATE_ERRROR)
 
     def datagram(self, family = socket.AF_INET, type = socket.SOCK_DGRAM):
-        # prints a small debug message about the udp socket that is going
-        # to be created for the client's connection
-        self.debug("Creating datagram connection ...")
-
         # creates the socket that it's going to be used for the listening
         # of new connections (client socket) and sets it as non blocking
         _socket = socket.socket(family, type)
@@ -1773,6 +1769,125 @@ class AbstractBase(observer.Observable):
         # returns the connection to the caller method so that it may be used
         # for operation from now on (latter usage)
         return connection
+
+    def connect(
+        self,
+        host,
+        port,
+        ssl = False,
+        key_file = None,
+        cer_file = None,
+        ca_file = None,
+        ca_root = True,
+        ssl_verify = False,
+        family = socket.AF_INET,
+        type = socket.SOCK_STREAM,
+        ensure_loop = True,
+        env = True
+    ):
+        # runs a series of pre-validations on the provided parameters, raising
+        # exceptions in case they do not comply with expected values
+        if not host: raise errors.NetiusError("Invalid host for connect operation")
+        if not port: raise errors.NetiusError("Invalid port for connect operation")
+
+        # tries to retrieve some of the environment variable related values
+        # so that some of these values are accessible via an external environment
+        # allowing extra configuration flexibility for the client
+        key_file = self.get_env("KEY_FILE", key_file) if env else key_file
+        cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
+        ca_file = self.get_env("CA_FILE", ca_file) if env else ca_file
+        ca_root = self.get_env("CA_ROOT", ca_root, cast = bool) if env else ca_root
+        ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
+        key_file = self.get_env("KEY_DATA", key_file, expand = True) if env else key_file
+        cer_file = self.get_env("CER_DATA", cer_file, expand = True) if env else cer_file
+        ca_file = self.get_env("CA_DATA", ca_file, expand = True) if env else ca_file
+
+        # ensures that a proper loop cycle is available for the current
+        # client, otherwise the connection operation would become stalled
+        # because there's no listening of events for it
+        if ensure_loop: self.ensure_loop()
+
+        # ensures that the proper socket family is defined in case the
+        # requested host value is unix socket oriented, this step greatly
+        # simplifies the process of created unix socket based clients
+        family = socket.AF_UNIX if host == "unix" else family
+
+        # verifies the kind of socket that is going to be used for the
+        # connect operation that is going to be performed, note that the
+        # unix type should be used with case as it does not exist in every
+        # operative system and may raised an undefined exceptions
+        is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX
+        is_inet = family in (socket.AF_INET, socket.AF_INET6)
+
+        # runs a series of default operation for the ssl related attributes
+        # that are going to be used in the socket creation and wrapping
+        key_file = key_file or SSL_KEY_PATH
+        cer_file = cer_file or SSL_CER_PATH
+        ca_file = ca_file or SSL_CA_PATH
+
+        # determines if the ssl verify flag value is valid taking into account
+        # the provided value and defaulting to false value if not valid
+        ssl_verify = ssl_verify or False
+
+        # creates the client socket value using the provided family and socket
+        # type values and then sets it immediately as non blocking
+        _socket = socket.socket(family, type)
+        _socket.setblocking(0)
+
+        if ssl: _socket = self._ssl_wrap(
+            _socket,
+            key_file = key_file,
+            cer_file = cer_file,
+            ca_file = ca_file,
+            ca_root = ca_root,
+            ssl_verify = ssl_verify,
+            server = False
+        )
+
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        if is_inet: _socket.setsockopt(
+            socket.IPPROTO_TCP,
+            socket.TCP_NODELAY,
+            1
+        )
+        if self.receive_buffer: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_RCVBUF,
+            self.receive_buffer
+        )
+        if self.send_buffer: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_SNDBUF,
+            self.send_buffer
+        )
+        self._socket_keepalive(_socket)
+
+        # constructs the address tuple taking into account if the
+        # socket is unix based or if instead it represents a "normal"
+        # one and the host and port must be used instead
+        address = port if is_unix else (host, port)
+
+        # creates the connection object using the typical constructor
+        # and then sets the ssl host (for verification) if the verify
+        # ssl option is defined (secured and verified connection)
+        connection = self.new_connection(_socket, address, ssl = ssl)
+        if ssl_verify: connection.ssl_host = host
+
+        # acquires the pending lock so that it's safe to add an element
+        # to the list of pending connection for connect, this lock is
+        # then released in the final part of the operation
+        self._pending_lock.acquire()
+        try: self.pendings.append(connection)
+        finally: self._pending_lock.release()
+
+        # returns the "final" connection, that is now scheduled for connect
+        # to the caller method, it may now be used for operations
+        return connection
+
+    def acquire(self, connection):
+        acquire = lambda: self.on_acquire(connection)
+        self.delay(acquire)
 
     def pregister(self, pool):
         # prints a debug message stating that a new pool is
