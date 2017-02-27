@@ -57,6 +57,26 @@ class Protocol(observer.Observable):
     def resume_writing(self):
         pass
 
+    def debug(self, object):
+        #@todo implement proper relation with the loop
+        pass
+
+    def info(self, object):
+        #@todo implement proper relation with the loop
+        pass
+
+    def warning(self, object):
+        #@todo implement proper relation with the loop
+        pass
+
+    def error(self, object):
+        #@todo implement proper relation with the loop
+        pass
+
+    def critical(self, object):
+        #@todo implement proper relation with the loop
+        pass
+
 class DatagramProtocol(Protocol):
 
     def __init__(self):
