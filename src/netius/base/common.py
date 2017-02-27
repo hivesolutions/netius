@@ -53,7 +53,6 @@ import netius.adapters
 from . import log
 from . import util
 from . import compat
-from . import errors
 from . import asynchronous
 
 from .. import middleware
@@ -1445,6 +1444,7 @@ class AbstractBase(observer.Observable):
             self.finish()
 
     def is_main(self):
+        if not self.tid: return True
         return threading.current_thread().ident == self.tid
 
     def is_running(self):
@@ -1827,9 +1827,14 @@ class AbstractBase(observer.Observable):
         self.punregister(self.tpool)
         self.tpool.stop()
 
-    def texecute(self, callable, args = [], kwargs = {}):
+    def texecute(self, callable, args = [], kwargs = {}, callback = None):
         self.tensure()
-        self.tpool.execute(callable, args = args, kwargs = kwargs)
+        self.tpool.execute(
+            callable,
+            args = args,
+            kwargs = kwargs,
+            callback = callback
+        )
 
     def files(self):
         if not self.fpool: return
