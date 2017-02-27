@@ -41,11 +41,14 @@ from . import observer
 
 class Protocol(observer.Observable):
 
+    def __init__(self):
+        self._transport = None
+
     def connection_made(self, transport):
-        pass
+        self._transport = transport
 
     def connection_lost(self, exception):
-        pass
+        self._transport = None
 
     def pause_writing(self):
         pass
