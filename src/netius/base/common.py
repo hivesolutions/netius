@@ -405,13 +405,15 @@ class AbstractBase(observer.Observable):
 
     @classmethod
     def set_main(cls, instance, set_compat = True):
+        has_compat = hasattr(instance, "_compat")
+        compat = instance._compat if has_compat else None
         cls._MAIN = instance
-        cls._MAIN_C = instance._compat
+        cls._MAIN_C = compat
         if not set_compat: return
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
         cls.patch_asyncio()
-        asyncio.set_event_loop(instance._compat)
+        asyncio.set_event_loop(compat)
 
     @classmethod
     def unset_main(cls, set_compat = True):
