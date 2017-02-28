@@ -205,6 +205,7 @@ class CompatLoop(BaseLoop):
         **kwargs
     ):
         family = family or socket.AF_INET
+        proto = proto or socket.SOCK_STREAM
 
         future = self.create_future()
 
@@ -219,6 +220,7 @@ class CompatLoop(BaseLoop):
             port,
             ssl = ssl,
             family = family,
+            type = proto,
             ensure_loop = False
         )
         connection.bind("connect", connect)
@@ -241,6 +243,7 @@ class CompatLoop(BaseLoop):
         **kwargs
     ):
         family = family or socket.AF_INET
+        proto = proto or socket.SOCK_DGRAM
 
         future = self.create_future()
 
@@ -250,7 +253,7 @@ class CompatLoop(BaseLoop):
             transport._set_compat(protocol)
             future.set_result((transport, protocol))
 
-        connection = self._loop.datagram()
+        connection = self._loop.datagram(family = family, type = proto)
 
         self._loop.delay(lambda: connect(connection))
         yield future
