@@ -394,7 +394,7 @@ class AbstractBase(observer.Observable):
         return loop
 
     @classmethod
-    def get_main(cls, compat = True):
+    def get_main(cls, compat = False):
         return cls._MAIN_C if compat else cls._MAIN
 
     @classmethod
@@ -2263,6 +2263,11 @@ class AbstractBase(observer.Observable):
 
         connection.close()
 
+    def on_exception(self, exception, connection):
+        self.warning(exception)
+        self.log_stack()
+        connection.close()
+
     def on_data(self, connection, data):
         connection.set_data(data)
 
@@ -3371,8 +3376,8 @@ def build_future(asyncio = True):
 
 def build_datagram(
     protocol_factory,
-    loop = None,
     callback = None,
+    loop = None,
     *args,
     **kwargs
 ):

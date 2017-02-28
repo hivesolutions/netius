@@ -168,6 +168,7 @@ class Task(Future):
 
     def __init__(self, future = None):
         Future.__init__(self)
+        self._future = future
         self._source_traceback = None
         if future: self._wrap(future)
 

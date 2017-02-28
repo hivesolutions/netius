@@ -442,6 +442,7 @@ class DNSClient(netius.DatagramClient):
         loop = netius.build_datagram(
             cls.protocol,
             callback = on_connect,
+            loop = loop,
             remote_addr = address
         )
 
