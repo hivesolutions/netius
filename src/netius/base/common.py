@@ -299,6 +299,11 @@ class AbstractBase(observer.Observable):
     """ Reference to the top level main instance responsible
     for the control of the main thread loop """
 
+    _MAIN_C = None
+    """ The compatibility version of the abstract main loop,
+    should be used to provide compatibility with protocol and
+    transports used by the new api """
+
     def __init__(self, name = None, handlers = None, *args, **kwargs):
         observer.Observable.__init__(self, *args, **kwargs)
         cls = self.__class__
@@ -331,6 +336,7 @@ class AbstractBase(observer.Observable):
         self.connections_m = {}
         self.callbacks_m = {}
         self._uuid = uuid.uuid4()
+        self._compat = compat.CompatLoop(self)
         self._lid = 0
         self._did = 0
         self._main = False
@@ -388,8 +394,8 @@ class AbstractBase(observer.Observable):
         return loop
 
     @classmethod
-    def get_main(cls):
-        return cls._MAIN
+    def get_main(cls, compat = True):
+        return cls._MAIN_C if compat else cls._MAIN
 
     @classmethod
     def get_asyncio(cls):
@@ -398,19 +404,18 @@ class AbstractBase(observer.Observable):
         return asyncio.get_event_loop()
 
     @classmethod
-    def set_main(cls, instance, set_legacy = True):
+    def set_main(cls, instance, set_compat = True):
         cls._MAIN = instance
-        if not set_legacy: return
+        if not set_compat: return
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
+        compat = instance._compat if hasattr(instance, "_compat") else None
         cls.patch_asyncio()
-        if instance: loop = compat.CompatLoop(instance)
-        else: loop = None
-        asyncio.set_event_loop(loop)
+        asyncio.set_event_loop(compat)
 
     @classmethod
-    def unset_main(cls, set_legacy = True):
-        cls.set_main(None, set_legacy = set_legacy)
+    def unset_main(cls, set_compat = True):
+        cls.set_main(None, set_compat = set_compat)
 
     @classmethod
     def patch_asyncio(cls):
@@ -1590,6 +1595,10 @@ class AbstractBase(observer.Observable):
         # only performed in case the current base instance is the owner of
         # the poll that is going to be closed (works with containers)
         if self.poll_owner: self.poll.close()
+
+        # unsets some of the references that would otherwise create some
+        # loops in references (circular references) creating possible leaks
+        self._compat = None
 
         # deletes some of the internal data structures created for the instance
         # and that are considered as no longer required

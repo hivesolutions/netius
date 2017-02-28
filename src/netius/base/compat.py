@@ -39,6 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import time
 import socket
+import weakref
 
 from . import errors
 from . import asynchronous
@@ -324,6 +325,8 @@ class CompatTransport(BaseTransport):
 
     Allows adding the functionality to an internal netius
     (or equivalent) object.
+
+    :see: https://docs.python.org/3/library/asyncio-protocol.html
     """
 
     def __init__(self, connection):
