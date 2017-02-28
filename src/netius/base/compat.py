@@ -386,7 +386,7 @@ class CompatTransportDatagram(CompatTransport):
 
 class CompatTransportStream(CompatTransport):
 
-    def _on_data(self, connection, data, address):
+    def _on_data(self, connection, data):
         self._protocol.data_received(data)
 
     def _on_close(self, connection):
