@@ -3360,6 +3360,29 @@ def build_future(asyncio = True):
     if not main: return None
     return main.build_future(asyncio = asyncio)
 
+def build_datagram(
+    protocol_factory,
+    loop = None,
+    callback = None,
+    *args,
+    **kwargs
+):
+    loop = loop or netius.get_loop()
+
+    def on_connect(future):
+        if not callback: return
+        callback(future.result())
+
+    connect = loop.create_datagram_endpoint(
+        lambda: protocol_factory(),
+        *args,
+        **kwargs
+    )
+    future = loop.create_task(connect)
+    future.add_done_callback(on_connect)
+
+    return loop
+
 def ensure(coroutine, args = [], kwargs = {}, thread = None):
     loop = get_loop()
     return loop.ensure(

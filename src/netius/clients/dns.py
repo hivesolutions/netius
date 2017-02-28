@@ -426,13 +426,11 @@ class DNSClient(netius.DatagramClient):
         callback = None,
         loop = None
     ):
-        loop = loop or netius.get_loop()
-
         ns = ns or cls.protocol.ns_system()
         address = (ns, 53)
 
-        def on_connect(future):
-            _transport, protocol = future.result()
+        def on_connect(result):
+            _transport, protocol = result
             protocol.query(
                 name,
                 type = type,
@@ -441,12 +439,11 @@ class DNSClient(netius.DatagramClient):
                 callback = callback
             )
 
-        connect = loop.create_datagram_endpoint(
-            lambda: cls.protocol(),
+        loop = netius.build_datagram(
+            cls.protocol,
+            callback = on_connect,
             remote_addr = address
         )
-        future = loop.create_task(connect)
-        future.add_done_callback(on_connect)
 
         return loop
 
