@@ -39,7 +39,6 @@ __license__ = "Apache License, Version 2.0"
 
 import time
 import socket
-import weakref
 
 from . import errors
 from . import asynchronous
