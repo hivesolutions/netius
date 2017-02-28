@@ -291,8 +291,8 @@ class AbstractBase(observer.Observable):
     Base network structure to be used by all the network
     capable infra-structures (eg: servers and clients).
 
-    Should handle all the nonblocking event loop so that
-    the read and write operations are easy to handle.
+    Should handle all the non blocking event loop stuff,
+    so that the read and write operations are easy to handle.
     """
 
     _MAIN = None
