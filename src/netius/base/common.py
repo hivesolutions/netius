@@ -873,7 +873,7 @@ class AbstractBase(observer.Observable):
 
         return future
 
-    def run_endless(self):
+    def run_forever(self):
         # starts the current event loop, this is a blocking operation until
         # the done callback is called to stop the loop
         self.start()
@@ -3376,7 +3376,31 @@ def build_future(asyncio = True):
     if not main: return None
     return main.build_future(asyncio = asyncio)
 
-def build_datagram(
+def build_datagram(*args, **kwargs):
+    if compat.is_compat(): return build_datagram_compat(*args, **kwargs)
+    else: return build_datagram_native(*args, **kwargs)
+
+def build_datagram_native(
+    protocol_factory,
+    callback = None,
+    loop = None,
+    *args,
+    **kwargs
+):
+    loop = loop or netius.get_loop()
+
+    def on_ready():
+        connection = loop.datagram()
+        protocol = protocol_factory()
+        transport = compat.CompatTransportDatagram(connection)
+        transport._set_compat(protocol)
+        callback((transport, protocol))
+
+    loop.delay(on_ready)
+
+    return loop
+
+def build_datagram_compat(
     protocol_factory,
     callback = None,
     loop = None,

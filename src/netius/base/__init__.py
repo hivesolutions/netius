@@ -64,7 +64,7 @@ from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     get_event_loop, stop_loop, get_poll, build_future, build_datagram,\
     ensure, ensure_pool
 from .compat import BaseLoop, BaseTransport, CompatLoop, CompatTransport, CompatTransportDatagram,\
-    CompatTransportStream
+    CompatTransportStream, is_compat
 from .config import conf, conf_prefix, conf_suffix, conf_s, conf_d
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer

@@ -40,6 +40,7 @@ __license__ = "Apache License, Version 2.0"
 import time
 import socket
 
+from . import config
 from . import errors
 from . import asynchronous
 
@@ -127,7 +128,7 @@ class CompatLoop(BaseLoop):
         finally: self._unset_current_task()
 
     def run_forever(self):
-        return self._loop.run_endless()
+        return self._loop.run_forever()
 
     def run_in_executor(self, *args, **kwargs):
         coroutine = self._run_in_executor(*args, **kwargs)
@@ -392,3 +393,7 @@ class CompatTransportStream(CompatTransport):
     def _on_close(self, connection):
         self._protocol.eof_received()
         self._protocol.connection_lost(None)
+
+def is_compat():
+    compat = config.conf("COMPAT", False, cast = bool)
+    return compat and asynchronous.is_neo()

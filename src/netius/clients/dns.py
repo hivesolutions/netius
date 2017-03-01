@@ -382,7 +382,7 @@ class DNSProtocol(netius.DatagramProtocol):
         self.send(data, address)
 
     def on_data(self, address, data):
-        netius.DatagramClient.on_data(self, address, data)
+        netius.DatagramProtocol.on_data(self, address, data)
 
         # create the dns response with the provided data stream and
         # runs the parse operation in it so that the response becomes
