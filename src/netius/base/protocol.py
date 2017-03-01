@@ -60,22 +60,27 @@ class Protocol(observer.Observable):
 
     def debug(self, object):
         if not self._loop: return
+        if not hasattr(self._loop, "debug"): return
         self._loop.debug(object)
 
     def info(self, object):
         if not self._loop: return
+        if not hasattr(self._loop, "info"): return
         self._loop.info(object)
 
     def warning(self, object):
         if not self._loop: return
+        if not hasattr(self._loop, "warning"): return
         self._loop.warning(object)
 
     def error(self, object):
         if not self._loop: return
+        if not hasattr(self._loop, "error"): return
         self._loop.error(object)
 
     def critical(self, object):
         if not self._loop: return
+        if not hasattr(self._loop, "critical"): return
         self._loop.critical(object)
 
 class DatagramProtocol(Protocol):

@@ -401,7 +401,7 @@ class AbstractBase(observer.Observable):
     @classmethod
     def get_asyncio(cls):
         asyncio = asynchronous.get_asyncio()
-        if not asyncio: return
+        if not asyncio: return None
         return asyncio.get_event_loop()
 
     @classmethod
@@ -3349,12 +3349,23 @@ def ensure_main(factory = None):
     instance = factory()
     AbstractBase.set_main(instance)
 
+def ensure_asyncio():
+    asyncio = asynchronous.get_asyncio()
+    if not asyncio: return
+    return asyncio.get_event_loop()
+
+def ensure_loop(factory = None, asyncio = None):
+    asyncio = compat.is_asyncio() if asyncio == None else asyncio
+    if asyncio: ensure_asyncio()
+    else: ensure_main(factory = factory)
+
 def get_main(factory = None, ensure = True):
     if ensure: ensure_main(factory = factory)
     return AbstractBase.get_main()
 
-def get_loop(factory = None, ensure = True, asyncio = True):
-    if ensure: ensure_main(factory = factory)
+def get_loop(factory = None, ensure = True, asyncio = None):
+    asyncio = compat.is_asyncio() if asyncio == None else asyncio
+    if ensure: ensure_loop(factory = factory, asyncio = asyncio)
     loop = AbstractBase.get_loop(asyncio = asyncio)
     loop = loop or get_main(factory = factory)
     return loop

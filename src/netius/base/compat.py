@@ -320,4 +320,9 @@ class CompatLoop(BaseLoop):
 
 def is_compat():
     compat = config.conf("COMPAT", False, cast = bool)
+    compat |= is_asyncio()
     return compat and asynchronous.is_neo()
+
+def is_asyncio():
+    asyncio = config.conf("ASYNCIO", False, cast = bool)
+    return asyncio and asynchronous.is_neo()
