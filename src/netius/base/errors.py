@@ -37,7 +37,7 @@ __copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-class NetiusError(RuntimeError):
+class NetiusError(BaseException):
     """
     The top level base error to be used in the
     netius infra-structure.
@@ -47,7 +47,7 @@ class NetiusError(RuntimeError):
     """
 
     def __init__(self, *args, **kwargs):
-        RuntimeError.__init__(self, *args)
+        BaseException.__init__(self, *args)
         message = args[0] if len(args) > 0 else ""
         kwargs["message"] = kwargs.get("message", message)
         self.kwargs = kwargs
