@@ -3365,11 +3365,11 @@ def get_main(factory = None, ensure = True):
     if ensure: ensure_main(factory = factory)
     return AbstractBase.get_main()
 
-def get_loop(factory = None, ensure = True, compat = None, asyncio = None):
-    compat = compat.is_compat() if compat == None else compat
+def get_loop(factory = None, ensure = True, _compat = None, asyncio = None):
+    _compat = compat.is_compat() if _compat == None else _compat
     asyncio = compat.is_asyncio() if asyncio == None else asyncio
     if ensure: ensure_loop(factory = factory, asyncio = asyncio)
-    loop = AbstractBase.get_loop(compat = compat, asyncio = asyncio)
+    loop = AbstractBase.get_loop(compat = _compat, asyncio = asyncio)
     loop = loop or get_main(factory = factory)
     return loop
 
