@@ -389,9 +389,9 @@ class AbstractBase(observer.Observable):
         return selected
 
     @classmethod
-    def get_loop(cls, asyncio = False):
+    def get_loop(cls, compat = False, asyncio = False):
         loop = cls.get_asyncio() if asyncio else None
-        loop = loop or cls.get_main()
+        loop = loop or cls.get_main(compat = compat)
         return loop
 
     @classmethod
@@ -3365,10 +3365,11 @@ def get_main(factory = None, ensure = True):
     if ensure: ensure_main(factory = factory)
     return AbstractBase.get_main()
 
-def get_loop(factory = None, ensure = True, asyncio = None):
+def get_loop(factory = None, ensure = True, compat = None, asyncio = None):
+    compat = compat.is_compat() if compat == None else compat
+    asyncio = compat.is_asyncio() if asyncio == None else asyncio
     if ensure: ensure_loop(factory = factory, asyncio = asyncio)
-    asyncio = compat.is_compat() if asyncio == None else asyncio
-    loop = AbstractBase.get_loop(asyncio = asyncio)
+    loop = AbstractBase.get_loop(compat = compat, asyncio = asyncio)
     loop = loop or get_main(factory = factory)
     return loop
 
