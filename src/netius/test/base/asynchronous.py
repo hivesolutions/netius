@@ -56,6 +56,13 @@ class AsynchronousTest(unittest.TestCase):
         self.assertNotEqual(future._loop, None)
         self.assertEqual(isinstance(future._loop, netius.Base), True)
 
+        loop = netius.get_loop(_compat = True)
+
+        self.assertNotEqual(loop, None)
+
+        self.assertEqual(isinstance(loop, netius.BaseLoop), True)
+        self.assertEqual(isinstance(loop, netius.CompatLoop), True)
+
         loop = netius.get_loop(asyncio = True)
 
         self.assertNotEqual(loop, None)
