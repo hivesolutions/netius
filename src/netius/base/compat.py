@@ -42,11 +42,11 @@ import socket
 
 from . import config
 from . import errors
+from . import transport
 from . import asynchronous
 
 asyncio = asynchronous.get_asyncio() if asynchronous.is_neo() else None
 BaseLoop = asyncio.AbstractEventLoop if asyncio else object
-BaseTransport = asyncio.BaseTransport if asyncio else object
 
 class CompatLoop(BaseLoop):
     """
@@ -212,9 +212,9 @@ class CompatLoop(BaseLoop):
 
         def connect(connection):
             protocol = protocol_factory()
-            transport = CompatTransportStream(connection)
-            transport._set_compat(protocol)
-            future.set_result((transport, protocol))
+            _transport = transport.TransportStream(connection)
+            _transport._set_compat(protocol)
+            future.set_result((_transport, protocol))
 
         connection = self._loop.connect(
             host,
@@ -250,9 +250,9 @@ class CompatLoop(BaseLoop):
 
         def connect(connection):
             protocol = protocol_factory()
-            transport = CompatTransportDatagram(connection)
-            transport._set_compat(protocol)
-            future.set_result((transport, protocol))
+            _transport = transport.TransportDatagram(connection)
+            _transport._set_compat(protocol)
+            future.set_result((_transport, protocol))
 
         connection = self._loop.datagram(family = family, type = proto)
 
@@ -317,82 +317,6 @@ class CompatLoop(BaseLoop):
     @property
     def _thread_id(self):
         return self._loop.tid
-
-class CompatTransport(BaseTransport):
-    """
-    Decorator class to be used to add the functionality of a
-    transport layer as defined by the asyncio.
-
-    Allows adding the functionality to an internal netius
-    (or equivalent) object.
-
-    :see: https://docs.python.org/3/library/asyncio-protocol.html
-    """
-
-    def __init__(self, connection):
-        self._connection = connection
-        self._protocol = None
-
-    def close(self):
-        self._connection.close()
-
-    def abort(self):
-        self._connection.close()
-
-    def write(self, data):
-        self._connection.send(data)
-
-    def sendto(self, data, addr = None):
-        self._connection.send(data, address = addr)
-
-    def get_extra_info(self, name, default = None):
-        if name == "socket": return self._connection.socket
-        else: return default
-
-    def set_protocol(self, protocol):
-        self._set_protocol(protocol, mark = False)
-
-    def get_protocol(self):
-        return self._protocol
-
-    def is_closing(self):
-        return self._connection.is_closed()
-
-    def _on_data(self, connection, data):
-        pass
-
-    def _on_close(self, connection):
-        pass
-
-    def _set_compat(self, protocol):
-        self._set_binds()
-        self._set_protocol(protocol)
-
-    def _set_binds(self):
-        self._connection.bind("data", self._on_data)
-        self._connection.bind("close", self._on_close)
-
-    def _set_protocol(self, protocol, mark = True):
-        self._protocol = protocol
-        if mark: self._protocol.connection_made(self)
-
-class CompatTransportDatagram(CompatTransport):
-
-    def _on_data(self, connection, data):
-        data, address = data
-        self._protocol.datagram_received(data, address)
-
-    def _on_close(self, connection):
-        pass
-
-class CompatTransportStream(CompatTransport):
-
-    def _on_data(self, connection, data):
-        self._protocol.data_received(data)
-
-    def _on_close(self, connection):
-        self._protocol.eof_received()
-        self._protocol.connection_lost(None)
 
 def is_compat():
     compat = config.conf("COMPAT", False, cast = bool)

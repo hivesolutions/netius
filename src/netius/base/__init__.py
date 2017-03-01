@@ -51,6 +51,7 @@ from . import request
 from . import server
 from . import stream
 from . import tls
+from . import transport
 from . import util
 
 from .asynchronous import Future, Task, Handle, Executor, ThreadPoolExecutor, coroutine,\
@@ -63,8 +64,7 @@ from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     SSL_DH_PATH, Base, BaseThread, ensure_main, get_main, get_loop,\
     get_event_loop, stop_loop, get_poll, build_future, build_datagram,\
     ensure, ensure_pool
-from .compat import BaseLoop, BaseTransport, CompatLoop, CompatTransport, CompatTransportDatagram,\
-    CompatTransportStream, is_compat
+from .compat import BaseLoop, CompatLoop, is_compat
 from .config import conf, conf_prefix, conf_suffix, conf_s, conf_d
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
@@ -79,4 +79,5 @@ from .server import Server, DatagramServer, StreamServer
 from .stream import Stream
 from .tls import fingerprint, match_fingerprint, match_hostname, dnsname_match,\
     dump_certificate
+from .transport import Transport, TransportDatagram, TransportStream
 from .util import camel_to_underscore

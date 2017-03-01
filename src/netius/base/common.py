@@ -53,6 +53,7 @@ import netius.adapters
 from . import log
 from . import util
 from . import compat
+from . import transport
 from . import asynchronous
 
 from .. import middleware
@@ -3392,9 +3393,9 @@ def build_datagram_native(
     def on_ready():
         connection = loop.datagram()
         protocol = protocol_factory()
-        transport = compat.CompatTransportDatagram(connection)
-        transport._set_compat(protocol)
-        callback((transport, protocol))
+        _transport = transport.TransportDatagram(connection)
+        _transport._set_compat(protocol)
+        callback((_transport, protocol))
 
     loop.delay(on_ready)
 
