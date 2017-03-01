@@ -3385,13 +3385,18 @@ def build_datagram(
 ):
     loop = loop or netius.get_loop()
 
+    def build_protocol():
+        protocol = protocol_factory()
+        protocol._loop = loop
+        return protocol
+
     def on_connect(future):
         if not callback: return
         result = future.result()
         callback(result)
 
     connect = loop.create_datagram_endpoint(
-        lambda: protocol_factory(),
+        build_protocol,
         *args,
         **kwargs
     )

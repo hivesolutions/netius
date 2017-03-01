@@ -44,6 +44,7 @@ class Protocol(observer.Observable):
 
     def __init__(self):
         self._transport = None
+        self._loop = None
 
     def connection_made(self, transport):
         self._transport = transport
@@ -58,24 +59,24 @@ class Protocol(observer.Observable):
         pass
 
     def debug(self, object):
-        #@todo implement proper relation with the loop
-        pass
+        if not self._loop: return
+        self._loop.debug(object)
 
     def info(self, object):
-        #@todo implement proper relation with the loop
-        pass
+        if not self._loop: return
+        self._loop.info(object)
 
     def warning(self, object):
-        #@todo implement proper relation with the loop
-        pass
+        if not self._loop: return
+        self._loop.warning(object)
 
     def error(self, object):
-        #@todo implement proper relation with the loop
-        pass
+        if not self._loop: return
+        self._loop.error(object)
 
     def critical(self, object):
-        #@todo implement proper relation with the loop
-        pass
+        if not self._loop: return
+        self._loop.critical(object)
 
 class DatagramProtocol(Protocol):
 
