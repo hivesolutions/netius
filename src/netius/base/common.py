@@ -858,8 +858,8 @@ class AbstractBase(observer.Observable):
         future = self.build_future()
 
         def handler(response):
-            if not response: raise RuntimeError("Timeout in resolution") #@todo put the correct exception
-            if not response.answers: raise RuntimeError("Unable to resolve") #@todo put the correct exception
+            if not response: raise RuntimeError("Timeout in resolution")
+            if not response.answers: raise RuntimeError("Unable to resolve name")
 
             answer = response.answers[0]
             address = answer[4]
