@@ -22,6 +22,12 @@ performance of the same)
 
 #### Internal
 
+* `ASYNCIO` (`bool`) - If the asyncio mode should be used, meaning that the loop retrieval method to
+be used is the one provided by the asyncio module, in case no asyncio support exists the flag is ignored
+(defaults to `False`)
+* `COMPAT` (`bool`) - If the "heavyweight" compatibility mode should be ensured so that some operations will
+use an `asyncio` compatible way of performing execution, using this mode has performance implications
+(defaults to `False`)
 * `POLL` (`str`) - The name of the polling system to be used for the controlling of the main event loop
 by default this values is infered automatically based on the current system capabilities
 * `DIAG` (`bool`) - If the diagnostics system should be launched for the current system, if launched the
