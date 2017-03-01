@@ -3366,8 +3366,8 @@ def get_main(factory = None, ensure = True):
     return AbstractBase.get_main()
 
 def get_loop(factory = None, ensure = True, asyncio = None):
-    asyncio = compat.is_asyncio() if asyncio == None else asyncio
     if ensure: ensure_loop(factory = factory, asyncio = asyncio)
+    asyncio = compat.is_compat() if asyncio == None else asyncio
     loop = AbstractBase.get_loop(asyncio = asyncio)
     loop = loop or get_main(factory = factory)
     return loop
