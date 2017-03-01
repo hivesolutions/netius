@@ -3387,7 +3387,8 @@ def build_datagram(
 
     def on_connect(future):
         if not callback: return
-        callback(future.result())
+        result = future.result()
+        callback(result)
 
     connect = loop.create_datagram_endpoint(
         lambda: protocol_factory(),
