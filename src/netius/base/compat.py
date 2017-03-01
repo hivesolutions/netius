@@ -325,4 +325,4 @@ def is_compat():
 
 def is_asyncio():
     asyncio = config.conf("ASYNCIO", False, cast = bool)
-    return asyncio and asynchronous.is_neo()
+    return asyncio and asynchronous.is_asynclib()

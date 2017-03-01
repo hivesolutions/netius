@@ -56,7 +56,7 @@ from . import util
 
 from .asynchronous import Future, Task, Handle, Executor, ThreadPoolExecutor, coroutine,\
     async_test_all, async_test, ensure_generator, get_asyncio, is_coroutine,\
-    is_coroutine_object, is_future, is_neo, is_asyncio, is_await, wakeup, sleep, wait,\
+    is_coroutine_object, is_future, is_neo, is_asynclib, is_await, wakeup, sleep, wait,\
     notify, coroutine_return
 from .client import Client, DatagramClient, StreamClient
 from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
@@ -64,7 +64,7 @@ from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     SSL_DH_PATH, Base, BaseThread, ensure_main, get_main, get_loop,\
     get_event_loop, stop_loop, get_poll, build_future, build_datagram,\
     ensure, ensure_pool
-from .compat import BaseLoop, CompatLoop, is_compat
+from .compat import BaseLoop, CompatLoop, is_compat, is_asyncio
 from .config import conf, conf_prefix, conf_suffix, conf_s, conf_d
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
