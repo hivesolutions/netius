@@ -1171,14 +1171,6 @@ class HTTPClient(netius.StreamClient):
         if self.auto_close: self.close()
         if self.auto_pause: self.pause()
 
-    def new_connection(self, socket, address, ssl = False):
-        return HTTPConnection(
-            owner = self,
-            socket = socket,
-            address = address,
-            ssl = ssl
-        )
-
     def on_data_http(self, connection, parser):
         message = parser.get_message()
         self.trigger("message", self, parser, message)

@@ -54,6 +54,7 @@ class Protocol(observer.Observable):
         self._closed = False
 
     def close(self):
+        self._close_transport()
         self._closed = True
         self._transport = None
 
@@ -105,6 +106,10 @@ class Protocol(observer.Observable):
 
     def is_closed(self):
         return self._closed
+
+    def _close_transport(self):
+        if not self._transport: return
+        self._transport.abort()
 
 class DatagramProtocol(Protocol):
 
