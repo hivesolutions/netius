@@ -46,6 +46,17 @@ class Protocol(observer.Observable):
         self._transport = None
         self._loop = None
 
+    def open(self):
+        pass
+
+    def close(self):
+        pass
+
+    def info_dict(self, full = False):
+        if not self._transport: return dict()
+        info = self._transport.info_dict(full = full)
+        return info
+
     def connection_made(self, transport):
         self._transport = transport
 

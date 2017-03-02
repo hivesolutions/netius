@@ -57,10 +57,10 @@ BASE_HEADERS = {
 """ The map containing the complete set of headers
 that are meant to be applied to all the requests """
 
-class HTTPConnection(netius.Connection):
+class HTTPConnection(netius.StreamProtocol):
 
     def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
-        netius.Connection.__init__(self, *args, **kwargs)
+        netius.StreamProtocol.__init__(self, *args, **kwargs)
         self.parser = None
         self.encoding = encoding
         self.current = encoding
@@ -79,7 +79,7 @@ class HTTPConnection(netius.Connection):
         self.data = None
 
     def open(self, *args, **kwargs):
-        netius.Connection.open(self, *args, **kwargs)
+        netius.StreamProtocol.open(self, *args, **kwargs)
         if not self.is_open(): return
         self.parser = netius.common.HTTPParser(self, type = netius.common.RESPONSE)
         self.parser.bind("on_data", self.on_data)
@@ -88,14 +88,14 @@ class HTTPConnection(netius.Connection):
         self.parser.bind("on_chunk", self.on_chunk)
 
     def close(self, *args, **kwargs):
-        netius.Connection.close(self, *args, **kwargs)
+        netius.StreamProtocol.close(self, *args, **kwargs)
         if not self.is_closed(): return
         if self.parser: self.parser.destroy()
         if self.gzip: self._close_gzip(safe = True)
         if self.gzip_c: self.gzip_c = None
 
     def info_dict(self, full = False):
-        info = netius.Connection.info_dict(self, full = full)
+        info = netius.StreamProtocol.info_dict(self, full = full)
         info.update(
             version = self.version,
             method = self.method,
@@ -1146,10 +1146,14 @@ if __name__ == "__main__":
         client.close()
 
     client = HTTPClient()
-    client.get("https://www.flickr.com/")
+
     client.bind("headers", on_headers)
     client.bind("partial", on_partial)
     client.bind("message", on_message)
     client.bind("close", on_close)
+
+    loop = client.get("https://www.flickr.com/")
+    loop.run_forever()
+    loop.close()
 else:
     __path__ = []
