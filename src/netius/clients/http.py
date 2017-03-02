@@ -938,6 +938,7 @@ class HTTPClient(netius.StreamClient):
 
 
         #@todo for simplicity we'll make one connection per request !!!
+        # ignoring the acquire (connection) operations
 
         def on_connect(result):
             _transport, protocol = result
