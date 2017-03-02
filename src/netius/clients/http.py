@@ -82,7 +82,7 @@ class HTTPProtocol(netius.StreamProtocol):
         netius.StreamProtocol.open(self, *args, **kwargs)
         if not self.is_open(): return
         self.parser = netius.common.HTTPParser(self, type = netius.common.RESPONSE)
-        self.parser.bind("on_data", self.on_data)
+        self.parser.bind("on_data", self._on_data) #@todo this is just a fallback process
         self.parser.bind("on_partial", self.on_partial)
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_chunk", self.on_chunk)
@@ -495,7 +495,11 @@ class HTTPProtocol(netius.StreamProtocol):
         if strict and self.is_chunked(): return False
         return True
 
-    def on_data(self):
+    def on_data(self, data):
+        netius.StreamProtocol.on_data(self, data)
+        self.parser.parse(data)
+
+    def _on_data(self):
         message = self.parser.get_message()
         self.trigger("message", self, self.parser, message)
         self.owner.on_data_http(self, self.parser)
@@ -937,6 +941,7 @@ class HTTPClient(netius.StreamClient):
 
         def on_connect(result):
             _transport, protocol = result
+            protocol.owner = self
             protocol.set_all(
                 method,
                 url,
@@ -1205,10 +1210,10 @@ if __name__ == "__main__":
         request = HTTPClient.set_request(parser, buffer)
         print(request["headers"])
         print(request["data"] or b"[empty data]")
-        client.close()
+        netius.stop_loop()
 
     def on_close(client, connection):
-        client.close()
+        netius.stop_loop()
 
     client = HTTPClient()
 

@@ -37,21 +37,25 @@ __copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+from . import legacy
 from . import request
 from . import observer
 
 class Protocol(observer.Observable):
 
     def __init__(self, owner = None):
+        observer.Observable.__init__(self)
         self.owner = owner
         self._transport = None
         self._loop = None
+        self._closed = True
 
     def open(self):
-        pass
+        self._closed = False
 
     def close(self):
-        pass
+        self._closed = True
+        self._transport = None
 
     def info_dict(self, full = False):
         if not self._transport: return dict()
@@ -60,9 +64,10 @@ class Protocol(observer.Observable):
 
     def connection_made(self, transport):
         self._transport = transport
+        self.open()
 
     def connection_lost(self, exception):
-        self._transport = None
+        self.close()
 
     def pause_writing(self):
         pass
@@ -94,6 +99,12 @@ class Protocol(observer.Observable):
         if not self._loop: return
         if not hasattr(self._loop, "critical"): return
         self._loop.critical(object)
+
+    def is_open(self):
+        return not self._closed
+
+    def is_closed(self):
+        return self._closed
 
 class DatagramProtocol(Protocol):
 
@@ -145,5 +156,8 @@ class StreamProtocol(Protocol):
     def on_data(self, data):
         pass
 
-    def send(self, data):
-        return self._transport.send(data)
+    def send(self, data, delay = True, force = False, callback = None):
+        #@todo must support legacy transports taht don't have those
+        # arguments, neet to thing about this
+        data = legacy.bytes(data)
+        return self._transport.write(data)
