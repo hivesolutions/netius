@@ -712,6 +712,8 @@ class StreamClient(Client):
             server = False
         )
 
+        # sets a series of options in the socket to ensure that it's
+        # prepared for the client operations to be performed
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         if is_inet: _socket.setsockopt(
