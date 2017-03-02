@@ -2301,8 +2301,8 @@ class AbstractBase(observer.Observable):
 
     def on_ssl(self, connection):
         #@todo this must be a condition on the connection or protocol
-        # on the server side this is diferent
-        
+        # on the server side this is different
+
         # runs the connection host verification process for the ssl
         # meaning that in case an ssl host value is defined it is going
         # to be verified against the value in the certificate
@@ -3720,7 +3720,31 @@ def _connect_stream_compat(
     *args,
     **kwargs
 ):
-    pass
+    loop = loop or netius.get_loop()
+
+    def build_protocol():
+        protocol = protocol_factory()
+        protocol._loop = loop
+        return protocol
+
+    def on_connect(future):
+        if not callback: return
+        result = future.result()
+        callback(result)
+
+    connect = loop.create_connection(
+        build_protocol,
+        host = host,
+        port = port,
+        ssl = ssl,
+        family = family,
+        *args,
+        **kwargs
+    )
+    future = loop.create_task(connect)
+    future.add_done_callback(on_connect)
+
+    return loop
 
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Base = DiagBase
