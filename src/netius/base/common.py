@@ -1833,11 +1833,6 @@ class AbstractBase(observer.Observable):
         cer_file = self.get_env("CER_DATA", cer_file, expand = True) if env else cer_file
         ca_file = self.get_env("CA_DATA", ca_file, expand = True) if env else ca_file
 
-        # ensures that a proper loop cycle is available for the current
-        # client, otherwise the connection operation would become stalled
-        # because there's no listening of events for it
-        if ensure_loop: self.ensure_loop()
-
         # ensures that the proper socket family is defined in case the
         # requested host value is unix socket oriented, this step greatly
         # simplifies the process of created unix socket based clients
@@ -1886,16 +1881,16 @@ class AbstractBase(observer.Observable):
             socket.TCP_NODELAY,
             1
         )
-        if self.receive_buffer: _socket.setsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_RCVBUF,
-            self.receive_buffer
-        )
-        if self.send_buffer: _socket.setsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_SNDBUF,
-            self.send_buffer
-        )
+        #if self.receive_buffer: _socket.setsockopt(
+        #    socket.SOL_SOCKET,
+        #    socket.SO_RCVBUF,
+        #    self.receive_buffer
+        #)
+        #if self.send_buffer: _socket.setsockopt(
+        #    socket.SOL_SOCKET,
+        #    socket.SO_SNDBUF,
+        #    self.send_buffer
+        #) #@todo must check this stuff
         self._socket_keepalive(_socket)
 
         # constructs the address tuple taking into account if the
@@ -1909,12 +1904,13 @@ class AbstractBase(observer.Observable):
         connection = self.new_connection(_socket, address, ssl = ssl)
         if ssl_verify: connection.ssl_host = host
 
-        # acquires the pending lock so that it's safe to add an element
-        # to the list of pending connection for connect, this lock is
-        # then released in the final part of the operation
-        self._pending_lock.acquire()
-        try: self.pendings.append(connection)
-        finally: self._pending_lock.release()
+        # schedules the underlying non blocking connect operation to
+        # be executed as soon as possible to start the process of
+        # connecting for the current connection
+        self.delay(
+            lambda: self._connect(connection),
+            immediately = True
+        )
 
         # in case there's a callback defined for the connection establishment
         # then registers such callback for the connect event in the connection
@@ -2290,6 +2286,45 @@ class AbstractBase(observer.Observable):
         self.warning(exception)
         self.log_stack()
         connection.close()
+
+    def on_expected(self, exception, connection):
+        self.debug(exception)
+        connection.close()
+
+    def on_connect(self, connection):
+        connection.set_connected()
+        if not hasattr(connection, "tuple"): return
+        self.on_acquire(connection)
+
+    def on_upgrade(self, connection):
+        connection.set_upgraded()
+
+    def on_ssl(self, connection):
+        #@todo this must be a condition on the connection or protocol
+        # on the server side this is diferent
+        
+        # runs the connection host verification process for the ssl
+        # meaning that in case an ssl host value is defined it is going
+        # to be verified against the value in the certificate
+        connection.ssl_verify_host()
+
+        # runs the connection fingerprint verification the will try to
+        # match the digest of the peer certificate against the one that
+        # is expected from it (similar to host verification)
+        connection.ssl_verify_fingerprint()
+
+        # verifies if the connection is either connecting or upgrading
+        # and calls the proper event handler for each event, this is
+        # required because the connection workflow is probably dependent
+        # on the calling of these event handlers to proceed
+        if connection.connecting: self.on_connect(connection)
+        elif connection.upgrading: self.on_upgrade(connection)
+
+    def on_acquire(self, connection):
+        pass
+
+    def on_release(self, connection):
+        pass
 
     def on_data(self, connection, data):
         connection.set_data(data)
@@ -2940,6 +2975,125 @@ class AbstractBase(observer.Observable):
         identifier = identifier.upper()
         return indetifier
 
+    def _connect(self, connection):
+        # in case the current connection has been closed meanwhile
+        # the current connection is meant to be avoided and so the
+        # method must return immediately to the caller method
+        if connection.status == CLOSED: return
+
+        # retrieves the socket associated with the connection
+        # and calls the open method of the connection to proceed
+        # with the correct operations for the connection
+        _socket = connection.socket
+        connection.open(connect = True)
+
+        # tries to run the non blocking connection it should
+        # fail and the connection should only be considered as
+        # open when a write event is raised for the connection
+        try: _socket.connect(connection.address)
+        except ssl.SSLError as error:
+            error_v = error.args[0] if error.args else None
+            if not error_v in SSL_VALID_ERRORS:
+                self.warning(error)
+                self.log_stack()
+                self.trigger("error", self, connection, error)
+                connection.close()
+                return
+        except socket.error as error:
+            error_v = error.args[0] if error.args else None
+            if not error_v in VALID_ERRORS:
+                self.warning(error)
+                self.log_stack()
+                self.trigger("error", self, connection, error)
+                connection.close()
+                return
+        except BaseException as exception:
+            self.warning(exception)
+            self.log_stack()
+            self.trigger("error", self, connection, exception)
+            connection.close()
+            raise
+
+        # otherwise the connect operation has finished correctly
+        # and the finish connect method should be called indicating
+        # that the connect operation has completed successfully
+        else:
+            self._connectf(connection)
+
+        # in case the connection is not of type ssl the method
+        # may return as there's nothing left to be done, as the
+        # rest of the method is dedicated to ssl tricks
+        if not connection.ssl: return
+
+        # verifies if the current ssl object is a context oriented one
+        # (newest versions) or a legacy oriented one, that does not uses
+        # any kind of context object, this is relevant in order to make
+        # decisions on how the ssl object may be re-constructed
+        has_context = hasattr(_socket, "context")
+        has_sock = hasattr(_socket, "_sock")
+
+        # creates the ssl object for the socket as it may have been
+        # destroyed by the underlying ssl library (as an error) because
+        # the socket is of type non blocking and raises an error, note
+        # that the creation of the socket varies between ssl versions
+        if _socket._sslobj: return
+        if has_context: _socket._sslobj = _socket.context._wrap_socket(
+            _socket,
+            _socket.server_side,
+            _socket.server_hostname
+        )
+        else: _socket._sslobj = ssl._ssl.sslwrap(
+            _socket._sock if has_sock else _socket,
+            False,
+            _socket.keyfile,
+            _socket.certfile,
+            _socket.cert_reqs,
+            _socket.ssl_version,
+            _socket.ca_certs
+        )
+
+        # verifies if the ssl object class is defined in the ssl module
+        # and if that's the case an extra wrapping operation is performed
+        # in order to comply with new indirection/abstraction methods
+        if not hasattr(ssl, "SSLObject"): return
+        _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
+
+    def _connectf(self, connection):
+        """
+        Finishes the process of connecting to the remote end-point
+        this should be done in certain steps of the connection.
+
+        The process of finishing the connecting process should include
+        the ssl handshaking process.
+
+        :type connection: Connection
+        :param connection: The connection that should have the connect
+        process tested for finishing.
+        """
+
+        # in case the ssl connection is still undergoing the handshaking
+        # procedures (marked as connecting) ignores the call as this must
+        # be a duplicated call to this method (to be ignored)
+        if connection.ssl_connecting: return
+
+        # verifies if there was an error in the middle of the connection
+        # operation and if that's the case calls the proper callback and
+        # returns the control flow to the caller method
+        error = connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        if error: self.on_error(connection.socket); return
+
+        # checks if the current connection is ssl based and if that's the
+        # case starts the handshaking process (async non blocking) otherwise
+        # calls the on connect callback with the newly created connection
+        if connection.ssl: connection.add_starter(self._ssl_handshake)
+        else: self.on_connect(connection)
+
+        # runs the starter process (initial kick-off) so that all the starters
+        # registered for the connection may start to be executed, note that if
+        # the ssl handshake starter has been registered its first execution is
+        # going to be triggered by this call
+        connection.run_starter()
+
     def _socket_keepalive(
         self,
         _socket,
@@ -3228,6 +3382,15 @@ class AbstractBase(observer.Observable):
             # has finished and that the next one should be called as
             # soon as possible to go further in the connection initialization
             connection.end_starter()
+
+            # prints a debug information notifying the developer about
+            # the finishing of the handshaking process for the connection
+            self.debug("SSL Handshaking completed for connection")
+
+            # calls the proper callback on the connection meaning
+            # that ssl is now enabled for that socket/connection and so
+            # the communication between peers is now secured
+            self.on_ssl(connection)
         except ssl.SSLError as error:
             # tries to retrieve the error code from the argument information
             # in the error, in case the error is defined in the list of
@@ -3410,10 +3573,31 @@ def build_future(asyncio = True):
     return main.build_future(asyncio = asyncio)
 
 def build_datagram(*args, **kwargs):
-    if compat.is_compat(): return build_datagram_compat(*args, **kwargs)
-    else: return build_datagram_native(*args, **kwargs)
+    if compat.is_compat(): return _build_datagram_compat(*args, **kwargs)
+    else: return _build_datagram_native(*args, **kwargs)
 
-def build_datagram_native(
+def connect_stream(*args, **kwargs):
+    if compat.is_compat(): return _connect_stream_compat(*args, **kwargs)
+    else: return _connect_stream_native(*args, **kwargs)
+
+def ensure(coroutine, args = [], kwargs = {}, thread = None):
+    loop = get_loop()
+    return loop.ensure(
+        coroutine,
+        args = args,
+        kwargs = kwargs,
+        thread = thread
+    )
+
+def ensure_pool(coroutine, args = [], kwargs = {}):
+    return ensure(
+        coroutine,
+        args = args,
+        kwargs = kwargs,
+        thread = True
+    )
+
+def _build_datagram_native(
     protocol_factory,
     family = socket.AF_INET,
     type = socket.SOCK_DGRAM,
@@ -3442,7 +3626,7 @@ def build_datagram_native(
 
     return loop
 
-def build_datagram_compat(
+def _build_datagram_compat(
     protocol_factory,
     family = socket.AF_INET,
     type = socket.SOCK_DGRAM,
@@ -3474,11 +3658,7 @@ def build_datagram_compat(
 
     return loop
 
-def connect_stream(*args, **kwargs):
-    if compat.is_compat(): return connect_stream_compat(*args, **kwargs)
-    else: return connect_stream_native(*args, **kwargs)
-
-def connect_stream_native(
+def _connect_stream_native(
     protocol_factory,
     host,
     port,
@@ -3498,7 +3678,7 @@ def connect_stream_native(
     loop = loop or netius.get_loop()
 
     def on_ready():
-        loop.conect(
+        loop.connect(
             host,
             port,
             ssl = ssl,
@@ -3523,22 +3703,24 @@ def connect_stream_native(
 
     return loop
 
-def ensure(coroutine, args = [], kwargs = {}, thread = None):
-    loop = get_loop()
-    return loop.ensure(
-        coroutine,
-        args = args,
-        kwargs = kwargs,
-        thread = thread
-    )
-
-def ensure_pool(coroutine, args = [], kwargs = {}):
-    return ensure(
-        coroutine,
-        args = args,
-        kwargs = kwargs,
-        thread = True
-    )
+def _connect_stream_compat(
+    protocol_factory,
+    host,
+    port,
+    ssl = False,
+    key_file = None,
+    cer_file = None,
+    ca_file = None,
+    ca_root = True,
+    ssl_verify = False,
+    family = socket.AF_INET,
+    type = socket.SOCK_STREAM,
+    callback = None,
+    loop = None,
+    *args,
+    **kwargs
+):
+    pass
 
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Base = DiagBase
