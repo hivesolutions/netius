@@ -57,7 +57,7 @@ BASE_HEADERS = {
 """ The map containing the complete set of headers
 that are meant to be applied to all the requests """
 
-class HTTPConnection(netius.StreamProtocol):
+class HTTPProtocol(netius.StreamProtocol):
 
     def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
         netius.StreamProtocol.__init__(self, *args, **kwargs)
@@ -285,6 +285,84 @@ class HTTPConnection(netius.StreamProtocol):
             force = force,
             callback = callback
         )
+
+    #@todo this must be properly commented
+    def set_all(
+        self,
+        method,
+        url,
+        params = None,
+        headers = None,
+        data = None,
+        version = "HTTP/1.1",
+        encoding = PLAIN_ENCODING,
+        encodings = "gzip, deflate",
+        safe = False,
+        connection = None,
+        timeout = None
+    ):
+        # runs the defaulting operation on the provided parameters so that
+        # new instances are created for both occasions as expected, this
+        # avoids the typical problem with re-usage of default attributes
+        params = params or dict()
+        headers = headers or dict()
+        timeout = timeout or 60
+
+        # creates the message that is going to be used in the logging of
+        # the current method request for debugging purposes, this may be
+        # useful for a full record traceability of the request
+        message = "%s %s %s" % (method, url, version)
+        self.debug(message)
+
+        # stores the initial version of the url in a fallback variable so
+        # that it may latter be used for the storage of that information
+        # in the associated connection (used in callbacks)
+        base = url
+
+        # encodes the provided parameters into the query string and then
+        # adds these parameters to the end of the provided url, these
+        # values are commonly named get parameters
+        query = netius.legacy.urlencode(params)
+        if query: url = url + "?" + query
+
+        # parses the provided url and retrieves the various parts of the
+        # url that are going to be used in the creation of the connection
+        # takes into account some default values in case their are not part
+        # of the provided url (eg: port and the scheme)
+        parsed = netius.legacy.urlparse(url)
+        ssl = parsed.scheme == "https"
+        host = parsed.hostname
+        port = parsed.port or (ssl and 443 or 80)
+        path = parsed.path or "/"
+        username = parsed.username
+        password = parsed.password
+
+        # in case both the username and the password values are defined the
+        # authorization header must be created and added to the default set
+        # of headers that are going to be included in the request
+        if username and password:
+            payload = "%s:%s" % (username, password)
+            payload = netius.legacy.bytes(payload)
+            authorization = base64.b64encode(payload)
+            authorization = netius.legacy.str(authorization)
+            headers["authorization"] = "Basic %s" % authorization
+
+        self.set_http(
+            version = version,
+            method = method,
+            url = url,
+            base = base,
+            host = host,
+            port = port,
+            path = path,
+            ssl = ssl,
+            parsed = parsed,
+            safe = safe
+        )
+        self.set_encoding(encoding)
+        self.set_encodings(encodings)
+        self.set_headers(headers)
+        self.set_data(data)
 
     def set_http(
         self,
@@ -542,6 +620,8 @@ class HTTPClient(netius.StreamClient):
     connection once the message has been received, this is optional
     and may be disabled with an argument in the constructor.
     """
+
+    protocol = HTTPProtocol
 
     def __init__(
         self,
@@ -808,9 +888,9 @@ class HTTPClient(netius.StreamClient):
         encodings = "gzip, deflate",
         safe = False,
         connection = None,
-        async = True,
         timeout = None,
         callback = None,
+        loop = None,
         on_close = None,
         on_headers = None,
         on_data = None,
@@ -820,58 +900,10 @@ class HTTPClient(netius.StreamClient):
         # with the current instance, to be used for operations
         cls = self.__class__
 
-        # runs the defaulting operation on the provided parameters so that
-        # new instances are created for both occasions as expected, this
-        # avoids the typical problem with re-usage of default attributes
-        params = params or dict()
-        headers = headers or dict()
-        timeout = timeout or 60
-
-        # runs the loading process, so that services like logging are
-        # available right away and may be used immediately as expected
-        # by the http method loader method, note that in case the loading
-        # process as already been executed the logic is ignored, the
-        # execution of the load is only applied to non async requests
-        not async and self.load()
-
-        # creates the message that is going to be used in the logging of
-        # the current method request for debugging purposes, this may be
-        # useful for a full record traceability of the request
-        message = "%s %s %s" % (method, url, version)
-        self.debug(message)
-
-        # stores the initial version of the url in a fallback variable so
-        # that it may latter be used for the storage of that information
-        # in the associated connection (used in callbacks)
-        base = url
-
-        # encodes the provided parameters into the query string and then
-        # adds these parameters to the end of the provided url, these
-        # values are commonly named get parameters
-        query = netius.legacy.urlencode(params)
-        if query: url = url + "?" + query
-
-        # parses the provided url and retrieves the various parts of the
-        # url that are going to be used in the creation of the connection
-        # takes into account some default values in case their are not part
-        # of the provided url (eg: port and the scheme)
         parsed = netius.legacy.urlparse(url)
         ssl = parsed.scheme == "https"
         host = parsed.hostname
         port = parsed.port or (ssl and 443 or 80)
-        path = parsed.path or "/"
-        username = parsed.username
-        password = parsed.password
-
-        # in case both the username and the password values are defined the
-        # authorization header must be created and added to the default set
-        # of headers that are going to be included in the request
-        if username and password:
-            payload = "%s:%s" % (username, password)
-            payload = netius.legacy.bytes(payload)
-            authorization = base64.b64encode(payload)
-            authorization = netius.legacy.str(authorization)
-            headers["authorization"] = "Basic %s" % authorization
 
         # in case there's a connection to be used must validate that the
         # connection is valid for the current context so that the host,
@@ -883,39 +915,72 @@ class HTTPClient(netius.StreamClient):
             is_valid = address_valid and ssl_valid
             if not is_valid: connection.close(); connection = None
 
+
+
+
+
+
+
         # in case there's going to be a re-usage of an already existing
         # connection the acquire operation must be performed so that it
         # becomes unblocked from the previous context (required for usage)
-        connection and self.acquire(connection)
+        #connection and self.acquire(connection)
 
         # tries to retrieve the connection that is going to be used for
         # the performing of the request by either acquiring a connection
         # from the list of available connection or re-using the connection
         # that was passed to the method (and previously acquired)
-        connection = connection or self.acquire_c(host, port, ssl = ssl)
-        connection.set_http(
-            version = version,
-            method = method,
-            url = url,
-            base = base,
-            host = host,
-            port = port,
-            path = path,
+        #connection = connection or self.acquire_c(host, port, ssl = ssl)
+
+
+        #@todo for simplicity we'll make one connection per request !!!
+
+        def on_connect(result):
+            _transport, protocol = result
+            protocol.set_all(
+                method,
+                url,
+                params = params,
+                headers = headers,
+                data = data,
+                version = version,
+                encoding = encoding,
+                encodings = encodings,
+                safe = safe,
+                connection = connection,
+                timeout = timeout
+            )
+            protocol.send_request(callback = lambda c: self.delay(
+                receive_timeout, timeout = timeout
+            ))
+
+        loop = netius.connect_stream(
+            cls.protocol,
+            host,
+            port,
             ssl = ssl,
-            parsed = parsed,
-            safe = safe
+            callback = on_connect,
+            loop = loop
         )
-        connection.set_encoding(encoding)
-        connection.set_encodings(encodings)
-        connection.set_headers(headers)
-        connection.set_data(data)
+
+        return loop
+
+
+
+
+
 
         # runs a series of unbind operation from the connection so that it
         # becomes "free" from any previous usage under different context
-        connection.unbind("close")
-        connection.unbind("headers")
-        connection.unbind("partial")
-        connection.unbind("message")
+
+        #@todo this is only relevant for connection re-usage
+        #connection.unbind("close")
+        #connection.unbind("headers")
+        #connection.unbind("partial")
+        #connection.unbind("message")
+
+
+
 
         # verifies if the current request to be done should create
         # a request structure representing it, this is the case when
