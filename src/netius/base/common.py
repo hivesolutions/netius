@@ -294,6 +294,8 @@ class AbstractBase(observer.Observable):
 
     Should handle all the non blocking event loop stuff,
     so that the read and write operations are easy to handle.
+
+    This is considered to be the main event loop code.
     """
 
     _MAIN = None
@@ -1767,7 +1769,12 @@ class AbstractBase(observer.Observable):
         if state: self.set_state(STATE_ERRROR)
         for error in errors: self.on_error(error)
 
-    def datagram(self, family = socket.AF_INET, type = socket.SOCK_DGRAM):
+    def datagram(
+        self,
+        family = socket.AF_INET,
+        type = socket.SOCK_DGRAM,
+        callback = None
+    ):
         # creates the socket that it's going to be used for the listening
         # of new connections (client socket) and sets it as non blocking
         _socket = socket.socket(family, type)
@@ -1784,6 +1791,10 @@ class AbstractBase(observer.Observable):
         connection = self.new_connection(_socket, datagram = True)
         connection.open()
         connection.set_connected()
+
+        # in case a callback is defined schedules its execution for the next
+        # tick to avoid possible issues with same tick registration
+        if callback: self.delay(lambda: callback(connection), immediately = True)
 
         # returns the connection to the caller method so that it may be used
         # for operation from now on (latter usage)
@@ -3407,7 +3418,17 @@ def build_datagram_native(
     loop = loop or netius.get_loop()
 
     def on_ready():
-        connection = loop.datagram()
+        family = kwargs.get("family", None)
+        type = kwargs.get("type", None)
+
+        _kwargs = dict(callback = on_connect)
+        if family: _kwargs["family"] = family
+        if type: _kwargs["type"] = type
+
+        loop.datagram(*args, **_kwargs)
+
+    def on_connect(connection):
+        if not callback: return
         protocol = protocol_factory()
         _transport = transport.TransportDatagram(connection)
         _transport._set_compat(protocol)

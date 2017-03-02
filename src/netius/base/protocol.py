@@ -42,7 +42,8 @@ from . import observer
 
 class Protocol(observer.Observable):
 
-    def __init__(self):
+    def __init__(self, owner = None):
+        self.owner = owner
         self._transport = None
         self._loop = None
 
