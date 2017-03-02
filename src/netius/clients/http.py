@@ -286,7 +286,6 @@ class HTTPProtocol(netius.StreamProtocol):
             callback = callback
         )
 
-    #@todo this must be properly commented
     def set_all(
         self,
         method,
@@ -347,6 +346,8 @@ class HTTPProtocol(netius.StreamProtocol):
             authorization = netius.legacy.str(authorization)
             headers["authorization"] = "Basic %s" % authorization
 
+        # sets the complete set of information under the protocol instance so
+        # that it may be latter used to send the request through the transport
         self.set_http(
             version = version,
             method = method,
@@ -904,6 +905,8 @@ class HTTPClient(netius.StreamClient):
         # with the current instance, to be used for operations
         cls = self.__class__
 
+        # parses the url to determine both the ssl, host and port values
+        # so that it's possible to detect connection compatibility
         parsed = netius.legacy.urlparse(url)
         ssl = parsed.scheme == "https"
         host = parsed.hostname
