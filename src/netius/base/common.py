@@ -1812,6 +1812,7 @@ class AbstractBase(observer.Observable):
         ssl_verify = False,
         family = socket.AF_INET,
         type = socket.SOCK_STREAM,
+        callback = None,
         ensure_loop = True,
         env = True
     ):
@@ -1914,6 +1915,10 @@ class AbstractBase(observer.Observable):
         self._pending_lock.acquire()
         try: self.pendings.append(connection)
         finally: self._pending_lock.release()
+
+        # in case there's a callback defined for the connection establishment
+        # then registers such callback for the connect event in the connection
+        if callback: connection.bind("connect", callback, oneshot = True)
 
         # returns the "final" connection, that is now scheduled for connect
         # to the caller method, it may now be used for operations
@@ -3410,6 +3415,8 @@ def build_datagram(*args, **kwargs):
 
 def build_datagram_native(
     protocol_factory,
+    family = socket.AF_INET,
+    type = socket.SOCK_DGRAM,
     callback = None,
     loop = None,
     *args,
@@ -3418,14 +3425,11 @@ def build_datagram_native(
     loop = loop or netius.get_loop()
 
     def on_ready():
-        family = kwargs.get("family", None)
-        type = kwargs.get("type", None)
-
-        _kwargs = dict(callback = on_connect)
-        if family: _kwargs["family"] = family
-        if type: _kwargs["type"] = type
-
-        loop.datagram(*args, **_kwargs)
+        loop.datagram(
+            family = family,
+            type = type,
+            callback = on_connect
+        )
 
     def on_connect(connection):
         if not callback: return
@@ -3440,6 +3444,8 @@ def build_datagram_native(
 
 def build_datagram_compat(
     protocol_factory,
+    family = socket.AF_INET,
+    type = socket.SOCK_DGRAM,
     callback = None,
     loop = None,
     *args,
@@ -3459,11 +3465,61 @@ def build_datagram_compat(
 
     connect = loop.create_datagram_endpoint(
         build_protocol,
+        family = family,
         *args,
         **kwargs
     )
     future = loop.create_task(connect)
     future.add_done_callback(on_connect)
+
+    return loop
+
+def connect_stream(*args, **kwargs):
+    if compat.is_compat(): return connect_stream_compat(*args, **kwargs)
+    else: return connect_stream_native(*args, **kwargs)
+
+def connect_stream_native(
+    protocol_factory,
+    host,
+    port,
+    ssl = False,
+    key_file = None,
+    cer_file = None,
+    ca_file = None,
+    ca_root = True,
+    ssl_verify = False,
+    family = socket.AF_INET,
+    type = socket.SOCK_STREAM,
+    callback = None,
+    loop = None,
+    *args,
+    **kwargs
+):
+    loop = loop or netius.get_loop()
+
+    def on_ready():
+        loop.conect(
+            host,
+            port,
+            ssl = ssl,
+            key_file = key_file,
+            cer_file = cer_file,
+            ca_file = ca_file,
+            ca_root = ca_root,
+            ssl_verify = ssl_verify,
+            family = family,
+            type = type,
+            callback = on_connect
+        )
+
+    def on_connect(connection):
+        if not callback: return
+        protocol = protocol_factory()
+        _transport = transport.TransportStream(connection)
+        _transport._set_compat(protocol)
+        callback((_transport, protocol))
+
+    loop.delay(on_ready)
 
     return loop
 
