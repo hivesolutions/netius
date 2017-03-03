@@ -969,6 +969,12 @@ class HTTPClient(netius.StreamClient):
         # with the current instance, to be used for operations
         cls = self.__class__
 
+        # creates the new protocol instance that is going to be used to
+        # handle this new request, this may not be required in case no
+        # new connection is going to be attempted (protocol re-usage)
+        #@todo re-using connections implies changing this for re-usage
+        protocol = cls.protocol()
+
         # parses the url to determine both the ssl, host and port values
         # so that it's possible to detect connection compatibility
         parsed = netius.legacy.urlparse(url)
@@ -1026,7 +1032,7 @@ class HTTPClient(netius.StreamClient):
             protocol.run_request()
 
         loop = netius.connect_stream(
-            cls.protocol,
+            lambda: protocol,
             host,
             port,
             ssl = ssl,
@@ -1034,7 +1040,7 @@ class HTTPClient(netius.StreamClient):
             loop = loop
         )
 
-        return loop
+        return loop, protocol
 
 
 
@@ -1280,7 +1286,7 @@ if __name__ == "__main__":
     client.bind("message", on_message)
     client.bind("close", on_close)
 
-    loop = client.get("https://www.flickr.com/")
+    loop, protocol = client.get("https://www.flickr.com/")
     loop.run_forever()
     loop.close()
 else:

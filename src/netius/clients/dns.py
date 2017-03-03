@@ -428,6 +428,7 @@ class DNSClient(netius.DatagramClient):
     ):
         ns = ns or cls.protocol.ns_system()
         address = (ns, 53)
+        protocol = cls.protocol()
 
         def on_connect(result):
             _transport, protocol = result
@@ -440,13 +441,13 @@ class DNSClient(netius.DatagramClient):
             )
 
         loop = netius.build_datagram(
-            cls.protocol,
+            lambda: protocol,
             callback = on_connect,
             loop = loop,
             remote_addr = address
         )
 
-        return loop
+        return loop, protocol
 
 if __name__ == "__main__":
     def handler(response):
@@ -472,7 +473,7 @@ if __name__ == "__main__":
     # runs the static version of a dns query, note that
     # the daemon flag is unset so that the global client
     # runs in foreground avoiding the exit of the process
-    loop = DNSClient.query_s(
+    loop, _protocol = DNSClient.query_s(
         "gmail.com",
         type = "mx",
         callback = handler
