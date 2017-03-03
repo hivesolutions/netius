@@ -68,11 +68,24 @@ class Transport(observer.Observable):
         if name == "socket": return self._connection.socket
         else: return default
 
-    def set_protocol(self, protocol):
-        self._set_protocol(protocol, mark = False)
+    def get_write_buffer_size(self):
+        return self._connection.pending_s
+
+    def get_write_buffer_limits(self):
+        return (
+            self._connection.min_pending,
+            self._connection.max_pending
+        )
+
+    def set_write_buffer_limits(self, high = None, low = None):
+        if not high == None: self._connection.max_pending = high
+        if not low == None: self._connection.min_pending = low
 
     def get_protocol(self):
         return self._protocol
+
+    def set_protocol(self, protocol):
+        self._set_protocol(protocol, mark = False)
 
     def is_closing(self):
         return self._connection.is_closed()
