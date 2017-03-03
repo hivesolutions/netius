@@ -54,14 +54,19 @@ class Protocol(observer.Observable):
 
     def open(self):
         self._closed = False
+
         self.trigger("open", self)
 
     def close(self):
         self._close_transport()
+
+        del self._delayed[:]
+
         self._transport = None
         self._loop = None
         self._writing = True
         self._closed = True
+
         self.trigger("close", self)
 
     def info_dict(self, full = False):
