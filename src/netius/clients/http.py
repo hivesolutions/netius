@@ -1263,30 +1263,30 @@ class HTTPClient(netius.StreamClient):
 if __name__ == "__main__":
     buffer = []
 
-    def on_headers(client, parser, headers):
+    def on_headers(protocol, parser):
         print(parser.code_s + " " + parser.status_s)
 
-    def on_partial(client, parser, data):
+    def on_partial(protocol, parser, data):
         data = data
         data and buffer.append(data)
 
-    def on_message(client, parser, message):
+    def on_message(protocol, parser, message):
         request = HTTPClient.set_request(parser, buffer)
         print(request["headers"])
         print(request["data"] or b"[empty data]")
-        netius.stop_loop()
+        protocol.close()
 
-    def on_close(client, connection):
+    def on_close(protocol):
         netius.stop_loop()
 
     client = HTTPClient()
-
-    client.bind("headers", on_headers)
-    client.bind("partial", on_partial)
-    client.bind("message", on_message)
-    client.bind("close", on_close)
-
     loop, protocol = client.get("https://www.flickr.com/")
+
+    protocol.bind("headers", on_headers)
+    protocol.bind("partial", on_partial)
+    protocol.bind("message", on_message)
+    protocol.bind("close", on_close)
+
     loop.run_forever()
     loop.close()
 else:

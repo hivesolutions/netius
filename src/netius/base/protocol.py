@@ -54,6 +54,7 @@ class Protocol(observer.Observable):
 
     def open(self):
         self._closed = False
+        self.trigger("open", self)
 
     def close(self):
         self._close_transport()
@@ -61,6 +62,7 @@ class Protocol(observer.Observable):
         self._loop = None
         self._writing = True
         self._closed = True
+        self.trigger("close", self)
 
     def info_dict(self, full = False):
         if not self._transport: return dict()
@@ -90,8 +92,8 @@ class Protocol(observer.Observable):
                 immediately = immediately
             )
 
-        if timeout: return self._loop_.call_later(timeout, callable)
-        else: return self._loop_.call_soon(callable)
+        if timeout: return self._loop.call_later(timeout, callable)
+        else: return self._loop.call_soon(callable)
 
     def debug(self, object):
         if not self._loop: return

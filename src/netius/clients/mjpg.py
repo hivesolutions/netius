@@ -71,15 +71,19 @@ class MJPGProtocol(http.HTTPProtocol):
     def on_partial(self, data):
         http.HTTPProtocol.on_partial(self, data)
 
+        # retrieves the reference to the top class that is going to
+        # be used for the correct parsing of the image
+        cls = self.__class__
+
         # tries to find the end of image (eoi) indicator in the current
         # received data, and in case it's not found add the (partial)
         # data to the current buffer, to be latter processed
-        eoi_index = data.find(MJPGClient.EOI_JPEG)
+        eoi_index = data.find(cls.EOI_JPEG)
         if eoi_index == -1: self.buffer_l.append(data); return
 
         # calculates the size of the end of image (eoi) token so that
         # this value will be used for the calculus of the image data
-        eoi_size = len(MJPGClient.EOI_JPEG)
+        eoi_size = len(cls.EOI_JPEG)
 
         # adds the partial valid data of the current chunk to the buffer
         # and then joins the current buffer as the frame data, removing
@@ -99,7 +103,7 @@ class MJPGProtocol(http.HTTPProtocol):
         self.on_frame_mjpg(frame)
 
     def on_frame_mjpg(self, data):
-        self.trigger("frame", self, self.parser, data)
+        self.trigger("frame", self, data)
 
 class MJPGClient(http.HTTPClient):
 
@@ -107,9 +111,12 @@ class MJPGClient(http.HTTPClient):
 
 if __name__ == "__main__":
     index = 0
+    limit = 30
 
-    def on_frame(client, parser, data):
+    def on_frame(protocol, data):
         global index
+        index += 1
+        if index >= limit: return protocol.close()
         base_path = netius.conf("IMAGES_PATH", "images")
         base_path = os.path.abspath(base_path)
         base_path = os.path.normpath(base_path)
@@ -118,12 +125,16 @@ if __name__ == "__main__":
         file = open(path, "wb")
         try: file.write(data)
         finally: file.close()
-        index += 1
+        print("Saved frame %08d of %d bytes" % (index, len(data)))
+
+    def on_close(protocol):
+        netius.stop_loop()
 
     client = MJPGClient()
+    loop, protocol = client.get("http://euglena.stanford.edu:20005/?action=stream")
 
-    loop, protocol = client.get("http://cascam.ou.edu/axis-cgi/mjpg/video.cgi?resolution=320x240")
     protocol.bind("frame", on_frame)
+    protocol.bind("close", on_close)
 
     loop.run_forever()
     loop.close()
