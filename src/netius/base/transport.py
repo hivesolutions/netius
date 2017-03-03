@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+from . import errors
 from . import observer
 
 class Transport(observer.Observable):
@@ -48,18 +49,30 @@ class Transport(observer.Observable):
     connection (or equivalent) object.
     """
 
-    def __init__(self, connection):
+    def __init__(self, connection, open = True):
         self._connection = connection
         self._protocol = None
+        self._exhausted = False
+        if open: self.open()
+
+    def open(self):
+        self.set_write_buffer_limits()
 
     def close(self):
         self._connection.close()
+        self._connection = None
+        self._protocol = None
+        self._exhausted = False
 
     def abort(self):
         self._connection.close()
+        self._connection = None
+        self._protocol = None
+        self._exhausted = False
 
     def write(self, data):
         self._connection.send(data)
+        self._handle_flow()
 
     def sendto(self, data, addr = None):
         self._connection.send(data, address = addr)
@@ -78,8 +91,14 @@ class Transport(observer.Observable):
         )
 
     def set_write_buffer_limits(self, high = None, low = None):
-        if not high == None: self._connection.max_pending = high
-        if not low == None: self._connection.min_pending = low
+        if high is None:
+            if low == None: high = 65536
+            else: high = 4 * low
+        if low == None: low = high // 4
+        if not high >= low >= 0:
+            raise errors.RuntimeError("High must be larger than low")
+        self._connection.max_pending = high
+        self._connection.min_pending = low
 
     def get_protocol(self):
         return self._protocol
@@ -107,6 +126,18 @@ class Transport(observer.Observable):
     def _set_protocol(self, protocol, mark = True):
         self._protocol = protocol
         if mark: self._protocol.connection_made(self)
+
+    def _handle_flow(self):
+        if self._exhausted:
+            is_restored = self._connection.is_restored()
+            if not is_restored: return
+            self._exhausted = False
+            self._protocol.resume_writing()
+        else:
+            is_exhausted = self._connection.is_exhausted()
+            if not is_exhausted: return
+            self._exhausted = True
+            self._protocol.pause_writing()
 
 class TransportDatagram(Transport):
 

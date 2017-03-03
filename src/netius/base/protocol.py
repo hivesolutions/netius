@@ -48,15 +48,19 @@ class Protocol(observer.Observable):
         self.owner = owner
         self._transport = None
         self._loop = None
+        self._writing = True
         self._closed = True
+        self._delayed = []
 
     def open(self):
         self._closed = False
 
     def close(self):
         self._close_transport()
-        self._closed = True
         self._transport = None
+        self._loop = None
+        self._writing = True
+        self._closed = True
 
     def info_dict(self, full = False):
         if not self._transport: return dict()
@@ -71,10 +75,23 @@ class Protocol(observer.Observable):
         self.close()
 
     def pause_writing(self):
-        pass
+        self._writing = False
 
     def resume_writing(self):
-        pass
+        self._writing = True
+        self._flush_send()
+
+    def delay(self, callable, timeout = None):
+        if hasattr(self._loop, "delay"):
+            immediately = timeout == None
+            return self._loop.delay(
+                callable,
+                timeout = timeout,
+                immediately = immediately
+            )
+
+        if timeout: return self._loop_.call_later(timeout, callable)
+        else: return self._loop_.call_soon(callable)
 
     def debug(self, object):
         if not self._loop: return
@@ -111,6 +128,18 @@ class Protocol(observer.Observable):
         if not self._transport: return
         self._transport.abort()
 
+    def _delay_send(self, data, address = None, callback = None):
+        item = (data, address, callback)
+        self._delays.append(item)
+
+    def _flush_send(self):
+        while True:
+            if not self._delays: break
+            if not self._writing: break
+            data, address, callback = self._delays.pop(0)
+            if address: self.send(data, address = address, callback = callback)
+            else: self.send(data, callback = callback)
+
 class DatagramProtocol(Protocol):
 
     def __init__(self):
@@ -127,11 +156,37 @@ class DatagramProtocol(Protocol):
     def on_data(self, address, data):
         pass
 
-    def send(self, data, address):
+    def send(
+        self,
+        data,
+        address,
+        delay = True,
+        force = False,
+        callback = None
+    ):
         return self.send_to(data, address)
 
-    def send_to(self, data, address):
-        return self._transport.sendto(data, address)
+    def send_to(
+        self,
+        data,
+        address,
+        delay = True,
+        force = False,
+        callback = None
+    ):
+        if not self._writing:
+            return self._delay_send(
+                data,
+                address = address,
+                callback = callback
+            )
+
+        data = legacy.bytes(data)
+        result = self._transport.sendto(data, address)
+
+        if callback: self.delay(lambda: callback(self._transport))
+
+        return result
 
     def add_request(self, request):
         # adds the current request object to the list of requests
@@ -162,7 +217,12 @@ class StreamProtocol(Protocol):
         pass
 
     def send(self, data, delay = True, force = False, callback = None):
-        #@todo must support legacy transports taht don't have those
-        # arguments, neet to thing about this
+        if not self._writing:
+            return self._delay_send(data, callback = callback)
+
         data = legacy.bytes(data)
-        return self._transport.write(data)
+        result = self._transport.write(data)
+
+        if callback: self.delay(lambda: callback(self._transport))
+
+        return result

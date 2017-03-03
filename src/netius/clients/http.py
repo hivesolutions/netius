@@ -77,6 +77,7 @@ class HTTPProtocol(netius.StreamProtocol):
         self.path = None
         self.headers = {}
         self.data = None
+        self.timeout = None
 
     def open(self, *args, **kwargs):
         netius.StreamProtocol.open(self, *args, **kwargs)
@@ -364,6 +365,7 @@ class HTTPProtocol(netius.StreamProtocol):
         self.set_encodings(encodings)
         self.set_headers(headers)
         self.set_data(data)
+        self.set_timeout(timeout)
 
     def set_http(
         self,
@@ -388,6 +390,65 @@ class HTTPProtocol(netius.StreamProtocol):
         self.ssl = ssl
         self.parsed = parsed
         self.safe = safe
+
+    def run_request(self):
+
+        #@todo maybe this can be a "normal" function
+
+        # creates a function that is going to be used to validate
+        # the receive operation of the connection (receive timeout)
+        def receive_timeout():
+            # runs the initial verification operations that will
+            # try to validate if the requirements for proper request
+            # validations are defined, if any of them is not the control
+            # full is returned immediately avoiding re-schedule of handler
+            if not has_request: return
+            if not self.is_open(): return
+            if not connection._request == id(request): return
+            if request["code"]: return
+
+            # retrieves the current time and the time of the last data
+            # receive operation and using that calculates the delta
+            current = time.time()
+            last = request.get("last", 0)
+            delta = current - last
+
+            # retrieves the amount of bytes that have been received so
+            # far during the request handling this is going to be used
+            # for logging purposes on the error information to be printed
+            received = request.get("received", 0)
+
+            # determines if the connection is considered valid, either
+            # the connection is not "yet" connected of the time between
+            # receive operations is valid, and if that's the case delays
+            # the timeout verification according to the timeout value
+            if not connection.is_connected() or delta < timeout:
+                self.delay(receive_timeout, timeout = timeout)
+                return
+
+            # tries to determine the proper message that is going to be
+            # set in the request error, this value should take into account
+            # the current development mode flag value
+            if self.is_devel(): message = "Timeout on receive (received %d bytes)" % received
+            else: message = "Timeout on receive"
+
+            # sets the error information in the request so that the
+            # request handler is properly "notified" about the error
+            cls.set_error(
+                "timeout",
+                message = message,
+                request = request
+            )
+
+            # closes the connection (it's no longer considered valid)
+            # and then verifies the various auto closing values
+            connection.close()
+            if self.auto_close: self.close()
+            if self.auto_pause: self.pause()
+
+        self.send_request(callback = lambda c: self.delay(
+            receive_timeout, timeout = self.timeout
+        ))
 
     def send_request(self, callback = None):
         method = self.method
@@ -439,6 +500,9 @@ class HTTPProtocol(netius.StreamProtocol):
 
     def set_data(self, data):
         self.data = data
+
+    def set_timeout(self, timeout):
+        self.timeout = timeout
 
     def normalize_headers(self):
         for key, value in netius.legacy.eager(self.headers.items()):
@@ -959,9 +1023,7 @@ class HTTPClient(netius.StreamClient):
                 connection = connection,
                 timeout = timeout
             )
-            protocol.send_request(callback = lambda c: self.delay(
-                receive_timeout, timeout = timeout
-            ))
+            protocol.run_request()
 
         loop = netius.connect_stream(
             cls.protocol,

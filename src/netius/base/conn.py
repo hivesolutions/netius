@@ -500,10 +500,14 @@ class BaseConnection(observer.Observable):
         return self._recv(size = size)
 
     def pend(self, data, back = True):
+        # extracts the first element of the tuple as the contents
+        # of the data tuple to be added to the pending list
+        data_c = data[0]
+
         # calculates the size in bytes of the provided data so
         # that it may be used latter for the incrementing of
         # of the total size of pending bytes
-        data_l = len(data) if data else 0
+        data_l = len(data_c) if data_c else 0
 
         # acquires the pending lock and then inserts the data into
         # the list of pending information to sent to the client end
