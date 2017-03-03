@@ -137,7 +137,7 @@ class Protocol(observer.Observable):
             if not self._delays: break
             if not self._writing: break
             data, address, callback = self._delays.pop(0)
-            if address: self.send(data, address = address, callback = callback)
+            if address: self.send(data, address, callback = callback)
             else: self.send(data, callback = callback)
 
 class DatagramProtocol(Protocol):
