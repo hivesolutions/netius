@@ -456,7 +456,7 @@ class HTTPProtocol(netius.StreamProtocol):
             # the connection is not "yet" connected of the time between
             # receive operations is valid, and if that's the case delays
             # the timeout verification according to the timeout value
-            if not self.is_connected() or delta < self.timeout:
+            if self.is_open() or delta < self.timeout:
                 self.delay(receive_timeout, timeout = self.timeout)
                 return
 
