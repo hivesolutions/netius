@@ -52,9 +52,6 @@ def print_sum(x, y):
     result = yield from compute(x, y)
     print("%s + %s = %s" % (x, y, result))
 
-use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
-if use_asyncio: loop = asyncio.get_event_loop()
-else: loop = netius.get_loop(factory = netius.StreamClient)
-
+loop = netius.get_loop(_compat = True)
 loop.run_until_complete(print_sum(1, 2))
 loop.close()

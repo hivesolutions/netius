@@ -37,8 +37,6 @@ __copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-import asyncio
-
 import netius
 
 async def compute(x, y):
@@ -50,10 +48,7 @@ def _compute(x, y):
     yield from netius.sleep(1.0)
     return x + y
 
-use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
-if use_asyncio: loop = asyncio.get_event_loop()
-else: loop = netius.get_loop(factory = netius.StreamClient)
-
+loop = netius.get_loop(_compat = True)
 result = loop.run_until_complete(compute(1, 2))
 loop.close()
 

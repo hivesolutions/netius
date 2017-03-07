@@ -52,6 +52,6 @@ def print_sum(x, y):
     result = future.result()
     print("%s + %s = %s" % (x, y, result))
 
-loop = netius.get_loop()
+loop = netius.get_loop(_compat = True)
 loop.run_until_complete(print_sum(1, 2))
 loop.close()
