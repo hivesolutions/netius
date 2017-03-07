@@ -463,7 +463,7 @@ class HTTPProtocol(netius.StreamProtocol):
             # tries to determine the proper message that is going to be
             # set in the request error, this value should take into account
             # the current development mode flag value
-            if self.is_devel(): message = "Timeout on receive (received %d bytes)" % received
+            if self.owner.is_devel(): message = "Timeout on receive (received %d bytes)" % received
             else: message = "Timeout on receive"
 
             # sets the error information in the request so that the
