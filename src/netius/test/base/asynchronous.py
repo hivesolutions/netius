@@ -49,12 +49,11 @@ class AsynchronousTest(unittest.TestCase):
         self.assertNotEqual(loop, None)
         self.assertEqual(isinstance(loop, netius.Base), True)
 
-        future = netius.build_future(asyncio = False)
+        future = netius.build_future(compat = False, asyncio = False)
 
         self.assertNotEqual(future, None)
         self.assertEqual(isinstance(future, netius.Future), True)
         self.assertNotEqual(future._loop, None)
-        print(future._loop)
         self.assertEqual(isinstance(future._loop, netius.Base), True)
 
         previous = loop
