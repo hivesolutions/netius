@@ -58,7 +58,7 @@ def _download_ca(path = SSL_CA_PATH):
     result = netius.clients.HTTPClient.method_s(
         "GET",
         CA_URL,
-        async = False
+        sync = True
     )
     response = netius.clients.HTTPClient.to_response(result)
     contents = response.read()

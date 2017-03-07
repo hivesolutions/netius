@@ -79,6 +79,39 @@ class HTTPProtocol(netius.StreamProtocol):
         self.data = None
         self.timeout = None
 
+    @classmethod
+    def decode_gzip(cls, data):
+        if not data: return data
+        return zlib.decompress(data, zlib.MAX_WBITS | 16)
+
+    @classmethod
+    def decode_deflate(cls, data):
+        if not data: return data
+        try: return zlib.decompress(data)
+        except: return zlib.decompress(data, -zlib.MAX_WBITS)
+
+    @classmethod
+    def set_request(cls, parser, buffer, request = None):
+        if request == None: request = dict()
+        headers = parser.get_headers()
+        data = b"".join(buffer)
+        encoding = headers.get("Content-Encoding", None)
+        decoder = getattr(cls, "decode_%s" % encoding) if encoding else None
+        if decoder and data: data = decoder(data)
+        request["code"] = parser.code
+        request["status"] = parser.status
+        request["headers"] = headers
+        request["data"] = data
+        return request
+
+    @classmethod
+    def set_error(cls, error, message = None, request = None, force = False):
+        if request == None: request = dict()
+        if "error" in request and not force: return
+        request["error"] = error
+        request["message"] = message
+        return request
+
     def open(self, *args, **kwargs):
         netius.StreamProtocol.open(self, *args, **kwargs)
         if not self.is_open(): return
@@ -392,7 +425,6 @@ class HTTPProtocol(netius.StreamProtocol):
         self.safe = safe
 
     def run_request(self):
-
         #@todo maybe this can be a "normal" function
 
         # creates a function that is going to be used to validate
@@ -485,6 +517,54 @@ class HTTPProtocol(netius.StreamProtocol):
         # the callback accordingly (to be called on final sending)
         count += self.send_base(data, force = True, callback = callback)
         return count
+
+    def wrap_request(self):
+        """
+        Wraps the current set of operations for the protocol so that
+        a request object is going to be created.
+
+        :rtype: Dictionary
+        :return: The request dictionary object that is going to store
+        the information for the request in the current protocol.
+        """
+
+        # retrieves the reference to the parent class object
+        # going to be used for class wide operations
+        cls = self.__class__
+
+        # creates both the buffer list and the request structure so that
+        # they may be used for the correct construction of the request
+        # structure that is going to be send in the callback, then sets
+        # the identifier (memory address) of the request in the connection
+        buffer = []
+        request = dict(code = None, data = None)
+        self._request = id(request)
+
+        def on_finish(protocol):
+            protocol._request = None
+            if request["code"]: return
+            cls.set_error(
+                "closed",
+                message = "Connection closed",
+                request = request
+            )
+
+        def on_partial(protocol, parser, data):
+            buffer.append(data)
+            received = request.get("received", 0)
+            request["received"] = received + len(data)
+            request["last"] = time.time()
+
+        def on_message(protocol, parser, message):
+            cls.set_request(parser, buffer, request = request)
+            #@todo: maybe this has to be done differently
+            #if on_result: on_result(connection, parser, request)
+
+        self.bind("partial", on_partial)
+        self.bind("message", on_message)
+        self.bind("close", on_finish)
+
+        return request
 
     def set_encoding(self, encoding):
         self.current = encoding
@@ -777,8 +857,8 @@ class HTTPClient(netius.StreamClient):
         data = None,
         version = "HTTP/1.1",
         safe = False,
+        sync = False,
         connection = None,
-        async = True,
         daemon = True,
         timeout = None,
         callback = None,
@@ -793,9 +873,6 @@ class HTTPClient(netius.StreamClient):
             thread = True,
             daemon = daemon,
             **kwargs
-        ) if async else HTTPClient(
-            thread = False,
-            **kwargs
         )
 
         result = http_client.method(
@@ -806,8 +883,8 @@ class HTTPClient(netius.StreamClient):
             data = data,
             version = version,
             safe = safe,
+            sync = sync,
             connection = connection,
-            async = async,
             timeout = timeout,
             callback = callback,
             on_close = on_close,
@@ -815,11 +892,6 @@ class HTTPClient(netius.StreamClient):
             on_data = on_data,
             on_result = on_result
         )
-
-        # in case the async mode is active, the http client loop
-        # must be awaken so that the set of operations are processed
-        # as soon as possible in that thread
-        if async: http_client.wakeup()
 
         # returns the "final" result to the caller method so that
         # it may be used/processed by it (as expected)
@@ -840,39 +912,6 @@ class HTTPClient(netius.StreamClient):
         message = message or "Undefined error (%s)" % error
         if exception: raise exception
         raise netius.NetiusError(message)
-
-    @classmethod
-    def decode_gzip(cls, data):
-        if not data: return data
-        return zlib.decompress(data, zlib.MAX_WBITS | 16)
-
-    @classmethod
-    def decode_deflate(cls, data):
-        if not data: return data
-        try: return zlib.decompress(data)
-        except: return zlib.decompress(data, -zlib.MAX_WBITS)
-
-    @classmethod
-    def set_request(cls, parser, buffer, request = None):
-        if request == None: request = dict()
-        headers = parser.get_headers()
-        data = b"".join(buffer)
-        encoding = headers.get("Content-Encoding", None)
-        decoder = getattr(cls, "decode_%s" % encoding) if encoding else None
-        if decoder and data: data = decoder(data)
-        request["code"] = parser.code
-        request["status"] = parser.status
-        request["headers"] = headers
-        request["data"] = data
-        return request
-
-    @classmethod
-    def set_error(cls, error, message = None, request = None, force = False):
-        if request == None: request = dict()
-        if "error" in request and not force: return
-        request["error"] = error
-        request["message"] = message
-        return request
 
     def get(
         self,
@@ -949,6 +988,8 @@ class HTTPClient(netius.StreamClient):
         encoding = PLAIN_ENCODING,
         encodings = "gzip, deflate",
         safe = False,
+        sync = False,
+        request = False,
         connection = None,
         timeout = None,
         callback = None,
@@ -967,6 +1008,11 @@ class HTTPClient(netius.StreamClient):
         # new connection is going to be attempted (protocol re-usage)
         #@todo re-using connections implies changing this for re-usage
         protocol = cls.protocol()
+
+        # tries to determine if the protocol response should be request
+        # wrapped, meaning that a map based object is going to be populated
+        # with the contents of the http request/response
+        wrap_request = request or sync
 
         # parses the url to determine both the ssl, host and port values
         # so that it's possible to detect connection compatibility
@@ -1033,8 +1079,23 @@ class HTTPClient(netius.StreamClient):
             loop = loop
         )
 
-        return loop, protocol
+        if wrap_request: request = protocol.wrap_request()
+        else: request = None
 
+        if not sync: return loop, protocol
+
+        def on_message(protocol, parser, message):
+            protocol.close()
+
+        def on_close(protocol):
+            netius.stop_loop()
+
+        protocol.bind("message", on_message)
+        protocol.bind("close", on_close)
+
+        loop.run_forever()
+
+        return request
 
 
 
@@ -1254,7 +1315,7 @@ if __name__ == "__main__":
         data and buffer.append(data)
 
     def on_message(protocol, parser, message):
-        request = HTTPClient.set_request(parser, buffer)
+        request = HTTPProtocol.set_request(parser, buffer)
         print(request["headers"])
         print(request["data"] or b"[empty data]")
         protocol.close()

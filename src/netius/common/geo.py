@@ -122,7 +122,7 @@ class GeoResolver(object):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             cls.DOWNLOAD_URL,
-            async = False
+            sync = True
         )
         response = netius.clients.HTTPClient.to_response(result)
         contents = response.read()
