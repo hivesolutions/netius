@@ -206,7 +206,6 @@ class CompatLoop(BaseLoop):
         **kwargs
     ):
         family = family or socket.AF_INET
-        proto = proto or socket.SOCK_STREAM
 
         future = self.create_future()
 
@@ -221,7 +220,6 @@ class CompatLoop(BaseLoop):
             port,
             ssl = ssl,
             family = family,
-            type = proto,
             ensure_loop = False
         )
         connection.bind("connect", connect)
@@ -244,7 +242,6 @@ class CompatLoop(BaseLoop):
         **kwargs
     ):
         family = family or socket.AF_INET
-        proto = proto or socket.SOCK_DGRAM
 
         future = self.create_future()
 
