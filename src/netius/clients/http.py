@@ -443,8 +443,6 @@ class HTTPProtocol(netius.StreamProtocol):
             # closes the connection (it's no longer considered valid)
             # and then verifies the various auto closing values
             connection.close()
-            if self.auto_close: self.close()
-            if self.auto_pause: self.pause()
 
         self.send_request(callback = lambda c: self.delay(
             receive_timeout, timeout = self.timeout
@@ -695,15 +693,11 @@ class HTTPClient(netius.StreamClient):
     def __init__(
         self,
         auto_release = True,
-        auto_close = False,
-        auto_pause = False,
         *args,
         **kwargs
     ):
         netius.StreamClient.__init__(self, *args, **kwargs)
         self.auto_release = auto_release
-        self.auto_close = auto_close
-        self.auto_pause = auto_pause
 
     @classmethod
     def get_s(
@@ -801,7 +795,6 @@ class HTTPClient(netius.StreamClient):
             **kwargs
         ) if async else HTTPClient(
             thread = False,
-            auto_close = True,
             **kwargs
         )
 
@@ -1085,8 +1078,6 @@ class HTTPClient(netius.StreamClient):
                     message = "Connection closed",
                     request = request
                 )
-                if self.auto_close: self.close()
-                if self.auto_pause: self.pause()
 
             def on_partial(connection, parser, data):
                 buffer.append(data)
@@ -1118,8 +1109,6 @@ class HTTPClient(netius.StreamClient):
                 request = request
             )
             connection.close()
-            if self.auto_close: self.close()
-            if self.auto_pause: self.pause()
 
         # creates a function that is going to be used to validate
         # the receive operation of the connection (receive timeout)
@@ -1169,8 +1158,6 @@ class HTTPClient(netius.StreamClient):
             # closes the connection (it's no longer considered valid)
             # and then verifies the various auto closing values
             connection.close()
-            if self.auto_close: self.close()
-            if self.auto_pause: self.pause()
 
         # defines the proper return result value taking into account if
         # this is a synchronous or asynchronous request, one uses the
@@ -1240,15 +1227,11 @@ class HTTPClient(netius.StreamClient):
         # current client so that no more interaction exists as it's
         # no longer required (as defined by the specification)
         if self.connections: return
-        if self.auto_close: self.close()
-        if self.auto_pause: self.pause()
 
     def on_data_http(self, connection, parser):
         message = parser.get_message()
         self.trigger("message", self, parser, message)
         if self.auto_release: self.release_c(connection)
-        if self.auto_close: self.close()
-        if self.auto_pause: self.pause()
 
     def on_partial_http(self, connection, parser, data):
         self.trigger("partial", self, parser, data)
