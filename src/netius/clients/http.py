@@ -424,8 +424,10 @@ class HTTPProtocol(netius.StreamProtocol):
         self.parsed = parsed
         self.safe = safe
 
-    def run_request(self):
+    def run_request(self, request = None):
         #@todo maybe this can be a "normal" function
+
+        cls = self.__class__
 
         # creates a function that is going to be used to validate
         # the receive operation of the connection (receive timeout)
@@ -434,9 +436,9 @@ class HTTPProtocol(netius.StreamProtocol):
             # try to validate if the requirements for proper request
             # validations are defined, if any of them is not the control
             # full is returned immediately avoiding re-schedule of handler
-            if not has_request: return
+            if not request: return
             if not self.is_open(): return
-            if not connection._request == id(request): return
+            if not self._request == id(request): return
             if request["code"]: return
 
             # retrieves the current time and the time of the last data
@@ -450,12 +452,12 @@ class HTTPProtocol(netius.StreamProtocol):
             # for logging purposes on the error information to be printed
             received = request.get("received", 0)
 
-            # determines if the connection is considered valid, either
+            # determines if the protocol is considered valid, either
             # the connection is not "yet" connected of the time between
             # receive operations is valid, and if that's the case delays
             # the timeout verification according to the timeout value
-            if not connection.is_connected() or delta < timeout:
-                self.delay(receive_timeout, timeout = timeout)
+            if not self.is_connected() or delta < self.timeout:
+                self.delay(receive_timeout, timeout = self.timeout)
                 return
 
             # tries to determine the proper message that is going to be
@@ -472,10 +474,12 @@ class HTTPProtocol(netius.StreamProtocol):
                 request = request
             )
 
-            # closes the connection (it's no longer considered valid)
+            # closes the protocol (it's no longer considered valid)
             # and then verifies the various auto closing values
-            connection.close()
+            self.close()
 
+        # sends the request effectively triggering a chain of event
+        # that should end with the complete receiving of the response
         self.send_request(callback = lambda c: self.delay(
             receive_timeout, timeout = self.timeout
         ))
@@ -1052,6 +1056,9 @@ class HTTPClient(netius.StreamClient):
         #@todo for simplicity we'll make one connection per request !!!
         # ignoring the acquire (connection) operations
 
+        if wrap_request: request = protocol.wrap_request()
+        else: request = None
+
         def on_connect(result):
             _transport, protocol = result
             protocol.owner = self
@@ -1068,7 +1075,7 @@ class HTTPClient(netius.StreamClient):
                 connection = connection,
                 timeout = timeout
             )
-            protocol.run_request()
+            protocol.run_request(request = request)
 
         loop = netius.connect_stream(
             lambda: protocol,
@@ -1078,9 +1085,6 @@ class HTTPClient(netius.StreamClient):
             callback = on_connect,
             loop = loop
         )
-
-        if wrap_request: request = protocol.wrap_request()
-        else: request = None
 
         if not sync: return loop, protocol
 
