@@ -67,7 +67,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.15.8"
+VERSION = "1.15.12"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -1149,7 +1149,7 @@ class AbstractBase(observer.Observable):
             if not handler: continue
             self.logger.addHandler(handler)
 
-    def unload_logging(self):
+    def unload_logging(self, full = True):
         # verifies if there's a valid logger instance set in the
         # current service, in case there's not returns immediately
         # as there's nothing remaining to be done here
@@ -1166,6 +1166,14 @@ class AbstractBase(observer.Observable):
         # iterates over the complete set of handlers in the current
         # base element and removes them from the current logger
         for handler in self.handlers:
+            if not handler: continue
+            self.logger.removeHandler(handler)
+
+        # in case the full flag is set, iterates over the complete
+        # set of handlers registered for the logger and removes them
+        # from the current logger, this is required so that proper
+        # handler unregistration is ensured even for complex scenarios
+        for handler in self.logger.handlers if full else ():
             if not handler: continue
             self.logger.removeHandler(handler)
 
