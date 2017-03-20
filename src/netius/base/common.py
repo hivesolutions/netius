@@ -299,16 +299,12 @@ class AbstractBase(observer.Observable):
     """ Reference to the top level main instance responsible
     for the control of the main thread loop """
 
-    _STREAM_HANDLER = logging.StreamHandler()
-    """ The default singleton stream handler that is going to
-    be used for the registration of client logging services """
-
     def __init__(self, name = None, handlers = None, *args, **kwargs):
         observer.Observable.__init__(self, *args, **kwargs)
         cls = self.__class__
         poll = cls.test_poll()
         self.name = name or self.__class__.__name__
-        self.handler_stream = cls._STREAM_HANDLER
+        self.handler_stream = logging.StreamHandler()
         self.handlers = handlers or (self.handler_stream,)
         self.level = kwargs.get("level", logging.INFO)
         self.diag = kwargs.get("diag", False)
