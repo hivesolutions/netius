@@ -19,7 +19,6 @@ install:
 env:
   - HTTPBIN=httpbin.stage.hive.pt
 script: if [[ $TRAVIS_PYTHON_VERSION != "3.2" ]]; then coverage run --source=netius setup.py test; else python setup.py test; fi
-after_success: if [[ $TRAVIS_PYTHON_VERSION != "3.2" ]]; then coveralls; fi
 deploy:
   provider: pypi
   user: joamag
