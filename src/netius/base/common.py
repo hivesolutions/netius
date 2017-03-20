@@ -1133,7 +1133,7 @@ class AbstractBase(observer.Observable):
             if not handler: continue
             self.logger.addHandler(handler)
 
-    def unload_logging(self, full = True):
+    def unload_logging(self, safe = True):
         # verifies if there's a valid logger instance set in the
         # current service, in case there's not returns immediately
         # as there's nothing remaining to be done here
@@ -1153,11 +1153,11 @@ class AbstractBase(observer.Observable):
             if not handler: continue
             self.logger.removeHandler(handler)
 
-        # in case the full flag is set, iterates over the complete
+        # in case the safe flag is set, iterates over the complete
         # set of handlers registered for the logger and removes them
         # from the current logger, this is required so that proper
         # handler unregistration is ensured even for complex scenarios
-        for handler in self.logger.handlers if full else ():
+        for handler in self.logger.handlers if safe else ():
             if not handler: continue
             self.logger.removeHandler(handler)
 
