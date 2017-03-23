@@ -67,7 +67,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.15.12"
+VERSION = "1.15.13"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -404,6 +404,8 @@ class AbstractBase(observer.Observable):
     def get_asyncio(cls):
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return None
+        policy = asyncio.get_event_loop_policy()
+        if not policy._local._loop: return None
         return asyncio.get_event_loop()
 
     @classmethod
@@ -1149,7 +1151,7 @@ class AbstractBase(observer.Observable):
             if not handler: continue
             self.logger.addHandler(handler)
 
-    def unload_logging(self, full = True):
+    def unload_logging(self, safe = True):
         # verifies if there's a valid logger instance set in the
         # current service, in case there's not returns immediately
         # as there's nothing remaining to be done here
@@ -1169,11 +1171,11 @@ class AbstractBase(observer.Observable):
             if not handler: continue
             self.logger.removeHandler(handler)
 
-        # in case the full flag is set, iterates over the complete
+        # in case the safe flag is set, iterates over the complete
         # set of handlers registered for the logger and removes them
         # from the current logger, this is required so that proper
         # handler unregistration is ensured even for complex scenarios
-        for handler in self.logger.handlers if full else ():
+        for handler in self.logger.handlers if safe else ():
             if not handler: continue
             self.logger.removeHandler(handler)
 
