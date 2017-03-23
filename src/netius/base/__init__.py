@@ -55,8 +55,8 @@ from . import util
 
 from .asynchronous import Future, Task, Handle, Executor, ThreadPoolExecutor, coroutine,\
     async_test_all, async_test, ensure_generator, get_asyncio, is_coroutine,\
-    is_coroutine_object, is_future, is_neo, is_asyncio, is_await, wakeup, sleep, wait,\
-    notify, coroutine_return
+    is_coroutine_object, is_coroutine_native, is_future, is_neo, is_asyncio, is_await,\
+    wakeup, sleep, wait, notify, coroutine_return
 from .client import Client, DatagramClient, StreamClient
 from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     IDENTIFIER, TCP_TYPE, UDP_TYPE, SSL_KEY_PATH, SSL_CER_PATH, SSL_CA_PATH,\

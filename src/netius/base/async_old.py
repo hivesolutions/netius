@@ -271,6 +271,9 @@ def is_coroutine_object(generator):
     if legacy.is_generator(generator): return True
     return False
 
+def is_coroutine_native(generator):
+    return False
+
 def is_future(future):
     if isinstance(future, Future): return True
     return False

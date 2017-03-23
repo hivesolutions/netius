@@ -161,6 +161,13 @@ def is_coroutine_object(generator):
 
     return False
 
+def is_coroutine_native(generator):
+    if hasattr(inspect, "iscoroutine") and\
+        inspect.iscoroutine(generator): #@UndefinedVariable
+        return True
+
+    return False
+
 def is_future(future):
     if isinstance(future, async_old.Future): return True
     if asyncio and isinstance(future, asyncio.Future): return True
