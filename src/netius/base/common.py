@@ -394,7 +394,9 @@ class AbstractBase(observer.Observable):
     @classmethod
     def get_asyncio(cls):
         asyncio = asynchronous.get_asyncio()
-        if not asyncio: return
+        if not asyncio: return None
+        policy = asyncio.get_event_loop_policy()
+        if not policy._local._loop: return None
         return asyncio.get_event_loop()
 
     @classmethod
