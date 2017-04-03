@@ -69,6 +69,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         auth = {},
         auth_regex = {},
         redirect = {},
+        forward = None,
         strategy = "robin",
         reuse = True,
         sts = 0,
@@ -90,6 +91,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             auth = auth,
             auth_regex = auth_regex,
             redirect = redirect,
+            forward = forward,
             strategy = strategy,
             reuse = reuse,
             sts = sts,
@@ -377,6 +379,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if resolved[0]: return resolved
         resolved = self.rules_host(url, parser)
         if resolved[0]: return resolved
+        resolved = self.rules_forward(url, parser)
+        if resolved[0]: return resolved
         return None, None
 
     def rules_regex(self, url, parser):
@@ -439,6 +443,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # to the caller method, this should be used for url reconstruction
         # note that the state value is also returned and should be store in
         # the current handling connection so that it may latter be used
+        return resolved
+
+    def rules_forward(self):
+        if not self.forward: return None, None
+        resolved = self.balancer(self.forward)
         return resolved
 
     def balancer(self, values):
