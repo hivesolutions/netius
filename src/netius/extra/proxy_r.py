@@ -445,7 +445,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # the current handling connection so that it may latter be used
         return resolved
 
-    def rules_forward(self):
+    def rules_forward(self, url, parser):
         resolved = self.balancer(self.forward)
         return resolved
 
