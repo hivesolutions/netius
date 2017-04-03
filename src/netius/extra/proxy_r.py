@@ -446,7 +446,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         return resolved
 
     def rules_forward(self):
-        if not self.forward: return None, None
         resolved = self.balancer(self.forward)
         return resolved
 
