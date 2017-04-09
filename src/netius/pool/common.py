@@ -145,7 +145,9 @@ class EventPool(ThreadPool):
 
     def stop(self, join = True):
         ThreadPool.stop(self, join = join)
-        if self._eventfd: self._eventfd.close()
+        if not self._eventfd: return
+        self._eventfd.close()
+        self._eventfd = None
 
     def push_event(self, event):
         self.event_lock.acquire()
