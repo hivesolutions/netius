@@ -94,6 +94,26 @@ class UtilTest(unittest.TestCase):
         result = netius.common.in_subnet_ip4("127.0.0.1", "128.0.0.0/24")
         self.assertEqual(result, False)
 
+    def test_addr_to_ip4(self):
+        result = netius.common.addr_to_ip4(2130706433)
+        self.assertEqual(result, "127.0.0.1")
+
+        result = netius.common.addr_to_ip4(3232235521)
+        self.assertEqual(result, "192.168.0.1")
+
+        result = netius.common.addr_to_ip4(3627733678)
+        self.assertEqual(result, "216.58.210.174")
+
+    def test_addr_to_ip6(self):
+        result = netius.common.addr_to_ip6(1)
+        self.assertEqual(result, "0000:0000:0000:0000:0000:0000:0000:0001")
+
+        result = netius.common.addr_to_ip6(338288524927261089654018896841347694593)
+        self.assertEqual(result, "fe80:0000:0000:0000:0000:0000:0000:0001")
+
+        result = netius.common.addr_to_ip6(55827987829222246039918918277097594894)
+        self.assertEqual(result, "2a00:1450:4003:0801:0000:0000:0000:200e")
+
     def test_bytes_to_integer(self):
         result = netius.common.bytes_to_integer(b"Hello World")
         self.assertEqual(result, 87521618088882533792115812)
