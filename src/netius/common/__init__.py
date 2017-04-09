@@ -91,6 +91,6 @@ from .structures import PriorityDict
 from .tftp import RRQ_TFTP, WRQ_TFTP, DATA_TFTP, ACK_TFTP, ERROR_TFTP, TYPES_TFTP
 from .torrent import info_hash, bencode, bdecode, chunk, dechunk, TorrentParser
 from .util import cstring, chunks, header_down, header_up, is_ip4, is_ip6, assert_ip4,\
-    in_subnet_ip4, addr_to_ip4, ip4_to_addr, string_to_bits, integer_to_bytes,\
+    in_subnet_ip4, addr_to_ip4, addr_to_ip6, ip4_to_addr, string_to_bits, integer_to_bytes,\
     bytes_to_integer, random_integer, host, hostname, size_round_unit, verify
 from .ws import encode_ws, decode_ws, assert_ws

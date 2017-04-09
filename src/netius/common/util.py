@@ -128,6 +128,15 @@ def addr_to_ip4(number):
     fourth = int(number) % 256
     return "%s.%s.%s.%s" % (first, second, third, fourth)
 
+def addr_to_ip6(number):
+    buffer = []
+    for index in range(8):
+        offset = index * 2
+        first = number >> (8 * offset) & 0xff
+        second = number >> (8 * (offset + 1)) & 0xff
+        buffer.insert(0, "%02x%02x" % (second, first))
+    return ":".join(buffer)
+
 def ip4_to_addr(value):
     first, second, third, fourth = value.split(".", 3)
     first_a = int(first) * 16777216

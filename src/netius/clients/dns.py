@@ -222,7 +222,8 @@ class DNSResponse(netius.Response):
         return (index, address)
 
     def parse_aaaa(self, data, index):
-        pass
+        index, address = self.parse_ip6(data, index)
+        return (index, address)
 
     def parse_mx(self, data, index):
         index, preference = self.parse_short(data, index)
@@ -278,6 +279,13 @@ class DNSResponse(netius.Response):
         address = netius.common.addr_to_ip4(long)
         return (index, address)
 
+    def parse_ip6(self, data, index):
+        index, long_long_first = self.parse_long_long(data, index)
+        index, long_long_second = self.parse_long_long(data, index)
+        address_i = (long_long_first << 64) + long_long_second
+        address = netius.common.addr_to_ip6(address_i)
+        return (index, address)
+
     def parse_byte(self, data, index):
         _data = data[index:index + 1]
         short, = struct.unpack("!B", _data)
@@ -290,8 +298,13 @@ class DNSResponse(netius.Response):
 
     def parse_long(self, data, index):
         _data = data[index:index + 4]
-        short, = struct.unpack("!L", _data)
-        return (index + 4, short)
+        long, = struct.unpack("!L", _data)
+        return (index + 4, long)
+
+    def parse_long_long(self, data, index):
+        _data = data[index:index + 8]
+        long_long, = struct.unpack("!Q", _data)
+        return (index + 8, long_long)
 
 class DNSClient(netius.DatagramClient):
 
