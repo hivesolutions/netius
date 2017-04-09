@@ -119,7 +119,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         )
 
     def on_diag(self):
-        self.diag_app.add_route("GET", "/proxy_r", self.proxy_info)
+        self.diag_app.add_route("GET", "/proxy_r", self.proxy_r_info)
 
     def on_start(self):
         netius.servers.ProxyServer.on_start(self)
