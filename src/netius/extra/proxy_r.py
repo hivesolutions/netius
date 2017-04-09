@@ -113,6 +113,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         )
         return info
 
+    def proxy_r_info(self):
+        return dict(
+            hosts_o = self.hosts_o
+        )
+
+    def on_diag(self):
+        self.diag_app.add_route("GET", "/proxy_r", self.proxy_info)
+
     def on_start(self):
         netius.servers.ProxyServer.on_start(self)
         if self.resolve: self.dns_start(timeout = self.resolve_t)

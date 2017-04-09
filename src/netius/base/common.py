@@ -1285,9 +1285,15 @@ class AbstractBase(observer.Observable):
         port = self.get_env("DIAG_PORT", 5050, cast = int) if env else 5050
 
         # creates the application object that is going to be
-        # used for serving the diagnostics app and then starts
-        # the "serving" of it under a new thread
+        # used for serving the diagnostics app
         self.diag_app = diag.DiagApp(self)
+
+        # calls the on diag method so that the current instance is
+        # able to act on the newly created application
+        self.on_diag()
+
+        # starts the "serving" procedure of it under a new thread
+        # to avoid blocking the current context of execution
         self.diag_app.serve(
             server = server,
             host = host,
@@ -1993,6 +1999,9 @@ class AbstractBase(observer.Observable):
         seed = str(uuid.uuid4())
         seed = legacy.bytes(seed)
         ssl.RAND_add(seed, 0.0)
+
+    def on_diag(self):
+        self.trigger("diag", self)
 
     def on_start(self):
         self.trigger("start", self)
