@@ -75,6 +75,7 @@ DNS_TYPES = dict(
     MINFO = 0x0e,
     MX = 0x0f,
     TXT = 0x10,
+    AAAA = 0x1C
 )
 
 DNS_CLASSES = dict(
@@ -460,6 +461,7 @@ if __name__ == "__main__":
         # the various answers so that only the address
         # of the answer is available, then prints them
         for answer in response.answers:
+            print(answer)
             extra = answer[4]
             priority = extra[0]
             address = extra[1]
@@ -469,8 +471,8 @@ if __name__ == "__main__":
     # the daemon flag is unset so that the global client
     # runs in foreground avoiding the exit of the process
     DNSClient.query_s(
-        "gmail.com",
-        type = "mx",
+        "cameria.bemisc.com",
+        type = "a",
         callback = handler,
         daemon = False
     )

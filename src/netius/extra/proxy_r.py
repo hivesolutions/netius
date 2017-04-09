@@ -601,7 +601,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             # this (ip based) url is going to be added to the list of target
             # values to be added to the resolved list on proper index
             for answer in response.answers:
+                type_s = answer[1]
                 address = answer[4]
+                if not type_s in ("A", "AAAA"): continue
                 url = "%s://%s%s%s" % (parsed.scheme, address, port_s, path)
                 target.append(url)
 
