@@ -220,6 +220,9 @@ class DNSResponse(netius.Response):
         index, address = self.parse_ip4(data, index)
         return (index, address)
 
+    def parse_aaaa(self, data, index):
+        pass
+
     def parse_mx(self, data, index):
         index, preference = self.parse_short(data, index)
         index, address = self.parse_label(data, index)
