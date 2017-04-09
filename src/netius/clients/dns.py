@@ -229,7 +229,8 @@ class DNSResponse(netius.Response):
         return (index, (preference, address))
 
     def parse_cname(self, data, index):
-        pass
+        index, address = self.parse_label(data, index)
+        return (index, address)
 
     def parse_ns(self, data, index):
         pass
