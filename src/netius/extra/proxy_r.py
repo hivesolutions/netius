@@ -101,6 +101,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             robin = dict(),
             smart = netius.common.PriorityDict()
         )
+        self.hosts_o = None
         self.busy_conn = 0
         self._set_strategy()
 
