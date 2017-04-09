@@ -83,7 +83,7 @@ DNS_CLASSES = dict(
 )
 
 DNS_TYPES_R = dict(zip(DNS_TYPES.values(), DNS_TYPES.keys()))
-DNS_CLASSES_R = dict(zip(DNS_TYPES.values(), DNS_TYPES.keys()))
+DNS_CLASSES_R = dict(zip(DNS_CLASSES.values(), DNS_CLASSES.keys()))
 
 class DNSRequest(netius.Request):
 
