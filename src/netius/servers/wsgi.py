@@ -286,9 +286,8 @@ class WSGIServer(http2.HTTP2Server):
         )
 
     def _send_part(self, connection):
-        # unsets the is final flag and invalidates the data object to the
-        # original unset value, these are the default values
-        is_final = False
+        # invalidates the data object to the original unset value,
+        # this is considered the default value
         data = None
 
         # extracts both the iterator from the connection object so that
