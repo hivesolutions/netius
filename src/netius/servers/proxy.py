@@ -104,8 +104,6 @@ class ProxyServer(http2.HTTP2Server):
     ):
         http2.HTTP2Server.__init__(
             self,
-            receive_buffer_c = int(max_pending * BUFFER_RATIO),
-            send_buffer_c = int(max_pending * BUFFER_RATIO),
             *args,
             **kwargs
         )
