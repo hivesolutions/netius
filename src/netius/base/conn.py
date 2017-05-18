@@ -372,9 +372,9 @@ class BaseConnection(observer.Observable):
 
         if not self.status == OPEN: return
         if not self.renable == False: return
-        
+
         print("enable read")
-        
+
         self.renable = True
         self.owner.sub_read(self.socket)
 
