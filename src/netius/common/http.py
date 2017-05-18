@@ -485,11 +485,16 @@ class HTTPParser(parser.Parser):
         size = len(data)
         size_o = size
 
+        index = 0
+
         # iterates continuously to try to process all that
         # data that has been sent for processing
         while size > 0:
-            
-            print("parsing")
+
+            index += 1
+
+            print("parsing %d" % index)
+            print(repr(data))
 
             # iterates while the current state is valid for
             # parsing as there are only parsing methods for
