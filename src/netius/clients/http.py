@@ -1128,6 +1128,7 @@ class HTTPClient(netius.StreamClient):
 
 if __name__ == "__main__":
     buffer = []
+    initial = time.time()
 
     def on_headers(client, parser, headers):
         print(parser.code_s + " " + parser.status_s)
@@ -1138,8 +1139,12 @@ if __name__ == "__main__":
 
     def on_message(client, parser, message):
         request = HTTPClient.set_request(parser, buffer)
-        print(request["headers"])
-        print(request["data"] or b"[empty data]")
+        current = time.time()
+        headers, data = request["headers"], request["data"]
+        data_l, delta = len(data), current - initial
+        print(headers)
+        if data_l < 10485760: print(data or b"[empty data]")
+        print("Downloaded %d bytes in %.2f seconds" % (data_l, delta))
         client.close()
 
     def on_close(client, connection):
