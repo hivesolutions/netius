@@ -907,7 +907,7 @@ class StreamServer(Server):
         #)
         print("COISO")
         print(socket_c.getsockopt(
-            socket,
+            socket.SOL_SOCKET,
             socket.SO_SNDLOWAT
         ))
 
