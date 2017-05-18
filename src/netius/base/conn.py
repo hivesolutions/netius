@@ -509,6 +509,10 @@ class BaseConnection(observer.Observable):
             else: self.pending.append(data)
         finally:
             self.pending_lock.release()
+            
+        print("---- pend ---")
+        print(self.pending_s)
+        print("---- pend ---")
 
         # increments the size of the pending data to be sent by
         # the size of the inner data buffer to be added (as requested)
