@@ -731,6 +731,8 @@ class BaseConnection(observer.Observable):
                     if not is_close and data and count == 0:
                         raise socket.error(errno.EWOULDBLOCK)
                 except:
+                    print("stoped")
+                    
                     # sets the current connection write ready flag to false
                     # so that a new level notification must be received
                     self.wready = False
