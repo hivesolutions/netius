@@ -307,11 +307,9 @@ class ProxyServer(http2.HTTP2Server):
         )
 
     def _throttle(self, _connection):
-        print("vai tentar verificar enable")
         if not _connection.is_restored(): return
         connection = self.conn_map[_connection]
         if not connection.renable == False: return
-        print("fez enable do read")
         connection.enable_read()
         self.reads((connection.socket,), state = False)
 
