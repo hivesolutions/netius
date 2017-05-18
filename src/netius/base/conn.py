@@ -754,13 +754,13 @@ class BaseConnection(observer.Observable):
                     self.pending.append(data_o)
                     raise
                 else:
-                    print("--- send ---")
-                    print(self.pending_s)
-                    print("-------------")
-
                     # decrements the size of the pending buffer by the number
                     # of bytes that were correctly send through the buffer
                     self.pending_s -= count
+
+                    print("--- send ---")
+                    print(self.pending_s)
+                    print("-------------")
 
                     # verifies if the data has been correctly sent through
                     # the socket and for suck situations calls the callback
