@@ -498,12 +498,12 @@ class HTTPParser(parser.Parser):
             #print("parsing %d" % index)
             #print(repr(data))
             #print("------------\n\n")
-            
+
             global COUNT
-            
+
             if COUNT % 1000 == 0:
                 print(COUNT)
-            
+
 
             # iterates while the current state is valid for
             # parsing as there are only parsing methods for
@@ -523,7 +523,7 @@ class HTTPParser(parser.Parser):
                 # sub part of the data buffer as the new data buffer
                 size -= count
                 data = data[count:]
-                
+
                 COUNT += count
 
                 # continues the loop as there should be still some

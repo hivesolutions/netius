@@ -437,6 +437,10 @@ class BaseConnection(observer.Observable):
         # should be performed so that the data format is compatible
         data = legacy.bytes(data) if data else data
 
+        # saves the current original data value in a separate variable
+        # to allow proper usage latter on the method
+        data_o = data
+
         # calculates the size in bytes of the provided data so
         # that it may be used latter for the incrementing of
         # of the total size of pending bytes
@@ -459,7 +463,7 @@ class BaseConnection(observer.Observable):
         # runs the pend operation that adds the current data to the
         # structures that control the data pending in output to be
         # sent in the proper (flush) write operation
-        self.pend(data)
+        self.pend(data_o)
 
         # verifies if the write ready flag is set, for that case the
         # write flushing operation must be performed, so that all pending
@@ -509,7 +513,7 @@ class BaseConnection(observer.Observable):
             else: self.pending.append(data)
         finally:
             self.pending_lock.release()
-            
+
         print("---- pend ---")
         print(self.pending_s)
         print(repr(data))
@@ -755,7 +759,7 @@ class BaseConnection(observer.Observable):
                     print(self.pending_s)
                     print(repr(data[:count]))
                     print("-------------")
-                    
+
                     # decrements the size of the pending buffer by the number
                     # of bytes that were correctly send through the buffer
                     self.pending_s -= count
