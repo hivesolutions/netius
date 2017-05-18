@@ -900,7 +900,7 @@ class StreamServer(Server):
         if self.send_buffer_c: socket_c.setsockopt(
             socket.SOL_SOCKET,
             socket.SO_SNDBUF,
-            self.send_buffer_c
+            3213213
         )
 
         # the process creation is considered completed and a new
