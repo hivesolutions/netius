@@ -895,12 +895,13 @@ class StreamServer(Server):
             socket.SO_RCVBUF,
             self.receive_buffer_c
         )
+        self.send_buffer_c = 10000000
         print("buffer")
         print(self.send_buffer_c)
         if self.send_buffer_c: socket_c.setsockopt(
             socket.SOL_SOCKET,
             socket.SO_SNDBUF,
-            3213213
+            self.send_buffer_c
         )
 
         # the process creation is considered completed and a new
