@@ -39,12 +39,12 @@ __license__ = "Apache License, Version 2.0"
 
 from .common import * #@UnusedWildImport
 
-BUFFER_SIZE_S = None
+BUFFER_SIZE_S = 1048576
 """ The size of both the send and receive buffers for
 the socket representing the server, this socket is
 responsible for the handling of the new connections """
 
-BUFFER_SIZE_C = None
+BUFFER_SIZE_C = 1048576
 """ The size of the buffers (send and receive) that
 is going to be set on the on the sockets created by
 the server (client sockets), this is critical for a

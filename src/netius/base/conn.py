@@ -331,11 +331,7 @@ class BaseConnection(observer.Observable):
         # safe and so it must be delayed to be executed in the
         # next loop of the thread cycle, must return immediately
         # to avoid extra subscription operations
-        if not is_safe: return self.owner.delay(
-            self.ensure_write,
-            immediately = True,
-            safe = True
-        ); print("coiso") #@todo change this
+        if not is_safe: return self.owner.delay(self.ensure_write, safe = True)
 
         # verifies if the status of the connection is open and
         # in case it's not returns immediately as there's no reason
