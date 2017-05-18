@@ -221,7 +221,7 @@ class ProxyServer(http2.HTTP2Server):
         # performs the sending operation on the data but uses the throttle
         # callback so that the connection read operations may be resumed if
         # the buffer has reached certain (minimum) levels
-        tunnel_c.send(data, callback = self._throttle)
+        tunnel_c.send(data, delay = False, callback = self._throttle)
 
     def on_connection_d(self, connection):
         http2.HTTP2Server.on_connection_d(self, connection)
@@ -538,7 +538,7 @@ class ProxyServer(http2.HTTP2Server):
         should_throttle = self.throttle and _connection.is_throttleable()
         should_disable = should_throttle and connection.is_exhausted()
         if should_disable: _connection.disable_read()
-        connection.send(data, callback = self._raw_throttle)
+        connection.send(data, delay = False, callback = self._raw_throttle)
 
     def _on_raw_close(self, client, _connection):
         connection = self.conn_map[_connection]

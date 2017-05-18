@@ -388,7 +388,6 @@ class BaseConnection(observer.Observable):
 
         if not self.status == OPEN: return
         if not self.renable == True: return
-        print("disable read")
 
         self.renable = False
         self.owner.unsub_read(self.socket)
