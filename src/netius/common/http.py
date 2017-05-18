@@ -501,8 +501,8 @@ class HTTPParser(parser.Parser):
             
             global COUNT
             
-            print(COUNT)
-            
+            if COUNT % 50 == 0:
+                print(COUNT)
             
 
             # iterates while the current state is valid for
