@@ -496,12 +496,13 @@ class BaseConnection(observer.Observable):
         # verifies if the provided data is a tuple and if that's
         # the case unpacks the callback value from it, required
         is_tuple = type(data) == tuple
-        if is_tuple: data, _callback = data
+        if is_tuple: data_b, _callback = data
+        else: data_b = data
 
         # calculates the size in bytes of the provided data so
         # that it may be used latter for the incrementing of
         # of the total size of pending bytes
-        data_l = len(data) if data else 0
+        data_l = len(data_b) if data else 0
 
         # acquires the pending lock and then inserts the data into
         # the list of pending information to sent to the client end
