@@ -668,6 +668,9 @@ class BaseConnection(observer.Observable):
         return self.pending_s > self.max_pending
 
     def is_restored(self):
+        print("-------------")
+        print(self.pending_s)
+        print("-------------")
         return self.pending_s <= self.min_pending
 
     def _send(self):

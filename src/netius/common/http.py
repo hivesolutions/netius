@@ -501,7 +501,7 @@ class HTTPParser(parser.Parser):
             
             global COUNT
             
-            if COUNT % 300 == 0:
+            if COUNT % 1000 == 0:
                 print(COUNT)
             
 
