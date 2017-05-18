@@ -516,7 +516,6 @@ class BaseConnection(observer.Observable):
 
         print("---- pend ---")
         print(self.pending_s)
-        print(repr(data))
         print("-------")
 
         # increments the size of the pending data to be sent by
@@ -757,7 +756,6 @@ class BaseConnection(observer.Observable):
                 else:
                     print("--- send ---")
                     print(self.pending_s)
-                    print(repr(data[:count]))
                     print("-------------")
 
                     # decrements the size of the pending buffer by the number
