@@ -104,6 +104,8 @@ class ProxyServer(http2.HTTP2Server):
     ):
         http2.HTTP2Server.__init__(
             self,
+            receive_buffer_c = 10000000,
+            send_buffer_c = 10000000,
             *args,
             **kwargs
         )
