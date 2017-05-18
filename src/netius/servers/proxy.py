@@ -216,7 +216,7 @@ class ProxyServer(http2.HTTP2Server):
         # if that the case the read operations must be disabled
         should_throttle = self.throttle and connection.is_throttleable()
         should_disable = should_throttle and tunnel_c.is_exhausted()
-        if should_disable: connection.disable_read(); print("fez disable")
+        if should_disable: connection.disable_read()
 
         # performs the sending operation on the data but uses the throttle
         # callback so that the connection read operations may be resumed if
