@@ -437,10 +437,6 @@ class BaseConnection(observer.Observable):
         # should be performed so that the data format is compatible
         data = legacy.bytes(data) if data else data
 
-        # saves the current original data value in a separate variable
-        # to allow proper usage latter on the method
-        data_o = data
-
         # calculates the size in bytes of the provided data so
         # that it may be used latter for the incrementing of
         # of the total size of pending bytes
@@ -463,7 +459,7 @@ class BaseConnection(observer.Observable):
         # runs the pend operation that adds the current data to the
         # structures that control the data pending in output to be
         # sent in the proper (flush) write operation
-        self.pend(data_o)
+        self.pend(data)
 
         # verifies if the write ready flag is set, for that case the
         # write flushing operation must be performed, so that all pending
@@ -497,6 +493,11 @@ class BaseConnection(observer.Observable):
         return self._recv(size = size)
 
     def pend(self, data, back = True):
+        # verifies if the provided data is a tuple and if that's
+        # the case unpacks the callback value from it, required
+        is_tuple = type(data) == tuple
+        if is_tuple: data, _callback = data
+
         # calculates the size in bytes of the provided data so
         # that it may be used latter for the incrementing of
         # of the total size of pending bytes
