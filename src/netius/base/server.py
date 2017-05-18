@@ -900,16 +900,6 @@ class StreamServer(Server):
             socket.SO_SNDBUF,
             self.send_buffer_c
         )
-        #socket_c.setsockopt(
-        #    socket.SOL_SOCKET,
-        #    socket.SO_RCVLOWAT,
-        #    10
-        #)
-        print("COISO")
-        print(socket_c.getsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_SNDLOWAT
-        ))
 
         # the process creation is considered completed and a new
         # connection is created for it and opened, from this time
