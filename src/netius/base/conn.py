@@ -707,6 +707,8 @@ class BaseConnection(observer.Observable):
                 if is_tuple: data, callback = data
                 is_close = data == None
                 data_l = 0 if is_close else len(data)
+                
+                print(data_l) #@todo change this
 
                 try:
                     # tries to send the data through the socket and

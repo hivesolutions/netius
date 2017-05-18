@@ -600,8 +600,6 @@ class DatagramServer(Server):
                 # retrieves the length (in bytes) of the data that is
                 # going to be sent to the client
                 data_l = len(data)
-                
-                print(data_l)
 
                 try:
                     # tries to send the data through the socket and
