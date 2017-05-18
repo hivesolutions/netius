@@ -895,6 +895,7 @@ class StreamServer(Server):
             socket.SO_RCVBUF,
             self.receive_buffer_c
         )
+        print("buffer")
         print(self.send_buffer_c)
         if self.send_buffer_c: socket_c.setsockopt(
             socket.SOL_SOCKET,
