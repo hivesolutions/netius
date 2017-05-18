@@ -898,6 +898,7 @@ class StreamServer(Server):
         self.send_buffer_c = 10000000
         print("buffer")
         print(self.send_buffer_c)
+        print("----------")
         if self.send_buffer_c: socket_c.setsockopt(
             socket.SOL_SOCKET,
             socket.SO_SNDBUF,
