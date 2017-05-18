@@ -375,7 +375,6 @@ class BaseConnection(observer.Observable):
 
         self.renable = True
         self.owner.sub_read(self.socket)
-        self.owner.on_read(self.socket) #@todo this is a huge hack
 
     def disable_read(self):
         """
