@@ -167,8 +167,6 @@ CODE_STRINGS = {
 """ Dictionary associating the error code as integers
 with the official descriptive message for it """
 
-COUNT=0
-
 class HTTPParser(parser.Parser):
     """
     Parser object for the http format, should be able to
@@ -487,23 +485,9 @@ class HTTPParser(parser.Parser):
         size = len(data)
         size_o = size
 
-        index = 0
-
         # iterates continuously to try to process all that
         # data that has been sent for processing
         while size > 0:
-
-            index += 1
-
-            #print("parsing %d" % index)
-            #print(repr(data))
-            #print("------------\n\n")
-
-            global COUNT
-
-            if COUNT % 1000 == 0:
-                print(COUNT)
-
 
             # iterates while the current state is valid for
             # parsing as there are only parsing methods for
@@ -523,8 +507,6 @@ class HTTPParser(parser.Parser):
                 # sub part of the data buffer as the new data buffer
                 size -= count
                 data = data[count:]
-
-                COUNT += count
 
                 # continues the loop as there should be still some
                 # data remaining to be parsed in the current buffer

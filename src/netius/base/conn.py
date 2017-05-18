@@ -373,8 +373,6 @@ class BaseConnection(observer.Observable):
         if not self.status == OPEN: return
         if not self.renable == False: return
 
-        print("enable read")
-
         self.renable = True
         self.owner.sub_read(self.socket)
 
@@ -390,8 +388,6 @@ class BaseConnection(observer.Observable):
 
         if not self.status == OPEN: return
         if not self.renable == True: return
-
-        print("disable read")
 
         self.renable = False
         self.owner.unsub_read(self.socket)
@@ -515,10 +511,6 @@ class BaseConnection(observer.Observable):
             else: self.pending.append(data)
         finally:
             self.pending_lock.release()
-
-        print("---- pend ---")
-        print(self.pending_s)
-        print("-------")
 
         # increments the size of the pending data to be sent by
         # the size of the inner data buffer to be added (as requested)
@@ -678,9 +670,6 @@ class BaseConnection(observer.Observable):
         return self.pending_s > self.max_pending
 
     def is_restored(self):
-        print("------ is_restored -------")
-        print(self.pending_s)
-        print("-------------")
         return self.pending_s <= self.min_pending
 
     def _send(self):
@@ -759,10 +748,6 @@ class BaseConnection(observer.Observable):
                     # decrements the size of the pending buffer by the number
                     # of bytes that were correctly send through the buffer
                     self.pending_s -= count
-
-                    print("--- send ---")
-                    print(self.pending_s)
-                    print("-------------")
 
                     # verifies if the data has been correctly sent through
                     # the socket and for suck situations calls the callback
