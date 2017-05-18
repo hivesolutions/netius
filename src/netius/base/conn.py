@@ -707,8 +707,6 @@ class BaseConnection(observer.Observable):
                 if is_tuple: data, callback = data
                 is_close = data == None
                 data_l = 0 if is_close else len(data)
-                
-                print(data_l) #@todo change this
 
                 try:
                     # tries to send the data through the socket and
@@ -731,8 +729,6 @@ class BaseConnection(observer.Observable):
                     if not is_close and data and count == 0:
                         raise socket.error(errno.EWOULDBLOCK)
                 except:
-                    print("stoped")
-                    
                     # sets the current connection write ready flag to false
                     # so that a new level notification must be received
                     self.wready = False
