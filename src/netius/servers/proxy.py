@@ -469,6 +469,7 @@ class ProxyServer(http2.HTTP2Server):
         if should_disable: _connection.disable_read()
         
         
+        print(connection.pending_s)
         
         connection.send_part(
             data,
