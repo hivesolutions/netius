@@ -905,11 +905,11 @@ class StreamServer(Server):
         #    socket.SO_RCVLOWAT,
         #    10
         #)
-        #socket_c.setsockopt(
-        #    socket.SOL_SOCKET,
-        #    socket.SO_SNDLOWAT,
-        #    10
-        #)
+        socket_c.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_SNDLOWAT,
+            10
+        )
 
         # the process creation is considered completed and a new
         # connection is created for it and opened, from this time
