@@ -58,6 +58,10 @@ allowed in the sending buffer, this maximum value
 avoids the starvation of the producer to consumer
 relation that could cause memory problems """
 
+
+
+DATA_C = 0
+
 class ProxyConnection(http2.HTTP2Connection):
 
     def open(self, *args, **kwargs):
@@ -450,6 +454,11 @@ class ProxyServer(http2.HTTP2Server):
         # value of it, this is required as gzip compression may exist
         _connection = parser.owner
         data = data if self.dynamic else _connection.raw_data(data)
+        
+        global DATA_C
+        
+        DATA_C += len(data)
+        print(DATA_C)
 
         # retrieves the peer connection and tries to send the new data chunk
         # back to it using the currently defined encoding (as expected), note
@@ -458,6 +467,9 @@ class ProxyServer(http2.HTTP2Server):
         should_throttle = self.throttle and _connection.is_throttleable()
         should_disable = should_throttle and connection.is_exhausted()
         if should_disable: _connection.disable_read()
+        
+        
+        
         connection.send_part(
             data,
             final = False,
