@@ -43,7 +43,7 @@ import netius.clients
 from . import http
 from . import http2
 
-BUFFER_RATIO = 1.5
+BUFFER_RATIO = 20
 """ The ratio for the calculus of the internal socket
 buffer size from the maximum pending buffer size """
 
