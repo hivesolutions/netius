@@ -634,6 +634,11 @@ class DatagramServer(Server):
                     self.pending.append(data_o)
                     raise
                 else:
+                    print("--- send ---")
+                    print(self.pending_s)
+                    print(repr(data[:count]))
+                    print("-------------")
+                    
                     # decrements the size of the pending buffer by the number
                     # of bytes that were correctly send through the buffer
                     self.pending_s -= count

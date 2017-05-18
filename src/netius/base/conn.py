@@ -512,7 +512,8 @@ class BaseConnection(observer.Observable):
             
         print("---- pend ---")
         print(self.pending_s)
-        print("---- pend ---")
+        print(self.pending_s)
+        print("-------")
 
         # increments the size of the pending data to be sent by
         # the size of the inner data buffer to be added (as requested)
