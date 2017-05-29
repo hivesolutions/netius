@@ -117,8 +117,10 @@ class BaseConnection(observer.Observable):
 
     def destroy(self):
         observer.Observable.destroy(self)
-        del self.pending[:]
-        del self.restored[:]
+        self.pending_s = 0
+        self.restored_s = 0
+        self.pending.clear()
+        self.restored.clear()
 
     def open(self, connect = False):
         # in case the current status of the connection is already open
@@ -197,12 +199,12 @@ class BaseConnection(observer.Observable):
         # resets the size of the data pending to be send and the clears
         # the list of pending information (invalidation the previous one)
         self.pending_s = 0
-        del self.pending[:]
+        self.pending.clear()
 
         # resets the complete set of restored (to receive) data so that
         # no more data is set as pending to read (invalidation)
         self.restored_s = 0
-        del self.restored[:]
+        self.restored.clear()
 
         # retrieves the reference to the owner object from the
         # current instance to be used to removed the socket from the
