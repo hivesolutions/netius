@@ -397,7 +397,7 @@ class DatagramServer(Server):
         self.renable = True
         self.wready = True
         self.pending_s = 0
-        self.pending = []
+        self.pending = collections.deque()
         self.pending_lock = threading.RLock()
 
     def reads(self, reads, state = True):
@@ -558,7 +558,7 @@ class DatagramServer(Server):
         is_safe = tid == self.tid
 
         self.pending_lock.acquire()
-        try: self.pending.insert(0, data)
+        try: self.pending.appendleft(data)
         finally: self.pending_lock.release()
 
         self.pending_s += data_l

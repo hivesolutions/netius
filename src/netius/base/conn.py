@@ -44,6 +44,7 @@ import errno
 import socket
 import datetime
 import threading
+import collections
 
 from . import tls
 from . import config
@@ -107,9 +108,9 @@ class BaseConnection(observer.Observable):
         self.wready = False
         self.pending_s = 0
         self.restored_s = 0
-        self.starters = []
-        self.pending = []
-        self.restored = []
+        self.starters = collections.deque()
+        self.pending = collections.deque()
+        self.restored = collections.deque()
         self.pending_lock = threading.RLock()
         self.restored_lock = threading.RLock()
         self._starter = None
@@ -507,7 +508,7 @@ class BaseConnection(observer.Observable):
         # that the fifo strategy is maintained
         self.pending_lock.acquire()
         try:
-            if back: self.pending.insert(0, data)
+            if back: self.pending.appendleft(data)
             else: self.pending.append(data)
         finally:
             self.pending_lock.release()
@@ -540,7 +541,7 @@ class BaseConnection(observer.Observable):
         # going to be used in the next receive operation
         self.restored_lock.acquire()
         try:
-            if back: self.restored.insert(0, data)
+            if back: self.restored.appendleft(data)
             else: self.restored.append(data)
         finally:
             self.restored_lock.release()
@@ -588,7 +589,7 @@ class BaseConnection(observer.Observable):
         self._starter = None
 
     def add_starter(self, starter, back = True):
-        if back: self.starters.insert(0, starter)
+        if back: self.starters.appendleft(starter)
         else: self.starters.append(starter)
 
     def remove_starter(self, starter):

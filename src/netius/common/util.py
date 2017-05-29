@@ -40,6 +40,7 @@ __license__ = "Apache License, Version 2.0"
 import os
 import math
 import socket
+import collections
 
 import netius
 
@@ -129,12 +130,12 @@ def addr_to_ip4(number):
     return "%s.%s.%s.%s" % (first, second, third, fourth)
 
 def addr_to_ip6(number):
-    buffer = []
+    buffer = collections.deque()
     for index in range(8):
         offset = index * 2
         first = number >> (8 * offset) & 0xff
         second = number >> (8 * (offset + 1)) & 0xff
-        buffer.insert(0, "%02x%02x" % (second, first))
+        buffer.appendleft("%02x%02x" % (second, first))
     return ":".join(buffer)
 
 def ip4_to_addr(value):
