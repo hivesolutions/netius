@@ -69,6 +69,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         auth = {},
         auth_regex = {},
         redirect = {},
+        forward = None,
         strategy = "robin",
         reuse = True,
         sts = 0,
@@ -90,6 +91,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             auth = auth,
             auth_regex = auth_regex,
             redirect = redirect,
+            forward = forward,
             strategy = strategy,
             reuse = reuse,
             sts = sts,
@@ -99,6 +101,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             robin = dict(),
             smart = netius.common.PriorityDict()
         )
+        self.hosts_o = None
         self.busy_conn = 0
         self._set_strategy()
 
@@ -110,6 +113,15 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             busy_conn = self.busy_conn
         )
         return info
+
+    def proxy_r_dict(self):
+        return dict(
+            hosts = self.hosts,
+            hosts_o = self.hosts_o
+        )
+
+    def on_diag(self):
+        self.diag_app.add_route("GET", "/proxy_r", self.proxy_r_dict)
 
     def on_start(self):
         netius.servers.ProxyServer.on_start(self)
@@ -377,6 +389,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if resolved[0]: return resolved
         resolved = self.rules_host(url, parser)
         if resolved[0]: return resolved
+        resolved = self.rules_forward(url, parser)
+        if resolved[0]: return resolved
         return None, None
 
     def rules_regex(self, url, parser):
@@ -439,6 +453,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # to the caller method, this should be used for url reconstruction
         # note that the state value is also returned and should be store in
         # the current handling connection so that it may latter be used
+        return resolved
+
+    def rules_forward(self, url, parser):
+        resolved = self.balancer(self.forward)
         return resolved
 
     def balancer(self, values):
@@ -593,7 +611,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             # this (ip based) url is going to be added to the list of target
             # values to be added to the resolved list on proper index
             for answer in response.answers:
+                type_s = answer[1]
                 address = answer[4]
+                if not type_s in ("A", "AAAA"): continue
                 url = "%s://%s%s%s" % (parsed.scheme, address, port_s, path)
                 target.append(url)
 

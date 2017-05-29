@@ -44,6 +44,7 @@ import errno
 import socket
 import datetime
 import threading
+import collections
 
 from . import tls
 from . import config
@@ -109,17 +110,19 @@ class BaseConnection(observer.Observable):
         self.wready = False
         self.pending_s = 0
         self.restored_s = 0
-        self.starters = []
-        self.pending = []
-        self.restored = []
+        self.starters = collections.deque()
+        self.pending = collections.deque()
+        self.restored = collections.deque()
         self.pending_lock = threading.RLock()
         self.restored_lock = threading.RLock()
         self._starter = None
 
     def destroy(self):
         observer.Observable.destroy(self)
-        del self.pending[:]
-        del self.restored[:]
+        self.pending_s = 0
+        self.restored_s = 0
+        self.pending.clear()
+        self.restored.clear()
 
     def open(self, connect = False):
         # in case the current status of the connection is already open
@@ -198,12 +201,12 @@ class BaseConnection(observer.Observable):
         # resets the size of the data pending to be send and the clears
         # the list of pending information (invalidation the previous one)
         self.pending_s = 0
-        del self.pending[:]
+        self.pending.clear()
 
         # resets the complete set of restored (to receive) data so that
         # no more data is set as pending to read (invalidation)
         self.restored_s = 0
-        del self.restored[:]
+        self.restored.clear()
 
         # retrieves the reference to the owner object from the
         # current instance to be used to removed the socket from the
@@ -375,6 +378,7 @@ class BaseConnection(observer.Observable):
 
         if not self.status == OPEN: return
         if not self.renable == False: return
+
         self.renable = True
         self.owner.sub_read(self.socket)
 
@@ -390,6 +394,7 @@ class BaseConnection(observer.Observable):
 
         if not self.status == OPEN: return
         if not self.renable == True: return
+
         self.renable = False
         self.owner.unsub_read(self.socket)
 
@@ -500,14 +505,16 @@ class BaseConnection(observer.Observable):
         return self._recv(size = size)
 
     def pend(self, data, back = True):
-        # extracts the first element of the tuple as the contents
-        # of the data tuple to be added to the pending list
-        data_c = data[0]
+        # verifies if the provided data is a tuple and if that's
+        # the case unpacks the callback value from it, required
+        is_tuple = type(data) == tuple
+        if is_tuple: data_b, _callback = data
+        else: data_b = data
 
         # calculates the size in bytes of the provided data so
         # that it may be used latter for the incrementing of
         # of the total size of pending bytes
-        data_l = len(data_c) if data_c else 0
+        data_l = len(data_b) if data_b else 0
 
         # acquires the pending lock and then inserts the data into
         # the list of pending information to sent to the client end
@@ -516,7 +523,7 @@ class BaseConnection(observer.Observable):
         # that the fifo strategy is maintained
         self.pending_lock.acquire()
         try:
-            if back: self.pending.insert(0, data)
+            if back: self.pending.appendleft(data)
             else: self.pending.append(data)
         finally:
             self.pending_lock.release()
@@ -549,7 +556,7 @@ class BaseConnection(observer.Observable):
         # going to be used in the next receive operation
         self.restored_lock.acquire()
         try:
-            if back: self.restored.insert(0, data)
+            if back: self.restored.appendleft(data)
             else: self.restored.append(data)
         finally:
             self.restored_lock.release()
@@ -597,7 +604,7 @@ class BaseConnection(observer.Observable):
         self._starter = None
 
     def add_starter(self, starter, back = True):
-        if back: self.starters.insert(0, starter)
+        if back: self.starters.appendleft(starter)
         else: self.starters.append(starter)
 
     def remove_starter(self, starter):

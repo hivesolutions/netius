@@ -286,20 +286,31 @@ class WSGIServer(http2.HTTP2Server):
         )
 
     def _send_part(self, connection):
-        # unsets the is final flag and invalidates the data object to the
-        # original unset value, these are the default values
-        is_final = False
+        # invalidates the data object to the original unset value,
+        # this is considered the default value
         data = None
 
         # extracts both the iterator from the connection object so that
-        # it may be used for the current set of operations
+        # it may be used for the current set of operations, if there's
+        # no iterator associated with the connection the current iteration
+        # is marked as final (should be flushed immediately)
         iterator = connection.iterator
+        is_final = False if iterator else True
 
         # tries to retrieve data from the current iterator and in
         # case the stop iteration is received sets the is final flag
-        # so that no more data is sent through the connection
-        try: data = next(iterator)
-        except StopIteration: is_final = True
+        # so that no more data is sent through the connection and
+        # releases the iterator from the connection
+        try: data = next(iterator) if iterator else None
+        except StopIteration as exception:
+            # tries to extract possible data coming from the exception
+            # return value and sets the is final flag otherwise
+            if exception.args: data = exception.args[0]
+            else: is_final = True
+
+            # releases the iterator from the connection as it's no longer
+            # considered to be valid for the current connection context
+            self._release_iterator(connection)
 
         # verifies if the current value in iteration is a future element
         # and if that's the case creates the proper callback to be used
