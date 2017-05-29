@@ -146,7 +146,7 @@ class DatagramClient(Client):
         self.renable = True
         self.wready = True
         self.pending_s = 0
-        self.pending = collections.dequeue()
+        self.pending = collections.deque()
         self.requests = []
         self.requests_m = {}
         self.pending_lock = threading.RLock()
