@@ -508,7 +508,7 @@ class BaseConnection(observer.Observable):
         # verifies if the provided data is a tuple and if that's
         # the case unpacks the callback value from it, required
         is_tuple = type(data) == tuple
-        if is_tuple: data_b, _callback = data
+        if is_tuple: data_b, _address, _callback = data
         else: data_b = data
 
         # calculates the size in bytes of the provided data so
