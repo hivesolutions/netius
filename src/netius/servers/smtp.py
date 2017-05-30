@@ -357,7 +357,14 @@ class SMTPConnection(netius.Connection):
 
 class SMTPServer(netius.StreamServer):
 
-    def __init__(self, adapter_s = "memory", auth_s = "dummy", locals = ("localhost",), *args, **kwargs):
+    def __init__(
+        self,
+        adapter_s = "memory",
+        auth_s = "dummy",
+        locals = ("localhost",),
+        *args,
+        **kwargs
+    ):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.adapter_s = adapter_s
         self.auth_s = auth_s
