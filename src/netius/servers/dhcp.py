@@ -224,7 +224,7 @@ class DHCPRequest(object):
         data = struct.pack(format, *result)
         buffer.append(data)
 
-        for option, values in options.items():
+        for option, values in netius.legacy.iteritems(options):
             method = cls.options_m[option - 1]
             if values: option_s = method(**values)
             else: option_s = method()

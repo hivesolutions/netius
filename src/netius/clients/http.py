@@ -329,7 +329,7 @@ class HTTPConnection(netius.Connection):
 
         buffer = []
         buffer.append("%s %s %s\r\n" % (method, path, version))
-        for key, value in headers.items():
+        for key, value in netius.legacy.iteritems(headers):
             key = netius.common.header_up(key)
             if not type(value) == list: value = (value,)
             for _value in value:
@@ -362,7 +362,7 @@ class HTTPConnection(netius.Connection):
         self.data = data
 
     def normalize_headers(self):
-        for key, value in netius.legacy.eager(self.headers.items()):
+        for key, value in netius.legacy.items(self.headers):
             del self.headers[key]
             key = netius.common.header_down(key)
             self.headers[key] = value
@@ -483,7 +483,7 @@ class HTTPConnection(netius.Connection):
             if not safe: raise
 
     def _apply_base(self, headers, replace = False):
-        for key, value in BASE_HEADERS.items():
+        for key, value in netius.legacy.iteritems(BASE_HEADERS):
             if not replace and key in headers: continue
             headers[key] = value
 
@@ -529,7 +529,7 @@ class HTTPConnection(netius.Connection):
         if is_compressed and has_ranges: del headers["accept-ranges"]
 
     def _headers_normalize(self, headers):
-        for key, value in headers.items():
+        for key, value in netius.legacy.items(headers):
             if not type(value) in (list, tuple): continue
             headers[key] = ";".join(value)
 

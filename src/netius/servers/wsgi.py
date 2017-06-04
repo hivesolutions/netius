@@ -157,7 +157,7 @@ class WSGIServer(http2.HTTP2Server):
         # to set them in the environment map to be used by the wsgi
         # infra-structure, not that their name is capitalized as defined
         # in the standard specification
-        for key, value in parser.headers.items():
+        for key, value in netius.legacy.iteritems(parser.headers):
             key = "HTTP_" + key.replace("-", "_").upper()
             if type(value) in (list, tuple): value = ";".join(value)
             environ[key] = value
