@@ -746,13 +746,13 @@ class HTTPServer(netius.StreamServer):
         if is_compressed and has_ranges: del headers["Accept-Ranges"]
 
     def _headers_upper(self, headers):
-        for key, value in headers.items():
+        for key, value in netius.legacy(headers):
             key_u = netius.common.header_up(key)
             del headers[key]
             headers[key_u] = value
 
     def _headers_normalize(self, headers):
-        for key, value in headers.items():
+        for key, value in netius.legacy(headers):
             if not type(value) in (list, tuple): continue
             headers[key] = ";".join(value)
 
