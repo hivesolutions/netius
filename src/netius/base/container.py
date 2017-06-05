@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+from . import legacy
 from . import server
 
 from .common import * #@UnusedWildImport
@@ -110,7 +111,7 @@ class Container(Base):
             # so that the poll results are indexed by their owner
             # reference to be easily routed to the base services
             result = self.poll.poll_owner()
-            for base, values in result.items():
+            for base, values in legacy.iteritems(result):
                 reads, writes, errors = values
                 base.reads(reads)
                 base.writes(writes)

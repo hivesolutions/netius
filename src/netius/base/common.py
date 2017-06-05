@@ -2441,7 +2441,7 @@ class AbstractBase(observer.Observable):
 
     def load_config(self, path = "config.json", **kwargs):
         kwargs = self.apply_config(path, kwargs)
-        for key, value in kwargs.items():
+        for key, value in legacy.iteritems(kwargs):
             setattr(self, key, value)
 
     def apply_config(self, path, kwargs):
@@ -2454,7 +2454,7 @@ class AbstractBase(observer.Observable):
         try: contents = json.load(file)
         finally: file.close()
 
-        for key, value in contents.items():
+        for key, value in legacy.iteritems(contents):
             kwargs[key] = value
 
         return kwargs
