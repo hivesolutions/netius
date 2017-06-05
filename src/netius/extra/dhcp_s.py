@@ -81,7 +81,7 @@ class DHCPServerS(netius.servers.DHCPServer):
         lease = options.get("lease", {})
         self.lease = lease.get("time", 3600)
 
-        for key, value in options.items():
+        for key, value in netius.legacy.iteritems(options):
             key_i = netius.common.OPTIONS_DHCP.get(key, None)
             if not key_i: continue
             self.options[key_i] = value

@@ -383,7 +383,7 @@ class HTTP2Connection(http.HTTPConnection):
 
         # iterates over the complete set of raw header values to normalize
         # them and add them to the currently defined base list
-        for key, value in headers.items():
+        for key, value in netius.legacy.iteritems(headers):
             key = netius.common.header_down(key)
             if key in ("connection", "transfer-encoding"): continue
             if not type(value) == list: value = (value,)

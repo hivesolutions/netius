@@ -114,7 +114,7 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             self.conn_map[_connection] = connection
 
     def compile(self):
-        for key, rule in self.rules.items():
+        for key, rule in netius.legacy.items(self.rules):
             self.rules[key] = re.compile(rule)
 
 if __name__ == "__main__":

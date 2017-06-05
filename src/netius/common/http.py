@@ -447,7 +447,7 @@ class HTTPParser(parser.Parser):
 
     def get_headers(self):
         headers = dict(self.headers)
-        for key, value in self.headers.items():
+        for key, value in netius.legacy.iteritems(self.headers):
             key_up = util.header_up(key)
             del headers[key]
             headers[key_up] = value
@@ -872,7 +872,7 @@ class HTTPParser(parser.Parser):
     def _decode_params(self, params):
         _params = dict()
 
-        for key, value in params.items():
+        for key, value in netius.legacy.iteritems(params):
             items = []
             for item in value:
                 is_bytes = netius.legacy.is_bytes(item)
