@@ -203,6 +203,19 @@ class FileServer(netius.servers.HTTP2Server):
         is_root = path_v == "" or path_v == "/"
         if not is_root: items.insert(0, "..")
 
+        path_l = []
+        current = str()
+        paths = path_v.rstrip("/").split("/")
+
+        for item in paths[:-1]:
+            current += item + "/"
+            path_l.append(" <a href=\"%s\">%s</a> " % (current, item or "/"))
+            if not item: continue
+            path_l.append("<span>/</span>")
+
+        path_l.append(" <span>%s</span>" % (paths[-1] or "/"))
+        path_s = "".join(path_l)
+
         buffer = list()
         buffer.append("<html>")
         buffer.append("<head>")
@@ -263,7 +276,7 @@ class FileServer(netius.servers.HTTP2Server):
             buffer.append("</style>")
         buffer.append("</head>")
         buffer.append("<body>")
-        buffer.append("<h1>Index of %s</h1>" % path_v)
+        buffer.append("<h1>Index of %s</h1>" % path_s)
         buffer.append("<hr/>")
         buffer.append("<table>")
         buffer.append("<thead>")
