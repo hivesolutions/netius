@@ -86,6 +86,69 @@ class FileServer(netius.servers.HTTP2Server):
         self.cors = cors
         self.cache = 0
 
+    @classmethod
+    def _sorter_build(cls, name = None):
+
+        def sorter(item):
+            is_dir = item["is_dir"]
+            is_dir_v = 0 if is_dir else 1
+
+            if name == "name": return (item["name"], is_dir_v)
+            if name == "modified": return (item["modified"], is_dir_v)
+            if name == "size": return (item["size"], is_dir_v)
+            if name == "type": return (item["type"], is_dir_v)
+
+            return (is_dir_v, item["name"])
+
+        return sorter
+
+    @classmethod
+    def _items_normalize(cls, items, path):
+        _items = []
+
+        for item in items:
+            if netius.legacy.PYTHON_3: item_s = item
+            else: item_s = item.encode("utf-8")
+
+            path_f = os.path.join(path, item)
+            if not os.path.exists(path_f): continue
+
+            is_dir = os.path.isdir(path_f)
+            item_s = item_s + "/" if is_dir else item_s
+            item_q = netius.legacy.quote(item_s)
+
+            _time = os.path.getmtime(path_f)
+            date_time = datetime.datetime.utcfromtimestamp(_time)
+            time_s = date_time.strftime("%Y-%m-%d %H:%M")
+
+            size = 0 if is_dir else os.path.getsize(path_f)
+            size_s = netius.common.size_round_unit(size, space = True)
+            size_s = "-" if is_dir else size_s
+
+            type_s, _encoding = mimetypes.guess_type(path_f, strict = True)
+            type_s = type_s or "-"
+            type_s = "Directory" if is_dir else type_s
+
+            icon = FOLDER_SVG if is_dir else FILE_SVG
+
+            _item = dict(
+                name = item,
+                name_s = item_s,
+                name_q = item_q,
+                is_dir = is_dir,
+                path = path_f,
+                modified = time_s,
+                size = size,
+                size_s = size_s,
+                type = type_s,
+                type_s = type_s,
+                icon = icon
+            )
+
+            _items.append(_item)
+
+        return _items
+
     def on_connection_d(self, connection):
         netius.servers.HTTP2Server.on_connection_d(self, connection)
 
@@ -172,8 +235,13 @@ class FileServer(netius.servers.HTTP2Server):
             self.on_exception_file(connection, exception)
 
     def on_dir_file(self, connection, parser, path, style = True):
+        cls = self.__class__
+
         path_v = parser.get_path()
         path_v = netius.legacy.unquote(path_v)
+
+        query_v = parser.get_query()
+        query_m = parser._parse_query(query_v)
 
         is_valid = path_v.endswith("/")
         if not is_valid:
@@ -197,31 +265,47 @@ class FileServer(netius.servers.HTTP2Server):
             self.on_no_file(connection)
             return
 
+        order = query_m.get("order", [])
+        direction = query_m.get("direction", [])
+
+        order = order[0] if order else None
+        direction = direction[0] if direction else "asc"
+
+        reverse = direction == "desc"
+        _direction = "desc" if direction == "asc" else "asc"
+
         items = os.listdir(path)
-        items.sort(key = self._sorter_build(path))
 
         is_root = path_v == "" or path_v == "/"
         if not is_root: items.insert(0, "..")
 
-        path_l = []
+        items = cls._items_normalize(items, path)
+        items.sort(
+            key = cls._sorter_build(name = order),
+            reverse = reverse
+        )
+
+        path_n = path_v.rstrip("/")
+
+        path_b = []
         current = str()
-        paths = path_v.rstrip("/").split("/")
+        paths = path_n.split("/")
 
         for item in paths[:-1]:
             current += item + "/"
-            path_l.append(" <a href=\"%s\">%s</a> " % (current, item or "/"))
+            path_b.append(" <a href=\"%s\">%s</a> " % (current, item or "/"))
             if not item: continue
-            path_l.append("<span>/</span>")
+            path_b.append("<span>/</span>")
 
-        path_l.append(" <span>%s</span>" % (paths[-1] or "/"))
-        path_s = "".join(path_l)
+        path_b.append(" <span>%s</span>" % (paths[-1] or "/"))
+        path_s = "".join(path_b)
 
         buffer = list()
         buffer.append("<html>")
         buffer.append("<head>")
         buffer.append("<meta charset=\"utf-8\" />")
         buffer.append("<meta name=\"viewport\" content=\"width=device-width, user-scalable=no, initial-scale=1, minimum-scale=1, maximum-scale=1\" />")
-        buffer.append("<title>Index of %s</title>" % path_v)
+        buffer.append("<title>Index of %s</title>" % path_n)
         if style:
             buffer.append("<style>")
             buffer.append("@import \"https://fonts.googleapis.com/css?family=Open+Sans\";")
@@ -260,6 +344,13 @@ class FileServer(netius.servers.HTTP2Server):
             buffer.append("table th > *, table td > * {")
             buffer.append("vertical-align: middle;")
             buffer.append("}")
+            buffer.append("table th > a {")
+            buffer.append("color: #2d2d2d;")
+            buffer.append("}")
+            buffer.append("table th > a.selected {")
+            buffer.append("font-weight: bold;")
+            buffer.append("text-decoration: underline;")
+            buffer.append("}")
             buffer.append("table td > svg {")
             buffer.append("color: #6d6d6d;")
             buffer.append("fill: currentColor;")
@@ -281,46 +372,34 @@ class FileServer(netius.servers.HTTP2Server):
         buffer.append("<table>")
         buffer.append("<thead>")
         buffer.append("<tr>")
-        buffer.append("<th align=\"left\" width=\"350\">Name</th>")
-        buffer.append("<th align=\"left\" width=\"130\">Last Modified</th>")
-        buffer.append("<th align=\"left\" width=\"80\">Size</th>")
-        buffer.append("<th align=\"left\" width=\"200\">Type</th>")
+        buffer.append("<th align=\"left\" width=\"350\">")
+        buffer.append("<a href=\"?order=name&direction=%s\" class=\"%s\">Name</a>" %\
+            (_direction, "selected" if order == "name" else ""))
+        buffer.append("</th>")
+        buffer.append("<th align=\"left\" width=\"130\">")
+        buffer.append("<a href=\"?order=modified&direction=%s\" class=\"%s\">Last Modified</a>" %\
+            (_direction, "selected" if order == "modified" else ""))
+        buffer.append("</th>")
+        buffer.append("<th align=\"left\" width=\"80\">")
+        buffer.append("<a href=\"?order=size&direction=%s\" class=\"%s\">Size</a></th>" %\
+            (_direction, "selected" if order == "size" else ""))
+        buffer.append("</th>")
+        buffer.append("<th align=\"left\" width=\"200\">")
+        buffer.append("<a href=\"?order=type&direction=%s\" class=\"%s\">Type</a></th>" %\
+            (_direction, "selected" if order == "type" else ""))
+        buffer.append("</th>")
         buffer.append("</tr>")
         buffer.append("</thead>")
         buffer.append("<tbody>")
         for item in items:
-            if netius.legacy.PYTHON_3: item_s = item
-            else: item_s = item.encode("utf-8")
-
-            path_f = os.path.join(path, item)
-            if not os.path.exists(path_f): continue
-
-            is_dir = os.path.isdir(path_f)
-            item_s = item_s + "/" if is_dir else item_s
-            item_q = netius.legacy.quote(item_s)
-
-            _time = os.path.getmtime(path_f)
-            date_time = datetime.datetime.utcfromtimestamp(_time)
-            time_s = date_time.strftime("%Y-%m-%d %H:%M")
-
-            size = os.path.getsize(path_f)
-            size_s = netius.common.size_round_unit(size, space = True)
-            size_s = "-" if is_dir else size_s
-
-            type_s, _encoding = mimetypes.guess_type(path_f, strict = True)
-            type_s = type_s or "-"
-            type_s = "Directory" if is_dir else type_s
-
-            icon = FOLDER_SVG if is_dir else FILE_SVG
-
             buffer.append("<tr>")
             buffer.append("<td>")
-            if style: buffer.append(icon)
-            buffer.append("<a href=\"%s\">%s</a>" % (item_q, item_s))
+            if style: buffer.append(item["icon"])
+            buffer.append("<a href=\"%s\">%s</a>" % (item["name_q"], item["name_s"]))
             buffer.append("</td>")
-            buffer.append("<td>%s</td>" % time_s)
-            buffer.append("<td>%s</td>" % size_s)
-            buffer.append("<td>%s</td>" % type_s)
+            buffer.append("<td>%s</td>" % item["modified"])
+            buffer.append("<td>%s</td>" % item["size_s"])
+            buffer.append("<td>%s</td>" % item["type_s"])
             buffer.append("</tr>")
         buffer.append("</tbody>")
         buffer.append("</table>")
@@ -533,15 +612,6 @@ class FileServer(netius.servers.HTTP2Server):
     def _file_check_close(self, connection):
         if connection.parser.keep_alive: return
         connection.close(flush = True)
-
-    def _sorter_build(self, path):
-
-        def sorter(item):
-            path_f = os.path.join(path, item)
-            is_dir = os.path.isdir(path_f)
-            return (0 if is_dir else 1, item)
-
-        return sorter
 
 if __name__ == "__main__":
     import logging
