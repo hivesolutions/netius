@@ -265,10 +265,10 @@ class FileServer(netius.servers.HTTP2Server):
             self.on_no_file(connection)
             return
 
-        order = query_m.get("order", [])
+        sort = query_m.get("sort", [])
         direction = query_m.get("direction", [])
 
-        order = order[0] if order else None
+        sort = sort[0] if sort else None
         direction = direction[0] if direction else "asc"
 
         reverse = direction == "desc"
@@ -281,7 +281,7 @@ class FileServer(netius.servers.HTTP2Server):
 
         items = cls._items_normalize(items, path)
         items.sort(
-            key = cls._sorter_build(name = order),
+            key = cls._sorter_build(name = sort),
             reverse = reverse
         )
 
@@ -373,20 +373,20 @@ class FileServer(netius.servers.HTTP2Server):
         buffer.append("<thead>")
         buffer.append("<tr>")
         buffer.append("<th align=\"left\" width=\"350\">")
-        buffer.append("<a href=\"?order=name&direction=%s\" class=\"%s\">Name</a>" %\
-            (_direction, "selected" if order == "name" else ""))
+        buffer.append("<a href=\"?sort=name&direction=%s\" class=\"%s\">Name</a>" %\
+            (_direction, "selected" if sort == "name" else ""))
         buffer.append("</th>")
         buffer.append("<th align=\"left\" width=\"130\">")
-        buffer.append("<a href=\"?order=modified&direction=%s\" class=\"%s\">Last Modified</a>" %\
-            (_direction, "selected" if order == "modified" else ""))
+        buffer.append("<a href=\"?sort=modified&direction=%s\" class=\"%s\">Last Modified</a>" %\
+            (_direction, "selected" if sort == "modified" else ""))
         buffer.append("</th>")
         buffer.append("<th align=\"left\" width=\"80\">")
-        buffer.append("<a href=\"?order=size&direction=%s\" class=\"%s\">Size</a></th>" %\
-            (_direction, "selected" if order == "size" else ""))
+        buffer.append("<a href=\"?sort=size&direction=%s\" class=\"%s\">Size</a></th>" %\
+            (_direction, "selected" if sort == "size" else ""))
         buffer.append("</th>")
         buffer.append("<th align=\"left\" width=\"200\">")
-        buffer.append("<a href=\"?order=type&direction=%s\" class=\"%s\">Type</a></th>" %\
-            (_direction, "selected" if order == "type" else ""))
+        buffer.append("<a href=\"?sort=type&direction=%s\" class=\"%s\">Type</a></th>" %\
+            (_direction, "selected" if sort == "type" else ""))
         buffer.append("</th>")
         buffer.append("</tr>")
         buffer.append("</thead>")
