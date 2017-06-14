@@ -149,6 +149,182 @@ class FileServer(netius.servers.HTTP2Server):
 
         return _items
 
+    @classmethod
+    def _gen_header(cls, title, style = True):
+        yield "<html>"
+        yield "<head>"
+        yield "<meta charset=\"utf-8\" />"
+        yield "<meta name=\"viewport\" content=\"width=device-width, user-scalable=no, initial-scale=1, minimum-scale=1, maximum-scale=1\" />"
+        yield "<title>%s</title>" % title
+        if style:
+            for value in cls._gen_style(): yield value
+        yield "</head>"
+
+    @classmethod
+    def _gen_footer(cls):
+        yield "</html>"
+
+    @classmethod
+    def _gen_style(cls):
+        yield """<style>
+            @import \"https://fonts.googleapis.com/css?family=Open+Sans\";
+            body {
+                color: #2d2d2d;
+                font-family: -apple-system, \"BlinkMacSystemFont\", \"Segoe UI\", \"Roboto\", \"Open Sans\", \"Helvetica\", \"Arial\", sans-serif;
+                font-size: 13px;
+                line-height: 18px;
+            }
+            h1 {
+                font-size: 22px;
+                font-weight: 500;
+                line-height: 26px;
+                margin: 14px 0px 14px 0px;
+            }
+            a {
+                color: #4769cc;
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+            hr {
+                margin: 3px 0px 3px 0px;
+            }
+            table {
+                font-size: 13px;
+                line-height: 20px;
+                max-width: 760px;
+                table-layout: fixed;
+                word-break: break-all;
+            }
+            table th {
+                font-weight: 500;
+            }
+            table th > *, table td > * {
+                vertical-align: middle;
+            }
+            table th > a {
+                color: #2d2d2d;
+            }
+            table th > a.selected {
+                font-weight: bold;
+                text-decoration: underline;
+            }
+            table td > svg {
+                color: #6d6d6d;
+                fill: currentColor;
+                margin-right: 6px;
+            }
+            @media screen and (max-width: 760px) {
+                table th, table td {
+                    display: none;
+                }
+                table td:nth-child(1) {
+                    display: initial;
+                }
+            }
+        </style>"""
+
+    @classmethod
+    def _gen_dir(cls, path, path_v, query_m, style = True):
+        sort = query_m.get("sort", [])
+        direction = query_m.get("direction", [])
+
+        sort = sort[0] if sort else None
+        direction = direction[0] if direction else "asc"
+
+        reverse = direction == "desc"
+        _direction = "desc" if direction == "asc" else "asc"
+
+        items = os.listdir(path)
+
+        is_root = path_v == "" or path_v == "/"
+        if not is_root: items.insert(0, "..")
+
+        items = cls._items_normalize(items, path)
+        items.sort(
+            key = cls._sorter_build(name = sort),
+            reverse = reverse
+        )
+
+        path_n = path_v.rstrip("/")
+
+        path_b = []
+        current = str()
+        paths = path_n.split("/")
+
+        for item in paths[:-1]:
+            current += item + "/"
+            path_b.append(" <a href=\"%s\">%s</a> " % (current, item or "/"))
+            if not item: continue
+            path_b.append("<span>/</span>")
+
+        path_b.append(" <span>%s</span>" % (paths[-1] or "/"))
+        path_s = "".join(path_b)
+
+        for value in cls._gen_header("Index of %s" % path_n, style = style):
+            yield value
+
+        yield "<body>"
+        yield "<h1>Index of %s</h1>" % path_s
+        yield "<hr/>"
+        yield "<table>"
+        yield "<thead>"
+        yield "<tr>"
+        yield "<th align=\"left\" width=\"350\">"
+        yield "<a href=\"?sort=name&direction=%s\" class=\"%s\">Name</a>" %\
+            (_direction, "selected" if sort == "name" else "")
+        yield "</th>"
+        yield "<th align=\"left\" width=\"130\">"
+        yield "<a href=\"?sort=modified&direction=%s\" class=\"%s\">Last Modified</a>" %\
+            (_direction, "selected" if sort == "modified" else "")
+        yield "</th>"
+        yield "<th align=\"left\" width=\"80\">"
+        yield "<a href=\"?sort=size&direction=%s\" class=\"%s\">Size</a></th>" %\
+            (_direction, "selected" if sort == "size" else "")
+        yield "</th>"
+        yield "<th align=\"left\" width=\"200\">"
+        yield "<a href=\"?sort=type&direction=%s\" class=\"%s\">Type</a></th>" %\
+            (_direction, "selected" if sort == "type" else "")
+        yield "</th>"
+        yield "</tr>"
+        yield "</thead>"
+        yield "<tbody>"
+        for item in items:
+            yield "<tr>"
+            yield "<td>"
+            if style: yield item["icon"]
+            yield "<a href=\"%s\">%s</a>" % (item["name_q"], item["name_s"])
+            yield "</td>"
+            yield "<td>%s</td>" % item["modified"]
+            yield "<td>%s</td>" % item["size_s"]
+            yield "<td>%s</td>" % item["type_s"]
+            yield "</tr>"
+        yield "</tbody>"
+        yield "</table>"
+        yield "<hr/>"
+        yield "<span>"
+        yield netius.IDENTIFIER
+        yield "</span>"
+        yield "</body>"
+
+        for value in cls._gen_footer(): yield value
+
+    @classmethod
+    def _gen_text(cls, text, style = True):
+        for value in cls._gen_header(text, style = style):
+            yield value
+
+        yield "<body>"
+        yield "<h1>%s</h1>" % text
+        yield "<hr/>"
+        yield "<span>"
+        yield netius.IDENTIFIER
+        yield "</span>"
+        yield "</body>"
+
+        for value in cls._gen_footer(): yield value
+
     def on_connection_d(self, connection):
         netius.servers.HTTP2Server.on_connection_d(self, connection)
 
@@ -265,152 +441,7 @@ class FileServer(netius.servers.HTTP2Server):
             self.on_no_file(connection)
             return
 
-        sort = query_m.get("sort", [])
-        direction = query_m.get("direction", [])
-
-        sort = sort[0] if sort else None
-        direction = direction[0] if direction else "asc"
-
-        reverse = direction == "desc"
-        _direction = "desc" if direction == "asc" else "asc"
-
-        items = os.listdir(path)
-
-        is_root = path_v == "" or path_v == "/"
-        if not is_root: items.insert(0, "..")
-
-        items = cls._items_normalize(items, path)
-        items.sort(
-            key = cls._sorter_build(name = sort),
-            reverse = reverse
-        )
-
-        path_n = path_v.rstrip("/")
-
-        path_b = []
-        current = str()
-        paths = path_n.split("/")
-
-        for item in paths[:-1]:
-            current += item + "/"
-            path_b.append(" <a href=\"%s\">%s</a> " % (current, item or "/"))
-            if not item: continue
-            path_b.append("<span>/</span>")
-
-        path_b.append(" <span>%s</span>" % (paths[-1] or "/"))
-        path_s = "".join(path_b)
-
-        buffer = list()
-        buffer.append("<html>")
-        buffer.append("<head>")
-        buffer.append("<meta charset=\"utf-8\" />")
-        buffer.append("<meta name=\"viewport\" content=\"width=device-width, user-scalable=no, initial-scale=1, minimum-scale=1, maximum-scale=1\" />")
-        buffer.append("<title>Index of %s</title>" % path_n)
-        if style:
-            buffer.append("<style>")
-            buffer.append("@import \"https://fonts.googleapis.com/css?family=Open+Sans\";")
-            buffer.append("body {")
-            buffer.append("color: #2d2d2d;")
-            buffer.append("font-family: -apple-system, \"BlinkMacSystemFont\", \"Segoe UI\", \"Roboto\", \"Open Sans\", \"Helvetica\", \"Arial\", sans-serif;")
-            buffer.append("font-size: 13px;")
-            buffer.append("line-height: 18px;")
-            buffer.append("}")
-            buffer.append("h1 {")
-            buffer.append("font-size: 22px;")
-            buffer.append("font-weight: 500;")
-            buffer.append("line-height: 26px;")
-            buffer.append("margin: 14px 0px 14px 0px;")
-            buffer.append("}")
-            buffer.append("a {")
-            buffer.append("color: #4769cc;")
-            buffer.append("text-decoration: none;")
-            buffer.append("}")
-            buffer.append("a:hover {")
-            buffer.append("text-decoration: underline;")
-            buffer.append("}")
-            buffer.append("hr {")
-            buffer.append("margin: 3px 0px 3px 0px;")
-            buffer.append("}")
-            buffer.append("table {")
-            buffer.append("font-size: 13px;")
-            buffer.append("line-height: 20px;")
-            buffer.append("max-width: 760px;")
-            buffer.append("table-layout: fixed;")
-            buffer.append("word-break: break-all;")
-            buffer.append("}")
-            buffer.append("table th {")
-            buffer.append("font-weight: 500;")
-            buffer.append("}")
-            buffer.append("table th > *, table td > * {")
-            buffer.append("vertical-align: middle;")
-            buffer.append("}")
-            buffer.append("table th > a {")
-            buffer.append("color: #2d2d2d;")
-            buffer.append("}")
-            buffer.append("table th > a.selected {")
-            buffer.append("font-weight: bold;")
-            buffer.append("text-decoration: underline;")
-            buffer.append("}")
-            buffer.append("table td > svg {")
-            buffer.append("color: #6d6d6d;")
-            buffer.append("fill: currentColor;")
-            buffer.append("margin-right: 6px;")
-            buffer.append("}")
-            buffer.append("@media screen and (max-width: 760px) {")
-            buffer.append("table th, table td {")
-            buffer.append("display: none;")
-            buffer.append("}")
-            buffer.append("table td:nth-child(1) {")
-            buffer.append("display: initial;")
-            buffer.append("}")
-            buffer.append("}")
-            buffer.append("</style>")
-        buffer.append("</head>")
-        buffer.append("<body>")
-        buffer.append("<h1>Index of %s</h1>" % path_s)
-        buffer.append("<hr/>")
-        buffer.append("<table>")
-        buffer.append("<thead>")
-        buffer.append("<tr>")
-        buffer.append("<th align=\"left\" width=\"350\">")
-        buffer.append("<a href=\"?sort=name&direction=%s\" class=\"%s\">Name</a>" %\
-            (_direction, "selected" if sort == "name" else ""))
-        buffer.append("</th>")
-        buffer.append("<th align=\"left\" width=\"130\">")
-        buffer.append("<a href=\"?sort=modified&direction=%s\" class=\"%s\">Last Modified</a>" %\
-            (_direction, "selected" if sort == "modified" else ""))
-        buffer.append("</th>")
-        buffer.append("<th align=\"left\" width=\"80\">")
-        buffer.append("<a href=\"?sort=size&direction=%s\" class=\"%s\">Size</a></th>" %\
-            (_direction, "selected" if sort == "size" else ""))
-        buffer.append("</th>")
-        buffer.append("<th align=\"left\" width=\"200\">")
-        buffer.append("<a href=\"?sort=type&direction=%s\" class=\"%s\">Type</a></th>" %\
-            (_direction, "selected" if sort == "type" else ""))
-        buffer.append("</th>")
-        buffer.append("</tr>")
-        buffer.append("</thead>")
-        buffer.append("<tbody>")
-        for item in items:
-            buffer.append("<tr>")
-            buffer.append("<td>")
-            if style: buffer.append(item["icon"])
-            buffer.append("<a href=\"%s\">%s</a>" % (item["name_q"], item["name_s"]))
-            buffer.append("</td>")
-            buffer.append("<td>%s</td>" % item["modified"])
-            buffer.append("<td>%s</td>" % item["size_s"])
-            buffer.append("<td>%s</td>" % item["type_s"])
-            buffer.append("</tr>")
-        buffer.append("</tbody>")
-        buffer.append("</table>")
-        buffer.append("<hr/>")
-        buffer.append("<span>")
-        buffer.append(netius.IDENTIFIER)
-        buffer.append("</span>")
-        buffer.append("</body>")
-        buffer.append("</html>")
-        data = "".join(buffer)
-
+        data = "".join(cls._gen_dir(path, path_v, query_m, style))
         data = netius.legacy.bytes(data, encoding = "utf-8", force = True)
 
         headers = dict()
@@ -535,8 +566,11 @@ class FileServer(netius.servers.HTTP2Server):
         )
 
     def on_no_file(self, connection):
+        cls = self.__class__
+        data = "".join(cls._gen_text("File not found"))
+        data = netius.legacy.bytes(data, encoding = "utf-8", force = True)
         connection.send_response(
-            data = "File not found",
+            data = data,
             headers = dict(
                 connection = "close"
             ),
@@ -546,8 +580,11 @@ class FileServer(netius.servers.HTTP2Server):
         )
 
     def on_exception_file(self, connection, exception):
+        cls = self.__class__
+        data = "".join(cls._gen_text("Problem handling request - %s" % str(exception)))
+        data = netius.legacy.bytes(data, encoding = "utf-8", force = True)
         connection.send_response(
-            data = "Problem handling request - %s" % str(exception),
+            data = data,
             headers = dict(
                 connection = "close"
             ),
