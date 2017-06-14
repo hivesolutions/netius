@@ -64,7 +64,6 @@ class Request(object):
 
     @classmethod
     def _generate_id(cls):
-        cls.IDENTIFIER
         cls.IDENTIFIER = (cls.IDENTIFIER + 1) & 0xffff
         return cls.IDENTIFIER
 
