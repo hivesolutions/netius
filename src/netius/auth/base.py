@@ -149,7 +149,7 @@ class Auth(object):
         # load the file from the secondary storage (file system)
         file = open(path, "rb")
         try: contents = file.read()
-        finally: file.close
+        finally: file.close()
 
         # in case an encoding value has been passed the contents must be properly
         # decoded so that the "final" contents string is defined
