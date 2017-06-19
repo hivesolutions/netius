@@ -241,7 +241,7 @@ class FileServer(netius.servers.HTTP2Server):
         is_root = path_v == "" or path_v == "/"
         if not is_root: items.insert(0, "..")
 
-        items = cls._items_normalize(items, path)
+        items = cls._items_normalize(items, path, pad = not style)
         items.sort(
             key = cls._sorter_build(name = sort),
             reverse = reverse
