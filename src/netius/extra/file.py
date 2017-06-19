@@ -262,7 +262,7 @@ class FileServer(netius.servers.HTTP2Server):
         path_b.append(" <span>%s</span>" % (paths[-1] or "/"))
         path_s = "".join(path_b)
 
-        for value in cls._gen_header("Index of %s" % path_n, style = style):
+        for value in cls._gen_header("Index of %s" % (path_n or "/"), style = style):
             yield value
 
         yield "<body>"
