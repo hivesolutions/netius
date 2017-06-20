@@ -115,7 +115,8 @@ class SOCKSParser(parser.Parser):
         self.states = ()
         self.state_l = 0
 
-    def reset(self):
+    def reset(self, type = IPV4):
+        self.type = type
         self.state = VERSION_STATE
         self.buffer = []
         self.version = None
@@ -125,7 +126,6 @@ class SOCKSParser(parser.Parser):
         self.address_s = None
         self.user_id = None
         self.domain = None
-        self.type = None
         self.size = 0
         self.is_extended = False
         self.auth_count = 0
@@ -133,7 +133,7 @@ class SOCKSParser(parser.Parser):
 
     def clear(self, force = False):
         if not force and self.state == VERSION_STATE: return
-        self.reset(self.type, self.store)
+        self.reset(type = self.type)
 
     def parse(self, data):
         """
