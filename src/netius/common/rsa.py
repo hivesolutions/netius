@@ -429,7 +429,7 @@ def rsa_crypt_s(message, exponent, modulus):
     return message_crypt_s
 
 def rsa_crypt(number, exponent, modulus):
-    if not type(number) in netius.legacy.INTEGERS:
+    if not isinstance(number, netius.legacy.INTEGERS):
         raise TypeError("you must pass a long or an int")
 
     if number > 0 and math.floor(math.log(number, 2)) > math.floor(math.log(modulus, 2)):
