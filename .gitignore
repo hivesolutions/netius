@@ -3,6 +3,8 @@
 
 session.shelve*
 
+.DS_Store
+
 net.ca
 fs.data
 

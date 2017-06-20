@@ -277,7 +277,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             # determines if the provided authentication method is a sequence
             # and if that't not the case casts it as one (iterative validation)
             # then sets the initial/default (authentication) value as false (deny)
-            auths = auth if type(auth) in (list, tuple) else (auth,)
+            auths = auth if isinstance(auth, (list, tuple)) else (auth,)
             result = False
 
             # iterates over the complete set of authorization methods defined

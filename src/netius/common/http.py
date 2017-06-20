@@ -310,7 +310,11 @@ class HTTPParser(parser.Parser):
 
     def clear(self, force = False):
         if not force and self.state == LINE_STATE: return
-        self.reset(self.type, self.store, self.file_limit)
+        self.reset(
+            type = self.type,
+            store = self.store,
+            file_limit = self.file_limit
+        )
 
     def close(self):
         if hasattr(self, "message") and self.message: self.message = []

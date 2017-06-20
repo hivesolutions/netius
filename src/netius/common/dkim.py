@@ -104,7 +104,7 @@ def dkim_sign(
     ]
 
     signature = "DKIM-Signature: " + "; ".join("%s=%s" % field for field in sign_fields)
-    if type(signature) == netius.legacy.UNICODE:
+    if isinstance(signature, netius.legacy.UNICODE):
         signature = signature.encode("utf-8")
     signature = dkim_fold(signature)
 

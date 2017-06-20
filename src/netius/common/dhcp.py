@@ -120,8 +120,7 @@ class AddressPool(object):
         current_l.reverse()
         current_l = [int(value) for value in current_l]
 
-        for index in range(len(current_l)):
-            value = current_l[index]
+        for index, value in enumerate(current_l):
             if value == 255: current_l[index] = 0
             else: current_l[index] = value + 1; break
 

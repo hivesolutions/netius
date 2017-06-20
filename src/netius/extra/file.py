@@ -103,7 +103,7 @@ class FileServer(netius.servers.HTTP2Server):
         return sorter
 
     @classmethod
-    def _items_normalize(cls, items, path):
+    def _items_normalize(cls, items, path, pad = False):
         _items = []
 
         for item in items:
@@ -114,7 +114,7 @@ class FileServer(netius.servers.HTTP2Server):
             if not os.path.exists(path_f): continue
 
             is_dir = os.path.isdir(path_f)
-            item_s = item_s + "/" if is_dir else item_s
+            item_s = item_s + "/" if is_dir and pad else item_s
             item_q = netius.legacy.quote(item_s)
 
             _time = os.path.getmtime(path_f)
@@ -241,7 +241,7 @@ class FileServer(netius.servers.HTTP2Server):
         is_root = path_v == "" or path_v == "/"
         if not is_root: items.insert(0, "..")
 
-        items = cls._items_normalize(items, path)
+        items = cls._items_normalize(items, path, pad = not style)
         items.sort(
             key = cls._sorter_build(name = sort),
             reverse = reverse
@@ -262,7 +262,7 @@ class FileServer(netius.servers.HTTP2Server):
         path_b.append(" <span>%s</span>" % (paths[-1] or "/"))
         path_s = "".join(path_b)
 
-        for value in cls._gen_header("Index of %s" % path_n, style = style):
+        for value in cls._gen_header("Index of %s" % (path_n or "/"), style = style):
             yield value
 
         yield "<body>"
@@ -441,7 +441,12 @@ class FileServer(netius.servers.HTTP2Server):
             self.on_no_file(connection)
             return
 
-        data = "".join(cls._gen_dir(path, path_v, query_m, style))
+        data = "".join(cls._gen_dir(
+            path,
+            path_v,
+            query_m,
+            style = style
+        ))
         data = netius.legacy.bytes(data, encoding = "utf-8", force = True)
 
         headers = dict()

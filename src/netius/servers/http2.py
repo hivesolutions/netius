@@ -386,7 +386,7 @@ class HTTP2Connection(http.HTTPConnection):
         for key, value in netius.legacy.iteritems(headers):
             key = netius.common.header_down(key)
             if key in ("connection", "transfer-encoding"): continue
-            if not type(value) == list: value = (value,)
+            if not isinstance(value, list): value = (value,)
             for _value in value: headers_b.append((key, _value))
 
         # verifies if this is considered to be the final operation in the stream

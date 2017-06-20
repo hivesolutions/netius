@@ -84,7 +84,7 @@ class Headers(list):
     """
 
     def __getitem__(self, key):
-        is_integer = type(key) == int
+        is_integer = isinstance(key, int)
         if is_integer: return list.__getitem__(self, key)
         for _key, value in self:
             if not _key == key: continue
@@ -94,18 +94,18 @@ class Headers(list):
     def __setitem__(self, key, value):
         key = self._normalize(key)
         value = self._normalize(value)
-        is_integer = type(key) == int
+        is_integer = isinstance(key, int)
         if is_integer: return list.__setitem__(self, key, value)
         self.append([key, value])
 
     def __delitem__(self, key):
-        is_integer = type(key) == int
+        is_integer = isinstance(key, int)
         if is_integer: return list.__delitem__(self, key)
         value = self.__getitem__(key)
         self.remove([key, value])
 
     def __contains__(self, item):
-        is_string = type(item) in netius.legacy.ALL_STRINGS
+        is_string = isinstance(item, netius.legacy.ALL_STRINGS)
         if not is_string: return list.__contains__(self, item)
         for key, _value in self:
             if not key == item: continue
