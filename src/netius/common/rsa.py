@@ -223,22 +223,22 @@ def assert_private(private_key, number_bits = None):
     exponent_2 = private_exponent % (prime_2 - 1)
     coefficient = calc.modinv(prime_2, prime_1)
 
-    assert modulus == private_key["modulus"]
-    assert exponent_1 == private_key["exponent_1"]
-    assert exponent_2 == private_key["exponent_2"]
-    assert coefficient == private_key["coefficient"]
+    util.verify(modulus == private_key["modulus"])
+    util.verify(exponent_1 == private_key["exponent_1"])
+    util.verify(exponent_2 == private_key["exponent_2"])
+    util.verify(coefficient == private_key["coefficient"])
 
     if number_bits:
-        assert number_bits // 2 == rsa_bits(private_key["prime_1"])
-        assert number_bits // 2 == rsa_bits(private_key["prime_2"])
-        assert number_bits == private_key["bits"]
+        util.verify(number_bits // 2 == rsa_bits(private_key["prime_1"]))
+        util.verify(number_bits // 2 == rsa_bits(private_key["prime_2"]))
+        util.verify(number_bits == private_key["bits"])
 
     message = b"Hello World"
     signature = rsa_sign(b"Hello World", private_key)
     result = rsa_verify(signature, private_key)
     result = result.lstrip(b"\0")
 
-    assert result == message
+    util.verify(result == message)
 
 def rsa_private(number_bits):
     """
