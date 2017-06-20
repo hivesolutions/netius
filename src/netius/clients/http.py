@@ -331,7 +331,7 @@ class HTTPConnection(netius.Connection):
         buffer.append("%s %s %s\r\n" % (method, path, version))
         for key, value in netius.legacy.iteritems(headers):
             key = netius.common.header_up(key)
-            if not type(value) == list: value = (value,)
+            if not isinstance(value, list): value = (value,)
             for _value in value:
                 _value = netius.legacy.ascii(_value)
                 buffer.append("%s: %s\r\n" % (key, _value))
