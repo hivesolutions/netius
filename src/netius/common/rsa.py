@@ -50,7 +50,7 @@ PRIVATE_TOKEN = "RSA PRIVATE KEY"
 PUBLIC_TOKEN = "PUBLIC KEY"
 
 def open_pem_key(path, token = PRIVATE_TOKEN):
-    is_file = not type(path) in netius.legacy.STRINGS
+    is_file = not isinstance(path, netius.legacy.STRINGS)
     if is_file: file = path
     else: file = open(path, "rb")
     try:
@@ -87,7 +87,7 @@ def write_pem_key(
     chunks = [chunk for chunk in util.chunks(data, width)]
     data = b"\n".join(chunks)
 
-    is_file = not type(path) in netius.legacy.STRINGS
+    is_file = not isinstance(path, netius.legacy.STRINGS)
     file = path if is_file else open(path, "wb")
     try:
         file.write(begin)
