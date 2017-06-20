@@ -415,7 +415,7 @@ class TorrentTask(netius.Observable):
         # verifies if the provided peers part is not compact (already a dictionary)
         # if that's the case there's nothing remaining to be done, otherwise extra
         # processing must be done to
-        if type(peers) == dict: self.extend_peers(peers)
+        if isinstance(peers, dict): self.extend_peers(peers)
 
         # need to normalize the peer structure by decoding the peers string into a
         # set of address port sub strings (as defined in torrent specification)
