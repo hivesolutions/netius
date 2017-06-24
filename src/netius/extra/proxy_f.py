@@ -52,6 +52,8 @@ class ForwardProxyServer(netius.servers.ProxyServer):
     def on_headers(self, connection, parser):
         netius.servers.ProxyServer.on_headers(self, connection, parser)
 
+        cls = self.__class__
+
         method = parser.method.upper()
         path = parser.path_s
         version_s = parser.version_s
@@ -63,8 +65,9 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             if rejected: break
 
         if rejected:
+            self.debug("This connection is not allowed")
             connection.send_response(
-                data = "This connection is not allowed",
+                data = cls.build_text("This connection is not allowed"),
                 headers = dict(
                     connection = "close"
                 ),

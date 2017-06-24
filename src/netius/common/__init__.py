@@ -52,6 +52,7 @@ from . import socks
 from . import tls
 from . import stream
 from . import structures
+from . import style
 from . import tftp
 from . import torrent
 from . import util
@@ -88,6 +89,7 @@ from .socks import SOCKSParser
 from .tls import TLSContextDict, LetsEncryptDict
 from .stream import Stream, FileStream, FilesStream
 from .structures import PriorityDict
+from .style import BASE_STYLE
 from .tftp import RRQ_TFTP, WRQ_TFTP, DATA_TFTP, ACK_TFTP, ERROR_TFTP, TYPES_TFTP
 from .torrent import info_hash, bencode, bdecode, chunk, dechunk, TorrentParser
 from .util import cstring, chunks, header_down, header_up, is_ip4, is_ip6, assert_ip4,\

@@ -600,6 +600,50 @@ class HTTPServer(netius.StreamServer):
         self.dynamic = False
         self.common_file = None
 
+    @classmethod
+    def build_text(cls, text, style = True, encode = True, encoding = "utf-8"):
+        data = "".join(cls._gen_text(text, style = style))
+        if encode: data = netius.legacy.bytes(
+            data,
+            encoding = encoding,
+            force = True
+        )
+        return data
+
+    @classmethod
+    def _gen_text(cls, text, style = True):
+        for value in cls._gen_header(text, style = style):
+            yield value
+
+        yield "<body>"
+        yield "<h1>%s</h1>" % text
+        yield "<hr/>"
+        yield "<span>"
+        yield netius.IDENTIFIER
+        yield "</span>"
+        yield "</body>"
+
+        for value in cls._gen_footer(): yield value
+
+    @classmethod
+    def _gen_header(cls, title, style = True):
+        yield "<html>"
+        yield "<head>"
+        yield "<meta charset=\"utf-8\" />"
+        yield "<meta name=\"viewport\" content=\"width=device-width, user-scalable=no, initial-scale=1, minimum-scale=1, maximum-scale=1\" />"
+        yield "<title>%s</title>" % title
+        if style:
+            for value in cls._gen_style(): yield value
+        yield "</head>"
+
+    @classmethod
+    def _gen_footer(cls):
+        yield "</html>"
+
+    @classmethod
+    def _gen_style(cls):
+        yield netius.common.BASE_STYLE
+
     def cleanup(self):
         netius.StreamServer.cleanup(self)
 

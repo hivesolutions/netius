@@ -84,7 +84,7 @@ class FileServer(netius.servers.HTTP2Server):
         self.index_files = index_files
         self.list_dirs = list_dirs
         self.cors = cors
-        self.cache = 0
+        self.cache = cache
 
     @classmethod
     def _sorter_build(cls, name = None):
@@ -148,82 +148,6 @@ class FileServer(netius.servers.HTTP2Server):
             _items.append(_item)
 
         return _items
-
-    @classmethod
-    def _gen_header(cls, title, style = True):
-        yield "<html>"
-        yield "<head>"
-        yield "<meta charset=\"utf-8\" />"
-        yield "<meta name=\"viewport\" content=\"width=device-width, user-scalable=no, initial-scale=1, minimum-scale=1, maximum-scale=1\" />"
-        yield "<title>%s</title>" % title
-        if style:
-            for value in cls._gen_style(): yield value
-        yield "</head>"
-
-    @classmethod
-    def _gen_footer(cls):
-        yield "</html>"
-
-    @classmethod
-    def _gen_style(cls):
-        yield """<style>
-            @import \"https://fonts.googleapis.com/css?family=Open+Sans\";
-            body {
-                color: #2d2d2d;
-                font-family: -apple-system, \"BlinkMacSystemFont\", \"Segoe UI\", \"Roboto\", \"Open Sans\", \"Helvetica\", \"Arial\", sans-serif;
-                font-size: 13px;
-                line-height: 18px;
-            }
-            h1 {
-                font-size: 22px;
-                font-weight: 500;
-                line-height: 26px;
-                margin: 14px 0px 14px 0px;
-            }
-            a {
-                color: #4769cc;
-                text-decoration: none;
-            }
-            a:hover {
-                text-decoration: underline;
-            }
-            hr {
-                margin: 3px 0px 3px 0px;
-            }
-            table {
-                font-size: 13px;
-                line-height: 20px;
-                max-width: 760px;
-                table-layout: fixed;
-                word-break: break-all;
-            }
-            table th {
-                font-weight: 500;
-            }
-            table th > *, table td > * {
-                vertical-align: middle;
-            }
-            table th > a {
-                color: #2d2d2d;
-            }
-            table th > a.selected {
-                font-weight: bold;
-                text-decoration: underline;
-            }
-            table td > svg {
-                color: #6d6d6d;
-                fill: currentColor;
-                margin-right: 6px;
-            }
-            @media screen and (max-width: 760px) {
-                table th, table td {
-                    display: none;
-                }
-                table td:nth-child(1) {
-                    display: initial;
-                }
-            }
-        </style>"""
 
     @classmethod
     def _gen_dir(cls, path, path_v, query_m, style = True):
@@ -302,21 +226,6 @@ class FileServer(netius.servers.HTTP2Server):
             yield "</tr>"
         yield "</tbody>"
         yield "</table>"
-        yield "<hr/>"
-        yield "<span>"
-        yield netius.IDENTIFIER
-        yield "</span>"
-        yield "</body>"
-
-        for value in cls._gen_footer(): yield value
-
-    @classmethod
-    def _gen_text(cls, text, style = True):
-        for value in cls._gen_header(text, style = style):
-            yield value
-
-        yield "<body>"
-        yield "<h1>%s</h1>" % text
         yield "<hr/>"
         yield "<span>"
         yield netius.IDENTIFIER
@@ -572,10 +481,8 @@ class FileServer(netius.servers.HTTP2Server):
 
     def on_no_file(self, connection):
         cls = self.__class__
-        data = "".join(cls._gen_text("File not found"))
-        data = netius.legacy.bytes(data, encoding = "utf-8", force = True)
         connection.send_response(
-            data = data,
+            data = cls.build_text("File not found"),
             headers = dict(
                 connection = "close"
             ),
@@ -586,10 +493,8 @@ class FileServer(netius.servers.HTTP2Server):
 
     def on_exception_file(self, connection, exception):
         cls = self.__class__
-        data = "".join(cls._gen_text("Problem handling request - %s" % str(exception)))
-        data = netius.legacy.bytes(data, encoding = "utf-8", force = True)
         connection.send_response(
-            data = data,
+            data = cls.build_text("Problem handling request - %s" % str(exception)),
             headers = dict(
                 connection = "close"
             ),

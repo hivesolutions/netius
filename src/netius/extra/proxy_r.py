@@ -146,6 +146,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     def on_headers(self, connection, parser):
         netius.servers.ProxyServer.on_headers(self, connection, parser)
 
+        # retrieves the reference to the parent class, so that class level
+        # methods and attributes may be accessed
+        cls = self.__class__
+
         # retrieves the various parts/configuration values of the parser, that
         # are going to be used in the processing/routing of the proxy request,
         # note that some of these values need to be transformed to be used
@@ -256,9 +260,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # against the currently defined rules and so an error must be raised
         # and propagated to the client connection (end user notification)
         if not prefix:
-            self.debug("No valid proxy endpoint found")
+            self.debug("No proxy endpoint found")
             return connection.send_response(
-                data = "No valid proxy endpoint found",
+                data = cls.build_text("No proxy endpoint found"),
                 headers = dict(
                     connection = "close"
                 ),
@@ -292,8 +296,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             # of the authentication methods was successful) sends the invalid
             # response to the client meaning that the current request is invalid
             if not result:
+                self.debug("Not authorized")
                 return connection.send_response(
-                    data = "Not authorized",
+                    data = cls.build_text("Not authorized"),
                     headers = {
                         "connection" : "close",
                         "wWW-authenticate" : "Basic realm=\"default\""

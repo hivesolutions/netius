@@ -467,6 +467,10 @@ class ProxyServer(http2.HTTP2Server):
         _connection.waiting = False
 
     def _on_prx_close(self, client, _connection):
+        # retrieves the reference to the parent class value
+        # so that it can be used for class level operations
+        cls = self.__class__
+
         # retrieves the front-end connection associated with
         # the back-end to be used for the operations in case
         # no connection is retrieved returns the control flow
@@ -478,7 +482,7 @@ class ProxyServer(http2.HTTP2Server):
         # the forbidden response is set to the client otherwise
         # the front-end connection is closed immediately
         if _connection.waiting: connection.send_response(
-            data = "Forbidden",
+            data = cls.build_text("Forbidden"),
             headers = dict(
                 connection = "close"
             ),
@@ -496,6 +500,10 @@ class ProxyServer(http2.HTTP2Server):
         del self.conn_map[_connection]
 
     def _on_prx_error(self, client, _connection, error):
+        # retrieves the reference to the parent class value
+        # so that it can be used for class level operations
+        cls = self.__class__
+
         # retrieves the front-end connection associated with
         # the proxy connection, this value is going to be
         # if sending the message to the final client
@@ -512,7 +520,7 @@ class ProxyServer(http2.HTTP2Server):
         # a closing operation on the original/proxy connection)
         error_m = str(error) or "Unknown proxy relay error"
         if _connection.waiting: connection.send_response(
-            data = error_m,
+            data = cls.build_text(error_m),
             headers = dict(
                 connection = "close"
             ),
