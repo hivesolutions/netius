@@ -1368,9 +1368,6 @@ class AbstractBase(observer.Observable):
             if signum == None: continue
             try: signal.signal(signum, handler or base_handler)
             except: self.debug("Failed to register %d handler" % signum)
-            else: self.debug("registered handlers")
-            
-            print(signal.getsignal(signum))
 
     def start(self):
         # in case the current instance is currently paused runs the
@@ -2211,15 +2208,15 @@ class AbstractBase(observer.Observable):
         else: return self.log_python_2(*args, **kwargs)
 
     def log_python_3(self, object, level = logging.INFO):
-        object_t = type(object)
-        try: message = str(object) if not object_t == str else object
+        is_str = isinstance(object, str)
+        try: message = str(object) if not is_str else object
         except: message = str(object)
         if not self.logger: return
         self.logger.log(level, message)
 
     def log_python_2(self, object, level = logging.INFO):
-        object_t = type(object)
-        try: message = unicode(object) if not object_t in legacy.str else object #@UndefinedVariable
+        is_str = isinstance(object, legacy.str)
+        try: message = unicode(object) if not is_str else object #@UndefinedVariable
         except: message = str(object).decode("utf-8", "ignore")
         if not self.logger: return
         self.logger.log(level, message)
