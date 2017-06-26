@@ -1712,6 +1712,8 @@ class AbstractBase(observer.Observable):
         # prints a debug information about the processes to be joined
         # this indicated the start of the joining process
         self.debug("Joining '%d' children processes ..." % self.children)
+        
+        return
 
         # iterates over the complete set of children to send the proper
         # terminate signal to each of them for proper termination
