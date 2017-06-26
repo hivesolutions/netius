@@ -1698,7 +1698,7 @@ class AbstractBase(observer.Observable):
         # valid value should be returned (force logic continuation)
         if self._child:
             def handler_child(signum = None, frame = None): pass
-            self.bind_signals(handler = handler)
+            self.bind_signals(handler = handler_child)
             return
 
         # registers for some of the common signals to be able to avoid
