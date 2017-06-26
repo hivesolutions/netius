@@ -2208,14 +2208,14 @@ class AbstractBase(observer.Observable):
         else: return self.log_python_2(*args, **kwargs)
 
     def log_python_3(self, object, level = logging.INFO):
-        is_str = isinstance(object, str)
+        is_str = isinstance(object, legacy.STRINGS)
         try: message = str(object) if not is_str else object
         except: message = str(object)
         if not self.logger: return
         self.logger.log(level, message)
 
     def log_python_2(self, object, level = logging.INFO):
-        is_str = isinstance(object, legacy.str)
+        is_str = isinstance(object, legacy.STRINGS)
         try: message = unicode(object) if not is_str else object #@UndefinedVariable
         except: message = str(object).decode("utf-8", "ignore")
         if not self.logger: return
