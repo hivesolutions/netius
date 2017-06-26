@@ -1691,10 +1691,7 @@ class AbstractBase(observer.Observable):
 
         # in case the current process is a child one an immediate
         # valid value should be returned (force logic continuation)
-        if self._child:
-            self.bind_signals(handler = signal.SIG_IGN)
-            self.bind_signals(signals = (signal.SIGTERM,))
-            return True
+        if self._child: return True
 
         # registers for some of the common signals to be able to avoid
         # any possible interaction with the joining process
@@ -2002,6 +1999,12 @@ class AbstractBase(observer.Observable):
         seed = str(uuid.uuid4())
         seed = legacy.bytes(seed)
         ssl.RAND_add(seed, 0.0)
+
+        # ignores the complete set of signals (avoids signal duplication)
+        # and registers for the exit on the term signal that should be
+        # sent from the parent process (proper exit/termination)
+        self.bind_signals(handler = signal.SIG_IGN)
+        self.bind_signals(signals = (signal.SIGTERM,))
 
     def on_diag(self):
         self.trigger("diag", self)
