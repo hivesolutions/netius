@@ -1693,6 +1693,10 @@ class AbstractBase(observer.Observable):
         # valid value should be returned (force logic continuation)
         if self._child:
             self.bind_signals(handler = signal.SIG_IGN)
+            self.bind_signals(
+                signals = (signal.SIGTERM,),
+                handler = signal.SIG_IGN
+            )
             return True
 
         # registers for some of the common signals to be able to avoid
