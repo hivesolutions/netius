@@ -1141,7 +1141,7 @@ class AbstractBase(observer.Observable):
         # as there's nothing remaining to be done here
         if not self.logger: return
         
-        #@todo comment this
+        #@todo this must be commented
         if self._child: return
 
         # updates the counter value for the logger and validates
@@ -1541,6 +1541,8 @@ class AbstractBase(observer.Observable):
         return self.poll.unsub_error(socket)
 
     def cleanup(self, destroy = True):
+        return
+        
         # runs the unload operation for the current base container this should
         # unset/unload some of the components for this base infra-structure
         self.unload()
@@ -1588,34 +1590,34 @@ class AbstractBase(observer.Observable):
         # iterates over the complete set of connections currently
         # registered in the base structure and closes them so that
         # can no longer be used and are gracefully disconnected
-      #  for connection in connections: connection.close()
+        for connection in connections: connection.close()
 
         # iterates over the complete set of sockets in the connections
         # map to properly close them (avoids any leak of resources)
-        #for _socket in self.connections_m: _socket.close()
+        for _socket in self.connections_m: _socket.close()
 
         # in case the current thread is the main one then in case the
         # instance set as global main is this one unsets the value
         # meaning that the main instance has been unloaded
-     #   if self._main and AbstractBase.get_main() == self:
-     #       AbstractBase.unset_main()
+        if self._main and AbstractBase.get_main() == self:
+            AbstractBase.unset_main()
 
         # closes the current poll mechanism so that no more issues arise
         # from an open poll system (memory leaks, etc.), note that this is
         # only performed in case the current base instance is the owner of
         # the poll that is going to be closed (works with containers)
-      #  if self.poll_owner: self.poll.close()
+        if self.poll_owner: self.poll.close()
 
         # deletes some of the internal data structures created for the instance
         # and that are considered as no longer required
-       # self.connections_m.clear()
-       # self.callbacks_m.clear()
-       # del self.connections[:]
-       # del self._extra_handlers[:]
+        self.connections_m.clear()
+        self.callbacks_m.clear()
+        del self.connections[:]
+        del self._extra_handlers[:]
 
         # runs the destroy operation for the current instance, this should remove
         # the most obscure parts of the current instance
-        #if destroy: self.destroy()
+        if destroy: self.destroy()
 
     def loop(self):
         # iterates continuously while the running flag is set, once
