@@ -1692,8 +1692,7 @@ class AbstractBase(observer.Observable):
         # in case the current process is a child one an immediate
         # valid value should be returned (force logic continuation)
         if self._child:
-            def handler_child(signum = None, frame = None): print("ola")
-            self.bind_signals(handler = handler_child)
+            self.bind_signals(handler = signal.SIG_IGN)
             return True
 
         # registers for some of the common signals to be able to avoid
