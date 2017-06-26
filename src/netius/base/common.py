@@ -1369,6 +1369,8 @@ class AbstractBase(observer.Observable):
             try: signal.signal(signum, handler or base_handler)
             except: self.debug("Failed to register %d handler" % signum)
             else: self.debug("registered handlers")
+            
+            print(signal.getsignal(signum))
 
     def start(self):
         # in case the current instance is currently paused runs the
