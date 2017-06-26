@@ -1538,8 +1538,6 @@ class AbstractBase(observer.Observable):
         return self.poll.unsub_error(socket)
 
     def cleanup(self, destroy = True):
-        return
-        
         # runs the unload operation for the current base container this should
         # unset/unload some of the components for this base infra-structure
         self.unload()
@@ -1694,8 +1692,7 @@ class AbstractBase(observer.Observable):
         # in case the current process is a child one an immediate
         # valid value should be returned (force logic continuation)
         if self._child:
-            def handler_child(signum = None, frame = None): pass
-            self.bind_signals(handler = handler_child)
+            self.bind_signals(handler = signal.SIG_DFL)
             return True
 
         # registers for some of the common signals to be able to avoid
@@ -1712,8 +1709,6 @@ class AbstractBase(observer.Observable):
         # prints a debug information about the processes to be joined
         # this indicated the start of the joining process
         self.debug("Joining '%d' children processes ..." % self.children)
-        
-        return
 
         # iterates over the complete set of children to send the proper
         # terminate signal to each of them for proper termination
