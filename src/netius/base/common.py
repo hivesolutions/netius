@@ -1696,7 +1696,7 @@ class AbstractBase(observer.Observable):
         # registers for some of the common signals to be able to avoid
         # any possible interaction with the joining process
         def handler(signum = None, frame = None): raise RuntimeError("signal")
-        self.bind_signals(handler = handler)
+        #self.bind_signals(handler = handler)
 
         # sleeps forever, waiting for an interruption of the current
         # process that triggers the children to quit, so that it's
