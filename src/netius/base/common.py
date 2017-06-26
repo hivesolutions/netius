@@ -1140,6 +1140,9 @@ class AbstractBase(observer.Observable):
         # current service, in case there's not returns immediately
         # as there's nothing remaining to be done here
         if not self.logger: return
+        
+        #@todo comment this
+        if self._child: return
 
         # updates the counter value for the logger and validates
         # that no more "clients" are using the logger so that it
