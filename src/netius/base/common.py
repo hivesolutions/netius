@@ -1466,10 +1466,8 @@ class AbstractBase(observer.Observable):
         try:
             self.loop()
             self.finalize()
-        except (KeyboardInterrupt, SystemExit):
+        except (KeyboardInterrupt, SystemExit, errors.StopError):
             self.info("Finishing '%s' service on user request ..." % self.name)
-        except errors.StopError:
-            self.info("Finishing child '%s' service on user request ..." % self.name)
         except errors.PauseError:
             self.debug("Pausing '%s' service main loop" % self.name)
             self.set_state(STATE_PAUSE)
@@ -1697,7 +1695,7 @@ class AbstractBase(observer.Observable):
 
         # registers for some of the common signals to be able to avoid
         # any possible interaction with the joining process
-        def handler(signum = None, frame = None): raise errors.StopError("Child signal")
+        def handler(signum = None, frame = None): raise errors.StopError("Stop")
         self.bind_signals(handler = handler)
 
         # sleeps forever, waiting for an interruption of the current
