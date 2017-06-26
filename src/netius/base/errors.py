@@ -55,9 +55,9 @@ class NetiusError(RuntimeError):
     def get_kwarg(self, name, default = None):
         return self.kwargs.get(name, default)
 
-class PauseError(NetiusError):
+class StopError(NetiusError):
     """
-    Error to be used for situations where a pause
+    Error to be used for situations where a stop
     intention is meant to be raised to upper layers.
 
     This error represent an operation and not a real
@@ -66,9 +66,9 @@ class PauseError(NetiusError):
 
     pass
 
-class StopError(NetiusError):
+class PauseError(NetiusError):
     """
-    Error to be used for situations where a stop
+    Error to be used for situations where a pause
     intention is meant to be raised to upper layers.
 
     This error represent an operation and not a real
