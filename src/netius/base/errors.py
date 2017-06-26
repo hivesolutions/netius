@@ -66,6 +66,17 @@ class PauseError(NetiusError):
 
     pass
 
+class StopError(NetiusError):
+    """
+    Error to be used for situations where a stop
+    intention is meant to be raised to upper layers.
+
+    This error represent an operation and not a real
+    error and should be used as such.
+    """
+
+    pass
+
 class DataError(NetiusError):
     """
     Error to be used for situations where the
