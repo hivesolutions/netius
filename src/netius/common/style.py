@@ -86,6 +86,10 @@ table td > svg {
     fill: currentColor;
     margin-right: 6px;
 }
+.traceback {
+    line-height: 26px;
+    margin: 8px 0px 8px 0px;
+}
 @media screen and (max-width: 760px) {
     table th, table td {
         display: none;

@@ -40,6 +40,7 @@ __license__ = "Apache License, Version 2.0"
 import zlib
 import base64
 import datetime
+import traceback
 import contextlib
 
 import netius.common
@@ -601,8 +602,15 @@ class HTTPServer(netius.StreamServer):
         self.common_file = None
 
     @classmethod
-    def build_text(cls, text, style = True, encode = True, encoding = "utf-8"):
-        data = "".join(cls._gen_text(text, style = style))
+    def build_text(
+        cls,
+        text,
+        trace = False,
+        style = True,
+        encode = True,
+        encoding = "utf-8"
+    ):
+        data = "".join(cls._gen_text(text, trace = trace, style = style))
         if encode: data = netius.legacy.bytes(
             data,
             encoding = encoding,
@@ -611,12 +619,18 @@ class HTTPServer(netius.StreamServer):
         return data
 
     @classmethod
-    def _gen_text(cls, text, style = True):
+    def _gen_text(cls, text, trace = False, style = True):
         for value in cls._gen_header(text, style = style):
             yield value
 
         yield "<body>"
         yield "<h1>%s</h1>" % text
+        if trace:
+            lines = traceback.format_exc().splitlines()
+            yield "<hr/>"
+            yield "<div class=\"traceback\">"
+            for line in lines: yield "<div>%s</div>" % line
+            yield "</div>"
         yield "<hr/>"
         yield "<span>"
         yield netius.IDENTIFIER
