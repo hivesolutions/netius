@@ -326,7 +326,7 @@ class SOCKSParser(parser.Parser):
             self.address_s = util.addr_to_ip4(self.address)
         elif self.type == IPV6:
             address_t = struct.unpack("!QQ", data)
-            self.address = (address_t[0] << 64) + address_t[1] 
+            self.address = (address_t[0] << 64) + address_t[1]
             self.address_s = util.addr_to_ip6(self.address)
         else:
             self.address = netius.legacy.str(data)
