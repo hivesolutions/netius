@@ -1099,6 +1099,20 @@ class HTTP2Server(http.HTTPServer):
         self.safe = self.get_env("SAFE", self.safe, cast = bool)
         http.HTTPServer.__init__(self, *args, **kwargs)
 
+    @classmethod
+    def _has_hpack(cls):
+        try: import hpack #@UnusedImport
+        except: return False
+        return True
+
+    @classmethod
+    def _has_alpn(cls):
+        return ssl.HAS_ALPN
+
+    @classmethod
+    def _has_npn(cls):
+        return ssl.HAS_NPN
+
     def info_dict(self, full = False):
         info = http.HTTPServer.info_dict(self, full = full)
         info.update(
@@ -1206,25 +1220,16 @@ class HTTP2Server(http.HTTPServer):
         is_debug and self._log_send(connection, parser, type, flags, payload, stream)
 
     def _has_h2(self):
-        if not self._has_hpack(): return False
+        cls = self.__class__
+        if not cls._has_hpack(): return False
         return True
 
     def _has_all_h2(self):
-        if not self._has_hpack(): return False
-        if not self._has_alpn(): return False
-        if not self._has_npn(): return False
+        cls = self.__class__
+        if not cls._has_hpack(): return False
+        if not cls._has_alpn(): return False
+        if not cls._has_npn(): return False
         return True
-
-    def _has_hpack(self):
-        try: import hpack #@UnusedImport
-        except: return False
-        return True
-
-    def _has_alpn(self):
-        return ssl.HAS_ALPN
-
-    def _has_npn(self):
-        return ssl.HAS_NPN
 
     def _handle_exception(self, exception, connection):
         stream = exception.get_kwarg("stream")
