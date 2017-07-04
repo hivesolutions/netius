@@ -67,7 +67,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.16.19"
+VERSION = "1.16.21"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -1482,7 +1482,7 @@ class AbstractBase(observer.Observable):
         try:
             self.loop()
             self.finalize()
-        except (KeyboardInterrupt, SystemExit):
+        except (KeyboardInterrupt, SystemExit, errors.StopError):
             self.info("Finishing '%s' service on user request ..." % self.name)
         except errors.PauseError:
             self.debug("Pausing '%s' service main loop" % self.name)
@@ -1715,7 +1715,7 @@ class AbstractBase(observer.Observable):
 
         # registers for some of the common signals to be able to avoid
         # any possible interaction with the joining process
-        def handler(signum = None, frame = None): raise RuntimeError("signal")
+        def handler(signum = None, frame = None): raise errors.StopError("Stop")
         self.bind_signals(handler = handler)
 
         # sleeps forever, waiting for an interruption of the current
@@ -2178,6 +2178,12 @@ class AbstractBase(observer.Observable):
         seed = legacy.bytes(seed)
         ssl.RAND_add(seed, 0.0)
 
+        # ignores the complete set of signals (avoids signal duplication)
+        # and registers for the exit on the term signal that should be
+        # sent from the parent process (proper exit/termination)
+        self.bind_signals(handler = signal.SIG_IGN)
+        self.bind_signals(signals = (signal.SIGTERM,))
+
     def on_diag(self):
         self.trigger("diag", self)
 
@@ -2551,15 +2557,15 @@ class AbstractBase(observer.Observable):
         else: return self.log_python_2(*args, **kwargs)
 
     def log_python_3(self, object, level = logging.INFO):
-        object_t = type(object)
-        try: message = str(object) if not object_t == str else object
+        is_str = isinstance(object, legacy.STRINGS)
+        try: message = str(object) if not is_str else object
         except: message = str(object)
         if not self.logger: return
         self.logger.log(level, message)
 
     def log_python_2(self, object, level = logging.INFO):
-        object_t = type(object)
-        try: message = unicode(object) if not object_t in legacy.str else object #@UndefinedVariable
+        is_str = isinstance(object, legacy.STRINGS)
+        try: message = unicode(object) if not is_str else object #@UndefinedVariable
         except: message = str(object).decode("utf-8", "ignore")
         if not self.logger: return
         self.logger.log(level, message)

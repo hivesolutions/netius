@@ -66,6 +66,28 @@ class RuntimeError(NetiusError):
 
     pass
 
+class StopError(RuntimeError):
+    """
+    Error to be used for situations where a stop
+    intention is meant to be raised to upper layers.
+
+    This error represent an operation and not a real
+    error and should be used as such.
+    """
+
+    pass
+
+class PauseError(RuntimeError):
+    """
+    Error to be used for situations where a pause
+    intention is meant to be raised to upper layers.
+
+    This error represent an operation and not a real
+    error and should be used as such.
+    """
+
+    pass
+
 class DataError(RuntimeError):
     """
     Error to be used for situations where the
@@ -129,17 +151,6 @@ class AssertionError(RuntimeError):
     """
     Error raised for failure to meet any pre-condition or
     assertion for a certain data set.
-    """
-
-    pass
-
-class PauseError(NetiusError):
-    """
-    Error to be used for situations where a pause
-    intention is meant to be raised to upper layers.
-
-    This error represents an operation and not a real
-    error and should be used as such.
     """
 
     pass

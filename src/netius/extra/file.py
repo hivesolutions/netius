@@ -166,6 +166,7 @@ class FileServer(netius.servers.HTTP2Server):
         if not is_root: items.insert(0, "..")
 
         items = cls._items_normalize(items, path, pad = not style)
+        items.sort(key = lambda v: v["name"])
         items.sort(
             key = cls._sorter_build(name = sort),
             reverse = reverse
@@ -494,7 +495,10 @@ class FileServer(netius.servers.HTTP2Server):
     def on_exception_file(self, connection, exception):
         cls = self.__class__
         connection.send_response(
-            data = cls.build_text("Problem handling request - %s" % str(exception)),
+            data = cls.build_text(
+                "Problem handling request - %s" % str(exception),
+                trace = self.is_devel()
+            ),
             headers = dict(
                 connection = "close"
             ),

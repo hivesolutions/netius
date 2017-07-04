@@ -113,6 +113,13 @@ class SOCKSConnection(netius.Connection):
         self.owner.on_auth_socks(self, self.parser)
 
 class SOCKSServer(netius.ContainerServer):
+    """
+    SOCKS base server class to be used as an implementation of the
+    RFC 1928 or SOCKSv5 and the SOCKSv4 protocols.
+
+    There are some aspects of the implementation that may not be
+    performant driven for readability purposes.
+    """
 
     def __init__(self, rules = {}, throttle = True, max_pending = MAX_PENDING, *args, **kwargs):
         netius.ContainerServer.__init__(
