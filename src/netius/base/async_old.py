@@ -297,7 +297,7 @@ def sleep(timeout, compat = True, future = None):
     loop = get_loop()
     compat &= hasattr(loop, "_sleep")
     sleep = loop._sleep if compat else loop.sleep
-    for value in loop.sleep(timeout, future = future): yield value
+    for value in sleep(timeout, future = future): yield value
 
 def wait(event, timeout = None, future = None):
     from .common import get_loop
