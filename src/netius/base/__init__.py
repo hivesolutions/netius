@@ -68,7 +68,7 @@ from .compat import BaseLoop, CompatLoop, is_compat, is_asyncio
 from .config import conf, conf_prefix, conf_suffix, conf_s, conf_d
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
-from .errors import NetiusError, StopError, PauseError, DataError, ParserError,\
+from .errors import NetiusError, RuntimeError, StopError, PauseError, DataError, ParserError,\
     GeneratorError, SecurityError, NotImplemented, AssertionError
 from .log import SILENT, rotating_handler, smtp_handler
 from .observer import Observable
