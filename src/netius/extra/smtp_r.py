@@ -128,7 +128,8 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # considered valid and then re-joins the message as a string
         headers, body = netius.common.rfc822_parse(contents)
         received = connection.received_s()
-        message_id = headers.get("Message-ID", message_id)
+        message_id = headers.pop("Message-Id", message_id)
+        message_id = headers.pop("Message-ID", message_id)
         headers.set("Date", date)
         headers.set("Received", received)
         headers.set("Message-ID", message_id)

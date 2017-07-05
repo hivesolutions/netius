@@ -128,6 +128,12 @@ class Headers(list):
         if key in self and not append: self.item(key)[1] = value
         else: self[key] = value
 
+    def pop(self, key, default = None):
+        if not key in self: return default
+        value = self[key]
+        del self[key]
+        return value
+
     def join(self, separator = "\r\n"):
         separator = netius.legacy.bytes(separator)
         return separator.join([key + b": " + value for key, value in self])
