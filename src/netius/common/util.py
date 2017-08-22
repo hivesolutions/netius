@@ -364,7 +364,7 @@ def size_round_unit(
             depth = new_depth
         )
 
-def verify(condition, message = None):
+def verify(condition, message = None, exception = None):
     """
     Ensures that the requested condition returns a valid value
     and if that's no the case an exception raised breaking the
@@ -376,7 +376,12 @@ def verify(condition, message = None):
     :type message: String
     :param message: The message to be used in the building of the
     exception that is going to be raised in case of condition failure.
+    :type exception: Class
+    :param exception: The exception class that is going to be used
+    to build the exception to be raised in case the condition
+    verification operation fails.
     """
 
     if condition: return
-    raise netius.AssertionError(message or "Assertion Error")
+    exception = exception or netius.AssertionError
+    raise exception(message or "Assertion Error")
