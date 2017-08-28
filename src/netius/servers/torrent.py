@@ -803,11 +803,11 @@ class TorrentServer(netius.ContainerServer):
     def download(self, target_path, torrent_path = None, info_hash = None, close = False):
         """
         Starts the "downloading" process of a torrent associated file
-        using the defined peer to peer torrent strategy suing either
+        using the defined peer to peer torrent strategy using either
         the provided torrent path as reference or just the info hash
         of the file that is going to be downloaded.
 
-        Note that if only the info hash is provided a DHT bases strategy
+        Note that if only the info hash is provided a DHT based strategy
         is going to be used to retrieve the peers list.
 
         The returned value is the task entity representing the newly created
