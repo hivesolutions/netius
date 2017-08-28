@@ -50,6 +50,12 @@ sys.path.insert(0, NETIUS_DIR)
 
 import netius.common
 
+def read_file(path):
+    if not os.path.exists(path): return None
+    file = open(path, "r")
+    try: return file.read()
+    finally: file.close()
+
 netius.common.ensure_setup()
 setuptools.setup(
     name = "netius",
@@ -99,5 +105,6 @@ setuptools.setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6"
-    ]
+    ],
+    long_description = read_file("README.rst")
 )
