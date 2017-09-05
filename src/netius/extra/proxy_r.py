@@ -348,7 +348,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         encoding = netius.common.CHUNKED_ENCODING if is_chunked else\
             netius.common.PLAIN_ENCODING
 
-        # calls the proper (http) method in the client this should acquire
+        # calls the proper (HTTP) method in the client this should acquire
         # a new connection and start the process of sending the request
         # to the associated http server (request handling)
         _connection = self.http_client.method(
