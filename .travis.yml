@@ -17,6 +17,8 @@ python:
   - "pypy3-2.4.0"
   - "pypy2.7-5.8.0"
   - "pypy3.5-5.8.0"
+before_install:
+  - if [[ $TRAVIS_PYTHON_VERSION != "3.2" ]]; then pip install --upgrade pip setuptools; fi
 install:
   - pip install "pkginfo<1.3"
   - pip install -r requirements.txt
