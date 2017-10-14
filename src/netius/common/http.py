@@ -560,15 +560,24 @@ class HTTPParser(parser.Parser):
         self.buffer.append(b"\r\n")
 
         # splits the line around its various components, verifying than
-        # that the number of provided items is the expected one
+        # that the number of provided items is the expected one, notice
+        # that for responses the parsing is relaxed as the status string
+        # can be an empty string (no message to be presented)
         values = self.line_s.split(" ", 2)
-        if not len(values) == 3:
-            raise netius.ParserError("Invalid status line '%s'" % self.line_s)
+        if self.type == RESPONSE and len(values) == 2: values.append("")
+        if not len(values) == 3: raise netius.ParserError(
+            "Invalid status line '%s'" % self.line_s
+        )
 
+        # determines if the current type of parsing is request based
+        # and if that's the case unpacks the status line as a request
         if self.type == REQUEST:
             self.method_s, self.path_s, self.version_s = values
             self.method = self.method_s.lower()
             self.version = VERSIONS_MAP.get(self.version_s, HTTP_10)
+
+        # otherwise ensures that the parsing type is response based
+        # and unpacks the status line accordingly
         elif self.type == RESPONSE:
             self.version_s, self.code_s, self.status_s = values
             self.version = VERSIONS_MAP.get(self.version_s, HTTP_10)
