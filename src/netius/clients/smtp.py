@@ -558,6 +558,10 @@ class SMTPClient(netius.StreamClient):
                 _host = host or address
                 _port = port or 25
 
+                # prints a debug message about the connection that is now
+                # going to be established (helps with debugging purposes)
+                self.debug("Establishing SMTP connection with %s:%d ..." % (_host, _port))
+
                 # establishes the connection to the target host and port
                 # and using the provided key and certificate files and then
                 # sets the smtp information in the current connection, after
