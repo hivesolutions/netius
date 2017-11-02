@@ -536,6 +536,7 @@ class SMTPClient(netius.StreamClient):
                     # fallback for this connections is handled
                     if not response.answers:
                         on_close()
+                        if self.auto_close: self.close()
                         raise netius.NetiusError(
                             "Not possible to resolve mx for '%s'" % domain
                         )
@@ -671,7 +672,22 @@ if __name__ == "__main__":
     mime["To"] = receiver
     contents = mime.as_string()
 
+    host = netius.conf("SMTP_HOST", None)
+    port = netius.conf("SMTP_PORT", 25, cast = int),
+    username = netius.conf("SMTP_USER", None)
+    password = netius.conf("SMTP_PASSWORD", None)
+    stls = netius.conf("SMTP_STARTTLS", False, cast = bool)
+
     client = SMTPClient(auto_close = True)
-    client.message([sender], [receiver], contents)
+    client.message(
+        [sender],
+        [receiver],
+        contents,
+        host = host,
+        port = port,
+        username = username,
+        password = password,
+        stls = stls
+    )
 else:
     __path__ = []
