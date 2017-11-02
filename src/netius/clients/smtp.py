@@ -663,20 +663,19 @@ class SMTPClient(netius.StreamClient):
 if __name__ == "__main__":
     import email.mime.text
 
-    sender = "hello@bemisc.com"
-    receiver = "hello@bemisc.com"
+    sender = netius.conf("SMTP_SENDER", "hello@bemisc.com")
+    receiver = netius.conf("SMTP_RECEIVER", "hello@bemisc.com")
+    host = netius.conf("SMTP_HOST", None)
+    port = netius.conf("SMTP_PORT", 25, cast = int)
+    username = netius.conf("SMTP_USER", None)
+    password = netius.conf("SMTP_PASSWORD", None)
+    stls = netius.conf("SMTP_STARTTLS", False, cast = bool)
 
     mime = email.mime.text.MIMEText("Hello World")
     mime["Subject"] = "Hello World"
     mime["From"] = sender
     mime["To"] = receiver
     contents = mime.as_string()
-
-    host = netius.conf("SMTP_HOST", None)
-    port = netius.conf("SMTP_PORT", 25, cast = int),
-    username = netius.conf("SMTP_USER", None)
-    password = netius.conf("SMTP_PASSWORD", None)
-    stls = netius.conf("SMTP_STARTTLS", False, cast = bool)
 
     client = SMTPClient(auto_close = True)
     client.message(
