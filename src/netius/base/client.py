@@ -993,8 +993,6 @@ class StreamClient(Client):
         _socket = connection.socket
         connection.open(connect = True)
 
-        print(connection.address)
-
         # tries to run the non blocking connection it should
         # fail and the connection should only be considered as
         # open when a write event is raised for the connection

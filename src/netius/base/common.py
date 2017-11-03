@@ -1637,6 +1637,8 @@ class AbstractBase(observer.Observable):
             # of connection for each of the three operations returning
             # the resulting active sets for the callbacks
             reads, writes, errors = self.poll.poll()
+            
+            print((reads, writes, errors))
 
             # calls the various callbacks with the selections lists,
             # these are the main entry points for the logic to be executed
