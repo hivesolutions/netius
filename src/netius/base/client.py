@@ -845,6 +845,10 @@ class StreamClient(Client):
         # is ready for the write operation and verifies that it
         # exists and the current status of it is open (required)
         connection = self.connections_m.get(_socket, None)
+        print("on_write")
+        print(connection)
+        print(connection.status == OPEN)
+        print(connection.connecting)
         if not connection: return
         if not connection.status == OPEN: return
 
