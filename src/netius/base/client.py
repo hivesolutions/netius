@@ -942,14 +942,14 @@ class StreamClient(Client):
         this should be done in certain steps of the connection.
 
         The process of finishing the connecting process should include
-        the ssl handshaking process.
+        the SSL handshaking process.
 
         :type connection: Connection
         :param connection: The connection that should have the connect
         process tested for finishing.
         """
 
-        # in case the ssl connection is still undergoing the handshaking
+        # in case the SSL connection is still undergoing the handshaking
         # procedures (marked as connecting) ignores the call as this must
         # be a duplicated call to this method (to be ignored)
         if connection.ssl_connecting: return
@@ -960,7 +960,7 @@ class StreamClient(Client):
         error = connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
         if error: self.on_error(connection.socket); return
 
-        # checks if the current connection is ssl based and if that's the
+        # checks if the current connection is SSL based and if that's the
         # case starts the handshaking process (async non blocking) otherwise
         # calls the on connect callback with the newly created connection
         if connection.ssl: connection.add_starter(self._ssl_handshake)
@@ -968,7 +968,7 @@ class StreamClient(Client):
 
         # runs the starter process (initial kick-off) so that all the starters
         # registered for the connection may start to be executed, note that if
-        # the ssl handshake starter has been registered its first execution is
+        # the SSL handshake starter has been registered its first execution is
         # going to be triggered by this call
         connection.run_starter()
 
@@ -992,6 +992,8 @@ class StreamClient(Client):
         # with the correct operations for the connection
         _socket = connection.socket
         connection.open(connect = True)
+
+        print(connection.address)
 
         # tries to run the non blocking connection it should
         # fail and the connection should only be considered as
@@ -1026,22 +1028,22 @@ class StreamClient(Client):
         else:
             self._connectf(connection)
 
-        # in case the connection is not of type ssl the method
+        # in case the connection is not of type SSL the method
         # may return as there's nothing left to be done, as the
-        # rest of the method is dedicated to ssl tricks
+        # rest of the method is dedicated to SSL tricks
         if not connection.ssl: return
 
-        # verifies if the current ssl object is a context oriented one
+        # verifies if the current SSL object is a context oriented one
         # (newest versions) or a legacy oriented one, that does not uses
         # any kind of context object, this is relevant in order to make
-        # decisions on how the ssl object may be re-constructed
+        # decisions on how the SSL object may be re-constructed
         has_context = hasattr(_socket, "context")
         has_sock = hasattr(_socket, "_sock")
 
-        # creates the ssl object for the socket as it may have been
-        # destroyed by the underlying ssl library (as an error) because
+        # creates the SSL object for the socket as it may have been
+        # destroyed by the underlying SSL library (as an error) because
         # the socket is of type non blocking and raises an error, note
-        # that the creation of the socket varies between ssl versions
+        # that the creation of the socket varies between SSL versions
         if _socket._sslobj: return
         if has_context: _socket._sslobj = _socket.context._wrap_socket(
             _socket,
@@ -1058,7 +1060,7 @@ class StreamClient(Client):
             _socket.ca_certs
         )
 
-        # verifies if the ssl object class is defined in the ssl module
+        # verifies if the SSL object class is defined in the SSL module
         # and if that's the case an extra wrapping operation is performed
         # in order to comply with new indirection/abstraction methods
         if not hasattr(ssl, "SSLObject"): return
@@ -1067,7 +1069,7 @@ class StreamClient(Client):
     def _ssl_handshake(self, connection):
         Client._ssl_handshake(self, connection)
 
-        # verifies if the socket still has finished the ssl handshaking
+        # verifies if the socket still has finished the SSL handshaking
         # process (by verifying the appropriate flag) and then if that's
         # not the case returns immediately (nothing done)
         if not connection.ssl_handshake: return
@@ -1077,6 +1079,6 @@ class StreamClient(Client):
         self.debug("SSL Handshaking completed for connection")
 
         # calls the proper callback on the connection meaning
-        # that ssl is now enabled for that socket/connection and so
+        # that SSL is now enabled for that socket/connection and so
         # the communication between peers is now secured
         self.on_ssl(connection)
