@@ -1145,8 +1145,10 @@ if __name__ == "__main__":
     def on_close(client, connection):
         client.close()
 
+    url = netius.conf("HTTP_URL", "https://www.flickr.com/")
+
     client = HTTPClient()
-    client.get("https://www.flickr.com/")
+    client.get(url)
     client.bind("headers", on_headers)
     client.bind("partial", on_partial)
     client.bind("message", on_message)

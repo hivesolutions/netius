@@ -850,7 +850,7 @@ class StreamClient(Client):
         print(self.connections_m)
 
         if not connection: return
-        
+
         print(connection.status == OPEN)
         print(connection.connecting)
         if not connection.status == OPEN: return
