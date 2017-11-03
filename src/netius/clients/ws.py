@@ -228,8 +228,10 @@ if __name__ == "__main__":
     def on_close(client, connection):
         client.close()
 
+    url = netius.conf("WS_URL", "ws://echo.websocket.org/")
+
     client = WSClient()
-    client.connect_ws("ws://echo.websocket.org/")
+    client.connect_ws(url)
     client.bind("handshake", on_handshake)
     client.bind("message", on_message)
     client.bind("close", on_close)
