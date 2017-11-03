@@ -1006,6 +1006,7 @@ class StreamClient(Client):
         # open when a write event is raised for the connection
         try: _socket.connect(connection.address)
         except ssl.SSLError as error:
+            print(error)
             error_v = error.args[0] if error.args else None
             if not error_v in SSL_VALID_ERRORS:
                 self.warning(error)
@@ -1014,6 +1015,7 @@ class StreamClient(Client):
                 connection.close()
                 return
         except socket.error as error:
+            print(error)
             error_v = error.args[0] if error.args else None
             if not error_v in VALID_ERRORS:
                 self.warning(error)
@@ -1022,6 +1024,7 @@ class StreamClient(Client):
                 connection.close()
                 return
         except BaseException as exception:
+            print(exception)
             self.warning(exception)
             self.log_stack()
             self.trigger("error", self, connection, exception)
@@ -1032,6 +1035,7 @@ class StreamClient(Client):
         # and the finish connect method should be called indicating
         # that the connect operation has completed successfully
         else:
+            print("NO ERROR")
             self._connectf(connection)
 
         # in case the connection is not of type SSL the method
