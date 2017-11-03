@@ -847,9 +847,12 @@ class StreamClient(Client):
         connection = self.connections_m.get(_socket, None)
         print("on_write")
         print(connection)
+        print(self.connections_m)
+
+        if not connection: return
+        
         print(connection.status == OPEN)
         print(connection.connecting)
-        if not connection: return
         if not connection.status == OPEN: return
 
         # in case the connection is under the connecting state
