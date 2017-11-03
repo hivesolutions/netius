@@ -717,6 +717,8 @@ class StreamClient(Client):
         _socket = socket.socket(family, type)
         _socket.setblocking(0)
 
+        # in case the ssl flag is set re-creates the socket by wrapping it into
+        # an ssl based one with the provided set of keys and certificates
         if ssl: _socket = self._ssl_wrap(
             _socket,
             key_file = key_file,
@@ -727,6 +729,8 @@ class StreamClient(Client):
             server = False
         )
 
+        # sets the appropriate socket options enable it for port re-usage and
+        # for proper keep alive notification, among others
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         if is_inet: _socket.setsockopt(
@@ -890,11 +894,19 @@ class StreamClient(Client):
         connection.close()
 
     def on_connect(self, connection):
+        self.debug(
+            "Connection '%s' from '%s' connected" %
+            (connection.id, connection.owner.name)
+        )
         connection.set_connected()
         if hasattr(connection, "tuple"):
             self.on_acquire(connection)
 
     def on_upgrade(self, connection):
+        self.debug(
+            "Connection '%s' from '%s' upgraded" %
+            (connection.id, connection.owner.name)
+        )
         connection.set_upgraded()
 
     def on_ssl(self, connection):
