@@ -60,6 +60,7 @@ corresponds to an header line or not """
 MIME_TYPES = (
     (".csv", "text/csv"),
     (".ini", "text/plain"),
+    (".js", "application/javascript"),
     (".log", "text/plain"),
     (".mka", "audio/x-matroska"),
     (".mkv", "video/x-matroska"),
