@@ -926,6 +926,11 @@ class HTTPClient(netius.StreamClient):
         has_request = not async and not on_data and not callback
         has_request = has_request or on_result
         if has_request:
+            # saves the references to the previous callback method so that
+            # they can be used from the current request based approach
+            _on_close = on_close
+            _on_data = on_data
+            _callback = callback
 
             # creates both the buffer list and the request structure so that
             # they may be used for the correct construction of the request
@@ -936,6 +941,7 @@ class HTTPClient(netius.StreamClient):
             connection._request = id(request)
 
             def on_finish(connection):
+                if _on_close: _on_close(connection)
                 connection._request = None
                 if request["code"]: return
                 cls.set_error(
@@ -947,12 +953,14 @@ class HTTPClient(netius.StreamClient):
                 if self.auto_pause: self.pause()
 
             def on_partial(connection, parser, data):
+                if _on_data: _on_data(connection, parser, data)
                 buffer.append(data)
                 received = request.get("received", 0)
                 request["received"] = received + len(data)
                 request["last"] = time.time()
 
             def on_message(connection, parser, message):
+                if _callback: _callback(connection, parser, message)
                 cls.set_request(parser, buffer, request = request)
                 if on_result: on_result(connection, parser, request)
 
