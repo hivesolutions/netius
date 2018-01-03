@@ -926,8 +926,9 @@ class HTTPClient(netius.StreamClient):
         has_request = not async and not on_data and not callback
         has_request = has_request or on_result
         if has_request:
-            # saves the references to the previous callback method so that
-            # they can be used from the current request based approach
+            # saves the references to the previous callback methods so that
+            # they can be used latter for pipelining calls inside the new
+            # clojure methods that are going to be created
             _on_close = on_close
             _on_data = on_data
             _callback = callback
