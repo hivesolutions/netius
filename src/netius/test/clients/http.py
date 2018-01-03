@@ -52,7 +52,7 @@ class HTTPClientTest(unittest.TestCase):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "http://%s/get" % self.httpbin,
-            async = False
+            asynchronous = False
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
@@ -61,7 +61,7 @@ class HTTPClientTest(unittest.TestCase):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "https://%s/get" % self.httpbin,
-            async = False
+            asynchronous = False
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
@@ -72,7 +72,7 @@ class HTTPClientTest(unittest.TestCase):
             "GET",
             "http://%s/delay/3" % self.httpbin,
             timeout = 1,
-            async = False
+            asynchronous = False
         )
         self.assertEqual(result["error"], "timeout")
         self.assertEqual(result["message"].startswith("Timeout on receive"), True)
@@ -81,7 +81,7 @@ class HTTPClientTest(unittest.TestCase):
             "GET",
             "http://%s/delay/1" % self.httpbin,
             timeout = 30,
-            async = False
+            asynchronous = False
         )
         self.assertEqual(result.get("error", None), None)
         self.assertEqual(result.get("message", None), None)
@@ -93,7 +93,7 @@ class HTTPClientTest(unittest.TestCase):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "http://%s/gzip" % self.httpbin,
-            async = False
+            asynchronous = False
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
@@ -102,7 +102,7 @@ class HTTPClientTest(unittest.TestCase):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "http://%s/deflate" % self.httpbin,
-            async = False
+            asynchronous = False
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
@@ -112,7 +112,7 @@ class HTTPClientTest(unittest.TestCase):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "http://%s/headers" % self.httpbin,
-            async = False
+            asynchronous = False
         )
         payload = json.loads(result["data"].decode("utf-8"))
         headers = payload["headers"]
@@ -125,7 +125,7 @@ class HTTPClientTest(unittest.TestCase):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "http://%s/image/png" % self.httpbin,
-            async = False
+            asynchronous = False
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)

@@ -82,7 +82,7 @@ def upnp_map(ext_port, int_port, host, protocol = "TCP", description = "netius")
                 SOAPACTION = "\"urn:schemas-upnp-org:service:WANIPConnection:1#AddPortMapping\""
             ),
             data = message,
-            async = False
+            asynchronous = False
         )
         client = connection.owner
         client.close()

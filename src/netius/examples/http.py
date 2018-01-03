@@ -42,7 +42,7 @@ import netius.clients
 def http_static():
     request = netius.clients.HTTPClient.get_s(
         "https://www.flickr.com/",
-        async = False
+        asynchronous = False
     )
     print(request["data"])
 

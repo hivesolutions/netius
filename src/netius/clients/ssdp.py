@@ -85,7 +85,7 @@ class SSDPClient(netius.DatagramClient):
         port = 1900,
         version = "HTTP/1.1",
         connection = None,
-        async = True,
+        asynchronous = True,
         callback = None
     ):
         address = (host, port)

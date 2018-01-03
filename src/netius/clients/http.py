@@ -40,6 +40,7 @@ __license__ = "Apache License, Version 2.0"
 import time
 import zlib
 import base64
+import tempfile
 
 import netius.common
 
@@ -635,9 +636,10 @@ class HTTPClient(netius.StreamClient):
         version = "HTTP/1.1",
         safe = False,
         connection = None,
-        async = True,
+        asynchronous = True,
         daemon = True,
         timeout = None,
+        use_file = False,
         callback = None,
         on_close = None,
         on_headers = None,
@@ -650,7 +652,7 @@ class HTTPClient(netius.StreamClient):
             thread = True,
             daemon = daemon,
             **kwargs
-        ) if async else HTTPClient(
+        ) if asynchronous else HTTPClient(
             thread = False,
             auto_close = True,
             **kwargs
@@ -665,8 +667,9 @@ class HTTPClient(netius.StreamClient):
             version = version,
             safe = safe,
             connection = connection,
-            async = async,
+            asynchronous = asynchronous,
             timeout = timeout,
+            use_file = use_file,
             callback = callback,
             on_close = on_close,
             on_headers = on_headers,
@@ -677,7 +680,7 @@ class HTTPClient(netius.StreamClient):
         # in case the async mode is active, the http client loop
         # must be awaken so that the set of operations are processed
         # as soon as possible in that thread
-        if async: http_client.wakeup()
+        if asynchronous: http_client.wakeup()
 
         # returns the "final" result to the caller method so that
         # it may be used/processed by it (as expected)
@@ -711,6 +714,52 @@ class HTTPClient(netius.StreamClient):
         except: return zlib.decompress(data, -zlib.MAX_WBITS)
 
     @classmethod
+    def decode_zlib_file(
+        cls,
+        input,
+        output,
+        buffer_size = 16384,
+        wbits = zlib.MAX_WBITS | 16
+    ):
+        decompressor = zlib.decompressobj(wbits)
+        while True:
+            data = input.read(buffer_size)
+            if not data: break
+            raw_data = decompressor.decompress(data)
+            output.write(raw_data)
+        return output
+
+    @classmethod
+    def decode_gzip_file(
+        cls,
+        input,
+        output,
+        buffer_size = 16384,
+        wbits = zlib.MAX_WBITS | 16
+    ):
+        return cls.decode_gzip_file(
+            input,
+            output,
+            buffer_size = buffer_size,
+            wbits = wbits
+        )
+
+    @classmethod
+    def decode_deflate_file(
+        cls,
+        input,
+        output,
+        buffer_size = 16384,
+        wbits = -zlib.MAX_WBITS
+    ):
+        return cls.decode_gzip_file(
+            input,
+            output,
+            buffer_size = buffer_size,
+            wbits = wbits
+        )
+
+    @classmethod
     def set_request(cls, parser, buffer, request = None):
         if request == None: request = dict()
         headers = parser.get_headers()
@@ -722,6 +771,55 @@ class HTTPClient(netius.StreamClient):
         request["status"] = parser.status
         request["headers"] = headers
         request["data"] = data
+        return request
+
+    @classmethod
+    def set_request_file(
+        cls,
+        parser,
+        input,
+        request = None,
+        output = None,
+        buffer_size = 16384
+    ):
+        # verifies if a request object has been passes to the current
+        # method and if that's not the case creates a new one (as a map)
+        if request == None: request = dict()
+
+        # retrieves the complete set of headers and tries discover the
+        # encoding of it and the associated decoder (if any)
+        headers = parser.get_headers()
+        encoding = headers.get("Content-Encoding", None)
+        decoder = getattr(cls, "decode_%s_file" % encoding) if encoding else None
+
+        # in case there's a decoder and an input (file) then runs the decoding
+        # process setting the data as the resulting (decoded object)
+        if decoder and input:
+            if output == None: output = tempfile.NamedTemporaryFile(mode = "w+b")
+            data = decoder(
+                input, output, buffer_size = buffer_size
+            )
+            input.close()
+
+        # otherwise it's a simplified process (no decoding required) and the
+        # data may be set directly as the input file
+        else:
+            data = input
+
+        # seeks the data object to the initial position so that it
+        # is set as ready to be read from a third party
+        data.seek(0)
+
+        # updates the structure of the request object/map so that it
+        # contains a series of information on the request, including
+        # the file contents (stored in a temporary file)
+        request["code"] = parser.code
+        request["status"] = parser.status
+        request["headers"] = headers
+        request["data"] = data
+
+        # returns the request object that has just been populated
+        # to the caller method so that it may be used to read the contents
         return request
 
     @classmethod
@@ -808,8 +906,9 @@ class HTTPClient(netius.StreamClient):
         encodings = "gzip, deflate",
         safe = False,
         connection = None,
-        async = True,
+        asynchronous = True,
         timeout = None,
+        use_file = False,
         callback = None,
         on_close = None,
         on_headers = None,
@@ -832,7 +931,7 @@ class HTTPClient(netius.StreamClient):
         # by the http method loader method, note that in case the loading
         # process as already been executed the logic is ignored, the
         # execution of the load is only applied to non async requests
-        not async and self.load()
+        not asynchronous and self.load()
 
         # creates the message that is going to be used in the logging of
         # the current method request for debugging purposes, this may be
@@ -923,12 +1022,11 @@ class HTTPClient(netius.StreamClient):
         # when then on result callback is defined, this callback receives
         # this request structure as the result, and it contains the
         # complete set of contents of the http request (easy usage)
-        has_request = not async and not on_data and not callback
+        has_request = not asynchronous and not on_data and not callback
         has_request = has_request or on_result
         if has_request:
-            # saves the references to the previous callback methods so that
-            # they can be used latter for pipelining calls inside the new
-            # clojure methods that are going to be created
+            # saves the references to the previous callback method so that
+            # they can be used from the current request based approach
             _on_close = on_close
             _on_data = on_data
             _callback = callback
@@ -937,7 +1035,7 @@ class HTTPClient(netius.StreamClient):
             # they may be used for the correct construction of the request
             # structure that is going to be send in the callback, then sets
             # the identifier (memory address) of the request in the connection
-            buffer = []
+            buffer = tempfile.NamedTemporaryFile(mode = "w+b") if use_file else []
             request = dict(code = None, data = None)
             connection._request = id(request)
 
@@ -955,14 +1053,16 @@ class HTTPClient(netius.StreamClient):
 
             def on_partial(connection, parser, data):
                 if _on_data: _on_data(connection, parser, data)
-                buffer.append(data)
+                if use_file: buffer.write(data)
+                else: buffer.append(data)
                 received = request.get("received", 0)
                 request["received"] = received + len(data)
                 request["last"] = time.time()
 
             def on_message(connection, parser, message):
                 if _callback: _callback(connection, parser, message)
-                cls.set_request(parser, buffer, request = request)
+                if use_file: cls.set_request_file(parser, buffer, request = request)
+                else: cls.set_request(parser, buffer, request = request)
                 if on_result: on_result(connection, parser, request)
 
             # sets the proper callback references so that the newly created
@@ -1042,7 +1142,7 @@ class HTTPClient(netius.StreamClient):
         # defines the proper return result value taking into account if
         # this is a synchronous or asynchronous request, one uses the
         # connection as the result and the other the request structure
-        if async: result = connection
+        if asynchronous: result = connection
         elif has_request: result = request
         else: result = None
 
@@ -1072,7 +1172,7 @@ class HTTPClient(netius.StreamClient):
         # asynchronous tries to start the current event loop (blocking
         # the current workflow) then returns the proper value to the
         # caller method (taking into account if it is sync or async)
-        not async and not connection.is_closed() and self.start()
+        not asynchronous and not connection.is_closed() and self.start()
         return result
 
     def on_connect(self, connection):
