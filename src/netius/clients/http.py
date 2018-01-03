@@ -737,7 +737,7 @@ class HTTPClient(netius.StreamClient):
         buffer_size = 16384,
         wbits = zlib.MAX_WBITS | 16
     ):
-        return cls.decode_gzip_file(
+        return cls.decode_zlib_file(
             input,
             output,
             buffer_size = buffer_size,
@@ -752,7 +752,7 @@ class HTTPClient(netius.StreamClient):
         buffer_size = 16384,
         wbits = -zlib.MAX_WBITS
     ):
-        return cls.decode_gzip_file(
+        return cls.decode_zlib_file(
             input,
             output,
             buffer_size = buffer_size,
@@ -796,10 +796,15 @@ class HTTPClient(netius.StreamClient):
         # process setting the data as the resulting (decoded object)
         if decoder and input:
             if output == None: output = tempfile.NamedTemporaryFile(mode = "w+b")
-            data = decoder(
-                input, output, buffer_size = buffer_size
-            )
-            input.close()
+            input.seek(0)
+            try:
+                data = decoder(
+                    input,
+                    output,
+                    buffer_size = buffer_size
+                )
+            finally:
+                input.close()
 
         # otherwise it's a simplified process (no decoding required) and the
         # data may be set directly as the input file
