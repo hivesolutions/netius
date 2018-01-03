@@ -727,6 +727,8 @@ class HTTPClient(netius.StreamClient):
             if not data: break
             raw_data = decompressor.decompress(data)
             output.write(raw_data)
+        raw_data = decompressor.flush()
+        output.write(raw_data)
         return output
 
     @classmethod
