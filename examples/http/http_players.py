@@ -52,6 +52,7 @@ HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/45.0.2454.101 Safari/537.36"
     ),
+    "connection": ("keep-alive")
 }
 
 async def get_players(player_args, season = "2016-17"):
