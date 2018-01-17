@@ -338,7 +338,8 @@ class CompatTransport(BaseTransport):
         self._protocol.data_received(data)
 
     def _on_close(self, connection):
-        if self._protocol: self._protocol.eof_received()
+        if not self._protocol == None:
+            self._protocol.eof_received()
         self._cleanup()
 
     def _set_compat(self, protocol):
@@ -354,5 +355,9 @@ class CompatTransport(BaseTransport):
         if mark: self._protocol.connection_made(self)
 
     def _cleanup(self):
-        self._loop.call_soon(self._protocol.connection_lost, None)
+        self._loop.call_soon(self._call_connection_lost, None)
         self._loop = None
+
+    def _call_connection_lost(self, context):
+        if not self._protocol == None:
+            self._protocol.connection_lost(context)
