@@ -37,10 +37,12 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import sys
 import time
 import socket
 
 from . import errors
+from . import legacy
 from . import asynchronous
 
 asyncio = asynchronous.get_asyncio() if asynchronous.is_neo() else None
@@ -62,6 +64,7 @@ class CompatLoop(BaseLoop):
         self._loop = loop
         self._task_factory = asynchronous.Task
         self._executor = asynchronous.ThreadPoolExecutor(loop)
+        self._handler = self._default_handler
 
     def __getattr__(self, name):
         if hasattr(self._loop, name):
@@ -125,6 +128,19 @@ class CompatLoop(BaseLoop):
     def run_in_executor(self, *args, **kwargs):
         coroutine = self._run_in_executor(*args, **kwargs)
         return asynchronous.coroutine_return(coroutine)
+
+    def get_exception_handler(self):
+        return self._handler
+
+    def set_exception_handler(self, handler):
+        self._handler = handler
+
+    def default_exception_handler(self, context):
+        return self._default_handler(context)
+
+    def call_exception_handler(self, context):
+        if not self._handler: return
+        return self._handler(context)
 
     def close(self):
         self._loop.close()
@@ -200,7 +216,7 @@ class CompatLoop(BaseLoop):
 
         def connect(connection):
             protocol = protocol_factory()
-            transport = CompatTransport(connection)
+            transport = CompatTransport(self, connection)
             transport._set_compat(protocol)
             future.set_result((transport, protocol))
 
@@ -270,6 +286,12 @@ class CompatLoop(BaseLoop):
         future._loop.call_later(timeout, callable)
         return future
 
+    def _default_handler(self, context):
+        message = context.pop("message", None)
+        sys.stderr.write("%s\n" % message)
+        for key, value in legacy.iteritems(context):
+            sys.stderr.write("%s: %s\n" % (key, value))
+
     @property
     def _thread_id(self):
         return self._loop.tid
@@ -283,7 +305,8 @@ class CompatTransport(BaseTransport):
     (or equivalent) object.
     """
 
-    def __init__(self, connection):
+    def __init__(self, loop, connection):
+        self._loop = loop
         self._connection = connection
         self._protocol = None
 
@@ -313,8 +336,8 @@ class CompatTransport(BaseTransport):
         self._protocol.data_received(data)
 
     def _on_close(self, connection):
-        self._protocol.eof_received()
-        self._protocol.connection_lost(None)
+        if self._protocol: self._protocol.eof_received()
+        self._cleanup()
 
     def _set_compat(self, protocol):
         self._set_binds()
@@ -327,3 +350,7 @@ class CompatTransport(BaseTransport):
     def _set_protocol(self, protocol, mark = True):
         self._protocol = protocol
         if mark: self._protocol.connection_made(self)
+
+    def _cleanup(self):
+        self._loop.call_soon(self._protocol.connection_lost, None)
+        self._loop = None
