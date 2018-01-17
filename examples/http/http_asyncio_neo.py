@@ -42,16 +42,19 @@ import aiohttp
 
 import netius
 
-@asyncio.coroutine
-def print_http(url):
-    response = yield from aiohttp.request("GET", url)
-    print(response.status)
-    data = yield from response.read()
-    print(data)
+async def print_http(session, url):
+    async with session.get(url) as response:
+        print(response.status)
+        data = await response.read()
+        print(data)
+
+async def go(loop, url):
+    async with aiohttp.ClientSession(loop = loop) as session:
+        await print_http(session, url)
 
 use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
 if use_asyncio: loop = asyncio.get_event_loop()
 else: loop = netius.get_loop(factory = netius.StreamClient)
 
-loop.run_until_complete(print_http("https://www.flickr.com/"))
+loop.run_until_complete(go(loop, "https://www.flickr.com/"))
 loop.close()

@@ -302,7 +302,9 @@ class CompatTransport(BaseTransport):
     transport layer as defined by the asyncio.
 
     Allows adding the functionality to an internal netius
-    (or equivalent) object.
+    (or equivalent) object, this is considered to be the adaptor
+    from the internal loop implementation and the expected
+    transport layer from asyncio.
     """
 
     def __init__(self, loop, connection):
