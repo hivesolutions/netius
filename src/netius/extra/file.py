@@ -109,7 +109,7 @@ class FileServer(netius.servers.HTTP2Server):
         return sorter
 
     @classmethod
-    def _items_normalize(cls, items, path, pad = False):
+    def _items_normalize(cls, items, path, pad = False, space = True):
         _items = []
 
         for item in items:
@@ -128,7 +128,7 @@ class FileServer(netius.servers.HTTP2Server):
             time_s = date_time.strftime("%Y-%m-%d %H:%M")
 
             size = 0 if is_dir else os.path.getsize(path_f)
-            size_s = netius.common.size_round_unit(size, space = True)
+            size_s = netius.common.size_round_unit(size, space = space)
             size_s = "-" if is_dir else size_s
 
             type_s, _encoding = mimetypes.guess_type(path_f, strict = True)
@@ -267,7 +267,7 @@ class FileServer(netius.servers.HTTP2Server):
 
         items.insert(0, "..")
 
-        items = cls._items_normalize(items, path, pad = not style)
+        items = cls._items_normalize(items, path, pad = not style, space = False)
         items.sort(key = lambda v: v["name"])
         items.sort(
             key = cls._sorter_build(name = sort),
