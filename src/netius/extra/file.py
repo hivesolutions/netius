@@ -303,10 +303,10 @@ class FileServer(netius.servers.HTTP2Server):
             if item["name_s"] == "..": name_s = "Parent Directory"
             else: name_s = item["name_s"]
             name_s = name_s[:max_length]
-            extra = max_length - len(name_s)
+            padding_r = max_length - len(name_s)
             yield "<img src=\"%s\" alt=\"[%s]\" />" % (EMPTY_GIF, type_s)
             yield "<a href=\"%s\">%s</a>" % (item["name_q"], name_s)
-            yield " " * extra
+            yield " " * padding_r
             yield spacing_s
             yield "%s%s%s" % (item["modified"], spacing_s, item["size_s"].ljust(5))
             yield "\n"
