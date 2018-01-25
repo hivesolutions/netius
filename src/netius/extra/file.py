@@ -97,7 +97,9 @@ class FileServer(netius.servers.HTTP2Server):
 
         def sorter(item):
             is_dir = item["is_dir"]
+            is_top = item["name"] == ".."
             is_dir_v = 0 if is_dir else 1
+            is_dir_v = -1 if is_top else is_dir_v
 
             if name == "name": return (item["name"], is_dir_v)
             if name == "modified": return (item["modified"], is_dir_v)
