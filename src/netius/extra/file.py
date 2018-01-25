@@ -169,9 +169,9 @@ class FileServer(netius.servers.HTTP2Server):
         return _items
 
     @classmethod
-    def _gen_dir(cls, engine, path, path_v, query_m, *args, **kwargs):
+    def _gen_dir(cls, engine, path, path_v, query_m, style = True, **kwargs):
         gen_dir_method = getattr(cls, "_gen_dir_" + engine)
-        return gen_dir_method(path, path_v, query_m, *args, **kwargs)
+        return gen_dir_method(path, path_v, query_m, style= style, **kwargs)
 
     @classmethod
     def _gen_dir_base(cls, path, path_v, query_m, style = True, **kwargs):
