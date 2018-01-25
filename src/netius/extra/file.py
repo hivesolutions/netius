@@ -252,8 +252,6 @@ class FileServer(netius.servers.HTTP2Server):
         max_length = kwargs.get("max_length", 24)
         spacing = kwargs.get("spacing", 3)
 
-        path_q = netius.legacy.quote(path_v)
-
         sort = query_m.get("sort", [])
         direction = query_m.get("direction", [])
 
@@ -307,7 +305,7 @@ class FileServer(netius.servers.HTTP2Server):
             name_s = name_s[:max_length]
             extra = max_length - len(name_s)
             yield "<img src=\"%s\" alt=\"[%s]\" />" % (EMPTY_GIF, type_s)
-            yield "<a href=\"%s\">%s</a>" % (path_q + item["name_q"], name_s)
+            yield "<a href=\"%s\">%s</a>" % (item["name_q"], name_s)
             yield " " * extra
             yield spacing_s
             yield "%s%s%s" % (item["modified"], spacing_s, item["size_s"].ljust(5))
