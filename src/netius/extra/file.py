@@ -278,25 +278,11 @@ class FileServer(netius.servers.HTTP2Server):
 
         path_n = path_v.rstrip("/")
 
-        path_b = []
-        current = str()
-        paths = path_n.split("/")
-
-        for item in paths[:-1]:
-            current += item + "/"
-            path_b.append(" <a href=\"%s\">%s</a> " % (current, item or "/"))
-            if not item: continue
-            path_b.append("<span>/</span>")
-
-        path_b.append(" %s" % (paths[-1] or "/"))
-        path_s = "".join(path_b)
-        path_s = path_s.strip()
-
         for value in cls._gen_header("Index of %s" % (path_n or "/"), style = False, meta = False):
             yield value
 
         yield "<body>"
-        yield "<h1>Index of %s</h1>" % path_s
+        yield "<h1>Index of %s</h1>" % (path_n or "/")
         yield "<hr/>"
         yield "<pre>"
         yield "<img src=\"%s\" alt=\"Icon \">" % EMPTY_GIF
