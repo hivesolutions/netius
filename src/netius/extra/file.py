@@ -361,6 +361,7 @@ class FileServer(netius.servers.HTTP2Server):
         self.cache_d = datetime.timedelta(seconds = self.cache)
         self.base_path = netius.legacy.u(self.base_path, force = True)
         self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
+        if self.list_dirs: self.info("Listing directories with '%s' engine ..." % self.list_engine)
         if self.cors: self.info("Cross origin resource sharing is enabled")
         if self.cache: self.info("Resource cache set with %d seconds" % self.cache)
 
