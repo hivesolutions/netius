@@ -640,11 +640,12 @@ class HTTPServer(netius.StreamServer):
         for value in cls._gen_footer(): yield value
 
     @classmethod
-    def _gen_header(cls, title, style = True):
+    def _gen_header(cls, title, style = True, meta = True):
         yield "<html>"
         yield "<head>"
-        yield "<meta charset=\"utf-8\" />"
-        yield "<meta name=\"viewport\" content=\"width=device-width, user-scalable=no, initial-scale=1, minimum-scale=1, maximum-scale=1\" />"
+        if meta:
+            yield "<meta charset=\"utf-8\" />"
+            yield "<meta name=\"viewport\" content=\"width=device-width, user-scalable=no, initial-scale=1, minimum-scale=1, maximum-scale=1\" />"
         yield "<title>%s</title>" % title
         if style:
             for value in cls._gen_style(): yield value
