@@ -1122,13 +1122,6 @@ class HTTPClient(netius.StreamClient):
         # with the current instance, to be used for operations
         cls = self.__class__
 
-<<<<<<< HEAD
-        # creates the new protocol instance that is going to be used to
-        # handle this new request, this may not be required in case no
-        # new connection is going to be attempted (protocol re-usage)
-        #@todo re-using connections implies changing this for re-usage
-        protocol = cls.protocol()
-=======
         # runs the defaulting operation on the provided parameters so that
         # new instances are created for both occasions as expected, this
         # avoids the typical problem with re-usage of default attributes
@@ -1149,16 +1142,21 @@ class HTTPClient(netius.StreamClient):
         message = "%s %s %s" % (method, url, version)
         self.debug(message)
 
-        # stores the initial version of the url in a fallback variable so
+        # stores the initial version of the URL in a fallback variable so
         # that it may latter be used for the storage of that information
         # in the associated connection (used in callbacks)
         base = url
->>>>>>> master
+
+        # creates the new protocol instance that is going to be used to
+        # handle this new request, this may not be required in case no
+        # new connection is going to be attempted (protocol re-usage)
+        #@todo re-using connections implies changing this for re-usage
+        protocol = cls.protocol()
 
         # tries to determine if the protocol response should be request
         # wrapped, meaning that a map based object is going to be populated
         # with the contents of the http request/response
-        wrap_request = request or sync
+        wrap_request = request or not asynchronous
 
         # parses the url to determine both the ssl, host and port values
         # so that it's possible to detect connection compatibility
@@ -1228,7 +1226,7 @@ class HTTPClient(netius.StreamClient):
             loop = loop
         )
 
-        if not sync: return loop, protocol
+        if asynchronous: return loop, protocol
 
         def on_message(protocol, parser, message):
             protocol.close()
