@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2017 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -28,7 +28,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -65,7 +65,7 @@ from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     get_event_loop, stop_loop, get_poll, build_future, build_datagram,\
     connect_stream, ensure, ensure_pool
 from .compat import BaseLoop, CompatLoop, is_compat, is_asyncio
-from .config import conf, conf_prefix, conf_suffix, conf_s, conf_d
+from .config import conf, conf_prefix, conf_suffix, conf_s, conf_r, conf_d
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
 from .errors import NetiusError, RuntimeError, StopError, PauseError, DataError, ParserError,\

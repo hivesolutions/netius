@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2017 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -803,11 +803,11 @@ class TorrentServer(netius.ContainerServer):
     def download(self, target_path, torrent_path = None, info_hash = None, close = False):
         """
         Starts the "downloading" process of a torrent associated file
-        using the defined peer to peer torrent strategy suing either
+        using the defined peer to peer torrent strategy using either
         the provided torrent path as reference or just the info hash
         of the file that is going to be downloaded.
 
-        Note that if only the info hash is provided a DHT bases strategy
+        Note that if only the info hash is provided a DHT based strategy
         is going to be used to retrieve the peers list.
 
         The returned value is the task entity representing the newly created

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2017 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -67,7 +67,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.16.21"
+VERSION = "1.16.33"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """

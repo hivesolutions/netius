@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2017 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -640,11 +640,12 @@ class HTTPServer(netius.StreamServer):
         for value in cls._gen_footer(): yield value
 
     @classmethod
-    def _gen_header(cls, title, style = True):
+    def _gen_header(cls, title, style = True, meta = True):
         yield "<html>"
         yield "<head>"
-        yield "<meta charset=\"utf-8\" />"
-        yield "<meta name=\"viewport\" content=\"width=device-width, user-scalable=no, initial-scale=1, minimum-scale=1, maximum-scale=1\" />"
+        if meta:
+            yield "<meta charset=\"utf-8\" />"
+            yield "<meta name=\"viewport\" content=\"width=device-width, user-scalable=no, initial-scale=1, minimum-scale=1, maximum-scale=1\" />"
         yield "<title>%s</title>" % title
         if style:
             for value in cls._gen_style(): yield value

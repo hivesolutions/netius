@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2017 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -128,7 +128,8 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # considered valid and then re-joins the message as a string
         headers, body = netius.common.rfc822_parse(contents)
         received = connection.received_s()
-        message_id = headers.get("Message-ID", message_id)
+        message_id = headers.pop("Message-Id", message_id)
+        message_id = headers.pop("Message-ID", message_id)
         headers.set("Date", date)
         headers.set("Received", received)
         headers.set("Message-ID", message_id)

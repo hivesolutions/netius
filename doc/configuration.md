@@ -67,8 +67,11 @@ context values (certificate, key, etc) for such domain
 
 #### File Serving
 
+* `BASE_PATH` (`str`) - The base directory path to be used for the file serving, if not defined the current directory
+is used instead (defaults to `None`)
 * `INDEX_FILES` (`list`) - List of file names that should be considered for eligible for index operation (eg: `index.html`)
 * `LIST_DIRS` (`bool`) - If directory listing is enabled (may pose a security issue) (defaults to `True`)
+* `LIST_ENGINE` (`str`) - The name of the HTML generation engine to be used while listing files (eg: base, apache, legacy, etc.) (defaults to `base`)
 
 #### HTTP
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2017 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,18 +31,21 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import sys
 import time
 import socket
 
 from . import config
 from . import errors
+from . import legacy
 from . import transport
+
 from . import asynchronous
 
 asyncio = asynchronous.get_asyncio() if asynchronous.is_neo() else None
@@ -63,6 +66,7 @@ class CompatLoop(BaseLoop):
         self._loop = loop
         self._task_factory = asynchronous.Task
         self._executor = asynchronous.ThreadPoolExecutor(loop)
+        self._handler = self._default_handler
 
     def __getattr__(self, name):
         if hasattr(self._loop, name):
@@ -140,6 +144,19 @@ class CompatLoop(BaseLoop):
     def close(self):
         self._loop.close()
 
+    def get_exception_handler(self):
+        return self._handler
+
+    def set_exception_handler(self, handler):
+        self._handler = handler
+
+    def default_exception_handler(self, context):
+        return self._default_handler(context)
+
+    def call_exception_handler(self, context):
+        if not self._handler: return
+        return self._handler(context)
+
     def get_debug(self):
         return self._loop.is_debug()
 
@@ -211,9 +228,9 @@ class CompatLoop(BaseLoop):
 
         def connect(connection):
             protocol = protocol_factory()
-            _transport = transport.TransportStream(connection)
-            _transport._set_compat(protocol)
-            future.set_result((_transport, protocol))
+            transport = CompatTransport(self, connection)
+            transport._set_compat(protocol)
+            future.set_result((transport, protocol))
 
         connection = self._loop.connect(
             host,
@@ -311,9 +328,81 @@ class CompatLoop(BaseLoop):
         future._loop.call_later(timeout, callable)
         return future
 
+    def _default_handler(self, context):
+        message = context.pop("message", None)
+        sys.stderr.write("%s\n" % message)
+        for key, value in legacy.iteritems(context):
+            sys.stderr.write("%s: %s\n" % (key, value))
+
     @property
     def _thread_id(self):
         return self._loop.tid
+
+class CompatTransport(BaseTransport):
+    """
+    Decorator class to be used to add the functionality of a
+    transport layer as defined by the asyncio.
+
+    Allows adding the functionality to an internal netius
+    (or equivalent) object, this is considered to be the adaptor
+    from the internal loop implementation and the expected
+    transport layer from asyncio.
+    """
+
+    def __init__(self, loop, connection):
+        self._loop = loop
+        self._connection = connection
+        self._protocol = None
+
+    def close(self):
+        self._connection.close()
+
+    def abort(self):
+        self._connection.close()
+
+    def write(self, data):
+        self._connection.send(data)
+
+    def get_extra_info(self, name, default = None):
+        if name == "socket": return self._connection.socket
+        else: return default
+
+    def set_protocol(self, protocol):
+        self._set_protocol(protocol, mark = False)
+
+    def get_protocol(self):
+        return self._protocol
+
+    def is_closing(self):
+        return self._connection.is_closed()
+
+    def _on_data(self, connection, data):
+        self._protocol.data_received(data)
+
+    def _on_close(self, connection):
+        if not self._protocol == None:
+            self._protocol.eof_received()
+        self._cleanup()
+
+    def _set_compat(self, protocol):
+        self._set_binds()
+        self._set_protocol(protocol)
+
+    def _set_binds(self):
+        self._connection.bind("data", self._on_data)
+        self._connection.bind("close", self._on_close)
+
+    def _set_protocol(self, protocol, mark = True):
+        self._protocol = protocol
+        if mark: self._protocol.connection_made(self)
+
+    def _cleanup(self):
+        self._loop.call_soon(self._call_connection_lost, None)
+        self._loop = None
+
+    def _call_connection_lost(self, context):
+        if not self._protocol == None:
+            self._protocol.connection_lost(context)
 
 def is_compat():
     compat = config.conf("COMPAT", False, cast = bool)

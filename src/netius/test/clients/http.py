@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2017 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -52,7 +52,7 @@ class HTTPClientTest(unittest.TestCase):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "http://%s/get" % self.httpbin,
-            sync = True
+            asynchronous = False
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
@@ -61,7 +61,7 @@ class HTTPClientTest(unittest.TestCase):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "https://%s/get" % self.httpbin,
-            sync = True
+            asynchronous = False
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
@@ -72,7 +72,7 @@ class HTTPClientTest(unittest.TestCase):
             "GET",
             "http://%s/delay/3" % self.httpbin,
             timeout = 1,
-            sync = True
+            asynchronous = False
         )
         self.assertEqual(result["error"], "timeout")
         self.assertEqual(result["message"].startswith("Timeout on receive"), True)
@@ -81,7 +81,7 @@ class HTTPClientTest(unittest.TestCase):
             "GET",
             "http://%s/delay/1" % self.httpbin,
             timeout = 30,
-            sync = True
+            asynchronous = False
         )
         self.assertEqual(result.get("error", None), None)
         self.assertEqual(result.get("message", None), None)
@@ -93,7 +93,7 @@ class HTTPClientTest(unittest.TestCase):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "http://%s/gzip" % self.httpbin,
-            sync = True
+            asynchronous = False
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
@@ -102,7 +102,7 @@ class HTTPClientTest(unittest.TestCase):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "http://%s/deflate" % self.httpbin,
-            sync = True
+            asynchronous = False
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)
@@ -112,7 +112,7 @@ class HTTPClientTest(unittest.TestCase):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "http://%s/headers" % self.httpbin,
-            sync = True
+            asynchronous = False
         )
         payload = json.loads(result["data"].decode("utf-8"))
         headers = payload["headers"]
@@ -125,7 +125,7 @@ class HTTPClientTest(unittest.TestCase):
         result = netius.clients.HTTPClient.method_s(
             "GET",
             "http://%s/image/png" % self.httpbin,
-            sync = True
+            asynchronous = False
         )
         self.assertEqual(result["code"], 200)
         self.assertNotEqual(len(result["data"]), 0)

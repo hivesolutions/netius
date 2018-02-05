@@ -14,7 +14,7 @@ provide the extra boost to raise performance up to these standards.
 Bear in mind that although netius is non-blocking, it will naturally still block if the operations
 performed within the event loop are blocking, like reading or writing a file, which are both blocking
 operations in the Python standard library. Running multiple netius instances in parallel, and having
-a fast server like [nginx](http://nginx.org) act as their reverse proxy, is one way of minimising the
+a fast server like [NGINX](http://nginx.org) act as their reverse proxy, is one way of minimising the
 perceptibility of such blockages.
 
 ## Installation
@@ -112,4 +112,4 @@ Netius is currently licensed under the [Apache License, Version 2.0](http://www.
 [![Build Status](https://travis-ci.org/hivesolutions/netius.svg?branch=master)](https://travis-ci.org/hivesolutions/netius)
 [![Coverage Status](https://coveralls.io/repos/hivesolutions/netius/badge.svg?branch=master)](https://coveralls.io/r/hivesolutions/netius?branch=master)
 [![PyPi Status](https://img.shields.io/pypi/v/netius.svg)](https://pypi.python.org/pypi/netius)
-[![License](http://img.shields.io/badge/license-Apache%202.0-blue.svg)](http://www.apache.org/licenses/)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/)

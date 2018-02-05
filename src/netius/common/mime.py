@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2017 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -60,6 +60,7 @@ corresponds to an header line or not """
 MIME_TYPES = (
     (".csv", "text/csv"),
     (".ini", "text/plain"),
+    (".js", "application/javascript"),
     (".log", "text/plain"),
     (".mka", "audio/x-matroska"),
     (".mkv", "video/x-matroska"),
@@ -127,6 +128,12 @@ class Headers(list):
         value = self._normalize(value)
         if key in self and not append: self.item(key)[1] = value
         else: self[key] = value
+
+    def pop(self, key, default = None):
+        if not key in self: return default
+        value = self[key]
+        del self[key]
+        return value
 
     def join(self, separator = "\r\n"):
         separator = netius.legacy.bytes(separator)

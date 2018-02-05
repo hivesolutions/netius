@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2017 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -57,6 +57,10 @@ FILE_SVG = "<svg aria-hidden=\"true\" class=\"octicon octicon-file-text\" height
 """ The vector code to be used for the icon that represents
 a plain file under the directory listing """
 
+EMPTY_GIF = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+""" Simple base 64 encoded empty gif to avoid possible image
+corruption while rendering empty images on browser """
+
 class FileServer(netius.servers.HTTP2Server):
     """
     Simple implementation of a file server that is able to list files
@@ -74,6 +78,7 @@ class FileServer(netius.servers.HTTP2Server):
         base_path = "",
         index_files = [],
         list_dirs = True,
+        list_engine = "base",
         cors = False,
         cache = 0,
         *args,
@@ -83,6 +88,7 @@ class FileServer(netius.servers.HTTP2Server):
         self.base_path = base_path
         self.index_files = index_files
         self.list_dirs = list_dirs
+        self.list_engine = list_engine
         self.cors = cors
         self.cache = cache
 
@@ -91,7 +97,9 @@ class FileServer(netius.servers.HTTP2Server):
 
         def sorter(item):
             is_dir = item["is_dir"]
+            is_top = item["name"] == ".."
             is_dir_v = 0 if is_dir else 1
+            is_dir_v = -1 if is_top else is_dir_v
 
             if name == "name": return (item["name"], is_dir_v)
             if name == "modified": return (item["modified"], is_dir_v)
@@ -103,7 +111,14 @@ class FileServer(netius.servers.HTTP2Server):
         return sorter
 
     @classmethod
-    def _items_normalize(cls, items, path, pad = False):
+    def _items_normalize(
+        cls,
+        items,
+        path,
+        pad = False,
+        space = True,
+        simplified = False
+    ):
         _items = []
 
         for item in items:
@@ -122,7 +137,11 @@ class FileServer(netius.servers.HTTP2Server):
             time_s = date_time.strftime("%Y-%m-%d %H:%M")
 
             size = 0 if is_dir else os.path.getsize(path_f)
-            size_s = netius.common.size_round_unit(size, space = True)
+            size_s = netius.common.size_round_unit(
+                size,
+                space = space,
+                simplified = simplified
+            )
             size_s = "-" if is_dir else size_s
 
             type_s, _encoding = mimetypes.guess_type(path_f, strict = True)
@@ -150,7 +169,12 @@ class FileServer(netius.servers.HTTP2Server):
         return _items
 
     @classmethod
-    def _gen_dir(cls, path, path_v, query_m, style = True):
+    def _gen_dir(cls, engine, path, path_v, query_m, style = True, **kwargs):
+        gen_dir_method = getattr(cls, "_gen_dir_" + engine)
+        return gen_dir_method(path, path_v, query_m, style= style, **kwargs)
+
+    @classmethod
+    def _gen_dir_base(cls, path, path_v, query_m, style = True, **kwargs):
         sort = query_m.get("sort", [])
         direction = query_m.get("direction", [])
 
@@ -186,6 +210,7 @@ class FileServer(netius.servers.HTTP2Server):
 
         path_b.append(" <span>%s</span>" % (paths[-1] or "/"))
         path_s = "".join(path_b)
+        path_s = path_s.strip()
 
         for value in cls._gen_header("Index of %s" % (path_n or "/"), style = style):
             yield value
@@ -235,6 +260,166 @@ class FileServer(netius.servers.HTTP2Server):
 
         for value in cls._gen_footer(): yield value
 
+    @classmethod
+    def _gen_dir_apache(cls, path, path_v, query_m, style = True, **kwargs):
+        sort = query_m.get("sort", [])
+        direction = query_m.get("direction", [])
+
+        sort = sort[0] if sort else None
+        direction = direction[0] if direction else "asc"
+
+        reverse = direction == "desc"
+        _direction = "desc" if direction == "asc" else "asc"
+
+        items = os.listdir(path)
+
+        items.insert(0, "..")
+
+        items = cls._items_normalize(
+            items,
+            path,
+            pad = not style,
+            space = False,
+            simplified = True
+        )
+        items.sort(key = lambda v: v["name"])
+        items.sort(
+            key = cls._sorter_build(name = sort),
+            reverse = reverse
+        )
+
+        path_n = path_v.rstrip("/")
+
+        for value in cls._gen_header("Index of %s" % (path_n or "/"), style = False, meta = False):
+            yield value
+
+        yield "<body>"
+        yield "<h1>Index of %s</h1>" % (path_n or "/")
+        yield "<table>"
+        yield "<tr>"
+        yield "<th valign=\"top\"><img src=\"%s\" alt=\"[ICO]\"></th>" % EMPTY_GIF
+        yield "<th>"
+        yield "<a href=\"?sort=name&direction=%s\" class=\"%s\">Name</a>" %\
+            (_direction, "selected" if sort == "name" else "")
+        yield "</th>"
+        yield "<th>"
+        yield "<a href=\"?sort=modified&direction=%s\" class=\"%s\">Last modified</a>" %\
+            (_direction, "selected" if sort == "modified" else "")
+        yield "</th>"
+        yield "<th>"
+        yield "<a href=\"?sort=size&direction=%s\" class=\"%s\">Size</a></th>" %\
+            (_direction, "selected" if sort == "size" else "")
+        yield "</th>"
+        yield "<th>"
+        yield "<a href=\"?sort=description&direction=%s\" class=\"%s\">Description</a></th>" %\
+            (_direction, "selected" if sort == "description" else "")
+        yield "</th>"
+        yield "</tr>"
+        yield "<tr><th colspan=\"5\"><hr></th></tr>"
+        for item in items:
+            if item["name_s"] == "..": type_s = "PARENTDIR"
+            elif item["is_dir"]: type_s = "DIR"
+            else: type_s = "ARC"
+            if item["name_s"] == "..": name_s = "Parent Directory"
+            elif item["is_dir"]: name_s = item["name_s"] + "/"
+            else: name_s = item["name_s"]
+            if item["is_dir"]: name_q = item["name_q"] + "/"
+            else: name_q = item["name_q"]
+            yield "<tr>"
+            yield "<td valign=\"top\"><img src=\"%s\" alt=\"[%s]\"></td>" % (EMPTY_GIF, type_s)
+            yield "<td><a href=\"%s\">%s</a></td>" % (name_q, name_s)
+            yield "<td>%s</td>" % item["modified"]
+            yield "<td align=\"right\">%s</td>" % item["size_s"]
+            yield "<td>%s</td>" % item["type_s"]
+            yield "</tr>"
+            yield "\n"
+        yield "<tr><th colspan=\"5\"><hr></th></tr>"
+        yield "</table>"
+        yield "<address>%s</address>" % netius.IDENTIFIER
+        yield "</body>"
+
+        for value in cls._gen_footer(): yield value
+
+    @classmethod
+    def _gen_dir_legacy(cls, path, path_v, query_m, style = True, **kwargs):
+        max_length = kwargs.get("max_length", 24)
+        spacing = kwargs.get("spacing", 2)
+
+        sort = query_m.get("sort", [])
+        direction = query_m.get("direction", [])
+
+        sort = sort[0] if sort else None
+        direction = direction[0] if direction else "asc"
+
+        reverse = direction == "desc"
+        _direction = "desc" if direction == "asc" else "asc"
+
+        items = os.listdir(path)
+
+        items.insert(0, "..")
+
+        items = cls._items_normalize(
+            items,
+            path,
+            pad = not style,
+            space = False,
+            simplified = True
+        )
+        items.sort(key = lambda v: v["name"])
+        items.sort(
+            key = cls._sorter_build(name = sort),
+            reverse = reverse
+        )
+
+        max_length = max([len(item["name_s"]) for item in items] + [max_length])
+        padding_s = (max_length + spacing - 4) * " "
+        spacing_s = spacing * " "
+
+        path_n = path_v.rstrip("/")
+
+        for value in cls._gen_header("Index of %s" % (path_n or "/"), style = False, meta = False):
+            yield value
+
+        yield "<body>"
+        yield "<h1>Index of %s</h1>" % (path_n or "/")
+        yield "<hr/>"
+        yield "<pre>"
+        yield "<img src=\"%s\" alt=\"Icon \">" % EMPTY_GIF
+        yield "<a href=\"?sort=name&direction=%s\" class=\"%s\">Name</a>" %\
+            (_direction, "selected" if sort == "name" else "")
+        yield padding_s
+        yield "<a href=\"?sort=modified&direction=%s\" class=\"%s\">Last modified</a>" %\
+            (_direction, "selected" if sort == "modified" else "")
+        yield "   "
+        yield spacing_s
+        yield "<a href=\"?sort=size&direction=%s\" class=\"%s\">Size</a></th>" %\
+            (_direction, "selected" if sort == "size" else "")
+        yield "<hr/>"
+        for item in items:
+            if item["name_s"] == "..": type_s = "PARENTDIR"
+            elif item["is_dir"]: type_s = "DIR"
+            else: type_s = "ARC"
+            if item["name_s"] == "..": name_s = "Parent Directory"
+            elif item["is_dir"]: name_s = item["name_s"] + "/"
+            else: name_s = item["name_s"]
+            if item["is_dir"]: name_q = item["name_q"] + "/"
+            else: name_q = item["name_q"]
+            name_s = name_s[:max_length]
+            padding_r = max_length - len(name_s)
+            yield "<img src=\"%s\" alt=\"[%s]\" />" % (EMPTY_GIF, type_s)
+            yield "<a href=\"%s\">%s</a>" % (name_q, name_s)
+            yield " " * padding_r
+            yield spacing_s
+            yield "%s%s%s" % (item["modified"], spacing_s, item["size_s"].ljust(5))
+            yield spacing_s
+            yield "\n"
+        yield "<hr/>"
+        yield "</pre>"
+        yield "<address>%s</address>" % netius.IDENTIFIER
+        yield "</body>"
+
+        for value in cls._gen_footer(): yield value
+
     def on_connection_d(self, connection):
         netius.servers.HTTP2Server.on_connection_d(self, connection)
 
@@ -258,12 +443,14 @@ class FileServer(netius.servers.HTTP2Server):
         if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)
         if self.env: self.index_files = self.get_env("INDEX_FILES", self.index_files, cast = list)
         if self.env: self.list_dirs = self.get_env("LIST_DIRS", self.list_dirs, cast = bool)
+        if self.env: self.list_engine = self.get_env("LIST_ENGINE", self.list_engine)
         if self.env: self.cors = self.get_env("CORS", self.cors, cast = bool)
         if self.env: self.cache = self.get_env("CACHE", self.cache, cast = int)
         self.base_path = os.path.abspath(self.base_path)
         self.cache_d = datetime.timedelta(seconds = self.cache)
         self.base_path = netius.legacy.u(self.base_path, force = True)
         self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
+        if self.list_dirs: self.info("Listing directories with '%s' engine ..." % self.list_engine)
         if self.cors: self.info("Cross origin resource sharing is enabled")
         if self.cache: self.info("Resource cache set with %d seconds" % self.cache)
 
@@ -352,6 +539,7 @@ class FileServer(netius.servers.HTTP2Server):
             return
 
         data = "".join(cls._gen_dir(
+            self.list_engine,
             path,
             path_v,
             query_m,

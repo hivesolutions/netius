@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2017 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -348,7 +348,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         encoding = netius.common.CHUNKED_ENCODING if is_chunked else\
             netius.common.PLAIN_ENCODING
 
-        # calls the proper (http) method in the client this should acquire
+        # calls the proper (HTTP) method in the client this should acquire
         # a new connection and start the process of sending the request
         # to the associated http server (request handling)
         _connection = self.http_client.method(

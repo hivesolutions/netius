@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2017 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -536,6 +536,7 @@ class SMTPClient(netius.StreamClient):
                     # fallback for this connections is handled
                     if not response.answers:
                         on_close()
+                        if self.auto_close: self.close()
                         raise netius.NetiusError(
                             "Not possible to resolve mx for '%s'" % domain
                         )
@@ -556,6 +557,10 @@ class SMTPClient(netius.StreamClient):
                 # method are valid they are used instead of the "resolved"
                 _host = host or address
                 _port = port or 25
+
+                # prints a debug message about the connection that is now
+                # going to be established (helps with debugging purposes)
+                self.debug("Establishing SMTP connection on %s:%d ..." % (_host, _port))
 
                 # establishes the connection to the target host and port
                 # and using the provided key and certificate files and then
@@ -662,8 +667,13 @@ class SMTPClient(netius.StreamClient):
 if __name__ == "__main__":
     import email.mime.text
 
-    sender = "hello@bemisc.com"
-    receiver = "hello@bemisc.com"
+    sender = netius.conf("SMTP_SENDER", "hello@bemisc.com")
+    receiver = netius.conf("SMTP_RECEIVER", "hello@bemisc.com")
+    host = netius.conf("SMTP_HOST", None)
+    port = netius.conf("SMTP_PORT", 25, cast = int)
+    username = netius.conf("SMTP_USER", None)
+    password = netius.conf("SMTP_PASSWORD", None)
+    stls = netius.conf("SMTP_STARTTLS", False, cast = bool)
 
     mime = email.mime.text.MIMEText("Hello World")
     mime["Subject"] = "Hello World"
@@ -672,6 +682,15 @@ if __name__ == "__main__":
     contents = mime.as_string()
 
     client = SMTPClient(auto_close = True)
-    client.message([sender], [receiver], contents)
+    client.message(
+        [sender],
+        [receiver],
+        contents,
+        host = host,
+        port = port,
+        username = username,
+        password = password,
+        stls = stls
+    )
 else:
     __path__ = []

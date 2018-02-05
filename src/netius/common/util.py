@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2017 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -48,6 +48,12 @@ SIZE_UNITS_LIST = (
     "B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"
 )
 """ The size units list that contains the complete set of
+units indexed by the depth they represent """
+
+SIZE_UNITS_LIST_S = (
+    "B", "K", "M", "G", "T", "P", "E", "Z", "Y"
+)
+""" The simplified size units list that contains the complete set of
 units indexed by the depth they represent """
 
 SIZE_UNIT_COEFFICIENT = 1024
@@ -262,6 +268,8 @@ def size_round_unit(
     places = DEFAULT_PLACES,
     reduce = True,
     space = False,
+    justify = False,
+    simplified = False,
     depth = 0
 ):
     """
@@ -288,6 +296,12 @@ def size_round_unit(
     :type space: bool
     :param space: If a space character must be used dividing
     the value from the unit symbol.
+    :type justify: bool
+    :param justify: If the size string value should be (right)
+    justified important for properly aligned values in a table.
+    :type simplified: bool
+    :param simplified: If the simplified version of the units
+    should be used instead of the longer one.
     :type depth: int
     :param depth: The current iteration depth value.
     :rtype: String
@@ -299,6 +313,11 @@ def size_round_unit(
     # the minimum) this is the final iteration and the final
     # string representation is going to be created
     if size_value < minimum:
+        # calculates the maximum size of the string that is going
+        # to represent the base size value as the number of places
+        # plus one (representing the decimal separator character)
+        size_s = places + 1
+
         # calculates the target number of decimal places taking
         # into account the size (in digits) of the current size
         # value, this may never be a negative number
@@ -334,9 +353,15 @@ def size_round_unit(
         if reduce: size_value_s = size_value_s.rstrip("0")
         if reduce: size_value_s = size_value_s.rstrip(".")
 
+        # in case the justify flag is set runs the justification
+        # process on the size value taking into account the maximum
+        # size of the associated size string
+        if justify: size_value_s = size_value_s.rjust(size_s)
+
         # retrieves the size unit (string mode) for the current
         # depth according to the provided map
-        size_unit = SIZE_UNITS_LIST[depth]
+        if simplified: size_unit = SIZE_UNITS_LIST_S[depth]
+        else: size_unit = SIZE_UNITS_LIST[depth]
 
         # retrieves the appropriate separator based
         # on the value of the space flag
@@ -348,8 +373,8 @@ def size_round_unit(
         size_value_string = size_value_s + separator + size_unit
         return size_value_string
 
-    # otherwise the value is not acceptable
-    # and a new iteration must be ran
+    # otherwise the value is not acceptable and a new iteration
+    # must be ran with one less depth of size value
     else:
         # re-calculates the new size value, increments the depth
         # and runs the size round unit again with the new values
@@ -361,10 +386,12 @@ def size_round_unit(
             places = places,
             reduce = reduce,
             space = space,
+            justify = justify,
+            simplified = simplified,
             depth = new_depth
         )
 
-def verify(condition, message = None):
+def verify(condition, message = None, exception = None):
     """
     Ensures that the requested condition returns a valid value
     and if that's no the case an exception raised breaking the
@@ -376,7 +403,12 @@ def verify(condition, message = None):
     :type message: String
     :param message: The message to be used in the building of the
     exception that is going to be raised in case of condition failure.
+    :type exception: Class
+    :param exception: The exception class that is going to be used
+    to build the exception to be raised in case the condition
+    verification operation fails.
     """
 
     if condition: return
-    raise netius.AssertionError(message or "Assertion Error")
+    exception = exception or netius.AssertionError
+    raise exception(message or "Assertion Error")
