@@ -92,6 +92,54 @@ class HTTPProtocol(netius.StreamProtocol):
         except: return zlib.decompress(data, -zlib.MAX_WBITS)
 
     @classmethod
+    def decode_zlib_file(
+        cls,
+        input,
+        output,
+        buffer_size = 16384,
+        wbits = zlib.MAX_WBITS | 16
+    ):
+        decompressor = zlib.decompressobj(wbits)
+        while True:
+            data = input.read(buffer_size)
+            if not data: break
+            raw_data = decompressor.decompress(data)
+            output.write(raw_data)
+        raw_data = decompressor.flush()
+        output.write(raw_data)
+        return output
+
+    @classmethod
+    def decode_gzip_file(
+        cls,
+        input,
+        output,
+        buffer_size = 16384,
+        wbits = zlib.MAX_WBITS | 16
+    ):
+        return cls.decode_zlib_file(
+            input,
+            output,
+            buffer_size = buffer_size,
+            wbits = wbits
+        )
+
+    @classmethod
+    def decode_deflate_file(
+        cls,
+        input,
+        output,
+        buffer_size = 16384,
+        wbits = -zlib.MAX_WBITS
+    ):
+        return cls.decode_zlib_file(
+            input,
+            output,
+            buffer_size = buffer_size,
+            wbits = wbits
+        )
+
+    @classmethod
     def set_request(cls, parser, buffer, request = None):
         if request == None: request = dict()
         headers = parser.get_headers()
@@ -103,6 +151,60 @@ class HTTPProtocol(netius.StreamProtocol):
         request["status"] = parser.status
         request["headers"] = headers
         request["data"] = data
+        return request
+
+    @classmethod
+    def set_request_file(
+        cls,
+        parser,
+        input,
+        request = None,
+        output = None,
+        buffer_size = 16384
+    ):
+        # verifies if a request object has been passes to the current
+        # method and if that's not the case creates a new one (as a map)
+        if request == None: request = dict()
+
+        # retrieves the complete set of headers and tries discover the
+        # encoding of it and the associated decoder (if any)
+        headers = parser.get_headers()
+        encoding = headers.get("Content-Encoding", None)
+        decoder = getattr(cls, "decode_%s_file" % encoding) if encoding else None
+
+        # in case there's a decoder and an input (file) then runs the decoding
+        # process setting the data as the resulting (decoded object)
+        if decoder and input:
+            if output == None: output = tempfile.NamedTemporaryFile(mode = "w+b")
+            input.seek(0)
+            try:
+                data = decoder(
+                    input,
+                    output,
+                    buffer_size = buffer_size
+                )
+            finally:
+                input.close()
+
+        # otherwise it's a simplified process (no decoding required) and the
+        # data may be set directly as the input file
+        else:
+            data = input
+
+        # seeks the data object to the initial position so that it
+        # is set as ready to be read from a third party
+        data.seek(0)
+
+        # updates the structure of the request object/map so that it
+        # contains a series of information on the request, including
+        # the file contents (stored in a temporary file)
+        request["code"] = parser.code
+        request["status"] = parser.status
+        request["headers"] = headers
+        request["data"] = data
+
+        # returns the request object that has just been populated
+        # to the caller method so that it may be used to read the contents
         return request
 
     @classmethod
@@ -929,144 +1031,6 @@ class HTTPClient(netius.StreamClient):
         if exception: raise exception
         raise netius.NetiusError(message)
 
-<<<<<<< HEAD
-=======
-    @classmethod
-    def decode_gzip(cls, data):
-        if not data: return data
-        return zlib.decompress(data, zlib.MAX_WBITS | 16)
-
-    @classmethod
-    def decode_deflate(cls, data):
-        if not data: return data
-        try: return zlib.decompress(data)
-        except: return zlib.decompress(data, -zlib.MAX_WBITS)
-
-    @classmethod
-    def decode_zlib_file(
-        cls,
-        input,
-        output,
-        buffer_size = 16384,
-        wbits = zlib.MAX_WBITS | 16
-    ):
-        decompressor = zlib.decompressobj(wbits)
-        while True:
-            data = input.read(buffer_size)
-            if not data: break
-            raw_data = decompressor.decompress(data)
-            output.write(raw_data)
-        raw_data = decompressor.flush()
-        output.write(raw_data)
-        return output
-
-    @classmethod
-    def decode_gzip_file(
-        cls,
-        input,
-        output,
-        buffer_size = 16384,
-        wbits = zlib.MAX_WBITS | 16
-    ):
-        return cls.decode_zlib_file(
-            input,
-            output,
-            buffer_size = buffer_size,
-            wbits = wbits
-        )
-
-    @classmethod
-    def decode_deflate_file(
-        cls,
-        input,
-        output,
-        buffer_size = 16384,
-        wbits = -zlib.MAX_WBITS
-    ):
-        return cls.decode_zlib_file(
-            input,
-            output,
-            buffer_size = buffer_size,
-            wbits = wbits
-        )
-
-    @classmethod
-    def set_request(cls, parser, buffer, request = None):
-        if request == None: request = dict()
-        headers = parser.get_headers()
-        data = b"".join(buffer)
-        encoding = headers.get("Content-Encoding", None)
-        decoder = getattr(cls, "decode_%s" % encoding) if encoding else None
-        if decoder and data: data = decoder(data)
-        request["code"] = parser.code
-        request["status"] = parser.status
-        request["headers"] = headers
-        request["data"] = data
-        return request
-
-    @classmethod
-    def set_request_file(
-        cls,
-        parser,
-        input,
-        request = None,
-        output = None,
-        buffer_size = 16384
-    ):
-        # verifies if a request object has been passes to the current
-        # method and if that's not the case creates a new one (as a map)
-        if request == None: request = dict()
-
-        # retrieves the complete set of headers and tries discover the
-        # encoding of it and the associated decoder (if any)
-        headers = parser.get_headers()
-        encoding = headers.get("Content-Encoding", None)
-        decoder = getattr(cls, "decode_%s_file" % encoding) if encoding else None
-
-        # in case there's a decoder and an input (file) then runs the decoding
-        # process setting the data as the resulting (decoded object)
-        if decoder and input:
-            if output == None: output = tempfile.NamedTemporaryFile(mode = "w+b")
-            input.seek(0)
-            try:
-                data = decoder(
-                    input,
-                    output,
-                    buffer_size = buffer_size
-                )
-            finally:
-                input.close()
-
-        # otherwise it's a simplified process (no decoding required) and the
-        # data may be set directly as the input file
-        else:
-            data = input
-
-        # seeks the data object to the initial position so that it
-        # is set as ready to be read from a third party
-        data.seek(0)
-
-        # updates the structure of the request object/map so that it
-        # contains a series of information on the request, including
-        # the file contents (stored in a temporary file)
-        request["code"] = parser.code
-        request["status"] = parser.status
-        request["headers"] = headers
-        request["data"] = data
-
-        # returns the request object that has just been populated
-        # to the caller method so that it may be used to read the contents
-        return request
-
-    @classmethod
-    def set_error(cls, error, message = None, request = None, force = False):
-        if request == None: request = dict()
-        if "error" in request and not force: return
-        request["error"] = error
-        request["message"] = message
-        return request
-
->>>>>>> master
     def get(
         self,
         url,
@@ -1142,13 +1106,9 @@ class HTTPClient(netius.StreamClient):
         encoding = PLAIN_ENCODING,
         encodings = "gzip, deflate",
         safe = False,
-        sync = False,
         request = False,
         connection = None,
-<<<<<<< HEAD
-=======
         asynchronous = True,
->>>>>>> master
         timeout = None,
         use_file = False,
         callback = None,
