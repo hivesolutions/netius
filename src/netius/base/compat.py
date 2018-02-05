@@ -408,10 +408,36 @@ class CompatTransport(BaseTransport):
             self._protocol.connection_lost(context)
 
 def is_compat():
+    """
+    Determines if the compatibility mode for the netius
+    event loop is required.
+
+    Under this mode the event loop for netius tries to emulate
+    the behaviour of the asyncio event loop so that it may
+    be used with 3rd party protocol classes (not compliant
+    with the netius protocol).
+
+    :rtype: bool
+    :return: If the netius infra-structure should run under
+    the compatibility mode.
+    """
+
     compat = config.conf("COMPAT", False, cast = bool)
     compat |= is_asyncio()
     return compat and asynchronous.is_neo()
 
 def is_asyncio():
+    """
+    Checks if the asyncio mode of execution (external event
+    loop) is the required approach under the current runtime.
+
+    If that's the case the netius event loop is not going to
+    be used and the asyncio one is going to be used instead.
+
+    :rtype: bool
+    :return: If the asyncio event loop model is enabled and
+    proper library support available.
+    """
+
     asyncio = config.conf("ASYNCIO", False, cast = bool)
     return asyncio and asynchronous.is_asynclib()
