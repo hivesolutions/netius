@@ -42,6 +42,14 @@ from . import request
 from . import observer
 
 class Protocol(observer.Observable):
+    """
+    Abstract class from which concrete implementation of
+    protocol logic should inherit.
+
+    The logic of a protocol should implement both a reaction
+    to the arrival of information (receive) and the sending
+    of processed data (send).
+    """
 
     def __init__(self, owner = None):
         observer.Observable.__init__(self)
