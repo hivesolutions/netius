@@ -140,6 +140,10 @@ class Transport(observer.Observable):
             self._protocol.pause_writing()
 
 class TransportDatagram(Transport):
+    """
+    Abstract class to be used when creating a datagram based
+    (connectionless) transport.
+    """
 
     def _on_data(self, connection, data):
         data, address = data
@@ -149,6 +153,10 @@ class TransportDatagram(Transport):
         pass
 
 class TransportStream(Transport):
+    """
+    Abstract class to be used when creating a stream based
+    (connection) transport.
+    """
 
     def _on_data(self, connection, data):
         self._protocol.data_received(data)
