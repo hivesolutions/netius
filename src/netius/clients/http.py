@@ -1122,30 +1122,12 @@ class HTTPClient(netius.StreamClient):
         # with the current instance, to be used for operations
         cls = self.__class__
 
-        # runs the defaulting operation on the provided parameters so that
-        # new instances are created for both occasions as expected, this
-        # avoids the typical problem with re-usage of default attributes
-        params = params or dict()
-        headers = headers or dict()
-        timeout = timeout or 60
-
         # runs the loading process, so that services like logging are
         # available right away and may be used immediately as expected
         # by the HTTP method loader method, note that in case the loading
         # process as already been executed the logic is ignored, the
         # execution of the load is only applied to non async requests
         not asynchronous and self.load()
-
-        # creates the message that is going to be used in the logging of
-        # the current method request for debugging purposes, this may be
-        # useful for a full record traceability of the request
-        message = "%s %s %s" % (method, url, version)
-        self.debug(message)
-
-        # stores the initial version of the URL in a fallback variable so
-        # that it may latter be used for the storage of that information
-        # in the associated connection (used in callbacks)
-        base = url
 
         # creates the new protocol instance that is going to be used to
         # handle this new request, this may not be required in case no
