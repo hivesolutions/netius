@@ -867,8 +867,8 @@ class HTTPProtocol(netius.StreamProtocol):
 
 class HTTPClient(netius.StreamClient):
     """
-    Simple test of an http client, supports a series of basic
-    operations and makes use of the http parser from netius.
+    Simple test of an HTTP client, supports a series of basic
+    operations and makes use of the HTTP parser from netius.
 
     The current implementation supports the auto-release of the
     connection once the message has been received, this is optional
@@ -1131,7 +1131,7 @@ class HTTPClient(netius.StreamClient):
 
         # runs the loading process, so that services like logging are
         # available right away and may be used immediately as expected
-        # by the http method loader method, note that in case the loading
+        # by the HTTP method loader method, note that in case the loading
         # process as already been executed the logic is ignored, the
         # execution of the load is only applied to non async requests
         not asynchronous and self.load()
@@ -1155,7 +1155,7 @@ class HTTPClient(netius.StreamClient):
 
         # tries to determine if the protocol response should be request
         # wrapped, meaning that a map based object is going to be populated
-        # with the contents of the http request/response
+        # with the contents of the HTTP request/response
         wrap_request = request or not asynchronous
 
         # parses the url to determine both the ssl, host and port values
@@ -1262,7 +1262,7 @@ class HTTPClient(netius.StreamClient):
         # the request is synchronous and no handled is defined and
         # when then on result callback is defined, this callback receives
         # this request structure as the result, and it contains the
-        # complete set of contents of the http request (easy usage)
+        # complete set of contents of the HTTP request (easy usage)
         has_request = not asynchronous and not on_data and not callback
         has_request = has_request or on_result
         if has_request:
