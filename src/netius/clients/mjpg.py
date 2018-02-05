@@ -75,13 +75,13 @@ class MJPGProtocol(http.HTTPProtocol):
         # be used for the correct parsing of the image
         cls = self.__class__
 
-        # tries to find the end of image (eoi) indicator in the current
+        # tries to find the end of image (EOI) indicator in the current
         # received data, and in case it's not found add the (partial)
         # data to the current buffer, to be latter processed
         eoi_index = data.find(cls.EOI_JPEG)
         if eoi_index == -1: self.buffer_l.append(data); return
 
-        # calculates the size of the end of image (eoi) token so that
+        # calculates the size of the end of image (EOI) token so that
         # this value will be used for the calculus of the image data
         eoi_size = len(cls.EOI_JPEG)
 
