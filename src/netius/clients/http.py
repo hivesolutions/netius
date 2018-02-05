@@ -667,10 +667,15 @@ class HTTPProtocol(netius.StreamProtocol):
             #@todo: maybe this has to be done differently
             #if on_result: on_result(connection, parser, request)
 
+        # runs the binding operation to a series of events on the
+        # current protocol so that the request object can be properly
+        # populated as expected (during protocol life-time)
         self.bind("partial", on_partial)
         self.bind("message", on_message)
         self.bind("close", on_finish)
 
+        # returns the request object that is going to be properly
+        # populated over the life-cycle of the protocol
         return request
 
     def set_encoding(self, encoding):
