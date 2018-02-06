@@ -2017,7 +2017,8 @@ class AbstractBase(observer.Observable):
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
         # verifies if both the host and the port are set and if that's the
-        # case runs the connect (send bind) operation in the socket
+        # case runs the connect (send bind) operation in the datagram socket
+        # notice that this is not a "real" remote connection
         if remote_host and remote_port: _socket.connect((remote_host, remote_port))
 
         # creates a new connection object representing the datagram socket
