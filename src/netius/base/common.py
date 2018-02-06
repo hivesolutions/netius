@@ -1882,21 +1882,26 @@ class AbstractBase(observer.Observable):
         # populates the basic information on the currently running
         # server like the host the port and the (is) ssl flag to be
         # used latter for reference operations
-        self.host = host
-        self.port = port
-        self.type = type
-        self.ssl = ssl
-        self.ssl_host = ssl_host
-        self.ssl_fingerprint = ssl_fingerprint
-        self.ssl_dump = ssl_dump
-        self.env = env
+
+        #@todo must remove all this static values !!!
+        #self.host = host
+        #self.port = port
+        #self.type = type
+        #self.ssl = ssl
+        #self.ssl_host = ssl_host
+        #self.ssl_fingerprint = ssl_fingerprint
+        #self.ssl_dump = ssl_dump
+        #self.env = env
 
         # populates the key, certificate and certificate authority file
         # information with the values that have just been resolved, these
         # values are going to be used for runtime certificate loading
-        self.key_file = key_file
-        self.cer_file = cer_file
-        self.ca_file = ca_file
+
+        #@todo must remove all these values and put them somewhere else
+        # (may the connection object)
+        #self.key_file = key_file
+        #self.cer_file = cer_file
+        #self.ca_file = ca_file
 
         # determines if the client side certificate should be verified
         # according to the loaded certificate authority values or if
@@ -1912,7 +1917,7 @@ class AbstractBase(observer.Observable):
         # creates a service socket according to the defined service
         family = socket.AF_INET6 if ipv6 else socket.AF_INET
         family = socket.AF_UNIX if is_unix else family
-        if type == TCP_TYPE: self.socket = self.socket_tcp(
+        if type == TCP_TYPE: _socket = self.socket_tcp(
             ssl,
             key_file = key_file,
             cer_file = cer_file,
@@ -1921,7 +1926,7 @@ class AbstractBase(observer.Observable):
             ssl_verify = ssl_verify,
             family = family
         )
-        elif type == UDP_TYPE: self.socket = self.socket_udp()
+        elif type == UDP_TYPE: _socket = self.socket_udp()
         else: raise errors.NetiusError("Invalid server type provided '%d'" % type)
 
         # "calculates" the address "bind target", taking into account that this
@@ -1934,13 +1939,13 @@ class AbstractBase(observer.Observable):
         # binds the socket to the provided address value (per spec) and then
         # starts the listening in the socket with the provided backlog value
         # defaulting to the typical maximum backlog as possible if not provided
-        self.socket.bind(address)
-        if type == TCP_TYPE: self.socket.listen(backlog)
+        _socket.bind(address)
+        if type == TCP_TYPE: _socket.listen(backlog)
 
         # in case the selected port is zero based, meaning that a randomly selected
         # port has been assigned by the bind operation the new port must be retrieved
         # and set for the current server instance as the new port (for future reference)
-        if self.port == 0: self.port = self.socket.getsockname()[1]
+        if self.port == 0: self.port = _socket.getsockname()[1]
 
         # creates the string that identifies it the current service connection
         # is using a secure channel (ssl) and then prints an info message about
@@ -1948,15 +1953,6 @@ class AbstractBase(observer.Observable):
         ipv6_s = " on ipv6" if ipv6 else ""
         ssl_s = " using ssl" if ssl else ""
         self.info("Serving '%s' service on %s:%s%s%s ..." % (self.name, host, port, ipv6_s, ssl_s))
-
-        # runs the fork operation responsible for the forking of the
-        # current process into the various child processes for multiple
-        # process based parallelism, note that this must be done after
-        # the master socket has been created (to be shared), note that
-        # in case the result is not valid an immediate return is performed
-        # as this represents a master based process (not meant to serve)
-        result = self.fork()
-        if not result: return
 
         # ensures that the current polling mechanism is correctly open as the
         # service socket is going to be added to it next, this overrides the
@@ -1967,7 +1963,7 @@ class AbstractBase(observer.Observable):
         # adds the socket to all of the pool lists so that it's ready to read
         # write and handle error, this is the expected behavior of a service
         # socket so that it can handle all of the expected operations
-        self.sub_all(self.socket)
+        self.sub_all(_socket)
 
         # calls the on serve callback handler so that underlying services may be
         # able to respond to the fact that the service is starting and some of
