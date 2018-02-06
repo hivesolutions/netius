@@ -3668,6 +3668,9 @@ def _build_datagram_native(
 ):
     loop = loop or netius.get_loop()
 
+    protocol = protocol_factory()
+    if hasattr(protocol, "loop_set"):  protocol.loop_set(loop)
+
     def on_ready():
         loop.datagram(
             family = family,
@@ -3676,11 +3679,9 @@ def _build_datagram_native(
         )
 
     def on_connect(connection):
-        if not callback: return
-        protocol = protocol_factory()
-        protocol._loop = loop
         _transport = transport.TransportDatagram(connection)
         _transport._set_compat(protocol)
+        if not callback: return
         callback((_transport, protocol))
 
     loop.delay(on_ready)
@@ -3698,9 +3699,11 @@ def _build_datagram_compat(
 ):
     loop = loop or netius.get_loop()
 
+    protocol = protocol_factory()
+    if hasattr(protocol, "loop_set"):
+        protocol.loop_set(loop)
+
     def build_protocol():
-        protocol = protocol_factory()
-        protocol._loop = loop
         return protocol
 
     def on_connect(future):
@@ -3739,6 +3742,10 @@ def _connect_stream_native(
 ):
     loop = loop or netius.get_loop()
 
+    protocol = protocol_factory()
+    has_loop_set = hasattr(protocol, "loop_set")
+    if has_loop_set: protocol.loop_set(loop)
+
     def on_ready():
         loop.connect(
             host,
@@ -3755,11 +3762,9 @@ def _connect_stream_native(
         )
 
     def on_connect(connection):
-        if not callback: return
-        protocol = protocol_factory()
-        protocol._loop = loop
         _transport = transport.TransportStream(connection)
         _transport._set_compat(protocol)
+        if not callback: return
         callback((_transport, protocol))
 
     loop.delay(on_ready)
@@ -3785,9 +3790,11 @@ def _connect_stream_compat(
 ):
     loop = loop or netius.get_loop()
 
+    protocol = protocol_factory()
+    has_loop_set = hasattr(protocol, "loop_set")
+    if has_loop_set: protocol.loop_set(loop)
+
     def build_protocol():
-        protocol = protocol_factory()
-        protocol._loop = loop
         return protocol
 
     def on_connect(future):

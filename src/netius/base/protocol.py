@@ -89,6 +89,12 @@ class Protocol(observer.Observable):
     def connection_lost(self, exception):
         self.close()
 
+    def loop_set(self, loop):
+        self._loop = loop
+
+    def loop_unset(self):
+        self._loop = None
+
     def pause_writing(self):
         self._writing = False
 

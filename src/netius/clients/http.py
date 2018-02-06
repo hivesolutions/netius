@@ -65,25 +65,81 @@ class HTTPProtocol(netius.StreamProtocol):
     responses.
     """
 
-    def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
+    def __init__(
+        self,
+        method,
+        url,
+        params = None,
+        headers = None,
+        data = None,
+        version = "HTTP/1.1",
+        encoding = PLAIN_ENCODING,
+        encodings = "gzip, deflate",
+        safe = False,
+        request = False,
+        asynchronous = True,
+        timeout = None,
+        use_file = False,
+        callback = None,
+        on_close = None,
+        on_headers = None,
+        on_data = None,
+        on_result = None,
+        *args,
+        **kwargs
+    ):
         netius.StreamProtocol.__init__(self, *args, **kwargs)
-        self.parser = None
+        self.method = method.upper()
+        self.url = url
+        self.params = params or {}
+        self.headers = headers or {}
+        self.data = data
+        self.version = version
         self.encoding = encoding
         self.current = encoding
-        self.gzip = None
-        self.gzip_c = None
-        self.version = "HTTP/1.1"
-        self.method = "GET"
-        self.encodings = "gzip, deflate"
-        self.url = None
-        self.ssl = False
+        self.encodings = encodings
+        self.safe = safe
+        self.asynchronous = asynchronous
+        self.timeout = timeout or 60
+        self.use_file = use_file
+        self.parser = None
         self.parsed = False
+        self.request = None
+        self.ssl = False
         self.host = None
         self.port = None
         self.path = None
-        self.headers = {}
-        self.data = None
-        self.timeout = None
+        self.gzip = None
+        self.gzip_c = None
+
+        # tries to determine if the protocol response should be request
+        # wrapped, meaning that a map based object is going to be populated
+        # with the contents of the HTTP request/response
+        wrap_request = request or (not asynchronous and not on_data and not callback)
+        wrap_request = wrap_request or on_result
+
+        # in case the wrap request flag is set (conditions for request usage
+        # are met) the protocol is called to run the wrapping operation
+        if wrap_request:
+            on_close, on_data, callback = protocol.wrap_request(
+                use_file = use_file,
+                callback = callback,
+                on_close = on_close,
+                on_data = on_data,
+                on_result = on_result
+            )
+
+        # registers for the proper event handlers according to the
+        # provided parameters, note that these are considered to be
+        # the lower level infra-structure of the event handling
+        if on_close: protocol.bind("close", on_close)
+        if on_headers: protocol.bind("headers", on_headers)
+        if on_data: protocol.bind("partial", on_data)
+        if callback: protocol.bind("message", callback)
+
+        # sets the static part of the protocol internal (no loop is required)
+        # so that the required initials fields are properly populated
+        self.set_static()
 
     @classmethod
     def decode_gzip(cls, data):
@@ -224,7 +280,7 @@ class HTTPProtocol(netius.StreamProtocol):
         netius.StreamProtocol.open(self, *args, **kwargs)
         if not self.is_open(): return
         self.parser = netius.common.HTTPParser(self, type = netius.common.RESPONSE)
-        self.parser.bind("on_data", self._on_data) #@todo this is just a fallback process
+        self.parser.bind("on_data", self._on_data)
         self.parser.bind("on_partial", self.on_partial)
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_chunk", self.on_chunk)
@@ -233,6 +289,8 @@ class HTTPProtocol(netius.StreamProtocol):
         netius.StreamProtocol.close(self, *args, **kwargs)
         if not self.is_closed(): return
         if self.parser: self.parser.destroy()
+        if self.parsed: self.parsed = None
+        if self.request: self.request = None
         if self.gzip: self._close_gzip(safe = True)
         if self.gzip_c: self.gzip_c = None
 
@@ -253,6 +311,14 @@ class HTTPProtocol(netius.StreamProtocol):
             parser = self.parser.info_dict()
         )
         return info
+
+    def connection_made(self, transport):
+        netius.StreamProtocol.connection_made(self, transport)
+        self.run_request()
+
+    def loop_set(self, loop):
+        netius.StreamProtocol.loop_set(self, loop)
+        self.set_dynamic()
 
     def flush(self, force = False, callback = None):
         if self.current == DEFLATE_ENCODING:
@@ -428,110 +494,76 @@ class HTTPProtocol(netius.StreamProtocol):
             callback = callback
         )
 
-    def set_all(
-        self,
-        method,
-        url,
-        params = None,
-        headers = None,
-        data = None,
-        version = "HTTP/1.1",
-        encoding = PLAIN_ENCODING,
-        encodings = "gzip, deflate",
-        safe = False,
-        timeout = None
-    ):
-        # runs the defaulting operation on the provided parameters so that
-        # new instances are created for both occasions as expected, this
-        # avoids the typical problem with re-usage of default attributes
-        params = params or dict()
-        headers = headers or dict()
-        timeout = timeout or 60
+    def set_all(self):
+        self.set_static()
+        self.set_dynamic()
 
+    def set_static(self):
         # creates the message that is going to be used in the logging of
         # the current method request for debugging purposes, this may be
         # useful for a full record traceability of the request
-        message = "%s %s %s" % (method, url, version)
+        message = "%s %s %s" % (self.method, self.url, self.version)
         self.debug(message)
 
         # stores the initial version of the url in a fallback variable so
         # that it may latter be used for the storage of that information
         # in the associated connection (used in callbacks)
-        base = url
+        self.base = self.url
 
         # encodes the provided parameters into the query string and then
         # adds these parameters to the end of the provided url, these
         # values are commonly named get parameters
-        query = netius.legacy.urlencode(params)
-        if query: url = url + "?" + query
+        query = netius.legacy.urlencode(self.params)
+        if query: self.url = self.url + "?" + query
 
         # parses the provided url and retrieves the various parts of the
         # url that are going to be used in the creation of the connection
         # takes into account some default values in case their are not part
         # of the provided url (eg: port and the scheme)
-        parsed = netius.legacy.urlparse(url)
-        ssl = parsed.scheme == "https"
-        host = parsed.hostname
-        port = parsed.port or (ssl and 443 or 80)
-        path = parsed.path or "/"
-        username = parsed.username
-        password = parsed.password
+        self.parsed = netius.legacy.urlparse(self.url)
+        self.ssl = self.parsed.scheme == "https"
+        self.host = self.parsed.hostname
+        self.port = self.parsed.port or (self.ssl and 443 or 80)
+        self.path = self.parsed.path or "/"
+        self.username = self.parsed.username
+        self.password = self.parsed.password
 
         # in case both the username and the password values are defined the
         # authorization header must be created and added to the default set
         # of headers that are going to be included in the request
-        if username and password:
-            payload = "%s:%s" % (username, password)
+        if self.username and self.password:
+            payload = "%s:%s" % (self.username, self.password)
             payload = netius.legacy.bytes(payload)
             authorization = base64.b64encode(payload)
             authorization = netius.legacy.str(authorization)
-            headers["authorization"] = "Basic %s" % authorization
+            self.headers["authorization"] = "Basic %s" % authorization
 
         # sets the complete set of information under the protocol instance so
         # that it may be latter used to send the request through the transport
-        self.set_http(
-            version = version,
-            method = method,
-            url = url,
-            base = base,
-            host = host,
-            port = port,
-            path = path,
-            ssl = ssl,
-            parsed = parsed,
-            safe = safe
-        )
-        self.set_encoding(encoding)
-        self.set_encodings(encodings)
-        self.set_headers(headers)
-        self.set_data(data)
-        self.set_timeout(timeout)
+        self.set_headers(self.headers)
 
-    def set_http(
-        self,
-        version = "HTTP/1.1",
-        method = "GET",
-        url = None,
-        base = None,
-        host = None,
-        port = None,
-        path = None,
-        ssl = False,
-        parsed = None,
-        safe = False
-    ):
-        self.version = version
-        self.method = method.upper()
-        self.url = url
-        self.base = base
-        self.host = host
-        self.port = port
-        self.path = path
-        self.ssl = ssl
-        self.parsed = parsed
-        self.safe = safe
+    def set_dynamic(self):
+        cls = self.__class__
 
-    def run_request(self, request = None):
+        # creates the function that is going to be used to validate
+        # the on connect timeout so that whenever the timeout for
+        # the connection operation is exceeded an error is set int
+        # the connection and the connection is properly closed
+        def connect_timeout():
+            if protocol.is_open(): return
+            self.request and cls.set_error(
+                "timeout",
+                message = "Timeout on connect",
+                request = self.request
+            )
+            protocol.close()
+
+        # schedules a delay operation to run the timeout handler for
+        # both connect operation (this is considered the initial
+        # triggers for the such verifiers)
+        self.delay(connect_timeout, timeout = self.timeout)
+
+    def run_request(self):
         # retrieves the reference to the top level class to be used
         # for class level operations
         cls = self.__class__
@@ -543,21 +575,20 @@ class HTTPProtocol(netius.StreamProtocol):
             # try to validate if the requirements for proper request
             # validations are defined, if any of them is not the control
             # full is returned immediately avoiding re-schedule of handler
-            if not request: return
+            if not self.request: return
             if not self.is_open(): return
-            if not self._request == id(request): return
-            if request["code"]: return
+            if self.request["code"]: return
 
             # retrieves the current time and the time of the last data
             # receive operation and using that calculates the delta
             current = time.time()
-            last = request.get("last", 0)
+            last = self.request.get("last", 0)
             delta = current - last
 
             # retrieves the amount of bytes that have been received so
             # far during the request handling this is going to be used
             # for logging purposes on the error information to be printed
-            received = request.get("received", 0)
+            received = self.request.get("received", 0)
 
             # determines if the protocol is considered valid, either
             # the connection is not "yet" connected of the time between
@@ -578,7 +609,7 @@ class HTTPProtocol(netius.StreamProtocol):
             cls.set_error(
                 "timeout",
                 message = message,
-                request = request
+                request = self.request
             )
 
             # closes the protocol (it's no longer considered valid)
@@ -642,6 +673,9 @@ class HTTPProtocol(netius.StreamProtocol):
         a request object is going to be created and properly populated
         according to the multiple protocol events.
 
+        This method should focus on wrapping the provided callback handlers
+        with ones that change the request object state.
+
         :type use_file: bool
         :param use_file: If a filesystem based approach should be used
         for the storing of the request information.
@@ -678,52 +712,39 @@ class HTTPProtocol(netius.StreamProtocol):
         # structure that is going to be send in the callback, then sets
         # the identifier (memory address) of the request in the connection
         buffer = tempfile.NamedTemporaryFile(mode = "w+b") if use_file else []
-        request = dict(code = None, data = None)
-        self._request = id(request)
+        self.request = dict(code = None, data = None)
 
         def on_close(protocol):
             if _on_close: _on_close(protocol)
             protocol._request = None
-            if request["code"]: return
+            if self.request["code"]: return
             cls.set_error(
                 "closed",
                 message = "Connection closed",
-                request = request
+                request = self.request
             )
 
         def on_data(protocol, parser, data):
             if _on_data: _on_data(protocol, parser, data)
             if use_file: buffer.write(data)
             else: buffer.append(data)
-            received = request.get("received", 0)
-            request["received"] = received + len(data)
-            request["last"] = time.time()
+            received = self.request.get("received", 0)
+            self.request["received"] = received + len(data)
+            self.request["last"] = time.time()
 
         def callback(protocol, parser, message):
             if _callback: _callback(protocol, parser, message)
-            if use_file: cls.set_request_file(parser, buffer, request = request)
-            else: cls.set_request(parser, buffer, request = request)
-            if on_result: on_result(protocol, parser, request)
+            if use_file: cls.set_request_file(parser, buffer, request = self.request)
+            else: cls.set_request(parser, buffer, request = self.request)
+            if on_result: on_result(protocol, parser, self.request)
 
         # returns the request object that is going to be properly
         # populated over the life-cycle of the protocol
-        return request, on_close, on_data, callback
-
-    def set_encoding(self, encoding):
-        self.current = encoding
-
-    def set_encodings(self, encodings):
-        self.encodings = encodings
+        return self.request, on_close, on_data, callback
 
     def set_headers(self, headers, normalize = True):
         self.headers = headers
         if normalize: self.normalize_headers()
-
-    def set_data(self, data):
-        self.data = data
-
-    def set_timeout(self, timeout):
-        self.timeout = timeout
 
     def normalize_headers(self):
         for key, value in netius.legacy.items(self.headers):
@@ -996,7 +1017,6 @@ class HTTPClient(netius.StreamClient):
         data = None,
         version = "HTTP/1.1",
         safe = False,
-        connection = None,
         asynchronous = True,
         daemon = True,
         timeout = None,
@@ -1022,7 +1042,6 @@ class HTTPClient(netius.StreamClient):
             data = data,
             version = version,
             safe = safe,
-            connection = connection,
             asynchronous = asynchronous,
             timeout = timeout,
             use_file = use_file,
@@ -1039,6 +1058,21 @@ class HTTPClient(netius.StreamClient):
 
     @classmethod
     def to_response(cls, map, raise_e = True):
+        """
+        Simple utility method that takes the classic dictionary
+        based request and converts it into a simple HTTP response
+        object to be used in more interactive way.
+
+        :type map: Dictionary
+        :param map: The dictionary backed request object that is
+        going to be converted into a response.
+        :type raise_e: bool
+        :param raise_e: If an exception should be raised in case
+        there's an error in the HTTP status field.
+        :rtype: HTTPResponse
+        :return: The normalized response value.
+        """
+
         error = map.get("error", None)
         message = map.get("message", None)
         exception = map.get("exception", None)
@@ -1129,7 +1163,6 @@ class HTTPClient(netius.StreamClient):
         encodings = "gzip, deflate",
         safe = False,
         request = False,
-        connection = None,
         asynchronous = True,
         timeout = None,
         use_file = False,
@@ -1144,98 +1177,39 @@ class HTTPClient(netius.StreamClient):
         # with the current instance, to be used for operations
         cls = self.__class__
 
-        # runs the defaulting operation on the provided parameters so that
-        # new instances are created for both occasions as expected, this
-        # avoids the typical problem with re-usage of default attributes
-        timeout = timeout or 60
-
         # creates the new protocol instance that is going to be used to
         # handle this new request, a new protocol represents also a new
         # parser object as defined by structure
-        protocol = cls.protocol()
-
-        # parses the url to determine both the ssl, host and port values
-        # so that it's possible to detect connection compatibility
-        parsed = netius.legacy.urlparse(url)
-        ssl = parsed.scheme == "https"
-        host = parsed.hostname
-        port = parsed.port or (ssl and 443 or 80)
-
-        # tries to determine if the protocol response should be request
-        # wrapped, meaning that a map based object is going to be populated
-        # with the contents of the HTTP request/response
-        wrap_request = request or (not asynchronous and not on_data and not callback)
-        wrap_request = wrap_request or on_result
-
-        # in case the wrap request flag is set (conditions for request usage
-        # are met) the protocol is called to run the wrapping operation
-        if wrap_request:
-            request,  on_close, on_data, callback = protocol.wrap_request(
-                use_file = use_file,
-                callback = callback,
-                on_close = on_close,
-                on_data = on_data,
-                on_result = on_result
-            )
-        else:
-            request = None
-
-        # creates the (on) connect handler function that is going to start
-        # running the request operation for the protocol according to current
-        # method indications (as per user request)
-        def on_connect(result):
-            _transport, protocol = result
-            protocol.owner = self
-            protocol.set_all(
-                method,
-                url,
-                params = params,
-                headers = headers,
-                data = data,
-                version = version,
-                encoding = encoding,
-                encodings = encodings,
-                safe = safe,
-                timeout = timeout
-            )
-            protocol.run_request(request = request)
+        protocol = cls.protocol(
+            method,
+            url,
+            params = params,
+            headers = headers,
+            data = data,
+            version = version,
+            encoding = encoding,
+            encodings = encodings,
+            safe = safe,
+            request = request,
+            asynchronous = asynchronous,
+            timeout = timeout,
+            use_file = use_file,
+            callback = callback,
+            on_close = on_close,
+            on_headers = on_headers,
+            on_data = on_data,
+            on_result = on_result
+        )
 
         # runs the global connect stream function on netius to initialize the
         # connection operation and maybe anew event loop (if that's required)
         loop = netius.connect_stream(
             lambda: protocol,
-            host,
-            port,
-            ssl = ssl,
-            callback = on_connect,
+            protocol.host,
+            protocol.port,
+            ssl = protocol.ssl,
             loop = loop
         )
-
-        # registers for the proper event handlers according to the
-        # provided parameters, note that these are considered to be
-        # the lower level infra-structure of the event handling
-        if on_close: protocol.bind("close", on_close)
-        if on_headers: protocol.bind("headers", on_headers)
-        if on_data: protocol.bind("partial", on_data)
-        if callback: protocol.bind("message", callback)
-
-        # creates the function that is going to be used to validate
-        # the on connect timeout so that whenever the timeout for
-        # the connection operation is exceeded an error is set int
-        # the connection and the connection is properly closed
-        def connect_timeout():
-            if protocol.is_open(): return
-            request and cls.set_error(
-                "timeout",
-                message = "Timeout on connect",
-                request = request
-            )
-            protocol.close()
-
-        # schedules a delay operation to run the timeout handler for
-        # both connect operation (this is considered the initial
-        # triggers for the such verifiers)
-        self.delay(connect_timeout, timeout = timeout)
 
         # in case the asynchronous mode is enabled returns the loop and the protocol
         # immediately so that it can be properly used by the caller
@@ -1259,7 +1233,6 @@ class HTTPClient(netius.StreamClient):
         # returns the final request object (that should be populated by this
         # time) to the called method
         return request
-
 
 if __name__ == "__main__":
     buffer = []
