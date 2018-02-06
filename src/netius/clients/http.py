@@ -533,8 +533,8 @@ class HTTPProtocol(netius.StreamProtocol):
         self.safe = safe
 
     def run_request(self, request = None):
-        #@todo maybe this can be a "normal" function
-
+        # retrieves the reference to the top level class to be used
+        # for class level operations
         cls = self.__class__
 
         # creates a function that is going to be used to validate
@@ -1233,11 +1233,17 @@ class HTTPClient(netius.StreamClient):
         def on_close(protocol):
             netius.stop_loop()
 
+        # binds the protocol message and close events to the associated
+        # function for proper handling
         protocol.bind("message", on_message)
         protocol.bind("close", on_close)
 
+        # runs the loop until complete, notice that on connection close
+        # the loop is stop, returning the control flow
         loop.run_forever()
 
+        # returns the final request object (that should be populated by this
+        # time) to the called method
         return request
 
 
