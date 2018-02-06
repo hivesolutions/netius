@@ -883,7 +883,7 @@ class AbstractBase(observer.Observable):
     def run_forever(self):
         # starts the current event loop, this is a blocking operation until
         # the done callback is called to stop the loop
-        self.start()
+        self.forever()
 
     def run_coroutine(
         self,
@@ -1384,6 +1384,16 @@ class AbstractBase(observer.Observable):
             if signum == None: continue
             try: signal.signal(signum, handler or base_handler)
             except: self.debug("Failed to register %d handler" % signum)
+
+    def forever(self, env = True):
+        if env: self.level = self.get_env("LEVEL", self.level)
+        if env: self.diag = self.get_env("DIAG", self.diag, cast = bool)
+        if env: self.middleware = self.get_env("MIDDLEWARE", self.middleware, cast = list)
+        if env: self.children = self.get_env("CHILD", self.children, cast = int)
+        if env: self.children = self.get_env("CHILDREN", self.children, cast = int)
+        if env: self.logging = self.get_env("LOGGING", self.logging)
+        if env: self.poll_name = self.get_env("POLL", self.poll_name)
+        return self.start()
 
     def start(self):
         # in case the current instance is currently paused runs the

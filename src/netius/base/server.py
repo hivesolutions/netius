@@ -296,7 +296,7 @@ class Server(Base):
         self.on_serve()
 
         # starts the base system so that the event loop gets started and the
-        # the servers gets ready to accept new connections (starts service)
+        # the servers get ready to accept new connections (starts service)
         if start: self.start()
 
     def socket_tcp(

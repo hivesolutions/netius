@@ -1164,13 +1164,6 @@ class HTTPClient(netius.StreamClient):
         # avoids the typical problem with re-usage of default attributes
         timeout = timeout or 60
 
-        # runs the loading process, so that services like logging are
-        # available right away and may be used immediately as expected
-        # by the HTTP method loader method, note that in case the loading
-        # process as already been executed the logic is ignored, the
-        # execution of the load is only applied to non async requests
-        not asynchronous and self.load()
-
         # creates the new protocol instance that is going to be used to
         # handle this new request, this may not be required in case no
         # new connection is going to be attempted (protocol re-usage)
@@ -1308,6 +1301,8 @@ class HTTPClient(netius.StreamClient):
         # function for proper handling
         protocol.bind("message", on_message)
         protocol.bind("close", on_close)
+        
+        loop.load()
 
         # runs the loop until complete, notice that on connection close
         # the loop is stop, returning the control flow
