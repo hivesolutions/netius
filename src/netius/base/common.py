@@ -1791,6 +1791,26 @@ class AbstractBase(observer.Observable):
         type = socket.SOCK_DGRAM,
         callback = None
     ):
+        """
+        Builds a datagram based connection for the provided family and
+        type of socket, receiving an optional callback parameter to
+        be called once the "connection" object is ready to be used.
+
+        :type family: int
+        :param family: The kind of socket family that is going to be
+        used in the creation of the datagram "connection".
+        :type type: int
+        :param type: Socket type (datagram, stream, etc.) to be used
+        for the creation of the datagram connection, in principle should
+        not be changed from the default value.
+        :type callback: Function
+        :param callback: Callback function to be called once the datagram
+        connection is considered to be ready.
+        :rtype: Connection
+        :return: The datagram based connection that encapsulates the datagram
+        based connection logic.
+        """
+
         # creates the socket that it's going to be used for the listening
         # of new connections (client socket) and sets it as non blocking
         _socket = socket.socket(family, type)
@@ -1831,7 +1851,6 @@ class AbstractBase(observer.Observable):
         family = socket.AF_INET,
         type = socket.SOCK_STREAM,
         callback = None,
-        ensure_loop = True,
         env = True
     ):
         # runs a series of pre-validations on the provided parameters, raising
