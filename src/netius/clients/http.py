@@ -121,7 +121,7 @@ class HTTPProtocol(netius.StreamProtocol):
         # in case the wrap request flag is set (conditions for request usage
         # are met) the protocol is called to run the wrapping operation
         if wrap_request:
-            on_close, on_data, callback = protocol.wrap_request(
+            _request, on_close, on_data, callback = self.wrap_request(
                 use_file = use_file,
                 callback = callback,
                 on_close = on_close,
