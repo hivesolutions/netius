@@ -2327,9 +2327,6 @@ class AbstractBase(observer.Observable):
         connection.set_upgraded()
 
     def on_ssl(self, connection):
-        #@todo this must be a condition on the connection or protocol
-        # on the server side this is different
-
         # runs the connection host verification process for the ssl
         # meaning that in case an ssl host value is defined it is going
         # to be verified against the value in the certificate
