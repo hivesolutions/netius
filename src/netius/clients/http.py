@@ -1181,8 +1181,11 @@ class HTTPClient(netius.StreamClient):
 
 
         #@todo for simplicity we'll make one connection per request !!!
-        # ignoring the acquire (connection) operations
+        # ignoring the acquire (connection) operations, this must be changed
+        # latter on
 
+        # in case the wrap request flag is set (conditions for request usage
+        # are met) the protocol is called to run the wrapping operation
         if wrap_request: request = protocol.wrap_request()
         else: request = None
 
@@ -1204,6 +1207,8 @@ class HTTPClient(netius.StreamClient):
             )
             protocol.run_request(request = request)
 
+        # runs the global connect stream function on netius to initialize the
+        # connection operation and maybe anew event loop (if that's required)
         loop = netius.connect_stream(
             lambda: protocol,
             host,
@@ -1213,6 +1218,8 @@ class HTTPClient(netius.StreamClient):
             loop = loop
         )
 
+        # in case the asynchronous mode is enabled returns the loop and the protocol
+        # immediately so that it can be properly used by the caller
         if asynchronous: return loop, protocol
 
         def on_message(protocol, parser, message):
