@@ -1019,7 +1019,6 @@ class HTTPClient(netius.StreamClient):
             **kwargs
         ) if asynchronous else HTTPClient(
             thread = False,
-            auto_close = True,
             **kwargs
         )
 
