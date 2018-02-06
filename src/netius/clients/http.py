@@ -59,6 +59,11 @@ BASE_HEADERS = {
 that are meant to be applied to all the requests """
 
 class HTTPProtocol(netius.StreamProtocol):
+    """
+    Implementation of the HTTP protocol to be used by a client
+    of the HTTP implementation to send requests and receive
+    responses.
+    """
 
     def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
         netius.StreamProtocol.__init__(self, *args, **kwargs)
