@@ -305,7 +305,7 @@ class AbstractBase(observer.Observable):
     _MAIN_C = None
     """ The compatibility version of the abstract main loop,
     should be used to provide compatibility with protocol and
-    transports used by the new api """
+    transports used by the new API """
 
     def __init__(self, name = None, handlers = None, *args, **kwargs):
         observer.Observable.__init__(self, *args, **kwargs)
@@ -1820,6 +1820,8 @@ class AbstractBase(observer.Observable):
         self,
         host,
         port,
+        receive_buffer = None,
+        send_buffer = None,
         ssl = False,
         key_file = None,
         cer_file = None,
@@ -1897,16 +1899,16 @@ class AbstractBase(observer.Observable):
             socket.TCP_NODELAY,
             1
         )
-        #if self.receive_buffer: _socket.setsockopt(
-        #    socket.SOL_SOCKET,
-        #    socket.SO_RCVBUF,
-        #    self.receive_buffer
-        #)
-        #if self.send_buffer: _socket.setsockopt(
-        #    socket.SOL_SOCKET,
-        #    socket.SO_SNDBUF,
-        #    self.send_buffer
-        #) #@todo must check this stuff
+        if receive_buffer: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_RCVBUF,
+            receive_buffer
+        )
+        if send_buffer: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_SNDBUF,
+            send_buffer
+        )
         self._socket_keepalive(_socket)
 
         # constructs the address tuple taking into account if the

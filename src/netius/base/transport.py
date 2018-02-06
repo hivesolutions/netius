@@ -43,7 +43,7 @@ from . import observer
 class Transport(observer.Observable):
     """
     Decorator class to be used to add the functionality of a
-    transport layer using a simplified and standard api.
+    transport layer using a simplified and standard API.
 
     Allows adding the functionality to an internal netius
     connection (or equivalent) object.
