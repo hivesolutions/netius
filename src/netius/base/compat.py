@@ -270,7 +270,12 @@ class CompatLoop(BaseLoop):
             _transport._set_compat(protocol)
             future.set_result((_transport, protocol))
 
-        connection = self._loop.datagram(family = family, type = proto)
+        connection = self._loop.datagram(
+            family = family,
+            type = proto,
+            remote_host = remote_addr[0] if remote_addr else None,
+            remote_port = remote_addr[1] if remote_addr else None
+        )
 
         self._loop.delay(lambda: connect(connection))
         yield future

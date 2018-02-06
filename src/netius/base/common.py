@@ -1799,6 +1799,8 @@ class AbstractBase(observer.Observable):
         self,
         family = socket.AF_INET,
         type = socket.SOCK_DGRAM,
+        remote_host = None,
+        remote_port = None,
         callback = None
     ):
         """
@@ -1813,6 +1815,14 @@ class AbstractBase(observer.Observable):
         :param type: Socket type (datagram, stream, etc.) to be used
         for the creation of the datagram connection, in principle should
         not be changed from the default value.
+        :type remote_host: String
+        :param remote_host: The remote host to be used in a possible connect
+        (bind) operation in the datagram so that the default send operation
+        does not require explicit host setting.
+        :type remote_port: String
+        :param remote_port: The remote port to be used in a possible connect
+        (bind) operation in the datagram so that the default send operation
+        does not require explicit port setting.
         :type callback: Function
         :param callback: Callback function to be called once the datagram
         connection is considered to be ready.
@@ -1830,6 +1840,10 @@ class AbstractBase(observer.Observable):
         # ready for the operation with the highest possible performance
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+        # verifies if both the host and the port are set and if that's the
+        # case runs the connect (send bind) operation in the socket
+        if remote_host and remote_port: _socket.connect((remote_host, remote_port))
 
         # creates a new connection object representing the datagram socket
         # that has just been created to be used for upper level operations
@@ -3661,6 +3675,8 @@ def _build_datagram_native(
     protocol_factory,
     family = socket.AF_INET,
     type = socket.SOCK_DGRAM,
+    remote_host = None,
+    remote_port = None,
     callback = None,
     loop = None,
     *args,
@@ -3675,6 +3691,8 @@ def _build_datagram_native(
         loop.datagram(
             family = family,
             type = type,
+            remote_host = remote_host,
+            remote_port = remote_port,
             callback = on_connect
         )
 
@@ -3692,6 +3710,8 @@ def _build_datagram_compat(
     protocol_factory,
     family = socket.AF_INET,
     type = socket.SOCK_DGRAM,
+    remote_host = None,
+    remote_port = None,
     callback = None,
     loop = None,
     *args,
@@ -3714,6 +3734,8 @@ def _build_datagram_compat(
     connect = loop.create_datagram_endpoint(
         build_protocol,
         family = family,
+        remote_addr = (remote_host, remote_port) if\
+            remote_host and remote_port else None,
         *args,
         **kwargs
     )
