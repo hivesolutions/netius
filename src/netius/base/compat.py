@@ -352,8 +352,8 @@ class CompatTransport(BaseTransport):
 
     Allows adding the functionality to an internal netius
     (or equivalent) object, this is considered to be the adaptor
-    from the internal loop implementation and the expected
-    transport layer from asyncio.
+    from the internal loop (and connection) implementation to
+    the expected transport layer from asyncio.
 
     :see: https://docs.python.org/3/library/asyncio-protocol.html
     """
