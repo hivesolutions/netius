@@ -1175,6 +1175,7 @@ class HTTPClient(netius.StreamClient):
         # handle this new request, this may not be required in case no
         # new connection is going to be attempted (protocol re-usage)
         #@todo re-using connections implies changing this for re-usage
+        # handling a protocol pool maybe
         protocol = cls.protocol()
 
         # runs a series of unbind operations from the protocol so that it
