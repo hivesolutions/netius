@@ -132,10 +132,10 @@ class HTTPProtocol(netius.StreamProtocol):
         # registers for the proper event handlers according to the
         # provided parameters, note that these are considered to be
         # the lower level infra-structure of the event handling
-        if on_close: protocol.bind("close", on_close)
-        if on_headers: protocol.bind("headers", on_headers)
-        if on_data: protocol.bind("partial", on_data)
-        if callback: protocol.bind("message", callback)
+        if on_close: self.bind("close", on_close)
+        if on_headers: self.bind("headers", on_headers)
+        if on_data: self.bind("partial", on_data)
+        if callback: self.bind("message", callback)
 
         # sets the static part of the protocol internal (no loop is required)
         # so that the required initials fields are properly populated
@@ -290,7 +290,6 @@ class HTTPProtocol(netius.StreamProtocol):
         if not self.is_closed(): return
         if self.parser: self.parser.destroy()
         if self.parsed: self.parsed = None
-        if self.request: self.request = None
         if self.gzip: self._close_gzip(safe = True)
         if self.gzip_c: self.gzip_c = None
 
@@ -1232,7 +1231,7 @@ class HTTPClient(netius.StreamClient):
 
         # returns the final request object (that should be populated by this
         # time) to the called method
-        return request
+        return protocol.request
 
 if __name__ == "__main__":
     buffer = []
