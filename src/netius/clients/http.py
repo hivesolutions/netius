@@ -1301,8 +1301,6 @@ class HTTPClient(netius.StreamClient):
         # function for proper handling
         protocol.bind("message", on_message)
         protocol.bind("close", on_close)
-        
-        loop.load()
 
         # runs the loop until complete, notice that on connection close
         # the loop is stop, returning the control flow
