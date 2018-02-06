@@ -857,6 +857,20 @@ class AbstractBase(observer.Observable):
         return future
 
     def resolve_hostname(self, hostname, type = "a"):
+        """
+        Resolve the provided hostname according to the provided type
+        resolution. The resolution process itself is asynchronous and
+        implementation independent, returning a future for the control
+        of the execution.
+
+        :type hostname: String
+        :param hostname: The name of the host to be resolved.
+        :type type: String
+        :param type: The type of resolutions to be used (eg: a, aaaa, mx, etc.)
+        :rtype: Future
+        :return: The future to be used in the operation execution.
+        """
+
         import netius.clients
 
         future = self.build_future()
