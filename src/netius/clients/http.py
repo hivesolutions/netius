@@ -439,7 +439,6 @@ class HTTPProtocol(netius.StreamProtocol):
         encoding = PLAIN_ENCODING,
         encodings = "gzip, deflate",
         safe = False,
-        connection = None,
         timeout = None
     ):
         # runs the defaulting operation on the provided parameters so that
@@ -1165,18 +1164,9 @@ class HTTPClient(netius.StreamClient):
         timeout = timeout or 60
 
         # creates the new protocol instance that is going to be used to
-        # handle this new request, this may not be required in case no
-        # new connection is going to be attempted (protocol re-usage)
-        #@todo re-using connections implies changing this for re-usage
-        # handling a protocol pool maybe
+        # handle this new request, a new protocol represents also a new
+        # parser object as defined by structure
         protocol = cls.protocol()
-
-        # runs a series of unbind operations from the protocol so that it
-        # becomes "free" from any previous usage under different contexts
-        protocol.unbind("close")
-        protocol.unbind("headers")
-        protocol.unbind("partial")
-        protocol.unbind("message")
 
         # parses the url to determine both the ssl, host and port values
         # so that it's possible to detect connection compatibility
@@ -1184,31 +1174,6 @@ class HTTPClient(netius.StreamClient):
         ssl = parsed.scheme == "https"
         host = parsed.hostname
         port = parsed.port or (ssl and 443 or 80)
-
-        # in case there's a connection to be used must validate that the
-        # connection is valid for the current context so that the host,
-        # the port and the security of the connection is the same, in case
-        # the connection is not valid closes it and sets it as unset
-        if connection:
-            address_valid = connection.address == (host, port)
-            ssl_valid = connection.ssl == ssl
-            is_valid = address_valid and ssl_valid
-            if not is_valid: connection.close(); connection = None
-
-        # in case there's going to be a re-usage of an already existing
-        # connection the acquire operation must be performed so that it
-        # becomes unblocked from the previous context (required for usage)
-        #connection and self.acquire(connection)
-
-        # tries to retrieve the connection that is going to be used for
-        # the performing of the request by either acquiring a connection
-        # from the list of available connection or re-using the connection
-        # that was passed to the method (and previously acquired)
-        #connection = connection or self.acquire_c(host, port, ssl = ssl)
-
-        #@todo for simplicity we'll make one connection per request !!!
-        # ignoring the acquire (connection) operations, this must be changed
-        # latter on
 
         # tries to determine if the protocol response should be request
         # wrapped, meaning that a map based object is going to be populated
@@ -1245,7 +1210,6 @@ class HTTPClient(netius.StreamClient):
                 encoding = encoding,
                 encodings = encodings,
                 safe = safe,
-                connection = connection,
                 timeout = timeout
             )
             protocol.run_request(request = request)
@@ -1260,10 +1224,6 @@ class HTTPClient(netius.StreamClient):
             callback = on_connect,
             loop = loop
         )
-
-        # in case the asynchronous mode is enabled returns the loop and the protocol
-        # immediately so that it can be properly used by the caller
-        if asynchronous: return loop, protocol
 
         # registers for the proper event handlers according to the
         # provided parameters, note that these are considered to be
@@ -1290,6 +1250,10 @@ class HTTPClient(netius.StreamClient):
         # both connect operation (this is considered the initial
         # triggers for the such verifiers)
         self.delay(connect_timeout, timeout = timeout)
+
+        # in case the asynchronous mode is enabled returns the loop and the protocol
+        # immediately so that it can be properly used by the caller
+        if asynchronous: return loop, protocol
 
         def on_message(protocol, parser, message):
             protocol.close()
