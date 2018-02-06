@@ -237,8 +237,7 @@ class CompatLoop(BaseLoop):
             host,
             port,
             ssl = ssl,
-            family = family,
-            ensure_loop = False
+            family = family
         )
         connection.bind("connect", connect)
 
