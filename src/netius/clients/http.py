@@ -549,13 +549,13 @@ class HTTPProtocol(netius.StreamProtocol):
         # the connection operation is exceeded an error is set int
         # the connection and the connection is properly closed
         def connect_timeout():
-            if protocol.is_open(): return
+            if self.is_open(): return
             self.request and cls.set_error(
                 "timeout",
                 message = "Timeout on connect",
                 request = self.request
             )
-            protocol.close()
+            self.close()
 
         # schedules a delay operation to run the timeout handler for
         # both connect operation (this is considered the initial
@@ -600,7 +600,7 @@ class HTTPProtocol(netius.StreamProtocol):
             # tries to determine the proper message that is going to be
             # set in the request error, this value should take into account
             # the current development mode flag value
-            if self.owner.is_devel(): message = "Timeout on receive (received %d bytes)" % received
+            if self._loop.is_devel(): message = "Timeout on receive (received %d bytes)" % received
             else: message = "Timeout on receive"
 
             # sets the error information in the request so that the
