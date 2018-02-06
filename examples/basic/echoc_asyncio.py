@@ -69,12 +69,10 @@ class EchoClientProtocol(object):
 message = "Hello World!"
 
 loop = netius.get_loop(_compat = True)
-
 connect = loop.create_datagram_endpoint(
     lambda: EchoClientProtocol(message, loop),
     remote_addr = ("127.0.0.1", 9999)
 )
-
 transport, protocol = loop.run_until_complete(connect)
 loop.run_forever()
 transport.close()
