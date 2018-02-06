@@ -3831,8 +3831,8 @@ def connect_stream(*args, **kwargs):
     else: return _connect_stream_native(*args, **kwargs)
 
 def serve_stream(*args, **kwargs):
-    #@todo implement these operations
-    pass
+    if compat.is_compat(): return _serve_stream_compat(*args, **kwargs)
+    else: return _serve_stream_native(*args, **kwargs)
 
 def ensure(coroutine, args = [], kwargs = {}, thread = None):
     loop = get_loop()
@@ -4018,6 +4018,14 @@ def _connect_stream_compat(
     future.add_done_callback(on_connect)
 
     return loop
+
+def _server_stream_native():
+    #@todo: implement this stuff
+    pass
+
+def _serve_stream_compat():
+    #@todo: implement this stuff
+    pass
 
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Base = DiagBase
