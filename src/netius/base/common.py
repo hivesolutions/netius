@@ -4019,7 +4019,7 @@ def _connect_stream_compat(
 
     return loop
 
-def _server_stream_native():
+def _serve_stream_native():
     #@todo: implement this stuff
     pass
 
