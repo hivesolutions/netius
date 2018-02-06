@@ -58,3 +58,6 @@ listen = loop.create_datagram_endpoint(
     local_addr = ("127.0.0.1", 9999)
 )
 transport, protocol = loop.run_until_complete(listen)
+
+#@todo this should not be required
+loop.run_forever()
