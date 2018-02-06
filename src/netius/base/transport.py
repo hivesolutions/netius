@@ -49,7 +49,8 @@ class Transport(observer.Observable):
     connection (or equivalent) object.
     """
 
-    def __init__(self, connection, open = True):
+    def __init__(self, loop, connection, open = True):
+        self._loop = loop
         self._connection = connection
         self._protocol = None
         self._exhausted = False
@@ -113,7 +114,9 @@ class Transport(observer.Observable):
         pass
 
     def _on_close(self, connection):
-        pass
+        if not self._protocol == None:
+            self._protocol.eof_received()
+        self._cleanup()
 
     def _set_compat(self, protocol):
         self._set_binds()
@@ -139,28 +142,35 @@ class Transport(observer.Observable):
             self._exhausted = True
             self._protocol.pause_writing()
 
+    def _cleanup(self):
+        self._loop.call_soon(self._call_connection_lost, None)
+        self._loop = None
+
+    def _call_connection_lost(self, context):
+        if not self._protocol == None:
+            self._protocol.connection_lost(context)
+
 class TransportDatagram(Transport):
     """
     Abstract class to be used when creating a datagram based
     (connectionless) transport.
+
+    This implementation reflects the decisions made for the
+    netius based transport abstraction, inspired by asyncio.
     """
 
     def _on_data(self, connection, data):
         data, address = data
         self._protocol.datagram_received(data, address)
 
-    def _on_close(self, connection):
-        pass
-
 class TransportStream(Transport):
     """
     Abstract class to be used when creating a stream based
     (connection) transport.
+
+    This implementation reflects the decisions made for the
+    netius based transport abstraction, inspired by asyncio.
     """
 
     def _on_data(self, connection, data):
         self._protocol.data_received(data)
-
-    def _on_close(self, connection):
-        self._protocol.eof_received()
-        self._protocol.connection_lost(None)

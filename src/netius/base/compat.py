@@ -50,7 +50,6 @@ from . import asynchronous
 
 asyncio = asynchronous.get_asyncio() if asynchronous.is_neo() else None
 BaseLoop = asyncio.AbstractEventLoop if asyncio else object
-BaseTransport = asyncio.BaseTransport if asyncio else object
 
 class CompatLoop(BaseLoop):
     """
@@ -252,9 +251,9 @@ class CompatLoop(BaseLoop):
 
         def connect(connection):
             protocol = protocol_factory()
-            transport = CompatTransport(self, connection)
-            transport._set_compat(protocol)
-            future.set_result((transport, protocol))
+            _transport = transport.TransportStream(self, connection)
+            _transport._set_compat(protocol)
+            future.set_result((_transport, protocol))
 
         connection = self._loop.connect(
             host,
@@ -288,7 +287,7 @@ class CompatLoop(BaseLoop):
 
         def connect(connection):
             protocol = protocol_factory()
-            _transport = transport.TransportDatagram(connection)
+            _transport = transport.TransportDatagram(self, connection)
             _transport._set_compat(protocol)
             future.set_result((_transport, protocol))
 
@@ -366,74 +365,6 @@ class CompatLoop(BaseLoop):
     @property
     def _thread_id(self):
         return self._loop.tid
-
-class CompatTransport(BaseTransport):
-    """
-    Decorator class to be used to add the functionality of a
-    transport layer as defined by the asyncio.
-
-    Allows adding the functionality to an internal netius
-    (or equivalent) object, this is considered to be the adaptor
-    from the internal loop implementation and the expected
-    transport layer from asyncio.
-
-    :see: https://docs.python.org/3/library/asyncio-protocol.html
-    """
-
-    def __init__(self, loop, connection):
-        self._loop = loop
-        self._connection = connection
-        self._protocol = None
-
-    def close(self):
-        self._connection.close()
-
-    def abort(self):
-        self._connection.close()
-
-    def write(self, data):
-        self._connection.send(data)
-
-    def get_extra_info(self, name, default = None):
-        if name == "socket": return self._connection.socket
-        else: return default
-
-    def set_protocol(self, protocol):
-        self._set_protocol(protocol, mark = False)
-
-    def get_protocol(self):
-        return self._protocol
-
-    def is_closing(self):
-        return self._connection.is_closed()
-
-    def _on_data(self, connection, data):
-        self._protocol.data_received(data)
-
-    def _on_close(self, connection):
-        if not self._protocol == None:
-            self._protocol.eof_received()
-        self._cleanup()
-
-    def _set_compat(self, protocol):
-        self._set_binds()
-        self._set_protocol(protocol)
-
-    def _set_binds(self):
-        self._connection.bind("data", self._on_data)
-        self._connection.bind("close", self._on_close)
-
-    def _set_protocol(self, protocol, mark = True):
-        self._protocol = protocol
-        if mark: self._protocol.connection_made(self)
-
-    def _cleanup(self):
-        self._loop.call_soon(self._call_connection_lost, None)
-        self._loop = None
-
-    def _call_connection_lost(self, context):
-        if not self._protocol == None:
-            self._protocol.connection_lost(context)
 
 def is_compat():
     """
