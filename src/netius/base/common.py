@@ -3652,29 +3652,23 @@ def _build_datagram_native(
     family = socket.AF_INET,
     type = socket.SOCK_DGRAM,
     callback = None,
-    on_build = None,
     loop = None,
     *args,
     **kwargs
 ):
     loop = loop or netius.get_loop()
 
-    context = dict()
-
     def on_ready():
-        protocol = protocol_factory()
-        protocol._loop = loop
         loop.datagram(
             family = family,
             type = type,
             callback = on_connect
         )
-        if on_build: on_build(protocol)
-        context["protocol"] = protocol
 
     def on_connect(connection):
         if not callback: return
-        protocol = context["protocol"]
+        protocol = protocol_factory()
+        protocol._loop = loop
         _transport = transport.TransportDatagram(connection)
         _transport._set_compat(protocol)
         callback((_transport, protocol))
@@ -3688,7 +3682,6 @@ def _build_datagram_compat(
     family = socket.AF_INET,
     type = socket.SOCK_DGRAM,
     callback = None,
-    on_build = None,
     loop = None,
     *args,
     **kwargs
@@ -3698,7 +3691,6 @@ def _build_datagram_compat(
     def build_protocol():
         protocol = protocol_factory()
         protocol._loop = loop
-        if on_build: on_build(protocol)
         return protocol
 
     def on_connect(future):
@@ -3730,18 +3722,13 @@ def _connect_stream_native(
     family = socket.AF_INET,
     type = socket.SOCK_STREAM,
     callback = None,
-    on_build = None,
     loop = None,
     *args,
     **kwargs
 ):
     loop = loop or netius.get_loop()
 
-    context = dict()
-
     def on_ready():
-        protocol = protocol_factory()
-        protocol._loop = loop
         loop.connect(
             host,
             port,
@@ -3755,12 +3742,11 @@ def _connect_stream_native(
             type = type,
             callback = on_connect
         )
-        if on_build: on_build(protocol)
-        context["protocol"] = protocol
 
     def on_connect(connection):
         if not callback: return
-        protocol = context["protocol"]
+        protocol = protocol_factory()
+        protocol._loop = loop
         _transport = transport.TransportStream(connection)
         _transport._set_compat(protocol)
         callback((_transport, protocol))
@@ -3782,7 +3768,6 @@ def _connect_stream_compat(
     family = socket.AF_INET,
     type = socket.SOCK_STREAM,
     callback = None,
-    on_build = None,
     loop = None,
     *args,
     **kwargs
@@ -3792,7 +3777,6 @@ def _connect_stream_compat(
     def build_protocol():
         protocol = protocol_factory()
         protocol._loop = loop
-        if on_build: on_build(protocol)
         return protocol
 
     def on_connect(future):

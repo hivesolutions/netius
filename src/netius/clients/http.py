@@ -1209,11 +1209,6 @@ class HTTPClient(netius.StreamClient):
             if not is_valid: connection.close(); connection = None
 
 
-
-
-
-
-
         # in case there's going to be a re-usage of an already existing
         # connection the acquire operation must be performed so that it
         # becomes unblocked from the previous context (required for usage)
@@ -1224,7 +1219,6 @@ class HTTPClient(netius.StreamClient):
         # from the list of available connection or re-using the connection
         # that was passed to the method (and previously acquired)
         #connection = connection or self.acquire_c(host, port, ssl = ssl)
-
 
         #@todo for simplicity we'll make one connection per request !!!
         # ignoring the acquire (connection) operations, this must be changed
@@ -1242,33 +1236,6 @@ class HTTPClient(netius.StreamClient):
             )
         else:
             request = None
-
-        def on_build(protocol):
-            # registers for the proper event handlers according to the
-            # provided parameters, note that these are considered to be
-            # the lower level infra-structure of the event handling
-            if on_close: protocol.bind("close", on_close)
-            if on_headers: protocol.bind("headers", on_headers)
-            if on_data: protocol.bind("partial", on_data)
-            if callback: protocol.bind("message", callback)
-
-            # creates the function that is going to be used to validate
-            # the on connect timeout so that whenever the timeout for
-            # the connection operation is exceeded an error is set int
-            # the connection and the connection is properly closed
-            def connect_timeout():
-                if protocol.is_open(): return
-                request and cls.set_error(
-                    "timeout",
-                    message = "Timeout on connect",
-                    request = request
-                )
-                protocol.close()
-
-            # schedules a delay operation to run the timeout handler for
-            # both connect operation (this is considered the initial
-            # triggers for the such verifiers)
-            self.delay(connect_timeout, timeout = timeout)
 
         # creates the (on) connect handler function that is going to start
         # running the request operation for the protocol according to current
@@ -1299,13 +1266,38 @@ class HTTPClient(netius.StreamClient):
             port,
             ssl = ssl,
             callback = on_connect,
-            on_build = on_build,
             loop = loop
         )
 
         # in case the asynchronous mode is enabled returns the loop and the protocol
         # immediately so that it can be properly used by the caller
         if asynchronous: return loop, protocol
+
+        # registers for the proper event handlers according to the
+        # provided parameters, note that these are considered to be
+        # the lower level infra-structure of the event handling
+        if on_close: protocol.bind("close", on_close)
+        if on_headers: protocol.bind("headers", on_headers)
+        if on_data: protocol.bind("partial", on_data)
+        if callback: protocol.bind("message", callback)
+
+        # creates the function that is going to be used to validate
+        # the on connect timeout so that whenever the timeout for
+        # the connection operation is exceeded an error is set int
+        # the connection and the connection is properly closed
+        def connect_timeout():
+            if protocol.is_open(): return
+            request and cls.set_error(
+                "timeout",
+                message = "Timeout on connect",
+                request = request
+            )
+            protocol.close()
+
+        # schedules a delay operation to run the timeout handler for
+        # both connect operation (this is considered the initial
+        # triggers for the such verifiers)
+        self.delay(connect_timeout, timeout = timeout)
 
         def on_message(protocol, parser, message):
             protocol.close()
