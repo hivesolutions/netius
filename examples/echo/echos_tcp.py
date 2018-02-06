@@ -45,14 +45,14 @@ class EchoServerClientProtocol(asyncio.Protocol):
 
     def connection_made(self, transport):
         peername = transport.get_extra_info("peername")
-        print("Connection from {}".format(peername))
+        print("Connection from %s" % peername)
         self.transport = transport
 
     def data_received(self, data):
         message = data.decode()
-        print("Data received: {!r}".format(message))
+        print("Data received: %s" % message)
 
-        print("Send: {!r}".format(message))
+        print("Send: %s" % message)
         self.transport.write(data)
 
         print("Close the client socket")
