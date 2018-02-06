@@ -217,36 +217,18 @@ class CompatLoop(BaseLoop):
         protocol_factory,
         host = None,
         port = None,
-        ssl = None,
         family = 0,
-        proto = 0,
         flags = 0,
         sock = None,
-        local_addr = None,
-        server_hostname = None,
+        backlog = 100,
+        ssl = None,
+        reuse_address = None,
+        reuse_port = None,
         *args,
         **kwargs
     ):
-        family = family or socket.AF_INET
-        proto = proto or socket.SOCK_STREAM
-
-        future = self.create_future()
-
-        def connect(connection):
-            protocol = protocol_factory()
-            transport = CompatTransport(self, connection)
-            transport._set_compat(protocol)
-            future.set_result((transport, protocol))
-
-        connection = self._loop.server(
-            host,
-            port,
-            ssl = ssl,
-            family = family
-        )
-        connection.bind("connect", connect)
-
-        yield future
+        #@todo implement this server code
+        pass
 
     def _create_connection(
         self,
