@@ -1185,12 +1185,6 @@ class HTTPClient(netius.StreamClient):
         protocol.unbind("partial")
         protocol.unbind("message")
 
-        # tries to determine if the protocol response should be request
-        # wrapped, meaning that a map based object is going to be populated
-        # with the contents of the HTTP request/response
-        wrap_request = request or (not asynchronous and not on_data and not callback)
-        wrap_request = wrap_request or on_result
-
         # parses the url to determine both the ssl, host and port values
         # so that it's possible to detect connection compatibility
         parsed = netius.legacy.urlparse(url)
@@ -1208,7 +1202,6 @@ class HTTPClient(netius.StreamClient):
             is_valid = address_valid and ssl_valid
             if not is_valid: connection.close(); connection = None
 
-
         # in case there's going to be a re-usage of an already existing
         # connection the acquire operation must be performed so that it
         # becomes unblocked from the previous context (required for usage)
@@ -1223,6 +1216,12 @@ class HTTPClient(netius.StreamClient):
         #@todo for simplicity we'll make one connection per request !!!
         # ignoring the acquire (connection) operations, this must be changed
         # latter on
+
+        # tries to determine if the protocol response should be request
+        # wrapped, meaning that a map based object is going to be populated
+        # with the contents of the HTTP request/response
+        wrap_request = request or (not asynchronous and not on_data and not callback)
+        wrap_request = wrap_request or on_result
 
         # in case the wrap request flag is set (conditions for request usage
         # are met) the protocol is called to run the wrapping operation
