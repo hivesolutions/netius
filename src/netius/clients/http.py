@@ -630,11 +630,38 @@ class HTTPProtocol(netius.StreamProtocol):
         count += self.send_base(data, force = True, callback = callback)
         return count
 
-    def wrap_request(self):
+    def wrap_request(
+        self,
+        use_file = False,
+        callback = None,
+        on_close = None,
+        on_headers = None,
+        on_data = None,
+        on_result = None
+    ):
         """
         Wraps the current set of operations for the protocol so that
-        a request object is going to be created.
+        a request object is going to be created and properly populated
+        according to the multiple protocol events.
 
+        :type use_file: bool
+        :param use_file: If a filesystem based approach should be used
+        for the storing of the request information.
+        :type callback: Function
+        :param callback: Callback function to be called when the message
+        response has been completely received.
+        :type on_close: Function
+        :param on_close: Callback function to be called when the underlying
+        protocol is closed.
+        :type on_headers: Function
+        :param on_headers: Callback function to be called when the response
+        headers have been received.
+        :type on_data: Function
+        :param on_data: Function to be called whenever some data is received
+        from the client side, notice that this data may be encoded (eg: gzip).
+        :type on_result: Function
+        :param on_result: Callback function to be called on the final result
+        with the resulting request object.
         :rtype: Dictionary
         :return: The request dictionary object that is going to store
         the information for the request in the current protocol.
@@ -644,15 +671,22 @@ class HTTPProtocol(netius.StreamProtocol):
         # going to be used for class wide operations
         cls = self.__class__
 
+        # saves the references to the previous callback method so that
+        # they can be used from the current request based approach
+        _on_close = on_close
+        _on_data = on_data
+        _callback = callback
+
         # creates both the buffer list and the request structure so that
         # they may be used for the correct construction of the request
         # structure that is going to be send in the callback, then sets
         # the identifier (memory address) of the request in the connection
-        buffer = []
+        buffer = tempfile.NamedTemporaryFile(mode = "w+b") if use_file else []
         request = dict(code = None, data = None)
         self._request = id(request)
 
         def on_finish(protocol):
+            if _on_close: _on_close(protocol)
             protocol._request = None
             if request["code"]: return
             cls.set_error(
@@ -662,15 +696,18 @@ class HTTPProtocol(netius.StreamProtocol):
             )
 
         def on_partial(protocol, parser, data):
-            buffer.append(data)
+            if _on_data: _on_data(protocol, parser, data)
+            if use_file: buffer.write(data)
+            else: buffer.append(data)
             received = request.get("received", 0)
             request["received"] = received + len(data)
             request["last"] = time.time()
 
         def on_message(protocol, parser, message):
-            cls.set_request(parser, buffer, request = request)
-            #@todo: maybe this has to be done differently
-            #if on_result: on_result(connection, parser, request)
+            if _callback: _callback(protocol, parser, message)
+            if use_file: cls.set_request_file(parser, buffer, request = request)
+            else: cls.set_request(parser, buffer, request = request)
+            if on_result: on_result(protocol, parser, request)
 
         # runs the binding operation to a series of events on the
         # current protocol so that the request object can be properly
@@ -1122,11 +1159,11 @@ class HTTPClient(netius.StreamClient):
         timeout = None,
         use_file = False,
         callback = None,
-        loop = None,
         on_close = None,
         on_headers = None,
         on_data = None,
-        on_result = None
+        on_result = None,
+        loop = None
     ):
         # extracts the reference to the upper class element associated
         # with the current instance, to be used for operations
@@ -1148,7 +1185,8 @@ class HTTPClient(netius.StreamClient):
         # tries to determine if the protocol response should be request
         # wrapped, meaning that a map based object is going to be populated
         # with the contents of the HTTP request/response
-        wrap_request = request or not asynchronous
+        wrap_request = request or not asynchronous and not on_data and not callback
+        wrap_request = wrap_request or on_result
 
         # parses the url to determine both the ssl, host and port values
         # so that it's possible to detect connection compatibility
@@ -1191,9 +1229,21 @@ class HTTPClient(netius.StreamClient):
 
         # in case the wrap request flag is set (conditions for request usage
         # are met) the protocol is called to run the wrapping operation
-        if wrap_request: request = protocol.wrap_request()
-        else: request = None
+        if wrap_request:
+            request = protocol.wrap_request(
+                use_file = use_file,
+                callback = callback,
+                on_close = on_close,
+                on_headers = on_headers,
+                on_data = on_data,
+                on_result = on_result,
+            )
+        else:
+            request = None
 
+        # creates the (on) connect handler function that is going to start
+        # running the request operation for the protocol according to current
+        # method indications (as per user request)
         def on_connect(result):
             _transport, protocol = result
             protocol.owner = self
@@ -1261,60 +1311,6 @@ class HTTPClient(netius.StreamClient):
 
 
 
-
-        # verifies if the current request to be done should create
-        # a request structure representing it, this is the case when
-        # the request is synchronous and no handled is defined and
-        # when then on result callback is defined, this callback receives
-        # this request structure as the result, and it contains the
-        # complete set of contents of the HTTP request (easy usage)
-        has_request = not asynchronous and not on_data and not callback
-        has_request = has_request or on_result
-        if has_request:
-            # saves the references to the previous callback method so that
-            # they can be used from the current request based approach
-            _on_close = on_close
-            _on_data = on_data
-            _callback = callback
-
-            # creates both the buffer list and the request structure so that
-            # they may be used for the correct construction of the request
-            # structure that is going to be send in the callback, then sets
-            # the identifier (memory address) of the request in the connection
-            buffer = tempfile.NamedTemporaryFile(mode = "w+b") if use_file else []
-            request = dict(code = None, data = None)
-            connection._request = id(request)
-
-            def on_finish(connection):
-                if _on_close: _on_close(connection)
-                connection._request = None
-                if request["code"]: return
-                cls.set_error(
-                    "closed",
-                    message = "Connection closed",
-                    request = request
-                )
-
-            def on_partial(connection, parser, data):
-                if _on_data: _on_data(connection, parser, data)
-                if use_file: buffer.write(data)
-                else: buffer.append(data)
-                received = request.get("received", 0)
-                request["received"] = received + len(data)
-                request["last"] = time.time()
-
-            def on_message(connection, parser, message):
-                if _callback: _callback(connection, parser, message)
-                if use_file: cls.set_request_file(parser, buffer, request = request)
-                else: cls.set_request(parser, buffer, request = request)
-                if on_result: on_result(connection, parser, request)
-
-            # sets the proper callback references so that the newly created
-            # clojure based methods are called for the current connection
-            # under the desired events, for the construction of the request
-            on_close = on_finish
-            on_data = on_partial
-            callback = on_message
 
         # creates the function that is going to be used to validate
         # the on connect timeout so that whenever the timeout for
@@ -1394,26 +1390,12 @@ class HTTPClient(netius.StreamClient):
         if on_data: connection.bind("partial", on_data)
         if callback: connection.bind("message", callback)
 
-        # runs the sending of the initial request, even though the
-        # connection may not be open yet, if that's the case this
-        # initial data will be queued for latter delivery (on connect)
-        # notice that the receive timeout is scheduled on the callback
-        # of the send operation (as expected)
-        connection.send_request(callback = lambda c: self.delay(
-            receive_timeout, timeout = timeout
-        ))
 
         # schedules a delay operation to run the timeout handler for
         # both connect operation (this is considered the initial
         # triggers for the such verifiers)
         self.delay(connect_timeout, timeout = timeout)
 
-        # in case the current request is not meant to be handled as
-        # asynchronous tries to start the current event loop (blocking
-        # the current workflow) then returns the proper value to the
-        # caller method (taking into account if it is sync or async)
-        not asynchronous and not connection.is_closed() and self.start()
-        return result
 
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
