@@ -3829,6 +3829,10 @@ def connect_stream(*args, **kwargs):
     if compat.is_compat(): return _connect_stream_compat(*args, **kwargs)
     else: return _connect_stream_native(*args, **kwargs)
 
+def serve_stream(*args, **kwargs):
+    #@todo implement these operations
+    pass
+
 def ensure(coroutine, args = [], kwargs = {}, thread = None):
     loop = get_loop()
     return loop.ensure(
