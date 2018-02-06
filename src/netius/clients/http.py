@@ -788,21 +788,17 @@ class HTTPProtocol(netius.StreamProtocol):
     def _on_data(self):
         message = self.parser.get_message()
         self.trigger("message", self, self.parser, message)
-        self.owner.on_data_http(self, self.parser)
         self.parser.clear()
         self.gzip_c = None
 
     def on_partial(self, data):
         self.trigger("partial", self, self.parser, data)
-        self.owner.on_partial_http(self, self.parser, data)
 
     def on_headers(self):
         self.trigger("headers", self, self.parser)
-        self.owner.on_headers_http(self, self.parser)
 
     def on_chunk(self, range):
         self.trigger("chunk", self, self.parser, range)
-        self.owner.on_chunk_http(self, self.parser, range)
 
     def _flush_plain(self, force = False, callback = None):
         if not callback: return
@@ -1014,11 +1010,7 @@ class HTTPClient(netius.StreamClient):
         **kwargs
     ):
         if not http_client: http_client = cls.get_client_s(
-            thread = True,
             daemon = daemon,
-            **kwargs
-        ) if asynchronous else HTTPClient(
-            thread = False,
             **kwargs
         )
 
@@ -1040,11 +1032,6 @@ class HTTPClient(netius.StreamClient):
             on_data = on_data,
             on_result = on_result
         )
-
-        # in case the async mode is active, the http client loop
-        # must be awaken so that the set of operations are processed
-        # as soon as possible in that thread
-        if asynchronous: http_client.wakeup()
 
         # returns the "final" result to the caller method so that
         # it may be used/processed by it (as expected)
@@ -1273,53 +1260,6 @@ class HTTPClient(netius.StreamClient):
         # time) to the called method
         return request
 
-    def on_connect(self, connection):
-        netius.StreamClient.on_connect(self, connection)
-        self.trigger("connect", self, connection)
-
-    def on_acquire(self, connection):
-        netius.StreamClient.on_acquire(self, connection)
-        self.trigger("acquire", self, connection)
-        connection.ensure_write()
-
-    def on_release(self, connection):
-        netius.StreamClient.on_release(self, connection)
-        self.trigger("release", self, connection)
-        connection.parser.clear()
-
-    def on_data(self, connection, data):
-        netius.StreamClient.on_data(self, connection, data)
-        connection.parse(data)
-
-    def on_connection_d(self, connection):
-        netius.StreamClient.on_connection_d(self, connection)
-
-        # triggers the connection close event in the client and
-        # then removes the connection from the connection pool
-        self.trigger("close", self, connection)
-        self.remove_c(connection)
-
-        # verifies if the current client was created with the
-        # auto close or pause flags and there are no more
-        # connections left open if that's the case closes the
-        # current client so that no more interaction exists as it's
-        # no longer required (as defined by the specification)
-        if self.connections: return
-
-    def on_data_http(self, connection, parser):
-        message = parser.get_message()
-        self.trigger("message", self, parser, message)
-        if self.auto_release: self.release_c(connection)
-
-    def on_partial_http(self, connection, parser, data):
-        self.trigger("partial", self, parser, data)
-
-    def on_headers_http(self, connection, parser):
-        headers = parser.headers
-        self.trigger("headers", self, parser, headers)
-
-    def on_chunk_http(self, connection, parser, range):
-        self.trigger("chunk", self, parser, range)
 
 if __name__ == "__main__":
     buffer = []
