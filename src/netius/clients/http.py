@@ -635,7 +635,6 @@ class HTTPProtocol(netius.StreamProtocol):
         use_file = False,
         callback = None,
         on_close = None,
-        on_headers = None,
         on_data = None,
         on_result = None
     ):
@@ -653,18 +652,16 @@ class HTTPProtocol(netius.StreamProtocol):
         :type on_close: Function
         :param on_close: Callback function to be called when the underlying
         protocol is closed.
-        :type on_headers: Function
-        :param on_headers: Callback function to be called when the response
-        headers have been received.
         :type on_data: Function
         :param on_data: Function to be called whenever some data is received
         from the client side, notice that this data may be encoded (eg: gzip).
         :type on_result: Function
         :param on_result: Callback function to be called on the final result
         with the resulting request object.
-        :rtype: Dictionary
-        :return: The request dictionary object that is going to store
-        the information for the request in the current protocol.
+        :rtype: Tuple
+        :return: The tuple containing both the request dictionary object that
+        is going to store the information for the request in the current protocol
+        and the multiple changed callback methods.
         """
 
         # retrieves the reference to the parent class object
@@ -685,7 +682,7 @@ class HTTPProtocol(netius.StreamProtocol):
         request = dict(code = None, data = None)
         self._request = id(request)
 
-        def on_finish(protocol):
+        def on_close(protocol):
             if _on_close: _on_close(protocol)
             protocol._request = None
             if request["code"]: return
@@ -695,7 +692,7 @@ class HTTPProtocol(netius.StreamProtocol):
                 request = request
             )
 
-        def on_partial(protocol, parser, data):
+        def on_data(protocol, parser, data):
             if _on_data: _on_data(protocol, parser, data)
             if use_file: buffer.write(data)
             else: buffer.append(data)
@@ -703,22 +700,15 @@ class HTTPProtocol(netius.StreamProtocol):
             request["received"] = received + len(data)
             request["last"] = time.time()
 
-        def on_message(protocol, parser, message):
+        def callback(protocol, parser, message):
             if _callback: _callback(protocol, parser, message)
             if use_file: cls.set_request_file(parser, buffer, request = request)
             else: cls.set_request(parser, buffer, request = request)
             if on_result: on_result(protocol, parser, request)
 
-        # runs the binding operation to a series of events on the
-        # current protocol so that the request object can be properly
-        # populated as expected (during protocol life-time)
-        self.bind("partial", on_partial)
-        self.bind("message", on_message)
-        self.bind("close", on_finish)
-
         # returns the request object that is going to be properly
         # populated over the life-cycle of the protocol
-        return request
+        return request, on_close, on_data, callback
 
     def set_encoding(self, encoding):
         self.current = encoding
@@ -1169,6 +1159,11 @@ class HTTPClient(netius.StreamClient):
         # with the current instance, to be used for operations
         cls = self.__class__
 
+        # runs the defaulting operation on the provided parameters so that
+        # new instances are created for both occasions as expected, this
+        # avoids the typical problem with re-usage of default attributes
+        timeout = timeout or 60
+
         # runs the loading process, so that services like logging are
         # available right away and may be used immediately as expected
         # by the HTTP method loader method, note that in case the loading
@@ -1182,10 +1177,17 @@ class HTTPClient(netius.StreamClient):
         #@todo re-using connections implies changing this for re-usage
         protocol = cls.protocol()
 
+        # runs a series of unbind operations from the protocol so that it
+        # becomes "free" from any previous usage under different contexts
+        protocol.unbind("close")
+        protocol.unbind("headers")
+        protocol.unbind("partial")
+        protocol.unbind("message")
+
         # tries to determine if the protocol response should be request
         # wrapped, meaning that a map based object is going to be populated
         # with the contents of the HTTP request/response
-        wrap_request = request or not asynchronous and not on_data and not callback
+        wrap_request = request or (not asynchronous and not on_data and not callback)
         wrap_request = wrap_request or on_result
 
         # parses the url to determine both the ssl, host and port values
@@ -1230,16 +1232,42 @@ class HTTPClient(netius.StreamClient):
         # in case the wrap request flag is set (conditions for request usage
         # are met) the protocol is called to run the wrapping operation
         if wrap_request:
-            request = protocol.wrap_request(
+            request,  on_close, on_data, callback = protocol.wrap_request(
                 use_file = use_file,
                 callback = callback,
                 on_close = on_close,
-                on_headers = on_headers,
                 on_data = on_data,
-                on_result = on_result,
+                on_result = on_result
             )
         else:
             request = None
+
+        def on_build(protocol):
+            # registers for the proper event handlers according to the
+            # provided parameters, note that these are considered to be
+            # the lower level infra-structure of the event handling
+            if on_close: protocol.bind("close", on_close)
+            if on_headers: protocol.bind("headers", on_headers)
+            if on_data: protocol.bind("partial", on_data)
+            if callback: protocol.bind("message", callback)
+
+            # creates the function that is going to be used to validate
+            # the on connect timeout so that whenever the timeout for
+            # the connection operation is exceeded an error is set int
+            # the connection and the connection is properly closed
+            def connect_timeout():
+                if protocol.is_open(): return
+                request and cls.set_error(
+                    "timeout",
+                    message = "Timeout on connect",
+                    request = request
+                )
+                protocol.close()
+
+            # schedules a delay operation to run the timeout handler for
+            # both connect operation (this is considered the initial
+            # triggers for the such verifiers)
+            self.delay(connect_timeout, timeout = timeout)
 
         # creates the (on) connect handler function that is going to start
         # running the request operation for the protocol according to current
@@ -1270,6 +1298,7 @@ class HTTPClient(netius.StreamClient):
             port,
             ssl = ssl,
             callback = on_connect,
+            on_build = on_build,
             loop = loop
         )
 
@@ -1295,107 +1324,6 @@ class HTTPClient(netius.StreamClient):
         # returns the final request object (that should be populated by this
         # time) to the called method
         return request
-
-
-
-
-
-        # runs a series of unbind operation from the connection so that it
-        # becomes "free" from any previous usage under different context
-
-        #@todo this is only relevant for connection re-usage
-        #connection.unbind("close")
-        #connection.unbind("headers")
-        #connection.unbind("partial")
-        #connection.unbind("message")
-
-
-
-
-        # creates the function that is going to be used to validate
-        # the on connect timeout so that whenever the timeout for
-        # the connection operation is exceeded an error is set int
-        # the connection and the connection is properly closed
-        def connect_timeout():
-            if not connection.is_open(): return
-            if connection.is_connected(): return
-            has_request and cls.set_error(
-                "timeout",
-                message = "Timeout on connect",
-                request = request
-            )
-            connection.close()
-
-        # creates a function that is going to be used to validate
-        # the receive operation of the connection (receive timeout)
-        def receive_timeout():
-            # runs the initial verification operations that will
-            # try to validate if the requirements for proper request
-            # validations are defined, if any of them is not the control
-            # full is returned immediately avoiding re-schedule of handler
-            if not has_request: return
-            if not connection.is_open(): return
-            if not connection._request == id(request): return
-            if request["code"]: return
-
-            # retrieves the current time and the time of the last data
-            # receive operation and using that calculates the delta
-            current = time.time()
-            last = request.get("last", 0)
-            delta = current - last
-
-            # retrieves the amount of bytes that have been received so
-            # far during the request handling this is going to be used
-            # for logging purposes on the error information to be printed
-            received = request.get("received", 0)
-
-            # determines if the connection is considered valid, either
-            # the connection is not "yet" connected of the time between
-            # receive operations is valid, and if that's the case delays
-            # the timeout verification according to the timeout value
-            if not connection.is_connected() or delta < timeout:
-                self.delay(receive_timeout, timeout = timeout)
-                return
-
-            # tries to determine the proper message that is going to be
-            # set in the request error, this value should take into account
-            # the current development mode flag value
-            if self.is_devel(): message = "Timeout on receive (received %d bytes)" % received
-            else: message = "Timeout on receive"
-
-            # sets the error information in the request so that the
-            # request handler is properly "notified" about the error
-            cls.set_error(
-                "timeout",
-                message = message,
-                request = request
-            )
-
-            # closes the connection (it's no longer considered valid)
-            # and then verifies the various auto closing values
-            connection.close()
-
-        # defines the proper return result value taking into account if
-        # this is a synchronous or asynchronous request, one uses the
-        # connection as the result and the other the request structure
-        if asynchronous: result = connection
-        elif has_request: result = request
-        else: result = None
-
-        # registers for the proper event handlers according to the
-        # provided parameters, note that these are considered to be
-        # the lower level infra-structure of the event handling
-        if on_close: connection.bind("close", on_close)
-        if on_headers: connection.bind("headers", on_headers)
-        if on_data: connection.bind("partial", on_data)
-        if callback: connection.bind("message", callback)
-
-
-        # schedules a delay operation to run the timeout handler for
-        # both connect operation (this is considered the initial
-        # triggers for the such verifiers)
-        self.delay(connect_timeout, timeout = timeout)
-
 
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
