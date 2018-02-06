@@ -3714,6 +3714,7 @@ def _build_datagram_compat(
         *args,
         **kwargs
     )
+
     future = loop.create_task(connect)
     future.add_done_callback(on_connect)
 
@@ -3803,6 +3804,7 @@ def _connect_stream_compat(
         *args,
         **kwargs
     )
+
     future = loop.create_task(connect)
     future.add_done_callback(on_connect)
 
