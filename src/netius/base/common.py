@@ -1810,10 +1810,7 @@ class AbstractBase(observer.Observable):
         ssl_host = None,
         ssl_fingerprint = None,
         ssl_dump = False,
-        setuid = None,
         backlog = socket.SOMAXCONN,
-        load = False,
-        start = False,
         env = True
     ):
         # processes the various default values taking into account if
@@ -1836,7 +1833,6 @@ class AbstractBase(observer.Observable):
         key_file = self.get_env("KEY_DATA", key_file, expand = True) if env else key_file
         cer_file = self.get_env("CER_DATA", cer_file, expand = True) if env else cer_file
         ca_file = self.get_env("CA_DATA", ca_file, expand = True) if env else ca_file
-        setuid = self.get_env("SETUID", setuid, cast = int) if env else setuid
         backlog = self.get_env("BACKLOG", backlog, cast = int) if env else backlog
 
         # runs the various extra variable initialization taking into
@@ -1870,14 +1866,6 @@ class AbstractBase(observer.Observable):
             cast = int
         )
         if env: self.allowed = self.get_env("ALLOWED", self.allowed, cast = list)
-
-        # updates the current service status to the configuration
-        # stage as the next steps is to configure the service socket
-        self.set_state(STATE_CONFIG)
-
-        # starts the loading process of the base system so that the system should
-        # be able to log some information that is going to be output
-        if load: self.load()
 
         # ensures the proper default address value, taking into account
         # the type of connection that is currently being used, this avoids
@@ -1949,10 +1937,6 @@ class AbstractBase(observer.Observable):
         self.socket.bind(address)
         if type == TCP_TYPE: self.socket.listen(backlog)
 
-        # in case the set user id value the user of the current process should
-        # be changed so that it represents the new (possibly unprivileged user)
-        if setuid: os.setuid(setuid)
-
         # in case the selected port is zero based, meaning that a randomly selected
         # port has been assigned by the bind operation the new port must be retrieved
         # and set for the current server instance as the new port (for future reference)
@@ -1989,10 +1973,6 @@ class AbstractBase(observer.Observable):
         # able to respond to the fact that the service is starting and some of
         # them may print some specific debugging information
         self.on_serve()
-
-        # starts the base system so that the event loop gets started and the
-        # the servers get ready to accept new connections (starts service)
-        if start: self.start()
 
     def datagram(
         self,
