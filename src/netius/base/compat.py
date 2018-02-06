@@ -111,6 +111,10 @@ class CompatLoop(BaseLoop):
         task = self._task_factory(future)
         return task
 
+    def create_server(self, *args, **kwargs):
+        coroutine = self._create_server(*args, **kwargs)
+        return asynchronous.coroutine_return(coroutine)
+
     def create_connection(self, *args, **kwargs):
         coroutine = self._create_connection(*args, **kwargs)
         return asynchronous.coroutine_return(coroutine)
@@ -206,6 +210,42 @@ class CompatLoop(BaseLoop):
     def _run_in_executor(self, executor, func, *args):
         executor = executor or self._executor
         future = executor.submit(func, *args)
+        yield future
+
+    def _create_server(
+        self,
+        protocol_factory,
+        host = None,
+        port = None,
+        ssl = None,
+        family = 0,
+        proto = 0,
+        flags = 0,
+        sock = None,
+        local_addr = None,
+        server_hostname = None,
+        *args,
+        **kwargs
+    ):
+        family = family or socket.AF_INET
+        proto = proto or socket.SOCK_STREAM
+
+        future = self.create_future()
+
+        def connect(connection):
+            protocol = protocol_factory()
+            transport = CompatTransport(self, connection)
+            transport._set_compat(protocol)
+            future.set_result((transport, protocol))
+
+        connection = self._loop.server(
+            host,
+            port,
+            ssl = ssl,
+            family = family
+        )
+        connection.bind("connect", connect)
+
         yield future
 
     def _create_connection(
