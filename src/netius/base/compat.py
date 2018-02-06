@@ -230,9 +230,9 @@ class CompatLoop(BaseLoop):
 
         def connect(connection):
             protocol = protocol_factory()
-            transport = CompatTransport(self, connection)
-            transport._set_compat(protocol)
-            future.set_result((transport, protocol))
+            _transport = transport.TransportStream(self, connection)
+            _transport._set_compat(protocol)
+            future.set_result((_transport, protocol))
 
         connection = self._loop.connect(
             host,
@@ -266,7 +266,7 @@ class CompatLoop(BaseLoop):
 
         def connect(connection):
             protocol = protocol_factory()
-            _transport = transport.TransportDatagram(connection)
+            _transport = transport.TransportDatagram(self, connection)
             _transport._set_compat(protocol)
             future.set_result((_transport, protocol))
 

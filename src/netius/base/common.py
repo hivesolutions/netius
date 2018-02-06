@@ -3697,7 +3697,7 @@ def _build_datagram_native(
         )
 
     def on_connect(connection):
-        _transport = transport.TransportDatagram(connection)
+        _transport = transport.TransportDatagram(loop, connection)
         _transport._set_compat(protocol)
         if not callback: return
         callback((_transport, protocol))
@@ -3784,7 +3784,7 @@ def _connect_stream_native(
         )
 
     def on_connect(connection):
-        _transport = transport.TransportStream(connection)
+        _transport = transport.TransportStream(loop, connection)
         _transport._set_compat(protocol)
         if not callback: return
         callback((_transport, protocol))
