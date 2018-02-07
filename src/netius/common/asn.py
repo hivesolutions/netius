@@ -153,7 +153,7 @@ def asn1_parse(template, data):
             result.append(number)
 
         elif tag == NULL:
-            util.verify(length == 0)
+            netius.verify(length == 0)
             result.append(None)
 
         elif tag == OBJECT_IDENTIFIER:
@@ -184,7 +184,7 @@ def asn1_length(length):
     integer value according to the asn.1 specification.
     """
 
-    util.verify(length >= 0)
+    netius.verify(length >= 0)
     if length < 0x7f: return netius.legacy.chr(length)
 
     result = util.integer_to_bytes(length)
@@ -219,7 +219,7 @@ def asn1_build(node):
         yield netius.legacy.chr(INTEGER) + asn1_length(len(value)) + value
 
     elif tag == NULL:
-        util.verify(value == None)
+        netius.verify(value == None)
         yield netius.legacy.chr(NULL) + asn1_length(0)
 
     elif tag == OBJECT_IDENTIFIER:

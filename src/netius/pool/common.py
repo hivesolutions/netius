@@ -250,9 +250,11 @@ class UnixEventFile(EventFile):
         self._read()
 
     def _read(self, length = 8):
+        if self.closed: return None
         return os.read(self._rfileno, length)
 
     def _write(self, value):
+        if self.closed: return
         os.write(self._wfileno, ctypes.c_ulonglong(value))
 
 class PipeEventFile(EventFile):
@@ -296,9 +298,11 @@ class PipeEventFile(EventFile):
             self._lock.release()
 
     def _read(self, length = 4096):
+        if self.closed: return None
         return self._read_file.read(length)
 
     def _write(self, data):
+        if self.closed: return
         self._write_file.write(data)
 
 class SocketEventFile(EventFile):
@@ -340,7 +344,9 @@ class SocketEventFile(EventFile):
             self._lock.release()
 
     def _read(self, length = 4096):
+        if self.closed: return None
         return self._read_socket.recv(length)
 
     def _write(self, data):
+        if self.closed: return
         self._write_socket.send(data)

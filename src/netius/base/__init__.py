@@ -80,4 +80,4 @@ from .stream import Stream
 from .tls import fingerprint, match_fingerprint, match_hostname, dnsname_match,\
     dump_certificate
 from .transport import Transport, TransportDatagram, TransportStream
-from .util import camel_to_underscore
+from .util import camel_to_underscore, verify
