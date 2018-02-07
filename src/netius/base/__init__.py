@@ -62,9 +62,9 @@ from .client import Client, DatagramClient, StreamClient
 from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     IDENTIFIER, TCP_TYPE, UDP_TYPE, SSL_KEY_PATH, SSL_CER_PATH, SSL_CA_PATH,\
     SSL_DH_PATH, Base, BaseThread, ensure_main, get_main, get_loop,\
-    get_event_loop, stop_loop, get_poll, build_future, build_datagram,\
-    connect_stream, ensure, ensure_pool
-from .compat import BaseLoop, CompatLoop, is_compat, is_asyncio
+    get_event_loop, stop_loop, get_poll, build_future, ensure, ensure_pool
+from .compat import BaseLoop, CompatLoop, is_compat, is_asyncio, build_datagram,\
+    connect_stream, serve_stream
 from .config import conf, conf_prefix, conf_suffix, conf_s, conf_r, conf_d
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
@@ -80,4 +80,4 @@ from .stream import Stream
 from .tls import fingerprint, match_fingerprint, match_hostname, dnsname_match,\
     dump_certificate
 from .transport import Transport, TransportDatagram, TransportStream
-from .util import camel_to_underscore
+from .util import camel_to_underscore, verify

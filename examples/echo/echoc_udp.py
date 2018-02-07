@@ -50,16 +50,16 @@ class EchoClientProtocol(object):
 
     def connection_made(self, transport):
         self.transport = transport
-        print("Send:", self.message)
+        print("Send: %s" % self.message)
         self.transport.sendto(self.message.encode())
 
     def datagram_received(self, data, addr):
-        print("Received:", data.decode())
+        print("Received: %s" % data.decode())
         print("Close the socket")
         self.transport.close()
 
     def error_received(self, exc):
-        print("Error received:", exc)
+        print("Error received: %s" % exc)
 
     def connection_lost(self, exc):
         print("Socket closed, stop the event loop")

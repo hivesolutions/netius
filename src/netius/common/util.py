@@ -390,25 +390,3 @@ def size_round_unit(
             simplified = simplified,
             depth = new_depth
         )
-
-def verify(condition, message = None, exception = None):
-    """
-    Ensures that the requested condition returns a valid value
-    and if that's no the case an exception raised breaking the
-    current execution logic.
-
-    :type condition: bool
-    :param condition: The condition to be evaluated and that may
-    trigger an exception raising.
-    :type message: String
-    :param message: The message to be used in the building of the
-    exception that is going to be raised in case of condition failure.
-    :type exception: Class
-    :param exception: The exception class that is going to be used
-    to build the exception to be raised in case the condition
-    verification operation fails.
-    """
-
-    if condition: return
-    exception = exception or netius.AssertionError
-    raise exception(message or "Assertion Error")

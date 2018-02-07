@@ -47,6 +47,10 @@ class Transport(observer.Observable):
 
     Allows adding the functionality to an internal netius
     connection (or equivalent) object.
+
+    This approach is heavily influenced by the design of the
+    asyncio Python infra-structure and should provide a mostly
+    compatible interface.
     """
 
     def __init__(self, loop, connection, open = True):
@@ -66,7 +70,7 @@ class Transport(observer.Observable):
         self._exhausted = False
 
     def abort(self):
-        self._connection.close()
+        if self._connection: self._connection.close()
         self._connection = None
         self._protocol = None
         self._exhausted = False
@@ -114,9 +118,7 @@ class Transport(observer.Observable):
         pass
 
     def _on_close(self, connection):
-        if not self._protocol == None:
-            self._protocol.eof_received()
-        self._cleanup()
+        pass
 
     def _set_compat(self, protocol):
         self._set_binds()
@@ -143,12 +145,19 @@ class Transport(observer.Observable):
             self._protocol.pause_writing()
 
     def _cleanup(self):
-        self._loop.call_soon(self._call_connection_lost, None)
+        self._call_soon(self._call_connection_lost, None)
         self._loop = None
 
     def _call_connection_lost(self, context):
         if not self._protocol == None:
             self._protocol.connection_lost(context)
+
+    def _call_soon(self, callback, *args):
+        if hasattr(self._loop, "call_soon"):
+            self._loop.call_soon(callback, *args)
+        else:
+            callable = lambda: callback(*args)
+            self._loop.delay(callable, immediately = True)
 
 class TransportDatagram(Transport):
     """
@@ -163,6 +172,9 @@ class TransportDatagram(Transport):
         data, address = data
         self._protocol.datagram_received(data, address)
 
+    def _on_close(self, connection):
+        self._cleanup()
+
 class TransportStream(Transport):
     """
     Abstract class to be used when creating a stream based
@@ -174,3 +186,8 @@ class TransportStream(Transport):
 
     def _on_data(self, connection, data):
         self._protocol.data_received(data)
+
+    def _on_close(self, connection):
+        if not self._protocol == None:
+            self._protocol.eof_received()
+        self._cleanup()

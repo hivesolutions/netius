@@ -127,14 +127,14 @@ if __name__ == "__main__":
         finally: file.close()
         print("Saved frame %08d of %d bytes" % (index, len(data)))
 
-    def on_close(protocol):
+    def on_finish(protocol):
         netius.stop_loop()
 
     client = MJPGClient()
     loop, protocol = client.get("http://euglena.stanford.edu:20005/?action=stream")
 
     protocol.bind("frame", on_frame)
-    protocol.bind("close", on_close)
+    protocol.bind("finish", on_finish)
 
     loop.run_forever()
     loop.close()

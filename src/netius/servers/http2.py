@@ -733,7 +733,7 @@ class HTTP2Connection(http.HTTPConnection):
             # verifies that the stream is currently place in the list of
             # stream that are considered unavailable as this is a state
             # required for proper execution
-            netius.common.verify(stream in self.unavailable)
+            netius.verify(stream in self.unavailable)
 
             # verifies if the stream associated with the frame to be
             # sent is in the started map and if that's the case continue
@@ -756,7 +756,7 @@ class HTTP2Connection(http.HTTPConnection):
 
             # makes sure that the stream is currently marked as not available
             # this should be the state for every stream that has pending frames
-            netius.common.verify(not _stream._available)
+            netius.verify(not _stream._available)
 
             # verifies if there's available "space" in the stream flow
             # to send the current payload and in case there's not breaks

@@ -1249,7 +1249,7 @@ if __name__ == "__main__":
         print(request["data"] or b"[empty data]")
         protocol.close()
 
-    def on_close(protocol):
+    def on_finish(protocol):
         netius.stop_loop()
 
     url = netius.conf("HTTP_URL", "https://www.flickr.com/")
@@ -1260,7 +1260,7 @@ if __name__ == "__main__":
     protocol.bind("headers", on_headers)
     protocol.bind("partial", on_partial)
     protocol.bind("message", on_message)
-    protocol.bind("close", on_close)
+    protocol.bind("finish", on_finish)
 
     loop.run_forever()
     loop.close()

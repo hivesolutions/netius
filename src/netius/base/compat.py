@@ -110,6 +110,10 @@ class CompatLoop(BaseLoop):
         task = self._task_factory(future)
         return task
 
+    def create_server(self, *args, **kwargs):
+        coroutine = self._create_server(*args, **kwargs)
+        return asynchronous.coroutine_return(coroutine)
+
     def create_connection(self, *args, **kwargs):
         coroutine = self._create_connection(*args, **kwargs)
         return asynchronous.coroutine_return(coroutine)
@@ -206,6 +210,24 @@ class CompatLoop(BaseLoop):
         executor = executor or self._executor
         future = executor.submit(func, *args)
         yield future
+
+    def _create_server(
+        self,
+        protocol_factory,
+        host = None,
+        port = None,
+        family = 0,
+        flags = 0,
+        sock = None,
+        backlog = 100,
+        ssl = None,
+        reuse_address = None,
+        reuse_port = None,
+        *args,
+        **kwargs
+    ):
+        #@todo implement this server code
+        pass
 
     def _create_connection(
         self,
@@ -378,3 +400,199 @@ def is_asyncio():
 
     asyncio = config.conf("ASYNCIO", False, cast = bool)
     return asyncio and asynchronous.is_asynclib()
+
+def build_datagram(*args, **kwargs):
+    if is_compat(): return _build_datagram_compat(*args, **kwargs)
+    else: return _build_datagram_native(*args, **kwargs)
+
+def connect_stream(*args, **kwargs):
+    if is_compat(): return _connect_stream_compat(*args, **kwargs)
+    else: return _connect_stream_native(*args, **kwargs)
+
+def serve_stream(*args, **kwargs):
+    if is_compat(): return _serve_stream_compat(*args, **kwargs)
+    else: return _serve_stream_native(*args, **kwargs)
+
+def _build_datagram_native(
+    protocol_factory,
+    family = socket.AF_INET,
+    type = socket.SOCK_DGRAM,
+    remote_host = None,
+    remote_port = None,
+    callback = None,
+    loop = None,
+    *args,
+    **kwargs
+):
+    from . import common
+
+    loop = loop or common.get_loop()
+
+    protocol = protocol_factory()
+    if hasattr(protocol, "loop_set"):  protocol.loop_set(loop)
+
+    def on_ready():
+        loop.datagram(
+            family = family,
+            type = type,
+            remote_host = remote_host,
+            remote_port = remote_port,
+            callback = on_connect
+        )
+
+    def on_connect(connection):
+        _transport = transport.TransportDatagram(loop, connection)
+        _transport._set_compat(protocol)
+        if not callback: return
+        callback((_transport, protocol))
+
+    loop.delay(on_ready)
+
+    return loop
+
+def _build_datagram_compat(
+    protocol_factory,
+    family = socket.AF_INET,
+    type = socket.SOCK_DGRAM,
+    remote_host = None,
+    remote_port = None,
+    callback = None,
+    loop = None,
+    *args,
+    **kwargs
+):
+    from . import common
+
+    loop = loop or common.get_loop()
+
+    protocol = protocol_factory()
+    if hasattr(protocol, "loop_set"):
+        protocol.loop_set(loop)
+
+    def build_protocol():
+        return protocol
+
+    def on_connect(future):
+        if not callback: return
+        result = future.result()
+        callback(result)
+
+    connect = loop.create_datagram_endpoint(
+        build_protocol,
+        family = family,
+        remote_addr = (remote_host, remote_port) if\
+            remote_host and remote_port else None,
+        *args,
+        **kwargs
+    )
+
+    future = loop.create_task(connect)
+    future.add_done_callback(on_connect)
+
+    return loop
+
+def _connect_stream_native(
+    protocol_factory,
+    host,
+    port,
+    ssl = False,
+    key_file = None,
+    cer_file = None,
+    ca_file = None,
+    ca_root = True,
+    ssl_verify = False,
+    family = socket.AF_INET,
+    type = socket.SOCK_STREAM,
+    callback = None,
+    loop = None,
+    *args,
+    **kwargs
+):
+    from . import common
+
+    loop = loop or common.get_loop()
+
+    protocol = protocol_factory()
+    has_loop_set = hasattr(protocol, "loop_set")
+    if has_loop_set: protocol.loop_set(loop)
+
+    def on_ready():
+        loop.connect(
+            host,
+            port,
+            ssl = ssl,
+            key_file = key_file,
+            cer_file = cer_file,
+            ca_file = ca_file,
+            ca_root = ca_root,
+            ssl_verify = ssl_verify,
+            family = family,
+            type = type,
+            callback = on_connect
+        )
+
+    def on_connect(connection):
+        _transport = transport.TransportStream(loop, connection)
+        _transport._set_compat(protocol)
+        if not callback: return
+        callback((_transport, protocol))
+
+    loop.delay(on_ready)
+
+    return loop
+
+def _connect_stream_compat(
+    protocol_factory,
+    host,
+    port,
+    ssl = False,
+    key_file = None,
+    cer_file = None,
+    ca_file = None,
+    ca_root = True,
+    ssl_verify = False,
+    family = socket.AF_INET,
+    type = socket.SOCK_STREAM,
+    callback = None,
+    loop = None,
+    *args,
+    **kwargs
+):
+    from . import common
+
+    loop = loop or common.get_loop()
+
+    protocol = protocol_factory()
+    has_loop_set = hasattr(protocol, "loop_set")
+    if has_loop_set: protocol.loop_set(loop)
+
+    def build_protocol():
+        return protocol
+
+    def on_connect(future):
+        if not callback: return
+        result = future.result()
+        callback(result)
+
+    connect = loop.create_connection(
+        build_protocol,
+        host = host,
+        port = port,
+        ssl = ssl,
+        family = family,
+        *args,
+        **kwargs
+    )
+
+    future = loop.create_task(connect)
+    future.add_done_callback(on_connect)
+
+    return loop
+
+def _serve_stream_native():
+    #@todo: implement this stuff
+    pass
+
+def _serve_stream_compat():
+    #@todo: implement this stuff
+    pass
