@@ -188,7 +188,7 @@ class DatagramProtocol(Protocol):
         pass
 
     def on_data(self, address, data):
-        pass
+        self.trigger("data", self, data)
 
     def send(
         self,
@@ -248,7 +248,7 @@ class StreamProtocol(Protocol):
         pass
 
     def on_data(self, data):
-        pass
+        self.trigger("data", self, data)
 
     def send(self, data, delay = True, force = False, callback = None):
         if not self._writing:

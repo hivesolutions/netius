@@ -70,7 +70,7 @@ class Transport(observer.Observable):
         self._exhausted = False
 
     def abort(self):
-        self._connection.close()
+        if self._connection: self._connection.close()
         self._connection = None
         self._protocol = None
         self._exhausted = False
