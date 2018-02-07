@@ -3835,18 +3835,6 @@ def build_future(compat = True, asyncio = True):
     if not main: return None
     return main.build_future(compat = compat, asyncio = asyncio)
 
-def build_datagram(*args, **kwargs):
-    if compat.is_compat(): return compat._build_datagram_compat(*args, **kwargs)
-    else: return compat._build_datagram_native(*args, **kwargs)
-
-def connect_stream(*args, **kwargs):
-    if compat.is_compat(): return compat._connect_stream_compat(*args, **kwargs)
-    else: return compat._connect_stream_native(*args, **kwargs)
-
-def serve_stream(*args, **kwargs):
-    if compat.is_compat(): return compat._serve_stream_compat(*args, **kwargs)
-    else: return compat._serve_stream_native(*args, **kwargs)
-
 def ensure(coroutine, args = [], kwargs = {}, thread = None):
     loop = get_loop()
     return loop.ensure(

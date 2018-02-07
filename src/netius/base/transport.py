@@ -118,9 +118,7 @@ class Transport(observer.Observable):
         pass
 
     def _on_close(self, connection):
-        if not self._protocol == None:
-            self._protocol.eof_received()
-        self._cleanup()
+        pass
 
     def _set_compat(self, protocol):
         self._set_binds()
@@ -174,6 +172,9 @@ class TransportDatagram(Transport):
         data, address = data
         self._protocol.datagram_received(data, address)
 
+    def _on_close(self, connection):
+        self._cleanup()
+
 class TransportStream(Transport):
     """
     Abstract class to be used when creating a stream based
@@ -185,3 +186,8 @@ class TransportStream(Transport):
 
     def _on_data(self, connection, data):
         self._protocol.data_received(data)
+
+    def _on_close(self, connection):
+        if not self._protocol == None:
+            self._protocol.eof_received()
+        self._cleanup()
