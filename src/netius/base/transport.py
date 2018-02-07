@@ -47,6 +47,10 @@ class Transport(observer.Observable):
 
     Allows adding the functionality to an internal netius
     connection (or equivalent) object.
+
+    This approach is heavily influenced by the design of the
+    asyncio Python infra-structure and should provide a mostly
+    compatible interface.
     """
 
     def __init__(self, loop, connection, open = True):
