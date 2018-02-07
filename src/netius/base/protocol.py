@@ -66,8 +66,21 @@ class Protocol(observer.Observable):
         self.trigger("open", self)
 
     def close(self):
+        # runs the close transport call that triggers the process
+        # of closing the underlying transport method, notice that
+        # this operation is only considered to be safely completed
+        # on the next tick of the event loop
         self._close_transport()
 
+        # delays the execution of the finish (cleanup) operation
+        # so that all the pending operations from the close transport
+        # call can be executed in the meantime, ensuring a proper,
+        # secure and clean execution of the finish method
+        self.delay(self.finish)
+
+        self.trigger("close", self)
+
+    def finish(self):
         del self._delayed[:]
 
         self._transport = None
@@ -75,7 +88,7 @@ class Protocol(observer.Observable):
         self._writing = True
         self._closed = True
 
-        self.trigger("close", self)
+        self.trigger("finish", self)
 
     def info_dict(self, full = False):
         if not self._transport: return dict()
@@ -145,7 +158,7 @@ class Protocol(observer.Observable):
     def is_closed(self):
         return self._closed
 
-    def _close_transport(self):
+    def _close_transport(self, force = False):
         if not self._transport: return
         self._transport.abort()
 
