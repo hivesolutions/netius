@@ -53,7 +53,6 @@ import netius.adapters
 from . import log
 from . import util
 from . import compat
-from . import transport
 from . import asynchronous
 
 from .. import middleware
@@ -3837,16 +3836,16 @@ def build_future(compat = True, asyncio = True):
     return main.build_future(compat = compat, asyncio = asyncio)
 
 def build_datagram(*args, **kwargs):
-    if compat.is_compat(): return _build_datagram_compat(*args, **kwargs)
-    else: return _build_datagram_native(*args, **kwargs)
+    if compat.is_compat(): return compat._build_datagram_compat(*args, **kwargs)
+    else: return compat._build_datagram_native(*args, **kwargs)
 
 def connect_stream(*args, **kwargs):
-    if compat.is_compat(): return _connect_stream_compat(*args, **kwargs)
-    else: return _connect_stream_native(*args, **kwargs)
+    if compat.is_compat(): return compat._connect_stream_compat(*args, **kwargs)
+    else: return compat._connect_stream_native(*args, **kwargs)
 
 def serve_stream(*args, **kwargs):
-    if compat.is_compat(): return _serve_stream_compat(*args, **kwargs)
-    else: return _serve_stream_native(*args, **kwargs)
+    if compat.is_compat(): return compat._serve_stream_compat(*args, **kwargs)
+    else: return compat._serve_stream_native(*args, **kwargs)
 
 def ensure(coroutine, args = [], kwargs = {}, thread = None):
     loop = get_loop()
@@ -3864,182 +3863,6 @@ def ensure_pool(coroutine, args = [], kwargs = {}):
         kwargs = kwargs,
         thread = True
     )
-
-def _build_datagram_native(
-    protocol_factory,
-    family = socket.AF_INET,
-    type = socket.SOCK_DGRAM,
-    remote_host = None,
-    remote_port = None,
-    callback = None,
-    loop = None,
-    *args,
-    **kwargs
-):
-    loop = loop or netius.get_loop()
-
-    protocol = protocol_factory()
-    if hasattr(protocol, "loop_set"):  protocol.loop_set(loop)
-
-    def on_ready():
-        loop.datagram(
-            family = family,
-            type = type,
-            remote_host = remote_host,
-            remote_port = remote_port,
-            callback = on_connect
-        )
-
-    def on_connect(connection):
-        _transport = transport.TransportDatagram(loop, connection)
-        _transport._set_compat(protocol)
-        if not callback: return
-        callback((_transport, protocol))
-
-    loop.delay(on_ready)
-
-    return loop
-
-def _build_datagram_compat(
-    protocol_factory,
-    family = socket.AF_INET,
-    type = socket.SOCK_DGRAM,
-    remote_host = None,
-    remote_port = None,
-    callback = None,
-    loop = None,
-    *args,
-    **kwargs
-):
-    loop = loop or netius.get_loop()
-
-    protocol = protocol_factory()
-    if hasattr(protocol, "loop_set"):
-        protocol.loop_set(loop)
-
-    def build_protocol():
-        return protocol
-
-    def on_connect(future):
-        if not callback: return
-        result = future.result()
-        callback(result)
-
-    connect = loop.create_datagram_endpoint(
-        build_protocol,
-        family = family,
-        remote_addr = (remote_host, remote_port) if\
-            remote_host and remote_port else None,
-        *args,
-        **kwargs
-    )
-
-    future = loop.create_task(connect)
-    future.add_done_callback(on_connect)
-
-    return loop
-
-def _connect_stream_native(
-    protocol_factory,
-    host,
-    port,
-    ssl = False,
-    key_file = None,
-    cer_file = None,
-    ca_file = None,
-    ca_root = True,
-    ssl_verify = False,
-    family = socket.AF_INET,
-    type = socket.SOCK_STREAM,
-    callback = None,
-    loop = None,
-    *args,
-    **kwargs
-):
-    loop = loop or netius.get_loop()
-
-    protocol = protocol_factory()
-    has_loop_set = hasattr(protocol, "loop_set")
-    if has_loop_set: protocol.loop_set(loop)
-
-    def on_ready():
-        loop.connect(
-            host,
-            port,
-            ssl = ssl,
-            key_file = key_file,
-            cer_file = cer_file,
-            ca_file = ca_file,
-            ca_root = ca_root,
-            ssl_verify = ssl_verify,
-            family = family,
-            type = type,
-            callback = on_connect
-        )
-
-    def on_connect(connection):
-        _transport = transport.TransportStream(loop, connection)
-        _transport._set_compat(protocol)
-        if not callback: return
-        callback((_transport, protocol))
-
-    loop.delay(on_ready)
-
-    return loop
-
-def _connect_stream_compat(
-    protocol_factory,
-    host,
-    port,
-    ssl = False,
-    key_file = None,
-    cer_file = None,
-    ca_file = None,
-    ca_root = True,
-    ssl_verify = False,
-    family = socket.AF_INET,
-    type = socket.SOCK_STREAM,
-    callback = None,
-    loop = None,
-    *args,
-    **kwargs
-):
-    loop = loop or netius.get_loop()
-
-    protocol = protocol_factory()
-    has_loop_set = hasattr(protocol, "loop_set")
-    if has_loop_set: protocol.loop_set(loop)
-
-    def build_protocol():
-        return protocol
-
-    def on_connect(future):
-        if not callback: return
-        result = future.result()
-        callback(result)
-
-    connect = loop.create_connection(
-        build_protocol,
-        host = host,
-        port = port,
-        ssl = ssl,
-        family = family,
-        *args,
-        **kwargs
-    )
-
-    future = loop.create_task(connect)
-    future.add_done_callback(on_connect)
-
-    return loop
-
-def _serve_stream_native():
-    #@todo: implement this stuff
-    pass
-
-def _serve_stream_compat():
-    #@todo: implement this stuff
-    pass
 
 is_diag = config.conf("DIAG", False, cast = bool)
 if is_diag: Base = DiagBase

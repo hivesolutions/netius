@@ -147,12 +147,19 @@ class Transport(observer.Observable):
             self._protocol.pause_writing()
 
     def _cleanup(self):
-        self._loop.call_soon(self._call_connection_lost, None)
+        self._call_soon(self._call_connection_lost, None)
         self._loop = None
 
     def _call_connection_lost(self, context):
         if not self._protocol == None:
             self._protocol.connection_lost(context)
+
+    def _call_soon(self, callback, *args):
+        if hasattr(self._loop, "call_soon"):
+            self._loop.call_soon(callback, *args)
+        else:
+            callable = lambda: callback(*args)
+            self._loop.delay(callable, immediately = True)
 
 class TransportDatagram(Transport):
     """
