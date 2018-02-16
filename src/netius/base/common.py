@@ -100,7 +100,7 @@ development like environment as it shows critical information
 about the system internals that may expose the system """
 
 IDENTIFIER = IDENTIFIER_LONG if config._is_devel() else\
-    IDENTIFIER_TINY if config._is_secured() else IDENTIFIER_SHORT
+    IDENTIFIER_TINY if config._is_secure() else IDENTIFIER_SHORT
 """ The identifier that may be used to identify an user agent
 or service running under the current platform, this string
 should comply with the typical structure for such values,

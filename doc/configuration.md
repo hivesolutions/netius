@@ -19,7 +19,8 @@ its information is considered reliable, this value is especially important for p
 * `MIDDLEWARE` (`list`) - The middleware as a set of strings (eg: proxy) that is going to be loaded into the instance, the notation
 used to define the modules to be loaded should be underscore based (notice that loading extra middleware into an instance may impact the
 performance of the same)
-* `SAFE` (`bool`) - Control if a safe production environment should be ensured by hiding some critical information (eg: version) (defaults to `True`)
+* `SECURE` (`bool`) - Control if a secure production environment should be ensured by hiding some critical information
+(eg: version) (defaults to `True`)
 
 #### Internal
 
