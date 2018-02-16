@@ -84,6 +84,11 @@ of the technical platform that is running the system, this
 string should be exposed carefully to avoid extra information
 from being exposed to outside agents """
 
+IDENTIFIER_TINY = "%s" % NAME
+""" The tiny version of the current environment's identifier
+meant to be used in a safe production like environment as it hides
+most of the valuable information (able to compromise it) """
+
 IDENTIFIER_SHORT = "%s/%s" % (NAME, VERSION)
 """ The short version of the current environment's identifier
 meant to be used in production like environment as it hides some
@@ -94,7 +99,8 @@ IDENTIFIER_LONG = "%s/%s (%s)" % (NAME, VERSION, PLATFORM)
 development like environment as it shows critical information
 about the system internals that may expose the system """
 
-IDENTIFIER = IDENTIFIER_LONG if config._is_devel() else IDENTIFIER_SHORT
+IDENTIFIER = IDENTIFIER_LONG if config._is_devel() else\
+    IDENTIFIER_TINY if config._is_secured() else IDENTIFIER_SHORT
 """ The identifier that may be used to identify an user agent
 or service running under the current platform, this string
 should comply with the typical structure for such values,
