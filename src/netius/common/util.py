@@ -412,3 +412,19 @@ def verify(condition, message = None, exception = None):
     if condition: return
     exception = exception or netius.AssertionError
     raise exception(message or "Assertion Error")
+
+def verify_equal(first, second, message = None, exception = None):
+    message = message or "Expected '%s' got '%s'" % (str(second), str(first))
+    return verify(
+        first == second,
+        message = message,
+        exception = exception
+    )
+
+def verify_not_equal(first, second, message = None, exception = None):
+    message = message or "Expected '%s' got '%s'" % (str(second), str(first))
+    return verify(
+        not first == second,
+        message = message,
+        exception = exception
+    )
