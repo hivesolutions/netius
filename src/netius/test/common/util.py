@@ -152,3 +152,45 @@ class UtilTest(unittest.TestCase):
 
         result = netius.common.size_round_unit(2049, places = 0, reduce = False)
         self.assertEqual(result, "2KB")
+
+    def test_verify(self):
+        result = netius.common.verify(1 == 1)
+        self.assertEqual(result, None)
+
+        result = netius.common.verify("hello" == "hello")
+        self.assertEqual(result, None)
+
+        self.assertRaises(netius.AssertionError, lambda: netius.common.verify(1 == 2))
+
+        self.assertRaises(
+            netius.NetiusError,
+            lambda: netius.common.verify(1 == 2, exception = netius.NetiusError)
+        )
+
+    def test_verify_equal(self):
+        result = netius.common.verify_equal(1, 1)
+        self.assertEqual(result, None)
+
+        result = netius.common.verify_equal("hello", "hello")
+        self.assertEqual(result, None)
+
+        self.assertRaises(netius.AssertionError, lambda: netius.common.verify_equal(1, 2))
+
+        self.assertRaises(
+            netius.NetiusError,
+            lambda: netius.common.verify_equal(1, 2, exception = netius.NetiusError)
+        )
+
+    def test_verify_not_equal(self):
+        result = netius.common.verify_not_equal(1, 2)
+        self.assertEqual(result, None)
+
+        result = netius.common.verify_not_equal("hello", "world")
+        self.assertEqual(result, None)
+
+        self.assertRaises(netius.AssertionError, lambda: netius.common.verify_not_equal(1, 1))
+
+        self.assertRaises(
+            netius.NetiusError,
+            lambda: netius.common.verify_not_equal(1, 1, exception = netius.NetiusError)
+        )

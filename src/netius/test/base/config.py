@@ -78,3 +78,13 @@ class ConfigTest(unittest.TestCase):
         result = netius.conf("HEIGHT")
 
         self.assertEqual(result, None)
+
+    def test_none(self):
+        netius.conf_s("AGE", None)
+        result = netius.conf("AGE", cast = int)
+
+        self.assertEqual(result, None)
+
+        result = netius.conf("HEIGHT", cast = int)
+
+        self.assertEqual(result, None)
