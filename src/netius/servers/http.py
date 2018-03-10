@@ -619,6 +619,23 @@ class HTTPServer(netius.StreamServer):
         return data
 
     @classmethod
+    def build_iframe(
+        cls,
+        text,
+        url,
+        style = True,
+        encode = True,
+        encoding = "utf-8"
+    ):
+        data = "".join(cls._gen_iframe(text, url, style = style))
+        if encode: data = netius.legacy.bytes(
+            data,
+            encoding = encoding,
+            force = True
+        )
+        return data
+
+    @classmethod
     def _gen_text(cls, text, trace = False, style = True):
         for value in cls._gen_header(text, style = style):
             yield value
@@ -635,6 +652,17 @@ class HTTPServer(netius.StreamServer):
         yield "<span>"
         yield netius.IDENTIFIER
         yield "</span>"
+        yield "</body>"
+
+        for value in cls._gen_footer(): yield value
+
+    @classmethod
+    def _gen_iframe(cls, text, url, style = True):
+        for value in cls._gen_header(text, style = style):
+            yield value
+
+        yield "<body>"
+        yield "<iframe src=\"%s\"></iframe>" % url
         yield "</body>"
 
         for value in cls._gen_footer(): yield value
