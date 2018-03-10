@@ -44,6 +44,16 @@ import netius
 from . import proxy_r
 
 class DockerProxyServer(proxy_r.ReverseProxyServer):
+    """
+    Specialized reverse proxy server that handles many of the
+    inner details of the reverse proxy server configuration
+    server using environment variables information, making it
+    easier for the automatic configuration and association of
+    servers to the proxy server in a Docker environment.
+
+    Although an optimal usage implies a Docker context the usage
+    of the Docker proxy servers is not limited to such use cases.
+    """
 
     def __init__(self, host_suffixes = [], *args, **kwargs):
         proxy_r.ReverseProxyServer.__init__(self, *args, **kwargs)
