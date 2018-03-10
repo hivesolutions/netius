@@ -45,6 +45,14 @@ body {
     font-size: 13px;
     line-height: 18px;
 }
+iframe {
+    border-width: 0px;
+    height: 100%;
+    left: 0px;
+    position: absolute;
+    top: 0px;
+    width: 100%;
+}
 h1 {
     font-size: 22px;
     font-weight: 500;
