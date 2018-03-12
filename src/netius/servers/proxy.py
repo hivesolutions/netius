@@ -482,7 +482,11 @@ class ProxyServer(http2.HTTP2Server):
         # the forbidden response is set to the client otherwise
         # the front-end connection is closed immediately
         if _connection.waiting: connection.send_response(
-            data = cls.build_text("Forbidden"),
+            data = cls.build_data(
+                "Forbidden",
+                url = _connection.error_url if\
+                    hasattr(_connection, "error_url") else None
+            ),
             headers = dict(
                 connection = "close"
             ),

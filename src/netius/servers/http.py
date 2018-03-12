@@ -589,8 +589,8 @@ class HTTPConnection(netius.Connection):
 
 class HTTPServer(netius.StreamServer):
     """
-    Base class for serving of the http protocol, should contain
-    the basic utilities for handling an http request including
+    Base class for serving of the HTTP protocol, should contain
+    the basic utilities for handling an HTTP request including
     headers and read of data.
     """
 
@@ -600,6 +600,31 @@ class HTTPServer(netius.StreamServer):
         self.common_log = common_log
         self.dynamic = False
         self.common_file = None
+
+    @classmethod
+    def build_data(
+        cls,
+        text,
+        url = None,
+        trace = False,
+        style = True,
+        encode = True,
+        encoding = "utf-8"
+    ):
+        if url: return cls.build_iframe(
+            text,
+            url,
+            style = style,
+            encode = encode,
+            encoding = encoding
+        )
+        else: return cls.build_text(
+            text,
+            trace = trace,
+            style = style,
+            encode = encode,
+            encoding = encoding
+        )
 
     @classmethod
     def build_text(
