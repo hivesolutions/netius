@@ -60,6 +60,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     the way the final back-end URL is created is different for each rule.
     """
 
+    DEFAULT_NAME = "default"
+    """ The token name to be used as the default value when trying
+    to resolve host based map information """
+
     def __init__(
         self,
         config = "proxy.json",
@@ -197,6 +201,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         redirect = self.redirect.get(host, None)
         redirect = self.redirect.get(host_s, redirect)
         redirect = self.redirect.get(host_o, redirect)
+        redirect = self.redirect.get(cls.DEFAULT_NAME, redirect)
         if redirect:
             # verifies if the redirect value is a sequence and if that's
             # not the case converts the value into a tuple value
@@ -275,9 +280,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 callback = self._prx_close
             )
 
-        # verifies if the current host requires come kind of special authorization
+        # verifies if the current host requires some kind of special authorization
         # process using the default basic http authorization process
-        auth = self.auth.get(host.rsplit(":", 1)[0], None)
+        auth = self.auth.get(host, None)
+        auth = self.auth.get(host_s, auth)
+        auth = self.auth.get(host_o, auth)
+        auth = self.auth.get(cls.DEFAULT_NAME, auth)
         auth, _match = self._resolve_regex(url, self.auth_regex, default = auth)
         if auth:
             # determines if the provided authentication method is a sequence
@@ -318,6 +326,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         error_url = self.error_urls.get(host, None)
         error_url = self.error_urls.get(host_s, error_url)
         error_url = self.error_urls.get(host_o, error_url)
+        error_url = self.error_urls.get(cls.DEFAULT_NAME, error_url)
 
         # runs the acquire operation for the current state, this should
         # update the current scheduling algorithm internal structures so
@@ -444,6 +453,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         return prefix, state
 
     def rules_host(self, url, parser):
+        # retrieves the parent class reference to be used to obtain
+        # class level attributes in the current method
+        cls = self.__class__
+
         # retrieves the reference to the headers map from the parser so
         # that it may be used to retrieve the current host value and try
         # to match it against any of the currently defined rules
@@ -459,8 +472,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         host_s = host.rsplit(":", 1)[0] if host else host
         host = self.alias.get(host_s, host)
         host = self.alias.get(host, host)
+        host = self.alias.get(cls.DEFAULT_NAME, host)
         prefix = self.hosts.get(host_s, None)
         prefix = self.hosts.get(host, prefix)
+        prefix = self.hosts.get(cls.DEFAULT_NAME, prefix)
         resolved = self.balancer(prefix)
 
         # prints more debug information to be used for possible runtime debug
@@ -767,6 +782,7 @@ if __name__ == "__main__":
         (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}")
     )
     hosts = {
+        "default" : "http://default.host.com",
         "host.com" : "http://host.com"
     }
     alias = {
