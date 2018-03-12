@@ -589,8 +589,8 @@ class HTTPConnection(netius.Connection):
 
 class HTTPServer(netius.StreamServer):
     """
-    Base class for serving of the http protocol, should contain
-    the basic utilities for handling an http request including
+    Base class for serving of the HTTP protocol, should contain
+    the basic utilities for handling an HTTP request including
     headers and read of data.
     """
 
@@ -602,6 +602,31 @@ class HTTPServer(netius.StreamServer):
         self.common_file = None
 
     @classmethod
+    def build_data(
+        cls,
+        text,
+        url = None,
+        trace = False,
+        style = True,
+        encode = True,
+        encoding = "utf-8"
+    ):
+        if url: return cls.build_iframe(
+            text,
+            url,
+            style = style,
+            encode = encode,
+            encoding = encoding
+        )
+        else: return cls.build_text(
+            text,
+            trace = trace,
+            style = style,
+            encode = encode,
+            encoding = encoding
+        )
+
+    @classmethod
     def build_text(
         cls,
         text,
@@ -611,6 +636,23 @@ class HTTPServer(netius.StreamServer):
         encoding = "utf-8"
     ):
         data = "".join(cls._gen_text(text, trace = trace, style = style))
+        if encode: data = netius.legacy.bytes(
+            data,
+            encoding = encoding,
+            force = True
+        )
+        return data
+
+    @classmethod
+    def build_iframe(
+        cls,
+        text,
+        url,
+        style = True,
+        encode = True,
+        encoding = "utf-8"
+    ):
+        data = "".join(cls._gen_iframe(text, url, style = style))
         if encode: data = netius.legacy.bytes(
             data,
             encoding = encoding,
@@ -635,6 +677,17 @@ class HTTPServer(netius.StreamServer):
         yield "<span>"
         yield netius.IDENTIFIER
         yield "</span>"
+        yield "</body>"
+
+        for value in cls._gen_footer(): yield value
+
+    @classmethod
+    def _gen_iframe(cls, text, url, style = True):
+        for value in cls._gen_header(text, style = style):
+            yield value
+
+        yield "<body>"
+        yield "<iframe src=\"%s\"></iframe>" % url
         yield "</body>"
 
         for value in cls._gen_footer(): yield value

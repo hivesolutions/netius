@@ -44,6 +44,11 @@ import netius.common
 import netius.clients
 import netius.servers
 
+DEFAULT_NAME = "default"
+""" The token name to be used as the default value when trying
+to resolve host based map information, should not be changed
+as it represents the default way of setting values """
+
 class ReverseProxyServer(netius.servers.ProxyServer):
     """
     Reverse HTTP proxy implementation based on the more generalized
@@ -57,7 +62,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     rules are applied for the same connection (eg: https://host.com/hive,
     https://host.com/colony as different rules), this would pose serious
     problems if the back-end servers are different for each rule or if
-    the way the final back-end url is created is different for each rule.
+    the way the final back-end URL is created is different for each rule.
     """
 
     def __init__(
@@ -69,6 +74,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         auth = {},
         auth_regex = {},
         redirect = {},
+        error_urls = {},
         forward = None,
         strategy = "robin",
         reuse = True,
@@ -91,6 +97,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             auth = auth,
             auth_regex = auth_regex,
             redirect = redirect,
+            error_urls = error_urls,
             forward = forward,
             strategy = strategy,
             reuse = reuse,
@@ -195,6 +202,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         redirect = self.redirect.get(host, None)
         redirect = self.redirect.get(host_s, redirect)
         redirect = self.redirect.get(host_o, redirect)
+        redirect = self.redirect.get(DEFAULT_NAME, redirect)
         if redirect:
             # verifies if the redirect value is a sequence and if that's
             # not the case converts the value into a tuple value
@@ -248,9 +256,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         state = connection.state if hasattr(connection, "state") else None
         reusable = hasattr(connection, "proxy_c")
 
-        # constructs the url that is going to be used by the rule engine and
-        # then "forwards" both the url and the parser object to the rule engine
-        # in order to obtain the possible prefix value for url reconstruction,
+        # constructs the URL that is going to be used by the rule engine and
+        # then "forwards" both the URL and the parser object to the rule engine
+        # in order to obtain the possible prefix value for URL reconstruction,
         # a state value is also retrieved, this value will be used latter for
         # the acquiring and releasing parts of the balancing strategy operation
         url = "%s://%s%s" % (protocol, host, path)
@@ -273,9 +281,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 callback = self._prx_close
             )
 
-        # verifies if the current host requires come kind of special authorization
+        # verifies if the current host requires some kind of special authorization
         # process using the default basic http authorization process
-        auth = self.auth.get(host.rsplit(":", 1)[0], None)
+        auth = self.auth.get(host, None)
+        auth = self.auth.get(host_s, auth)
+        auth = self.auth.get(host_o, auth)
+        auth = self.auth.get(DEFAULT_NAME, auth)
         auth, _match = self._resolve_regex(url, self.auth_regex, default = auth)
         if auth:
             # determines if the provided authentication method is a sequence
@@ -310,13 +321,21 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                     callback = self._prx_close
                 )
 
+        # tries to use all the possible strategies to retrieve the best possible
+        # error URL for the current connection associated host, this is may be used
+        # when a connection error occurs in the underlying back-end connection
+        error_url = self.error_urls.get(host, None)
+        error_url = self.error_urls.get(host_s, error_url)
+        error_url = self.error_urls.get(host_o, error_url)
+        error_url = self.error_urls.get(DEFAULT_NAME, error_url)
+
         # runs the acquire operation for the current state, this should
         # update the current scheduling algorithm internal structures so
         # that they properly handle the new handle operation, an inverse
         # release operation should be performed at the end of the handling
         self.acquirer(state)
 
-        # re-calculates the url for the reverse connection based on the
+        # re-calculates the URL for the reverse connection based on the
         # prefix value that has just been "resolved" using the rule engine
         # this value should be constructed based on the original path
         url = prefix + path
@@ -373,6 +392,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         _connection.busy += 1
         self.busy_conn += 1
 
+        # sets the URL that is going to be used in case there's a connection
+        # error for the current connection (best user experience)
+        _connection.error_url = error_url
+
         # prints a debug message about the connection becoming a waiting
         # connection meaning that the connection with the client host has
         # not been yet established (no data has been  received)
@@ -404,7 +427,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         prefix = None
         state = None
 
-        # runs the regex resolution process for the url and the defined
+        # runs the regex resolution process for the URL and the defined
         # sequence of regex values, this is an iterative process in case
         # there's no match the default value is returned immediately
         _prefix, match = self._resolve_regex(url, self.regex)
@@ -440,14 +463,16 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # removing the port definition part of the host and then verifies
         # the complete set of defined hosts in order to check for the
         # presence of such rule, in case there's a match the defined
-        # url prefix is going to be used instead, the balancer operation
+        # URL prefix is going to be used instead, the balancer operation
         # is then used to "resolve" the final prefix value from sequence
         host = headers.get("host", None)
         host_s = host.rsplit(":", 1)[0] if host else host
         host = self.alias.get(host_s, host)
         host = self.alias.get(host, host)
+        host = self.alias.get(DEFAULT_NAME, host)
         prefix = self.hosts.get(host_s, None)
         prefix = self.hosts.get(host, prefix)
+        prefix = self.hosts.get(DEFAULT_NAME, prefix)
         resolved = self.balancer(prefix)
 
         # prints more debug information to be used for possible runtime debug
@@ -455,7 +480,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         self.debug("Resolved host prefix '%s' for '%s'" % (prefix, url))
 
         # returns the final "resolved" prefix value (in case there's any)
-        # to the caller method, this should be used for url reconstruction
+        # to the caller method, this should be used for URL reconstruction
         # note that the state value is also returned and should be store in
         # the current handling connection so that it may latter be used
         return resolved
@@ -597,7 +622,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         resolved = []
     ):
         # constructs both the port string based value and extracts
-        # the path of the base url that gave origin to this resolution
+        # the path of the base URL that gave origin to this resolution
         port_s = ":" + str(parsed.port) if parsed.port else ""
         path = parsed.path
 
@@ -608,12 +633,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             if not response.answers: return
 
             # creates the list that is going to be used t store the complete
-            # set of resolved url for the current host value in resolution
+            # set of resolved URL for the current host value in resolution
             target = []
 
             # iterates over the complete set of dns answers to re-build
-            # the target url value taking into account the resolved value
-            # this (ip based) url is going to be added to the list of target
+            # the target URL value taking into account the resolved value
+            # this (IP based) URL is going to be added to the list of target
             # values to be added to the resolved list on proper index
             for answer in response.answers:
                 type_s = answer[1]
@@ -622,9 +647,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 url = "%s://%s%s%s" % (parsed.scheme, address, port_s, path)
                 target.append(url)
 
-            # sets the target list of url for the proper index in the resolved
+            # sets the target list of URL for the proper index in the resolved
             # list and then "re-join" the complete set of lists to obtain a
-            # plain sequence of urls for the current host
+            # plain sequence of URLs for the current host
             resolved[index] = target
             values = [_value for value in resolved for _value in value]
             self.hosts[host] = tuple(values)
@@ -637,15 +662,19 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         _connection = parser.owner
         busy = _connection.busy if hasattr(_connection, "busy") else 0
         state = _connection.state if hasattr(_connection, "state") else None
+        error_url = _connection.state if hasattr(_connection, "error_url") else None
         if busy: self.busy_conn -= 1; _connection.busy -= 1
         if state: self.releaser(state); _connection.state = None
+        if error_url: _connection.error_url = None
         netius.servers.ProxyServer._on_prx_message(self, client, parser, message)
 
     def _on_prx_close(self, client, _connection):
         busy = _connection.busy if hasattr(_connection, "busy") else 0
         state = _connection.state if hasattr(_connection, "state") else None
+        error_url = _connection.state if hasattr(_connection, "error_url") else None
         if busy: self.busy_conn -= busy; _connection.busy -= busy
         if state: self.releaser(state); _connection.state = None
+        if error_url: _connection.error_url = None
         netius.servers.ProxyServer._on_prx_close(self, client, _connection)
 
     def _apply_all(
@@ -713,6 +742,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         self._echo_hosts(sort = sort)
         self._echo_alias(sort = sort)
         self._echo_redirect(sort = sort)
+        self._echo_error_urls(sort = sort)
 
     def _echo_regex(self, sort = True):
         self.info("Regex registration information")
@@ -736,6 +766,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         self.info("Redirect registration information")
         for key in keys: self.info("%s => %s" % (key, self.redirect[key]))
 
+    def _echo_error_urls(self, sort = True):
+        keys = netius.legacy.keys(self.error_urls)
+        if sort: keys.sort()
+        self.info("Error URLs registration information")
+        for key in keys: self.info("%s => %s" % (key, self.error_urls[key]))
+
 if __name__ == "__main__":
     import logging
     regex = (
@@ -743,6 +779,7 @@ if __name__ == "__main__":
         (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}")
     )
     hosts = {
+        "default" : "http://default.host.com",
         "host.com" : "http://host.com"
     }
     alias = {
@@ -763,6 +800,9 @@ if __name__ == "__main__":
     redirect = {
         "host.com" : "other.host.com"
     }
+    error_urls = {
+        "host.com" : "http://host.com/error"
+    }
     server = ReverseProxyServer(
         regex = regex,
         hosts = hosts,
@@ -770,6 +810,7 @@ if __name__ == "__main__":
         auth = auth,
         auth_regex = auth_regex,
         redirect = redirect,
+        error_urls = error_urls,
         level = logging.INFO
     )
     server.serve(env = True)
