@@ -730,6 +730,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         self._echo_hosts(sort = sort)
         self._echo_alias(sort = sort)
         self._echo_redirect(sort = sort)
+        self._echo_error_urls(sort = sort)
 
     def _echo_regex(self, sort = True):
         self.info("Regex registration information")
@@ -752,6 +753,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if sort: keys.sort()
         self.info("Redirect registration information")
         for key in keys: self.info("%s => %s" % (key, self.redirect[key]))
+
+    def _echo_error_urls(self, sort = True):
+        keys = netius.legacy.keys(self.error_urls)
+        if sort: keys.sort()
+        self.info("Error URLs registration information")
+        for key in keys: self.info("%s => %s" % (key, self.error_urls[key]))
 
 if __name__ == "__main__":
     import logging
