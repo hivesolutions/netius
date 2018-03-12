@@ -76,6 +76,7 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
         self._build_alias()
         self._build_passwords()
         self._build_redirect()
+        self._build_error_urls()
         self._build_redirect_ssl()
 
     def _build_regex(self, token = "$", sort = True):
@@ -170,6 +171,14 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             base_dash = base.replace("_", "-")
             self.redirect[base] = host
             self.redirect[base_dash] = host
+
+    def _build_error_urls(self):
+        linked = netius.conf_suffix("_ERROR_URL")
+        for name, error_url in netius.legacy.iteritems(linked):
+            base = name[:-10].lower()
+            base_dash = base.replace("_", "-")
+            self.error_urls[base] = error_url
+            self.error_urls[base_dash] = error_url
 
     def _build_redirect_ssl(self, alias = True):
         linked = netius.conf_suffix("_REDIRECT_SSL")
