@@ -199,10 +199,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # tries to determine if a proper (client side) redirection should operation
         # should be applied to the current request, if that's the case (match) an
         # immediate response is returned with proper redirection instructions
-        redirect = self.redirect.get(host, None)
+        redirect = self.redirect.get(DEFAULT_NAME, None)
+        redirect = self.redirect.get(host, redirect)
         redirect = self.redirect.get(host_s, redirect)
         redirect = self.redirect.get(host_o, redirect)
-        redirect = self.redirect.get(DEFAULT_NAME, redirect)
         if redirect:
             # verifies if the redirect value is a sequence and if that's
             # not the case converts the value into a tuple value
@@ -283,10 +283,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         # verifies if the current host requires some kind of special authorization
         # process using the default basic http authorization process
-        auth = self.auth.get(host, None)
+        auth = self.auth.get(DEFAULT_NAME, None)
+        auth = self.auth.get(host, auth)
         auth = self.auth.get(host_s, auth)
         auth = self.auth.get(host_o, auth)
-        auth = self.auth.get(DEFAULT_NAME, auth)
         auth, _match = self._resolve_regex(url, self.auth_regex, default = auth)
         if auth:
             # determines if the provided authentication method is a sequence
@@ -324,10 +324,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # tries to use all the possible strategies to retrieve the best possible
         # error URL for the current connection associated host, this is may be used
         # when a connection error occurs in the underlying back-end connection
-        error_url = self.error_urls.get(host, None)
+        error_url = self.error_urls.get(DEFAULT_NAME, None)
+        error_url = self.error_urls.get(host, error_url)
         error_url = self.error_urls.get(host_s, error_url)
         error_url = self.error_urls.get(host_o, error_url)
-        error_url = self.error_urls.get(DEFAULT_NAME, error_url)
 
         # runs the acquire operation for the current state, this should
         # update the current scheduling algorithm internal structures so
@@ -467,12 +467,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # is then used to "resolve" the final prefix value from sequence
         host = headers.get("host", None)
         host_s = host.rsplit(":", 1)[0] if host else host
+        host_o = host
         host = self.alias.get(host_s, host)
         host = self.alias.get(host, host)
-        host = self.alias.get(DEFAULT_NAME, host)
-        prefix = self.hosts.get(host_s, None)
+        prefix = self.hosts.get(DEFAULT_NAME, None)
         prefix = self.hosts.get(host, prefix)
-        prefix = self.hosts.get(DEFAULT_NAME, prefix)
+        prefix = self.hosts.get(host_s, prefix)
+        prefix = self.hosts.get(host_o, prefix)
         resolved = self.balancer(prefix)
 
         # prints more debug information to be used for possible runtime debug
