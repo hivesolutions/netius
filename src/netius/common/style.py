@@ -38,7 +38,7 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 BASE_STYLE = """<style>
-@import \"https://fonts.googleapis.com/css?family=Open+Sans\";
+@import \"//fonts.googleapis.com/css?family=Open+Sans\";
 body {
     color: #2d2d2d;
     font-family: -apple-system, \"BlinkMacSystemFont\", \"Segoe UI\", \"Roboto\", \"Open Sans\", \"Helvetica\", \"Arial\", sans-serif;
@@ -90,7 +90,7 @@ table th > a.selected {
     text-decoration: underline;
 }
 table td > svg {
-    color: #6d6d6d;
+    color: #2d2d2d;
     fill: currentColor;
     margin-right: 6px;
 }
