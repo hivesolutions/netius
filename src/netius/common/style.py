@@ -44,6 +44,7 @@ body {
     font-family: -apple-system, \"BlinkMacSystemFont\", \"Segoe UI\", \"Roboto\", \"Open Sans\", \"Helvetica\", \"Arial\", sans-serif;
     font-size: 13px;
     line-height: 18px;
+    shape-rendering: crispEdges;
 }
 iframe {
     border-width: 0px;
