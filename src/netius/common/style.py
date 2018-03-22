@@ -38,6 +38,7 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 BASE_STYLE = """<style>
+@charset "utf-8";
 @import \"//fonts.googleapis.com/css?family=Open+Sans\";
 html {
     height: 100%;
