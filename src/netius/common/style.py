@@ -39,6 +39,9 @@ __license__ = "Apache License, Version 2.0"
 
 BASE_STYLE = """<style>
 @import \"//fonts.googleapis.com/css?family=Open+Sans\";
+html {
+    height: 100%;
+}
 body {
     color: #2d2d2d;
     font-family: -apple-system, \"BlinkMacSystemFont\", \"Segoe UI\", \"Roboto\", \"Open Sans\", \"Helvetica\", \"Arial\", sans-serif;
