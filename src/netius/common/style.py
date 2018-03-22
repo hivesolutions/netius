@@ -76,7 +76,7 @@ hr {
 }
 table {
     font-size: 13px;
-    line-height: 20px;
+    line-height: 18px;
     max-width: 760px;
     table-layout: fixed;
     word-break: break-all;
@@ -95,7 +95,7 @@ table th > a.selected {
     text-decoration: underline;
 }
 table td > svg {
-    color: #2d2d2d;
+    color: #4d4d4d;
     fill: currentColor;
     margin-right: 6px;
 }
