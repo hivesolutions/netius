@@ -60,7 +60,7 @@ iframe {
 }
 h1 {
     font-size: 22px;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 26px;
     margin: 14px 0px 14px 0px;
 }
@@ -82,7 +82,7 @@ table {
     word-break: break-all;
 }
 table th {
-    font-weight: 500;
+    font-weight: 600;
 }
 table th > *, table td > * {
     vertical-align: middle;
