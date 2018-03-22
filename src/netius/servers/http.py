@@ -694,6 +694,7 @@ class HTTPServer(netius.StreamServer):
 
     @classmethod
     def _gen_header(cls, title, style = True, meta = True):
+        yield "<!DOCTYPE html>"
         yield "<html>"
         yield "<head>"
         if meta:
