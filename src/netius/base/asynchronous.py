@@ -37,11 +37,6 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-# defines the initial value of the "new" future iterator to
-# be created (overriding the default one) as invalid, meaning
-# that no operation of method overriding is going to be performed
-future_iter = None
-
 # imports the base (old) version of the async implementation
 # that should be compatible with all the available python
 # interpreters, base collection of async library
@@ -52,7 +47,3 @@ from .async_old import * #@UnusedWildImport
 # case runs the additional import of symbols, this should override
 # most of the symbols that have just been created
 if is_neo(): from .async_neo import * #@UnusedWildImport
-
-# in case a new future iterator generator method is defined sets
-# it in the future class effectively overriding the default one
-if future_iter: Future.__iter__ = future_iter

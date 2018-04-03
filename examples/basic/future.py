@@ -45,14 +45,16 @@ def set(future, raise_e = True):
     if raise_e: future.set_exception(Exception("Awaiting error"))
     else: future.set_result(42)
 
-async def await_forever():
+@netius.coroutine
+def await_forever():
     print("Awaiting forever")
     future = netius.build_future()
     thread = threading.Thread(
         target = set, args = (future,), kwargs = dict(raise_e = True)
     )
     thread.start()
-    return await future
+    result = yield from future
+    return result
 
 loop = netius.get_loop(_compat = True)
 result = loop.run_until_complete(await_forever())

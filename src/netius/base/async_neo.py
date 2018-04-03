@@ -53,9 +53,20 @@ class Future(async_old.Future):
     with the basic Python asyncio strategy for futures.
     """
 
+    def __iter__(self):
+        while not self.finished():
+            self._blocking = True
+            yield self
+        if self.cancelled():
+            raise self._exception or Exception()
+        return self._result
+
     def __await__(self):
-        while not self.finished(): yield self
-        if self._exception: raise self._exception
+        while not self.finished():
+            self._blocking = True
+            yield self
+        if self.cancelled():
+            raise self._exception or Exception()
         return self._result
 
 class AwaitWrapper(object):
@@ -252,25 +263,6 @@ def coroutine_return(coroutine):
 
     generator = _coroutine_return(coroutine)
     return AwaitWrapper(generator)
-
-def future_iter(self):
-    """
-    The default iterator function that is going to be used, so that
-    it's possible to run a yield from operation on a simple future
-    object (provides generator syntax compatibility).
-
-    This is mostly used on the coroutine based wrapping.
-
-    :rtype: Generator
-    :return: The generator that is used to propagate the future from
-    a coroutine as a generator.
-    """
-
-    if not self.done():
-        self._blocking = True
-        yield self
-    if not self.done(): return None
-    return self.result()
 
 def _coroutine_return(coroutine):
     for value in coroutine:
