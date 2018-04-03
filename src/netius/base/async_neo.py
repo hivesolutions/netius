@@ -58,16 +58,16 @@ class Future(async_old.Future):
             self._blocking = True
             yield self
         if self.cancelled():
-            raise self._exception or Exception()
-        return self._result
+            raise self.exception() or Exception()
+        return self.result()
 
     def __await__(self):
         while not self.finished():
             self._blocking = True
             yield self
         if self.cancelled():
-            raise self._exception or Exception()
-        return self._result
+            raise self.exception() or Exception()
+        return self.result()
 
 class AwaitWrapper(object):
     """
