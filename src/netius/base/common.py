@@ -1814,6 +1814,181 @@ class AbstractBase(observer.Observable):
         if state: self.set_state(STATE_ERRROR)
         for error in errors: self.on_error(error)
 
+    def serve(
+        self,
+        host = None,
+        port = 9090,
+        type = TCP_TYPE,
+        ipv6 = False,
+        ssl = False,
+        key_file = None,
+        cer_file = None,
+        ca_file = None,
+        ca_root = True,
+        ssl_verify = False,
+        ssl_host = None,
+        ssl_fingerprint = None,
+        ssl_dump = False,
+        backlog = socket.SOMAXCONN,
+        env = True
+    ):
+        # processes the various default values taking into account if
+        # the environment variables are meant to be processed for the
+        # current context (default values are processed accordingly)
+        host = self.get_env("HOST", host) if env else host
+        port = self.get_env("PORT", port, cast = int) if env else port
+        type = self.get_env("TYPE", type, cast = int) if env else type
+        ipv6 = self.get_env("IPV6", ipv6, cast = bool) if env else ipv6
+        ssl = self.get_env("SSL", ssl, cast = bool) if env else ssl
+        port = self.get_env("UNIX_PATH", port) if env else port
+        key_file = self.get_env("KEY_FILE", key_file) if env else key_file
+        cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
+        ca_file = self.get_env("CA_FILE", ca_file) if env else ca_file
+        ca_root = self.get_env("CA_ROOT", ca_root, cast = bool) if env else ca_root
+        ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
+        ssl_host = self.get_env("SSL_HOST", ssl_host) if env else ssl_host
+        ssl_fingerprint = self.get_env("SSL_FINGERPRINT", ssl_fingerprint) if env else ssl_fingerprint
+        ssl_dump = self.get_env("SSL_DUMP", ssl_dump) if env else ssl_dump
+        key_file = self.get_env("KEY_DATA", key_file, expand = True) if env else key_file
+        cer_file = self.get_env("CER_DATA", cer_file, expand = True) if env else cer_file
+        ca_file = self.get_env("CA_DATA", ca_file, expand = True) if env else ca_file
+        backlog = self.get_env("BACKLOG", backlog, cast = int) if env else backlog
+
+        # runs the various extra variable initialization taking into
+        # account if the environment variable is currently set or not
+        # please note that some side effects may arise from this set
+        if env: self.level = self.get_env("LEVEL", self.level)
+        if env: self.diag = self.get_env("DIAG", self.diag, cast = bool)
+        if env: self.middleware = self.get_env("MIDDLEWARE", self.middleware, cast = list)
+        if env: self.children = self.get_env("CHILD", self.children, cast = int)
+        if env: self.children = self.get_env("CHILDREN", self.children, cast = int)
+        if env: self.logging = self.get_env("LOGGING", self.logging)
+        if env: self.poll_name = self.get_env("POLL", self.poll_name)
+        if env: self.poll_timeout = self.get_env(
+            "POLL_TIMEOUT",
+            self.poll_timeout,
+            cast = float
+        )
+        if env: self.keepalive_timeout = self.get_env(
+            "KEEPALIVE_TIMEOUT",
+            self.keepalive_timeout,
+            cast = int
+        )
+        if env: self.keepalive_interval = self.get_env(
+            "KEEPALIVE_INTERVAL",
+            self.keepalive_interval,
+            cast = int
+        )
+        if env: self.keepalive_count = self.get_env(
+            "KEEPALIVE_COUNT",
+            self.keepalive_count,
+            cast = int
+        )
+        if env: self.allowed = self.get_env("ALLOWED", self.allowed, cast = list)
+
+        # ensures the proper default address value, taking into account
+        # the type of connection that is currently being used, this avoids
+        # problems with multiple stack based servers (ipv4 and ipv6)
+        if host == None: host = "::1" if ipv6 else "127.0.0.1"
+
+        # defaults the provided ssl key and certificate paths to the
+        # ones statically defined (dummy certificates), please beware
+        # that using these certificates may create validation problems
+        key_file = key_file or SSL_KEY_PATH
+        cer_file = cer_file or SSL_CER_PATH
+        ca_file = ca_file or SSL_CA_PATH
+
+        # populates the basic information on the currently running
+        # server like the host the port and the (is) ssl flag to be
+        # used latter for reference operations
+
+        #@todo must remove all this static values !!!
+        #self.host = host
+        #self.port = port
+        #self.type = type
+        #self.ssl = ssl
+        #self.ssl_host = ssl_host
+        #self.ssl_fingerprint = ssl_fingerprint
+        #self.ssl_dump = ssl_dump
+        #self.env = env
+
+        # populates the key, certificate and certificate authority file
+        # information with the values that have just been resolved, these
+        # values are going to be used for runtime certificate loading
+
+        #@todo must remove all these values and put them somewhere else
+        # (may the connection object)
+        #self.key_file = key_file
+        #self.cer_file = cer_file
+        #self.ca_file = ca_file
+
+        # determines if the client side certificate should be verified
+        # according to the loaded certificate authority values or if
+        # on the contrary no (client) validation should be performed
+        ssl_verify = ssl_verify or False
+
+        # verifies if the type of server that is going to be created is
+        # unix or internet based, this allows the current infra-structure
+        # to work under the much more latency free unix sockets
+        is_unix = host == "unix"
+
+        # checks the type of service that is meant to be created and
+        # creates a service socket according to the defined service
+        family = socket.AF_INET6 if ipv6 else socket.AF_INET
+        family = socket.AF_UNIX if is_unix else family
+        if type == TCP_TYPE: _socket = self.socket_tcp(
+            ssl,
+            key_file = key_file,
+            cer_file = cer_file,
+            ca_file = ca_file,
+            ca_root = ca_root,
+            ssl_verify = ssl_verify,
+            family = family
+        )
+        elif type == UDP_TYPE: _socket = self.socket_udp()
+        else: raise errors.NetiusError("Invalid server type provided '%d'" % type)
+
+        # "calculates" the address "bind target", taking into account that this
+        # server may be running under a unix based socket infra-structure and
+        # if that's the case the target (file path) is also removed, avoiding
+        # a duplicated usage of the socket (required for address re-usage)
+        address = port if is_unix else (host, port)
+        if is_unix and os.path.exists(address): os.remove(address)
+
+        # binds the socket to the provided address value (per spec) and then
+        # starts the listening in the socket with the provided backlog value
+        # defaulting to the typical maximum backlog as possible if not provided
+        _socket.bind(address)
+        if type == TCP_TYPE: _socket.listen(backlog)
+
+        # in case the selected port is zero based, meaning that a randomly selected
+        # port has been assigned by the bind operation the new port must be retrieved
+        # and set for the current server instance as the new port (for future reference)
+        if self.port == 0: self.port = _socket.getsockname()[1]
+
+        # creates the string that identifies it the current service connection
+        # is using a secure channel (ssl) and then prints an info message about
+        # the service that is going to be started
+        ipv6_s = " on ipv6" if ipv6 else ""
+        ssl_s = " using ssl" if ssl else ""
+        self.info("Serving '%s' service on %s:%s%s%s ..." % (self.name, host, port, ipv6_s, ssl_s))
+
+        # ensures that the current polling mechanism is correctly open as the
+        # service socket is going to be added to it next, this overrides the
+        # default behavior of the common infra-structure (on start)
+        self.poll = self.build_poll()
+        self.poll.open(timeout = self.poll_timeout)
+
+        # adds the socket to all of the pool lists so that it's ready to read
+        # write and handle error, this is the expected behavior of a service
+        # socket so that it can handle all of the expected operations
+        self.sub_all(_socket)
+
+        # calls the on serve callback handler so that underlying services may be
+        # able to respond to the fact that the service is starting and some of
+        # them may print some specific debugging information
+        self.on_serve()
+
     def datagram(
         self,
         family = socket.AF_INET,
