@@ -42,6 +42,11 @@ import aiohttp
 
 import netius
 
+netius.verify(
+    int(aiohttp.__version__[0]) < 3,
+    message = "Requires legacy (older than 3.x.x) version of aiohttp"
+)
+
 @asyncio.coroutine
 def print_http(url):
     response = yield from aiohttp.request("GET", url)
