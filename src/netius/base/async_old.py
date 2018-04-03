@@ -46,6 +46,18 @@ from . import errors
 from . import legacy
 
 class Future(object):
+    """
+    Base future object that represents a promise that a certain
+    operation is going to be accomplished.
+
+    Should be used as a placeholder for the callbacks for error
+    and success and the for the final result of the execution.
+
+    Most of the implementation takes inspiration on the reference
+    Python implementation on futures.
+
+    :see: https://en.wikipedia.org/wiki/Futures_and_promises
+    """
 
     def __init__(self, loop = None):
         self.status = 0

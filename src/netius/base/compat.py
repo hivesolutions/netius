@@ -211,24 +211,6 @@ class CompatLoop(BaseLoop):
         future = executor.submit(func, *args)
         yield future
 
-    def _create_server(
-        self,
-        protocol_factory,
-        host = None,
-        port = None,
-        family = 0,
-        flags = 0,
-        sock = None,
-        backlog = 100,
-        ssl = None,
-        reuse_address = None,
-        reuse_port = None,
-        *args,
-        **kwargs
-    ):
-        #@todo implement this server code
-        pass
-
     def _create_connection(
         self,
         protocol_factory,
@@ -588,11 +570,3 @@ def _connect_stream_compat(
     future.add_done_callback(on_connect)
 
     return loop
-
-def _serve_stream_native():
-    #@todo: implement this stuff
-    pass
-
-def _serve_stream_compat():
-    #@todo: implement this stuff
-    pass
