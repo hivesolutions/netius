@@ -47,8 +47,19 @@ try: import asyncio
 except: asyncio = None
 
 class AwaitWrapper(object):
+    """
+    Wrapper class meant to be used to encapsulate "old"
+    generator based objects as async generator objects that
+    are eligible to be used with the async/await syntax.
+
+    It's also possible to pass simple values instead of
+    generator functions and still use the wrapper.
+    """
 
     _is_generator = True
+    """ Hard coded static flag that allows the underlying
+    infra-structure to know that this type is considered
+    to be generator compliant """
 
     def __init__(self, generator, generate = False):
         if generate: generator = self.generate(generator)
