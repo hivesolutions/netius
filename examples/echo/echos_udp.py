@@ -59,5 +59,10 @@ listen = loop.create_datagram_endpoint(
 )
 transport, protocol = loop.run_until_complete(listen)
 
-#@todo this should not be required
-loop.run_forever()
+try:
+    loop.run_forever()
+except KeyboardInterrupt:
+    pass
+
+transport.close()
+loop.close()
