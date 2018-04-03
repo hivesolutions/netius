@@ -46,6 +46,18 @@ from . import async_old
 try: import asyncio
 except: asyncio = None
 
+class Future(async_old.Future):
+    """
+    Specialized Future class that support the async/await
+    syntax to be used on a future, so that it becomes compliant
+    with the basic Python asyncio strategy for futures.
+    """
+
+    def __await__(self):
+        while not self.finished(): yield self
+        if self._exception: raise self._exception
+        return self._result
+
 class AwaitWrapper(object):
     """
     Wrapper class meant to be used to encapsulate "old"
@@ -91,6 +103,14 @@ class AwaitWrapper(object):
         yield
 
 class CoroutineWrapper(object):
+    """
+    Wrapper class meant to encapsulate a coroutine object
+    as a standard iterator sequence to be used in chain/iterator
+    like execution environment.
+
+    This is only required for the native coroutine objects
+    so that they can comply with the required netius interface.
+    """
 
     def __init__(self, coroutine):
         self.coroutine = coroutine
@@ -230,10 +250,8 @@ def coroutine_return(coroutine):
     and have its last future result returned from the generator.
     """
 
-    for value in coroutine:
-        yield value
-        future = value
-    return future.result()
+    generator = _coroutine_return(coroutine)
+    return AwaitWrapper(generator)
 
 def future_iter(self):
     """
@@ -241,7 +259,7 @@ def future_iter(self):
     it's possible to run a yield from operation on a simple future
     object (provides generator syntax compatibility).
 
-    This is mostly used on the co-routine based wrapping.
+    This is mostly used on the coroutine based wrapping.
 
     :rtype: Generator
     :return: The generator that is used to propagate the future from
@@ -253,3 +271,9 @@ def future_iter(self):
         yield self
     if not self.done(): return None
     return self.result()
+
+def _coroutine_return(coroutine):
+    for value in coroutine:
+        yield value
+        future = value
+    return future.result()

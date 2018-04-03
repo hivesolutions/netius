@@ -51,7 +51,7 @@ class Future(object):
     operation is going to be accomplished.
 
     Should be used as a placeholder for the callbacks for error
-    and success.
+    and success and the for the final result of the execution.
 
     Most of the implementation takes inspiration on the reference
     Python implementation on futures.
