@@ -56,5 +56,7 @@ def await_forever():
     for value in future: yield value
 
 loop = netius.get_loop(_compat = True)
-loop.run_until_complete(await_forever())
+result = loop.run_until_complete(await_forever())
 loop.close()
+
+print(result)
