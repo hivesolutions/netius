@@ -69,6 +69,8 @@ class Future(object):
 
     def __iter__(self):
         while not self.finished(): yield self
+        if self.cancelled():
+            raise self.exception() or Exception()
 
     def cleanup(self):
         self.done_callbacks = []

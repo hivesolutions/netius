@@ -48,9 +48,12 @@ except: asyncio = None
 
 class Future(async_old.Future):
     """
-    Specialized Future class that support the async/await
-    syntax to be used on a future, so that it becomes compliant
+    Specialized Future class that supports the async/await
+    syntax to be used in a future, so that it becomes compliant
     with the basic Python asyncio strategy for futures.
+
+    Using this future it should be possible to `await Future()`
+    for a simpler usage.
     """
 
     def __iter__(self):
