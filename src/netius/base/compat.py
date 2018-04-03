@@ -391,10 +391,6 @@ def connect_stream(*args, **kwargs):
     if is_compat(): return _connect_stream_compat(*args, **kwargs)
     else: return _connect_stream_native(*args, **kwargs)
 
-def serve_stream(*args, **kwargs):
-    if is_compat(): return _serve_stream_compat(*args, **kwargs)
-    else: return _serve_stream_native(*args, **kwargs)
-
 def _build_datagram_native(
     protocol_factory,
     family = socket.AF_INET,
