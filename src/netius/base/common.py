@@ -817,7 +817,7 @@ class AbstractBase(observer.Observable):
                 try: value = next(sequence)
                 except StopIteration as exception:
                     result = exception.args[0] if exception.args else None
-                    if future.running: future.set_result(result)
+                    if future.running(): future.set_result(result)
                     break
                 except BaseException as exception:
                     future.set_exception(exception)
