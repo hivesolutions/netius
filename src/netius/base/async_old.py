@@ -168,6 +168,7 @@ class Task(Future):
 
     def __init__(self, future = None):
         Future.__init__(self)
+        self._future = future
         self._source_traceback = None
         if future: self._wrap(future)
 
@@ -281,7 +282,7 @@ def is_future(future):
 def is_neo():
     return sys.version_info[0] >= 3 and sys.version_info[1] >= 3
 
-def is_asyncio():
+def is_asynclib():
     return sys.version_info[0] >= 3 and sys.version_info[1] >= 4
 
 def is_await():

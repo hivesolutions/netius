@@ -140,7 +140,8 @@ class ProxyMiddleware(Middleware):
         extra = data[data_b:]
 
         # in case there's valid extra data to be restored to the connection
-        # performs the operation, effectively restoring it for receiving
+        # performs the operation, effectively restoring it for latter
+        # receiving operations (just like adding it back to the socket)
         if extra: connection.restore(extra)
 
         # forces the "conversion" of the line into a string so that it may

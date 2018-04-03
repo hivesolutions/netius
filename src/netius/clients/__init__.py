@@ -48,8 +48,8 @@ from . import ws
 from .apn import APNConnection, APNClient
 from .dht import DHTRequest, DHTResponse, DHTClient
 from .dns import DNSRequest, DNSResponse, DNSClient
-from .http import HTTPConnection, HTTPClient
-from .mjpg import MJPGConnection, MJPGClient
+from .http import HTTPProtocol, HTTPClient
+from .mjpg import MJPGProtocol, MJPGClient
 from .raw import RawClient
 from .smtp import SMTPConnection, SMTPClient
 from .ssdp import SSDPClient

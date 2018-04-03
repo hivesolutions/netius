@@ -37,7 +37,6 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-import asyncio
 import aiohttp
 
 import netius
@@ -52,9 +51,6 @@ async def go(loop, url):
     async with aiohttp.ClientSession(loop = loop) as session:
         await print_http(session, url)
 
-use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
-if use_asyncio: loop = asyncio.get_event_loop()
-else: loop = netius.get_loop(factory = netius.StreamClient)
-
+loop = netius.get_loop(_compat = True)
 loop.run_until_complete(go(loop, "https://www.flickr.com/"))
 loop.close()

@@ -84,6 +84,7 @@ class BaseConnection(observer.Observable):
         owner = None,
         socket = None,
         address = None,
+        datagram = False,
         ssl = False,
         max_pending = -1,
         min_pending = -1
@@ -96,6 +97,7 @@ class BaseConnection(observer.Observable):
         self.owner = owner
         self.socket = socket
         self.address = address
+        self.datagram = datagram
         self.ssl = ssl
         self.ssl_host = None
         self.ssl_fingerprint = None
@@ -317,8 +319,9 @@ class BaseConnection(observer.Observable):
         self.upgrading = False
         self.trigger("upgrade", self)
 
-    def set_data(self, data):
-        self.trigger("data", self, data)
+    def set_data(self, data, address = None):
+        if address: self.trigger("data", self, data, address)
+        else: self.trigger("data", self, data)
 
     def ensure_write(self, flush = True):
         # retrieves the identifier of the current thread and
@@ -395,10 +398,14 @@ class BaseConnection(observer.Observable):
         self.renable = False
         self.owner.unsub_read(self.socket)
 
-    def send(self, data, delay = True, force = False, callback = None):
+    def send(self, data, address = None, delay = True, force = False, callback = None):
         """
         The main send call to be used by a proxy connection and
         from different threads.
+
+        This method is the equivalent on a socket basis to both the
+        send and the send to method, meaning that datagram send operations
+        are also allowed by using the address parameter.
 
         In case the sending should be forced as delayed (next tick)
         the delay flag should be set and the sending will be delayed.
@@ -416,6 +423,9 @@ class BaseConnection(observer.Observable):
         :type data: String
         :param data: The buffer containing the data to be sent
         through this connection to the other endpoint.
+        :type address: Tuple
+        :param address: The target address for the send operation,
+        this is relevant only for datagram based connections.
         :type delay: bool
         :param delay: If the send operation should be delayed until
         the next tick operation or if it should be performed as
@@ -442,11 +452,14 @@ class BaseConnection(observer.Observable):
         data_l = len(data) if data else 0
 
         # verifies that the connection is currently in the open
-        # state and then verifies if a callback exists if that's
-        # the case the data tuple must be created with the data
-        # and the callback as the contents (standard process)
+        # state and then verifies if that's not the case returns
+        # immediately, not possible to send data
         if not self.status == OPEN and not force: return 0
-        if callback: data = (data, callback)
+
+        # creates the tuple that is going to represent the data
+        # to be sent, this tuple should contain the data itself
+        # the target address (for datagram) and the callback
+        data = (data, address, callback)
 
         # retrieves the identifier of the current thread and then
         # verifies if it's the same as thread where the event loop
@@ -495,7 +508,7 @@ class BaseConnection(observer.Observable):
         # verifies if the provided data is a tuple and if that's
         # the case unpacks the callback value from it, required
         is_tuple = type(data) == tuple
-        if is_tuple: data_b, _callback = data
+        if is_tuple: data_b, _address, _callback = data
         else: data_b = data
 
         # calculates the size in bytes of the provided data so
@@ -705,9 +718,7 @@ class BaseConnection(observer.Observable):
                 # the type of it is a tuple
                 data = self.pending.pop()
                 data_o = data
-                callback = None
-                is_tuple = type(data) == tuple
-                if is_tuple: data, callback = data
+                data, address, callback = data
                 is_close = data == None
                 data_l = 0 if is_close else len(data)
 
@@ -720,6 +731,7 @@ class BaseConnection(observer.Observable):
                     # data is provided the shutdown operation is performed
                     # instead to close the stream between both sockets
                     if is_close: self._shutdown(); count = 0
+                    elif address: count = self.socket.sendto(data, address)
                     elif data: count = self.socket.send(data)
                     else: count = 0
 
@@ -761,7 +773,7 @@ class BaseConnection(observer.Observable):
                     if is_valid:
                         callback and callback(self)
                     else:
-                        data_o = (data[count:], callback)
+                        data_o = (data[count:], address, callback)
                         self.pending.append(data_o)
         finally:
             # releases the pending access lock so that no leaks
@@ -775,7 +787,8 @@ class BaseConnection(observer.Observable):
     def _recv(self, size):
         data = self._recv_restored(size)
         if data: return data
-        return self.socket.recv(size)
+        if self.datagram: return self.socket.recvfrom(size)
+        else: return self.socket.recv(size)
 
     def _recv_ssl(self, size):
         data = self._recv_restored(size)

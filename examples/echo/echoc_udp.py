@@ -37,16 +37,43 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import asyncio
+
 import netius
 
-@netius.coroutine
-def compute(x, y):
-    print("Compute %s + %s ..." % (x, y))
-    yield from netius.sleep(1.0)
-    return x + y
+class EchoClientProtocol(object):
+
+    def __init__(self, message, loop):
+        self.message = message
+        self.loop = loop
+        self.transport = None
+
+    def connection_made(self, transport):
+        self.transport = transport
+        print("Send: %s" % self.message)
+        self.transport.sendto(self.message.encode())
+
+    def datagram_received(self, data, addr):
+        print("Received: %s" % data.decode())
+        print("Close the socket")
+        self.transport.close()
+
+    def error_received(self, exc):
+        print("Error received: %s" % exc)
+
+    def connection_lost(self, exc):
+        print("Socket closed, stop the event loop")
+        loop = asyncio.get_event_loop()
+        loop.stop()
+
+message = "Hello World!"
 
 loop = netius.get_loop(_compat = True)
-result = loop.run_until_complete(compute(1, 2))
+connect = loop.create_datagram_endpoint(
+    lambda: EchoClientProtocol(message, loop),
+    remote_addr = ("127.0.0.1", 9999)
+)
+transport, protocol = loop.run_until_complete(connect)
+loop.run_forever()
+transport.close()
 loop.close()
-
-print(result)

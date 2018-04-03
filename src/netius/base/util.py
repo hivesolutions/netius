@@ -39,6 +39,8 @@ __license__ = "Apache License, Version 2.0"
 
 import re
 
+from . import errors
+
 FIRST_CAP_REGEX = re.compile("(.)([A-Z][a-z]+)")
 """ Regular expression that ensures that the first
 token of each camel string is properly capitalized """
@@ -71,3 +73,25 @@ def camel_to_underscore(camel, separator = "_"):
     value = ALL_CAP_REGEX.sub(r"\1" + separator + r"\2", value)
     value = value.lower()
     return value
+
+def verify(condition, message = None, exception = None):
+    """
+    Ensures that the requested condition returns a valid value
+    and if that's no the case an exception raised breaking the
+    current execution logic.
+
+    :type condition: bool
+    :param condition: The condition to be evaluated and that may
+    trigger an exception raising.
+    :type message: String
+    :param message: The message to be used in the building of the
+    exception that is going to be raised in case of condition failure.
+    :type exception: Class
+    :param exception: The exception class that is going to be used
+    to build the exception to be raised in case the condition
+    verification operation fails.
+    """
+
+    if condition: return
+    exception = exception or errors.AssertionError
+    raise exception(message or "Assertion Error")

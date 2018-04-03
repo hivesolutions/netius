@@ -39,14 +39,30 @@ __license__ = "Apache License, Version 2.0"
 
 import netius
 
-@netius.coroutine
-def compute(x, y):
-    print("Compute %s + %s ..." % (x, y))
-    yield from netius.sleep(1.0)
-    return x + y
+class EchoServerProtocol(object):
+
+    def connection_made(self, transport):
+        self.transport = transport
+
+    def datagram_received(self, data, addr):
+        message = data.decode()
+        print("Received %r from %s" % (message, addr))
+        print("Send %r to %s" % (message, addr))
+        self.transport.sendto(data, addr)
+
+print("Starting UDP server")
 
 loop = netius.get_loop(_compat = True)
-result = loop.run_until_complete(compute(1, 2))
-loop.close()
+listen = loop.create_datagram_endpoint(
+    EchoServerProtocol,
+    local_addr = ("127.0.0.1", 9999)
+)
+transport, protocol = loop.run_until_complete(listen)
 
-print(result)
+try:
+    loop.run_forever()
+except KeyboardInterrupt:
+    pass
+
+transport.close()
+loop.close()

@@ -1525,8 +1525,8 @@ class HTTP2Stream(netius.Stream):
         self._data_l = 0
 
     def _calculate_headers(self):
-        util.verify(self.is_headers)
-        util.verify(self.headers == None)
+        netius.verify(self.is_headers)
+        netius.verify(self.headers == None)
 
         headers_m = dict()
         headers_s = dict()

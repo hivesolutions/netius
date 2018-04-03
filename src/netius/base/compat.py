@@ -41,13 +41,15 @@ import sys
 import time
 import socket
 
+from . import config
 from . import errors
 from . import legacy
+from . import transport
+
 from . import asynchronous
 
 asyncio = asynchronous.get_asyncio() if asynchronous.is_neo() else None
 BaseLoop = asyncio.AbstractEventLoop if asyncio else object
-BaseTransport = asyncio.BaseTransport if asyncio else object
 
 class CompatLoop(BaseLoop):
     """
@@ -108,8 +110,16 @@ class CompatLoop(BaseLoop):
         task = self._task_factory(future)
         return task
 
+    def create_server(self, *args, **kwargs):
+        coroutine = self._create_server(*args, **kwargs)
+        return asynchronous.coroutine_return(coroutine)
+
     def create_connection(self, *args, **kwargs):
         coroutine = self._create_connection(*args, **kwargs)
+        return asynchronous.coroutine_return(coroutine)
+
+    def create_datagram_endpoint(self, *args, **kwargs):
+        coroutine = self._create_datagram_endpoint(*args, **kwargs)
         return asynchronous.coroutine_return(coroutine)
 
     def getaddrinfo(self, *args, **kwargs):
@@ -125,9 +135,18 @@ class CompatLoop(BaseLoop):
         try: return self._loop.run_coroutine(future)
         finally: self._unset_current_task()
 
+    def run_forever(self):
+        return self._loop.run_forever()
+
     def run_in_executor(self, *args, **kwargs):
         coroutine = self._run_in_executor(*args, **kwargs)
         return asynchronous.coroutine_return(coroutine)
+
+    def stop(self):
+        self._loop.stop()
+
+    def close(self):
+        self._loop.close()
 
     def get_exception_handler(self):
         return self._handler
@@ -141,9 +160,6 @@ class CompatLoop(BaseLoop):
     def call_exception_handler(self, context):
         if not self._handler: return
         return self._handler(context)
-
-    def close(self):
-        self._loop.close()
 
     def get_debug(self):
         return self._loop.is_debug()
@@ -195,6 +211,24 @@ class CompatLoop(BaseLoop):
         future = executor.submit(func, *args)
         yield future
 
+    def _create_server(
+        self,
+        protocol_factory,
+        host = None,
+        port = None,
+        family = 0,
+        flags = 0,
+        sock = None,
+        backlog = 100,
+        ssl = None,
+        reuse_address = None,
+        reuse_port = None,
+        *args,
+        **kwargs
+    ):
+        #@todo implement this server code
+        pass
+
     def _create_connection(
         self,
         protocol_factory,
@@ -211,24 +245,60 @@ class CompatLoop(BaseLoop):
         **kwargs
     ):
         family = family or socket.AF_INET
+        proto = proto or socket.SOCK_STREAM
 
         future = self.create_future()
 
         def connect(connection):
             protocol = protocol_factory()
-            transport = CompatTransport(self, connection)
-            transport._set_compat(protocol)
-            future.set_result((transport, protocol))
+            _transport = transport.TransportStream(self, connection)
+            _transport._set_compat(protocol)
+            future.set_result((_transport, protocol))
 
         connection = self._loop.connect(
             host,
             port,
             ssl = ssl,
-            family = family,
-            ensure_loop = False
+            family = family
         )
         connection.bind("connect", connect)
 
+        yield future
+
+    def _create_datagram_endpoint(
+        self,
+        protocol_factory,
+        local_addr = None,
+        remote_addr = None,
+        family = 0,
+        proto = 0,
+        flags = 0,
+        reuse_address = None,
+        reuse_port = None,
+        allow_broadcast = None,
+        sock = None,
+        *args,
+        **kwargs
+    ):
+        family = family or socket.AF_INET
+        proto = proto or socket.SOCK_DGRAM
+
+        future = self.create_future()
+
+        def connect(connection):
+            protocol = protocol_factory()
+            _transport = transport.TransportDatagram(self, connection)
+            _transport._set_compat(protocol)
+            future.set_result((_transport, protocol))
+
+        connection = self._loop.datagram(
+            family = family,
+            type = proto,
+            remote_host = remote_addr[0] if remote_addr else None,
+            remote_port = remote_addr[1] if remote_addr else None
+        )
+
+        self._loop.delay(lambda: connect(connection))
         yield future
 
     def _set_current_task(self, task):
@@ -296,68 +366,233 @@ class CompatLoop(BaseLoop):
     def _thread_id(self):
         return self._loop.tid
 
-class CompatTransport(BaseTransport):
+def is_compat():
     """
-    Decorator class to be used to add the functionality of a
-    transport layer as defined by the asyncio.
+    Determines if the compatibility mode for the netius
+    event loop is required.
 
-    Allows adding the functionality to an internal netius
-    (or equivalent) object, this is considered to be the adaptor
-    from the internal loop implementation and the expected
-    transport layer from asyncio.
+    Under this mode the event loop for netius tries to emulate
+    the behaviour of the asyncio event loop so that it may
+    be used with 3rd party protocol classes (not compliant
+    with the netius protocol).
+
+    :rtype: bool
+    :return: If the netius infra-structure should run under
+    the compatibility mode.
     """
 
-    def __init__(self, loop, connection):
-        self._loop = loop
-        self._connection = connection
-        self._protocol = None
+    compat = config.conf("COMPAT", False, cast = bool)
+    compat |= is_asyncio()
+    return compat and asynchronous.is_neo()
 
-    def close(self):
-        self._connection.close()
+def is_asyncio():
+    """
+    Checks if the asyncio mode of execution (external event
+    loop) is the required approach under the current runtime.
 
-    def abort(self):
-        self._connection.close()
+    If that's the case the netius event loop is not going to
+    be used and the asyncio one is going to be used instead.
 
-    def write(self, data):
-        self._connection.send(data)
+    :rtype: bool
+    :return: If the asyncio event loop model is enabled and
+    proper library support available.
+    """
 
-    def get_extra_info(self, name, default = None):
-        if name == "socket": return self._connection.socket
-        else: return default
+    asyncio = config.conf("ASYNCIO", False, cast = bool)
+    return asyncio and asynchronous.is_asynclib()
 
-    def set_protocol(self, protocol):
-        self._set_protocol(protocol, mark = False)
+def build_datagram(*args, **kwargs):
+    if is_compat(): return _build_datagram_compat(*args, **kwargs)
+    else: return _build_datagram_native(*args, **kwargs)
 
-    def get_protocol(self):
-        return self._protocol
+def connect_stream(*args, **kwargs):
+    if is_compat(): return _connect_stream_compat(*args, **kwargs)
+    else: return _connect_stream_native(*args, **kwargs)
 
-    def is_closing(self):
-        return self._connection.is_closed()
+def serve_stream(*args, **kwargs):
+    if is_compat(): return _serve_stream_compat(*args, **kwargs)
+    else: return _serve_stream_native(*args, **kwargs)
 
-    def _on_data(self, connection, data):
-        self._protocol.data_received(data)
+def _build_datagram_native(
+    protocol_factory,
+    family = socket.AF_INET,
+    type = socket.SOCK_DGRAM,
+    remote_host = None,
+    remote_port = None,
+    callback = None,
+    loop = None,
+    *args,
+    **kwargs
+):
+    from . import common
 
-    def _on_close(self, connection):
-        if not self._protocol == None:
-            self._protocol.eof_received()
-        self._cleanup()
+    loop = loop or common.get_loop()
 
-    def _set_compat(self, protocol):
-        self._set_binds()
-        self._set_protocol(protocol)
+    protocol = protocol_factory()
+    if hasattr(protocol, "loop_set"):  protocol.loop_set(loop)
 
-    def _set_binds(self):
-        self._connection.bind("data", self._on_data)
-        self._connection.bind("close", self._on_close)
+    def on_ready():
+        loop.datagram(
+            family = family,
+            type = type,
+            remote_host = remote_host,
+            remote_port = remote_port,
+            callback = on_connect
+        )
 
-    def _set_protocol(self, protocol, mark = True):
-        self._protocol = protocol
-        if mark: self._protocol.connection_made(self)
+    def on_connect(connection):
+        _transport = transport.TransportDatagram(loop, connection)
+        _transport._set_compat(protocol)
+        if not callback: return
+        callback((_transport, protocol))
 
-    def _cleanup(self):
-        self._loop.call_soon(self._call_connection_lost, None)
-        self._loop = None
+    loop.delay(on_ready)
 
-    def _call_connection_lost(self, context):
-        if not self._protocol == None:
-            self._protocol.connection_lost(context)
+    return loop
+
+def _build_datagram_compat(
+    protocol_factory,
+    family = socket.AF_INET,
+    type = socket.SOCK_DGRAM,
+    remote_host = None,
+    remote_port = None,
+    callback = None,
+    loop = None,
+    *args,
+    **kwargs
+):
+    from . import common
+
+    loop = loop or common.get_loop()
+
+    protocol = protocol_factory()
+    if hasattr(protocol, "loop_set"):
+        protocol.loop_set(loop)
+
+    def build_protocol():
+        return protocol
+
+    def on_connect(future):
+        if not callback: return
+        result = future.result()
+        callback(result)
+
+    connect = loop.create_datagram_endpoint(
+        build_protocol,
+        family = family,
+        remote_addr = (remote_host, remote_port) if\
+            remote_host and remote_port else None,
+        *args,
+        **kwargs
+    )
+
+    future = loop.create_task(connect)
+    future.add_done_callback(on_connect)
+
+    return loop
+
+def _connect_stream_native(
+    protocol_factory,
+    host,
+    port,
+    ssl = False,
+    key_file = None,
+    cer_file = None,
+    ca_file = None,
+    ca_root = True,
+    ssl_verify = False,
+    family = socket.AF_INET,
+    type = socket.SOCK_STREAM,
+    callback = None,
+    loop = None,
+    *args,
+    **kwargs
+):
+    from . import common
+
+    loop = loop or common.get_loop()
+
+    protocol = protocol_factory()
+    has_loop_set = hasattr(protocol, "loop_set")
+    if has_loop_set: protocol.loop_set(loop)
+
+    def on_ready():
+        loop.connect(
+            host,
+            port,
+            ssl = ssl,
+            key_file = key_file,
+            cer_file = cer_file,
+            ca_file = ca_file,
+            ca_root = ca_root,
+            ssl_verify = ssl_verify,
+            family = family,
+            type = type,
+            callback = on_connect
+        )
+
+    def on_connect(connection):
+        _transport = transport.TransportStream(loop, connection)
+        _transport._set_compat(protocol)
+        if not callback: return
+        callback((_transport, protocol))
+
+    loop.delay(on_ready)
+
+    return loop
+
+def _connect_stream_compat(
+    protocol_factory,
+    host,
+    port,
+    ssl = False,
+    key_file = None,
+    cer_file = None,
+    ca_file = None,
+    ca_root = True,
+    ssl_verify = False,
+    family = socket.AF_INET,
+    type = socket.SOCK_STREAM,
+    callback = None,
+    loop = None,
+    *args,
+    **kwargs
+):
+    from . import common
+
+    loop = loop or common.get_loop()
+
+    protocol = protocol_factory()
+    has_loop_set = hasattr(protocol, "loop_set")
+    if has_loop_set: protocol.loop_set(loop)
+
+    def build_protocol():
+        return protocol
+
+    def on_connect(future):
+        if not callback: return
+        result = future.result()
+        callback(result)
+
+    connect = loop.create_connection(
+        build_protocol,
+        host = host,
+        port = port,
+        ssl = ssl,
+        family = family,
+        *args,
+        **kwargs
+    )
+
+    future = loop.create_task(connect)
+    future.add_done_callback(on_connect)
+
+    return loop
+
+def _serve_stream_native():
+    #@todo: implement this stuff
+    pass
+
+def _serve_stream_compat():
+    #@todo: implement this stuff
+    pass

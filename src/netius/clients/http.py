@@ -58,45 +58,243 @@ BASE_HEADERS = {
 """ The map containing the complete set of headers
 that are meant to be applied to all the requests """
 
-class HTTPConnection(netius.Connection):
+class HTTPProtocol(netius.StreamProtocol):
+    """
+    Implementation of the HTTP protocol to be used by a client
+    of the HTTP implementation to send requests and receive
+    responses.
+    """
 
-    def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
-        netius.Connection.__init__(self, *args, **kwargs)
-        self.parser = None
+    def __init__(
+        self,
+        method,
+        url,
+        params = None,
+        headers = None,
+        data = None,
+        version = "HTTP/1.1",
+        encoding = PLAIN_ENCODING,
+        encodings = "gzip, deflate",
+        safe = False,
+        request = False,
+        asynchronous = True,
+        timeout = None,
+        use_file = False,
+        callback = None,
+        on_close = None,
+        on_headers = None,
+        on_data = None,
+        on_result = None,
+        *args,
+        **kwargs
+    ):
+        netius.StreamProtocol.__init__(self, *args, **kwargs)
+        self.method = method.upper()
+        self.url = url
+        self.params = params or {}
+        self.headers = headers or {}
+        self.data = data
+        self.version = version
         self.encoding = encoding
         self.current = encoding
-        self.gzip = None
-        self.gzip_c = None
-        self.version = "HTTP/1.1"
-        self.method = "GET"
-        self.encodings = "gzip, deflate"
-        self.url = None
-        self.ssl = False
+        self.encodings = encodings
+        self.safe = safe
+        self.asynchronous = asynchronous
+        self.timeout = timeout or 60
+        self.use_file = use_file
+        self.parser = None
         self.parsed = False
+        self.request = None
+        self.ssl = False
         self.host = None
         self.port = None
         self.path = None
-        self.headers = {}
-        self.data = None
+        self.gzip = None
+        self.gzip_c = None
+
+        # tries to determine if the protocol response should be request
+        # wrapped, meaning that a map based object is going to be populated
+        # with the contents of the HTTP request/response
+        wrap_request = request or (not asynchronous and not on_data and not callback)
+        wrap_request = wrap_request or on_result
+
+        # in case the wrap request flag is set (conditions for request usage
+        # are met) the protocol is called to run the wrapping operation
+        if wrap_request:
+            _request, on_close, on_data, callback = self.wrap_request(
+                use_file = use_file,
+                callback = callback,
+                on_close = on_close,
+                on_data = on_data,
+                on_result = on_result
+            )
+
+        # registers for the proper event handlers according to the
+        # provided parameters, note that these are considered to be
+        # the lower level infra-structure of the event handling
+        if on_close: self.bind("close", on_close)
+        if on_headers: self.bind("headers", on_headers)
+        if on_data: self.bind("partial", on_data)
+        if callback: self.bind("message", callback)
+
+        # sets the static part of the protocol internal (no loop is required)
+        # so that the required initials fields are properly populated
+        self.set_static()
+
+    @classmethod
+    def decode_gzip(cls, data):
+        if not data: return data
+        return zlib.decompress(data, zlib.MAX_WBITS | 16)
+
+    @classmethod
+    def decode_deflate(cls, data):
+        if not data: return data
+        try: return zlib.decompress(data)
+        except: return zlib.decompress(data, -zlib.MAX_WBITS)
+
+    @classmethod
+    def decode_zlib_file(
+        cls,
+        input,
+        output,
+        buffer_size = 16384,
+        wbits = zlib.MAX_WBITS | 16
+    ):
+        decompressor = zlib.decompressobj(wbits)
+        while True:
+            data = input.read(buffer_size)
+            if not data: break
+            raw_data = decompressor.decompress(data)
+            output.write(raw_data)
+        raw_data = decompressor.flush()
+        output.write(raw_data)
+        return output
+
+    @classmethod
+    def decode_gzip_file(
+        cls,
+        input,
+        output,
+        buffer_size = 16384,
+        wbits = zlib.MAX_WBITS | 16
+    ):
+        return cls.decode_zlib_file(
+            input,
+            output,
+            buffer_size = buffer_size,
+            wbits = wbits
+        )
+
+    @classmethod
+    def decode_deflate_file(
+        cls,
+        input,
+        output,
+        buffer_size = 16384,
+        wbits = -zlib.MAX_WBITS
+    ):
+        return cls.decode_zlib_file(
+            input,
+            output,
+            buffer_size = buffer_size,
+            wbits = wbits
+        )
+
+    @classmethod
+    def set_request(cls, parser, buffer, request = None):
+        if request == None: request = dict()
+        headers = parser.get_headers()
+        data = b"".join(buffer)
+        encoding = headers.get("Content-Encoding", None)
+        decoder = getattr(cls, "decode_%s" % encoding) if encoding else None
+        if decoder and data: data = decoder(data)
+        request["code"] = parser.code
+        request["status"] = parser.status
+        request["headers"] = headers
+        request["data"] = data
+        return request
+
+    @classmethod
+    def set_request_file(
+        cls,
+        parser,
+        input,
+        request = None,
+        output = None,
+        buffer_size = 16384
+    ):
+        # verifies if a request object has been passes to the current
+        # method and if that's not the case creates a new one (as a map)
+        if request == None: request = dict()
+
+        # retrieves the complete set of headers and tries discover the
+        # encoding of it and the associated decoder (if any)
+        headers = parser.get_headers()
+        encoding = headers.get("Content-Encoding", None)
+        decoder = getattr(cls, "decode_%s_file" % encoding) if encoding else None
+
+        # in case there's a decoder and an input (file) then runs the decoding
+        # process setting the data as the resulting (decoded object)
+        if decoder and input:
+            if output == None: output = tempfile.NamedTemporaryFile(mode = "w+b")
+            input.seek(0)
+            try:
+                data = decoder(
+                    input,
+                    output,
+                    buffer_size = buffer_size
+                )
+            finally:
+                input.close()
+
+        # otherwise it's a simplified process (no decoding required) and the
+        # data may be set directly as the input file
+        else:
+            data = input
+
+        # seeks the data object to the initial position so that it
+        # is set as ready to be read from a third party
+        data.seek(0)
+
+        # updates the structure of the request object/map so that it
+        # contains a series of information on the request, including
+        # the file contents (stored in a temporary file)
+        request["code"] = parser.code
+        request["status"] = parser.status
+        request["headers"] = headers
+        request["data"] = data
+
+        # returns the request object that has just been populated
+        # to the caller method so that it may be used to read the contents
+        return request
+
+    @classmethod
+    def set_error(cls, error, message = None, request = None, force = False):
+        if request == None: request = dict()
+        if "error" in request and not force: return
+        request["error"] = error
+        request["message"] = message
+        return request
 
     def open(self, *args, **kwargs):
-        netius.Connection.open(self, *args, **kwargs)
+        netius.StreamProtocol.open(self, *args, **kwargs)
         if not self.is_open(): return
         self.parser = netius.common.HTTPParser(self, type = netius.common.RESPONSE)
-        self.parser.bind("on_data", self.on_data)
+        self.parser.bind("on_data", self._on_data)
         self.parser.bind("on_partial", self.on_partial)
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_chunk", self.on_chunk)
 
     def close(self, *args, **kwargs):
-        netius.Connection.close(self, *args, **kwargs)
+        netius.StreamProtocol.close(self, *args, **kwargs)
         if not self.is_closed(): return
         if self.parser: self.parser.destroy()
+        if self.parsed: self.parsed = None
         if self.gzip: self._close_gzip(safe = True)
         if self.gzip_c: self.gzip_c = None
 
     def info_dict(self, full = False):
-        info = netius.Connection.info_dict(self, full = full)
+        info = netius.StreamProtocol.info_dict(self, full = full)
         info.update(
             version = self.version,
             method = self.method,
@@ -112,6 +310,14 @@ class HTTPConnection(netius.Connection):
             parser = self.parser.info_dict()
         )
         return info
+
+    def connection_made(self, transport):
+        netius.StreamProtocol.connection_made(self, transport)
+        self.run_request()
+
+    def loop_set(self, loop):
+        netius.StreamProtocol.loop_set(self, loop)
+        self.set_dynamic()
 
     def flush(self, force = False, callback = None):
         if self.current == DEFLATE_ENCODING:
@@ -287,29 +493,133 @@ class HTTPConnection(netius.Connection):
             callback = callback
         )
 
-    def set_http(
-        self,
-        version = "HTTP/1.1",
-        method = "GET",
-        url = None,
-        base = None,
-        host = None,
-        port = None,
-        path = None,
-        ssl = False,
-        parsed = None,
-        safe = False
-    ):
-        self.version = version
-        self.method = method.upper()
-        self.url = url
-        self.base = base
-        self.host = host
-        self.port = port
-        self.path = path
-        self.ssl = ssl
-        self.parsed = parsed
-        self.safe = safe
+    def set_all(self):
+        self.set_static()
+        self.set_dynamic()
+
+    def set_static(self):
+        # creates the message that is going to be used in the logging of
+        # the current method request for debugging purposes, this may be
+        # useful for a full record traceability of the request
+        message = "%s %s %s" % (self.method, self.url, self.version)
+        self.debug(message)
+
+        # stores the initial version of the url in a fallback variable so
+        # that it may latter be used for the storage of that information
+        # in the associated connection (used in callbacks)
+        self.base = self.url
+
+        # encodes the provided parameters into the query string and then
+        # adds these parameters to the end of the provided url, these
+        # values are commonly named get parameters
+        query = netius.legacy.urlencode(self.params)
+        if query: self.url = self.url + "?" + query
+
+        # parses the provided url and retrieves the various parts of the
+        # url that are going to be used in the creation of the connection
+        # takes into account some default values in case their are not part
+        # of the provided url (eg: port and the scheme)
+        self.parsed = netius.legacy.urlparse(self.url)
+        self.ssl = self.parsed.scheme == "https"
+        self.host = self.parsed.hostname
+        self.port = self.parsed.port or (self.ssl and 443 or 80)
+        self.path = self.parsed.path or "/"
+        self.username = self.parsed.username
+        self.password = self.parsed.password
+
+        # in case both the username and the password values are defined the
+        # authorization header must be created and added to the default set
+        # of headers that are going to be included in the request
+        if self.username and self.password:
+            payload = "%s:%s" % (self.username, self.password)
+            payload = netius.legacy.bytes(payload)
+            authorization = base64.b64encode(payload)
+            authorization = netius.legacy.str(authorization)
+            self.headers["authorization"] = "Basic %s" % authorization
+
+        # sets the complete set of information under the protocol instance so
+        # that it may be latter used to send the request through the transport
+        self.set_headers(self.headers)
+
+    def set_dynamic(self):
+        cls = self.__class__
+
+        # creates the function that is going to be used to validate
+        # the on connect timeout so that whenever the timeout for
+        # the connection operation is exceeded an error is set int
+        # the connection and the connection is properly closed
+        def connect_timeout():
+            if self.is_open(): return
+            self.request and cls.set_error(
+                "timeout",
+                message = "Timeout on connect",
+                request = self.request
+            )
+            self.close()
+
+        # schedules a delay operation to run the timeout handler for
+        # both connect operation (this is considered the initial
+        # triggers for the such verifiers)
+        self.delay(connect_timeout, timeout = self.timeout)
+
+    def run_request(self):
+        # retrieves the reference to the top level class to be used
+        # for class level operations
+        cls = self.__class__
+
+        # creates a function that is going to be used to validate
+        # the receive operation of the connection (receive timeout)
+        def receive_timeout():
+            # runs the initial verification operations that will
+            # try to validate if the requirements for proper request
+            # validations are defined, if any of them is not the control
+            # full is returned immediately avoiding re-schedule of handler
+            if not self.request: return
+            if not self.is_open(): return
+            if self.request["code"]: return
+
+            # retrieves the current time and the time of the last data
+            # receive operation and using that calculates the delta
+            current = time.time()
+            last = self.request.get("last", 0)
+            delta = current - last
+
+            # retrieves the amount of bytes that have been received so
+            # far during the request handling this is going to be used
+            # for logging purposes on the error information to be printed
+            received = self.request.get("received", 0)
+
+            # determines if the protocol is considered valid, either
+            # the connection is not "yet" connected of the time between
+            # receive operations is valid, and if that's the case delays
+            # the timeout verification according to the timeout value
+            if not self.is_open() or delta < self.timeout:
+                self.delay(receive_timeout, timeout = self.timeout)
+                return
+
+            # tries to determine the proper message that is going to be
+            # set in the request error, this value should take into account
+            # the current development mode flag value
+            if self._loop.is_devel(): message = "Timeout on receive (received %d bytes)" % received
+            else: message = "Timeout on receive"
+
+            # sets the error information in the request so that the
+            # request handler is properly "notified" about the error
+            cls.set_error(
+                "timeout",
+                message = message,
+                request = self.request
+            )
+
+            # closes the protocol (it's no longer considered valid)
+            # and then verifies the various auto closing values
+            self.close()
+
+        # sends the request effectively triggering a chain of event
+        # that should end with the complete receiving of the response
+        self.send_request(callback = lambda c: self.delay(
+            receive_timeout, timeout = self.timeout
+        ))
 
     def send_request(self, callback = None):
         method = self.method
@@ -349,18 +659,91 @@ class HTTPConnection(netius.Connection):
         count += self.send_base(data, force = True, callback = callback)
         return count
 
-    def set_encoding(self, encoding):
-        self.current = encoding
+    def wrap_request(
+        self,
+        use_file = False,
+        callback = None,
+        on_close = None,
+        on_data = None,
+        on_result = None
+    ):
+        """
+        Wraps the current set of operations for the protocol so that
+        a request object is going to be created and properly populated
+        according to the multiple protocol events.
 
-    def set_encodings(self, encodings):
-        self.encodings = encodings
+        This method should focus on wrapping the provided callback handlers
+        with ones that change the request object state.
+
+        :type use_file: bool
+        :param use_file: If a filesystem based approach should be used
+        for the storing of the request information.
+        :type callback: Function
+        :param callback: Callback function to be called when the message
+        response has been completely received.
+        :type on_close: Function
+        :param on_close: Callback function to be called when the underlying
+        protocol is closed.
+        :type on_data: Function
+        :param on_data: Function to be called whenever some data is received
+        from the client side, notice that this data may be encoded (eg: gzip).
+        :type on_result: Function
+        :param on_result: Callback function to be called on the final result
+        with the resulting request object.
+        :rtype: Tuple
+        :return: The tuple containing both the request dictionary object that
+        is going to store the information for the request in the current protocol
+        and the multiple changed callback methods.
+        """
+
+        # retrieves the reference to the parent class object
+        # going to be used for class wide operations
+        cls = self.__class__
+
+        # saves the references to the previous callback method so that
+        # they can be used from the current request based approach
+        _on_close = on_close
+        _on_data = on_data
+        _callback = callback
+
+        # creates both the buffer list and the request structure so that
+        # they may be used for the correct construction of the request
+        # structure that is going to be send in the callback, then sets
+        # the identifier (memory address) of the request in the connection
+        buffer = tempfile.NamedTemporaryFile(mode = "w+b") if use_file else []
+        self.request = dict(code = None, data = None)
+
+        def on_close(protocol):
+            if _on_close: _on_close(protocol)
+            protocol._request = None
+            if self.request["code"]: return
+            cls.set_error(
+                "closed",
+                message = "Connection closed",
+                request = self.request
+            )
+
+        def on_data(protocol, parser, data):
+            if _on_data: _on_data(protocol, parser, data)
+            if use_file: buffer.write(data)
+            else: buffer.append(data)
+            received = self.request.get("received", 0)
+            self.request["received"] = received + len(data)
+            self.request["last"] = time.time()
+
+        def callback(protocol, parser, message):
+            if _callback: _callback(protocol, parser, message)
+            if use_file: cls.set_request_file(parser, buffer, request = self.request)
+            else: cls.set_request(parser, buffer, request = self.request)
+            if on_result: on_result(protocol, parser, self.request)
+
+        # returns the request object that is going to be properly
+        # populated over the life-cycle of the protocol
+        return self.request, on_close, on_data, callback
 
     def set_headers(self, headers, normalize = True):
         self.headers = headers
         if normalize: self.normalize_headers()
-
-    def set_data(self, data):
-        self.data = data
 
     def normalize_headers(self):
         for key, value in netius.legacy.items(self.headers):
@@ -418,24 +801,24 @@ class HTTPConnection(netius.Connection):
         if strict and self.is_chunked(): return False
         return True
 
-    def on_data(self):
+    def on_data(self, data):
+        netius.StreamProtocol.on_data(self, data)
+        self.parser.parse(data)
+
+    def _on_data(self):
         message = self.parser.get_message()
         self.trigger("message", self, self.parser, message)
-        self.owner.on_data_http(self, self.parser)
         self.parser.clear()
         self.gzip_c = None
 
     def on_partial(self, data):
         self.trigger("partial", self, self.parser, data)
-        self.owner.on_partial_http(self, self.parser, data)
 
     def on_headers(self):
         self.trigger("headers", self, self.parser)
-        self.owner.on_headers_http(self, self.parser)
 
     def on_chunk(self, range):
         self.trigger("chunk", self, self.parser, range)
-        self.owner.on_chunk_http(self, self.parser, range)
 
     def _flush_plain(self, force = False, callback = None):
         if not callback: return
@@ -536,26 +919,24 @@ class HTTPConnection(netius.Connection):
 
 class HTTPClient(netius.StreamClient):
     """
-    Simple test of an http client, supports a series of basic
-    operations and makes use of the http parser from netius.
+    Simple test of an HTTP client, supports a series of basic
+    operations and makes use of the HTTP parser from netius.
 
     The current implementation supports the auto-release of the
     connection once the message has been received, this is optional
     and may be disabled with an argument in the constructor.
     """
 
+    protocol = HTTPProtocol
+
     def __init__(
         self,
         auto_release = True,
-        auto_close = False,
-        auto_pause = False,
         *args,
         **kwargs
     ):
         netius.StreamClient.__init__(self, *args, **kwargs)
         self.auto_release = auto_release
-        self.auto_close = auto_close
-        self.auto_pause = auto_pause
 
     @classmethod
     def get_s(
@@ -635,7 +1016,6 @@ class HTTPClient(netius.StreamClient):
         data = None,
         version = "HTTP/1.1",
         safe = False,
-        connection = None,
         asynchronous = True,
         daemon = True,
         timeout = None,
@@ -649,12 +1029,7 @@ class HTTPClient(netius.StreamClient):
         **kwargs
     ):
         if not http_client: http_client = cls.get_client_s(
-            thread = True,
             daemon = daemon,
-            **kwargs
-        ) if asynchronous else HTTPClient(
-            thread = False,
-            auto_close = True,
             **kwargs
         )
 
@@ -666,7 +1041,6 @@ class HTTPClient(netius.StreamClient):
             data = data,
             version = version,
             safe = safe,
-            connection = connection,
             asynchronous = asynchronous,
             timeout = timeout,
             use_file = use_file,
@@ -677,17 +1051,27 @@ class HTTPClient(netius.StreamClient):
             on_result = on_result
         )
 
-        # in case the async mode is active, the http client loop
-        # must be awaken so that the set of operations are processed
-        # as soon as possible in that thread
-        if asynchronous: http_client.wakeup()
-
         # returns the "final" result to the caller method so that
         # it may be used/processed by it (as expected)
         return result
 
     @classmethod
     def to_response(cls, map, raise_e = True):
+        """
+        Simple utility method that takes the classic dictionary
+        based request and converts it into a simple HTTP response
+        object to be used in more interactive way.
+
+        :type map: Dictionary
+        :param map: The dictionary backed request object that is
+        going to be converted into a response.
+        :type raise_e: bool
+        :param raise_e: If an exception should be raised in case
+        there's an error in the HTTP status field.
+        :rtype: HTTPResponse
+        :return: The normalized response value.
+        """
+
         error = map.get("error", None)
         message = map.get("message", None)
         exception = map.get("exception", None)
@@ -701,141 +1085,6 @@ class HTTPClient(netius.StreamClient):
         message = message or "Undefined error (%s)" % error
         if exception: raise exception
         raise netius.NetiusError(message)
-
-    @classmethod
-    def decode_gzip(cls, data):
-        if not data: return data
-        return zlib.decompress(data, zlib.MAX_WBITS | 16)
-
-    @classmethod
-    def decode_deflate(cls, data):
-        if not data: return data
-        try: return zlib.decompress(data)
-        except: return zlib.decompress(data, -zlib.MAX_WBITS)
-
-    @classmethod
-    def decode_zlib_file(
-        cls,
-        input,
-        output,
-        buffer_size = 16384,
-        wbits = zlib.MAX_WBITS | 16
-    ):
-        decompressor = zlib.decompressobj(wbits)
-        while True:
-            data = input.read(buffer_size)
-            if not data: break
-            raw_data = decompressor.decompress(data)
-            output.write(raw_data)
-        raw_data = decompressor.flush()
-        output.write(raw_data)
-        return output
-
-    @classmethod
-    def decode_gzip_file(
-        cls,
-        input,
-        output,
-        buffer_size = 16384,
-        wbits = zlib.MAX_WBITS | 16
-    ):
-        return cls.decode_zlib_file(
-            input,
-            output,
-            buffer_size = buffer_size,
-            wbits = wbits
-        )
-
-    @classmethod
-    def decode_deflate_file(
-        cls,
-        input,
-        output,
-        buffer_size = 16384,
-        wbits = -zlib.MAX_WBITS
-    ):
-        return cls.decode_zlib_file(
-            input,
-            output,
-            buffer_size = buffer_size,
-            wbits = wbits
-        )
-
-    @classmethod
-    def set_request(cls, parser, buffer, request = None):
-        if request == None: request = dict()
-        headers = parser.get_headers()
-        data = b"".join(buffer)
-        encoding = headers.get("Content-Encoding", None)
-        decoder = getattr(cls, "decode_%s" % encoding) if encoding else None
-        if decoder and data: data = decoder(data)
-        request["code"] = parser.code
-        request["status"] = parser.status
-        request["headers"] = headers
-        request["data"] = data
-        return request
-
-    @classmethod
-    def set_request_file(
-        cls,
-        parser,
-        input,
-        request = None,
-        output = None,
-        buffer_size = 16384
-    ):
-        # verifies if a request object has been passes to the current
-        # method and if that's not the case creates a new one (as a map)
-        if request == None: request = dict()
-
-        # retrieves the complete set of headers and tries discover the
-        # encoding of it and the associated decoder (if any)
-        headers = parser.get_headers()
-        encoding = headers.get("Content-Encoding", None)
-        decoder = getattr(cls, "decode_%s_file" % encoding) if encoding else None
-
-        # in case there's a decoder and an input (file) then runs the decoding
-        # process setting the data as the resulting (decoded object)
-        if decoder and input:
-            if output == None: output = tempfile.NamedTemporaryFile(mode = "w+b")
-            input.seek(0)
-            try:
-                data = decoder(
-                    input,
-                    output,
-                    buffer_size = buffer_size
-                )
-            finally:
-                input.close()
-
-        # otherwise it's a simplified process (no decoding required) and the
-        # data may be set directly as the input file
-        else:
-            data = input
-
-        # seeks the data object to the initial position so that it
-        # is set as ready to be read from a third party
-        data.seek(0)
-
-        # updates the structure of the request object/map so that it
-        # contains a series of information on the request, including
-        # the file contents (stored in a temporary file)
-        request["code"] = parser.code
-        request["status"] = parser.status
-        request["headers"] = headers
-        request["data"] = data
-
-        # returns the request object that has just been populated
-        # to the caller method so that it may be used to read the contents
-        return request
-
-    @classmethod
-    def set_error(cls, error, message = None, request = None, force = False):
-        if request == None: request = dict()
-        if "error" in request and not force: return
-        request["error"] = error
-        request["message"] = message
-        return request
 
     def get(
         self,
@@ -912,7 +1161,7 @@ class HTTPClient(netius.StreamClient):
         encoding = PLAIN_ENCODING,
         encodings = "gzip, deflate",
         safe = False,
-        connection = None,
+        request = False,
         asynchronous = True,
         timeout = None,
         use_file = False,
@@ -920,354 +1169,100 @@ class HTTPClient(netius.StreamClient):
         on_close = None,
         on_headers = None,
         on_data = None,
-        on_result = None
+        on_result = None,
+        loop = None
     ):
         # extracts the reference to the upper class element associated
         # with the current instance, to be used for operations
         cls = self.__class__
 
-        # runs the defaulting operation on the provided parameters so that
-        # new instances are created for both occasions as expected, this
-        # avoids the typical problem with re-usage of default attributes
-        params = params or dict()
-        headers = headers or dict()
-        timeout = timeout or 60
-
-        # runs the loading process, so that services like logging are
-        # available right away and may be used immediately as expected
-        # by the http method loader method, note that in case the loading
-        # process as already been executed the logic is ignored, the
-        # execution of the load is only applied to non async requests
-        not asynchronous and self.load()
-
-        # creates the message that is going to be used in the logging of
-        # the current method request for debugging purposes, this may be
-        # useful for a full record traceability of the request
-        message = "%s %s %s" % (method, url, version)
-        self.debug(message)
-
-        # stores the initial version of the url in a fallback variable so
-        # that it may latter be used for the storage of that information
-        # in the associated connection (used in callbacks)
-        base = url
-
-        # encodes the provided parameters into the query string and then
-        # adds these parameters to the end of the provided url, these
-        # values are commonly named get parameters
-        query = netius.legacy.urlencode(params)
-        if query: url = url + "?" + query
-
-        # parses the provided url and retrieves the various parts of the
-        # url that are going to be used in the creation of the connection
-        # takes into account some default values in case their are not part
-        # of the provided url (eg: port and the scheme)
-        parsed = netius.legacy.urlparse(url)
-        ssl = parsed.scheme == "https"
-        host = parsed.hostname
-        port = parsed.port or (ssl and 443 or 80)
-        path = parsed.path or "/"
-        username = parsed.username
-        password = parsed.password
-
-        # in case both the username and the password values are defined the
-        # authorization header must be created and added to the default set
-        # of headers that are going to be included in the request
-        if username and password:
-            payload = "%s:%s" % (username, password)
-            payload = netius.legacy.bytes(payload)
-            authorization = base64.b64encode(payload)
-            authorization = netius.legacy.str(authorization)
-            headers["authorization"] = "Basic %s" % authorization
-
-        # in case there's a connection to be used must validate that the
-        # connection is valid for the current context so that the host,
-        # the port and the security of the connection is the same, in case
-        # the connection is not valid closes it and sets it as unset
-        if connection:
-            address_valid = connection.address == (host, port)
-            ssl_valid = connection.ssl == ssl
-            is_valid = address_valid and ssl_valid
-            if not is_valid: connection.close(); connection = None
-
-        # in case there's going to be a re-usage of an already existing
-        # connection the acquire operation must be performed so that it
-        # becomes unblocked from the previous context (required for usage)
-        connection and self.acquire(connection)
-
-        # tries to retrieve the connection that is going to be used for
-        # the performing of the request by either acquiring a connection
-        # from the list of available connection or re-using the connection
-        # that was passed to the method (and previously acquired)
-        connection = connection or self.acquire_c(host, port, ssl = ssl)
-        connection.set_http(
+        # creates the new protocol instance that is going to be used to
+        # handle this new request, a new protocol represents also a new
+        # parser object as defined by structure
+        protocol = cls.protocol(
+            method,
+            url,
+            params = params,
+            headers = headers,
+            data = data,
             version = version,
-            method = method,
-            url = url,
-            base = base,
-            host = host,
-            port = port,
-            path = path,
-            ssl = ssl,
-            parsed = parsed,
-            safe = safe
-        )
-        connection.set_encoding(encoding)
-        connection.set_encodings(encodings)
-        connection.set_headers(headers)
-        connection.set_data(data)
-
-        # runs a series of unbind operation from the connection so that it
-        # becomes "free" from any previous usage under different context
-        connection.unbind("close")
-        connection.unbind("headers")
-        connection.unbind("partial")
-        connection.unbind("message")
-
-        # verifies if the current request to be done should create
-        # a request structure representing it, this is the case when
-        # the request is synchronous and no handled is defined and
-        # when then on result callback is defined, this callback receives
-        # this request structure as the result, and it contains the
-        # complete set of contents of the http request (easy usage)
-        has_request = not asynchronous and not on_data and not callback
-        has_request = has_request or on_result
-        if has_request:
-            # saves the references to the previous callback method so that
-            # they can be used from the current request based approach
-            _on_close = on_close
-            _on_data = on_data
-            _callback = callback
-
-            # creates both the buffer list and the request structure so that
-            # they may be used for the correct construction of the request
-            # structure that is going to be send in the callback, then sets
-            # the identifier (memory address) of the request in the connection
-            buffer = tempfile.NamedTemporaryFile(mode = "w+b") if use_file else []
-            request = dict(code = None, data = None)
-            connection._request = id(request)
-
-            def on_finish(connection):
-                if _on_close: _on_close(connection)
-                connection._request = None
-                if request["code"]: return
-                cls.set_error(
-                    "closed",
-                    message = "Connection closed",
-                    request = request
-                )
-                if self.auto_close: self.close()
-                if self.auto_pause: self.pause()
-
-            def on_partial(connection, parser, data):
-                if _on_data: _on_data(connection, parser, data)
-                if use_file: buffer.write(data)
-                else: buffer.append(data)
-                received = request.get("received", 0)
-                request["received"] = received + len(data)
-                request["last"] = time.time()
-
-            def on_message(connection, parser, message):
-                if _callback: _callback(connection, parser, message)
-                if use_file: cls.set_request_file(parser, buffer, request = request)
-                else: cls.set_request(parser, buffer, request = request)
-                if on_result: on_result(connection, parser, request)
-
-            # sets the proper callback references so that the newly created
-            # clojure based methods are called for the current connection
-            # under the desired events, for the construction of the request
-            on_close = on_finish
-            on_data = on_partial
-            callback = on_message
-
-        # creates the function that is going to be used to validate
-        # the on connect timeout so that whenever the timeout for
-        # the connection operation is exceeded an error is set int
-        # the connection and the connection is properly closed
-        def connect_timeout():
-            if not connection.is_open(): return
-            if connection.is_connected(): return
-            has_request and cls.set_error(
-                "timeout",
-                message = "Timeout on connect",
-                request = request
-            )
-            connection.close()
-            if self.auto_close: self.close()
-            if self.auto_pause: self.pause()
-
-        # creates a function that is going to be used to validate
-        # the receive operation of the connection (receive timeout)
-        def receive_timeout():
-            # runs the initial verification operations that will
-            # try to validate if the requirements for proper request
-            # validations are defined, if any of them is not the control
-            # full is returned immediately avoiding re-schedule of handler
-            if not has_request: return
-            if not connection.is_open(): return
-            if not connection._request == id(request): return
-            if request["code"]: return
-
-            # retrieves the current time and the time of the last data
-            # receive operation and using that calculates the delta
-            current = time.time()
-            last = request.get("last", 0)
-            delta = current - last
-
-            # retrieves the amount of bytes that have been received so
-            # far during the request handling this is going to be used
-            # for logging purposes on the error information to be printed
-            received = request.get("received", 0)
-
-            # determines if the connection is considered valid, either
-            # the connection is not "yet" connected of the time between
-            # receive operations is valid, and if that's the case delays
-            # the timeout verification according to the timeout value
-            if not connection.is_connected() or delta < timeout:
-                self.delay(receive_timeout, timeout = timeout)
-                return
-
-            # tries to determine the proper message that is going to be
-            # set in the request error, this value should take into account
-            # the current development mode flag value
-            if self.is_devel(): message = "Timeout on receive (received %d bytes)" % received
-            else: message = "Timeout on receive"
-
-            # sets the error information in the request so that the
-            # request handler is properly "notified" about the error
-            cls.set_error(
-                "timeout",
-                message = message,
-                request = request
-            )
-
-            # closes the connection (it's no longer considered valid)
-            # and then verifies the various auto closing values
-            connection.close()
-            if self.auto_close: self.close()
-            if self.auto_pause: self.pause()
-
-        # defines the proper return result value taking into account if
-        # this is a synchronous or asynchronous request, one uses the
-        # connection as the result and the other the request structure
-        if asynchronous: result = connection
-        elif has_request: result = request
-        else: result = None
-
-        # registers for the proper event handlers according to the
-        # provided parameters, note that these are considered to be
-        # the lower level infra-structure of the event handling
-        if on_close: connection.bind("close", on_close)
-        if on_headers: connection.bind("headers", on_headers)
-        if on_data: connection.bind("partial", on_data)
-        if callback: connection.bind("message", callback)
-
-        # runs the sending of the initial request, even though the
-        # connection may not be open yet, if that's the case this
-        # initial data will be queued for latter delivery (on connect)
-        # notice that the receive timeout is scheduled on the callback
-        # of the send operation (as expected)
-        connection.send_request(callback = lambda c: self.delay(
-            receive_timeout, timeout = timeout
-        ))
-
-        # schedules a delay operation to run the timeout handler for
-        # both connect operation (this is considered the initial
-        # triggers for the such verifiers)
-        self.delay(connect_timeout, timeout = timeout)
-
-        # in case the current request is not meant to be handled as
-        # asynchronous tries to start the current event loop (blocking
-        # the current workflow) then returns the proper value to the
-        # caller method (taking into account if it is sync or async)
-        not asynchronous and not connection.is_closed() and self.start()
-        return result
-
-    def on_connect(self, connection):
-        netius.StreamClient.on_connect(self, connection)
-        self.trigger("connect", self, connection)
-
-    def on_acquire(self, connection):
-        netius.StreamClient.on_acquire(self, connection)
-        self.trigger("acquire", self, connection)
-        connection.ensure_write()
-
-    def on_release(self, connection):
-        netius.StreamClient.on_release(self, connection)
-        self.trigger("release", self, connection)
-        connection.parser.clear()
-
-    def on_data(self, connection, data):
-        netius.StreamClient.on_data(self, connection, data)
-        connection.parse(data)
-
-    def on_connection_d(self, connection):
-        netius.StreamClient.on_connection_d(self, connection)
-
-        # triggers the connection close event in the client and
-        # then removes the connection from the connection pool
-        self.trigger("close", self, connection)
-        self.remove_c(connection)
-
-        # verifies if the current client was created with the
-        # auto close or pause flags and there are no more
-        # connections left open if that's the case closes the
-        # current client so that no more interaction exists as it's
-        # no longer required (as defined by the specification)
-        if self.connections: return
-        if self.auto_close: self.close()
-        if self.auto_pause: self.pause()
-
-    def new_connection(self, socket, address, ssl = False):
-        return HTTPConnection(
-            owner = self,
-            socket = socket,
-            address = address,
-            ssl = ssl
+            encoding = encoding,
+            encodings = encodings,
+            safe = safe,
+            request = request,
+            asynchronous = asynchronous,
+            timeout = timeout,
+            use_file = use_file,
+            callback = callback,
+            on_close = on_close,
+            on_headers = on_headers,
+            on_data = on_data,
+            on_result = on_result
         )
 
-    def on_data_http(self, connection, parser):
-        message = parser.get_message()
-        self.trigger("message", self, parser, message)
-        if self.auto_release: self.release_c(connection)
-        if self.auto_close: self.close()
-        if self.auto_pause: self.pause()
+        # runs the global connect stream function on netius to initialize the
+        # connection operation and maybe anew event loop (if that's required)
+        loop = netius.connect_stream(
+            lambda: protocol,
+            protocol.host,
+            protocol.port,
+            ssl = protocol.ssl,
+            loop = loop
+        )
 
-    def on_partial_http(self, connection, parser, data):
-        self.trigger("partial", self, parser, data)
+        # in case the asynchronous mode is enabled returns the loop and the protocol
+        # immediately so that it can be properly used by the caller
+        if asynchronous: return loop, protocol
 
-    def on_headers_http(self, connection, parser):
-        headers = parser.headers
-        self.trigger("headers", self, parser, headers)
+        def on_message(protocol, parser, message):
+            protocol.close()
 
-    def on_chunk_http(self, connection, parser, range):
-        self.trigger("chunk", self, parser, range)
+        def on_close(protocol):
+            netius.stop_loop()
+
+        # binds the protocol message and close events to the associated
+        # function for proper handling
+        protocol.bind("message", on_message)
+        protocol.bind("close", on_close)
+
+        # runs the loop until complete, notice that on connection close
+        # the loop is stop, returning the control flow
+        loop.run_forever()
+
+        # returns the final request object (that should be populated by this
+        # time) to the called method
+        return protocol.request
 
 if __name__ == "__main__":
     buffer = []
 
-    def on_headers(client, parser, headers):
+    def on_headers(protocol, parser):
         print(parser.code_s + " " + parser.status_s)
 
-    def on_partial(client, parser, data):
+    def on_partial(protocol, parser, data):
         data = data
         data and buffer.append(data)
 
-    def on_message(client, parser, message):
-        request = HTTPClient.set_request(parser, buffer)
+    def on_message(protocol, parser, message):
+        request = HTTPProtocol.set_request(parser, buffer)
         print(request["headers"])
         print(request["data"] or b"[empty data]")
-        client.close()
+        protocol.close()
 
-    def on_close(client, connection):
-        client.close()
+    def on_finish(protocol):
+        netius.stop_loop()
 
     url = netius.conf("HTTP_URL", "https://www.flickr.com/")
 
     client = HTTPClient()
-    client.get(url)
-    client.bind("headers", on_headers)
-    client.bind("partial", on_partial)
-    client.bind("message", on_message)
-    client.bind("close", on_close)
+    loop, protocol = client.get(url)
+
+    protocol.bind("headers", on_headers)
+    protocol.bind("partial", on_partial)
+    protocol.bind("message", on_message)
+    protocol.bind("finish", on_finish)
+
+    loop.run_forever()
+    loop.close()
 else:
     __path__ = []

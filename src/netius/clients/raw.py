@@ -39,34 +39,47 @@ __license__ = "Apache License, Version 2.0"
 
 import netius
 
+class RawProtocol(netius.StreamProtocol):
+
+    def send_basic(self):
+        self.send("GET / HTTP/1.0\r\n\r\n")
+
 class RawClient(netius.StreamClient):
 
-    def on_connect(self, connection):
-        netius.StreamClient.on_connect(self, connection)
-        self.trigger("connect", self, connection)
+    protocol = RawProtocol
 
-    def on_data(self, connection, data):
-        netius.StreamClient.on_data(self, connection, data)
-        self.trigger("data", self, connection, data)
+    @classmethod
+    def run_s(cls, host, port = 8080, loop = None):
+        protocol = cls.protocol()
 
-    def on_connection_d(self, connection):
-        netius.StreamClient.on_connection_d(self, connection)
-        self.trigger("close", self, connection)
+        loop = netius.connect_stream(
+            lambda: protocol,
+            host = host,
+            port = port,
+            loop = loop
+        )
+
+        return loop, protocol
 
 if __name__ == "__main__":
-    def on_connect(client, connection):
-        connection.send("GET / HTTP/1.0\r\n\r\n")
 
-    def on_data(client, connection, data):
+    def on_open(protocol):
+        protocol.send_basic()
+
+    def on_data(protocol, data):
         print(data)
 
-    def on_close(client, connection):
-        client.close()
+    def on_finsh(protocol):
+        netius.stop_loop()
 
-    client = RawClient()
-    client.connect("localhost", 8080)
-    client.bind("connect", on_connect)
-    client.bind("close", on_close)
-    client.bind("data", on_data)
+    loop, protocol = RawClient.run_s("localhost")
+
+    protocol.bind("open", on_open)
+    protocol.bind("data", on_data)
+    protocol.bind("finish", on_finsh)
+
+    loop.run_forever()
+    loop.close()
+
 else:
     __path__ = []

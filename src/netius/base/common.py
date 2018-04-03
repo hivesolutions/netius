@@ -84,6 +84,11 @@ of the technical platform that is running the system, this
 string should be exposed carefully to avoid extra information
 from being exposed to outside agents """
 
+IDENTIFIER_TINY = "%s" % NAME
+""" The tiny version of the current environment's identifier
+meant to be used in a safe production like environment as it hides
+most of the valuable information (able to compromise it) """
+
 IDENTIFIER_SHORT = "%s/%s" % (NAME, VERSION)
 """ The short version of the current environment's identifier
 meant to be used in production like environment as it hides some
@@ -94,7 +99,8 @@ IDENTIFIER_LONG = "%s/%s (%s)" % (NAME, VERSION, PLATFORM)
 development like environment as it shows critical information
 about the system internals that may expose the system """
 
-IDENTIFIER = IDENTIFIER_LONG if config._is_devel() else IDENTIFIER_SHORT
+IDENTIFIER = IDENTIFIER_LONG if config._is_devel() else\
+    IDENTIFIER_TINY if config._is_secure() else IDENTIFIER_SHORT
 """ The identifier that may be used to identify an user agent
 or service running under the current platform, this string
 should comply with the typical structure for such values,
@@ -291,13 +297,20 @@ class AbstractBase(observer.Observable):
     Base network structure to be used by all the network
     capable infra-structures (eg: servers and clients).
 
-    Should handle all the nonblocking event loop so that
-    the read and write operations are easy to handle.
+    Should handle all the non blocking event loop stuff,
+    so that the read and write operations are easy to handle.
+
+    This is considered to be the main event loop code.
     """
 
     _MAIN = None
     """ Reference to the top level main instance responsible
     for the control of the main thread loop """
+
+    _MAIN_C = None
+    """ The compatibility version of the abstract main loop,
+    should be used to provide compatibility with protocol and
+    transports used by the new API """
 
     def __init__(self, name = None, handlers = None, *args, **kwargs):
         observer.Observable.__init__(self, *args, **kwargs)
@@ -331,6 +344,7 @@ class AbstractBase(observer.Observable):
         self.connections_m = {}
         self.callbacks_m = {}
         self._uuid = uuid.uuid4()
+        self._compat = compat.CompatLoop(self)
         self._lid = 0
         self._did = 0
         self._main = False
@@ -382,14 +396,14 @@ class AbstractBase(observer.Observable):
         return selected
 
     @classmethod
-    def get_loop(cls, asyncio = False):
+    def get_loop(cls, compat = False, asyncio = False):
         loop = cls.get_asyncio() if asyncio else None
-        loop = loop or cls.get_main()
+        loop = loop or cls.get_main(compat = compat)
         return loop
 
     @classmethod
-    def get_main(cls):
-        return cls._MAIN
+    def get_main(cls, compat = False):
+        return cls._MAIN_C if compat else cls._MAIN
 
     @classmethod
     def get_asyncio(cls):
@@ -400,19 +414,20 @@ class AbstractBase(observer.Observable):
         return asyncio.get_event_loop()
 
     @classmethod
-    def set_main(cls, instance, set_legacy = True):
+    def set_main(cls, instance, set_compat = True):
+        has_compat = hasattr(instance, "_compat")
+        compat = instance._compat if has_compat else None
         cls._MAIN = instance
-        if not set_legacy: return
+        cls._MAIN_C = compat
+        if not set_compat: return
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
         cls.patch_asyncio()
-        if instance: loop = compat.CompatLoop(instance)
-        else: loop = None
-        asyncio.set_event_loop(loop)
+        asyncio.set_event_loop(compat)
 
     @classmethod
-    def unset_main(cls, set_legacy = True):
-        cls.set_main(None, set_legacy = set_legacy)
+    def unset_main(cls, set_compat = True):
+        cls.set_main(None, set_compat = set_compat)
 
     @classmethod
     def patch_asyncio(cls):
@@ -847,13 +862,29 @@ class AbstractBase(observer.Observable):
         return future
 
     def resolve_hostname(self, hostname, type = "a"):
+        """
+        Resolve the provided hostname according to the provided type
+        resolution. The resolution process itself is asynchronous and
+        implementation independent, returning a future for the control
+        of the execution.
+
+        :type hostname: String
+        :param hostname: The name of the host to be resolved.
+        :type type: String
+        :param type: The type of resolutions to be used (eg: a, aaaa, mx, etc.)
+        :rtype: Future
+        :return: The future to be used in the operation execution.
+        """
+
         import netius.clients
 
         future = self.build_future()
 
         def handler(response):
-            if not response: raise RuntimeError("Timeout in resolution")
-            if not response.answers: raise RuntimeError("Unable to resolve")
+            if not response:
+                raise errors.RuntimeError("Timeout in resolution")
+            if not response.answers:
+                raise errors.RuntimeError("Unable to resolve name")
 
             answer = response.answers[0]
             address = answer[4]
@@ -863,11 +894,15 @@ class AbstractBase(observer.Observable):
         netius.clients.DNSClient.query_s(
             hostname,
             type = type,
-            callback = handler,
-            daemon = False
+            callback = handler
         )
 
         return future
+
+    def run_forever(self):
+        # starts the current event loop, this is a blocking operation until
+        # the done callback is called to stop the loop
+        self.forever()
 
     def run_coroutine(
         self,
@@ -1369,6 +1404,16 @@ class AbstractBase(observer.Observable):
             try: signal.signal(signum, handler or base_handler)
             except: self.debug("Failed to register %d handler" % signum)
 
+    def forever(self, env = True):
+        if env: self.level = self.get_env("LEVEL", self.level)
+        if env: self.diag = self.get_env("DIAG", self.diag, cast = bool)
+        if env: self.middleware = self.get_env("MIDDLEWARE", self.middleware, cast = list)
+        if env: self.children = self.get_env("CHILD", self.children, cast = int)
+        if env: self.children = self.get_env("CHILDREN", self.children, cast = int)
+        if env: self.logging = self.get_env("LOGGING", self.logging)
+        if env: self.poll_name = self.get_env("POLL", self.poll_name)
+        return self.start()
+
     def start(self):
         # in case the current instance is currently paused runs the
         # resume operation instead as that's the expected operation
@@ -1603,6 +1648,10 @@ class AbstractBase(observer.Observable):
         # the poll that is going to be closed (works with containers)
         if self.poll_owner: self.poll.close()
 
+        # unsets some of the references that would otherwise create some
+        # loops in references (circular references) creating possible leaks
+        self._compat = None
+
         # deletes some of the internal data structures created for the instance
         # and that are considered as no longer required
         self.connections_m.clear()
@@ -1755,12 +1804,206 @@ class AbstractBase(observer.Observable):
 
     def reads(self, reads, state = True):
         if state: self.set_state(STATE_READ)
+        for read in reads: self.on_read(read)
 
     def writes(self, writes, state = True):
         if state: self.set_state(STATE_WRITE)
+        for write in writes: self.on_write(write)
 
     def errors(self, errors, state = True):
         if state: self.set_state(STATE_ERRROR)
+        for error in errors: self.on_error(error)
+
+    def datagram(
+        self,
+        family = socket.AF_INET,
+        type = socket.SOCK_DGRAM,
+        remote_host = None,
+        remote_port = None,
+        callback = None
+    ):
+        """
+        Builds a datagram based connection for the provided family and
+        type of socket, receiving an optional callback parameter to
+        be called once the "connection" object is ready to be used.
+
+        :type family: int
+        :param family: The kind of socket family that is going to be
+        used in the creation of the datagram "connection".
+        :type type: int
+        :param type: Socket type (datagram, stream, etc.) to be used
+        for the creation of the datagram connection, in principle should
+        not be changed from the default value.
+        :type remote_host: String
+        :param remote_host: The remote host to be used in a possible connect
+        (bind) operation in the datagram so that the default send operation
+        does not require explicit host setting.
+        :type remote_port: String
+        :param remote_port: The remote port to be used in a possible connect
+        (bind) operation in the datagram so that the default send operation
+        does not require explicit port setting.
+        :type callback: Function
+        :param callback: Callback function to be called once the datagram
+        connection is considered to be ready.
+        :rtype: Connection
+        :return: The datagram based connection that encapsulates the datagram
+        based connection logic.
+        """
+
+        # creates the socket that it's going to be used for the listening
+        # of new connections (client socket) and sets it as non blocking
+        _socket = socket.socket(family, type)
+        _socket.setblocking(0)
+
+        # sets the various options in the service socket so that it becomes
+        # ready for the operation with the highest possible performance
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+        # verifies if both the host and the port are set and if that's the
+        # case runs the connect (send bind) operation in the datagram socket
+        # notice that this is not a "real" remote connection
+        if remote_host and remote_port: _socket.connect((remote_host, remote_port))
+
+        # creates a new connection object representing the datagram socket
+        # that has just been created to be used for upper level operations
+        # and then immediately sets it as connected
+        connection = self.new_connection(_socket, datagram = True)
+        connection.open()
+        connection.set_connected()
+
+        # in case a callback is defined schedules its execution for the next
+        # tick to avoid possible issues with same tick registration
+        if callback: self.delay(lambda: callback(connection), immediately = True)
+
+        # returns the connection to the caller method so that it may be used
+        # for operation from now on (latter usage)
+        return connection
+
+    def connect(
+        self,
+        host,
+        port,
+        receive_buffer = None,
+        send_buffer = None,
+        ssl = False,
+        key_file = None,
+        cer_file = None,
+        ca_file = None,
+        ca_root = True,
+        ssl_verify = False,
+        family = socket.AF_INET,
+        type = socket.SOCK_STREAM,
+        callback = None,
+        env = True
+    ):
+        # runs a series of pre-validations on the provided parameters, raising
+        # exceptions in case they do not comply with expected values
+        if not host: raise errors.NetiusError("Invalid host for connect operation")
+        if not port: raise errors.NetiusError("Invalid port for connect operation")
+
+        # tries to retrieve some of the environment variable related values
+        # so that some of these values are accessible via an external environment
+        # allowing extra configuration flexibility for the client
+        key_file = self.get_env("KEY_FILE", key_file) if env else key_file
+        cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
+        ca_file = self.get_env("CA_FILE", ca_file) if env else ca_file
+        ca_root = self.get_env("CA_ROOT", ca_root, cast = bool) if env else ca_root
+        ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
+        key_file = self.get_env("KEY_DATA", key_file, expand = True) if env else key_file
+        cer_file = self.get_env("CER_DATA", cer_file, expand = True) if env else cer_file
+        ca_file = self.get_env("CA_DATA", ca_file, expand = True) if env else ca_file
+
+        # ensures that the proper socket family is defined in case the
+        # requested host value is unix socket oriented, this step greatly
+        # simplifies the process of created unix socket based clients
+        family = socket.AF_UNIX if host == "unix" else family
+
+        # verifies the kind of socket that is going to be used for the
+        # connect operation that is going to be performed, note that the
+        # unix type should be used with case as it does not exist in every
+        # operative system and may raised an undefined exceptions
+        is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX
+        is_inet = family in (socket.AF_INET, socket.AF_INET6)
+
+        # runs a series of default operation for the ssl related attributes
+        # that are going to be used in the socket creation and wrapping
+        key_file = key_file or SSL_KEY_PATH
+        cer_file = cer_file or SSL_CER_PATH
+        ca_file = ca_file or SSL_CA_PATH
+
+        # determines if the ssl verify flag value is valid taking into account
+        # the provided value and defaulting to false value if not valid
+        ssl_verify = ssl_verify or False
+
+        # creates the client socket value using the provided family and socket
+        # type values and then sets it immediately as non blocking
+        _socket = socket.socket(family, type)
+        _socket.setblocking(0)
+
+        # in case the ssl option is enabled the socket should be wrapped into
+        # a proper ssl socket interface so that it may be operated accordingly
+        if ssl: _socket = self._ssl_wrap(
+            _socket,
+            key_file = key_file,
+            cer_file = cer_file,
+            ca_file = ca_file,
+            ca_root = ca_root,
+            ssl_verify = ssl_verify,
+            server = False
+        )
+
+        # sets a series of options in the socket to ensure that it's
+        # prepared for the client operations to be performed
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        if is_inet: _socket.setsockopt(
+            socket.IPPROTO_TCP,
+            socket.TCP_NODELAY,
+            1
+        )
+        if receive_buffer: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_RCVBUF,
+            receive_buffer
+        )
+        if send_buffer: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_SNDBUF,
+            send_buffer
+        )
+        self._socket_keepalive(_socket)
+
+        # constructs the address tuple taking into account if the
+        # socket is unix based or if instead it represents a "normal"
+        # one and the host and port must be used instead
+        address = port if is_unix else (host, port)
+
+        # creates the connection object using the typical constructor
+        # and then sets the ssl host (for verification) if the verify
+        # ssl option is defined (secured and verified connection)
+        connection = self.new_connection(_socket, address, ssl = ssl)
+        if ssl_verify: connection.ssl_host = host
+
+        # schedules the underlying non blocking connect operation to
+        # be executed as soon as possible to start the process of
+        # connecting for the current connection
+        self.delay(
+            lambda: self._connect(connection),
+            immediately = True
+        )
+
+        # in case there's a callback defined for the connection establishment
+        # then registers such callback for the connect event in the connection
+        if callback: connection.bind("connect", callback, oneshot = True)
+
+        # returns the "final" connection, that is now scheduled for connect
+        # to the caller method, it may now be used for operations
+        return connection
+
+    def acquire(self, connection):
+        acquire = lambda: self.on_acquire(connection)
+        self.delay(acquire)
 
     def pregister(self, pool):
         # prints a debug message stating that a new pool is
@@ -2021,6 +2264,158 @@ class AbstractBase(observer.Observable):
     def on_resume(self):
         self.trigger("resume", self)
 
+    def on_read(self, _socket):
+        # tries to retrieve a possible callback registered for the socket
+        # and if there's one calls it to be able to "append" extra operations
+        # to the execution of the read operation in the socket
+        callbacks = self.callbacks_m.get(_socket, None)
+        if callbacks:
+            for callback in callbacks: callback("read", _socket)
+
+        # retrieves the connection object associated with the
+        # current socket that is going to be read in case there's
+        # no connection available or the status is not open
+        # must return the control flow immediately to the caller
+        connection = self.connections_m.get(_socket, None)
+        if not connection: return
+        if not connection.status == OPEN: return
+        if not connection.renable == True: return
+
+        try:
+            # in case the connection is under the connecting state
+            # the socket must be verified for errors and in case
+            # there's none the connection must proceed, for example
+            # the ssl connection handshake must be performed/retried
+            if connection.connecting: self._connectf(connection)
+
+            # verifies if there's any pending operations in the
+            # connection (eg: ssl handshaking) and performs it trying
+            # to finish them, if they are still pending at the current
+            # state returns immediately (waits for next loop)
+            if self._pending(connection): return
+
+            # iterates continuously trying to read as much data as possible
+            # when there's a failure to read more data it should raise an
+            # exception that should be handled properly
+            while True:
+                data = connection.recv(CHUNK_SIZE)
+                if data: self.on_data(connection, data)
+                else: connection.close(); break
+                if not connection.status == OPEN: break
+                if not connection.renable == True: break
+                if not connection.socket == _socket: break
+        except ssl.SSLError as error:
+            error_v = error.args[0] if error.args else None
+            error_m = error.reason if hasattr(error, "reason") else None
+            if error_v in SSL_SILENT_ERRORS:
+                self.on_expected(error, connection)
+            elif not error_v in SSL_VALID_ERRORS and\
+                not error_m in SSL_VALID_REASONS:
+                self.on_exception(error, connection)
+        except socket.error as error:
+            error_v = error.args[0] if error.args else None
+            if error_v in SILENT_ERRORS:
+                self.on_expected(error, connection)
+            elif not error_v in VALID_ERRORS:
+                self.on_exception(error, connection)
+        except BaseException as exception:
+            self.on_exception(exception, connection)
+
+    def on_write(self, _socket):
+        # tries to retrieve a possible callback registered for the socket
+        # and if there's one calls it to be able to "append" extra operations
+        # to the execution of the read operation in the socket
+        callbacks = self.callbacks_m.get(_socket, None)
+        if callbacks:
+            for callback in callbacks: callback("write", _socket)
+
+        # retrieves the connection associated with the socket that
+        # is ready for the write operation and verifies that it
+        # exists and the current status of it is open (required)
+        connection = self.connections_m.get(_socket, None)
+        if not connection: return
+        if not connection.status == OPEN: return
+
+        # in case the connection is under the connecting state
+        # the socket must be verified for errors and in case
+        # there's none the connection must proceed, for example
+        # the ssl connection handshake must be performed/retried
+        if connection.connecting: self._connectf(connection)
+
+        try:
+            connection._send()
+        except ssl.SSLError as error:
+            error_v = error.args[0] if error.args else None
+            error_m = error.reason if hasattr(error, "reason") else None
+            if error_v in SSL_SILENT_ERRORS:
+                self.on_expected(error, connection)
+            elif not error_v in SSL_VALID_ERRORS and\
+                not error_m in SSL_VALID_REASONS:
+                self.on_exception(error, connection)
+        except socket.error as error:
+            error_v = error.args[0] if error.args else None
+            if error_v in SILENT_ERRORS:
+                self.on_expected(error, connection)
+            elif not error_v in VALID_ERRORS:
+                self.on_exception(error, connection)
+        except BaseException as exception:
+            self.on_exception(exception, connection)
+
+    def on_error(self, _socket):
+        callbacks = self.callbacks_m.get(_socket, None)
+        if callbacks:
+            for callback in callbacks: callback("error", _socket)
+
+        connection = self.connections_m.get(_socket, None)
+        if not connection: return
+        if not connection.status == OPEN: return
+
+        connection.close()
+
+    def on_exception(self, exception, connection):
+        self.warning(exception)
+        self.log_stack()
+        connection.close()
+
+    def on_expected(self, exception, connection):
+        self.debug(exception)
+        connection.close()
+
+    def on_connect(self, connection):
+        connection.set_connected()
+        if not hasattr(connection, "tuple"): return
+        self.on_acquire(connection)
+
+    def on_upgrade(self, connection):
+        connection.set_upgraded()
+
+    def on_ssl(self, connection):
+        # runs the connection host verification process for the ssl
+        # meaning that in case an ssl host value is defined it is going
+        # to be verified against the value in the certificate
+        connection.ssl_verify_host()
+
+        # runs the connection fingerprint verification the will try to
+        # match the digest of the peer certificate against the one that
+        # is expected from it (similar to host verification)
+        connection.ssl_verify_fingerprint()
+
+        # verifies if the connection is either connecting or upgrading
+        # and calls the proper event handler for each event, this is
+        # required because the connection workflow is probably dependent
+        # on the calling of these event handlers to proceed
+        if connection.connecting: self.on_connect(connection)
+        elif connection.upgrading: self.on_upgrade(connection)
+
+    def on_acquire(self, connection):
+        pass
+
+    def on_release(self, connection):
+        pass
+
+    def on_data(self, connection, data):
+        connection.set_data(data)
+
     def info_dict(self, full = False):
         info = dict(
             loaded = self._loaded,
@@ -2062,7 +2457,13 @@ class AbstractBase(observer.Observable):
         if not connection: return None
         return connection.info_dict(full = full)
 
-    def new_connection(self, socket, address, ssl = False):
+    def new_connection(
+        self,
+        socket,
+        address = None,
+        datagram = False,
+        ssl = False
+    ):
         """
         Creates a new connection for the provided socket
         object and string based address, the returned
@@ -2074,6 +2475,9 @@ class AbstractBase(observer.Observable):
         :type address: String
         :param address: The address as a string to be used to
         describe the connection object to be created.
+        :type datagram: bool
+        :param datagram: If the connection to be created should
+        be datagram based or not.
         :type ssl: bool
         :param ssl: If the connection to be created is meant to
         be secured using the ssl framework for encryption.
@@ -2086,6 +2490,7 @@ class AbstractBase(observer.Observable):
             owner = self,
             socket = socket,
             address = address,
+            datagram = datagram,
             ssl = ssl
         )
 
@@ -2251,11 +2656,14 @@ class AbstractBase(observer.Observable):
         self.poll = self.poll_c()
         return self.poll
 
-    def build_future(self, asyncio = True):
+    def build_future(self, compat = True, asyncio = True):
         """
         Creates a future object that is bound to the current event
         loop context, this allows for latter access to the owning loop.
 
+        :type compat: bool
+        :param compat: If the compatibility mode retrieval should be used
+        meaning that a compatible loop instance is retrieved instead.
         :type asyncio: bool
         :param asyncio: If the asyncio loop retrieval strategy should be
         used or if instead the netius native one should be used.
@@ -2266,7 +2674,7 @@ class AbstractBase(observer.Observable):
 
         # creates a normal future object, setting the current loop (global) as
         # the loop, then returns the future to the caller method
-        loop = self.get_loop(asyncio = asyncio)
+        loop = self.get_loop(compat = compat, asyncio = asyncio)
         future = asynchronous.Future(loop = loop)
         return future
 
@@ -2657,6 +3065,125 @@ class AbstractBase(observer.Observable):
         identifier = identifier.upper()
         return indetifier
 
+    def _connect(self, connection):
+        # in case the current connection has been closed meanwhile
+        # the current connection is meant to be avoided and so the
+        # method must return immediately to the caller method
+        if connection.status == CLOSED: return
+
+        # retrieves the socket associated with the connection
+        # and calls the open method of the connection to proceed
+        # with the correct operations for the connection
+        _socket = connection.socket
+        connection.open(connect = True)
+
+        # tries to run the non blocking connection it should
+        # fail and the connection should only be considered as
+        # open when a write event is raised for the connection
+        try: _socket.connect(connection.address)
+        except ssl.SSLError as error:
+            error_v = error.args[0] if error.args else None
+            if not error_v in SSL_VALID_ERRORS:
+                self.warning(error)
+                self.log_stack()
+                self.trigger("error", self, connection, error)
+                connection.close()
+                return
+        except socket.error as error:
+            error_v = error.args[0] if error.args else None
+            if not error_v in VALID_ERRORS:
+                self.warning(error)
+                self.log_stack()
+                self.trigger("error", self, connection, error)
+                connection.close()
+                return
+        except BaseException as exception:
+            self.warning(exception)
+            self.log_stack()
+            self.trigger("error", self, connection, exception)
+            connection.close()
+            raise
+
+        # otherwise the connect operation has finished correctly
+        # and the finish connect method should be called indicating
+        # that the connect operation has completed successfully
+        else:
+            self._connectf(connection)
+
+        # in case the connection is not of type ssl the method
+        # may return as there's nothing left to be done, as the
+        # rest of the method is dedicated to ssl tricks
+        if not connection.ssl: return
+
+        # verifies if the current ssl object is a context oriented one
+        # (newest versions) or a legacy oriented one, that does not uses
+        # any kind of context object, this is relevant in order to make
+        # decisions on how the ssl object may be re-constructed
+        has_context = hasattr(_socket, "context")
+        has_sock = hasattr(_socket, "_sock")
+
+        # creates the ssl object for the socket as it may have been
+        # destroyed by the underlying ssl library (as an error) because
+        # the socket is of type non blocking and raises an error, note
+        # that the creation of the socket varies between ssl versions
+        if _socket._sslobj: return
+        if has_context: _socket._sslobj = _socket.context._wrap_socket(
+            _socket,
+            _socket.server_side,
+            _socket.server_hostname
+        )
+        else: _socket._sslobj = ssl._ssl.sslwrap(
+            _socket._sock if has_sock else _socket,
+            False,
+            _socket.keyfile,
+            _socket.certfile,
+            _socket.cert_reqs,
+            _socket.ssl_version,
+            _socket.ca_certs
+        )
+
+        # verifies if the ssl object class is defined in the ssl module
+        # and if that's the case an extra wrapping operation is performed
+        # in order to comply with new indirection/abstraction methods
+        if not hasattr(ssl, "SSLObject"): return
+        _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
+
+    def _connectf(self, connection):
+        """
+        Finishes the process of connecting to the remote end-point
+        this should be done in certain steps of the connection.
+
+        The process of finishing the connecting process should include
+        the ssl handshaking process.
+
+        :type connection: Connection
+        :param connection: The connection that should have the connect
+        process tested for finishing.
+        """
+
+        # in case the ssl connection is still undergoing the handshaking
+        # procedures (marked as connecting) ignores the call as this must
+        # be a duplicated call to this method (to be ignored)
+        if connection.ssl_connecting: return
+
+        # verifies if there was an error in the middle of the connection
+        # operation and if that's the case calls the proper callback and
+        # returns the control flow to the caller method
+        error = connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        if error: self.on_error(connection.socket); return
+
+        # checks if the current connection is ssl based and if that's the
+        # case starts the handshaking process (async non blocking) otherwise
+        # calls the on connect callback with the newly created connection
+        if connection.ssl: connection.add_starter(self._ssl_handshake)
+        else: self.on_connect(connection)
+
+        # runs the starter process (initial kick-off) so that all the starters
+        # registered for the connection may start to be executed, note that if
+        # the ssl handshake starter has been registered its first execution is
+        # going to be triggered by this call
+        connection.run_starter()
+
     def _socket_keepalive(
         self,
         _socket,
@@ -2945,6 +3472,15 @@ class AbstractBase(observer.Observable):
             # has finished and that the next one should be called as
             # soon as possible to go further in the connection initialization
             connection.end_starter()
+
+            # prints a debug information notifying the developer about
+            # the finishing of the handshaking process for the connection
+            self.debug("SSL Handshaking completed for connection")
+
+            # calls the proper callback on the connection meaning
+            # that ssl is now enabled for that socket/connection and so
+            # the communication between peers is now secured
+            self.on_ssl(connection)
         except ssl.SSLError as error:
             # tries to retrieve the error code from the argument information
             # in the error, in case the error is defined in the list of
@@ -3086,28 +3622,49 @@ def ensure_main(factory = None):
     instance = factory()
     AbstractBase.set_main(instance)
 
+def ensure_asyncio():
+    asyncio = asynchronous.get_asyncio()
+    if not asyncio: return
+    return asyncio.get_event_loop()
+
+def ensure_loop(factory = None, asyncio = None):
+    asyncio = compat.is_asyncio() if asyncio == None else asyncio
+    if asyncio: ensure_asyncio()
+    else: ensure_main(factory = factory)
+
 def get_main(factory = None, ensure = True):
     if ensure: ensure_main(factory = factory)
     return AbstractBase.get_main()
 
-def get_loop(factory = None, ensure = True, asyncio = True):
-    if ensure: ensure_main(factory = factory)
-    loop = AbstractBase.get_loop(asyncio = asyncio)
+def get_loop(factory = None, ensure = True, _compat = None, asyncio = None):
+    _compat = compat.is_compat() if _compat == None else _compat
+    asyncio = compat.is_asyncio() if asyncio == None else asyncio
+    if ensure: ensure_loop(factory = factory, asyncio = asyncio)
+    loop = AbstractBase.get_loop(compat = _compat, asyncio = asyncio)
     loop = loop or get_main(factory = factory)
     return loop
 
 def get_event_loop(*args, **kwargs):
     return get_loop(*args, **kwargs)
 
+def stop_loop(compat = True, asyncio = True):
+    loop = get_loop(
+        ensure = False,
+        _compat = compat,
+        asyncio = asyncio
+    )
+    if not loop: return
+    loop.stop()
+
 def get_poll():
     main = get_main()
     if not main: return None
     return main.poll
 
-def build_future(asyncio = True):
+def build_future(compat = True, asyncio = True):
     main = get_main()
     if not main: return None
-    return main.build_future(asyncio = asyncio)
+    return main.build_future(compat = compat, asyncio = asyncio)
 
 def ensure(coroutine, args = [], kwargs = {}, thread = None):
     loop = get_loop()

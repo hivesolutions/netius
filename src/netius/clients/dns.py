@@ -306,33 +306,9 @@ class DNSResponse(netius.Response):
         long_long, = struct.unpack("!Q", _data)
         return (index + 8, long_long)
 
-class DNSClient(netius.DatagramClient):
+class DNSProtocol(netius.DatagramProtocol):
 
     ns_file_l = None
-
-    @classmethod
-    def query_s(
-        cls,
-        name,
-        type = "a",
-        cls_ = "in",
-        ns = None,
-        callback = None,
-        thread = True,
-        daemon = True
-    ):
-        # retrieves the reference to the global static dns client that
-        # is going to be used and the performs the query operation in it
-        # so that the proper network request is sent and then the callback
-        # function is called with the proper response object
-        dns_client = cls.get_client_s(thread = thread, daemon = daemon)
-        dns_client.query(
-            name,
-            type = type,
-            cls = cls_,
-            ns = ns,
-            callback = callback
-        )
 
     @classmethod
     def ns_system(cls, type = "ip4"):
@@ -361,7 +337,7 @@ class DNSClient(netius.DatagramClient):
         # from it, closing the file afterwards
         file = open("/etc/resolv.conf", "rb")
         try: data = file.read()
-        except: file.close()
+        finally: file.close()
 
         # starts the list that is going to store the various name server
         # values, this is going to be populated with the file contents
@@ -427,7 +403,7 @@ class DNSClient(netius.DatagramClient):
         self.send(data, address)
 
     def on_data(self, address, data):
-        netius.DatagramClient.on_data(self, address, data)
+        netius.DatagramProtocol.on_data(self, address, data)
 
         # create the dns response with the provided data stream and
         # runs the parse operation in it so that the response becomes
@@ -457,18 +433,54 @@ class DNSClient(netius.DatagramClient):
         if not request.callback: return
         request.callback(response)
 
+class DNSClient(netius.DatagramClient):
+
+    protocol = DNSProtocol
+
+    @classmethod
+    def query_s(
+        cls,
+        name,
+        type = "a",
+        cls_ = "in",
+        ns = None,
+        callback = None,
+        loop = None
+    ):
+        ns = ns or cls.protocol.ns_system()
+        address = (ns, 53)
+        protocol = cls.protocol()
+
+        def on_connect(result):
+            _transport, protocol = result
+            protocol.query(
+                name,
+                type = type,
+                cls = cls_,
+                ns = ns,
+                callback = callback
+            )
+
+        loop = netius.build_datagram(
+            lambda: protocol,
+            callback = on_connect,
+            loop = loop,
+            remote_addr = address
+        )
+
+        return loop, protocol
+
 if __name__ == "__main__":
     def handler(response):
+        # retrieves the currently associated loop using
+        # netius base infra-structure and then runs the
+        # stop operation on the next tick end
+        netius.stop_loop()
+
         # in case the provided response is not valid
         # a timeout message is printed to indicate the
         # problem with the resolution
         if not response: print("Timeout in resolution"); return
-
-        # runs the final cleanup operation in the dns
-        # client so that the system is able to exit
-        # without this the system would be stuck in
-        # the base system thread
-        DNSClient.cleanup_s()
 
         # unpacks the complete set of contents from
         # the various answers so that only the address
@@ -482,11 +494,12 @@ if __name__ == "__main__":
     # runs the static version of a dns query, note that
     # the daemon flag is unset so that the global client
     # runs in foreground avoiding the exit of the process
-    DNSClient.query_s(
+    loop, _protocol = DNSClient.query_s(
         "gmail.com",
         type = "mx",
-        callback = handler,
-        daemon = False
+        callback = handler
     )
+    loop.run_forever()
+    loop.close()
 else:
     __path__ = []

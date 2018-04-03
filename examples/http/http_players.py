@@ -91,9 +91,7 @@ async def get_player(player_id, player_name):
         ) as file:
         await file.write(data)
 
-use_asyncio = netius.conf("ASYNCIO", False, cast = bool)
-if use_asyncio: loop = asyncio.get_event_loop()
-else: loop = netius.get_loop(factory = netius.StreamClient)
+loop = netius.get_loop(_compat = True)
 
 os.makedirs("players", exist_ok = True)
 

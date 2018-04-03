@@ -51,30 +51,33 @@ from . import request
 from . import server
 from . import stream
 from . import tls
+from . import transport
 from . import util
 
 from .asynchronous import Future, Task, Handle, Executor, ThreadPoolExecutor, coroutine,\
     async_test_all, async_test, ensure_generator, get_asyncio, is_coroutine,\
-    is_coroutine_object, is_coroutine_native, is_future, is_neo, is_asyncio, is_await,\
+    is_coroutine_object, is_coroutine_native, is_future, is_neo, is_asynclib, is_await,\
     wakeup, sleep, wait, notify, coroutine_return
 from .client import Client, DatagramClient, StreamClient
 from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     IDENTIFIER, TCP_TYPE, UDP_TYPE, SSL_KEY_PATH, SSL_CER_PATH, SSL_CA_PATH,\
     SSL_DH_PATH, Base, BaseThread, ensure_main, get_main, get_loop,\
-    get_event_loop, get_poll, build_future, ensure, ensure_pool
-from .compat import BaseLoop, BaseTransport, CompatLoop, CompatTransport
+    get_event_loop, stop_loop, get_poll, build_future, ensure, ensure_pool
+from .compat import BaseLoop, CompatLoop, is_compat, is_asyncio, build_datagram,\
+    connect_stream, serve_stream
 from .config import conf, conf_prefix, conf_suffix, conf_s, conf_r, conf_d
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
-from .errors import NetiusError, StopError, PauseError, DataError, ParserError,\
+from .errors import NetiusError, RuntimeError, StopError, PauseError, DataError, ParserError,\
     GeneratorError, SecurityError, NotImplemented, AssertionError
 from .log import SILENT, rotating_handler, smtp_handler
 from .observer import Observable
 from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
-from .protocol import Protocol
+from .protocol import Protocol, DatagramProtocol, StreamProtocol
 from .request import Request, Response
 from .server import Server, DatagramServer, StreamServer
 from .stream import Stream
 from .tls import fingerprint, match_fingerprint, match_hostname, dnsname_match,\
     dump_certificate
-from .util import camel_to_underscore
+from .transport import Transport, TransportDatagram, TransportStream
+from .util import camel_to_underscore, verify

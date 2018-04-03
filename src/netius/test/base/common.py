@@ -44,11 +44,10 @@ import netius
 class BaseTest(unittest.TestCase):
 
     def test_resolve_hostname(self):
-        pass
-       # loop = netius.get_main()
-       # future = loop.resolve_hostname("gmail.com")
-       # result = loop.run_coroutine(future)
-       # loop.close()
+        loop = netius.get_main()
+        future = loop.resolve_hostname("gmail.com")
+        result = loop.run_coroutine(future)
+        loop.close()
 
-        #self.assertNotEqual(result, None)
-        #self.assertEqual(isinstance(result, str), True)
+        self.assertNotEqual(result, None)
+        self.assertEqual(isinstance(result, str), True)
