@@ -121,7 +121,7 @@ class WSConnection(netius.Connection):
 
 class WSClient(netius.StreamClient):
     """
-    Abstract WebSockets client to be used for realtime bi-directional
+    Abstract WebSockets client to be used for real-time bidirectional
     communication on top of the HTTP protocol.
 
     :see: https://tools.ietf.org/html/rfc6455
