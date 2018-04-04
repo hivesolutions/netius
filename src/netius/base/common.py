@@ -3677,6 +3677,15 @@ def get_loop(factory = None, ensure = True, _compat = None, asyncio = None, **kw
     return loop
 
 def get_event_loop(*args, **kwargs):
+    """
+    Compatibility alias method with the `get_loop()` one
+    to ensure proper compatibility with asyncio.
+
+    :rtype: EventLoop
+    :return: The event loop for the current context of
+    execution (if any) or else None.
+    """
+
     return get_loop(*args, **kwargs)
 
 def stop_loop(compat = True, asyncio = True):
