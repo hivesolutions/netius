@@ -732,7 +732,16 @@ class StreamServer(Server):
         if not connection.status == OPEN: return
         if not connection.renable == True: return
 
+        #@todo this is a temporary hack to redirect stuff up
+        if hasattr(connection, "_base"): return Base.on_read(self, _socket)
+
         try:
+            # in case the connection is under the connecting state
+            # the socket must be verified for errors and in case
+            # there's none the connection must proceed, for example
+            # the SSL connection handshake must be performed/retried
+            if connection.connecting: self._connectf(connection)
+
             # verifies if there's any pending operations in the
             # connection (eg: SSL handshaking) and performs it trying
             # to finish them, if they are still pending at the current
@@ -775,6 +784,15 @@ class StreamServer(Server):
         if not connection: return
         if not connection.status == OPEN: return
 
+        #@todo this is a temporary hack to redirect stuff up
+        if hasattr(connection, "_base"): return Base.on_write(self, _socket)
+
+        # in case the connection is under the connecting state
+        # the socket must be verified for errors and in case
+        # there's none the connection must proceed, for example
+        # the SSL connection handshake must be performed/retried
+        if connection.connecting: self._connectf(connection)
+
         try:
             connection._send()
         except ssl.SSLError as error:
@@ -802,6 +820,9 @@ class StreamServer(Server):
         connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
+
+        #@todo this is a temporary hack to redirect stuff up
+        if hasattr(connection, "_base"): return Base.on_error(self, _socket)
 
         connection.close()
 
@@ -847,10 +868,12 @@ class StreamServer(Server):
         if self.ssl_dump: connection.ssl_dump_certificate(self.ssl_dump)
         else: connection.ssl_dump_certificate()
 
-        # in case the current connection is under the upgrade
-        # status calls the proper event handler so that the
-        # connection workflow may proceed accordingly
-        if connection.upgrading: self.on_upgrade(connection)
+        # verifies if the connection is either connecting or upgrading
+        # and calls the proper event handler for each event, this is
+        # required because the connection workflow is probably dependent
+        # on the calling of these event handlers to proceed
+        if connection.connecting: self.on_connect(connection)
+        elif connection.upgrading: self.on_upgrade(connection)
 
     def on_data(self, connection, data):
         connection.set_data(data)
@@ -925,6 +948,9 @@ class StreamServer(Server):
 
     def _ssl_handshake(self, connection):
         Server._ssl_handshake(self, connection)
+
+        #@todo this is a temporary hack to redirect stuff up
+        if hasattr(connection, "_base"): return Base._ssl_handshake(self, connection)
 
         # verifies if the socket still has finished the SSL handshaking
         # process (by verifying the appropriate flag) and then if that's

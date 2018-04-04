@@ -1869,7 +1869,7 @@ class AbstractBase(observer.Observable):
         # creates a new connection object representing the datagram socket
         # that has just been created to be used for upper level operations
         # and then immediately sets it as connected
-        connection = self.new_connection(_socket, datagram = True)
+        connection = self.new_connection_base(_socket, datagram = True)
         connection.open()
         connection.set_connected()
 
@@ -1983,7 +1983,7 @@ class AbstractBase(observer.Observable):
         # creates the connection object using the typical constructor
         # and then sets the SSL host (for verification) if the verify
         # SSL option is defined (secured and verified connection)
-        connection = self.new_connection(_socket, address, ssl = ssl)
+        connection = self.new_connection_base(_socket, address, ssl = ssl)
         if ssl_verify: connection.ssl_host = host
 
         # schedules the underlying non blocking connect operation to
@@ -2494,6 +2494,23 @@ class AbstractBase(observer.Observable):
             datagram = datagram,
             ssl = ssl
         )
+
+    def new_connection_base(
+        self,
+        socket,
+        address = None,
+        datagram = False,
+        ssl = False
+    ):
+        connection = Connection(
+            owner = self,
+            socket = socket,
+            address = address,
+            datagram = datagram,
+            ssl = ssl
+        )
+        connection._base = True
+        return connection
 
     def add_callback(self, socket, callback):
         callbacks = self.callbacks_m.get(socket, [])

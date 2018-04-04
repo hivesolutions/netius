@@ -724,6 +724,9 @@ class HTTPServer(netius.StreamServer):
         return info
 
     def on_data(self, connection, data):
+        #@todo this is a temporary hack to redirect stuff up
+        if hasattr(connection, "_base"): return netius.Base.on_data(self, connection, data)
+
         netius.StreamServer.on_data(self, connection, data)
         connection.parse(data)
 
