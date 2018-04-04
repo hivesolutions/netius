@@ -3668,7 +3668,13 @@ def get_main(factory = None, ensure = True, **kwargs):
     if ensure: ensure_main(factory = factory, **kwargs)
     return Base.get_main()
 
-def get_loop(factory = None, ensure = True, _compat = None, asyncio = None, **kwargs):
+def get_loop(
+    factory = None,
+    ensure = True,
+    _compat = None,
+    asyncio = None,
+    **kwargs
+):
     _compat = compat.is_compat() if _compat == None else _compat
     asyncio = compat.is_asyncio() if asyncio == None else asyncio
     if ensure: ensure_loop(factory = factory, asyncio = asyncio)
