@@ -1167,6 +1167,11 @@ class HTTPClient(netius.StreamClient):
         if exception: raise exception
         raise netius.NetiusError(message)
 
+    def cleanup(self):
+        netius.StreamClient.cleanup(self)
+        for protocol in netius.legacy.values(self.available):
+            protocol.close()
+
     def get(
         self,
         url,
