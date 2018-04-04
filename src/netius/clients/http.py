@@ -1028,6 +1028,9 @@ class HTTPClient(netius.StreamClient):
         http_client = None,
         **kwargs
     ):
+        # in case no HTTP client instance is provided tries to
+        # retrieve a static global one (singleton) to be used
+        # for the current request operation
         if not http_client: http_client = cls.get_client_s(
             daemon = daemon,
             **kwargs
