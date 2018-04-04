@@ -1060,7 +1060,7 @@ class HTTPClient(netius.StreamClient):
         """
         Simple utility method that takes the classic dictionary
         based request and converts it into a simple HTTP response
-        object to be used in more interactive way.
+        object to be used in a more interactive way.
 
         :type map: Dictionary
         :param map: The dictionary backed request object that is
