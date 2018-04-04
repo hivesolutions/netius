@@ -70,7 +70,7 @@ if __name__ == "__main__":
         print(data)
 
     def on_finsh(protocol):
-        netius.stop_loop()
+        netius.compat_loop(loop).stop()
 
     loop, protocol = RawClient.run_s("localhost")
 
