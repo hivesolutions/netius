@@ -143,7 +143,7 @@ class CompatLoop(BaseLoop):
         return asynchronous.coroutine_return(coroutine)
 
     def stop(self):
-        self._loop.stop()
+        self._loop.pause()
 
     def close(self):
         self._loop.close()
