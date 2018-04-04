@@ -165,6 +165,7 @@ class Protocol(observer.Observable):
     def _delay_send(self, data, address = None, callback = None):
         item = (data, address, callback)
         self._delays.append(item)
+        return len(data)
 
     def _flush_send(self):
         while True:
@@ -208,6 +209,8 @@ class DatagramProtocol(Protocol):
         force = False,
         callback = None
     ):
+        data = legacy.bytes(data)
+
         if not self._writing:
             return self._delay_send(
                 data,
@@ -215,12 +218,11 @@ class DatagramProtocol(Protocol):
                 callback = callback
             )
 
-        data = legacy.bytes(data)
-        result = self._transport.sendto(data, address)
+        self._transport.sendto(data, address)
 
         if callback: self.delay(lambda: callback(self._transport))
 
-        return result
+        return len(data)
 
     def add_request(self, request):
         # adds the current request object to the list of requests
@@ -251,12 +253,13 @@ class StreamProtocol(Protocol):
         self.trigger("data", self, data)
 
     def send(self, data, delay = True, force = False, callback = None):
+        data = legacy.bytes(data)
+
         if not self._writing:
             return self._delay_send(data, callback = callback)
 
-        data = legacy.bytes(data)
-        result = self._transport.write(data)
+        self._transport.write(data)
 
         if callback: self.delay(lambda: callback(self._transport))
 
-        return result
+        return len(data)
