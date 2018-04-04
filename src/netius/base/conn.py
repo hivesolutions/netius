@@ -248,7 +248,7 @@ class BaseConnection(observer.Observable):
         self.send(None, callback = self._close_callback)
 
     def upgrade(self, key_file = None, cer_file = None, ca_file = None, server = True):
-        # in case the current connection is already an ssl oriented one there's
+        # in case the current connection is already an SSL oriented one there's
         # nothing to be done here and the method returns immediately to caller
         if self.ssl: return
 
@@ -256,8 +256,8 @@ class BaseConnection(observer.Observable):
         # going to be performed for the current connection
         self.owner.debug("Upgrading '%s' into an SSL connection ..." % self.id)
 
-        # sets the ssl flag of the current connection as the connection is now
-        # going to be considered as ssl oriented and then sets the upgrading flag
+        # sets the SSL flag of the current connection as the connection is now
+        # going to be considered as SSL oriented and then sets the upgrading flag
         # for the same connection so that the main event loop "knows" how to handle
         # new event on this connection properly
         self.ssl = True
@@ -265,13 +265,13 @@ class BaseConnection(observer.Observable):
 
         # determines if the arguments based certificate and key values should be used
         # of if instead the owner values should be used as a fallback process, these
-        # values are going to be used as part of the ssl upgrade process
+        # values are going to be used as part of the SSL upgrade process
         if hasattr(self.owner, "key_file"): key_file = key_file or self.owner.key_file
         if hasattr(self.owner, "cer_file"): cer_file = cer_file or self.owner.cer_file
         if hasattr(self.owner, "ca_file"): ca_file = ca_file or self.owner.ca_file
 
         # prints some debug information about the files that are going to be used for
-        # the ssl based connection upgrade, this is mainly for debugging purposes
+        # the SSL based connection upgrade, this is mainly for debugging purposes
         if key_file: self.owner.debug("Using '%s' as key file" % key_file)
         if cer_file: self.owner.debug("Using '%s' as certificate file" % cer_file)
         if ca_file: self.owner.debug("Using '%s' as certificate authority file" % ca_file)
@@ -282,10 +282,10 @@ class BaseConnection(observer.Observable):
         del self.owner.connections_m[self.socket]
         self.owner.unsub_all(self.socket)
 
-        # upgrades the current socket into an ssl oriented socket, note that the server
+        # upgrades the current socket into an SSL oriented socket, note that the server
         # flag controls if the socket to be created is a client or a server one this
-        # is relevant for the ssl handshaking part of the connection, the resulting
-        # encapsulated ssl socket is then set as the current connection's socket
+        # is relevant for the SSL handshaking part of the connection, the resulting
+        # encapsulated SSL socket is then set as the current connection's socket
         self.socket = self.owner._ssl_upgrade(
             self.socket,
             key_file = key_file,
@@ -294,13 +294,13 @@ class BaseConnection(observer.Observable):
             server = server
         )
 
-        # updates the current socket in connection resolution map with the new ssl one
+        # updates the current socket in connection resolution map with the new SSL one
         # and then subscribes the same socket for the read and error events
         self.owner.connections_m[self.socket] = self
         self.owner.sub_read(self.socket)
         self.owner.sub_error(self.socket)
 
-        # adds the ssl handshake method as a starter for the current connection (to be
+        # adds the SSL handshake method as a starter for the current connection (to be
         # called before read) and then runs the kickoff starter operation to start
         # the connection "upgrading" process (as expected)
         self.add_starter(self.owner._ssl_handshake)
@@ -815,7 +815,7 @@ class BaseConnection(observer.Observable):
         try:
             # verifies the type of connection and taking that
             # into account runs the proper shutdown operation
-            # either the ssl based shutdown that unwraps the
+            # either the SSL based shutdown that unwraps the
             # current secure connection and send a graceful
             # shutdown notification to the other peer, or the
             # normal shutdown operation for the socket
@@ -823,7 +823,7 @@ class BaseConnection(observer.Observable):
                 self.socket._sslobj.shutdown()
             if force: self.socket.shutdown(socket.SHUT_RDWR)
         except (IOError, socket.error, ssl.SSLError):
-            # ignores the io/ssl error that has just been raise, this
+            # ignores the IO/SSL error that has just been raise, this
             # assumes that the problem that has just occurred is not
             # relevant as the socket is shutting down and if a problem
             # occurs that must be related with the socket being closed
