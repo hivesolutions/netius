@@ -66,7 +66,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.16.38"
+VERSION = "1.17.3"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -415,8 +415,7 @@ class AbstractBase(observer.Observable):
 
     @classmethod
     def set_main(cls, instance, set_compat = True):
-        has_compat = hasattr(instance, "_compat")
-        compat = instance._compat if has_compat else None
+        compat = compat_loop(instance)
         cls._MAIN = instance
         cls._MAIN_C = compat
         if not set_compat: return
@@ -806,6 +805,14 @@ class AbstractBase(observer.Observable):
                 # ready, note that in case the future is not ready the current
                 # iteration cycle is delayed until the next tick
                 if not future.ready: self.delay(callable); break
+
+                # in case the finished future has been canceled propagates
+                # such cancellation to the parent future
+                if _future.cancelled(): future.cancel(); break
+
+                # in case there's an exception in the future that has just
+                # been executed propagates such exception to the parent future
+                if _future.exception(): future.set_exception(_future.exception()); break
 
                 # retrieves the next value from the generator and in case
                 # value is the last one (stop iteration) verifies if the
@@ -1653,7 +1660,7 @@ class AbstractBase(observer.Observable):
         self._compat = None
 
         # deletes some of the internal data structures created for the instance
-        # and that are considered as no longer required
+        # and that are considered as they are considered to be no longer required
         self.connections_m.clear()
         self.callbacks_m.clear()
         del self.connections[:]
@@ -1875,7 +1882,7 @@ class AbstractBase(observer.Observable):
 
         # in case a callback is defined schedules its execution for the next
         # tick to avoid possible issues with same tick registration
-        if callback: self.delay(lambda: callback(connection), immediately = True)
+        if callback: self.delay(lambda: callback(connection, True), immediately = True)
 
         # returns the connection to the caller method so that it may be used
         # for operation from now on (latter usage)
@@ -1994,9 +2001,17 @@ class AbstractBase(observer.Observable):
             immediately = True
         )
 
+        def on_close(conection):
+            callback and callback(connection, False)
+
+        def on_connect(conection):
+            connection.unbind("close", on_close)
+            callback and callback(connection, True)
+
         # in case there's a callback defined for the connection establishment
         # then registers such callback for the connect event in the connection
-        if callback: connection.bind("connect", callback, oneshot = True)
+        if callback: connection.bind("connect", on_connect, oneshot = True)
+        if callback: connection.bind("close", on_close, oneshot = True)
 
         # returns the "final" connection, that is now scheduled for connect
         # to the caller method, it may now be used for operations
@@ -3637,8 +3652,7 @@ class BaseThread(threading.Thread):
 def new_loop_main(factory = None, _compat = None):
     factory = factory or AbstractBase
     instance = factory()
-    compat = instance._compat if hasattr(instance, "_compat") else None
-    return compat if _compat and compat else instance
+    return compat_loop(compat) if _compat else instance
 
 def new_loop_asyncio():
     asyncio = asynchronous.get_asyncio()
@@ -3683,13 +3697,24 @@ def get_event_loop(*args, **kwargs):
     return get_loop(*args, **kwargs)
 
 def stop_loop(compat = True, asyncio = True):
-    loop = get_loop(
-        ensure = False,
-        _compat = compat,
-        asyncio = asyncio
-    )
+    loop = get_loop(ensure = False, _compat = compat, asyncio = asyncio)
     if not loop: return
     loop.stop()
+
+def compat_loop(loop):
+    """
+    Retrieves the asyncio API compatible version of the provided
+    loop in case such version exists in the current object, otherwise
+    returns the proper object (assumed to be asyncio API compatible).
+
+    :type loop: EventLoop
+    :param loop: The base event loop object from which an asyncio
+    API compatible object is meant to be retrieved.
+    :rtype: EventLoop
+    :return: The asyncio API compatible event loop object.
+    """
+
+    return loop._compat if hasattr(loop, "_compat") else loop
 
 def get_poll():
     main = get_main()

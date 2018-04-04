@@ -40,6 +40,7 @@ __license__ = "Apache License, Version 2.0"
 import inspect
 import functools
 
+from . import errors
 from . import legacy
 from . import async_old
 
@@ -57,19 +58,23 @@ class Future(async_old.Future):
     """
 
     def __iter__(self):
-        while not self.finished():
+        while not self.done():
             self._blocking = True
             yield self
         if self.cancelled():
-            raise self.exception() or Exception()
+            raise errors.RuntimeError("Future canceled")
+        if self.exception():
+            raise self.exception()
         return self.result()
 
     def __await__(self):
-        while not self.finished():
+        while not self.done():
             self._blocking = True
             yield self
         if self.cancelled():
-            raise self.exception() or Exception()
+            raise errors.RuntimeError("Future canceled")
+        if self.exception():
+            raise self.exception()
         return self.result()
 
 class AwaitWrapper(object):

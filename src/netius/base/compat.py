@@ -143,7 +143,7 @@ class CompatLoop(BaseLoop):
         return asynchronous.coroutine_return(coroutine)
 
     def stop(self):
-        self._loop.stop()
+        self._loop.pause()
 
     def close(self):
         self._loop.close()
@@ -231,19 +231,28 @@ class CompatLoop(BaseLoop):
 
         future = self.create_future()
 
-        def connect(connection):
+        def on_complete(connection, success):
+            if success: on_connect(connection)
+            else: on_error(connection)
+
+        def on_connect(connection):
             protocol = protocol_factory()
             _transport = transport.TransportStream(self, connection)
             _transport._set_compat(protocol)
             future.set_result((_transport, protocol))
 
-        connection = self._loop.connect(
+        def on_error(connection):
+            future.set_exception(
+                errors.RuntimeError("Connection issue")
+            )
+
+        self._loop.connect(
             host,
             port,
             ssl = ssl,
-            family = family
+            family = family,
+            callback = on_complete
         )
-        connection.bind("connect", connect)
 
         yield future
 
@@ -267,11 +276,20 @@ class CompatLoop(BaseLoop):
 
         future = self.create_future()
 
-        def connect(connection):
+        def on_complete(connection, success):
+            if success: on_connect(connection)
+            else: on_error(connection)
+
+        def on_connect(connection):
             protocol = protocol_factory()
             _transport = transport.TransportDatagram(self, connection)
             _transport._set_compat(protocol)
             future.set_result((_transport, protocol))
+
+        def on_error(connection):
+            future.set_exception(
+                errors.RuntimeError("Connection issue")
+            )
 
         connection = self._loop.datagram(
             family = family,
@@ -280,7 +298,7 @@ class CompatLoop(BaseLoop):
             remote_port = remote_addr[1] if remote_addr else None
         )
 
-        self._loop.delay(lambda: connect(connection))
+        self._loop.delay(lambda: on_complete(connection, True))
         yield future
 
     def _set_current_task(self, task):
@@ -415,14 +433,21 @@ def _build_datagram_native(
             type = type,
             remote_host = remote_host,
             remote_port = remote_port,
-            callback = on_connect
+            callback = on_complete
         )
+
+    def on_complete(connection, success):
+        if success: on_connect(connection)
+        else: on_error(connection)
 
     def on_connect(connection):
         _transport = transport.TransportDatagram(loop, connection)
         _transport._set_compat(protocol)
         if not callback: return
         callback((_transport, protocol))
+
+    def on_error(connection):
+        protocol.close()
 
     loop.delay(on_ready)
 
@@ -451,9 +476,11 @@ def _build_datagram_compat(
         return protocol
 
     def on_connect(future):
-        if not callback: return
-        result = future.result()
-        callback(result)
+        if future.cancelled() or future.exception():
+            protocol.close()
+        else:
+            result = future.result()
+            callback and callback(result)
 
     connect = loop.create_datagram_endpoint(
         build_protocol,
@@ -506,14 +533,21 @@ def _connect_stream_native(
             ssl_verify = ssl_verify,
             family = family,
             type = type,
-            callback = on_connect
+            callback = on_complete
         )
+
+    def on_complete(connection, success):
+        if success: on_connect(connection)
+        else: on_error(connection)
 
     def on_connect(connection):
         _transport = transport.TransportStream(loop, connection)
         _transport._set_compat(protocol)
         if not callback: return
         callback((_transport, protocol))
+
+    def on_error(connection):
+        protocol.close()
 
     loop.delay(on_ready)
 
@@ -548,9 +582,11 @@ def _connect_stream_compat(
         return protocol
 
     def on_connect(future):
-        if not callback: return
-        result = future.result()
-        callback(result)
+        if future.cancelled() or future.exception():
+            protocol.close()
+        else:
+            result = future.result()
+            callback and callback(result)
 
     connect = loop.create_connection(
         build_protocol,

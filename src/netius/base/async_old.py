@@ -68,9 +68,11 @@ class Future(object):
         self.cleanup()
 
     def __iter__(self):
-        while not self.finished(): yield self
+        while not self.done(): yield self
         if self.cancelled():
-            raise self.exception() or Exception()
+            raise errors.RuntimeError("Future canceled")
+        if self.exception():
+            raise self.exception()
 
     def cleanup(self):
         self.done_callbacks = []
@@ -82,15 +84,17 @@ class Future(object):
         return self.status == 0
 
     def done(self):
-        return self.status == 1
+        return self.status in (1, 2)
 
     def cancelled(self):
         return self.status == 2
 
     def finished(self):
-        return self.status in (1, 2)
+        return self.done()
 
     def result(self):
+        if self.cancelled():
+            raise errors.RuntimeError("Already canceled")
         return self._result
 
     def exception(self, timeout = None):
@@ -116,18 +120,23 @@ class Future(object):
     def approve(self, cleanup = True):
         self.set_result(None, cleanup = cleanup)
 
-    def cancel(self, cleanup = True):
-        self.set_exception(None, cleanup = cleanup)
+    def cancel(self, cleanup = True, force = False):
+        if not force and not self.running(): return False
+        self.status = 2
+        self._done_callbacks(cleanup = cleanup)
+        return True
 
     def set_result(self, result, cleanup = True, force = False):
-        if not force and not self.running(): return
+        if not force and not self.running():
+            raise errors.AssertionError("Future not running")
         self.status = 1
         self._result = result
         self._done_callbacks(cleanup = cleanup)
 
     def set_exception(self, exception, cleanup = True, force = False):
-        if not force and not self.running(): return
-        self.status = 2
+        if not force and not self.running():
+            raise errors.AssertionError("Future not running")
+        self.status = 1
         self._exception = exception
         self._done_callbacks(cleanup = cleanup)
 
@@ -158,7 +167,7 @@ class Future(object):
     def _partial_callbacks(self, value, delayed = True):
         if not self.partial_callbacks: return
         if delayed and self._loop: return self._delay(
-            lambda: self._partial_callbacks(delayed = False)
+            lambda: self._partial_callbacks(value, delayed = False)
         )
         for callback in self.partial_callbacks: callback(self, value)
 
@@ -171,7 +180,7 @@ class Future(object):
         self._loop = future._loop
         self._blocking = future._blocking
         self._result = future._result
-        self._exception = future._result
+        self._exception = future._exception
 
     def _delay(self, callable):
         has_delay = hasattr(self._loop, "delay")
