@@ -125,7 +125,7 @@ the connection as been disconnected using a graceful approach
 and without raising any extraneous problems """
 
 SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE = 101
-""" Error raised under the ssl infra-structure for situations
+""" Error raised under the SSL infra-structure for situations
 where the certificate does not required re-loading as it is
 already present in the hash table, this error may be safely
 ignored as it does not represent a threat """
@@ -177,7 +177,7 @@ SSL_VALID_ERRORS = (
     SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE
 )
 """ The list containing the valid errors for the handshake
-operation of the ssl connection establishment """
+operation of the SSL connection establishment """
 
 SSL_ERROR_NAMES = {
     ssl.SSL_ERROR_WANT_READ : "SSL_ERROR_WANT_READ",
@@ -185,13 +185,13 @@ SSL_ERROR_NAMES = {
     SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE : "SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE"
 }
 """ The dictionary containing the association between the
-various ssl errors and their string representation """
+various SSL errors and their string representation """
 
 SSL_VALID_REASONS = (
     "CERT_ALREADY_IN_HASH_TABLE",
 )
 """ The list containing the valid reasons for the handshake
-operation of the ssl connection establishment """
+operation of the SSL connection establishment """
 
 TCP_TYPE = 1
 """ The type enumeration value that represents the tcp (stream)
@@ -282,7 +282,7 @@ and end developer to dig into the details of the execution """
 
 # initializes the various paths that are going to be used for
 # the base files configuration in the complete service infra
-# structure, these should include the ssl based files
+# structure, these should include the SSL based files
 BASE_PATH = os.path.dirname(__file__)
 EXTRAS_PATH = os.path.join(BASE_PATH, "extras")
 SSL_KEY_PATH = os.path.join(EXTRAS_PATH, "net.key")
@@ -1604,8 +1604,8 @@ class AbstractBase(observer.Observable):
         # values get their (temporary) files removed (garbage collection)
         self._expand_destroy()
 
-        # runs the destroy operation on the ssl component of the base
-        # element so that no more ssl is available/used (avoids leaks)
+        # runs the destroy operation on the SSL component of the base
+        # element so that no more SSL is available/used (avoids leaks)
         self._ssl_destroy()
 
         # verifies if there's a valid (and open) notify pool, if that's
@@ -1927,13 +1927,13 @@ class AbstractBase(observer.Observable):
         is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX
         is_inet = family in (socket.AF_INET, socket.AF_INET6)
 
-        # runs a series of default operation for the ssl related attributes
+        # runs a series of default operation for the SSL related attributes
         # that are going to be used in the socket creation and wrapping
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
         ca_file = ca_file or SSL_CA_PATH
 
-        # determines if the ssl verify flag value is valid taking into account
+        # determines if the SSL verify flag value is valid taking into account
         # the provided value and defaulting to false value if not valid
         ssl_verify = ssl_verify or False
 
@@ -1942,8 +1942,8 @@ class AbstractBase(observer.Observable):
         _socket = socket.socket(family, type)
         _socket.setblocking(0)
 
-        # in case the ssl option is enabled the socket should be wrapped into
-        # a proper ssl socket interface so that it may be operated accordingly
+        # in case the SSL option is enabled the socket should be wrapped into
+        # a proper SSL socket interface so that it may be operated accordingly
         if ssl: _socket = self._ssl_wrap(
             _socket,
             key_file = key_file,
@@ -1981,8 +1981,8 @@ class AbstractBase(observer.Observable):
         address = port if is_unix else (host, port)
 
         # creates the connection object using the typical constructor
-        # and then sets the ssl host (for verification) if the verify
-        # ssl option is defined (secured and verified connection)
+        # and then sets the SSL host (for verification) if the verify
+        # SSL option is defined (secured and verified connection)
         connection = self.new_connection(_socket, address, ssl = ssl)
         if ssl_verify: connection.ssl_host = host
 
@@ -2239,7 +2239,7 @@ class AbstractBase(observer.Observable):
 
         # creates a new seed value from a pseudo random value and
         # then adds this new value as the base for randomness in the
-        # ssl base infra-structure, required for security
+        # SSL base infra-structure, required for security
         seed = str(uuid.uuid4())
         seed = legacy.bytes(seed)
         ssl.RAND_add(seed, 0.0)
@@ -2286,11 +2286,11 @@ class AbstractBase(observer.Observable):
             # in case the connection is under the connecting state
             # the socket must be verified for errors and in case
             # there's none the connection must proceed, for example
-            # the ssl connection handshake must be performed/retried
+            # the SSL connection handshake must be performed/retried
             if connection.connecting: self._connectf(connection)
 
             # verifies if there's any pending operations in the
-            # connection (eg: ssl handshaking) and performs it trying
+            # connection (eg: SSL handshaking) and performs it trying
             # to finish them, if they are still pending at the current
             # state returns immediately (waits for next loop)
             if self._pending(connection): return
@@ -2340,7 +2340,7 @@ class AbstractBase(observer.Observable):
         # in case the connection is under the connecting state
         # the socket must be verified for errors and in case
         # there's none the connection must proceed, for example
-        # the ssl connection handshake must be performed/retried
+        # the SSL connection handshake must be performed/retried
         if connection.connecting: self._connectf(connection)
 
         try:
@@ -2391,8 +2391,8 @@ class AbstractBase(observer.Observable):
         connection.set_upgraded()
 
     def on_ssl(self, connection):
-        # runs the connection host verification process for the ssl
-        # meaning that in case an ssl host value is defined it is going
+        # runs the connection host verification process for the SSL
+        # meaning that in case an SSL host value is defined it is going
         # to be verified against the value in the certificate
         connection.ssl_verify_host()
 
@@ -2481,7 +2481,7 @@ class AbstractBase(observer.Observable):
         be datagram based or not.
         :type ssl: bool
         :param ssl: If the connection to be created is meant to
-        be secured using the ssl framework for encryption.
+        be secured using the SSL framework for encryption.
         :rtype: Connection
         :return: The connection object that encapsulates the
         provided socket and address values.
@@ -3113,20 +3113,20 @@ class AbstractBase(observer.Observable):
 
         # in case the connection is not of type ssl the method
         # may return as there's nothing left to be done, as the
-        # rest of the method is dedicated to ssl tricks
+        # rest of the method is dedicated to SSL tricks
         if not connection.ssl: return
 
-        # verifies if the current ssl object is a context oriented one
+        # verifies if the current SSL object is a context oriented one
         # (newest versions) or a legacy oriented one, that does not uses
         # any kind of context object, this is relevant in order to make
-        # decisions on how the ssl object may be re-constructed
+        # decisions on how the SSL object may be re-constructed
         has_context = hasattr(_socket, "context")
         has_sock = hasattr(_socket, "_sock")
 
-        # creates the ssl object for the socket as it may have been
-        # destroyed by the underlying ssl library (as an error) because
+        # creates the SSL object for the socket as it may have been
+        # destroyed by the underlying SSL library (as an error) because
         # the socket is of type non blocking and raises an error, note
-        # that the creation of the socket varies between ssl versions
+        # that the creation of the socket varies between SSL versions
         if _socket._sslobj: return
         if has_context: _socket._sslobj = _socket.context._wrap_socket(
             _socket,
@@ -3143,7 +3143,7 @@ class AbstractBase(observer.Observable):
             _socket.ca_certs
         )
 
-        # verifies if the ssl object class is defined in the ssl module
+        # verifies if the SSL object class is defined in the SSL module
         # and if that's the case an extra wrapping operation is performed
         # in order to comply with new indirection/abstraction methods
         if not hasattr(ssl, "SSLObject"): return
@@ -3155,14 +3155,14 @@ class AbstractBase(observer.Observable):
         this should be done in certain steps of the connection.
 
         The process of finishing the connecting process should include
-        the ssl handshaking process.
+        the SSL handshaking process.
 
         :type connection: Connection
         :param connection: The connection that should have the connect
         process tested for finishing.
         """
 
-        # in case the ssl connection is still undergoing the handshaking
+        # in case the SSL connection is still undergoing the handshaking
         # procedures (marked as connecting) ignores the call as this must
         # be a duplicated call to this method (to be ignored)
         if connection.ssl_connecting: return
@@ -3173,7 +3173,7 @@ class AbstractBase(observer.Observable):
         error = connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
         if error: self.on_error(connection.socket); return
 
-        # checks if the current connection is ssl based and if that's the
+        # checks if the current connection is SSL based and if that's the
         # case starts the handshaking process (async non blocking) otherwise
         # calls the on connect callback with the newly created connection
         if connection.ssl: connection.add_starter(self._ssl_handshake)
@@ -3181,7 +3181,7 @@ class AbstractBase(observer.Observable):
 
         # runs the starter process (initial kick-off) so that all the starters
         # registered for the connection may start to be executed, note that if
-        # the ssl handshake starter has been registered its first execution is
+        # the SSL handshake starter has been registered its first execution is
         # going to be triggered by this call
         connection.run_starter()
 
@@ -3222,28 +3222,28 @@ class AbstractBase(observer.Observable):
             )
 
     def _ssl_init(self, strict = True, env = True):
-        # initializes the values of both the "main" context for ssl
+        # initializes the values of both the "main" context for SSL
         # and the map that associated an hostname and a context, both
         # are going to be used (if possible) at runtime for proper
         # resolution of both key and certificated files
         self._ssl_context = None
         self._ssl_contexts = dict()
 
-        # verifies if the current ssl module contains a reference to
-        # the ssl context class symbol if not, the control flow is
+        # verifies if the current SSL module contains a reference to
+        # the SSL context class symbol if not, the control flow is
         # returned to the caller method as it's not possible to created
-        # any kind of context information for ssl
+        # any kind of context information for SSL
         has_context = hasattr(ssl, "SSLContext")
         if not has_context: return
 
         # retrieves the reference to the environment variables that are going
-        # to be used in the construction of the various ssl contexts, note that
+        # to be used in the construction of the various SSL contexts, note that
         # the secure variable is extremely important to ensure that a proper and
-        # secure ssl connection is established with the peer
+        # secure SSL connection is established with the peer
         secure = self.get_env("SSL_SECURE", True, cast = bool) if env else False
         contexts = self.get_env("SSL_CONTEXTS", {}, cast = dict) if env else {}
 
-        # creates the main/default ssl context setting the default key
+        # creates the main/default SSL context setting the default key
         # and certificate information in such context, then verifies
         # if the callback registration method is defined and if it is
         # defined registers a callback for when the hostname information
@@ -3260,7 +3260,7 @@ class AbstractBase(observer.Observable):
 
         # retrieves the reference to the map containing the various key
         # and certificate paths for the various defined host names and
-        # uses it to create the complete set of ssl context objects
+        # uses it to create the complete set of SSL context objects
         for hostname, values in legacy.iteritems(contexts):
             context = self._ssl_ctx(values, secure = secure)
             self._ssl_contexts[hostname] = (context, values)
@@ -3447,7 +3447,7 @@ class AbstractBase(observer.Observable):
         """
 
         try:
-            # unsets the handshake flag associated with the ssl, meaning
+            # unsets the handshake flag associated with the SSL, meaning
             # that the connection is considered to be currently under the
             # handshaking process (may succeed in the current tick)
             connection.ssl_handshake = False
@@ -3462,9 +3462,9 @@ class AbstractBase(observer.Observable):
             _socket = connection.socket
             _socket.do_handshake()
 
-            # sets the ssl handshake flag in the connection, effectively
-            # indicating that the ssl handshake process has finished, note
-            # that the connecting flag is also unset (ssl connect finished)
+            # sets the SSL handshake flag in the connection, effectively
+            # indicating that the SSL handshake process has finished, note
+            # that the connecting flag is also unset (SSL connect finished)
             connection.ssl_handshake = True
             connection.ssl_connecting = False
 
@@ -3479,7 +3479,7 @@ class AbstractBase(observer.Observable):
             self.debug("SSL Handshaking completed for connection")
 
             # calls the proper callback on the connection meaning
-            # that ssl is now enabled for that socket/connection and so
+            # that SSL is now enabled for that socket/connection and so
             # the communication between peers is now secured
             self.on_ssl(connection)
         except ssl.SSLError as error:
