@@ -548,9 +548,11 @@ def _connect_stream_compat(
         return protocol
 
     def on_connect(future):
-        if not callback: return
-        result = future.result()
-        callback(result)
+        if future.cancelled() or future.exception():
+            protocol.close()
+        else:
+            result = future.result()
+            callback and callback(result)
 
     connect = loop.create_connection(
         build_protocol,

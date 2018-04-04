@@ -336,26 +336,19 @@ class WSGIServer(http2.HTTP2Server):
                 # completely processed, not going to be used anymore
                 connection.future = None
 
-                # extracts the result from the future defaulting it to the
-                # base empty string value
-                data = future.result() or b""
-
-                # tries to extract a possible exception and the cancelled
-                # state from the current future and then validates the exception
-                # for proper inheritance from the base exception, this is
-                # required to make sure it's possible to raise it
-                exception = future.exception()
-                cancelled = future.cancelled()
-                is_exception = isinstance(exception, BaseException)
-
-                # verifies if the future has been either canceled or an
-                # exception has been raised for it (error situation) and
-                # if that's the case closes the connection as raises the
-                # exception so that the event loop handles it gracefully
-                if exception or cancelled:
+                # verifies if the future has been canceled in the mean time
+                # (error situation) and if that's the case closes the connection
+                # and raises an exception so that the event loop handles it gracefully
+                if future.cancelled():
                     connection.close()
-                    if is_exception: raise exception
-                    else: raise RuntimeError("Problem handling future")
+                    raise RuntimeError("Problem handling future, canceled")
+
+                # verifies if the future contains an exception value in it (error
+                # situation) and if that's the case closes the connection and raises
+                # the exception so that the event loop handles it gracefully
+                if future.exception():
+                    connection.close()
+                    raise future.exception()
 
                 # otherwise runs the send part operation on the next tick so
                 # that it gets handled as fast as possible, this should continue
