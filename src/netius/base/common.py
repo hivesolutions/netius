@@ -1704,6 +1704,14 @@ class AbstractBase(observer.Observable):
             self.errors(errors)
 
     def block(self):
+        """
+        Runs the sub-blocking operation, by "forking" the current loop
+        execution into an inner one for a new context.
+
+        The execution of this method is not recommended and should be
+        used with extreme care to avoid unwanted behaviour.
+        """
+
         _running = self._running
         try: self.loop()
         finally: self._running = _running
