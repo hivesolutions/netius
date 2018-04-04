@@ -1697,8 +1697,9 @@ class AbstractBase(observer.Observable):
             self.errors(errors)
 
     def block(self):
+        _running = self._running
         try: self.loop()
-        finally: self._running = True
+        finally: self._running = _running
 
     def fork(self):
         # ensures that the children value is converted as an
@@ -3616,6 +3617,23 @@ class BaseThread(threading.Thread):
             self.owner._thread = None
             self.owner = None
 
+def new_loop_main(factory = None, _compat = None):
+    factory = factory or AbstractBase
+    instance = factory()
+    compat = instance._compat if hasattr(instance, "_compat") else None
+    return compat if _compat and compat else instance
+
+def new_loop_asyncio():
+    asyncio = asynchronous.get_asyncio()
+    if not asyncio: return None
+    return asyncio.new_event_loop()
+
+def new_loop(factory = None, _compat = None, asyncio = None):
+    _compat = compat.is_compat() if _compat == None else _compat
+    asyncio = compat.is_asyncio() if asyncio == None else asyncio
+    if asyncio: return new_loop_asyncio()
+    else: return new_loop_main(factory = factory, _compat = _compat)
+
 def ensure_main(factory = None):
     if AbstractBase.get_main(): return
     factory = factory or AbstractBase
@@ -3624,7 +3642,7 @@ def ensure_main(factory = None):
 
 def ensure_asyncio():
     asyncio = asynchronous.get_asyncio()
-    if not asyncio: return
+    if not asyncio: return None
     return asyncio.get_event_loop()
 
 def ensure_loop(factory = None, asyncio = None):

@@ -1179,6 +1179,11 @@ class HTTPClient(netius.StreamClient):
         on_result = None,
         loop = None
     ):
+        # in case the current execution model is not asynchronous a new
+        # loop context must exist otherwise it may collide with the global
+        # event loop execution creating unwanted behaviour
+        if not asynchronous: loop = loop or netius.new_loop()
+
         # extracts the reference to the upper class element associated
         # with the current instance, to be used for operations
         cls = self.__class__
@@ -1225,7 +1230,7 @@ class HTTPClient(netius.StreamClient):
             protocol.close()
 
         def on_close(protocol):
-            netius.stop_loop()
+            loop.stop()
 
         # binds the protocol message and close events to the associated
         # function for proper handling
@@ -1235,6 +1240,7 @@ class HTTPClient(netius.StreamClient):
         # runs the loop until complete, notice that on connection close
         # the loop is stop, returning the control flow
         loop.run_forever()
+        loop.close()
 
         # returns the final request object (that should be populated by this
         # time) to the called method
