@@ -316,8 +316,8 @@ class Server(Base):
 
         # retrieves the proper string based type for the current server socket
         # and the prints a series of log message about the socket to be created
-        type_s = "SSL" if ssl else ""
-        self.debug("Creating server's TCP %s socket ..." % type_s)
+        type_s = " SSL" if ssl else ""
+        self.debug("Creating server's TCP%s socket ..." % type_s)
         if ssl: self.debug("Loading '%s' as key file" % key_file)
         if ssl: self.debug("Loading '%s' as certificate file" % cer_file)
         if ssl and ca_file: self.debug("Loading '%s' as certificate authority file" % ca_file)
