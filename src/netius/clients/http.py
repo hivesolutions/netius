@@ -1319,7 +1319,7 @@ class HTTPClient(netius.StreamClient):
 
         def on_close(protocol):
             self.available.pop(key, None)
-            netius.compat(loop).stop()
+            netius.compat_loop(loop).stop()
 
         # binds the protocol message and close events to the associated
         # function for proper handling
