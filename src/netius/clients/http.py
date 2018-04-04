@@ -52,18 +52,18 @@ Z_PARTIAL_FLUSH = 1
 of the current zlib stream, this value has to be defined
 locally as it is not defines under the zlib module """
 
-BASE_HEADERS = {
-    "user-agent" : netius.IDENTIFIER
-}
-""" The map containing the complete set of headers
-that are meant to be applied to all the requests """
-
 class HTTPProtocol(netius.StreamProtocol):
     """
     Implementation of the HTTP protocol to be used by a client
     of the HTTP implementation to send requests and receive
     responses.
     """
+
+    BASE_HEADERS = {
+        "user-agent" : netius.IDENTIFIER
+    }
+    """ The map containing the complete set of headers
+    that are meant to be applied to all the requests """
 
     def __init__(
         self,
@@ -867,7 +867,8 @@ class HTTPProtocol(netius.StreamProtocol):
             if not safe: raise
 
     def _apply_base(self, headers, replace = False):
-        for key, value in netius.legacy.iteritems(BASE_HEADERS):
+        cls = self.__class__
+        for key, value in netius.legacy.iteritems(cls.BASE_HEADERS):
             if not replace and key in headers: continue
             headers[key] = value
 
@@ -1028,11 +1029,17 @@ class HTTPClient(netius.StreamClient):
         http_client = None,
         **kwargs
     ):
+        # in case no HTTP client instance is provided tries to
+        # retrieve a static global one (singleton) to be used
+        # for the current request operation
         if not http_client: http_client = cls.get_client_s(
             daemon = daemon,
             **kwargs
         )
 
+        # calls the underlying method on the current HTTP client
+        # propagating most of the arguments, and retrieves the resulting
+        # value to be propagated to the current method's caller
         result = http_client.method(
             method,
             url,
@@ -1060,7 +1067,7 @@ class HTTPClient(netius.StreamClient):
         """
         Simple utility method that takes the classic dictionary
         based request and converts it into a simple HTTP response
-        object to be used in more interactive way.
+        object to be used in a more interactive way.
 
         :type map: Dictionary
         :param map: The dictionary backed request object that is
@@ -1172,6 +1179,11 @@ class HTTPClient(netius.StreamClient):
         on_result = None,
         loop = None
     ):
+        # in case the current execution model is not asynchronous a new
+        # loop context must exist otherwise it may collide with the global
+        # event loop execution creating unwanted behaviour
+        if not asynchronous: loop = loop or netius.new_loop()
+
         # extracts the reference to the upper class element associated
         # with the current instance, to be used for operations
         cls = self.__class__
@@ -1218,7 +1230,7 @@ class HTTPClient(netius.StreamClient):
             protocol.close()
 
         def on_close(protocol):
-            netius.stop_loop()
+            loop.stop()
 
         # binds the protocol message and close events to the associated
         # function for proper handling
@@ -1228,6 +1240,7 @@ class HTTPClient(netius.StreamClient):
         # runs the loop until complete, notice that on connection close
         # the loop is stop, returning the control flow
         loop.run_forever()
+        loop.close()
 
         # returns the final request object (that should be populated by this
         # time) to the called method

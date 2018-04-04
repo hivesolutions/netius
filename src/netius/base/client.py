@@ -687,13 +687,13 @@ class StreamClient(Client):
         is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX
         is_inet = family in (socket.AF_INET, socket.AF_INET6)
 
-        # runs a series of default operation for the ssl related attributes
+        # runs a series of default operation for the SSL related attributes
         # that are going to be used in the socket creation and wrapping
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
         ca_file = ca_file or SSL_CA_PATH
 
-        # determines if the ssl verify flag value is valid taking into account
+        # determines if the SSL verify flag value is valid taking into account
         # the provided value and defaulting to false value if not valid
         ssl_verify = ssl_verify or False
 
@@ -702,8 +702,8 @@ class StreamClient(Client):
         _socket = socket.socket(family, type)
         _socket.setblocking(0)
 
-        # in case the ssl flag is set re-creates the socket by wrapping it into
-        # an ssl based one with the provided set of keys and certificates
+        # in case the SSL flag is set re-creates the socket by wrapping it into
+        # an SSL based one with the provided set of keys and certificates
         if ssl: _socket = self._ssl_wrap(
             _socket,
             key_file = key_file,
@@ -741,8 +741,8 @@ class StreamClient(Client):
         address = port if is_unix else (host, port)
 
         # creates the connection object using the typical constructor
-        # and then sets the ssl host (for verification) if the verify
-        # ssl option is defined (secured and verified connection)
+        # and then sets the SSL host (for verification) if the verify
+        # SSL option is defined (secured and verified connection)
         connection = self.new_connection(_socket, address, ssl = ssl)
         if ssl_verify: connection.ssl_host = host
 
@@ -782,11 +782,11 @@ class StreamClient(Client):
             # in case the connection is under the connecting state
             # the socket must be verified for errors and in case
             # there's none the connection must proceed, for example
-            # the ssl connection handshake must be performed/retried
+            # the SSL connection handshake must be performed/retried
             if connection.connecting: self._connectf(connection)
 
             # verifies if there's any pending operations in the
-            # connection (eg: ssl handshaking) and performs it trying
+            # connection (eg: SSL handshaking) and performs it trying
             # to finish them, if they are still pending at the current
             # state returns immediately (waits for next loop)
             if self._pending(connection): return
@@ -836,7 +836,7 @@ class StreamClient(Client):
         # in case the connection is under the connecting state
         # the socket must be verified for errors and in case
         # there's none the connection must proceed, for example
-        # the ssl connection handshake must be performed/retried
+        # the SSL connection handshake must be performed/retried
         if connection.connecting: self._connectf(connection)
 
         try:
@@ -895,8 +895,8 @@ class StreamClient(Client):
         connection.set_upgraded()
 
     def on_ssl(self, connection):
-        # runs the connection host verification process for the ssl
-        # meaning that in case an ssl host value is defined it is going
+        # runs the connection host verification process for the SSL
+        # meaning that in case an SSL host value is defined it is going
         # to be verified against the value in the certificate
         connection.ssl_verify_host()
 

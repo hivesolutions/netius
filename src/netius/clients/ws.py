@@ -120,6 +120,12 @@ class WSConnection(netius.Connection):
             raise netius.SecurityError("Invalid accept key provided")
 
 class WSClient(netius.StreamClient):
+    """
+    Abstract WebSockets client to be used for real-time bidirectional
+    communication on top of the HTTP protocol.
+
+    :see: https://tools.ietf.org/html/rfc6455
+    """
 
     MAGIC_VALUE = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
     """ The magic value used by the websocket protocol as part

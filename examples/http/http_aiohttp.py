@@ -44,7 +44,7 @@ import netius
 
 netius.verify(
     int(aiohttp.__version__[0]) < 3,
-    message = "Requires legacy (older than 3.x.x) version of aiohttp"
+    message = "Requires legacy (2.x.x or older) version of aiohttp"
 )
 
 @asyncio.coroutine

@@ -37,13 +37,26 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-# imports the base (old) version of the async implementation
-# that should be compatible with all the available python
-# interpreters, base collection of async library
-from .async_old import * #@UnusedWildImport
+import threading
 
-# verifies if the current python interpreter version supports
-# the new version of the async implementation and if that's the
-# case runs the additional import of symbols, this should override
-# most of the symbols that have just been created
-if is_neo(): from .async_neo import * #@UnusedWildImport
+import netius
+
+def set(future, raise_e = True):
+    if raise_e: future.set_exception(Exception("Awaiting error"))
+    else: future.set_result(42)
+
+@netius.coroutine
+def await_forever():
+    print("Awaiting forever")
+    future = netius.build_future()
+    thread = threading.Thread(
+        target = set, args = (future,), kwargs = dict(raise_e = True)
+    )
+    thread.start()
+    for value in future: yield value
+
+loop = netius.get_loop(_compat = True)
+result = loop.run_until_complete(await_forever())
+loop.close()
+
+print(result)

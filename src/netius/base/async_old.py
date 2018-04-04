@@ -68,7 +68,9 @@ class Future(object):
         self.cleanup()
 
     def __iter__(self):
-        if not self.done(): yield self
+        while not self.finished(): yield self
+        if self.cancelled():
+            raise self.exception() or Exception()
 
     def cleanup(self):
         self.done_callbacks = []
@@ -76,14 +78,14 @@ class Future(object):
         self.ready_callbacks = []
         self.closed_callbacks = []
 
-    def cancelled(self):
-        return self.status == 2
-
     def running(self):
         return self.status == 0
 
     def done(self):
         return self.status == 1
+
+    def cancelled(self):
+        return self.status == 2
 
     def finished(self):
         return self.status in (1, 2)

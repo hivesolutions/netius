@@ -189,7 +189,7 @@ class Server(Base):
         # problems with multiple stack based servers (ipv4 and ipv6)
         if host == None: host = "::1" if ipv6 else "127.0.0.1"
 
-        # defaults the provided ssl key and certificate paths to the
+        # defaults the provided SSL key and certificate paths to the
         # ones statically defined (dummy certificates), please beware
         # that using these certificates may create validation problems
         key_file = key_file or SSL_KEY_PATH
@@ -197,7 +197,7 @@ class Server(Base):
         ca_file = ca_file or SSL_CA_PATH
 
         # populates the basic information on the currently running
-        # server like the host the port and the (is) ssl flag to be
+        # server like the host the port and the (is) SSL flag to be
         # used latter for reference operations
         self.host = host
         self.port = port
@@ -264,10 +264,10 @@ class Server(Base):
         if self.port == 0: self.port = self.socket.getsockname()[1]
 
         # creates the string that identifies it the current service connection
-        # is using a secure channel (ssl) and then prints an info message about
+        # is using a secure channel (SSL) and then prints an info message about
         # the service that is going to be started
-        ipv6_s = " on ipv6" if ipv6 else ""
-        ssl_s = " using ssl" if ssl else ""
+        ipv6_s = " on IPv6" if ipv6 else ""
+        ssl_s = " using SSL" if ssl else ""
         self.info("Serving '%s' service on %s:%s%s%s ..." % (self.name, host, port, ipv6_s, ssl_s))
 
         # runs the fork operation responsible for the forking of the
@@ -316,19 +316,19 @@ class Server(Base):
 
         # retrieves the proper string based type for the current server socket
         # and the prints a series of log message about the socket to be created
-        type_s = "ssl" if ssl else ""
-        self.debug("Creating server's tcp %s socket ..." % type_s)
+        type_s = "SSL" if ssl else ""
+        self.debug("Creating server's TCP %s socket ..." % type_s)
         if ssl: self.debug("Loading '%s' as key file" % key_file)
         if ssl: self.debug("Loading '%s' as certificate file" % cer_file)
         if ssl and ca_file: self.debug("Loading '%s' as certificate authority file" % ca_file)
-        if ssl and ssl_verify: self.debug("Loading with client ssl verification")
+        if ssl and ssl_verify: self.debug("Loading with client SSL verification")
 
         # creates the socket that it's going to be used for the listening
         # of new connections (server socket) and sets it as non blocking
         _socket = socket.socket(family, type)
         _socket.setblocking(0)
 
-        # in case the server is meant to be used as ssl wraps the socket
+        # in case the server is meant to be used as SSL wraps the socket
         # in suck fashion so that it becomes "secured"
         if ssl: _socket = self._ssl_wrap(
             _socket,
@@ -734,7 +734,7 @@ class StreamServer(Server):
 
         try:
             # verifies if there's any pending operations in the
-            # connection (eg: ssl handshaking) and performs it trying
+            # connection (eg: SSL handshaking) and performs it trying
             # to finish them, if they are still pending at the current
             # state returns immediately (waits for next loop)
             if self._pending(connection): return
@@ -825,23 +825,23 @@ class StreamServer(Server):
         connection.set_upgraded()
 
     def on_ssl(self, connection):
-        # in case an ssl host verification value is defined for the server
+        # in case an SSL host verification value is defined for the server
         # the client connection is going to be verified against such host
         # to make sure the client represents the expected entity, note that
-        # as a fallback the ssl verification process is performed with no
-        # value defined, meaning that a possible (ssl) host value set in the
+        # as a fallback the SSL verification process is performed with no
+        # value defined, meaning that a possible (SSL) host value set in the
         # connection is going to be used instead for the verification
         if self.ssl_host: connection.ssl_verify_host(self.ssl_host)
         else: connection.ssl_verify_host()
 
-        # in case the ssl fingerprint verification process is enabled for the
+        # in case the SSL fingerprint verification process is enabled for the
         # current server the client certificates are going to be verified for
         # their integrity using this technique, otherwise the default verification
         # process is going to be run instead
         if self.ssl_fingerprint: connection.ssl_verify_fingerprint(self.ssl_fingerprint)
         else: connection.ssl_verify_fingerprint()
 
-        # in case the ssl dump flag is set the dump operation is performed according
+        # in case the SSL dump flag is set the dump operation is performed according
         # to that flag, otherwise the default operation is performed, that in most
         # of the cases should prevent the dump of the information
         if self.ssl_dump: connection.ssl_dump_certificate(self.ssl_dump)
@@ -870,7 +870,7 @@ class StreamServer(Server):
         # set as a new connection for the server (validation)
         if self.ssl and not socket_c._sslobj: socket_c.close(); return
 
-        # in case the ssl mode is enabled, "patches" the socket
+        # in case the SSL mode is enabled, "patches" the socket
         # object with an extra pending reference, that is going
         # to be to store pending callable operations in it
         if self.ssl: socket_c.pending = None
@@ -907,7 +907,7 @@ class StreamServer(Server):
         connection = self.new_connection(socket_c, address, ssl = self.ssl)
         connection.open()
 
-        # registers the ssl handshake method as a starter method
+        # registers the SSL handshake method as a starter method
         # for the connection, so that the handshake is properly
         # performed on the initial stage of the connection (as expected)
         if self.ssl: connection.add_starter(self._ssl_handshake)
@@ -926,7 +926,7 @@ class StreamServer(Server):
     def _ssl_handshake(self, connection):
         Server._ssl_handshake(self, connection)
 
-        # verifies if the socket still has finished the ssl handshaking
+        # verifies if the socket still has finished the SSL handshaking
         # process (by verifying the appropriate flag) and then if that's
         # not the case returns immediately (nothing done)
         if not connection.ssl_handshake: return
@@ -936,6 +936,6 @@ class StreamServer(Server):
         self.debug("SSL Handshaking completed for connection")
 
         # calls the proper callback on the connection meaning
-        # that ssl is now enabled for that socket/connection and so
+        # that SSL is now enabled for that socket/connection and so
         # the communication between peers is now secured
         self.on_ssl(connection)
