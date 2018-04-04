@@ -261,6 +261,8 @@ class HTTPProtocol(netius.StreamProtocol):
         # as open returns the control flow immediately (nothing to be don)
         if not self.is_open(): return
 
+        # creates a new HTTP parser instance and set the correct event
+        # handlers so that the data parsing is properly handled
         self.parser = netius.common.HTTPParser(self, type = netius.common.RESPONSE)
         self.parser.bind("on_data", self._on_data)
         self.parser.bind("on_partial", self.on_partial)
