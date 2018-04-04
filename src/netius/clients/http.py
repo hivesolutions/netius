@@ -1106,10 +1106,11 @@ class HTTPClient(netius.StreamClient):
         # in case no HTTP client instance is provided tries to
         # retrieve a static global one (singleton) to be used
         # for the current request operation
-        if not http_client: http_client = cls.get_client_s(
-            daemon = daemon,
-            **kwargs
-        )
+        if not http_client:
+            http_client = cls.get_client_s(
+                daemon = daemon,
+                **kwargs
+            )
 
         # calls the underlying method on the current HTTP client
         # propagating most of the arguments, and retrieves the resulting
@@ -1129,7 +1130,8 @@ class HTTPClient(netius.StreamClient):
             on_close = on_close,
             on_headers = on_headers,
             on_data = on_data,
-            on_result = on_result
+            on_result = on_result,
+            **kwargs
         )
 
         # returns the "final" result to the caller method so that
@@ -1257,7 +1259,8 @@ class HTTPClient(netius.StreamClient):
         on_headers = None,
         on_data = None,
         on_result = None,
-        loop = None
+        loop = None,
+        **kwargs
     ):
         # extracts the reference to the upper class element associated
         # with the current instance, to be used for operations
@@ -1274,7 +1277,7 @@ class HTTPClient(netius.StreamClient):
         # in case the current execution model is not asynchronous a new
         # loop context must exist otherwise it may collide with the global
         # event loop execution creating unwanted behaviour
-        if not asynchronous: loop = loop or netius.new_loop()
+        if not asynchronous: loop = loop or netius.new_loop(**kwargs)
 
         # creates the new protocol instance that is going to be used to
         # handle this new request, a new protocol represents also a new
