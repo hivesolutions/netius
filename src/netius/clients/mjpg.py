@@ -128,7 +128,7 @@ if __name__ == "__main__":
         print("Saved frame %08d of %d bytes" % (index, len(data)))
 
     def on_finish(protocol):
-        netius.stop_loop()
+        netius.compat_loop(loop).stop()
 
     client = MJPGClient()
     loop, protocol = client.get("http://euglena.stanford.edu:20005/?action=stream")

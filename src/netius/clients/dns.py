@@ -486,7 +486,7 @@ if __name__ == "__main__":
         # retrieves the currently associated loop using
         # netius base infra-structure and then runs the
         # stop operation on the next tick end
-        netius.stop_loop()
+        netius.compat_loop(loop).stop()
 
         # in case the provided response is not valid
         # a timeout message is printed to indicate the

@@ -102,6 +102,12 @@ class Protocol(observer.Observable):
     def connection_lost(self, exception):
         self.close()
 
+    def transport(self):
+        return self._transport
+
+    def loop(self):
+        return self._loop
+
     def loop_set(self, loop):
         self._loop = loop
 
@@ -164,14 +170,14 @@ class Protocol(observer.Observable):
 
     def _delay_send(self, data, address = None, callback = None):
         item = (data, address, callback)
-        self._delays.append(item)
+        self._delayed.append(item)
         return len(data)
 
     def _flush_send(self):
         while True:
-            if not self._delays: break
+            if not self._delayed: break
             if not self._writing: break
-            data, address, callback = self._delays.pop(0)
+            data, address, callback = self._delayed.pop(0)
             if address: self.send(data, address, callback = callback)
             else: self.send(data, callback = callback)
 
