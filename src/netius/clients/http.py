@@ -303,90 +303,6 @@ class HTTPProtocol(netius.StreamProtocol):
         netius.StreamProtocol.loop_set(self, loop)
         self.set_dynamic()
 
-    def set(
-        self,
-        method,
-        url,
-        params = None,
-        headers = None,
-        data = None,
-        version = "HTTP/1.1",
-        encoding = PLAIN_ENCODING,
-        encodings = "gzip, deflate",
-        safe = False,
-        request = False,
-        asynchronous = True,
-        timeout = None,
-        use_file = False,
-        callback = None,
-        on_close = None,
-        on_headers = None,
-        on_data = None,
-        on_result = None,
-    ):
-        self.method = method.upper()
-        self.url = url
-        self.params = params or {}
-        self.headers = headers or {}
-        self.data = data
-        self.version = version
-        self.encoding = encoding
-        self.current = encoding
-        self.encodings = encodings
-        self.safe = safe
-        self.asynchronous = asynchronous
-        self.timeout = timeout or 60
-        self.use_file = use_file
-        self.parsed = False
-        self.request = None
-        self.ssl = False
-        self.host = None
-        self.port = None
-        self.path = None
-        self.gzip = None
-        self.gzip_c = None
-
-        # runs the unbind all operation to make sure that no handlers is
-        # currently registered for operations
-        self.unbind_all()
-
-        # in case there's an HTTP parser already set for the protocol runs
-        # the reset operation so that its state is guaranteed to be clean
-        if self.parser: self.parser.clear()
-
-        # tries to determine if the protocol response should be request
-        # wrapped, meaning that a map based object is going to be populated
-        # with the contents of the HTTP request/response
-        wrap_request = request or (not asynchronous and not on_data and not callback)
-        wrap_request = wrap_request or on_result
-
-        # in case the wrap request flag is set (conditions for request usage
-        # are met) the protocol is called to run the wrapping operation
-        if wrap_request:
-            _request, on_close, on_data, callback = self.wrap_request(
-                use_file = use_file,
-                callback = callback,
-                on_close = on_close,
-                on_data = on_data,
-                on_result = on_result
-            )
-
-        # registers for the proper event handlers according to the
-        # provided parameters, note that these are considered to be
-        # the lower level infra-structure of the event handling
-        if on_close: self.bind("close", on_close)
-        if on_headers: self.bind("headers", on_headers)
-        if on_data: self.bind("partial", on_data)
-        if callback: self.bind("message", callback)
-
-        # sets the static part of the protocol internal (no loop is required)
-        # so that the required initials fields are properly populated
-        self.set_static()
-
-        # returns the current instance with the proper modified state
-        # according to the current changes
-        return self
-
     def flush(self, force = False, callback = None):
         if self.current == DEFLATE_ENCODING:
             self._flush_gzip(force = force, callback = callback)
@@ -561,6 +477,90 @@ class HTTPProtocol(netius.StreamProtocol):
             callback = callback
         )
 
+    def set(
+        self,
+        method,
+        url,
+        params = None,
+        headers = None,
+        data = None,
+        version = "HTTP/1.1",
+        encoding = PLAIN_ENCODING,
+        encodings = "gzip, deflate",
+        safe = False,
+        request = False,
+        asynchronous = True,
+        timeout = None,
+        use_file = False,
+        callback = None,
+        on_close = None,
+        on_headers = None,
+        on_data = None,
+        on_result = None,
+    ):
+        self.method = method.upper()
+        self.url = url
+        self.params = params or {}
+        self.headers = headers or {}
+        self.data = data
+        self.version = version
+        self.encoding = encoding
+        self.current = encoding
+        self.encodings = encodings
+        self.safe = safe
+        self.asynchronous = asynchronous
+        self.timeout = timeout or 60
+        self.use_file = use_file
+        self.parsed = False
+        self.request = None
+        self.ssl = False
+        self.host = None
+        self.port = None
+        self.path = None
+        self.gzip = None
+        self.gzip_c = None
+
+        # runs the unbind all operation to make sure that no handlers is
+        # currently registered for operations
+        self.unbind_all()
+
+        # in case there's an HTTP parser already set for the protocol runs
+        # the reset operation so that its state is guaranteed to be clean
+        if self.parser: self.parser.clear()
+
+        # tries to determine if the protocol response should be request
+        # wrapped, meaning that a map based object is going to be populated
+        # with the contents of the HTTP request/response
+        wrap_request = request or (not asynchronous and not on_data and not callback)
+        wrap_request = wrap_request or on_result
+
+        # in case the wrap request flag is set (conditions for request usage
+        # are met) the protocol is called to run the wrapping operation
+        if wrap_request:
+            _request, on_close, on_data, callback = self.wrap_request(
+                use_file = use_file,
+                callback = callback,
+                on_close = on_close,
+                on_data = on_data,
+                on_result = on_result
+            )
+
+        # registers for the proper event handlers according to the
+        # provided parameters, note that these are considered to be
+        # the lower level infra-structure of the event handling
+        if on_close: self.bind("close", on_close)
+        if on_headers: self.bind("headers", on_headers)
+        if on_data: self.bind("partial", on_data)
+        if callback: self.bind("message", callback)
+
+        # sets the static part of the protocol internal (no loop is required)
+        # so that the required initials fields are properly populated
+        self.set_static()
+
+        # returns the current instance with the proper modified state
+        # according to the current changes
+        return self
+
     def set_all(self):
         self.set_static()
         self.set_dynamic()
@@ -635,6 +635,10 @@ class HTTPProtocol(netius.StreamProtocol):
         # for class level operations
         cls = self.__class__
 
+        # saves the current request instance locally to be used latter
+        # for request verification (integrity check)
+        request = self.request
+
         # creates a function that is going to be used to validate
         # the receive operation of the connection (receive timeout)
         def receive_timeout():
@@ -645,6 +649,7 @@ class HTTPProtocol(netius.StreamProtocol):
             if not self.request: return
             if not self.is_open(): return
             if self.request["code"]: return
+            if not id(request) == id(self.request): return
 
             # retrieves the current time and the time of the last data
             # receive operation and using that calculates the delta
@@ -1101,10 +1106,11 @@ class HTTPClient(netius.StreamClient):
         # in case no HTTP client instance is provided tries to
         # retrieve a static global one (singleton) to be used
         # for the current request operation
-        if not http_client: http_client = cls.get_client_s(
-            daemon = daemon,
-            **kwargs
-        )
+        if not http_client:
+            http_client = cls.get_client_s(
+                daemon = daemon,
+                **kwargs
+            )
 
         # calls the underlying method on the current HTTP client
         # propagating most of the arguments, and retrieves the resulting
@@ -1124,7 +1130,8 @@ class HTTPClient(netius.StreamClient):
             on_close = on_close,
             on_headers = on_headers,
             on_data = on_data,
-            on_result = on_result
+            on_result = on_result,
+            **kwargs
         )
 
         # returns the "final" result to the caller method so that
@@ -1161,6 +1168,11 @@ class HTTPClient(netius.StreamClient):
         message = message or "Undefined error (%s)" % error
         if exception: raise exception
         raise netius.NetiusError(message)
+
+    def cleanup(self):
+        netius.StreamClient.cleanup(self)
+        for protocol in netius.legacy.values(self.available):
+            protocol.close()
 
     def get(
         self,
@@ -1247,7 +1259,8 @@ class HTTPClient(netius.StreamClient):
         on_headers = None,
         on_data = None,
         on_result = None,
-        loop = None
+        loop = None,
+        **kwargs
     ):
         # extracts the reference to the upper class element associated
         # with the current instance, to be used for operations
@@ -1264,7 +1277,7 @@ class HTTPClient(netius.StreamClient):
         # in case the current execution model is not asynchronous a new
         # loop context must exist otherwise it may collide with the global
         # event loop execution creating unwanted behaviour
-        if not asynchronous: loop = loop or netius.new_loop()
+        if not asynchronous: loop = loop or netius.new_loop(**kwargs)
 
         # creates the new protocol instance that is going to be used to
         # handle this new request, a new protocol represents also a new
@@ -1313,13 +1326,21 @@ class HTTPClient(netius.StreamClient):
         if asynchronous: return loop, protocol
 
         def on_message(protocol, parser, message):
+            # in case the auto release (no connection re-usage) mode is
+            # set the protocol is closed immediately
             if self.auto_release:
                 protocol.close()
+
+            # otherwise the protocol is set in the available map and
+            # the only the loop is stopped (unblocking the processor)
             else:
                 self.available[key] = protocol
                 netius.compat_loop(loop).stop()
 
         def on_close(protocol):
+            # because the protocol was closed we must release it from
+            # the available map (if it exits) and then unblock the current
+            # event loop call (stop operation)
             self.available.pop(key, None)
             netius.compat_loop(loop).stop()
 

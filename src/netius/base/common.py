@@ -66,7 +66,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.17.3"
+VERSION = "1.17.5"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -908,8 +908,8 @@ class AbstractBase(observer.Observable):
 
     def run_forever(self):
         # starts the current event loop, this is a blocking operation until
-        # the done callback is called to stop the loop
-        self.forever()
+        # the the stop method is called to unblock the loop
+        self.forever(env = False)
 
     def run_coroutine(
         self,
@@ -1467,8 +1467,8 @@ class AbstractBase(observer.Observable):
         # in case the current thread is the main one, the global main instance
         # is set as the current instance, just in case no main variable is
         # already set otherwise corruption may occur (override of value)
-        if self._main and not AbstractBase.get_main():
-            AbstractBase.set_main(self)
+        if self._main and not Base.get_main():
+            Base.set_main(self)
 
         # enters the main loop operation by printing a message
         # to the logger indicating this start, this stage
@@ -1646,8 +1646,8 @@ class AbstractBase(observer.Observable):
         # in case the current thread is the main one then in case the
         # instance set as global main is this one unsets the value
         # meaning that the main instance has been unloaded
-        if self._main and AbstractBase.get_main() == self:
-            AbstractBase.unset_main()
+        if self._main and Base.get_main() == self:
+            Base.unset_main()
 
         # closes the current poll mechanism so that no more issues arise
         # from an open poll system (memory leaks, etc.), note that this is
@@ -1704,6 +1704,14 @@ class AbstractBase(observer.Observable):
             self.errors(errors)
 
     def block(self):
+        """
+        Runs the sub-blocking operation, by "forking" the current loop
+        execution into an inner one for a new context.
+
+        The execution of this method is not recommended and should be
+        used with extreme care to avoid unwanted behaviour.
+        """
+
         _running = self._running
         try: self.loop()
         finally: self._running = _running
@@ -3649,51 +3657,66 @@ class BaseThread(threading.Thread):
             self.owner._thread = None
             self.owner = None
 
-def new_loop_main(factory = None, _compat = None):
-    factory = factory or AbstractBase
-    instance = factory()
+def new_loop_main(factory = None, _compat = None, **kwargs):
+    factory = factory or Base
+    instance = factory(**kwargs)
     return compat_loop(compat) if _compat else instance
 
-def new_loop_asyncio():
+def new_loop_asyncio(**kwargs):
     asyncio = asynchronous.get_asyncio()
     if not asyncio: return None
     return asyncio.new_event_loop()
 
-def new_loop(factory = None, _compat = None, asyncio = None):
+def new_loop(factory = None, _compat = None, asyncio = None, **kwargs):
     _compat = compat.is_compat() if _compat == None else _compat
     asyncio = compat.is_asyncio() if asyncio == None else asyncio
-    if asyncio: return new_loop_asyncio()
-    else: return new_loop_main(factory = factory, _compat = _compat)
+    if asyncio: return new_loop_asyncio(**kwargs)
+    else: return new_loop_main(factory = factory, _compat = _compat, **kwargs)
 
-def ensure_main(factory = None):
-    if AbstractBase.get_main(): return
-    factory = factory or AbstractBase
-    instance = factory()
-    AbstractBase.set_main(instance)
+def ensure_main(factory = None, **kwargs):
+    if Base.get_main(): return
+    factory = factory or Base
+    instance = factory(**kwargs)
+    Base.set_main(instance)
 
-def ensure_asyncio():
+def ensure_asyncio(**kwargs):
     asyncio = asynchronous.get_asyncio()
     if not asyncio: return None
     return asyncio.get_event_loop()
 
-def ensure_loop(factory = None, asyncio = None):
+def ensure_loop(factory = None, asyncio = None, **kwargs):
     asyncio = compat.is_asyncio() if asyncio == None else asyncio
     if asyncio: ensure_asyncio()
-    else: ensure_main(factory = factory)
+    else: ensure_main(factory = factory, **kwargs)
 
-def get_main(factory = None, ensure = True):
-    if ensure: ensure_main(factory = factory)
-    return AbstractBase.get_main()
+def get_main(factory = None, ensure = True, **kwargs):
+    if ensure: ensure_main(factory = factory, **kwargs)
+    return Base.get_main()
 
-def get_loop(factory = None, ensure = True, _compat = None, asyncio = None):
+def get_loop(
+    factory = None,
+    ensure = True,
+    _compat = None,
+    asyncio = None,
+    **kwargs
+):
     _compat = compat.is_compat() if _compat == None else _compat
     asyncio = compat.is_asyncio() if asyncio == None else asyncio
     if ensure: ensure_loop(factory = factory, asyncio = asyncio)
-    loop = AbstractBase.get_loop(compat = _compat, asyncio = asyncio)
-    loop = loop or get_main(factory = factory)
+    loop = Base.get_loop(compat = _compat, asyncio = asyncio)
+    loop = loop or get_main(factory = factory, **kwargs)
     return loop
 
 def get_event_loop(*args, **kwargs):
+    """
+    Compatibility alias method with the `get_loop()` one
+    to ensure proper compatibility with asyncio.
+
+    :rtype: EventLoop
+    :return: The event loop for the current context of
+    execution (if any) or else None.
+    """
+
     return get_loop(*args, **kwargs)
 
 def stop_loop(compat = True, asyncio = True):
