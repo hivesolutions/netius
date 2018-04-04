@@ -316,6 +316,8 @@ class DNSProtocol(netius.DatagramProtocol):
         if ns: return ns[0]
         ns = cls.ns_google(type = type)
         if ns: return ns[0]
+        ns = cls.ns_cloudfare(type = type)
+        if ns: return ns[0]
         return None
 
     @classmethod
@@ -365,6 +367,15 @@ class DNSProtocol(netius.DatagramProtocol):
         if type == "ip6": return [
             "2001:4860:4860::8888",
             "2001:4860:4860::8844"
+        ]
+        return []
+
+    @classmethod
+    def ns_cloudfare(cls, type = "ip4"):
+        if type == "ip4": return ["1.1.1.1", "1.0.0.1"]
+        if type == "ip6": return [
+            "2606:4700:4700::1111",
+            "2606:4700:4700::1001"
         ]
         return []
 
