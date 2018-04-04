@@ -1882,7 +1882,7 @@ class AbstractBase(observer.Observable):
 
         # in case a callback is defined schedules its execution for the next
         # tick to avoid possible issues with same tick registration
-        if callback: self.delay(lambda: callback(connection), immediately = True)
+        if callback: self.delay(lambda: callback(connection, True), immediately = True)
 
         # returns the connection to the caller method so that it may be used
         # for operation from now on (latter usage)
