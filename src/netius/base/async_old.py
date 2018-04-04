@@ -180,7 +180,7 @@ class Future(object):
         self._loop = future._loop
         self._blocking = future._blocking
         self._result = future._result
-        self._exception = future._result
+        self._exception = future._exception
 
     def _delay(self, callable):
         has_delay = hasattr(self._loop, "delay")

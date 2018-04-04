@@ -806,6 +806,14 @@ class AbstractBase(observer.Observable):
                 # iteration cycle is delayed until the next tick
                 if not future.ready: self.delay(callable); break
 
+                # in case the finished future has been canceled propagates
+                # such cancellation to the parent future
+                if _future.cancelled(): future.cancel(); break
+
+                # in case there's an exception in the future that has just
+                # been executed propagates such exception to the parent future
+                if _future.exception(): future.set_exception(_future.exception()); break
+
                 # retrieves the next value from the generator and in case
                 # value is the last one (stop iteration) verifies if the
                 # is still considered running (no value or exception) set and
@@ -1993,9 +2001,17 @@ class AbstractBase(observer.Observable):
             immediately = True
         )
 
+        def on_close(conection):
+            callback and callback(connection, False)
+
+        def on_connect(conection):
+            connection.unbind("close", on_close)
+            callback and callback(connection, True)
+
         # in case there's a callback defined for the connection establishment
         # then registers such callback for the connect event in the connection
-        if callback: connection.bind("connect", callback, oneshot = True)
+        if callback: connection.bind("connect", on_connect, oneshot = True)
+        if callback: connection.bind("close", on_close, oneshot = True)
 
         # returns the "final" connection, that is now scheduled for connect
         # to the caller method, it may now be used for operations
