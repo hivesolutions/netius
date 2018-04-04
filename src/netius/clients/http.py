@@ -1171,8 +1171,13 @@ class HTTPClient(netius.StreamClient):
 
     def cleanup(self):
         netius.StreamClient.cleanup(self)
+
+        # iterates over the complete set of protocol instances
+        # to be re-used and closes them, then empties the map
+        # of available instances (no more re-usage possible)
         for protocol in netius.legacy.values(self.available):
             protocol.close()
+        self.available.clear()
 
     def get(
         self,
