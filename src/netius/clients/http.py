@@ -1318,8 +1318,13 @@ class HTTPClient(netius.StreamClient):
         if asynchronous: return loop, protocol
 
         def on_message(protocol, parser, message):
+            # in case the auto release (no connection re-usage) mode is
+            # set the protocol is closed immediately
             if self.auto_release:
                 protocol.close()
+
+            # otherwise the protocol is set in the available map and
+            # the only the loop is stopped (unblocking the processor)
             else:
                 self.available[key] = protocol
                 netius.compat_loop(loop).stop()
