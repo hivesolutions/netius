@@ -635,6 +635,10 @@ class HTTPProtocol(netius.StreamProtocol):
         # for class level operations
         cls = self.__class__
 
+        # saves the current request instance locally to be used latter
+        # for request verification (integrity check)
+        request = self.request
+
         # creates a function that is going to be used to validate
         # the receive operation of the connection (receive timeout)
         def receive_timeout():
@@ -645,6 +649,7 @@ class HTTPProtocol(netius.StreamProtocol):
             if not self.request: return
             if not self.is_open(): return
             if self.request["code"]: return
+            if not id(request) == id(self.request): return
 
             # retrieves the current time and the time of the last data
             # receive operation and using that calculates the delta
