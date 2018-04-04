@@ -102,6 +102,12 @@ class Protocol(observer.Observable):
     def connection_lost(self, exception):
         self.close()
 
+    def transport(self):
+        return self._transport
+
+    def loop(self):
+        return self._loop
+
     def loop_set(self, loop):
         self._loop = loop
 
