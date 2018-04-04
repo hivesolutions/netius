@@ -1330,6 +1330,9 @@ class HTTPClient(netius.StreamClient):
                 netius.compat_loop(loop).stop()
 
         def on_close(protocol):
+            # because the protocol was closed we must release it from
+            # the available map (if it exits) and then unblock the current
+            # event loop call (stop operation)
             self.available.pop(key, None)
             netius.compat_loop(loop).stop()
 
