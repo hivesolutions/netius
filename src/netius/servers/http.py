@@ -48,12 +48,6 @@ import netius.common
 from netius.common import PLAIN_ENCODING, CHUNKED_ENCODING,\
     GZIP_ENCODING, DEFLATE_ENCODING
 
-BASE_HEADERS = {
-    "Server" : netius.IDENTIFIER
-}
-""" The map containing the complete set of headers
-that are meant to be applied to all the responses """
-
 Z_PARTIAL_FLUSH = 1
 """ The zlib constant value representing the partial flush
 of the current zlib stream, this value has to be defined
@@ -594,6 +588,12 @@ class HTTPServer(netius.StreamServer):
     headers and read of data.
     """
 
+    BASE_HEADERS = {
+        "Server" : netius.IDENTIFIER
+    }
+    """ The map containing the complete set of headers
+    that are meant to be applied to all the responses """
+
     def __init__(self, encoding = "plain", common_log = None, *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.encoding_s = encoding
@@ -828,7 +828,8 @@ class HTTPServer(netius.StreamServer):
         self._apply_connection(connection, headers)
 
     def _apply_base(self, headers, replace = False):
-        for key, value in netius.legacy.iteritems(BASE_HEADERS):
+        cls = self.__class__
+        for key, value in netius.legacy.iteritems(cls.BASE_HEADERS):
             if not replace and key in headers: continue
             headers[key] = value
 

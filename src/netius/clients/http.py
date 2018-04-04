@@ -52,18 +52,18 @@ Z_PARTIAL_FLUSH = 1
 of the current zlib stream, this value has to be defined
 locally as it is not defines under the zlib module """
 
-BASE_HEADERS = {
-    "user-agent" : netius.IDENTIFIER
-}
-""" The map containing the complete set of headers
-that are meant to be applied to all the requests """
-
 class HTTPProtocol(netius.StreamProtocol):
     """
     Implementation of the HTTP protocol to be used by a client
     of the HTTP implementation to send requests and receive
     responses.
     """
+
+    BASE_HEADERS = {
+        "user-agent" : netius.IDENTIFIER
+    }
+    """ The map containing the complete set of headers
+    that are meant to be applied to all the requests """
 
     def __init__(
         self,
@@ -867,7 +867,8 @@ class HTTPProtocol(netius.StreamProtocol):
             if not safe: raise
 
     def _apply_base(self, headers, replace = False):
-        for key, value in netius.legacy.iteritems(BASE_HEADERS):
+        cls = self.__class__
+        for key, value in netius.legacy.iteritems(cls.BASE_HEADERS):
             if not replace and key in headers: continue
             headers[key] = value
 
@@ -1036,6 +1037,9 @@ class HTTPClient(netius.StreamClient):
             **kwargs
         )
 
+        # calls the underlying method on the current HTTP client
+        # propagating most of the arguments, and retrieves the resulting
+        # value to be propagated to the current method's caller
         result = http_client.method(
             method,
             url,
