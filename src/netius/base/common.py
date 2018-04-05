@@ -3728,8 +3728,13 @@ def compat_loop(loop):
     :return: The asyncio API compatible event loop object.
     """
 
+    print("compat_loop first")
+    print(loop)
+    import sys
+    sys.stdout.flush()
+
     value = loop._compat if hasattr(loop, "_compat") else loop
-    print("compat_loop")
+    print("compat_loop second")
     print(value)
     import sys
     sys.stdout.flush()
