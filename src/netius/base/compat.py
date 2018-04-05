@@ -65,6 +65,7 @@ class CompatLoop(BaseLoop):
 
     def __init__(self, loop):
         self._loop = weakref.proxy(loop)
+        self._loop_ref = weakref.ref(loop)
         self._task_factory = asynchronous.Task
         self._executor = asynchronous.ThreadPoolExecutor(loop)
         self._handler = self._default_handler
