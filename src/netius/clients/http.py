@@ -1358,6 +1358,7 @@ class HTTPClient(netius.ClientAgent):
             print("fim")
             print(loop)
             print(loop._compat)
+            print(netius.compat_loop(loop))
             
             # because the protocol was closed we must release it from
             # the available map (if it exits) and then unblock the current
