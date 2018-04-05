@@ -267,6 +267,8 @@ class DatagramProtocol(Protocol):
         # operation schedules its call for the next tick
         if callback: self.delay(lambda: callback(self._transport))
 
+        # returns the size (in bytes) of the data that has just been
+        # explicitly sent through the associated transport
         return len(data)
 
     def add_request(self, request):
@@ -309,4 +311,6 @@ class StreamProtocol(Protocol):
         # operation schedules its call for the next tick
         if callback: self.delay(lambda: callback(self._transport))
 
+        # returns the size (in bytes) of the data that has just been
+        # explicitly sent through the associated transport
         return len(data)
