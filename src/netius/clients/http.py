@@ -1340,10 +1340,6 @@ class HTTPClient(netius.ClientAgent):
         # immediately so that it can be properly used by the caller
         if asynchronous: return loop, protocol
 
-        print("inicio")
-        print(loop)
-        print(loop._compat)
-
         def on_message(protocol, parser, message):
             # in case the auto release (no connection re-usage) mode is
             # set the protocol is closed immediately
@@ -1357,19 +1353,15 @@ class HTTPClient(netius.ClientAgent):
                 netius.compat_loop(loop).stop()
 
         def on_close(protocol):
-            print("fim")
-            print(loop)
-            print(loop._compat)
-            print(netius.compat_loop(loop))
-
             # because the protocol was closed we must release it from
             # the available map (if it exits) and then unblock the current
             # event loop call (stop operation)
             self.available.pop(key, None)
-
-            a = netius.compat_loop(loop)
-            print(a)
-            a.stop()
+            
+            # tries to retrieve the loop compatible value and if it's
+            # successful runs the stop operation on the loop
+            compat_loop = netius.compat_loop(loop)
+            if compat_loop: compat_loop.stop()
 
         # binds the protocol message and finish events to the associated
         # function for proper handling
@@ -1381,9 +1373,7 @@ class HTTPClient(netius.ClientAgent):
         # used was not the client's static loop that the loop is also closed
         # (garbage collection of the event loop)
         loop.run_forever()
-        #if not loop == self._loop and not user_loop:
-        #    print("CLOSING LOOP!!!")
-        #    loop.close()
+        if not loop == self._loop and not user_loop: loop.close()
 
         # returns the final request object (that should be populated by this
         # time) to the called method
@@ -1394,11 +1384,9 @@ class HTTPClient(netius.ClientAgent):
         return self._loop
 
     def _close_loop(self):
-        pass
-        #if not self._loop: return
-        #print("CLOSING LOOP GLOBAL!!!")
-        #self._loop.close()
-        #self._loop = None
+        if not self._loop: return
+        self._loop.close()
+        self._loop = None
 
 if __name__ == "__main__":
     buffer = []
