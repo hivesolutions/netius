@@ -66,7 +66,11 @@ class Protocol(observer.Observable):
         # call as it's considered a double opening
         if not self._closed: return
 
+        # unmarks the current protocol from closed (and clsogin)
+        # meaning that it's going to be opened one more time and
+        # so it must not be considered as closed
         self._closed = False
+        self._closing = False
 
         self.trigger("open", self)
 
@@ -76,6 +80,8 @@ class Protocol(observer.Observable):
         if self._closed: return
         if self._closing: return
 
+        # marks the current protocol as closing, meaning that although
+        # the close operation is not yet finished it's starting
         self._closing = True
 
         # runs the close transport call that triggers the process
@@ -94,6 +100,7 @@ class Protocol(observer.Observable):
 
     def finish(self):
         if self._closed: return
+        if not self._closing: return
 
         del self._delayed[:]
 
