@@ -3728,7 +3728,12 @@ def compat_loop(loop):
     :return: The asyncio API compatible event loop object.
     """
 
-    return loop._compat if hasattr(loop, "_compat") else loop
+    value = loop._compat if hasattr(loop, "_compat") else loop
+    print("compat_loop")
+    print(value)
+    import sys
+    sys.stdout.flush()
+    return value
 
 def get_poll():
     main = get_main()
