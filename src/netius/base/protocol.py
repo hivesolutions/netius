@@ -61,11 +61,19 @@ class Protocol(observer.Observable):
         self._delayed = []
 
     def open(self):
+        # in case the protocol is already open ignores the current
+        # call as it's considered a double opening
+        if not self._closed: return
+
         self._closed = False
 
         self.trigger("open", self)
 
     def close(self):
+        # in case the protocol is already closed ignores the current
+        # call considering it a double closing operation
+        if self._closed: return
+
         # runs the close transport call that triggers the process
         # of closing the underlying transport method, notice that
         # this operation is only considered to be safely completed
@@ -81,6 +89,8 @@ class Protocol(observer.Observable):
         self.trigger("close", self)
 
     def finish(self):
+        if self._closed: return
+
         del self._delayed[:]
 
         self._transport = None
