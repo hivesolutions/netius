@@ -1338,6 +1338,9 @@ class HTTPClient(netius.ClientAgent):
         # immediately so that it can be properly used by the caller
         if asynchronous: return loop, protocol
 
+        print("inicio")
+        print(loop)
+
         def on_message(protocol, parser, message):
             # in case the auto release (no connection re-usage) mode is
             # set the protocol is closed immediately
@@ -1351,6 +1354,9 @@ class HTTPClient(netius.ClientAgent):
                 netius.compat_loop(loop).stop()
 
         def on_close(protocol):
+            print("fim")
+            print(loop)
+            
             # because the protocol was closed we must release it from
             # the available map (if it exits) and then unblock the current
             # event loop call (stop operation)
