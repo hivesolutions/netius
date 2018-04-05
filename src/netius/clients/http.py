@@ -1357,7 +1357,7 @@ class HTTPClient(netius.ClientAgent):
             # the available map (if it exits) and then unblock the current
             # event loop call (stop operation)
             self.available.pop(key, None)
-            
+
             print("on_close():protocol")
             print(loop)
             print("---------------")
