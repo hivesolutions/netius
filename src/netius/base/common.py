@@ -1672,6 +1672,7 @@ class AbstractBase(observer.Observable):
         # the poll that is going to be closed (works with containers)
         if self.poll_owner: self.poll.close()
         
+        traceback.print_stack()
         print("\n\n------------------")
         print("cleanup")
         print(self)
