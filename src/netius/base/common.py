@@ -1673,10 +1673,6 @@ class AbstractBase(observer.Observable):
         # the poll that is going to be closed (works with containers)
         if self.poll_owner: self.poll.close()
 
-        # unsets some of the references that would otherwise create some
-        # loops in references (circular references) creating possible leaks
-        self._compat = None
-
         # deletes some of the internal data structures created for the instance
         # and that are considered as they are considered to be no longer required
         self.connections_m.clear()

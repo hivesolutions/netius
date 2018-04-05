@@ -40,6 +40,7 @@ __license__ = "Apache License, Version 2.0"
 import sys
 import time
 import socket
+import weakref
 
 from . import config
 from . import errors
@@ -63,7 +64,7 @@ class CompatLoop(BaseLoop):
     """
 
     def __init__(self, loop):
-        self._loop = loop
+        self._loop = weakref.proxy(loop)
         self._task_factory = asynchronous.Task
         self._executor = asynchronous.ThreadPoolExecutor(loop)
         self._handler = self._default_handler
