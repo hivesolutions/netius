@@ -3681,6 +3681,10 @@ def new_loop_main(factory = None, _compat = None, **kwargs):
         print(Base.get_main())
         print(instance)
         sys.stdout.flush()
+        
+        # @o problema e que ele se torna main quando arranca tnho de o anomar
+        
+    instance._main = False
 
     return compat_loop(instance) if _compat else instance
 
