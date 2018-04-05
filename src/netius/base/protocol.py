@@ -127,6 +127,9 @@ class Protocol(observer.Observable):
         # callable is called immediately
         if not self._loop: return callable()
 
+        # verifies if the assigned loop contains the non standard
+        # delay method and if that's the case calls it instead of
+        # the base asyncio API ones (compatibility)
         if hasattr(self._loop, "delay"):
             immediately = timeout == None
             return self._loop.delay(
@@ -135,6 +138,8 @@ class Protocol(observer.Observable):
                 immediately = immediately
             )
 
+        # calls the proper call method taking into account if a timeout
+        # value exists or not (soon against later)
         if timeout: return self._loop.call_later(timeout, callable)
         else: return self._loop.call_soon(callable)
 
