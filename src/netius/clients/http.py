@@ -1367,7 +1367,7 @@ class HTTPClient(netius.ClientAgent):
 
             a = netius.compat_loop(loop)
             print(a)
-            netius.compat_loop(a).stop()
+            a.stop()
 
         # binds the protocol message and finish events to the associated
         # function for proper handling
