@@ -1357,10 +1357,10 @@ class HTTPClient(netius.ClientAgent):
             # the available map (if it exits) and then unblock the current
             # event loop call (stop operation)
             self.available.pop(key, None)
-            
+
             # tries to retrieve the loop compatible value and if it's
             # successful runs the stop operation on the loop
-            netius.compat_loop(loop.transport()).stop()
+            netius.compat_loop(loop).stop()
 
         # binds the protocol message and finish events to the associated
         # function for proper handling
