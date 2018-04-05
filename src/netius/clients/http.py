@@ -81,6 +81,7 @@ class HTTPProtocol(netius.StreamProtocol):
         timeout = None,
         use_file = False,
         callback = None,
+        on_init = None,
         on_open = None,
         on_close = None,
         on_headers = None,
@@ -106,6 +107,7 @@ class HTTPProtocol(netius.StreamProtocol):
             timeout = timeout,
             use_file = use_file,
             callback = callback,
+            on_init = on_init,
             on_open = on_open,
             on_close = on_close,
             on_headers = on_headers,
@@ -498,6 +500,7 @@ class HTTPProtocol(netius.StreamProtocol):
         timeout = None,
         use_file = False,
         callback = None,
+        on_init = None,
         on_open = None,
         on_close = None,
         on_headers = None,
@@ -554,6 +557,7 @@ class HTTPProtocol(netius.StreamProtocol):
         # registers for the proper event handlers according to the
         # provided parameters, note that these are considered to be
         # the lower level infra-structure of the event handling
+        if on_init: self.bind("loop_set", on_init)
         if on_open: self.bind("open", on_open)
         if on_close: self.bind("close", on_close)
         if on_headers: self.bind("headers", on_headers)
@@ -1104,6 +1108,7 @@ class HTTPClient(netius.ClientAgent):
         timeout = None,
         use_file = False,
         callback = None,
+        on_init = None,
         on_open = None,
         on_close = None,
         on_headers = None,
@@ -1136,6 +1141,7 @@ class HTTPClient(netius.ClientAgent):
             timeout = timeout,
             use_file = use_file,
             callback = callback,
+            on_init = on_init,
             on_open = on_open,
             on_close = on_close,
             on_headers = on_headers,
@@ -1274,6 +1280,7 @@ class HTTPClient(netius.ClientAgent):
         timeout = None,
         use_file = False,
         callback = None,
+        on_init = None,
         on_open = None,
         on_close = None,
         on_headers = None,
@@ -1323,6 +1330,7 @@ class HTTPClient(netius.ClientAgent):
             timeout = timeout,
             use_file = use_file,
             callback = callback,
+            on_init = on_init,
             on_open = on_open,
             on_close = on_close,
             on_headers = on_headers,
