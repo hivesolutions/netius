@@ -3685,6 +3685,8 @@ def new_loop_main(factory = None, _compat = None, **kwargs):
     return compat_loop(instance) if _compat else instance
 
 def new_loop_asyncio(**kwargs):
+    print("new_loop_asyncio")
+    sys.stdout.flush()
     asyncio = asynchronous.get_asyncio()
     if not asyncio: return None
     return asyncio.new_event_loop()
@@ -3692,6 +3694,8 @@ def new_loop_asyncio(**kwargs):
 def new_loop(factory = None, _compat = None, asyncio = None, **kwargs):
     _compat = compat.is_compat() if _compat == None else _compat
     asyncio = compat.is_asyncio() if asyncio == None else asyncio
+    print("new_loop")
+    sys.stdout.flush()
     if asyncio: return new_loop_asyncio(**kwargs)
     else: return new_loop_main(factory = factory, _compat = _compat, **kwargs)
 

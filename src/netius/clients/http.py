@@ -1386,10 +1386,11 @@ class HTTPClient(netius.ClientAgent):
         return protocol.request
 
     def _get_loop(self, **kwargs):
-        if not self._loop: self._loop = netius.new_loop(**kwargs)
-        print("BUILT %s" % self._loop)
-        import sys
-        sys.stdout.flush()
+        if not self._loop:
+            print("BUILT %s" % self._loop)
+            import sys
+            sys.stdout.flush()
+            self._loop = netius.new_loop(**kwargs)
         return self._loop
 
     def _close_loop(self):
