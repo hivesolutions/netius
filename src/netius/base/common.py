@@ -347,7 +347,8 @@ class AbstractBase(observer.Observable):
         self._compat = compat.CompatLoop(self)
         self._lid = 0
         self._did = 0
-        self._main = False
+        self._main = kwargs.get("main", False)
+        self._slave = kwargs.get("slave", False)
         self._running = False
         self._pausing = False
         self._loaded = False
@@ -1484,7 +1485,7 @@ class AbstractBase(observer.Observable):
         # in case the current thread is the main one, the global main instance
         # is set as the current instance, just in case no main variable is
         # already set otherwise corruption may occur (override of value)
-        if self._main and not Base.get_main():
+        if self._main and not self._slave and not Base.get_main():
             Base.set_main(self)
 
         # enters the main loop operation by printing a message
@@ -1663,7 +1664,7 @@ class AbstractBase(observer.Observable):
         # in case the current thread is the main one then in case the
         # instance set as global main is this one unsets the value
         # meaning that the main instance has been unloaded
-        if self._main and Base.get_main() == self:
+        if self._main and not self._slave and Base.get_main() == self:
             Base.unset_main()
 
         # closes the current poll mechanism so that no more issues arise
@@ -3668,6 +3669,7 @@ class BaseThread(threading.Thread):
 
 def new_loop_main(factory = None, _compat = None, **kwargs):
     factory = factory or Base
+    kwargs["slave"] = kwargs.pop("slave", True)
     instance = factory(**kwargs)
 
     #@todo check if this makes sense "this is there
@@ -3683,8 +3685,8 @@ def new_loop_main(factory = None, _compat = None, **kwargs):
         sys.stdout.flush()
         
         # @o problema e que ele se torna main quando arranca tnho de o anomar
-        
-    instance._main = False
+    #@todo this is not workking we must use other flag
+    #instance._slave = True
 
     return compat_loop(instance) if _compat else instance
 
