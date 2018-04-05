@@ -1676,7 +1676,9 @@ class AbstractBase(observer.Observable):
         print("\n\n------------------")
         print("cleanup")
         print(self)
+        print("main:" % get_loop())
         print("------------------")
+        sys.stdout.flush()
 
         # unsets some of the references that would otherwise create some
         # loops in references (circular references) creating possible leaks
