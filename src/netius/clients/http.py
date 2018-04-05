@@ -1340,6 +1340,7 @@ class HTTPClient(netius.ClientAgent):
 
         print("inicio")
         print(loop)
+        print(loop._compat)
 
         def on_message(protocol, parser, message):
             # in case the auto release (no connection re-usage) mode is
@@ -1356,6 +1357,7 @@ class HTTPClient(netius.ClientAgent):
         def on_close(protocol):
             print("fim")
             print(loop)
+            print(loop._compat)
             
             # because the protocol was closed we must release it from
             # the available map (if it exits) and then unblock the current
