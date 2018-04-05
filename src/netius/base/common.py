@@ -1676,7 +1676,8 @@ class AbstractBase(observer.Observable):
         print("\n\n------------------")
         print("cleanup")
         print(self)
-        print("main: %s" % get_loop())
+        print("loop: %s" % get_loop())
+        print("main: %s" % get_main())
         print("------------------")
         sys.stdout.flush()
 
@@ -3669,8 +3670,11 @@ def new_loop_main(factory = None, _compat = None, **kwargs):
     factory = factory or Base
     instance = factory(**kwargs)
 
-    #@todo check if this makes sense
-    if Base.get_main() == instance: Base.unset_main()
+    #@todo check if this makes sense "this is there
+    if Base.get_main() == instance:
+        print("VAI FAZER UNSET")
+        sys.stdout.flush()
+        Base.unset_main()
 
     return compat_loop(instance) if _compat else instance
 
