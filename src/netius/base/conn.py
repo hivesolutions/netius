@@ -758,6 +758,16 @@ class BaseConnection(observer.Observable):
                     # object to the list of pending data because the data
                     # has not been correctly sent
                     self.pending.append(data_o)
+
+                    # triggers the "magic" send event notifying any listener that
+                    # a flush send operation has partially performed, may be used for
+                    # external flow control operations
+                    self.trigger("_send", self)
+
+                    # re-raises the current to the upper layers so that they
+                    # can properly handle what happened here, sometime this
+                    # is going to imply a graceful handling other times the
+                    # exception is critical and a more severe handling applies
                     raise
                 else:
                     # decrements the size of the pending buffer by the number
@@ -783,6 +793,11 @@ class BaseConnection(observer.Observable):
         # removes the current connection from the set of connections
         # that are monitored for any write event (no longer required)
         self.remove_write()
+
+        # triggers the "magic" send event notifying any listener that
+        # a flush send operation has been performed, may be used for
+        # external flow control operations
+        self.trigger("_send", self)
 
     def _recv(self, size):
         data = self._recv_restored(size)
