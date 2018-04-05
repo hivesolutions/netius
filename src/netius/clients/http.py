@@ -1276,17 +1276,17 @@ class HTTPClient(netius.ClientAgent):
         # with the current instance, to be used for operations
         cls = self.__class__
 
-        # determines if the loop instance was provided by the user so
-        # that latter on we can determine if it should be closed (garbage
-        # collection or not)
-        user_loop = True if loop else False
-
         # tries to retrieve the unique key from the provided URL and then
         # uses it to try to retrieve a possible already available protocol,
         # for connection re-usage (avoids long establish connection times)
         key = cls.protocol.key(url)
         protocol = self.available.pop(key, None)
         if protocol: loop = loop or protocol.loop()
+
+        # determines if the loop instance was provided by the user so
+        # that latter on we can determine if it should be closed (garbage
+        # collection or not)
+        user_loop = True if loop else False
 
         # in case the current execution model is not asynchronous a new
         # loop context must exist otherwise it may collide with the global
