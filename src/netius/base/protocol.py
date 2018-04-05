@@ -58,14 +58,32 @@ class Protocol(observer.Observable):
         self._loop = None
         self._writing = True
         self._closed = True
+        self._closing = False
         self._delayed = []
 
     def open(self):
+        # in case the protocol is already open ignores the current
+        # call as it's considered a double opening
+        if not self._closed: return
+
+        # unmarks the current protocol from closed (and clsogin)
+        # meaning that it's going to be opened one more time and
+        # so it must not be considered as closed
         self._closed = False
+        self._closing = False
 
         self.trigger("open", self)
 
     def close(self):
+        # in case the protocol is already closed ignores the current
+        # call considering it a double closing operation
+        if self._closed: return
+        if self._closing: return
+
+        # marks the current protocol as closing, meaning that although
+        # the close operation is not yet finished it's starting
+        self._closing = True
+
         # runs the close transport call that triggers the process
         # of closing the underlying transport method, notice that
         # this operation is only considered to be safely completed
@@ -81,12 +99,16 @@ class Protocol(observer.Observable):
         self.trigger("close", self)
 
     def finish(self):
+        if self._closed: return
+        if not self._closing: return
+
         del self._delayed[:]
 
         self._transport = None
         self._loop = None
         self._writing = True
         self._closed = True
+        self._closing = False
 
         self.trigger("finish", self)
 
@@ -122,6 +144,14 @@ class Protocol(observer.Observable):
         self._flush_send()
 
     def delay(self, callable, timeout = None):
+        # in case there's no event loop defined for the protocol
+        # it's not possible to delay this execution and so the
+        # callable is called immediately
+        if not self._loop: return callable()
+
+        # verifies if the assigned loop contains the non standard
+        # delay method and if that's the case calls it instead of
+        # the base asyncio API ones (compatibility)
         if hasattr(self._loop, "delay"):
             immediately = timeout == None
             return self._loop.delay(
@@ -130,6 +160,8 @@ class Protocol(observer.Observable):
                 immediately = immediately
             )
 
+        # calls the proper call method taking into account if a timeout
+        # value exists or not (soon against later)
         if timeout: return self._loop.call_later(timeout, callable)
         else: return self._loop.call_soon(callable)
 
@@ -163,6 +195,11 @@ class Protocol(observer.Observable):
 
     def is_closed(self):
         return self._closed
+
+    def is_devel(self):
+        if not self._loop: return False
+        if not hasattr(self._loop, "is_devel"): return False
+        return self._loop.is_devel()
 
     def _close_transport(self, force = False):
         if not self._transport: return
@@ -226,6 +263,8 @@ class DatagramProtocol(Protocol):
 
         self._transport.sendto(data, address)
 
+        # in case there's a callback associated with the send
+        # operation schedules its call for the next tick
         if callback: self.delay(lambda: callback(self._transport))
 
         return len(data)
@@ -266,6 +305,8 @@ class StreamProtocol(Protocol):
 
         self._transport.write(data)
 
+        # in case there's a callback associated with the send
+        # operation schedules its call for the next tick
         if callback: self.delay(lambda: callback(self._transport))
 
         return len(data)

@@ -347,7 +347,8 @@ class AbstractBase(observer.Observable):
         self._compat = compat.CompatLoop(self)
         self._lid = 0
         self._did = 0
-        self._main = False
+        self._main = kwargs.get("_main", False)
+        self._slave = kwargs.get("_slave", False)
         self._running = False
         self._pausing = False
         self._loaded = False
@@ -797,22 +798,31 @@ class AbstractBase(observer.Observable):
                 # going to be taken and the sequence should be closed as
                 # it's not longer going to be used (for sure), this means
                 # that the blocked coroutine is not going to be resumed
-                if future.closed: sequence.close(); future.cancel(); break
+                if future.closed:
+                    sequence.close()
+                    future.cancel()
+                    break
 
                 # determines if the future is ready to receive new work
                 # this is done using a pipeline of callbacks that must
                 # deliver a positive value so that the future is considered
                 # ready, note that in case the future is not ready the current
                 # iteration cycle is delayed until the next tick
-                if not future.ready: self.delay(callable); break
+                if not future.ready:
+                    self.delay(callable)
+                    break
 
                 # in case the finished future has been canceled propagates
                 # such cancellation to the parent future
-                if _future.cancelled(): future.cancel(); break
+                if _future.cancelled():
+                    future.cancel()
+                    break
 
                 # in case there's an exception in the future that has just
                 # been executed propagates such exception to the parent future
-                if _future.exception(): future.set_exception(_future.exception()); break
+                if _future.exception():
+                    future.set_exception(_future.exception())
+                    break
 
                 # retrieves the next value from the generator and in case
                 # value is the last one (stop iteration) verifies if the
@@ -1411,14 +1421,22 @@ class AbstractBase(observer.Observable):
             try: signal.signal(signum, handler or base_handler)
             except: self.debug("Failed to register %d handler" % signum)
 
+    def bind_env(self):
+        """
+        Binds the current environment values to the current instance.
+        This method has a global behaviour on the current event loop.
+        """
+
+        self.level = self.get_env("LEVEL", self.level)
+        self.diag = self.get_env("DIAG", self.diag, cast = bool)
+        self.middleware = self.get_env("MIDDLEWARE", self.middleware, cast = list)
+        self.children = self.get_env("CHILD", self.children, cast = int)
+        self.children = self.get_env("CHILDREN", self.children, cast = int)
+        self.logging = self.get_env("LOGGING", self.logging)
+        self.poll_name = self.get_env("POLL", self.poll_name)
+
     def forever(self, env = True):
-        if env: self.level = self.get_env("LEVEL", self.level)
-        if env: self.diag = self.get_env("DIAG", self.diag, cast = bool)
-        if env: self.middleware = self.get_env("MIDDLEWARE", self.middleware, cast = list)
-        if env: self.children = self.get_env("CHILD", self.children, cast = int)
-        if env: self.children = self.get_env("CHILDREN", self.children, cast = int)
-        if env: self.logging = self.get_env("LOGGING", self.logging)
-        if env: self.poll_name = self.get_env("POLL", self.poll_name)
+        if env: self.bind_env()
         return self.start()
 
     def start(self):
@@ -1467,7 +1485,7 @@ class AbstractBase(observer.Observable):
         # in case the current thread is the main one, the global main instance
         # is set as the current instance, just in case no main variable is
         # already set otherwise corruption may occur (override of value)
-        if self._main and not Base.get_main():
+        if self._main and not self._slave and not Base.get_main():
             Base.set_main(self)
 
         # enters the main loop operation by printing a message
@@ -1646,7 +1664,7 @@ class AbstractBase(observer.Observable):
         # in case the current thread is the main one then in case the
         # instance set as global main is this one unsets the value
         # meaning that the main instance has been unloaded
-        if self._main and Base.get_main() == self:
+        if self._main and not self._slave and Base.get_main() == self:
             Base.unset_main()
 
         # closes the current poll mechanism so that no more issues arise
@@ -3659,8 +3677,9 @@ class BaseThread(threading.Thread):
 
 def new_loop_main(factory = None, _compat = None, **kwargs):
     factory = factory or Base
+    kwargs["_slave"] = kwargs.pop("_slave", True)
     instance = factory(**kwargs)
-    return compat_loop(compat) if _compat else instance
+    return compat_loop(instance) if _compat else instance
 
 def new_loop_asyncio(**kwargs):
     asyncio = asynchronous.get_asyncio()
@@ -3709,12 +3728,12 @@ def get_loop(
 
 def get_event_loop(*args, **kwargs):
     """
-    Compatibility alias method with the `get_loop()` one
+    Compatibility alias function with the `get_loop()` function
     to ensure proper compatibility with asyncio.
 
     :rtype: EventLoop
-    :return: The event loop for the current context of
-    execution (if any) or else None.
+    :return: The event loop for the current context of execution
+    (if any) otherwise None (invalid).
     """
 
     return get_loop(*args, **kwargs)
