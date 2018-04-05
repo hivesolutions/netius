@@ -991,7 +991,7 @@ class HTTPProtocol(netius.StreamProtocol):
             if not type(value) in (list, tuple): continue
             headers[key] = ";".join(value)
 
-class HTTPClient(netius.StreamClient):
+class HTTPClient(netius.ClientAgent):
     """
     Simple test of an HTTP client, supports a series of basic
     operations and makes use of the HTTP parser from netius.
@@ -1009,7 +1009,7 @@ class HTTPClient(netius.StreamClient):
         *args,
         **kwargs
     ):
-        netius.StreamClient.__init__(self, *args, **kwargs)
+        netius.ClientAgent.__init__(self, *args, **kwargs)
         self.auto_release = auto_release
         self.available = dict()
         self._loop = None
@@ -1171,7 +1171,7 @@ class HTTPClient(netius.StreamClient):
         raise netius.NetiusError(message)
 
     def cleanup(self):
-        netius.StreamClient.cleanup(self)
+        netius.ClientAgent.cleanup(self)
 
         # iterates over the complete set of protocol instances
         # to be re-used and closes them, then empties the map
@@ -1277,6 +1277,11 @@ class HTTPClient(netius.StreamClient):
         # with the current instance, to be used for operations
         cls = self.__class__
 
+        # determines if the loop instance was provided by the user so
+        # that latter on we can determine if it should be closed (garbage
+        # collection or not)
+        user_loop = True if loop else False
+
         # tries to retrieve the unique key from the provided URL and then
         # uses it to try to retrieve a possible already available protocol,
         # for connection re-usage (avoids long establish connection times)
@@ -1359,11 +1364,11 @@ class HTTPClient(netius.StreamClient):
         protocol.bind("close", on_close)
 
         # runs the loop until complete, this should be the main blocking
-        # call into the event loop, notice that in case the auto release
-        # mode is set then the (event) loop is also closed (garbage
-        # collection of the event loop)
+        # call into the event loop, notice that in case the loop that was
+        # used was not the client's static loop that the loop is also closed
+        # (garbage collection of the event loop)
         loop.run_forever()
-        if self.auto_release: loop.close()
+        if not loop == self._loop and not user_loop: loop.close()
 
         # returns the final request object (that should be populated by this
         # time) to the called method

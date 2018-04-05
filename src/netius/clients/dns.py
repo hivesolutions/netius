@@ -444,7 +444,7 @@ class DNSProtocol(netius.DatagramProtocol):
         if not request.callback: return
         request.callback(response)
 
-class DNSClient(netius.DatagramClient):
+class DNSClient(netius.ClientAgent):
 
     protocol = DNSProtocol
 

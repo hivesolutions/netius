@@ -1411,14 +1411,22 @@ class AbstractBase(observer.Observable):
             try: signal.signal(signum, handler or base_handler)
             except: self.debug("Failed to register %d handler" % signum)
 
+    def bind_env(self):
+        """
+        Binds the current environment values to the current instance.
+        This method has a global behaviour on the current event loop.
+        """
+
+        self.level = self.get_env("LEVEL", self.level)
+        self.diag = self.get_env("DIAG", self.diag, cast = bool)
+        self.middleware = self.get_env("MIDDLEWARE", self.middleware, cast = list)
+        self.children = self.get_env("CHILD", self.children, cast = int)
+        self.children = self.get_env("CHILDREN", self.children, cast = int)
+        self.logging = self.get_env("LOGGING", self.logging)
+        self.poll_name = self.get_env("POLL", self.poll_name)
+
     def forever(self, env = True):
-        if env: self.level = self.get_env("LEVEL", self.level)
-        if env: self.diag = self.get_env("DIAG", self.diag, cast = bool)
-        if env: self.middleware = self.get_env("MIDDLEWARE", self.middleware, cast = list)
-        if env: self.children = self.get_env("CHILD", self.children, cast = int)
-        if env: self.children = self.get_env("CHILDREN", self.children, cast = int)
-        if env: self.logging = self.get_env("LOGGING", self.logging)
-        if env: self.poll_name = self.get_env("POLL", self.poll_name)
+        if env: self.bind_env()
         return self.start()
 
     def start(self):

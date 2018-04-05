@@ -37,49 +37,32 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-import netius
+from . import observer
 
-class RawProtocol(netius.StreamProtocol):
+class Agent(observer.Observable):
 
-    def send_basic(self):
-        self.send("GET / HTTP/1.0\r\n\r\n")
+    def cleanup(self, destroy = True):
+        if destroy: self.destroy()
 
-class RawClient(netius.ClientAgent):
+    def destroy(self):
+        observer.Observable.destroy(self)
 
-    protocol = RawProtocol
+class ClientAgent(Agent):
+
+    _client = None
+    """ The global static client meant to be reused by the
+    various static clients that may be created, this client
+    may leak creating blocking threads that will prevent the
+    system from exiting correctly, in order to prevent that
+    the cleanup method should be called """
 
     @classmethod
-    def run_s(cls, host, port = 8080, loop = None):
-        protocol = cls.protocol()
+    def get_client_s(cls, *args, **kwargs):
+        if cls._client: return cls._client
+        cls._client = cls(*args, **kwargs)
+        return cls._client
 
-        loop = netius.connect_stream(
-            lambda: protocol,
-            host = host,
-            port = port,
-            loop = loop
-        )
-
-        return loop, protocol
-
-if __name__ == "__main__":
-
-    def on_open(protocol):
-        protocol.send_basic()
-
-    def on_data(protocol, data):
-        print(data)
-
-    def on_finsh(protocol):
-        netius.compat_loop(loop).stop()
-
-    loop, protocol = RawClient.run_s("localhost")
-
-    protocol.bind("open", on_open)
-    protocol.bind("data", on_data)
-    protocol.bind("finish", on_finsh)
-
-    loop.run_forever()
-    loop.close()
-
-else:
-    __path__ = []
+    @classmethod
+    def cleanup_s(cls):
+        if not cls._client: return
+        cls._client.close()
