@@ -189,6 +189,11 @@ class Protocol(observer.Observable):
     def is_closed(self):
         return self._closed
 
+    def is_devel(self):
+        if not self._loop: return False
+        if not hasattr(self._loop, "is_devel"): return False
+        return self._loop.is_devel()
+
     def _close_transport(self, force = False):
         if not self._transport: return
         self._transport.abort()
