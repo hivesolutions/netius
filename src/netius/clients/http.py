@@ -1367,7 +1367,9 @@ class HTTPClient(netius.ClientAgent):
         # used was not the client's static loop that the loop is also closed
         # (garbage collection of the event loop)
         loop.run_forever()
-        if not loop == self._loop and not user_loop: loop.close()
+        if not loop == self._loop and not user_loop:
+            print("CLOSING LOOP!!!")
+            loop.close()
 
         # returns the final request object (that should be populated by this
         # time) to the called method
