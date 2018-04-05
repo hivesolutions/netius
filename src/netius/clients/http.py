@@ -1381,6 +1381,7 @@ class HTTPClient(netius.ClientAgent):
 
     def _close_loop(self):
         if not self._loop: return
+        print("CLOSING LOOP GLOBAL!!!")
         self._loop.close()
         self._loop = None
 
