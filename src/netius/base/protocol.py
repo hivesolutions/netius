@@ -119,6 +119,7 @@ class Protocol(observer.Observable):
 
     def connection_made(self, transport):
         self._transport = transport
+
         self.open()
 
     def connection_lost(self, exception):
