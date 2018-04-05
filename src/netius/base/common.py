@@ -1676,7 +1676,7 @@ class AbstractBase(observer.Observable):
         print("\n\n------------------")
         print("cleanup")
         print(self)
-        print("main:" % get_loop())
+        print("main: %s" % get_loop())
         print("------------------")
         sys.stdout.flush()
 
