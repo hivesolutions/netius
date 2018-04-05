@@ -122,6 +122,11 @@ class Protocol(observer.Observable):
         self._flush_send()
 
     def delay(self, callable, timeout = None):
+        # in case there's no event loop defined for the protocol
+        # it's not possible to delay this execution and so the
+        # callable is called immediately
+        if not self._loop: return callable()
+
         if hasattr(self._loop, "delay"):
             immediately = timeout == None
             return self._loop.delay(
