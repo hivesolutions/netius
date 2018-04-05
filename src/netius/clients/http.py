@@ -258,12 +258,8 @@ class HTTPProtocol(netius.StreamProtocol):
         request["message"] = message
         return request
 
-    def open(self, *args, **kwargs):
-        netius.StreamProtocol.open(self, *args, **kwargs)
-
-        # if for some reason the current protocol instance is not set
-        # as open returns the control flow immediately (nothing to be don)
-        if not self.is_open(): return
+    def open_c(self, *args, **kwargs):
+        netius.StreamProtocol.open_c(self, *args, **kwargs)
 
         # creates a new HTTP parser instance and set the correct event
         # handlers so that the data parsing is properly handled
@@ -273,9 +269,9 @@ class HTTPProtocol(netius.StreamProtocol):
         self.parser.bind("on_headers", self.on_headers)
         self.parser.bind("on_chunk", self.on_chunk)
 
-    def close(self, *args, **kwargs):
-        netius.StreamProtocol.close(self, *args, **kwargs)
-        if not self.is_closed(): return
+    def close_c(self, *args, **kwargs):
+        netius.StreamProtocol.close_c(self, *args, **kwargs)
+
         if self.parser: self.parser.destroy()
         if self.parsed: self.parsed = None
         if self.gzip: self._close_gzip(safe = True)
