@@ -1182,8 +1182,7 @@ class HTTPClient(netius.ClientAgent):
 
         # in case a (static) event loop is defined closes it,
         # not allowing any further re-usage of it (as expected)
-        if self._loop: self._loop.close()
-        self._loop = None
+        self._close_loop()
 
     def get(
         self,
@@ -1377,6 +1376,11 @@ class HTTPClient(netius.ClientAgent):
     def _get_loop(self, **kwargs):
         if not self._loop: self._loop = netius.new_loop(**kwargs)
         return self._loop
+
+    def _close_loop(self):
+        if not self._loop: return
+        self._loop.close()
+        self._loop = None
 
 if __name__ == "__main__":
     buffer = []
