@@ -1354,7 +1354,7 @@ class HTTPClient(netius.ClientAgent):
                 self.available[key] = protocol
                 netius.compat_loop(loop).stop()
 
-        def on_finish(protocol):
+        def on_close(protocol):
             print("fim")
             print(loop)
             print(loop._compat)
@@ -1364,12 +1364,15 @@ class HTTPClient(netius.ClientAgent):
             # the available map (if it exits) and then unblock the current
             # event loop call (stop operation)
             self.available.pop(key, None)
-            netius.compat_loop(loop).stop()
+
+            a = netius.compat_loop(loop)
+            print(a)
+            netius.compat_loop(a).stop()
 
         # binds the protocol message and finish events to the associated
         # function for proper handling
         protocol.bind("message", on_message)
-        protocol.bind("finish", on_finish)
+        protocol.bind("close", on_close)
 
         # runs the loop until complete, this should be the main blocking
         # call into the event loop, notice that in case the loop that was
