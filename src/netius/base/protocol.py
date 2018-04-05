@@ -134,8 +134,12 @@ class Protocol(observer.Observable):
     def loop_set(self, loop):
         self._loop = loop
 
+        self.trigger("loop_set", self)
+
     def loop_unset(self):
         self._loop = None
+
+        self.trigger("loop_unset", self)
 
     def pause_writing(self):
         self._writing = False

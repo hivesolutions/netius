@@ -425,7 +425,8 @@ def _build_datagram_native(
     loop = loop or common.get_loop()
 
     protocol = protocol_factory()
-    if hasattr(protocol, "loop_set"): protocol.loop_set(loop)
+    has_loop_set = hasattr(protocol, "loop_set")
+    if has_loop_set: protocol.loop_set(loop)
 
     def on_ready():
         loop.datagram(
@@ -469,8 +470,8 @@ def _build_datagram_compat(
     loop = loop or common.get_loop()
 
     protocol = protocol_factory()
-    if hasattr(protocol, "loop_set"):
-        protocol.loop_set(loop)
+    has_loop_set = hasattr(protocol, "loop_set")
+    if has_loop_set: protocol.loop_set(loop)
 
     def build_protocol():
         return protocol
