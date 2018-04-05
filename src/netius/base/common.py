@@ -797,22 +797,31 @@ class AbstractBase(observer.Observable):
                 # going to be taken and the sequence should be closed as
                 # it's not longer going to be used (for sure), this means
                 # that the blocked coroutine is not going to be resumed
-                if future.closed: sequence.close(); future.cancel(); break
+                if future.closed:
+                    sequence.close()
+                    future.cancel()
+                    break
 
                 # determines if the future is ready to receive new work
                 # this is done using a pipeline of callbacks that must
                 # deliver a positive value so that the future is considered
                 # ready, note that in case the future is not ready the current
                 # iteration cycle is delayed until the next tick
-                if not future.ready: self.delay(callable); break
+                if not future.ready:
+                    self.delay(callable)
+                    break
 
                 # in case the finished future has been canceled propagates
                 # such cancellation to the parent future
-                if _future.cancelled(): future.cancel(); break
+                if _future.cancelled():
+                    future.cancel()
+                    break
 
                 # in case there's an exception in the future that has just
                 # been executed propagates such exception to the parent future
-                if _future.exception(): future.set_exception(_future.exception()); break
+                if _future.exception():
+                    future.set_exception(_future.exception())
+                    break
 
                 # retrieves the next value from the generator and in case
                 # value is the last one (stop iteration) verifies if the
@@ -3728,17 +3737,19 @@ def compat_loop(loop):
     :return: The asyncio API compatible event loop object.
     """
 
-    print("compat_loop first")
+    print("-----------------------")
+    print("compat_loop:")
     print(loop)
+    print("_running: %s" % loop._running)
+    print("_pausing: %s" % loop._pausing)
+    print("_loaded: %s" % loop._loaded)
+    print("_forked: %s" % loop._forked)
+    print("_compat: %s" % loop._compat)
+    print("-----------------------")
     import sys
     sys.stdout.flush()
 
     value = loop._compat if hasattr(loop, "_compat") else loop
-    print("compat_loop second")
-    print(value)
-    import sys
-    sys.stdout.flush()
-    return value
 
 def get_poll():
     main = get_main()
