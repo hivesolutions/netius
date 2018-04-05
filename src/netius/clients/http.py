@@ -1358,6 +1358,7 @@ class HTTPClient(netius.ClientAgent):
             # event loop call (stop operation)
             self.available.pop(key, None)
 
+            print("\n\n---------------------")
             print("on_close():protocol")
             print(loop)
             print("---------------")

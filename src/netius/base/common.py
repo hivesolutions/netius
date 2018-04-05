@@ -1672,7 +1672,7 @@ class AbstractBase(observer.Observable):
         # the poll that is going to be closed (works with containers)
         if self.poll_owner: self.poll.close()
         
-        print("------------------")
+        print("\n\n------------------")
         print("cleanup")
         print(self)
         print("------------------")
@@ -3742,7 +3742,7 @@ def compat_loop(loop):
     :return: The asyncio API compatible event loop object.
     """
 
-    print("-----------------------")
+    print("\n\n-----------------------")
     print("compat_loop:")
     print(loop)
     if loop:
