@@ -3740,12 +3740,13 @@ def compat_loop(loop):
     print("-----------------------")
     print("compat_loop:")
     print(loop)
-    print("_running: %s" % loop._running)
-    print("_pausing: %s" % loop._pausing)
-    print("_loaded: %s" % loop._loaded)
-    print("_forked: %s" % loop._forked)
-    print("_compat: %s" % loop._compat)
-    print("-----------------------")
+    if loop:
+        print("_running: %s" % loop._running)
+        print("_pausing: %s" % loop._pausing)
+        print("_loaded: %s" % loop._loaded)
+        print("_forked: %s" % loop._forked)
+        print("_compat: %s" % loop._compat)
+        print("-----------------------")
     import sys
     sys.stdout.flush()
 
