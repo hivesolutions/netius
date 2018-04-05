@@ -1012,6 +1012,7 @@ class HTTPClient(netius.StreamClient):
         netius.StreamClient.__init__(self, *args, **kwargs)
         self.auto_release = auto_release
         self.available = dict()
+        self._loop = None
 
     @classmethod
     def get_s(
@@ -1171,8 +1172,18 @@ class HTTPClient(netius.StreamClient):
 
     def cleanup(self):
         netius.StreamClient.cleanup(self)
+
+        # iterates over the complete set of protocol instances
+        # to be re-used and closes them, then empties the map
+        # of available instances (no more re-usage possible)
         for protocol in netius.legacy.values(self.available):
             protocol.close()
+        self.available.clear()
+
+        # in case a (static) event loop is defined closes it,
+        # not allowing any further re-usage of it (as expected)
+        if self._loop: self._loop.close()
+        self._loop = None
 
     def get(
         self,
@@ -1268,16 +1279,14 @@ class HTTPClient(netius.StreamClient):
 
         # tries to retrieve the unique key from the provided URL and then
         # uses it to try to retrieve a possible already available protocol,
-        # (for connection re-usage), notice that the loop associated with
-        # the protocol is used in case none is provided
+        # for connection re-usage (avoids long establish connection times)
         key = cls.protocol.key(url)
         protocol = self.available.pop(key, None)
-        if protocol: loop = loop or protocol.loop()
 
         # in case the current execution model is not asynchronous a new
         # loop context must exist otherwise it may collide with the global
         # event loop execution creating unwanted behaviour
-        if not asynchronous: loop = loop or netius.new_loop(**kwargs)
+        if not asynchronous: loop = loop or self._get_loop(**kwargs)
 
         # creates the new protocol instance that is going to be used to
         # handle this new request, a new protocol represents also a new
@@ -1306,7 +1315,7 @@ class HTTPClient(netius.StreamClient):
 
         # verifies if the current protocol is already open and if that's the
         # case calls the connection made directly, indicating that the connection
-        # is already established (re-usage)
+        # is already established (re-usage of protocol)
         if protocol.is_open():
             protocol.connection_made(protocol.transport())
 
@@ -1350,15 +1359,19 @@ class HTTPClient(netius.StreamClient):
         protocol.bind("close", on_close)
 
         # runs the loop until complete, this should be the main blocking
-        # call into the event loop, notice that in case the protocol is
-        # closed at the end of the loop the loop is also closed (garbage
+        # call into the event loop, notice that in case the auto release
+        # mode is set then the (event) loop is also closed (garbage
         # collection of the event loop)
         loop.run_forever()
-        if protocol.is_closed(): loop.close()
+        if self.auto_release: loop.close()
 
         # returns the final request object (that should be populated by this
         # time) to the called method
         return protocol.request
+
+    def _get_loop(self, **kwargs):
+        if not self._loop: self._loop = netius.new_loop(**kwargs)
+        return self._loop
 
 if __name__ == "__main__":
     buffer = []
