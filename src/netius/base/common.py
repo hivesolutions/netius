@@ -3651,7 +3651,7 @@ class BaseThread(threading.Thread):
 def new_loop_main(factory = None, _compat = None, **kwargs):
     factory = factory or Base
     instance = factory(**kwargs)
-    return compat_loop(compat) if _compat else instance
+    return compat_loop(instance) if _compat else instance
 
 def new_loop_asyncio(**kwargs):
     asyncio = asynchronous.get_asyncio()
