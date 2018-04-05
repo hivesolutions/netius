@@ -256,6 +256,8 @@ class DatagramProtocol(Protocol):
 
         self._transport.sendto(data, address)
 
+        # in case there's a callback associated with the send
+        # operation schedules its call for the next tick
         if callback: self.delay(lambda: callback(self._transport))
 
         return len(data)
@@ -296,6 +298,8 @@ class StreamProtocol(Protocol):
 
         self._transport.write(data)
 
+        # in case there's a callback associated with the send
+        # operation schedules its call for the next tick
         if callback: self.delay(lambda: callback(self._transport))
 
         return len(data)
