@@ -41,7 +41,7 @@ import unittest
 
 import netius.common
 
-class TlsTest(unittest.TestCase):
+class TLSTest(unittest.TestCase):
 
     def test_fingerprint(self):
         key_der = netius.common.open_pem_key(netius.SSL_KEY_PATH)

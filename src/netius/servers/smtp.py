@@ -51,7 +51,7 @@ the server and the client parties """
 HELO_STATE = 2
 """ State where the initial negotiation/identification
 processes takes place, it's under this stage that the
-start tls may take place to upgrade the connection """
+STARTTLS may take place to upgrade the connection """
 
 HEADER_STATE = 3
 """ Secondary state where the header information for

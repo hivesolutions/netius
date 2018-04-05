@@ -34,6 +34,7 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+from . import agent
 from . import asynchronous
 from . import client
 from . import common
@@ -54,6 +55,7 @@ from . import tls
 from . import transport
 from . import util
 
+from .agent import Agent, ClientAgent
 from .asynchronous import Future, Task, Handle, Executor, ThreadPoolExecutor, coroutine,\
     async_test_all, async_test, ensure_generator, get_asyncio, is_coroutine,\
     is_coroutine_object, is_coroutine_native, is_future, is_neo, is_asynclib, is_await,\
