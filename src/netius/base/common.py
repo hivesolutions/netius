@@ -3671,10 +3671,16 @@ def new_loop_main(factory = None, _compat = None, **kwargs):
     instance = factory(**kwargs)
 
     #@todo check if this makes sense "this is there
+    # it does not make any sense (mas pode ser testado localmente)
     if Base.get_main() == instance:
         print("VAI FAZER UNSET")
         sys.stdout.flush()
         Base.unset_main()
+    else:
+        print("NAO FEZ UNSET")
+        print(Base.get_main())
+        print(instance)
+        sys.stdout.flush()
 
     return compat_loop(instance) if _compat else instance
 
