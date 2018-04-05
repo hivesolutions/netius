@@ -3751,6 +3751,8 @@ def compat_loop(loop):
 
     value = loop._compat if hasattr(loop, "_compat") else loop
 
+    return value
+
 def get_poll():
     main = get_main()
     if not main: return None
