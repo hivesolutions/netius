@@ -1279,6 +1279,7 @@ class HTTPClient(netius.ClientAgent):
         # tries to retrieve the unique key from the provided URL and then
         # uses it to try to retrieve a possible already available protocol,
         # for connection re-usage (avoids long establish connection times)
+        # notice that the event loop is also re-used accordingly
         key = cls.protocol.key(url)
         protocol = self.available.pop(key, None)
         if protocol: loop = loop or protocol.loop()
@@ -1380,9 +1381,9 @@ class HTTPClient(netius.ClientAgent):
         # used was not the client's static loop that the loop is also closed
         # (garbage collection of the event loop)
         loop.run_forever()
-        if not loop == self._loop and not user_loop:
-            print("CLOSING LOOP!!!")
-            loop.close()
+        #if not loop == self._loop and not user_loop:
+        #    print("CLOSING LOOP!!!")
+        #    loop.close()
 
         # returns the final request object (that should be populated by this
         # time) to the called method
@@ -1393,10 +1394,10 @@ class HTTPClient(netius.ClientAgent):
         return self._loop
 
     def _close_loop(self):
-        if not self._loop: return
-        print("CLOSING LOOP GLOBAL!!!")
-        self._loop.close()
-        self._loop = None
+        #if not self._loop: return
+        #print("CLOSING LOOP GLOBAL!!!")
+        #self._loop.close()
+        #self._loop = None
 
 if __name__ == "__main__":
     buffer = []
