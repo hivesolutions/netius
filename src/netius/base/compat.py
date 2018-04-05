@@ -482,11 +482,13 @@ def _build_datagram_compat(
             result = future.result()
             callback and callback(result)
 
+    remote_addr = (remote_host, remote_port) if\
+        remote_host and remote_port else kwargs.pop("remote_addr", None)
+
     connect = loop.create_datagram_endpoint(
         build_protocol,
         family = family,
-        remote_addr = (remote_host, remote_port) if\
-            remote_host and remote_port else None,
+        remote_addr = remote_addr,
         *args,
         **kwargs
     )
