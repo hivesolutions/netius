@@ -1286,6 +1286,7 @@ class HTTPClient(netius.ClientAgent):
         # for connection re-usage (avoids long establish connection times)
         key = cls.protocol.key(url)
         protocol = self.available.pop(key, None)
+        if protocol: loop = loop or protocol.loop()
 
         # in case the current execution model is not asynchronous a new
         # loop context must exist otherwise it may collide with the global
