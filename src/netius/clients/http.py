@@ -1387,6 +1387,9 @@ class HTTPClient(netius.ClientAgent):
 
     def _get_loop(self, **kwargs):
         if not self._loop: self._loop = netius.new_loop(**kwargs)
+        print("BUILT %s" % self._loop)
+        import sys
+        sys.stdout.flush()
         return self._loop
 
     def _close_loop(self):
