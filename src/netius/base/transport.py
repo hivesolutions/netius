@@ -61,6 +61,7 @@ class Transport(observer.Observable):
         if open: self.open()
 
     def open(self):
+        self.set_handlers()
         self.set_write_buffer_limits()
 
     def close(self):
@@ -77,7 +78,6 @@ class Transport(observer.Observable):
 
     def write(self, data):
         self._connection.send(data)
-        self._handle_flow()
 
     def sendto(self, data, addr = None):
         self._connection.send(data, address = addr)
@@ -95,7 +95,23 @@ class Transport(observer.Observable):
             self._connection.max_pending
         )
 
+    def set_handlers(self):
+        self._connection.bind("_send", self._data_out)
+
     def set_write_buffer_limits(self, high = None, low = None):
+        """
+        Sets the write buffer limits in the underlying connection
+        object using the provided values.
+
+        :type high: int
+        :param high: The maximum number of bytes that can be set
+        waiting in the connection internal buffer waiting to be sent
+        before the connection becomes exhausted (sending blocked).
+        :type low: int
+        :param low: The total number of bytes waiting in the buffer
+        before the connection send buffer is unblocked.
+        """
+
         if high is None:
             if low == None: high = 65536
             else: high = 4 * low
@@ -131,6 +147,9 @@ class Transport(observer.Observable):
     def _set_protocol(self, protocol, mark = True):
         self._protocol = protocol
         if mark: self._protocol.connection_made(self)
+
+    def _data_out(self, connection):
+        self._handle_flow()
 
     def _handle_flow(self):
         if self._exhausted:
