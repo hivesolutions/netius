@@ -1360,8 +1360,7 @@ class HTTPClient(netius.ClientAgent):
             
             # tries to retrieve the loop compatible value and if it's
             # successful runs the stop operation on the loop
-            compat_loop = netius.compat_loop(loop)
-            if compat_loop: compat_loop.stop()
+            netius.compat_loop(loop.transport()).stop()
 
         # binds the protocol message and finish events to the associated
         # function for proper handling
