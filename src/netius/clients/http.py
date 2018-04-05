@@ -1358,13 +1358,6 @@ class HTTPClient(netius.ClientAgent):
             # event loop call (stop operation)
             self.available.pop(key, None)
 
-            print("\n\n---------------------")
-            print("on_close():protocol")
-            print(loop)
-            print("---------------")
-            import sys
-            sys.stdout.flush()
-
             # tries to retrieve the loop compatible value and if it's
             # successful runs the stop operation on the loop
             netius.compat_loop(loop).stop()
@@ -1386,11 +1379,7 @@ class HTTPClient(netius.ClientAgent):
         return protocol.request
 
     def _get_loop(self, **kwargs):
-        if not self._loop:
-            print("BUILT %s" % self._loop)
-            import sys
-            sys.stdout.flush()
-            self._loop = netius.new_loop(**kwargs)
+        if not self._loop: self._loop = netius.new_loop(**kwargs)
         return self._loop
 
     def _close_loop(self):

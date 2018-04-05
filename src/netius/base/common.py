@@ -347,8 +347,8 @@ class AbstractBase(observer.Observable):
         self._compat = compat.CompatLoop(self)
         self._lid = 0
         self._did = 0
-        self._main = kwargs.get("main", False)
-        self._slave = kwargs.get("slave", False)
+        self._main = kwargs.get("_main", False)
+        self._slave = kwargs.get("_slave", False)
         self._running = False
         self._pausing = False
         self._loaded = False
@@ -1672,15 +1672,6 @@ class AbstractBase(observer.Observable):
         # only performed in case the current base instance is the owner of
         # the poll that is going to be closed (works with containers)
         if self.poll_owner: self.poll.close()
-        
-        traceback.print_stack()
-        print("\n\n------------------")
-        print("cleanup")
-        print(self)
-        print("loop: %s" % get_loop())
-        print("main: %s" % get_main())
-        print("------------------")
-        sys.stdout.flush()
 
         # unsets some of the references that would otherwise create some
         # loops in references (circular references) creating possible leaks
@@ -3669,30 +3660,11 @@ class BaseThread(threading.Thread):
 
 def new_loop_main(factory = None, _compat = None, **kwargs):
     factory = factory or Base
-    kwargs["slave"] = kwargs.pop("slave", True)
+    kwargs["_slave"] = kwargs.pop("_slave", True)
     instance = factory(**kwargs)
-
-    #@todo check if this makes sense "this is there
-    # it does not make any sense (mas pode ser testado localmente)
-    if Base.get_main() == instance:
-        print("VAI FAZER UNSET")
-        sys.stdout.flush()
-        Base.unset_main()
-    else:
-        print("NAO FEZ UNSET")
-        print(Base.get_main())
-        print(instance)
-        sys.stdout.flush()
-        
-        # @o problema e que ele se torna main quando arranca tnho de o anomar
-    #@todo this is not workking we must use other flag
-    #instance._slave = True
-
     return compat_loop(instance) if _compat else instance
 
 def new_loop_asyncio(**kwargs):
-    print("new_loop_asyncio")
-    sys.stdout.flush()
     asyncio = asynchronous.get_asyncio()
     if not asyncio: return None
     return asyncio.new_event_loop()
@@ -3700,8 +3672,6 @@ def new_loop_asyncio(**kwargs):
 def new_loop(factory = None, _compat = None, asyncio = None, **kwargs):
     _compat = compat.is_compat() if _compat == None else _compat
     asyncio = compat.is_asyncio() if asyncio == None else asyncio
-    print("new_loop")
-    sys.stdout.flush()
     if asyncio: return new_loop_asyncio(**kwargs)
     else: return new_loop_main(factory = factory, _compat = _compat, **kwargs)
 
@@ -3769,22 +3739,7 @@ def compat_loop(loop):
     :return: The asyncio API compatible event loop object.
     """
 
-    print("\n\n-----------------------")
-    print("compat_loop:")
-    print(loop)
-    if loop:
-        print("_running: %s" % loop._running)
-        print("_pausing: %s" % loop._pausing)
-        print("_loaded: %s" % loop._loaded)
-        print("_forked: %s" % loop._forked)
-        print("_compat: %s" % loop._compat)
-        print("-----------------------")
-    import sys
-    sys.stdout.flush()
-
-    value = loop._compat if hasattr(loop, "_compat") else loop
-
-    return value
+    return loop._compat if hasattr(loop, "_compat") else loop
 
 def get_poll():
     main = get_main()
