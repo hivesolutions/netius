@@ -3700,12 +3700,12 @@ def get_loop(
 
 def get_event_loop(*args, **kwargs):
     """
-    Compatibility alias method with the `get_loop()` one
+    Compatibility alias function with the `get_loop()` function
     to ensure proper compatibility with asyncio.
 
     :rtype: EventLoop
-    :return: The event loop for the current context of
-    execution (if any) or else None.
+    :return: The event loop for the current context of execution
+    (if any) otherwise None (invalid).
     """
 
     return get_loop(*args, **kwargs)
