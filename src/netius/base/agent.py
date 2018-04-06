@@ -44,12 +44,19 @@ from . import observer
 
 class Agent(observer.Observable):
     """
-    Abstract class for the entry point classes for the multiple
+    Top level class for the entry point classes of the multiple
     client and server protocol implementations.
 
     These classes should contain a series of utilities that facilitate
     the interaction with the Protocol, Event Loop and Transport
     objects (with the end developer in mind).
+
+    Most of the interaction for a simple protocol should be implemented
+    using static or class methods, avoiding internal object state and
+    instantiation of the concrete Agent class.
+
+    For complex protocols instantiation may be useful to provided extra
+    flexibility and context for abstract operations.
     """
 
     def cleanup(self, destroy = True):
