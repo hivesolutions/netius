@@ -1407,9 +1407,9 @@ class HTTPClient(netius.ClientAgent):
         return self._loops.get(tid, None)
 
     def _close_loops(self):
-        for loop in netius.legacy.itervalues(loop):
-            self._loop.close()
-        self._loop.clear()
+        for loop in netius.legacy.itervalues(self._loops):
+            loop.close()
+        self._loops.clear()
 
 if __name__ == "__main__":
     buffer = []
