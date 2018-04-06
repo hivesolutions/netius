@@ -117,7 +117,7 @@ class HTTPProtocol(netius.StreamProtocol):
         )
 
     @classmethod
-    def key(cls, url):
+    def key_g(cls, url):
         parsed = netius.legacy.urlparse(url)
         ssl = parsed.scheme == "https"
         host = parsed.hostname
@@ -504,6 +504,8 @@ class HTTPProtocol(netius.StreamProtocol):
         on_data = None,
         on_result = None,
     ):
+        cls = self.__class__
+
         self.method = method.upper()
         self.url = url
         self.params = params or {}
@@ -525,6 +527,10 @@ class HTTPProtocol(netius.StreamProtocol):
         self.path = None
         self.gzip = None
         self.gzip_c = None
+
+        # computes the unique re-usage key for the current protocol taking
+        # into account its own state
+        self.key = cls.key_g(self.url)
 
         # runs the unbind all operation to make sure that no handlers is
         # currently registered for operations
@@ -1294,7 +1300,7 @@ class HTTPClient(netius.ClientAgent):
         # uses it to try to retrieve a possible already available protocol,
         # for connection re-usage (avoids long establish connection times)
         # notice that the event loop is also re-used accordingly
-        key = cls.protocol.key(url)
+        key = cls.protocol.key_g(url)
         protocol = self.available.pop(key, None)
         if protocol: loop = loop or protocol.loop()
 
@@ -1365,21 +1371,31 @@ class HTTPClient(netius.ClientAgent):
             # otherwise the protocol is set in the available map and
             # the only the loop is stopped (unblocking the processor)
             else:
-                self.available[key] = protocol
+                self.available[protocol.key] = protocol
                 netius.compat_loop(loop).stop()
 
         def on_close(protocol):
+            # verifies if the protocol if the protocol is currently in
+            # the pool of protocol, so that decisions on the stopping
+            # of the event loop may be made latter on
+            from_pool = protocol.key in self.available
+
             # because the protocol was closed we must release it from
             # the available map (if it exits) and then unblock the current
             # event loop call (stop operation)
-            self.available.pop(key, None)
+            self.available.pop(protocol.key, None)
+
+            # in case the protocol that is being closed in not the one
+            # in usage returns immediately (no need to stop the event
+            # loop for a protocol from the available pool)
+            if from_pool: return
 
             # tries to retrieve the loop compatible value and if it's
             # successful runs the stop operation on the loop
             netius.compat_loop(loop).stop()
 
         # binds the protocol message and finish events to the associated
-        # function for proper handling
+        # function for proper handling of the synchronous request details
         protocol.bind("message", on_message)
         protocol.bind("close", on_close)
 
