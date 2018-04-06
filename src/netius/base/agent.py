@@ -37,6 +37,9 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import threading
+
+from . import legacy
 from . import observer
 
 class Agent(observer.Observable):
@@ -49,8 +52,8 @@ class Agent(observer.Observable):
 
 class ClientAgent(Agent):
 
-    _client = None
-    """ The global static client meant to be reused by the
+    _clients = dict()
+    """ The global static clients map meant to be reused by the
     various static clients that may be created, this client
     may leak creating blocking threads that will prevent the
     system from exiting correctly, in order to prevent that
@@ -58,11 +61,15 @@ class ClientAgent(Agent):
 
     @classmethod
     def get_client_s(cls, *args, **kwargs):
-        if cls._client: return cls._client
-        cls._client = cls(*args, **kwargs)
-        return cls._client
+        tid = threading.current_thread().ident
+        client = cls._clients.get(tid, None)
+        if client: return client
+        client = cls(*args, **kwargs)
+        cls._clients[tid] = client
+        return client
 
     @classmethod
     def cleanup_s(cls):
-        if not cls._client: return
-        cls._client.close()
+        for client in legacy.itervalues(cls._clients):
+            client.close()
+        cls._clients.clear()
