@@ -43,6 +43,14 @@ from . import legacy
 from . import observer
 
 class Agent(observer.Observable):
+    """
+    Abstract class for the entry point classes for the multiple
+    client and server protocol implementations.
+
+    These classes should contain a series of utilities that facilitate
+    the interaction with the Protocol, Event Loop and Transport
+    objects (with the end developer in mind).
+    """
 
     def cleanup(self, destroy = True):
         if destroy: self.destroy()
