@@ -41,6 +41,7 @@ import time
 import zlib
 import base64
 import tempfile
+import threading
 
 import netius.common
 
@@ -1019,7 +1020,7 @@ class HTTPClient(netius.ClientAgent):
         netius.ClientAgent.__init__(self, *args, **kwargs)
         self.auto_release = auto_release
         self.available = dict()
-        self._loop = None
+        self._loops = dict()
 
     @classmethod
     def get_s(
@@ -1191,9 +1192,9 @@ class HTTPClient(netius.ClientAgent):
             protocol.close()
         self.available.clear()
 
-        # in case a (static) event loop is defined closes it,
+        # closes the complete set of static loops (per thread)
         # not allowing any further re-usage of it (as expected)
-        self._close_loop()
+        self._close_loops()
 
     def get(
         self,
@@ -1384,23 +1385,31 @@ class HTTPClient(netius.ClientAgent):
 
         # runs the loop until complete, this should be the main blocking
         # call into the event loop, notice that in case the loop that was
-        # used was not the client's static loop that the loop is also closed
-        # (garbage collection of the event loop)
+        # used is not the HTTP client's static loop (for this thread) and
+        # also not a user's provided loop it's closed (garbage collection)
         loop.run_forever()
-        if not loop == self._loop and not user_loop: loop.close()
+        if not loop == self._peek_loop() and not user_loop: loop.close()
 
         # returns the final request object (that should be populated by this
         # time) to the called method
         return protocol.request
 
     def _get_loop(self, **kwargs):
-        if not self._loop: self._loop = netius.new_loop(**kwargs)
-        return self._loop
+        tid = threading.current_thread().ident
+        loop = self._loops.get(tid, None)
+        if loop: return loop
+        loop = netius.new_loop(**kwargs)
+        self._loops[tid] = loop
+        return loop
 
-    def _close_loop(self):
-        if not self._loop: return
-        self._loop.close()
-        self._loop = None
+    def _peek_loop(self):
+        tid = threading.current_thread().ident
+        return self._loops.get(tid, None)
+
+    def _close_loops(self):
+        for loop in netius.legacy.itervalues(loop):
+            self._loop.close()
+        self._loop.clear()
 
 if __name__ == "__main__":
     buffer = []
