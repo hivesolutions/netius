@@ -103,12 +103,15 @@ class Transport(observer.Observable):
         Sets the write buffer limits in the underlying connection
         object using the provided values.
 
+        If the only one of the values is provided the other one is
+        going to be calculated using an hardcoded ratio value.
+
         :type high: int
         :param high: The maximum number of bytes that can be set
         waiting in the connection internal buffer waiting to be sent
         before the connection becomes exhausted (sending blocked).
         :type low: int
-        :param low: The total number of bytes waiting in the buffer
+        :param low: The maximum number of bytes waiting in the buffer
         before the connection send buffer is unblocked.
         """
 
@@ -118,6 +121,7 @@ class Transport(observer.Observable):
         if low == None: low = high // 4
         if not high >= low >= 0:
             raise errors.RuntimeError("High must be larger than low")
+
         self._connection.max_pending = high
         self._connection.min_pending = low
 

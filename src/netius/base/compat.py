@@ -40,6 +40,7 @@ __license__ = "Apache License, Version 2.0"
 import sys
 import time
 import socket
+import weakref
 
 from . import config
 from . import errors
@@ -63,7 +64,8 @@ class CompatLoop(BaseLoop):
     """
 
     def __init__(self, loop):
-        self._loop = loop
+        self._loop = weakref.proxy(loop)
+        self._loop_ref = weakref.ref(loop)
         self._task_factory = asynchronous.Task
         self._executor = asynchronous.ThreadPoolExecutor(loop)
         self._handler = self._default_handler
@@ -447,7 +449,8 @@ def _build_datagram_native(
     loop = loop or common.get_loop()
 
     protocol = protocol_factory()
-    if hasattr(protocol, "loop_set"): protocol.loop_set(loop)
+    has_loop_set = hasattr(protocol, "loop_set")
+    if has_loop_set: protocol.loop_set(loop)
 
     def on_ready():
         loop.datagram(
@@ -491,8 +494,8 @@ def _build_datagram_compat(
     loop = loop or common.get_loop()
 
     protocol = protocol_factory()
-    if hasattr(protocol, "loop_set"):
-        protocol.loop_set(loop)
+    has_loop_set = hasattr(protocol, "loop_set")
+    if has_loop_set: protocol.loop_set(loop)
 
     def build_protocol():
         return protocol

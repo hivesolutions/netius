@@ -66,7 +66,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.17.6"
+VERSION = "1.17.14"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -275,6 +275,11 @@ KEEPALIVE_COUNT = 3
 """ The amount of times the "ping" packet is re-sent until the
 connection is considered to be offline and is dropped """
 
+ALLOW_BLOCK = False
+""" The default value for the allow sub-blocking operation, it's
+set as not allowed because this is considered to be a dangerous
+operation, may create undesired behaviour """
+
 LOG_FORMAT = "%(asctime)s [%(levelname)s] %(message)s"
 """ The format that is going to be used by the logger of the
 netius infra-structure for debugging purposes it should allow
@@ -337,6 +342,7 @@ class AbstractBase(observer.Observable):
         self.keepalive_timeout = kwargs.get("keepalive_timeout", KEEPALIVE_TIMEOUT)
         self.keepalive_interval = kwargs.get("keepalive_interval", KEEPALIVE_INTERVAL)
         self.keepalive_count = kwargs.get("keepalive_count", KEEPALIVE_COUNT)
+        self.allow_block = kwargs.get("allow_block", ALLOW_BLOCK)
         self.poll_owner = True
         self.diag_app = None
         self.middleware_l = []
@@ -1673,10 +1679,6 @@ class AbstractBase(observer.Observable):
         # the poll that is going to be closed (works with containers)
         if self.poll_owner: self.poll.close()
 
-        # unsets some of the references that would otherwise create some
-        # loops in references (circular references) creating possible leaks
-        self._compat = None
-
         # deletes some of the internal data structures created for the instance
         # and that are considered as they are considered to be no longer required
         self.connections_m.clear()
@@ -1730,6 +1732,13 @@ class AbstractBase(observer.Observable):
         used with extreme care to avoid unwanted behaviour.
         """
 
+        # in case blocking (sub starting) operation is not allowed
+        # for the current event loop raises an exception
+        if not self.allow_block:
+            raise errors.RuntimeError("Blocking is not allowed")
+
+        # saves the current running state and then runs the loop again
+        # restoring the same state at the end of the execution
         _running = self._running
         try: self.loop()
         finally: self._running = _running

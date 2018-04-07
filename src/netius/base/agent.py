@@ -37,9 +37,31 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import threading
+
+from . import legacy
 from . import observer
 
 class Agent(observer.Observable):
+    """
+    Top level class for the entry point classes of the multiple
+    client and server protocol implementations.
+
+    These classes should contain a series of utilities that facilitate
+    the interaction with the Protocol, Event Loop and Transport
+    objects (with the end developer in mind).
+
+    Most of the interaction for a simple protocol should be implemented
+    using static or class methods, avoiding internal object state and
+    instantiation of the concrete Agent class.
+
+    For complex protocols instantiation may be useful to provided extra
+    flexibility and context for abstract operations.
+    """
+
+    @classmethod
+    def cleanup_s(cls):
+        pass
 
     def cleanup(self, destroy = True):
         if destroy: self.destroy()
@@ -49,20 +71,25 @@ class Agent(observer.Observable):
 
 class ClientAgent(Agent):
 
-    _client = None
-    """ The global static client meant to be reused by the
+    _clients = dict()
+    """ The global static clients map meant to be reused by the
     various static clients that may be created, this client
     may leak creating blocking threads that will prevent the
     system from exiting correctly, in order to prevent that
     the cleanup method should be called """
 
     @classmethod
-    def get_client_s(cls, *args, **kwargs):
-        if cls._client: return cls._client
-        cls._client = cls(*args, **kwargs)
-        return cls._client
+    def cleanup_s(cls):
+        super(ClientAgent, cls).cleanup_s()
+        for client in legacy.itervalues(cls._clients):
+            client.close()
+        cls._clients.clear()
 
     @classmethod
-    def cleanup_s(cls):
-        if not cls._client: return
-        cls._client.close()
+    def get_client_s(cls, *args, **kwargs):
+        tid = threading.current_thread().ident
+        client = cls._clients.get(tid, None)
+        if client: return client
+        client = cls(*args, **kwargs)
+        cls._clients[tid] = client
+        return client

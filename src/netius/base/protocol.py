@@ -57,29 +57,52 @@ class Protocol(observer.Observable):
         self._transport = None
         self._loop = None
         self._writing = True
-        self._closed = True
+        self._open = False
+        self._closed = False
         self._closing = False
         self._delayed = []
 
     def open(self):
         # in case the protocol is already open ignores the current
         # call as it's considered a double opening
-        if not self._closed: return
+        if self.is_open(): return
 
-        # unmarks the current protocol from closed (and clsogin)
-        # meaning that it's going to be opened one more time and
-        # so it must not be considered as closed
-        self._closed = False
-        self._closing = False
+        # calls the concrete implementation of the open operation
+        # allowing an extra level of indirection
+        self.open_c()
 
         self.trigger("open", self)
 
     def close(self):
         # in case the protocol is already closed ignores the current
         # call considering it a double closing operation
-        if self._closed: return
-        if self._closing: return
+        if self.is_closed() or self.is_closing(): return
 
+        # calls the concrete implementation of the close operation
+        # allowing an extra level of indirection
+        self.close_c()
+
+        self.trigger("close", self)
+
+    def finish(self):
+        if self.is_closed(): return
+        if not self.is_closing(): return
+
+        # calls the concrete implementation of the finish operation
+        # allowing an extra level of indirection
+        self.finish_c()
+
+        self.trigger("finish", self)
+
+    def open_c(self):
+        # unmarks the current protocol from closed (and closing)
+        # meaning that it's going to be opened one more time and
+        # so it must not be considered as closed
+        self._open = True
+        self._closed = False
+        self._closing = False
+
+    def close_c(self):
         # marks the current protocol as closing, meaning that although
         # the close operation is not yet finished it's starting
         self._closing = True
@@ -96,21 +119,15 @@ class Protocol(observer.Observable):
         # secure and clean execution of the finish method
         self.delay(self.finish)
 
-        self.trigger("close", self)
-
-    def finish(self):
-        if self._closed: return
-        if not self._closing: return
-
+    def finish_c(self):
         del self._delayed[:]
 
         self._transport = None
         self._loop = None
         self._writing = True
+        self._open = False
         self._closed = True
         self._closing = False
-
-        self.trigger("finish", self)
 
     def info_dict(self, full = False):
         if not self._transport: return dict()
@@ -119,6 +136,9 @@ class Protocol(observer.Observable):
 
     def connection_made(self, transport):
         self._transport = transport
+
+        # ensure that the protocol is open, please notice
+        # that most of the time the protocol is already open
         self.open()
 
     def connection_lost(self, exception):
@@ -133,8 +153,12 @@ class Protocol(observer.Observable):
     def loop_set(self, loop):
         self._loop = loop
 
+        self.trigger("loop_set", self)
+
     def loop_unset(self):
         self._loop = None
+
+        self.trigger("loop_unset", self)
 
     def pause_writing(self):
         self._writing = False
@@ -190,11 +214,20 @@ class Protocol(observer.Observable):
         if not hasattr(self._loop, "critical"): return
         self._loop.critical(object)
 
+    def is_pending(self):
+        return not self._open and not self._closed and not self._closing
+
     def is_open(self):
-        return not self._closed
+        return self._open
 
     def is_closed(self):
         return self._closed
+
+    def is_closing(self):
+        return self._closing
+
+    def is_closed_or_closing(self):
+        return self._closed or self._closing
 
     def is_devel(self):
         if not self._loop: return False
@@ -261,6 +294,8 @@ class DatagramProtocol(Protocol):
                 callback = callback
             )
 
+        # pushes the write data down to the transport layer immediately
+        # as writing is still allowed for the current protocol
         self._transport.sendto(data, address)
 
         # in case there's a callback associated with the send
@@ -305,6 +340,8 @@ class StreamProtocol(Protocol):
         if not self._writing:
             return self._delay_send(data, callback = callback)
 
+        # pushes the write data down to the transport layer immediately
+        # as writing is still allowed for the current protocol
         self._transport.write(data)
 
         # in case there's a callback associated with the send
