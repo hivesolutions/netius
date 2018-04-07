@@ -59,6 +59,10 @@ class Agent(observer.Observable):
     flexibility and context for abstract operations.
     """
 
+    @classmethod
+    def cleanup_s(cls):
+        pass
+
     def cleanup(self, destroy = True):
         if destroy: self.destroy()
 
@@ -75,6 +79,13 @@ class ClientAgent(Agent):
     the cleanup method should be called """
 
     @classmethod
+    def cleanup_s(cls):
+        super(ClientAgent, cls).cleanup_s()
+        for client in legacy.itervalues(cls._clients):
+            client.close()
+        cls._clients.clear()
+
+    @classmethod
     def get_client_s(cls, *args, **kwargs):
         tid = threading.current_thread().ident
         client = cls._clients.get(tid, None)
@@ -82,9 +93,3 @@ class ClientAgent(Agent):
         client = cls(*args, **kwargs)
         cls._clients[tid] = client
         return client
-
-    @classmethod
-    def cleanup_s(cls):
-        for client in legacy.itervalues(cls._clients):
-            client.close()
-        cls._clients.clear()
