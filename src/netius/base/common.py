@@ -1802,7 +1802,7 @@ class AbstractBase(observer.Observable):
 
         # iterates over the complete set of children to send the proper
         # terminate signal to each of them for proper termination
-        for pid in self._childs: os.kill(pid, signal.SIGTERM)
+        for pid in self._childs: os.kill(pid, signal.SIGTERM) #@UndefinedVariable
 
         # iterates over the complete set of child processed to join
         # them (master responsibility)
@@ -1992,8 +1992,9 @@ class AbstractBase(observer.Observable):
             cer_file = cer_file,
             ca_file = ca_file,
             ca_root = ca_root,
+            server = False,
             ssl_verify = ssl_verify,
-            server = False
+            server_hostname = host
         )
 
         # sets a series of options in the socket to ensure that it's
@@ -3420,7 +3421,8 @@ class AbstractBase(observer.Observable):
         ca_file = None,
         ca_root = True,
         server = True,
-        ssl_verify = False
+        ssl_verify = False,
+        server_hostname = None
     ):
         socket_ssl = self._ssl_wrap(
             _socket,
@@ -3429,7 +3431,8 @@ class AbstractBase(observer.Observable):
             ca_file = ca_file,
             ca_root = ca_root,
             server = server,
-            ssl_verify = ssl_verify
+            ssl_verify = ssl_verify,
+            server_hostname = server_hostname
         )
         return socket_ssl
 
@@ -3441,8 +3444,14 @@ class AbstractBase(observer.Observable):
         ca_file = None,
         ca_root = True,
         server = True,
-        ssl_verify = False
+        ssl_verify = False,
+        server_hostname = None
     ):
+        # tries to determine the value for the check hostname flag to be
+        # passed to the wrap function by ensuring that both the SSL verify
+        # (certificate is provided) flag and the server hostname string exist
+        check_hostname = True if ssl_verify and server_hostname else False
+
         dir_path = os.path.dirname(__file__)
         root_path = os.path.join(dir_path, "../")
         root_path = os.path.normpath(root_path)
@@ -3454,16 +3463,20 @@ class AbstractBase(observer.Observable):
 
         cert_reqs = ssl.CERT_REQUIRED if ssl_verify else ssl.CERT_NONE
 
-        if not self._ssl_context: return ssl.wrap_socket(
-            _socket,
-            keyfile = key_file,
-            certfile = cer_file,
-            server_side = server,
-            cert_reqs = cert_reqs,
-            ca_certs = ca_file,
-            ssl_version = ssl.PROTOCOL_SSLv23,
-            do_handshake_on_connect = False
-        )
+        # in case there's no SSL context defined in the current instance
+        # then there's no support for contexts and a "direct" socket wrap
+        # operation must be performed instead (legacy model)
+        if not self._ssl_context:
+            return ssl.wrap_socket(
+                _socket,
+                keyfile = key_file,
+                certfile = cer_file,
+                server_side = server,
+                cert_reqs = cert_reqs,
+                ca_certs = ca_file,
+                ssl_version = ssl.PROTOCOL_SSLv23,
+                do_handshake_on_connect = False
+            )
 
         self._ssl_certs(
             self._ssl_context,
@@ -3471,15 +3484,16 @@ class AbstractBase(observer.Observable):
             cer_file = cer_file,
             ca_file = ca_file,
             ca_root = ca_root,
-            verify_mode = cert_reqs
+            verify_mode = cert_reqs,
+            check_hostname = check_hostname
         )
 
-        socket_ssl = self._ssl_context.wrap_socket(
+        return self._ssl_context.wrap_socket(
             _socket,
             server_side = server,
-            do_handshake_on_connect = False
+            do_handshake_on_connect = False,
+            server_hostname = server_hostname
         )
-        return socket_ssl
 
     def _ssl_handshake(self, connection):
         """
