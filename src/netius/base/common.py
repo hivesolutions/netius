@@ -1861,6 +1861,8 @@ class AbstractBase(observer.Observable):
         self,
         family = socket.AF_INET,
         type = socket.SOCK_DGRAM,
+        local_host = None,
+        local_port = None,
         remote_host = None,
         remote_port = None,
         callback = None
@@ -1877,6 +1879,14 @@ class AbstractBase(observer.Observable):
         :param type: Socket type (datagram, stream, etc.) to be used
         for the creation of the datagram connection, in principle should
         not be changed from the default value.
+        :type local_host: String
+        :param local_host: The locale host to be used in a possible bind
+        operation in the datagram so that the the socket listens to new
+        incoming datagrams on that host.
+        :type local_port: String
+        :param local_host: The local port to be used in a possible bind
+        operation in the datagram so that the the socket listens to new
+        incoming datagrams on that port.
         :type remote_host: String
         :param remote_host: The remote host to be used in a possible connect
         (bind) operation in the datagram so that the default send operation
@@ -1902,6 +1912,11 @@ class AbstractBase(observer.Observable):
         # ready for the operation with the highest possible performance
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+        # in case both the local host and port are defined runs the bind
+        # operation so that the current socket is st to listen for new
+        # datagrams on the associated host and port
+        if local_host and local_port: _socket.bind((local_host, local_port))
 
         # verifies if both the host and the port are set and if that's the
         # case runs the connect (send bind) operation in the datagram socket
