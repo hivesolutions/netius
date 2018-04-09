@@ -3467,6 +3467,8 @@ class AbstractBase(observer.Observable):
         # (certificate is provided) flag and the server hostname string exist
         check_hostname = True if ssl_verify and server_hostname else False
 
+        # builds the complete set of paths to the base and extra directories
+        # that are going to be used in key and certificate resolution
         dir_path = os.path.dirname(__file__)
         root_path = os.path.join(dir_path, "../")
         root_path = os.path.normpath(root_path)

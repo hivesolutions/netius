@@ -336,8 +336,8 @@ class Server(Base):
             cer_file = cer_file,
             ca_file = ca_file,
             ca_root = ca_root,
-            ssl_verify = ssl_verify,
-            server = True
+            server = True,
+            ssl_verify = ssl_verify
         )
 
         # sets the various options in the service socket so that it becomes
