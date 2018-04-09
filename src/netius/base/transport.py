@@ -65,15 +65,15 @@ class Transport(observer.Observable):
         self.set_write_buffer_limits()
 
     def close(self):
-        self._connection.close()
+        if self._connection: self._connection.close()
+        else: self._protocol = None
         self._connection = None
-        self._protocol = None
         self._exhausted = False
 
     def abort(self):
         if self._connection: self._connection.close()
+        else: self._protocol = None
         self._connection = None
-        self._protocol = None
         self._exhausted = False
 
     def write(self, data):
@@ -174,6 +174,12 @@ class Transport(observer.Observable):
     def _call_connection_lost(self, context):
         if not self._protocol == None:
             self._protocol.connection_lost(context)
+
+        # forces the unset of the protocol as the proper
+        # connection lost operation has been called and
+        # there's no more logical association between
+        # the transport and the protocol
+        self._protocol = None
 
     def _call_soon(self, callback, *args):
         if hasattr(self._loop, "call_soon"):
