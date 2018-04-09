@@ -710,8 +710,9 @@ class StreamClient(Client):
             cer_file = cer_file,
             ca_file = ca_file,
             ca_root = ca_root,
+            server = False,
             ssl_verify = ssl_verify,
-            server = False
+            server_hostname = host
         )
 
         # sets the appropriate socket options enable it for port re-usage and
