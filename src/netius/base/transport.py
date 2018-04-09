@@ -172,6 +172,10 @@ class Transport(observer.Observable):
         self._loop = None
 
     def _call_connection_lost(self, context):
+        # verifies if there's a protocol instance currently
+        # set and if that's the case calls the connection
+        # lost method indicating that the transport is now
+        # closed (no connection available)
         if not self._protocol == None:
             self._protocol.connection_lost(context)
 
