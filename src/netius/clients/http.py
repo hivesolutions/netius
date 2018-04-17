@@ -676,10 +676,12 @@ class HTTPProtocol(netius.StreamProtocol):
             received = self.request.get("received", 0)
 
             # determines if the protocol is considered valid, either
-            # the connection is not "yet" connected of the time between
-            # receive operations is valid, and if that's the case delays
+            # the connection is not "yet" connected, the time between
+            # receive operations is valid or there's data still pending
+            # to be sent to the server side, and if that's the case delays
             # the timeout verification according to the timeout value
-            if not self.is_open() or delta < self.timeout:
+            if not self.is_open() or delta < self.timeout or\
+                not self.transport().get_write_buffer_size() == 0:
                 self.delay(receive_timeout, timeout = self.timeout)
                 return
 
