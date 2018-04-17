@@ -77,10 +77,18 @@ class Transport(observer.Observable):
         self._exhausted = False
 
     def write(self, data):
-        self._connection.send(data)
+        # runs the send operation on the underlying (and concrete)
+        # connection object, notice that the delay flag is unset so
+        # that the send flushing operation runs immediately (to provide
+        # behaviour level compatibility with the asyncio library)
+        self._connection.send(data, delay = False)
 
     def sendto(self, data, addr = None):
-        self._connection.send(data, address = addr)
+        # runs the send operation on the underlying (and concrete)
+        # connection object, notice that the delay flag is unset so
+        # that the send flushing operation runs immediately (to provide
+        # behaviour level compatibility with the asyncio library)
+        self._connection.send(data, address = addr, delay = False)
 
     def get_extra_info(self, name, default = None):
         if name == "socket": return self._connection.socket
