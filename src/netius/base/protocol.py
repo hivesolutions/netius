@@ -275,7 +275,13 @@ class DatagramProtocol(Protocol):
         force = False,
         callback = None
     ):
-        return self.send_to(data, address)
+        return self.send_to(
+            data,
+            address,
+            delay = delay,
+            force = force,
+            callback = callback
+        )
 
     def send_to(
         self,
