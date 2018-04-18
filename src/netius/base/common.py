@@ -1852,8 +1852,8 @@ class AbstractBase(observer.Observable):
         if state: self.set_state(STATE_READ)
 
         # in case the concrete flag is set return immediately as the
-        # concrete instance (eg: client, server, etc.) should implement
-        # the concrete handling specifics for this event
+        # concrete instance (eg: client, server) should implement the
+        # concrete handling specifics for this event
         if self._concrete: return
 
         for read in reads: self.on_read(read)
