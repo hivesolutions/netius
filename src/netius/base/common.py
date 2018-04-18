@@ -1848,7 +1848,7 @@ class AbstractBase(observer.Observable):
 
     def reads(self, reads, state = True):
         # in case the update state is requested updates the current loop
-        # instance into the read state (debug purposes)
+        # instance into the read state (debugging purposes)
         if state: self.set_state(STATE_READ)
 
         # in case the concrete flag is set return immediately as the
@@ -1856,11 +1856,13 @@ class AbstractBase(observer.Observable):
         # concrete handling specifics for this event
         if self._concrete: return
 
+        # iterates over all of the read events and calls the proper on
+        # read method handler to properly handle each event
         for read in reads: self.on_read(read)
 
     def writes(self, writes, state = True):
         # in case the update state is requested updates the current loop
-        # instance into the write state (debug purposes)
+        # instance into the write state (debugging purposes)
         if state: self.set_state(STATE_WRITE)
 
         # in case the concrete flag is set return immediately as the
@@ -1868,11 +1870,13 @@ class AbstractBase(observer.Observable):
         # concrete handling specifics for this event
         if self._concrete: return
 
+        # iterates over all of the write events and calls the proper on
+        # write method handler to properly handle each event
         for write in writes: self.on_write(write)
 
     def errors(self, errors, state = True):
         # in case the update state is requested updates the current loop
-        # instance into the error state (debug purposes)
+        # instance into the error state (debugging purposes)
         if state: self.set_state(STATE_ERRROR)
 
         # in case the concrete flag is set return immediately as the
@@ -1880,6 +1884,8 @@ class AbstractBase(observer.Observable):
         # concrete handling specifics for this event
         if self._concrete: return
 
+        # iterates over all of the error events and calls the proper on
+        # error method handler to properly handle each event
         for error in errors: self.on_error(error)
 
     def datagram(
