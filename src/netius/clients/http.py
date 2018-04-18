@@ -527,6 +527,16 @@ class HTTPProtocol(netius.StreamProtocol):
         self.gzip = None
         self.gzip_c = None
 
+        # in case the provided data is a unicode string it's converted into
+        # a raw set of bytes using the default encoding
+        if netius.legacy.is_unicode(self.data):
+            self.data = netius.legacy.bytes(data)
+
+        # in case the data currently set is a plain byte stream wraps it
+        # around an iterator to provide compatibility with generators
+        if netius.legacy.is_bytes(self.data):
+            self.data = iter((len(self.data), self.data))
+
         # computes the unique re-usage key for the current protocol taking
         # into account its own state
         self.key = cls.key_g(self.url)
@@ -742,9 +752,18 @@ class HTTPProtocol(netius.StreamProtocol):
 
         if not data: return count
 
-        # sends the payload information to the server side and sets
-        # the callback accordingly (to be called on final sending)
-        count += self.send_base(data, force = True, callback = callback)
+        def send_part(transport = None):
+            try:
+                _data = next(data)
+            except StopIteration:
+                if hasattr(data, "close"): data.close()
+                callback and callback(transport)
+                return
+
+            self.send_base(_data, force = True, callback = send_part)
+
+        send_part()
+
         return count
 
     def wrap_request(
@@ -966,7 +985,20 @@ class HTTPProtocol(netius.StreamProtocol):
         data = self.data
         is_plain = self.is_plain()
 
-        length = len(data) if data else 0
+        # determines the proper strategy for data payload length, taking into
+        # account if there's a payload and if it exists if it's a byte stream
+        # or instead an iterator/generator
+        if not data: length = 0
+        elif netius.legacy.is_bytes(data): length = len(data)
+        else: length = next(data)
+
+        # ensures that if the content encoding is plain the content length
+        # for the payload is defined otherwise it would be impossible to the
+        # server side to determine when the content sending is finished
+        netius.verify(
+            not is_plain or not length == -1,
+            message = "The content length must be defined for plain HTTP encoding"
+        )
 
         if port in (80, 443): host_s = host
         else: host_s = "%s:%d" % (host, port)
