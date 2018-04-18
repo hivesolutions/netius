@@ -532,6 +532,11 @@ class BaseConnection(observer.Observable):
         # the size of the inner data buffer to be added (as requested)
         self.pending_s += data_l
 
+        # sends the pend event indicating that a new set of data has been
+        # set as pending in the internal buffers of the connection and
+        # some of the flow controlling operation may have to be performed
+        self.trigger("pend", self)
+
     def restore(self, data, back = True):
         """
         Restore data to the pending (to receive) so that they are
@@ -754,15 +759,10 @@ class BaseConnection(observer.Observable):
                     # triggered when the connection is ready for more writing
                     self.ensure_write()
 
-                    # in case there's an exception must add the data
+                    # in case there's an exception must re-add the data
                     # object to the list of pending data because the data
                     # has not been correctly sent
                     self.pending.append(data_o)
-
-                    # triggers the "magic" send event notifying any listener that
-                    # a flush send operation has partially performed, may be used for
-                    # external flow control operations
-                    self.trigger("_send", self)
 
                     # re-raises the current to the upper layers so that they
                     # can properly handle what happened here, sometime this
@@ -774,17 +774,23 @@ class BaseConnection(observer.Observable):
                     # of bytes that were correctly send through the buffer
                     self.pending_s -= count
 
-                    # verifies if the data has been correctly sent through
-                    # the socket and for suck situations calls the callback
-                    # object, otherwise creates a new data object with only
-                    # the remaining (partial data) and the callback to be
-                    # sent latter (only then the callback is called)
+                    # verifies if the data has been correctly (and completely)
+                    # sent through the socket and if that's not the case re-pushes
+                    # the pending data back to the pending stack
                     is_valid = count == data_l
-                    if is_valid:
-                        callback and callback(self)
-                    else:
+                    if not is_valid:
                         data_o = (data[count:], address, callback)
                         self.pending.append(data_o)
+
+                    # triggers the unpend event as some of the data has been
+                    # removed from the pending buffer and so any listener must
+                    # be notified so that flow operations may be performed
+                    self.trigger("unpend", self)
+
+                    # in case the is valid flag is set (all of the data for
+                    # the current write operation has been sent) calls the
+                    # the associated callback (in case it exists)
+                    if is_valid and callback: callback(self)
         finally:
             # releases the pending access lock so that no leaks
             # exists and no access to the pending is prevented
@@ -793,11 +799,6 @@ class BaseConnection(observer.Observable):
         # removes the current connection from the set of connections
         # that are monitored for any write event (no longer required)
         self.remove_write()
-
-        # triggers the "magic" send event notifying any listener that
-        # a flush send operation has been performed, may be used for
-        # external flow control operations
-        self.trigger("_send", self)
 
     def _recv(self, size):
         data = self._recv_restored(size)

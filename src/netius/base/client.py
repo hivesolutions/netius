@@ -72,6 +72,7 @@ class Client(Base):
         self.send_buffer = kwargs.get("send_buffer", BUFFER_SIZE)
         self.thread = thread
         self.daemon = daemon
+        self._concrete = True
         self._thread = None
 
     @classmethod
@@ -710,8 +711,9 @@ class StreamClient(Client):
             cer_file = cer_file,
             ca_file = ca_file,
             ca_root = ca_root,
+            server = False,
             ssl_verify = ssl_verify,
-            server = False
+            server_hostname = host
         )
 
         # sets the appropriate socket options enable it for port re-usage and

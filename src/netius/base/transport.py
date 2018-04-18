@@ -65,22 +65,30 @@ class Transport(observer.Observable):
         self.set_write_buffer_limits()
 
     def close(self):
-        self._connection.close()
+        if self._connection: self._connection.close()
+        else: self._protocol = None
         self._connection = None
-        self._protocol = None
         self._exhausted = False
 
     def abort(self):
         if self._connection: self._connection.close()
+        else: self._protocol = None
         self._connection = None
-        self._protocol = None
         self._exhausted = False
 
     def write(self, data):
-        self._connection.send(data)
+        # runs the send operation on the underlying (and concrete)
+        # connection object, notice that the delay flag is unset so
+        # that the send flushing operation runs immediately (to provide
+        # behaviour level compatibility with the asyncio library)
+        self._connection.send(data, delay = False)
 
     def sendto(self, data, addr = None):
-        self._connection.send(data, address = addr)
+        # runs the send operation on the underlying (and concrete)
+        # connection object, notice that the delay flag is unset so
+        # that the send flushing operation runs immediately (to provide
+        # behaviour level compatibility with the asyncio library)
+        self._connection.send(data, address = addr, delay = False)
 
     def get_extra_info(self, name, default = None):
         if name == "socket": return self._connection.socket
@@ -96,7 +104,8 @@ class Transport(observer.Observable):
         )
 
     def set_handlers(self):
-        self._connection.bind("_send", self._data_out)
+        self._connection.bind("pend", self._buffer_touched)
+        self._connection.bind("unpend", self._buffer_touched)
 
     def set_write_buffer_limits(self, high = None, low = None):
         """
@@ -152,7 +161,7 @@ class Transport(observer.Observable):
         self._protocol = protocol
         if mark: self._protocol.connection_made(self)
 
-    def _data_out(self, connection):
+    def _buffer_touched(self, connection):
         self._handle_flow()
 
     def _handle_flow(self):
@@ -172,8 +181,18 @@ class Transport(observer.Observable):
         self._loop = None
 
     def _call_connection_lost(self, context):
+        # verifies if there's a protocol instance currently
+        # set and if that's the case calls the connection
+        # lost method indicating that the transport is now
+        # closed (no connection available)
         if not self._protocol == None:
             self._protocol.connection_lost(context)
+
+        # forces the unset of the protocol as the proper
+        # connection lost operation has been called and
+        # there's no more logical association between
+        # the transport and the protocol
+        self._protocol = None
 
     def _call_soon(self, callback, *args):
         if hasattr(self._loop, "call_soon"):
