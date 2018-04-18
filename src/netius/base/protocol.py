@@ -247,7 +247,8 @@ class Protocol(observer.Observable):
         return len(data)
 
     def _flush_callbacks(self):
-        for callback in self._callbacks:
+        while self._callbacks:
+            callback = self._callbacks.pop(0)
             self.delay(lambda: callback(self._transport))
 
     def _flush_send(self):
@@ -373,6 +374,8 @@ class StreamProtocol(Protocol):
         # pushes the write data down to the transport layer immediately
         # as writing is still allowed for the current protocol
         self._transport.write(data)
+        
+        print(len(data))
 
         # in case there's a callback associated with the send
         # tries to see if the data has been completely flushed
