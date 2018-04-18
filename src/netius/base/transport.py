@@ -104,7 +104,8 @@ class Transport(observer.Observable):
         )
 
     def set_handlers(self):
-        self._connection.bind("_send", self._data_out)
+        self._connection.bind("pend", self._buffer_touched)
+        self._connection.bind("unpend", self._buffer_touched)
 
     def set_write_buffer_limits(self, high = None, low = None):
         """
@@ -160,7 +161,7 @@ class Transport(observer.Observable):
         self._protocol = protocol
         if mark: self._protocol.connection_made(self)
 
-    def _data_out(self, connection):
+    def _buffer_touched(self, connection):
         self._handle_flow()
 
     def _handle_flow(self):
