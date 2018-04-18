@@ -68,6 +68,7 @@ class Server(Base):
         self.ca_file = None
         self.env = False
         self.allowed = []
+        self._concrete = True
 
     def welcome(self):
         Base.welcome(self)

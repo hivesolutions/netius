@@ -72,6 +72,7 @@ class Client(Base):
         self.send_buffer = kwargs.get("send_buffer", BUFFER_SIZE)
         self.thread = thread
         self.daemon = daemon
+        self._concrete = True
         self._thread = None
 
     @classmethod

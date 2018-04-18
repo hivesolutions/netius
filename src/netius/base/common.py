@@ -360,6 +360,7 @@ class AbstractBase(observer.Observable):
         self._loaded = False
         self._forked = False
         self._child = False
+        self._concrete = False
         self._childs = []
         self._events = {}
         self._notified = []
@@ -1847,14 +1848,20 @@ class AbstractBase(observer.Observable):
 
     def reads(self, reads, state = True):
         if state: self.set_state(STATE_READ)
+        #@todo temporary hack to avoid double calling
+        if self._concrete: return
         for read in reads: self.on_read(read)
 
     def writes(self, writes, state = True):
         if state: self.set_state(STATE_WRITE)
+        #@todo temporary hack to avoid double calling
+        if self._concrete: return
         for write in writes: self.on_write(write)
 
     def errors(self, errors, state = True):
         if state: self.set_state(STATE_ERRROR)
+        #@todo temporary hack to avoid double calling
+        if self._concrete: return
         for error in errors: self.on_error(error)
 
     def datagram(
