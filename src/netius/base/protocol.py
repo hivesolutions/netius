@@ -374,8 +374,6 @@ class StreamProtocol(Protocol):
         # pushes the write data down to the transport layer immediately
         # as writing is still allowed for the current protocol
         self._transport.write(data)
-        
-        print(len(data))
 
         # in case there's a callback associated with the send
         # tries to see if the data has been completely flushed
