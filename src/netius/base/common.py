@@ -1847,6 +1847,8 @@ class AbstractBase(observer.Observable):
         self._delays()
 
     def reads(self, reads, state = True):
+        # in case the update state is requested updates the current loop
+        # instance into the read state (debug purposes)
         if state: self.set_state(STATE_READ)
 
         # in case the concrete flag is set return immediately as the
@@ -1857,21 +1859,25 @@ class AbstractBase(observer.Observable):
         for read in reads: self.on_read(read)
 
     def writes(self, writes, state = True):
+        # in case the update state is requested updates the current loop
+        # instance into the write state (debug purposes)
         if state: self.set_state(STATE_WRITE)
 
         # in case the concrete flag is set return immediately as the
-        # concrete instance (eg: client, server, etc.) should implement
-        # the concrete handling specifics for this event
+        # concrete instance (eg: client, server) should implement the
+        # concrete handling specifics for this event
         if self._concrete: return
 
         for write in writes: self.on_write(write)
 
     def errors(self, errors, state = True):
+        # in case the update state is requested updates the current loop
+        # instance into the error state (debug purposes)
         if state: self.set_state(STATE_ERRROR)
 
         # in case the concrete flag is set return immediately as the
-        # concrete instance (eg: client, server, etc.) should implement
-        # the concrete handling specifics for this event
+        # concrete instance (eg: client, server) should implement the
+        # concrete handling specifics for this event
         if self._concrete: return
 
         for error in errors: self.on_error(error)
