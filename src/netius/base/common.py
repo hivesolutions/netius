@@ -1848,20 +1848,32 @@ class AbstractBase(observer.Observable):
 
     def reads(self, reads, state = True):
         if state: self.set_state(STATE_READ)
-        #@todo temporary hack to avoid double calling
+
+        # in case the concrete flag is set return immediately as the
+        # concrete instance (eg: client, server, etc.) should implement
+        # the concrete handling specifics for this event
         if self._concrete: return
+
         for read in reads: self.on_read(read)
 
     def writes(self, writes, state = True):
         if state: self.set_state(STATE_WRITE)
-        #@todo temporary hack to avoid double calling
+
+        # in case the concrete flag is set return immediately as the
+        # concrete instance (eg: client, server, etc.) should implement
+        # the concrete handling specifics for this event
         if self._concrete: return
+
         for write in writes: self.on_write(write)
 
     def errors(self, errors, state = True):
         if state: self.set_state(STATE_ERRROR)
-        #@todo temporary hack to avoid double calling
+
+        # in case the concrete flag is set return immediately as the
+        # concrete instance (eg: client, server, etc.) should implement
+        # the concrete handling specifics for this event
         if self._concrete: return
+
         for error in errors: self.on_error(error)
 
     def datagram(
