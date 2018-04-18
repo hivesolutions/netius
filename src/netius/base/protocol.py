@@ -298,6 +298,9 @@ class DatagramProtocol(Protocol):
         force = False,
         callback = None
     ):
+        # ensures that the provided data value is a bytes sequence
+        # so that its format is compliant with what's expected by
+        # the underlying transport send to operation
         data = legacy.bytes(data)
 
         # in case the current transport buffers do not allow writing
@@ -356,6 +359,9 @@ class StreamProtocol(Protocol):
         self.trigger("data", self, data)
 
     def send(self, data, delay = True, force = False, callback = None):
+        # ensures that the provided data value is a bytes sequence
+        # so that its format is compliant with what's expected by
+        # the underlying transport write operation
         data = legacy.bytes(data)
 
         # in case the current transport buffers do not allow writing
