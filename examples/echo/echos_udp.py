@@ -42,6 +42,7 @@ import netius
 class EchoServerProtocol(object):
 
     def connection_made(self, transport):
+        print("Bind the server connection")
         self.transport = transport
 
     def datagram_received(self, data, addr):

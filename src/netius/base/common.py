@@ -66,7 +66,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.17.14"
+VERSION = "1.17.22"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -360,6 +360,7 @@ class AbstractBase(observer.Observable):
         self._loaded = False
         self._forked = False
         self._child = False
+        self._concrete = False
         self._childs = []
         self._events = {}
         self._notified = []
@@ -1802,7 +1803,7 @@ class AbstractBase(observer.Observable):
 
         # iterates over the complete set of children to send the proper
         # terminate signal to each of them for proper termination
-        for pid in self._childs: os.kill(pid, signal.SIGTERM)
+        for pid in self._childs: os.kill(pid, signal.SIGTERM) #@UndefinedVariable
 
         # iterates over the complete set of child processed to join
         # them (master responsibility)
@@ -1846,15 +1847,45 @@ class AbstractBase(observer.Observable):
         self._delays()
 
     def reads(self, reads, state = True):
+        # in case the update state is requested updates the current loop
+        # instance into the read state (debugging purposes)
         if state: self.set_state(STATE_READ)
+
+        # in case the concrete flag is set return immediately as the
+        # concrete instance (eg: client, server) should implement the
+        # concrete handling specifics for this event
+        if self._concrete: return
+
+        # iterates over all of the read events and calls the proper on
+        # read method handler to properly handle each event
         for read in reads: self.on_read(read)
 
     def writes(self, writes, state = True):
+        # in case the update state is requested updates the current loop
+        # instance into the write state (debugging purposes)
         if state: self.set_state(STATE_WRITE)
+
+        # in case the concrete flag is set return immediately as the
+        # concrete instance (eg: client, server) should implement the
+        # concrete handling specifics for this event
+        if self._concrete: return
+
+        # iterates over all of the write events and calls the proper on
+        # write method handler to properly handle each event
         for write in writes: self.on_write(write)
 
     def errors(self, errors, state = True):
+        # in case the update state is requested updates the current loop
+        # instance into the error state (debugging purposes)
         if state: self.set_state(STATE_ERRROR)
+
+        # in case the concrete flag is set return immediately as the
+        # concrete instance (eg: client, server) should implement the
+        # concrete handling specifics for this event
+        if self._concrete: return
+
+        # iterates over all of the error events and calls the proper on
+        # error method handler to properly handle each event
         for error in errors: self.on_error(error)
 
     def serve(
@@ -2036,6 +2067,8 @@ class AbstractBase(observer.Observable):
         self,
         family = socket.AF_INET,
         type = socket.SOCK_DGRAM,
+        local_host = None,
+        local_port = None,
         remote_host = None,
         remote_port = None,
         callback = None
@@ -2052,6 +2085,14 @@ class AbstractBase(observer.Observable):
         :param type: Socket type (datagram, stream, etc.) to be used
         for the creation of the datagram connection, in principle should
         not be changed from the default value.
+        :type local_host: String
+        :param local_host: The locale host to be used in a possible bind
+        operation in the datagram so that the the socket listens to new
+        incoming datagrams on that host.
+        :type local_port: String
+        :param local_host: The local port to be used in a possible bind
+        operation in the datagram so that the the socket listens to new
+        incoming datagrams on that port.
         :type remote_host: String
         :param remote_host: The remote host to be used in a possible connect
         (bind) operation in the datagram so that the default send operation
@@ -2077,6 +2118,11 @@ class AbstractBase(observer.Observable):
         # ready for the operation with the highest possible performance
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+        # in case both the local host and port are defined runs the bind
+        # operation so that the current socket is st to listen for new
+        # datagrams on the associated host and port
+        if local_host and local_port: _socket.bind((local_host, local_port))
 
         # verifies if both the host and the port are set and if that's the
         # case runs the connect (send bind) operation in the datagram socket
@@ -2167,8 +2213,9 @@ class AbstractBase(observer.Observable):
             cer_file = cer_file,
             ca_file = ca_file,
             ca_root = ca_root,
+            server = False,
             ssl_verify = ssl_verify,
-            server = False
+            server_hostname = host
         )
 
         # sets a series of options in the socket to ensure that it's
@@ -3595,7 +3642,8 @@ class AbstractBase(observer.Observable):
         ca_file = None,
         ca_root = True,
         server = True,
-        ssl_verify = False
+        ssl_verify = False,
+        server_hostname = None
     ):
         socket_ssl = self._ssl_wrap(
             _socket,
@@ -3604,7 +3652,8 @@ class AbstractBase(observer.Observable):
             ca_file = ca_file,
             ca_root = ca_root,
             server = server,
-            ssl_verify = ssl_verify
+            ssl_verify = ssl_verify,
+            server_hostname = server_hostname
         )
         return socket_ssl
 
@@ -3616,8 +3665,16 @@ class AbstractBase(observer.Observable):
         ca_file = None,
         ca_root = True,
         server = True,
-        ssl_verify = False
+        ssl_verify = False,
+        server_hostname = None
     ):
+        # tries to determine the value for the check hostname flag to be
+        # passed to the wrap function by ensuring that both the SSL verify
+        # (certificate is provided) flag and the server hostname string exist
+        check_hostname = True if ssl_verify and server_hostname else False
+
+        # builds the complete set of paths to the base and extra directories
+        # that are going to be used in key and certificate resolution
         dir_path = os.path.dirname(__file__)
         root_path = os.path.join(dir_path, "../")
         root_path = os.path.normpath(root_path)
@@ -3629,16 +3686,20 @@ class AbstractBase(observer.Observable):
 
         cert_reqs = ssl.CERT_REQUIRED if ssl_verify else ssl.CERT_NONE
 
-        if not self._ssl_context: return ssl.wrap_socket(
-            _socket,
-            keyfile = key_file,
-            certfile = cer_file,
-            server_side = server,
-            cert_reqs = cert_reqs,
-            ca_certs = ca_file,
-            ssl_version = ssl.PROTOCOL_SSLv23,
-            do_handshake_on_connect = False
-        )
+        # in case there's no SSL context defined in the current instance
+        # then there's no support for contexts and a "direct" socket wrap
+        # operation must be performed instead (legacy model)
+        if not self._ssl_context:
+            return ssl.wrap_socket(
+                _socket,
+                keyfile = key_file,
+                certfile = cer_file,
+                server_side = server,
+                cert_reqs = cert_reqs,
+                ca_certs = ca_file,
+                ssl_version = ssl.PROTOCOL_SSLv23,
+                do_handshake_on_connect = False
+            )
 
         self._ssl_certs(
             self._ssl_context,
@@ -3646,15 +3707,16 @@ class AbstractBase(observer.Observable):
             cer_file = cer_file,
             ca_file = ca_file,
             ca_root = ca_root,
-            verify_mode = cert_reqs
+            verify_mode = cert_reqs,
+            check_hostname = check_hostname
         )
 
-        socket_ssl = self._ssl_context.wrap_socket(
+        return self._ssl_context.wrap_socket(
             _socket,
             server_side = server,
-            do_handshake_on_connect = False
+            do_handshake_on_connect = False,
+            server_hostname = server_hostname
         )
-        return socket_ssl
 
     def _ssl_handshake(self, connection):
         """

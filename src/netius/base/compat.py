@@ -314,6 +314,8 @@ class CompatLoop(BaseLoop):
         connection = self._loop.datagram(
             family = family,
             type = proto,
+            local_host = local_addr[0] if local_addr else None,
+            local_port = local_addr[1] if local_addr else None,
             remote_host = remote_addr[0] if remote_addr else None,
             remote_port = remote_addr[1] if remote_addr else None
         )

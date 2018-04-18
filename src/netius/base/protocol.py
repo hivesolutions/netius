@@ -61,6 +61,7 @@ class Protocol(observer.Observable):
         self._closed = False
         self._closing = False
         self._delayed = []
+        self._callbacks = []
 
     def open(self):
         # in case the protocol is already open ignores the current
@@ -121,6 +122,7 @@ class Protocol(observer.Observable):
 
     def finish_c(self):
         del self._delayed[:]
+        del self._callbacks[:]
 
         self._transport = None
         self._loop = None
@@ -165,6 +167,7 @@ class Protocol(observer.Observable):
 
     def resume_writing(self):
         self._writing = True
+        self._flush_callbacks()
         self._flush_send()
 
     def delay(self, callable, timeout = None):
@@ -243,6 +246,11 @@ class Protocol(observer.Observable):
         self._delayed.append(item)
         return len(data)
 
+    def _flush_callbacks(self):
+        while self._callbacks:
+            callback = self._callbacks.pop(0)
+            self.delay(lambda: callback(self._transport))
+
     def _flush_send(self):
         while True:
             if not self._delayed: break
@@ -275,7 +283,13 @@ class DatagramProtocol(Protocol):
         force = False,
         callback = None
     ):
-        return self.send_to(data, address)
+        return self.send_to(
+            data,
+            address,
+            delay = delay,
+            force = force,
+            callback = callback
+        )
 
     def send_to(
         self,
@@ -285,8 +299,14 @@ class DatagramProtocol(Protocol):
         force = False,
         callback = None
     ):
+        # ensures that the provided data value is a bytes sequence
+        # so that its format is compliant with what's expected by
+        # the underlying transport send to operation
         data = legacy.bytes(data)
 
+        # in case the current transport buffers do not allow writing
+        # (paused mode) the writing of the data is delayed until the
+        # writing is again enabled (resume writing)
         if not self._writing:
             return self._delay_send(
                 data,
@@ -299,8 +319,13 @@ class DatagramProtocol(Protocol):
         self._transport.sendto(data, address)
 
         # in case there's a callback associated with the send
-        # operation schedules its call for the next tick
-        if callback: self.delay(lambda: callback(self._transport))
+        # tries to see if the data has been completely flushed
+        # (writing still enabled) and if so schedules the callback
+        # to be called on the next tick, otherwise adds it to the
+        # callbacks to be called upon the next write resume operation
+        if callback:
+            if self._writing: self.delay(lambda: callback(self._transport))
+            else: self._callbacks.append(callback)
 
         # returns the size (in bytes) of the data that has just been
         # explicitly sent through the associated transport
@@ -335,8 +360,14 @@ class StreamProtocol(Protocol):
         self.trigger("data", self, data)
 
     def send(self, data, delay = True, force = False, callback = None):
+        # ensures that the provided data value is a bytes sequence
+        # so that its format is compliant with what's expected by
+        # the underlying transport write operation
         data = legacy.bytes(data)
 
+        # in case the current transport buffers do not allow writing
+        # (paused mode) the writing of the data is delayed until the
+        # writing is again enabled (resume writing)
         if not self._writing:
             return self._delay_send(data, callback = callback)
 
@@ -345,8 +376,13 @@ class StreamProtocol(Protocol):
         self._transport.write(data)
 
         # in case there's a callback associated with the send
-        # operation schedules its call for the next tick
-        if callback: self.delay(lambda: callback(self._transport))
+        # tries to see if the data has been completely flushed
+        # (writing still enabled) and if so schedules the callback
+        # to be called on the next tick, otherwise adds it to the
+        # callbacks to be called upon the next write resume operation
+        if callback:
+            if self._writing: self.delay(lambda: callback(self._transport))
+            else: self._callbacks.append(callback)
 
         # returns the size (in bytes) of the data that has just been
         # explicitly sent through the associated transport
