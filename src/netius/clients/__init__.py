@@ -45,7 +45,7 @@ from . import ssdp
 from . import torrent
 from . import ws
 
-from .apn import APNConnection, APNClient
+from .apn import APNProtocol, APNClient
 from .dht import DHTRequest, DHTResponse, DHTClient
 from .dns import DNSRequest, DNSResponse, DNSProtocol, DNSClient
 from .http import HTTPProtocol, HTTPClient
