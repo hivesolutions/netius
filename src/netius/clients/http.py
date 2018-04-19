@@ -537,6 +537,12 @@ class HTTPProtocol(netius.StreamProtocol):
         if netius.legacy.is_bytes(self.data):
             self.data = iter((len(self.data), self.data))
 
+        # in case the provided data responds to the typical file-like
+        # object interface, then it's wrapped around a generator to
+        # provided compatibility with the generators based interface
+        if hasattr(self.data, "tell"):
+            self.data = netius.common.file_iterator(self.data)
+
         # computes the unique re-usage key for the current protocol taking
         # into account its own state
         self.key = cls.key_g(self.url)
@@ -1447,7 +1453,7 @@ class HTTPClient(netius.ClientAgent):
         if not loop == self._loop and not user_loop: loop.close()
 
         # returns the final request object (that should be populated by this
-        # time) to the called method
+        # time) to the called method, so that a simple interface is provided
         return protocol.request
 
     def _get_loop(self, **kwargs):
