@@ -510,6 +510,7 @@ if __name__ == "__main__":
     # that are going to be used to perform the DNS query
     name = netius.conf("DNS_NAME", "gmail.com")
     type = netius.conf("DNS_TYPE", "mx")
+    ns = netius.conf("DNS_NS", None)
 
     # runs the static version of a DNS query, note that
     # the daemon flag is unset so that the global client
@@ -517,6 +518,7 @@ if __name__ == "__main__":
     loop, _protocol = DNSClient.query_s(
         name,
         type = type,
+        ns = ns,
         callback = handler
     )
     loop.run_forever()
