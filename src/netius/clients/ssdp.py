@@ -175,7 +175,9 @@ if __name__ == "__main__":
         # stop operation on the next tick end
         netius.compat_loop(loop).stop()
 
-    loop, protocol = SSDPClient.discover_s("urn:schemas-upnp-org:device:InternetGatewayDevice:1")
+    target = netius.conf("SSDP_TARGET", "urn:schemas-upnp-org:device:InternetGatewayDevice:1")
+
+    loop, protocol = SSDPClient.discover_s(target)
 
     protocol.bind("headers", on_headers)
 
