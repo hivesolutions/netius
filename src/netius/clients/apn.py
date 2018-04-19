@@ -218,7 +218,9 @@ if __name__ == "__main__":
     key_file = netius.conf("APN_KEY_FILE", None)
     cer_file = netius.conf("APN_CER_FILE", None)
 
-    loop, protocol = APNClient.notify_s(token, key_file = key_file, cer_file = cer_file)
+    loop, protocol = APNClient.notify_s(
+        token, key_file = key_file, cer_file = cer_file
+    )
 
     protocol.bind("finish", on_finish)
 
