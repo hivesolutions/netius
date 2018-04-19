@@ -1405,7 +1405,7 @@ class HTTPClient(netius.ClientAgent):
             # and if that's not the case closes it immediately, this way
             # the client is the responsible for triggering the disconnect
             # operation, avoiding problems with possible connection re-usage
-            if not parser.keep_alive:
+            elif not parser.keep_alive:
                 protocol.close()
 
             # otherwise the protocol is set in the available map and
