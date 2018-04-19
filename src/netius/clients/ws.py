@@ -110,7 +110,7 @@ class WSConnection(netius.Connection):
         if not accept_key:
             raise netius.NetiusError("No accept key found in headers")
 
-        value = netius.legacy.bytes(self.key + WSClient.MAGIC_VALUE)
+        value = netius.legacy.bytes(self.key + WSProtocol.MAGIC_VALUE)
         hash = hashlib.sha1(value)
         hash_digest = hash.digest()
         _accept_key = base64.b64encode(hash_digest)
@@ -119,9 +119,9 @@ class WSConnection(netius.Connection):
         if not _accept_key == accept_key:
             raise netius.SecurityError("Invalid accept key provided")
 
-class WSClient(netius.StreamClient):
+class WSProtocol(netius.StreamProtocol):
     """
-    Abstract WebSockets client to be used for real-time bidirectional
+    Abstract WebSockets protocol to be used for real-time bidirectional
     communication on top of the HTTP protocol.
 
     :see: https://tools.ietf.org/html/rfc6455
@@ -130,6 +130,13 @@ class WSClient(netius.StreamClient):
     MAGIC_VALUE = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
     """ The magic value used by the websocket protocol as part
     of the key generation process in the handshake """
+
+    @classmethod
+    def _key(cls, size = 16):
+        seed = str(uuid.uuid4())
+        seed = netius.legacy.bytes(seed)[:size]
+        seed = base64.b64encode(seed)
+        return netius.legacy.str(seed)
 
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
@@ -198,48 +205,57 @@ class WSClient(netius.StreamClient):
     def on_handshake(self, connection):
         self.trigger("handshake", self, connection)
 
-    def new_connection(self, socket, address, ssl = False):
-        return WSConnection(
-            owner = self,
-            socket = socket,
-            address = address,
-            ssl = ssl
-        )
+    def connect_ws(self, url, loop = None):
+        cls = self.__class__
 
-    def connect_ws(self, url):
         parsed = netius.legacy.urlparse(url)
         ssl = parsed.scheme == "wss"
         host = parsed.hostname
         port = parsed.port or (ssl and 443 or 80)
         path = parsed.path or "/"
-        connection = self.connect(host, port, ssl = ssl)
-        connection.path = path
-        connection.key = self._key()
-        return connection
 
-    def _key(self, size = 16):
-        seed = str(uuid.uuid4())
-        seed = netius.legacy.bytes(seed)[:size]
-        seed = base64.b64encode(seed)
-        return netius.legacy.str(seed)
+        loop = netius.connect_stream(
+            lambda: self,
+            host = host,
+            port = port,
+            ssl = ssl,
+            loop = loop
+        )
+
+        self.path = path
+        self.key = self._key()
+
+        return loop, self
+
+class WSClient(netius.ClientAgent):
+
+    protocol = WSProtocol
+
+    @classmethod
+    def connect_ws_s(cls, url, loop = None):
+        protocol = cls.protocol()
+        return protocol.connect_ws(url, loop = loop)
 
 if __name__ == "__main__":
-    def on_handshake(client, connection):
-        connection.send_ws("Hello World")
+    def on_handshake(protocol, transport):
+        protocol.send_ws("Hello World")
 
-    def on_message(client, connection, data):
+    def on_message(protocol, transport, data):
         print(data)
-        client.close()
+        protocol.close()
 
-    def on_close(client, connection):
-        client.close()
+    def on_close(protocol, transport):
+        netius.compat_loop(loop).stop()
 
     url = netius.conf("WS_URL", "ws://echo.websocket.org/")
 
-    client = WSClient()
-    client.connect_ws(url)
-    client.bind("handshake", on_handshake)
-    client.bind("message", on_message)
-    client.bind("close", on_close)
+    loop, protocol = WSClient.connect_ws_s(url)
+
+    protocol.bind("handshake", on_handshake)
+    protocol.bind("message", on_message)
+    protocol.bind("close", on_close)
+
+    loop.run_forever()
+    loop.close()
 else:
     __path__ = []
