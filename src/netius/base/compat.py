@@ -617,6 +617,12 @@ def _connect_stream_compat(
             result = future.result()
             callback and callback(result)
 
+    if ssl and cer_file and key_file:
+        import ssl as _ssl
+        ssl_context = _ssl.SSLContext()
+        ssl_context.load_cert_chain(cer_file, keyfile = key_file)
+        ssl = ssl_context
+
     connect = loop.create_connection(
         build_protocol,
         host = host,

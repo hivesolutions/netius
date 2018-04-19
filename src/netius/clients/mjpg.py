@@ -130,8 +130,10 @@ if __name__ == "__main__":
     def on_finish(protocol):
         netius.compat_loop(loop).stop()
 
+    url = netius.conf("MJPG_URL", "http://euglena.stanford.edu:20005/?action=stream")
+
     client = MJPGClient()
-    loop, protocol = client.get("http://euglena.stanford.edu:20005/?action=stream")
+    loop, protocol = client.get(url)
 
     protocol.bind("frame", on_frame)
     protocol.bind("finish", on_finish)
