@@ -176,9 +176,9 @@ if __name__ == "__main__":
         netius.compat_loop(loop).stop()
 
     loop, protocol = SSDPClient.discover_s("urn:schemas-upnp-org:device:InternetGatewayDevice:1")
-    
+
     protocol.bind("headers", on_headers)
-    
+
     loop.run_forever()
     loop.close()
 else:
