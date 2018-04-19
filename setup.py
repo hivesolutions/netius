@@ -15,7 +15,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # Apache License for more details.
-# 
+#
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
