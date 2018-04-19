@@ -83,6 +83,22 @@ class APNProtocol(netius.StreamProtocol):
     def connection_made(self, transport):
         netius.StreamProtocol.connection_made(self, transport)
 
+        self.send_notification(
+            self.token,
+            self.message,
+            sound = self.sound,
+            badge = self.badge,
+            close = self._close
+        )
+
+    def send_notification(
+        self,
+        token,
+        message,
+        sound = "default",
+        badge = 0,
+        close = False
+    ):
         # creates the callback handler that closes the current
         # client infra-structure after sending, this will close
         # the connection using a graceful approach to avoid any
@@ -92,7 +108,7 @@ class APNProtocol(netius.StreamProtocol):
         # converts the current token (in hexadecimal) to a set
         # of binary string elements and uses that value to get
         # a string of data from the string of hexadecimal data
-        token = netius.legacy.bytes(self.token)
+        token = netius.legacy.bytes(token)
         token = binascii.unhexlify(token)
 
         # creates the message structure using with the
@@ -100,9 +116,9 @@ class APNProtocol(netius.StreamProtocol):
         # it into a json format (payload)
         message_s = dict(
            aps = dict(
-                alert = self.message,
-                sound = self.sound,
-                badge = self.badge
+                alert = message,
+                sound = sound,
+                badge = badge
             )
         )
         payload = json.dumps(message_s)
@@ -125,10 +141,10 @@ class APNProtocol(netius.StreamProtocol):
         # them according to the generated template
         template = "!BH%dsH%ds" % (token_length, payload_length)
         message = struct.pack(template, command, token_length, token, payload_length, payload)
-        callback = callback if self.close else None
+        callback = callback if close else None
         self.send(message, callback = callback)
 
-    def set_apn(
+    def set(
         self,
         token,
         message,
@@ -174,7 +190,7 @@ class APNProtocol(netius.StreamProtocol):
 
         # sets the APN specific information in the current
         # protocol instance to be used once connected
-        self.set_apn(
+        self.set(
             token,
             message,
             sound = sound,
