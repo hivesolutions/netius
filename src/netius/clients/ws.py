@@ -43,18 +43,126 @@ import hashlib
 
 import netius.common
 
-class WSConnection(netius.Connection):
+class WSProtocol(netius.StreamProtocol):
+    """
+    Abstract WebSockets protocol to be used for real-time bidirectional
+    communication on top of the HTTP protocol.
+
+    :see: https://tools.ietf.org/html/rfc6455
+    """
+
+    MAGIC_VALUE = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+    """ The magic value used by the websocket protocol as part
+    of the key generation process in the handshake """
+
+    @classmethod
+    def _key(cls, size = 16):
+        seed = str(uuid.uuid4())
+        seed = netius.legacy.bytes(seed)[:size]
+        seed = base64.b64encode(seed)
+        return netius.legacy.str(seed)
 
     def __init__(self, *args, **kwargs):
-        netius.Connection.__init__(self, *args, **kwargs)
-        self.handshake = False
+        netius.StreamProtocol.__init__(self, *args, **kwargs)
+        self.host = None
+        self.port = None
+        self.ssl = False
         self.path = None
         self.key = None
         self.version = None
         self.code = None
         self.code_s = None
+        self.handshake = False
         self.buffer_l = []
         self.headers = {}
+
+    def connection_made(self, transport):
+        netius.StreamProtocol.connection_made(self, transport)
+        data = "GET %s HTTP/1.1\r\n" % self.path +\
+            "Upgrade: websocket\r\n" +\
+            "Connection: Upgrade\r\n" +\
+            "Host: %s\r\n" % self.host +\
+            "Origin: http://%s\r\n" % self.host +\
+            "Sec-WebSocket-Key: %s\r\n" % self.key +\
+            "Sec-WebSocket-Version: 13\r\n\r\n"
+        self.send(data)
+
+    def on_data(self, data):
+        netius.StreamProtocol.on_data(self, data)
+
+        # iterates while there's still data pending to be parsed from the
+        # current message received using the HTTP or WS protocols
+        while data:
+            if self.handshake:
+                # retrieves the current (pending) buffer of data for the
+                # protocol and tries to run the decoder of websockets
+                # frame on the complete set of data pending in case there's
+                # a problem the (pending) data is added to the buffer
+                buffer = self.get_buffer()
+                data = buffer + data
+                try: decoded, data = netius.common.decode_ws(data)
+                except netius.DataError: self.add_buffer(data); break
+
+                # calls the callback method in the protocol notifying
+                # it about the new (decoded) data that has been received
+                self.receive_ws(decoded)
+
+                # calls the proper callback handler for the data
+                # that has been received with the decoded data
+                self.on_data_ws(decoded)
+
+            else:
+                # adds the current data to the internal protocol
+                # buffer to be processed latter, by the handshake
+                self.add_buffer(data)
+
+                # tries to run the handshake operation for the
+                # current protocol in case it fails due to an
+                # handshake error must delay the execution to the
+                # next iteration (not enough data)
+                try: self.do_handshake()
+                except netius.DataError: return
+
+                # validates (and computes) the accept key value according
+                # to the provided value, in case there's an error an exception
+                # should be raised (finishing the protocol)
+                self.validate_key()
+
+                # calls the on handshake event handler for the current
+                # protocol to notify the current object
+                self.on_handshake()
+
+                # retrieves the current buffer value as the data that is still
+                # pending to be parsed from the current protocol, this is
+                # required so that the complete client buffer is flushed
+                data = self.get_buffer()
+
+    def on_data_ws(self, data):
+        self.trigger("message", self, data)
+
+    def on_handshake(self):
+        self.trigger("handshake", self)
+
+    def connect_ws(self, url, loop = None):
+        cls = self.__class__
+
+        parsed = netius.legacy.urlparse(url)
+        self.ssl = parsed.scheme == "wss"
+        self.host = parsed.hostname
+        self.port = parsed.port or (self.ssl and 443 or 80)
+        self.path = parsed.path or "/"
+
+        loop = netius.connect_stream(
+            lambda: self,
+            host = self.host,
+            port = self.port,
+            ssl = self.ssl,
+            loop = loop
+        )
+
+        self.key = cls._key()
+
+        return loop, self
 
     def send_ws(self, data, callback = None):
         encoded = netius.common.encode_ws(data, mask = True)
@@ -110,7 +218,7 @@ class WSConnection(netius.Connection):
         if not accept_key:
             raise netius.NetiusError("No accept key found in headers")
 
-        value = netius.legacy.bytes(self.key + WSClient.MAGIC_VALUE)
+        value = netius.legacy.bytes(self.key + WSProtocol.MAGIC_VALUE)
         hash = hashlib.sha1(value)
         hash_digest = hash.digest()
         _accept_key = base64.b64encode(hash_digest)
@@ -119,127 +227,35 @@ class WSConnection(netius.Connection):
         if not _accept_key == accept_key:
             raise netius.SecurityError("Invalid accept key provided")
 
-class WSClient(netius.StreamClient):
-    """
-    Abstract WebSockets client to be used for real-time bidirectional
-    communication on top of the HTTP protocol.
+class WSClient(netius.ClientAgent):
 
-    :see: https://tools.ietf.org/html/rfc6455
-    """
+    protocol = WSProtocol
 
-    MAGIC_VALUE = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
-    """ The magic value used by the websocket protocol as part
-    of the key generation process in the handshake """
-
-    def on_connect(self, connection):
-        netius.StreamClient.on_connect(self, connection)
-        data = "GET %s HTTP/1.1\r\n" % connection.path +\
-            "Upgrade: websocket\r\n" +\
-            "Connection: Upgrade\r\n" +\
-            "Host: %s\r\n" % connection.address[0] +\
-            "Origin: http://%s\r\n" % connection.address[0] +\
-            "Sec-WebSocket-Key: %s\r\n" % connection.key +\
-            "Sec-WebSocket-Version: 13\r\n\r\n"
-        connection.send(data)
-
-    def on_data(self, connection, data):
-        netius.StreamClient.on_data(self, connection, data)
-
-        # iterates while there's still data pending to be parsed from the
-        # current message received using the http or ws protocols
-        while data:
-            if connection.handshake:
-                # retrieves the current (pending) buffer of data for the
-                # connection and tries to run the decoder of websockets
-                # frame on the complete set of data pending in case there's
-                # a problem the (pending) data is added to the buffer
-                buffer = connection.get_buffer()
-                data = buffer + data
-                try: decoded, data = netius.common.decode_ws(data)
-                except netius.DataError: connection.add_buffer(data); break
-
-                # calls the callback method in the connection notifying
-                # it about the new (decoded) data that has been received
-                connection.receive_ws(decoded)
-
-                # calls the proper callback handler for the data
-                # that has been received with the decoded data
-                self.on_data_ws(connection, decoded)
-
-            else:
-                # adds the current data to the internal connection
-                # buffer to be processed latter, by the handshake
-                connection.add_buffer(data)
-
-                # tries to run the handshake operation for the
-                # current connection in case it fails due to an
-                # handshake error must delay the execution to the
-                # next iteration (not enough data)
-                try: connection.do_handshake()
-                except netius.DataError: return
-
-                # validates (and computes) the accept key value according
-                # to the provided value, in case there's an error an exception
-                # should be raised (finishing the connection)
-                connection.validate_key()
-
-                # calls the on handshake event handler for the current
-                # connection to notify the current object
-                self.on_handshake(connection)
-
-                # retrieves the current buffer value as the data that is still
-                # pending to be parsed from the current connection, this is
-                # required so that the complete client buffer is flushed
-                data = connection.get_buffer()
-
-    def on_data_ws(self, connection, data):
-        self.trigger("message", self, connection, data)
-
-    def on_handshake(self, connection):
-        self.trigger("handshake", self, connection)
-
-    def new_connection(self, socket, address, ssl = False):
-        return WSConnection(
-            owner = self,
-            socket = socket,
-            address = address,
-            ssl = ssl
-        )
-
-    def connect_ws(self, url):
-        parsed = netius.legacy.urlparse(url)
-        ssl = parsed.scheme == "wss"
-        host = parsed.hostname
-        port = parsed.port or (ssl and 443 or 80)
-        path = parsed.path or "/"
-        connection = self.connect(host, port, ssl = ssl)
-        connection.path = path
-        connection.key = self._key()
-        return connection
-
-    def _key(self, size = 16):
-        seed = str(uuid.uuid4())
-        seed = netius.legacy.bytes(seed)[:size]
-        seed = base64.b64encode(seed)
-        return netius.legacy.str(seed)
+    @classmethod
+    def connect_ws_s(cls, url, loop = None):
+        protocol = cls.protocol()
+        return protocol.connect_ws(url, loop = loop)
 
 if __name__ == "__main__":
-    def on_handshake(client, connection):
-        connection.send_ws("Hello World")
+    def on_handshake(protocol):
+        protocol.send_ws("Hello World")
 
-    def on_message(client, connection, data):
+    def on_message(protocol, data):
         print(data)
-        client.close()
+        protocol.close()
 
-    def on_close(client, connection):
-        client.close()
+    def on_close(protocol):
+        netius.compat_loop(loop).stop()
 
     url = netius.conf("WS_URL", "ws://echo.websocket.org/")
 
-    client = WSClient()
-    client.connect_ws(url)
-    client.bind("handshake", on_handshake)
-    client.bind("message", on_message)
-    client.bind("close", on_close)
+    loop, protocol = WSClient.connect_ws_s(url)
+
+    protocol.bind("handshake", on_handshake)
+    protocol.bind("message", on_message)
+    protocol.bind("close", on_close)
+
+    loop.run_forever()
+    loop.close()
 else:
     __path__ = []
