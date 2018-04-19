@@ -54,4 +54,4 @@ from .raw import RawClient
 from .smtp import SMTPConnection, SMTPClient
 from .ssdp import SSDPClient
 from .torrent import CHOKED, UNCHOKED, TorrentConnection, TorrentClient
-from .ws import WSConnection, WSClient
+from .ws import WSProtocol, WSClient
