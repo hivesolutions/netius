@@ -70,7 +70,7 @@ class APNProtocol(netius.StreamProtocol):
     in sandbox mode (for testing purposes) """
 
     def __init__(self, *args, **kwargs):
-        netius.StreamClient.__init__(self, *args, **kwargs)
+        netius.StreamProtocol.__init__(self, *args, **kwargs)
         self.host = None
         self.port = None
         self.token = None
@@ -148,7 +148,7 @@ class APNProtocol(netius.StreamProtocol):
         self.cer_file = cer_file
         self._close = _close
 
-    def message(self, token, loop = None, **kwargs):
+    def notify(self, token, loop = None, **kwargs):
         # retrieves the intance's parent class object to be
         # used to global class operations
         cls = self.__class__
@@ -191,7 +191,7 @@ class APNProtocol(netius.StreamProtocol):
             lambda: self,
             host = self.host,
             port = self.port,
-            ssl = self.ssl,
+            ssl = True,
             key_file = key_file,
             cer_file = cer_file,
             loop = loop
@@ -206,6 +206,23 @@ class APNClient(netius.ClientAgent):
     protocol = APNProtocol
 
     @classmethod
-    def message_s(cls, token, loop = None, **kwargs):
+    def notify_s(cls, token, loop = None, **kwargs):
         protocol = cls.protocol()
-        return protocol.message(token, loop = loop, **kwargs)
+        return protocol.notify(token, loop = loop, **kwargs)
+
+if __name__ == "__main__":
+    def on_finish(protocol):
+        netius.compat_loop(loop).stop()
+
+    token = netius.conf("APN_TOKEN", None)
+    key_file = netius.conf("APN_KEY_FILE", None)
+    cer_file = netius.conf("APN_CER_FILE", None)
+
+    loop, protocol = APNClient.notify_s(token, key_file = key_file, cer_file = cer_file)
+
+    protocol.bind("finish", on_finish)
+
+    loop.run_forever()
+    loop.close()
+else:
+    __path__ = []
