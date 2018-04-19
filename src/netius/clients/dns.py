@@ -497,10 +497,14 @@ if __name__ == "__main__":
         # the various answers so that only the address
         # of the answer is available, then prints them
         for answer in response.answers:
-            extra = answer[4]
-            priority = extra[0]
-            address = extra[1]
-            print("%s => %d" % (address, priority))
+            if type in ("a", "aaaa"):
+                address = answer[4]
+                print("%s" % address)
+            if type in ("mx",):
+                extra = answer[4]
+                priority = extra[0]
+                address = extra[1]
+                print("%s => %d" % (address, priority))
 
     # retrieves the values of the configuration variables
     # that are going to be used to perform the DNS query
