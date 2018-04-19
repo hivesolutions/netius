@@ -58,6 +58,7 @@ class HelloServer(netius.servers.HTTP2Server):
     def on_serve(self):
         netius.servers.HTTP2Server.on_serve(self)
         if self.env: self.message = self.get_env("MESSAGE", self.message, cast = str)
+        if self.env: self.keep_alive = self.get_env("KEEP_ALIVE", True, cast = bool)
         self.info("Serving '%s' as welcome message ..." % self.message)
 
     def on_data_http(self, connection, parser):
@@ -65,8 +66,9 @@ class HelloServer(netius.servers.HTTP2Server):
             self, connection, parser
         )
 
-        callback = self._hello_keep if parser.keep_alive else self._hello_close
-        connection_s = "keep-alive" if parser.keep_alive else "close"
+        keep_alive = self.keep_alive and parser.keep_alive
+        callback = self._hello_keep if keep_alive else self._hello_close
+        connection_s = "keep-alive" if keep_alive else "close"
         headers = {
             "Connection" : connection_s,
             "Content-Type" : "text/plain"
