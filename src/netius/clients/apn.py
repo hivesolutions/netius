@@ -44,19 +44,19 @@ import binascii
 import netius
 
 HOST = "gateway.push.apple.com"
-""" The host of the apn service to be used when
+""" The host of the APN service to be used when
 in production mode """
 
 PORT = 2195
-""" The port of the apn service to be used when
+""" The port of the APN service to be used when
 in sandbox mode """
 
 SANDBOX_HOST = "gateway.sandbox.push.apple.com"
-""" The host of the apn service to be used when
+""" The host of the APN service to be used when
 in sandbox mode (for testing purposes) """
 
 SANDBOX_PORT = 2195
-""" The port of the apn service to be used when
+""" The port of the APN service to be used when
 in sandbox mode (for testing purposes) """
 
 class APNConnection(netius.Connection):
@@ -92,8 +92,8 @@ class APNConnection(netius.Connection):
 
 class APNClient(netius.StreamClient):
     """
-    Client class that defines the interface to operate
-    an apple push notifications (apn) client that is
+    Protocol class that defines the interface to operate
+    an apple push notifications (APN) client that is
     able to send push notifications to apple devices.
 
     Should be compliant with a simple message oriented
