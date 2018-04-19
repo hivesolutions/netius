@@ -43,26 +43,36 @@ import binascii
 
 import netius
 
-HOST = "gateway.push.apple.com"
-""" The host of the apn service to be used when
-in production mode """
+class APNProtocol(netius.StreamProtocol):
+    """
+    Protocol class that defines the interface to operate
+    an apple push notifications (APN) protocol that is
+    able to send push notifications to Apple devices.
 
-PORT = 2195
-""" The port of the apn service to be used when
-in sandbox mode """
+    Should be compliant with a simple message oriented
+    interface for easy of usage from developers.
+    """
 
-SANDBOX_HOST = "gateway.sandbox.push.apple.com"
-""" The host of the apn service to be used when
-in sandbox mode (for testing purposes) """
+    HOST = "gateway.push.apple.com"
+    """ The host of the APN service to be used when
+    in production mode """
 
-SANDBOX_PORT = 2195
-""" The port of the apn service to be used when
-in sandbox mode (for testing purposes) """
+    PORT = 2195
+    """ The port of the APN service to be used when
+    in sandbox mode """
 
-class APNConnection(netius.Connection):
+    SANDBOX_HOST = "gateway.sandbox.push.apple.com"
+    """ The host of the APN service to be used when
+    in sandbox mode (for testing purposes) """
+
+    SANDBOX_PORT = 2195
+    """ The port of the APN service to be used when
+    in sandbox mode (for testing purposes) """
 
     def __init__(self, *args, **kwargs):
-        netius.Connection.__init__(self, *args, **kwargs)
+        netius.StreamProtocol.__init__(self, *args, **kwargs)
+        self.host = None
+        self.port = None
         self.token = None
         self.message = None
         self.sound = None
@@ -70,93 +80,30 @@ class APNConnection(netius.Connection):
         self.sandbox = True
         self._close = True
 
-    def set_apn(
+    def connection_made(self, transport):
+        netius.StreamProtocol.connection_made(self, transport)
+
+        self.send_notification(
+            self.token,
+            self.message,
+            sound = self.sound,
+            badge = self.badge,
+            close = self._close
+        )
+
+    def send_notification(
         self,
         token,
         message,
         sound = "default",
         badge = 0,
-        sandbox = True,
-        key_file = None,
-        cer_file = None,
-        _close = True
+        close = False
     ):
-        self.token = token
-        self.message = message
-        self.sound = sound
-        self.badge = badge
-        self.sandbox = sandbox
-        self.key_file = key_file
-        self.cer_file = cer_file
-        self._close = _close
-
-class APNClient(netius.StreamClient):
-    """
-    Client class that defines the interface to operate
-    an apple push notifications (apn) client that is
-    able to send push notifications to apple devices.
-
-    Should be compliant with a simple message oriented
-    interface for easy of usage from developers.
-    """
-
-    def message(self, token, *args, **kwargs):
-        # unpacks the various keyword based arguments for the
-        # provided map of arguments defaulting to a series of
-        # pre-defined values in case the arguments have not
-        # been correctly provided
-        message = kwargs.get("message", "Hello World")
-        sound = kwargs.get("sound", "default")
-        badge = kwargs.get("badge", 0)
-        sandbox = kwargs.get("sandbox", True)
-        key_file = kwargs.get("key_file", None)
-        cer_file = kwargs.get("cer_file", None)
-        _close = kwargs.get("close", True)
-
-        # retrieves the values that are going to be used for
-        # both the host and the port, taking into account if
-        # the current message is meant to be send using the
-        # sandbox environment (for testing purposes)
-        host = SANDBOX_HOST if sandbox else HOST
-        port = SANDBOX_PORT if sandbox else PORT
-
-        # establishes the connection to the target host and port
-        # and using the provided key and certificate files an then
-        # sets the apn information in the current connection
-        connection = self.connect(
-            host,
-            port,
-            ssl = True,
-            key_file = key_file,
-            cer_file = cer_file
-        )
-        connection.set_apn(
-            token,
-            message,
-            sound = sound,
-            badge = badge,
-            sandbox = sandbox,
-            key_file = key_file,
-            cer_file = cer_file,
-            _close = _close
-        )
-
-    def on_connect(self, connection):
-        netius.StreamClient.on_connect(self, connection)
-
         # creates the callback handler that closes the current
         # client infra-structure after sending, this will close
         # the connection using a graceful approach to avoid any
         # of the typical problems with the connection shutdown
-        def callback(connection): self.close()
-
-        # unpacks the various elements that are going to be
-        # used in the sending of the message
-        token = connection.token
-        message = connection.message
-        sound = connection.sound
-        badge = connection.badge
-        close = connection._close
+        def callback(transport): self.close()
 
         # converts the current token (in hexadecimal) to a set
         # of binary string elements and uses that value to get
@@ -195,17 +142,105 @@ class APNClient(netius.StreamClient):
         template = "!BH%dsH%ds" % (token_length, payload_length)
         message = struct.pack(template, command, token_length, token, payload_length, payload)
         callback = callback if close else None
-        connection.send(message, callback = callback)
+        self.send(message, callback = callback)
 
-    def on_connection_d(self, connection):
-        netius.StreamClient.on_connection_d(self, connection)
-        if self.connections: return
-        self.close()
+    def set(
+        self,
+        token,
+        message,
+        sound = "default",
+        badge = 0,
+        sandbox = True,
+        key_file = None,
+        cer_file = None,
+        _close = True
+    ):
+        self.token = token
+        self.message = message
+        self.sound = sound
+        self.badge = badge
+        self.sandbox = sandbox
+        self.key_file = key_file
+        self.cer_file = cer_file
+        self._close = _close
 
-    def new_connection(self, socket, address, ssl = False):
-        return APNConnection(
-            owner = self,
-            socket = socket,
-            address = address,
-            ssl = ssl
+    def notify(self, token, loop = None, **kwargs):
+        # retrieves the intance's parent class object to be
+        # used to global class operations
+        cls = self.__class__
+
+        # unpacks the various keyword based arguments for the
+        # provided map of arguments defaulting to a series of
+        # pre-defined values in case the arguments have not
+        # been correctly provided
+        message = kwargs.get("message", "Hello World")
+        sound = kwargs.get("sound", "default")
+        badge = kwargs.get("badge", 0)
+        sandbox = kwargs.get("sandbox", True)
+        key_file = kwargs.get("key_file", None)
+        cer_file = kwargs.get("cer_file", None)
+        _close = kwargs.get("close", True)
+
+        # retrieves the values that are going to be used for
+        # both the host and the port, taking into account if
+        # the current message is meant to be send using the
+        # sandbox environment (for testing purposes)
+        self.host = cls.SANDBOX_HOST if sandbox else cls.HOST
+        self.port = cls.SANDBOX_PORT if sandbox else cls.PORT
+
+        # sets the APN specific information in the current
+        # protocol instance to be used once connected
+        self.set(
+            token,
+            message,
+            sound = sound,
+            badge = badge,
+            sandbox = sandbox,
+            key_file = key_file,
+            cer_file = cer_file,
+            _close = _close
         )
+
+        # establishes the connection to the target host and port
+        # and using the provided key and certificate files
+        loop = netius.connect_stream(
+            lambda: self,
+            host = self.host,
+            port = self.port,
+            ssl = True,
+            key_file = key_file,
+            cer_file = cer_file,
+            loop = loop
+        )
+
+        # returns both the current associated loop and the current
+        # instance to the protocol defined by the current instance
+        return loop, self
+
+class APNClient(netius.ClientAgent):
+
+    protocol = APNProtocol
+
+    @classmethod
+    def notify_s(cls, token, loop = None, **kwargs):
+        protocol = cls.protocol()
+        return protocol.notify(token, loop = loop, **kwargs)
+
+if __name__ == "__main__":
+    def on_finish(protocol):
+        netius.compat_loop(loop).stop()
+
+    token = netius.conf("APN_TOKEN", None)
+    key_file = netius.conf("APN_KEY_FILE", None)
+    cer_file = netius.conf("APN_CER_FILE", None)
+
+    loop, protocol = APNClient.notify_s(
+        token, key_file = key_file, cer_file = cer_file
+    )
+
+    protocol.bind("finish", on_finish)
+
+    loop.run_forever()
+    loop.close()
+else:
+    __path__ = []

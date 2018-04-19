@@ -560,7 +560,7 @@ class ProxyServer(http2.HTTP2Server):
     def _apply_headers(self, parser, connection, parser_prx, headers, upper = True):
         if upper: self._headers_upper(headers)
         self._apply_via(parser_prx, headers)
-        self._apply_all(parser, connection, headers, replace = True)
+        self._apply_all(parser_prx, connection, headers, replace = True)
 
     def _apply_via(self, parser_prx, headers):
         # retrieves the various elements of the parser that are going

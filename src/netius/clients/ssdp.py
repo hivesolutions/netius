@@ -39,9 +39,9 @@ __license__ = "Apache License, Version 2.0"
 
 import netius.common
 
-class SSDPClient(netius.DatagramClient):
+class SSDPProtocol(netius.DatagramProtocol):
     """
-    Client implementation of the SSDP protocol meant to be
+    Protocol implementation of the SSDP protocol meant to be
     used under the UPnP standard for discovery and control of
     internet activated devices.
 
@@ -51,8 +51,8 @@ class SSDPClient(netius.DatagramClient):
     :see: http://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol
     """
 
-    def on_data(self, connection, data):
-        netius.DatagramClient.on_data(self, connection, data)
+    def on_data(self, address, data):
+        netius.DatagramProtocol.on_data(self, address, data)
         self.parser = netius.common.HTTPParser(self, type = netius.common.RESPONSE)
         self.parser.bind("on_headers", self.on_headers_parser)
         self.parser.parse(data)
@@ -84,8 +84,6 @@ class SSDPClient(netius.DatagramClient):
         host = "239.255.255.250",
         port = 1900,
         version = "HTTP/1.1",
-        connection = None,
-        asynchronous = True,
         callback = None
     ):
         address = (host, port)
@@ -106,15 +104,84 @@ class SSDPClient(netius.DatagramClient):
         buffer_data = "".join(buffer)
 
         self.send(buffer_data, address)
-        data and self.send(data, address)
+        data and self.send(data, address, callback = callback)
+
+class SSDPClient(netius.ClientAgent):
+
+    protocol = SSDPProtocol
+
+    @classmethod
+    def discover_s(cls, target, *args, **kwargs):
+        return cls.method_s(
+            "M-SEARCH",
+            target,
+            "ssdp:discover",
+            *args,
+            **kwargs
+        )
+
+    @classmethod
+    def method_s(
+        cls,
+        method,
+        target,
+        namespace,
+        mx = 3,
+        path = "*",
+        params = None,
+        headers = None,
+        data = None,
+        host = "239.255.255.250",
+        port = 1900,
+        version = "HTTP/1.1",
+        callback = None,
+        loop = None
+    ):
+        address = (host, port)
+        protocol = cls.protocol()
+
+        def on_connect(result):
+            _transport, protocol = result
+            protocol.method(
+                method,
+                target,
+                namespace,
+                mx = mx,
+                path = path,
+                params = params,
+                headers = headers,
+                data = data,
+                host = host,
+                port = port,
+                version = version,
+                callback = callback
+            )
+
+        loop = netius.build_datagram(
+            lambda: protocol,
+            callback = on_connect,
+            loop = loop,
+            remote_addr = address
+        )
+
+        return loop, protocol
 
 if __name__ == "__main__":
     def on_headers(client, parser, headers):
         print(headers)
-        client.close()
 
-    client = SSDPClient()
-    client.discover("urn:schemas-upnp-org:device:InternetGatewayDevice:1")
-    client.bind("headers", on_headers)
+        # retrieves the currently associated loop using
+        # netius base infra-structure and then runs the
+        # stop operation on the next tick end
+        netius.compat_loop(loop).stop()
+
+    target = netius.conf("SSDP_TARGET", "urn:schemas-upnp-org:device:InternetGatewayDevice:1")
+
+    loop, protocol = SSDPClient.discover_s(target)
+
+    protocol.bind("headers", on_headers)
+
+    loop.run_forever()
+    loop.close()
 else:
     __path__ = []

@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import os
 import heapq
 
 class PriorityDict(dict):
@@ -85,3 +86,13 @@ class PriorityDict(dict):
     def _rebuild_heap(self):
         self._heap = [(v, k) for k, v in self.items()]
         heapq.heapify(self._heap)
+
+def file_iterator(file_object, chunk_size = 40960):
+    file_object.seek(0, os.SEEK_END)
+    size = file_object.tell()
+    file_object.seek(0, os.SEEK_SET)
+    yield size
+    while True:
+        data = file_object.read(chunk_size)
+        if not data: break
+        yield data

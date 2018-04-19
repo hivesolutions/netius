@@ -389,7 +389,7 @@ class DNSProtocol(netius.DatagramProtocol):
         # that may be used for generic queries assuming internet access
         ns = ns or _cls.ns_system()
 
-        # creates a new dns request object describing the query that was
+        # creates a new DNS request object describing the query that was
         # just sent and then generates the request stream code that is
         # going to be used for sending the request through network
         request = DNSRequest(
@@ -400,7 +400,7 @@ class DNSProtocol(netius.DatagramProtocol):
         )
         data = request.request()
 
-        # prints some debug information about the dns query that is going
+        # prints some debug information about the DNS query that is going
         # to be performed (provides some development capabilities)
         self.debug("Running DNS query %s '%s in '%s'" % (type, name, ns))
 
@@ -409,22 +409,22 @@ class DNSProtocol(netius.DatagramProtocol):
         self.add_request(request)
 
         # creates the final address assuming default port in the
-        # name server and then send the contents of the dns request
+        # name server and then send the contents of the DNS request
         address = (ns, 53)
         self.send(data, address)
 
     def on_data(self, address, data):
         netius.DatagramProtocol.on_data(self, address, data)
 
-        # create the dns response with the provided data stream and
+        # create the DNS response with the provided data stream and
         # runs the parse operation in it so that the response becomes
         # populated with the proper contents, this operation is risky as
         # it may fail in case the message is malformed
         response = DNSResponse(data)
         response.parse()
 
-        # calls the dns specific data handler with the proper response
-        # object populated with the response from the dns server
+        # calls the DNS specific data handler with the proper response
+        # object populated with the response from the DNS server
         self.on_data_dns(address, response)
 
     def on_data_dns(self, address, response):
@@ -502,12 +502,17 @@ if __name__ == "__main__":
             address = extra[1]
             print("%s => %d" % (address, priority))
 
-    # runs the static version of a dns query, note that
+    # retrieves the values of the configuration variables
+    # that are going to be used to perform the DNS query
+    name = netius.conf("DNS_NAME", "gmail.com")
+    type = netius.conf("DNS_TYPE", "mx")
+
+    # runs the static version of a DNS query, note that
     # the daemon flag is unset so that the global client
     # runs in foreground avoiding the exit of the process
     loop, _protocol = DNSClient.query_s(
-        "gmail.com",
-        type = "mx",
+        name,
+        type = type,
         callback = handler
     )
     loop.run_forever()
