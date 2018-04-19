@@ -1401,6 +1401,13 @@ class HTTPClient(netius.ClientAgent):
             if self.auto_release:
                 protocol.close()
 
+            # verifies if the current connection is meant to be kept alive
+            # and if that's not the case closes it immediately, this way
+            # the client is the responsible for triggering the disconnect
+            # operation, avoiding problems with possible connection re-usage
+            if not parser.keep_alive:
+                protocol.close()
+
             # otherwise the protocol is set in the available map and
             # the only the loop is stopped (unblocking the processor)
             else:
