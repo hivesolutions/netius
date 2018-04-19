@@ -160,7 +160,7 @@ class WSProtocol(netius.StreamProtocol):
             loop = loop
         )
 
-        self.key = self._key()
+        self.key = cls._key()
 
         return loop, self
 
