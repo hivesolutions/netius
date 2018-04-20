@@ -74,12 +74,14 @@ QUIT_STATE = 13
 
 FINAL_STATE = 14
 
-AUTH_METHODS = (
-    "plain",
-    "login"
-)
-
 class SMTPConnection(netius.Connection):
+
+    AUTH_METHODS = (
+        "plain",
+        "login"
+    )
+    """ The sequence that defined the multiple allowed
+    methods for this SMTP protocol implementation """
 
     def __init__(self, host = "smtp.localhost", *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
@@ -437,6 +439,7 @@ class SMTPConnection(netius.Connection):
         raise netius.ParserError("Invalid state")
 
     def best_auth(self):
+        cls = self.__class__
         methods = []
         for capability in self.capabilities:
             is_auth = capability.startswith("auth ")
@@ -444,7 +447,7 @@ class SMTPConnection(netius.Connection):
             parts = capability.split(" ")
             parts = [part.strip() for part in parts]
             methods.extend(parts[1:])
-        usable = [method for method in methods if method in AUTH_METHODS]
+        usable = [method for method in methods if method in cls.AUTH_METHODS]
         return usable[0] if usable else "plain"
 
 class SMTPClient(netius.StreamClient):
