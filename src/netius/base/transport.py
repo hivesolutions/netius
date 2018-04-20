@@ -67,12 +67,14 @@ class Transport(observer.Observable):
     def close(self):
         if self._connection: self._connection.close()
         else: self._protocol = None
+
         self._connection = None
         self._exhausted = False
 
     def abort(self):
         if self._connection: self._connection.close()
         else: self._protocol = None
+
         self._connection = None
         self._exhausted = False
 
@@ -177,8 +179,18 @@ class Transport(observer.Observable):
             self._protocol.pause_writing()
 
     def _cleanup(self):
+        # schedules the connection lost calling on on the
+        # next available tick so that the associated transport
+        # gets notified about the closing of the connection
         self._call_soon(self._call_connection_lost, None)
+
+        # unsets the loop from the current transport as it's
+        # not safe to interact with the owner loop anymore
         self._loop = None
+
+        # runs the destroy operation that will clean the
+        # most basic structures associated with this object
+        self.destroy()
 
     def _call_connection_lost(self, context):
         # verifies if there's a protocol instance currently

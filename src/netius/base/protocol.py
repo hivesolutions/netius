@@ -95,6 +95,10 @@ class Protocol(observer.Observable):
 
         self.trigger("finish", self)
 
+        # runs the "final" destroy operation that is going to run
+        # the most structural elements of this object
+        self.destroy()
+
     def open_c(self):
         # unmarks the current protocol from closed (and closing)
         # meaning that it's going to be opened one more time and
