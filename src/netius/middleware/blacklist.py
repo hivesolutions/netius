@@ -49,7 +49,7 @@ class BlacklistMiddleware(Middleware):
 
     def start(self):
         Middleware.start(self)
-        self.blacklist = netius.conf("BLACKLIST", cast = [])
+        self.blacklist = netius.conf("BLACKLIST", [], cast = list)
         self.owner.bind("connection_c", self.on_connection_c)
 
     def stop(self):
@@ -57,8 +57,7 @@ class BlacklistMiddleware(Middleware):
         self.owner.unbind("connection_c", self.on_connection_c)
 
     def on_connection_c(self, owner, connection):
-        #@todo saca o endereço do gajo e se estiver na blacklist drop logo !!!
-        # e imprime mensagem !!!
-        
-        #if connection.a
-        pass
+        host = connection.address[0]
+        if not host in self.blacklist: return
+        self.owner.warning("Connection from '%s' dropped (blacklisted)" % host)
+        connection.close()
