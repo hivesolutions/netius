@@ -57,12 +57,14 @@ class Transport(observer.Observable):
         self._loop = loop
         self._connection = connection
         self._protocol = None
+        self._extra_dict = None
         self._exhausted = False
         if open: self.open()
 
     def open(self):
         self.set_handlers()
         self.set_write_buffer_limits()
+        self.set_extra_dict()
 
     def close(self):
         if self._connection: self._connection.close()
@@ -93,7 +95,8 @@ class Transport(observer.Observable):
         self._connection.send(data, address = addr, delay = False)
 
     def get_extra_info(self, name, default = None):
-        if name == "socket": return self._connection.socket
+        callable = self._extra_dict.get(name, None)
+        if callable: return callable()
         else: return default
 
     def get_write_buffer_size(self):
@@ -135,6 +138,18 @@ class Transport(observer.Observable):
 
         self._connection.max_pending = high
         self._connection.min_pending = low
+
+    def set_extra_dict(self):
+        self._extra_dict = dict(
+            socket = lambda: self._connection.socket,
+            peername = lambda: self._connection.socket.getpeername(),
+            sockname = lambda: self._connection.socket.getsockname(),
+            compression = lambda: self._connection.socket.compression(),
+            cipher = lambda: self._connection.socket.cipher(),
+            peercert = lambda: self._connection.socket.getpeercert(),
+            sslcontext = lambda: self._connection.socket.context,
+            ssl_object = lambda: self._connection.socket
+        )
 
     def get_protocol(self):
         return self._protocol
@@ -187,6 +202,10 @@ class Transport(observer.Observable):
         # unsets the loop from the current transport as it's
         # not safe to interact with the owner loop anymore
         self._loop = None
+
+        # unset the currently set extra dictionary thtat defined
+        # a series of lambda functions to the current instance
+        self._extra_dict = None
 
         # runs the destroy operation that will clean the
         # most basic structures associated with this object
