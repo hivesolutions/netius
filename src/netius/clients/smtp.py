@@ -533,7 +533,7 @@ class SMTPClient(netius.StreamClient):
                 # to try to "recover" the final address that is going to be
                 # used in the establishment of the smtp connection
                 if response:
-                    # in case there are not answers present in the response
+                    # in case there are no answers present in the response
                     # of the dns resolution an exception must be raised, note
                     # that the on close handler is called so that proper
                     # fallback for this connections is handled
