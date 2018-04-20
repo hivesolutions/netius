@@ -618,6 +618,10 @@ class SMTPClient(netius.StreamClient):
             # associated with the current domain in iteration
             handler = build_handler(tos, domain = domain, tos_map = tos_map)
 
+            # prints a small debug message about the resolution of the
+            # domain for the current message (debugging purposes)
+            self.debug("Resolving MX domain for'%s' ..." % domain)
+
             # runs the dns query to be able to retrieve the proper
             # mail exchange host for the target email address and then
             # sets the proper callback for sending
