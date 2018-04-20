@@ -512,14 +512,14 @@ class SMTPClient(netius.StreamClient):
                 # domain based clojure and if that's the case removes the
                 # reference of it from the map of tos, then verifies if the
                 # map is still valid and if that's the case returns and this
-                # is not considered the last remaining smtp session for the
+                # is not considered the last remaining SMTP session for the
                 # current send operation (still some open)
                 if domain: del tos_map[domain]
                 if tos_map: return
 
                 # verifies if the callback method is defined and if that's
                 # the case calls the callback indicating the end of the send
-                # operation (note that this may represent multiple smtp sessions)
+                # operation (note that this may represent multiple SMTP sessions)
                 callback and callback(self)
 
             def handler(response = None):
@@ -531,7 +531,7 @@ class SMTPClient(netius.StreamClient):
 
                 # in case there's a valid response provided must parse it
                 # to try to "recover" the final address that is going to be
-                # used in the establishment of the smtp connection
+                # used in the establishment of the SMTP connection
                 if response:
                     # in case there are no answers present in the response
                     # of the dns resolution an exception must be raised, note
@@ -567,8 +567,8 @@ class SMTPClient(netius.StreamClient):
 
                 # establishes the connection to the target host and port
                 # and using the provided key and certificate files and then
-                # sets the smtp information in the current connection, after
-                # the connections is completed the smtp session should start
+                # sets the SMTP information in the current connection, after
+                # the connections is completed the SMTP session should start
                 connection = self.connect(_host, _port)
                 if stls: connection.set_message_stls_seq(ehlo = ehlo)
                 else: connection.set_message_seq(ehlo = ehlo)
@@ -588,21 +588,21 @@ class SMTPClient(netius.StreamClient):
 
         # in case the host address has been provided by argument the
         # handler method is called immediately to trigger the processing
-        # of the smtp connection using the current host and port
+        # of the SMTP connection using the current host and port
         if host:
             handler = build_handler(tos)
             connection = handler()
             return connection
 
         # ensures that the proper main loop is started so that the current
-        # smtp client does not become orphan as no connection has been
+        # SMTP client does not become orphan as no connection has been
         # established as of this moment (as expected) and the dns client
         # is going to be run as a daemon (avoids process exit)
         if ensure_loop: self.ensure_loop()
 
         # creates the map that is going to be used to associate each of
         # the domains with the proper to (email) addresses, this is going
-        # to allow aggregated based smtp sessions (performance wise)
+        # to allow aggregated based SMTP sessions (performance wise)
         tos_map = dict()
         for to in tos:
             _name, domain = to.split("@", 1)
@@ -612,7 +612,7 @@ class SMTPClient(netius.StreamClient):
 
         # iterates over the complete set of domain and associated
         # to addresses list for each of them to run the mx based
-        # query operation and then start the smtp session
+        # query operation and then start the SMTP session
         for domain, tos in netius.legacy.items(tos_map):
             # creates a new handler method bound to the to addresses
             # associated with the current domain in iteration
