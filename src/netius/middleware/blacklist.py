@@ -19,6 +19,9 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+__author__ = "João Magalhães <joamag@hive.pt>"
+""" The author(s) of the module """
+
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -34,12 +37,28 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from . import base
-from . import blacklist
-from . import dummy
-from . import proxy
+import netius
 
 from .base import Middleware
-from .blacklist import BlacklistMiddleware
-from .dummy import DummyMiddleware
-from .proxy import ProxyMiddleware
+
+class BlacklistMiddleware(Middleware):
+    """
+    Simple middleware implementation for blacklisting of IP
+    addresses using a very minimalistic approach.
+    """
+
+    def start(self):
+        Middleware.start(self)
+        self.blacklist = netius.conf("BLACKLIST", cast = [])
+        self.owner.bind("connection_c", self.on_connection_c)
+
+    def stop(self):
+        Middleware.stop(self)
+        self.owner.unbind("connection_c", self.on_connection_c)
+
+    def on_connection_c(self, owner, connection):
+        #@todo saca o endereço do gajo e se estiver na blacklist drop logo !!!
+        # e imprime mensagem !!!
+        
+        #if connection.a
+        pass
