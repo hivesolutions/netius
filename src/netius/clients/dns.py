@@ -483,6 +483,10 @@ class DNSClient(netius.ClientAgent):
 
 if __name__ == "__main__":
     def handler(response):
+        # closes the current protocol to correctly close
+        # all of the underlying structures
+        protocol.close()
+
         # retrieves the currently associated loop using
         # netius base infra-structure and then runs the
         # stop operation on the next tick end
@@ -515,7 +519,7 @@ if __name__ == "__main__":
     # runs the static version of a DNS query, note that
     # the daemon flag is unset so that the global client
     # runs in foreground avoiding the exit of the process
-    loop, _protocol = DNSClient.query_s(
+    loop, protocol = DNSClient.query_s(
         name,
         type = type,
         ns = ns,
