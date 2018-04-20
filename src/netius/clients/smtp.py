@@ -538,7 +538,7 @@ class SMTPClient(netius.StreamClient):
                         on_close()
                         if self.auto_close: self.close()
                         raise netius.NetiusError(
-                            "Not possible to resolve mx for '%s'" % domain
+                            "Not possible to resolve MX for '%s'" % domain
                         )
 
                     # retrieves the first answer (probably the most accurate)
