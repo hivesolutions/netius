@@ -211,6 +211,8 @@ class Transport(observer.Observable):
         self._handle_flow()
 
     def _handle_flow(self):
+        if not self._connection: return
+
         if self._exhausted:
             is_restored = self._connection.is_restored()
             if not is_restored: return
