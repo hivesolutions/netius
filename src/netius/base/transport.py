@@ -67,16 +67,31 @@ class Transport(observer.Observable):
         self.set_extra_dict()
 
     def close(self):
-        if self._connection: self._connection.close()
+        # in case the current transport is already closed or in the
+        # process of closing returns immediately (avoids duplication)
+        if self.is_closing(): return
+
+        if self._connection: self._connection.close(flush = True)
         else: self._protocol = None
 
         self._connection = None
         self._exhausted = False
 
     def abort(self):
+        # in case the current transport is already closed or in the
+        # process of closing returns immediately (avoids duplication)
+        if self.is_closing(): return
+
+        # in case there's a connection set runs the (forced) close
+        # operation so that no more interaction exists otherwise
+        # unsets the protocol (notice that if the connection exists
+        # the close operation will trigger the close protocol callback)
         if self._connection: self._connection.close()
         else: self._protocol = None
 
+        # unsets the connection object (as it's no longer eligible
+        # to be used) and unsets the current transport for exhausted
+        # as it's considered to be the default/initials state
         self._connection = None
         self._exhausted = False
 
@@ -158,13 +173,27 @@ class Transport(observer.Observable):
         self._set_protocol(protocol, mark = False)
 
     def is_closing(self):
-        return self._connection.is_closed()
+        """
+        Determines if the current transport/connection is closed
+        or is in the process of being closed.
+
+        A transport is considered closed in case the underlying
+        connection object is not set.
+
+        :rtype: bool
+        :return: If the current transport is closed or in the process
+        of being closed.
+        """
+
+        if not self._connection: return True
+        if self._connection.is_closed(): return True
+        return False
 
     def _on_data(self, connection, data):
         pass
 
     def _on_close(self, connection):
-        pass
+        self._cleanup()
 
     def _set_compat(self, protocol):
         self._set_binds()
@@ -203,7 +232,12 @@ class Transport(observer.Observable):
         # not safe to interact with the owner loop anymore
         self._loop = None
 
-        # unset the currently set extra dictionary thtat defined
+        # unsets the connection from the current instance and
+        # normalizes the value of the exhausted flag
+        self._connection = None
+        self._exhausted = False
+
+        # unset the currently set extra dictionary that defines
         # a series of lambda functions to the current instance
         self._extra_dict = None
 
