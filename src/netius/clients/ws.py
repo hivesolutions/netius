@@ -143,7 +143,7 @@ class WSProtocol(netius.StreamProtocol):
     def on_handshake(self):
         self.trigger("handshake", self)
 
-    def connect_ws(self, url, loop = None):
+    def connect_ws(self, url, callback = None, loop = None):
         cls = self.__class__
 
         parsed = netius.legacy.urlparse(url)
@@ -161,6 +161,8 @@ class WSProtocol(netius.StreamProtocol):
         )
 
         self.key = cls._key()
+
+        if callback: self.bind("handshake", callback, oneshot = True)
 
         return loop, self
 
@@ -232,9 +234,9 @@ class WSClient(netius.ClientAgent):
     protocol = WSProtocol
 
     @classmethod
-    def connect_ws_s(cls, url, loop = None):
+    def connect_ws_s(cls, url, callback = None, loop = None):
         protocol = cls.protocol()
-        return protocol.connect_ws(url, loop = loop)
+        return protocol.connect_ws(url, callback = callback, loop = loop)
 
 if __name__ == "__main__":
     def on_handshake(protocol):
