@@ -57,7 +57,7 @@ class PriorityDict(dict):
     def smallest(self):
         heap = self._heap
         v, k = heap[0]
-        while k not in self or self[k] != v:
+        while not k in self or self[k] != v:
             heapq.heappop(heap)
             v, k = heap[0]
         return k
@@ -65,13 +65,13 @@ class PriorityDict(dict):
     def pop_smallest(self):
         heap = self._heap
         v, k = heapq.heappop(heap)
-        while k not in self or self[k] != v:
+        while not k in self or self[k] != v:
             v, k = heapq.heappop(heap)
         del self[k]
         return k
 
     def setdefault(self, key, val):
-        if key not in self:
+        if not key in self:
             self[key] = val
             return val
         return self[key]
