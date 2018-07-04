@@ -1911,8 +1911,10 @@ class AbstractBase(observer.Observable):
         ssl_host = None,
         ssl_fingerprint = None,
         ssl_dump = False,
+        family = socket.AF_INET,
         backlog = socket.SOMAXCONN,
-        env = False
+        env = False,
+        callback = None
     ):
         # processes the various default values taking into account if
         # the environment variables are meant to be processed for the
@@ -2049,7 +2051,7 @@ class AbstractBase(observer.Observable):
         # in case the selected port is zero based, meaning that a randomly selected
         # port has been assigned by the bind operation the new port must be retrieved
         # and set for the current server instance as the new port (for future reference)
-        if self.port == 0: self.port = _socket.getsockname()[1]
+        if port == 0: port = _socket.getsockname()[1]
 
         # creates the string that identifies it the current service connection
         # is using a secure channel (ssl) and then prints an info message about
@@ -2073,6 +2075,118 @@ class AbstractBase(observer.Observable):
         # able to respond to the fact that the service is starting and some of
         # them may print some specific debugging information
         self.on_serve()
+
+        class Instance(object):
+            pass
+
+        #@todo this is the dummy object representing the new server
+        instance = Instance()
+        instance.sockets = [_socket]
+
+        print(instance)
+
+        # delays the operation of calling the callback with the new (service) instance
+        # by one tick (avoids possible issues)
+        self.delay(
+            lambda: callback and callback(instance, True),
+            immediately = True
+        )
+
+    #@todo improve this, and maybe remove it from a concrete method
+    def socket_tcp(
+        self,
+        ssl = False,
+        key_file = None,
+        cer_file = None,
+        ca_file = None,
+        ca_root = True,
+        ssl_verify = False,
+        family = socket.AF_INET,
+        type = socket.SOCK_STREAM
+    ):
+        # verifies if the provided family is of type internet and if that's
+        # the case the associated flag is set to valid for usage
+        is_inet = family in (socket.AF_INET, socket.AF_INET6)
+
+        # retrieves the proper string based type for the current server socket
+        # and the prints a series of log message about the socket to be created
+        type_s = " SSL" if ssl else ""
+        self.debug("Creating server's TCP%s socket ..." % type_s)
+        if ssl: self.debug("Loading '%s' as key file" % key_file)
+        if ssl: self.debug("Loading '%s' as certificate file" % cer_file)
+        if ssl and ca_file: self.debug("Loading '%s' as certificate authority file" % ca_file)
+        if ssl and ssl_verify: self.debug("Loading with client SSL verification")
+
+        # creates the socket that it's going to be used for the listening
+        # of new connections (server socket) and sets it as non blocking
+        _socket = socket.socket(family, type)
+        _socket.setblocking(0)
+
+        # in case the server is meant to be used as SSL wraps the socket
+        # in suck fashion so that it becomes "secured"
+        if ssl: _socket = self._ssl_wrap(
+            _socket,
+            key_file = key_file,
+            cer_file = cer_file,
+            ca_file = ca_file,
+            ca_root = ca_root,
+            server = True,
+            ssl_verify = ssl_verify
+        )
+
+        # sets the various options in the service socket so that it becomes
+        # ready for the operation with the highest possible performance, these
+        # options include the reuse address to be able to re-bind to the port
+        # and address and the keep alive that drops connections after some time
+        # avoiding the leak of connections (operative system managed)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        if is_inet: _socket.setsockopt(
+            socket.IPPROTO_TCP,
+            socket.TCP_NODELAY,
+            1
+        )
+
+        # this variables should be passed
+        #if self.receive_buffer_s: _socket.setsockopt(
+        #    socket.SOL_SOCKET,
+        #    socket.SO_RCVBUF,
+        #    self.receive_buffer_s
+        #)
+        #if self.send_buffer_s: _socket.setsockopt(
+        ##    socket.SOL_SOCKET,
+        #    socket.SO_SNDBUF,
+        #    self.send_buffer_s
+        #)
+        self._socket_keepalive(_socket)
+
+        # returns the created tcp socket to the calling method so that it
+        # may be used from this point on
+        return _socket
+
+    #@todo improve this, and maybe remove it from a concrete method
+    def socket_udp(self, family = socket.AF_INET, type = socket.SOCK_DGRAM):
+        # prints a small debug message about the udp socket that is going
+        # to be created for the server's connection
+        self.debug("Creating server's udp socket ...")
+
+        # creates the socket that it's going to be used for the listening
+        # of new connections (server socket) and sets it as non blocking
+        _socket = socket.socket(family, type)
+        _socket.setblocking(0)
+
+        # sets the various options in the service socket so that it becomes
+        # ready for the operation with the highest possible performance
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+        # returns the created udp socket to the calling method so that it
+        # may be used from this point on
+        return _socket
+
+
+
+
 
     def datagram(
         self,
@@ -2699,6 +2813,9 @@ class AbstractBase(observer.Observable):
 
     def on_data(self, connection, data):
         connection.set_data(data)
+
+    def on_serve(self):
+        pass
 
     def info_dict(self, full = False):
         info = dict(

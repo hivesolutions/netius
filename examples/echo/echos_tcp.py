@@ -63,7 +63,7 @@ loop = netius.get_loop(_compat = True)
 coro = loop.create_server(EchoServerClientProtocol, "127.0.0.1", 8888)
 server = loop.run_until_complete(coro)
 
-print("Serving on %s" % server.sockets[0].getsockname())
+print("Serving on %s" % (server.sockets[0].getsockname(),))
 
 try: loop.run_forever()
 except KeyboardInterrupt: pass

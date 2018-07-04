@@ -228,8 +228,35 @@ class CompatLoop(BaseLoop):
         *args,
         **kwargs
     ):
-        #@todo implement this server code
-        pass
+        family = family or socket.AF_INET
+
+        future = self.create_future()
+
+        def on_complete(instance, success):
+            if success: on_success(instance)
+            else: on_error(instance)
+
+        def on_success(instance):
+            protocol = protocol_factory()
+            _instance = instance
+            #_transport = transport.TransportStream(self, connection)
+            #_transport._set_compat(protocol)
+            future.set_result(_instance)
+
+        def on_error(connection):
+            future.set_exception(
+                errors.RuntimeError("Connection issue")
+            )
+
+        self._loop.serve(
+            host,
+            port,
+            ssl = ssl,
+            family = family,
+            callback = on_complete
+        )
+
+        yield future
 
     def _create_connection(
         self,
@@ -666,12 +693,31 @@ def _serve_stream_native(
     has_loop_set = hasattr(protocol, "loop_set")
     if has_loop_set: protocol.loop_set(loop)
 
-    server = loop.serve(
-        host = host,
-        port = port
-    )
+    def on_ready():
+        loop.serve(
+            host = host,
+            port = port,
+            callback = on_complete
+        )
 
-    return loop, server
+    def on_complete(instance, success):
+        if success: on_success(instance)
+        else: on_error(instance)
+
+    def on_success(instance):
+        #@todo we should get this better
+        _instance = instance
+        #_instance = transport.TransportServer(loop, instance)
+        #_instance._set_compat(protocol)
+        if not callback: return
+        callback(_instance)
+
+    def on_error(connection):
+        protocol.close()
+
+    loop.delay(on_ready)
+
+    return loop
 
 def _serve_stream_compat(
     protocol_factory,

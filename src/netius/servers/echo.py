@@ -77,7 +77,7 @@ class EchoServer(netius.ServerAgent):
         return protocol.serve(env = env, loop = loop)
 
 if __name__ == "__main__":
-    loop, protocol = EchoServer.serve_s(env = True)
+    loop, protocol = EchoServer.serve_s()
     loop.run_forever()
     loop.close()
 else:
