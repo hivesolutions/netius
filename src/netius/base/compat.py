@@ -238,10 +238,9 @@ class CompatLoop(BaseLoop):
 
         def on_success(service):
             protocol = protocol_factory()
-            _service = service
-            #_transport = transport.TransportStream(self, connection)
-            #_transport._set_compat(protocol)
-            future.set_result(_service)
+            server = transport.ServerTransport(self, service)
+            server._set_compat(protocol)
+            future.set_result(server)
 
         def on_error(connection):
             future.set_exception(
@@ -705,12 +704,10 @@ def _serve_stream_native(
         else: on_error(service)
 
     def on_success(service):
-        #@todo we should get this better
-        _service = service
-        #_service = transport.TransportServer(loop, service)
-        #_service._set_compat(protocol)
+        server = transport.ServerTransport(loop, service)
+        server._set_compat(protocol)
         if not callback: return
-        callback(_service)
+        callback(server)
 
     def on_error(connection):
         protocol.close()

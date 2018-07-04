@@ -84,5 +84,5 @@ from .service import Service
 from .stream import Stream
 from .tls import fingerprint, match_fingerprint, match_hostname, dnsname_match,\
     dump_certificate
-from .transport import Transport, TransportDatagram, TransportStream
+from .transport import Transport, TransportDatagram, TransportStream, ServerTransport
 from .util import camel_to_underscore, verify

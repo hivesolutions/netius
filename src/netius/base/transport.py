@@ -300,3 +300,35 @@ class TransportStream(Transport):
         if not self._protocol == None:
             self._protocol.eof_received()
         self._cleanup()
+
+class ServerTransport(observer.Observable):
+    """
+    Decorator class to be used to add the functionality of a
+    service layer using a simplified and standard API.
+
+    Allows adding the functionality to an internal netius
+    service (or equivalent) object.
+
+    This approach is heavily influenced by the design of the
+    asyncio Python infra-structure and should provide a mostly
+    compatible interface.
+    """
+
+    def __init__(self, loop, service, open = True):
+        self._loop = loop
+        self._service = service
+        self._protocol = None
+        self._extra_dict = None
+        self._exhausted = False
+        if open: self.open()
+
+    def open(self):
+        pass
+
+    def close(self):
+        pass
+
+    def _set_compat(self, protocol):
+        #@todo tenho de me registear para os eventos de nova conexao
+        # etc para poder encapsular e fazer connection_made 
+        self.sockets = self._service.sockets
