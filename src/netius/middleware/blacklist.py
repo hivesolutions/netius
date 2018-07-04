@@ -39,61 +39,27 @@ __license__ = "Apache License, Version 2.0"
 
 import netius
 
-class RawProtocol(netius.StreamProtocol):
+from .base import Middleware
 
-    def send_basic(self):
-        """
-        Sends a basic HTTP 1.0 request, that can be used to
-        run a simple operation on the raw protocol.
-        """
+class BlacklistMiddleware(Middleware):
+    """
+    Simple middleware implementation for blacklisting of IP
+    addresses using a very minimalistic approach.
+    """
 
-        self.send("GET / HTTP/1.0\r\n\r\n")
+    def start(self):
+        Middleware.start(self)
+        self.blacklist = netius.conf("BLACKLIST", [], cast = list)
+        self.whitelist = netius.conf("WHITELIST", [], cast = list)
+        self.owner.bind("connection_c", self.on_connection_c)
 
-class RawClient(netius.ClientAgent):
+    def stop(self):
+        Middleware.stop(self)
+        self.owner.unbind("connection_c", self.on_connection_c)
 
-    protocol = RawProtocol
-
-    @classmethod
-    def run_s(
-        cls,
-        host,
-        port = 8080,
-        loop = None,
-        *args,
-        **kwargs
-    ):
-        protocol = cls.protocol()
-
-        loop = netius.connect_stream(
-            lambda: protocol,
-            host = host,
-            port = port,
-            loop = loop,
-            *args,
-            **kwargs
-        )
-
-        return loop, protocol
-
-if __name__ == "__main__":
-
-    def on_open(protocol):
-        protocol.send_basic()
-
-    def on_data(protocol, data):
-        print(data)
-
-    def on_finsh(protocol):
-        netius.compat_loop(loop).stop()
-
-    loop, protocol = RawClient.run_s("localhost")
-
-    protocol.bind("open", on_open)
-    protocol.bind("data", on_data)
-    protocol.bind("finish", on_finsh)
-
-    loop.run_forever()
-    loop.close()
-
-else:
-    __path__ = []
+    def on_connection_c(self, owner, connection):
+        host = connection.address[0]
+        if not host in self.blacklist and not "*" in self.blacklist: return
+        if host in self.whitelist: return
+        self.owner.warning("Connection from '%s' dropped (blacklisted)" % host)
+        connection.close()

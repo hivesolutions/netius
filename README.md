@@ -60,7 +60,7 @@ server.serve(port = 8080)
 import netius.clients
 result = netius.clients.HTTPClient.get_s(
     "http://www.flickr.com/",
-    async = False
+    asynchronous = False
 )
 print(result["data"])
 ```

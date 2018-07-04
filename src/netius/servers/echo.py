@@ -37,13 +37,17 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from . import ws
+##@todo tenho de criar um servidor muito simples que houve um request
+# e devolve o mesmo em send !!!
 
-class EchoServer(ws.WSServer):
+import netius
 
-    def on_data_ws(self, connection, data):
-        ws.WSServer.on_data_ws(self, connection, data)
-        connection.send_ws(data)
+class EchoProtocol(netius.StreamProtocol):
+    pass
+
+class EchoServer(netius.ServerAgent):
+
+    protocol = EchoProtocol
 
 if __name__ == "__main__":
     server = EchoServer()

@@ -55,7 +55,7 @@ from . import tls
 from . import transport
 from . import util
 
-from .agent import Agent, ClientAgent
+from .agent import Agent, ClientAgent, ServerAgent
 from .asynchronous import Future, Task, Handle, Executor, ThreadPoolExecutor, coroutine,\
     async_test_all, async_test, ensure_generator, get_asyncio, is_coroutine,\
     is_coroutine_object, is_coroutine_native, is_future, is_neo, is_asynclib, is_await,\
