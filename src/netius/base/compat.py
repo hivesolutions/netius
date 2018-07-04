@@ -666,12 +666,12 @@ def _serve_stream_native(
     has_loop_set = hasattr(protocol, "loop_set")
     if has_loop_set: protocol.loop_set(loop)
 
-    loop.serve(
+    server = loop.serve(
         host = host,
-        port
+        port = port
     )
 
-    return loop
+    return loop, server
 
 def _serve_stream_compat(
     protocol_factory,

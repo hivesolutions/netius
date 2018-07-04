@@ -1912,7 +1912,7 @@ class AbstractBase(observer.Observable):
         ssl_fingerprint = None,
         ssl_dump = False,
         backlog = socket.SOMAXCONN,
-        env = True
+        env = False
     ):
         # processes the various default values taking into account if
         # the environment variables are meant to be processed for the
@@ -2018,17 +2018,20 @@ class AbstractBase(observer.Observable):
         # creates a service socket according to the defined service
         family = socket.AF_INET6 if ipv6 else socket.AF_INET
         family = socket.AF_UNIX if is_unix else family
-        if type == TCP_TYPE: _socket = self.socket_tcp(
-            ssl,
-            key_file = key_file,
-            cer_file = cer_file,
-            ca_file = ca_file,
-            ca_root = ca_root,
-            ssl_verify = ssl_verify,
-            family = family
-        )
-        elif type == UDP_TYPE: _socket = self.socket_udp()
-        else: raise errors.NetiusError("Invalid server type provided '%d'" % type)
+        if type == TCP_TYPE:
+            _socket = self.socket_tcp(
+                ssl,
+                key_file = key_file,
+                cer_file = cer_file,
+                ca_file = ca_file,
+                ca_root = ca_root,
+                ssl_verify = ssl_verify,
+                family = family
+            )
+        elif type == UDP_TYPE:
+            _socket = self.socket_udp()
+        else:
+            raise errors.NetiusError("Invalid server type provided '%d'" % type)
 
         # "calculates" the address "bind target", taking into account that this
         # server may be running under a unix based socket infra-structure and
