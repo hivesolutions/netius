@@ -638,10 +638,60 @@ def _connect_stream_compat(
 
     return loop
 
-def _serve_stream_native():
-    #@todo: implement this stuff
-    pass
+def _serve_stream_native(
+    protocol_factory,
+    host,
+    port,
+    ssl = False,
+    key_file = None,
+    cer_file = None,
+    ca_file = None,
+    ca_root = True,
+    ssl_verify = False,
+    family = socket.AF_INET,
+    type = socket.SOCK_STREAM,
+    backlog = None,
+    reuse_address = None,
+    reuse_port = None,
+    callback = None,
+    loop = None,
+    *args,
+    **kwargs
+):
+    from . import common
 
-def _serve_stream_compat():
+    loop = loop or common.get_loop()
+
+    protocol = protocol_factory()
+    has_loop_set = hasattr(protocol, "loop_set")
+    if has_loop_set: protocol.loop_set(loop)
+
+    loop.serve(
+        host = host,
+        port
+    )
+
+    return loop
+
+def _serve_stream_compat(
+    protocol_factory,
+    host,
+    port,
+    ssl = False,
+    key_file = None,
+    cer_file = None,
+    ca_file = None,
+    ca_root = True,
+    ssl_verify = False,
+    family = socket.AF_INET,
+    type = socket.SOCK_STREAM,
+    backlog = None,
+    reuse_address = None,
+    reuse_port = None,
+    callback = None,
+    loop = None,
+    *args,
+    **kwargs
+):
     #@todo: implement this stuff
     pass

@@ -37,20 +37,48 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-##@todo tenho de criar um servidor muito simples que houve um request
-# e devolve o mesmo em send !!!
-
 import netius
 
 class EchoProtocol(netius.StreamProtocol):
-    pass
+
+    def __init__(self, owner=None):
+        netius.StreamProtocol.__init__(self, owner=owner)
+
+        self.host = "0.0.0.0"
+        self.port = 90
+        self.ssl = False
+
+    def on_data(self, data):
+        netius.StreamProtocol.on_data(self, data)
+        self.send(data)
+
+    #@todo maybe move this to the upper layer
+    # as an utility
+    def serve(self, env = False, loop = None):
+        cls = self.__class__
+
+        loop = netius.serve_stream(
+            lambda: self,
+            host = self.host,
+            port = self.port,
+            ssl = self.ssl,
+            loop = loop
+        )
+
+        return loop, self
 
 class EchoServer(netius.ServerAgent):
 
     protocol = EchoProtocol
 
+    @classmethod
+    def serve_s(cls, env = False, loop = None):
+        protocol = cls.protocol()
+        return protocol.serve(env = env, loop = loop)
+
 if __name__ == "__main__":
-    server = EchoServer()
-    server.serve(env = True)
+    loop, protocol = EchoServer.serve_s(env = True)
+    loop.run_forever()
+    loop.close()
 else:
     __path__ = []
