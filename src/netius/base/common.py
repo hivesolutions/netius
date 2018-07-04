@@ -59,6 +59,7 @@ from .. import middleware
 
 from .conn import * #@UnusedWildImport
 from .poll import * #@UnusedWildImport
+from .service import * #@UnusedWildImport
 from .asynchronous import * #@UnusedWildImport
 
 NAME = "netius"
@@ -2076,19 +2077,14 @@ class AbstractBase(observer.Observable):
         # them may print some specific debugging information
         self.on_serve()
 
-        class Instance(object):
-            pass
-
         #@todo this is the dummy object representing the new server
-        instance = Instance()
-        instance.sockets = [_socket]
-
-        print(instance)
+        service = self.new_service(_socket, ssl)
+        service.sockets = [_socket]
 
         # delays the operation of calling the callback with the new (service) instance
         # by one tick (avoids possible issues)
         self.delay(
-            lambda: callback and callback(instance, True),
+            lambda: callback and callback(service, True),
             immediately = True
         )
 
@@ -2894,6 +2890,9 @@ class AbstractBase(observer.Observable):
             datagram = datagram,
             ssl = ssl
         )
+
+    def new_service(self, socket, ssl = False):
+        return Service(owner = self, socket = socket, ssl = ssl)
 
     def add_callback(self, socket, callback):
         callbacks = self.callbacks_m.get(socket, [])

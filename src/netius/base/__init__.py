@@ -50,6 +50,7 @@ from . import poll
 from . import protocol
 from . import request
 from . import server
+from . import service
 from . import stream
 from . import tls
 from . import transport
@@ -79,6 +80,7 @@ from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
 from .protocol import Protocol, DatagramProtocol, StreamProtocol
 from .request import Request, Response
 from .server import Server, DatagramServer, StreamServer
+from .service import Service
 from .stream import Stream
 from .tls import fingerprint, match_fingerprint, match_hostname, dnsname_match,\
     dump_certificate

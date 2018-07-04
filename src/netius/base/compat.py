@@ -232,16 +232,16 @@ class CompatLoop(BaseLoop):
 
         future = self.create_future()
 
-        def on_complete(instance, success):
-            if success: on_success(instance)
-            else: on_error(instance)
+        def on_complete(service, success):
+            if success: on_success(service)
+            else: on_error(service)
 
-        def on_success(instance):
+        def on_success(service):
             protocol = protocol_factory()
-            _instance = instance
+            _service = service
             #_transport = transport.TransportStream(self, connection)
             #_transport._set_compat(protocol)
-            future.set_result(_instance)
+            future.set_result(_service)
 
         def on_error(connection):
             future.set_exception(
@@ -700,17 +700,17 @@ def _serve_stream_native(
             callback = on_complete
         )
 
-    def on_complete(instance, success):
-        if success: on_success(instance)
-        else: on_error(instance)
+    def on_complete(service, success):
+        if success: on_success(service)
+        else: on_error(service)
 
-    def on_success(instance):
+    def on_success(service):
         #@todo we should get this better
-        _instance = instance
-        #_instance = transport.TransportServer(loop, instance)
-        #_instance._set_compat(protocol)
+        _service = service
+        #_service = transport.TransportServer(loop, service)
+        #_service._set_compat(protocol)
         if not callback: return
-        callback(_instance)
+        callback(_service)
 
     def on_error(connection):
         protocol.close()
