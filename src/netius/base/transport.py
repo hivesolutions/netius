@@ -304,7 +304,8 @@ class TransportStream(Transport):
 class ServerTransport(observer.Observable):
     """
     Decorator class to be used to add the functionality of a
-    service layer using a simplified and standard API.
+    server layer using a simplified and standard API that provides
+    the usage of the previously defined transport.
 
     Allows adding the functionality to an internal netius
     service (or equivalent) object.
