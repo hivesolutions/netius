@@ -332,4 +332,4 @@ class ServerTransport(observer.Observable):
     def _set_compat(self, protocol):
         #@todo tenho de me registear para os eventos de nova conexao
         # etc para poder encapsular e fazer connection_made 
-        self.sockets = self._service.sockets
+        self.sockets = [self._service.sockets]

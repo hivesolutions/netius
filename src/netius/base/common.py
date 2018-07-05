@@ -57,10 +57,10 @@ from . import asynchronous
 
 from .. import middleware
 
-from .conn import * #@UnusedWildImport
-from .poll import * #@UnusedWildImport
-from .service import * #@UnusedWildImport
-from .asynchronous import * #@UnusedWildImport
+from .conn import * #@UnusedWildImport pylint: disable=W0614
+from .poll import * #@UnusedWildImport pylint: disable=W0614
+from .service import * #@UnusedWildImport pylint: disable=W0614
+from .asynchronous import * #@UnusedWildImport pylint: disable=W0614
 
 NAME = "netius"
 """ The global infra-structure name to be used in the
@@ -1917,60 +1917,6 @@ class AbstractBase(observer.Observable):
         env = False,
         callback = None
     ):
-        # processes the various default values taking into account if
-        # the environment variables are meant to be processed for the
-        # current context (default values are processed accordingly)
-        host = self.get_env("HOST", host) if env else host
-        port = self.get_env("PORT", port, cast = int) if env else port
-        type = self.get_env("TYPE", type, cast = int) if env else type
-        ipv6 = self.get_env("IPV6", ipv6, cast = bool) if env else ipv6
-        ssl = self.get_env("SSL", ssl, cast = bool) if env else ssl
-        port = self.get_env("UNIX_PATH", port) if env else port
-        key_file = self.get_env("KEY_FILE", key_file) if env else key_file
-        cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
-        ca_file = self.get_env("CA_FILE", ca_file) if env else ca_file
-        ca_root = self.get_env("CA_ROOT", ca_root, cast = bool) if env else ca_root
-        ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
-        ssl_host = self.get_env("SSL_HOST", ssl_host) if env else ssl_host
-        ssl_fingerprint = self.get_env("SSL_FINGERPRINT", ssl_fingerprint) if env else ssl_fingerprint
-        ssl_dump = self.get_env("SSL_DUMP", ssl_dump) if env else ssl_dump
-        key_file = self.get_env("KEY_DATA", key_file, expand = True) if env else key_file
-        cer_file = self.get_env("CER_DATA", cer_file, expand = True) if env else cer_file
-        ca_file = self.get_env("CA_DATA", ca_file, expand = True) if env else ca_file
-        backlog = self.get_env("BACKLOG", backlog, cast = int) if env else backlog
-
-        # runs the various extra variable initialization taking into
-        # account if the environment variable is currently set or not
-        # please note that some side effects may arise from this set
-        if env: self.level = self.get_env("LEVEL", self.level)
-        if env: self.diag = self.get_env("DIAG", self.diag, cast = bool)
-        if env: self.middleware = self.get_env("MIDDLEWARE", self.middleware, cast = list)
-        if env: self.children = self.get_env("CHILD", self.children, cast = int)
-        if env: self.children = self.get_env("CHILDREN", self.children, cast = int)
-        if env: self.logging = self.get_env("LOGGING", self.logging)
-        if env: self.poll_name = self.get_env("POLL", self.poll_name)
-        if env: self.poll_timeout = self.get_env(
-            "POLL_TIMEOUT",
-            self.poll_timeout,
-            cast = float
-        )
-        if env: self.keepalive_timeout = self.get_env(
-            "KEEPALIVE_TIMEOUT",
-            self.keepalive_timeout,
-            cast = int
-        )
-        if env: self.keepalive_interval = self.get_env(
-            "KEEPALIVE_INTERVAL",
-            self.keepalive_interval,
-            cast = int
-        )
-        if env: self.keepalive_count = self.get_env(
-            "KEEPALIVE_COUNT",
-            self.keepalive_count,
-            cast = int
-        )
-        if env: self.allowed = self.get_env("ALLOWED", self.allowed, cast = list)
-
         # ensures the proper default address value, taking into account
         # the type of connection that is currently being used, this avoids
         # problems with multiple stack based servers (ipv4 and ipv6)
@@ -1982,30 +1928,6 @@ class AbstractBase(observer.Observable):
         key_file = key_file or SSL_KEY_PATH
         cer_file = cer_file or SSL_CER_PATH
         ca_file = ca_file or SSL_CA_PATH
-
-        # populates the basic information on the currently running
-        # server like the host the port and the (is) ssl flag to be
-        # used latter for reference operations
-
-        #@todo must remove all this static values !!!
-        #self.host = host
-        #self.port = port
-        #self.type = type
-        #self.ssl = ssl
-        #self.ssl_host = ssl_host
-        #self.ssl_fingerprint = ssl_fingerprint
-        #self.ssl_dump = ssl_dump
-        #self.env = env
-
-        # populates the key, certificate and certificate authority file
-        # information with the values that have just been resolved, these
-        # values are going to be used for runtime certificate loading
-
-        #@todo must remove all these values and put them somewhere else
-        # (may the connection object)
-        #self.key_file = key_file
-        #self.cer_file = cer_file
-        #self.ca_file = ca_file
 
         # determines if the client side certificate should be verified
         # according to the loaded certificate authority values or if
@@ -2079,7 +2001,6 @@ class AbstractBase(observer.Observable):
 
         #@todo this is the dummy object representing the new server
         service = self.new_service(_socket, ssl)
-        service.sockets = [_socket]
 
         # delays the operation of calling the callback with the new (service) instance
         # by one tick (avoids possible issues)
@@ -3596,25 +3517,25 @@ class AbstractBase(observer.Observable):
         if count == None: count = self.keepalive_count
         is_inet = _socket.family in (socket.AF_INET, socket.AF_INET6)
         is_inet and hasattr(_socket, "TCP_KEEPIDLE") and\
-            self.socket.setsockopt(
+            _socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPIDLE, #@UndefinedVariable
                 timeout
             )
         is_inet and hasattr(_socket, "TCP_KEEPINTVL") and\
-            self.socket.setsockopt(
+            _socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPINTVL, #@UndefinedVariable
                 interval
             )
         is_inet and hasattr(_socket, "TCP_KEEPCNT") and\
-            self.socket.setsockopt(
+            _socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPCNT, #@UndefinedVariable
                 count
             )
         hasattr(_socket, "SO_REUSEPORT") and\
-            self.socket.setsockopt(
+            _socket.setsockopt(
                 socket.SOL_SOCKET,
                 socket.SO_REUSEPORT, #@UndefinedVariable
                 1
