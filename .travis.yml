@@ -28,7 +28,7 @@ install:
 env:
   - HTTPBIN=httpbin.bemisc.com
 script:
-  - pylint src/netius
+  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]] || [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then pylint src/netius; fi
   - if [[ $TRAVIS_PYTHON_VERSION != "3.2" ]]; then coverage run --source=netius setup.py test; else python setup.py test; fi
 after_success: if [[ $TRAVIS_PYTHON_VERSION != "3.2" ]]; then coveralls; fi
 deploy:
