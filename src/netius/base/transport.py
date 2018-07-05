@@ -54,6 +54,7 @@ class Transport(observer.Observable):
     """
 
     def __init__(self, loop, connection, open = True):
+        observer.Observable.__init__(self)
         self._loop = loop
         self._connection = connection
         self._protocol = None
@@ -316,6 +317,7 @@ class ServerTransport(observer.Observable):
     """
 
     def __init__(self, loop, service, open = True):
+        observer.Observable.__init__(self)
         self._loop = loop
         self._service = service
         self._protocol = None
@@ -331,5 +333,5 @@ class ServerTransport(observer.Observable):
 
     def _set_compat(self, protocol):
         #@todo tenho de me registear para os eventos de nova conexao
-        # etc para poder encapsular e fazer connection_made 
+        # etc para poder encapsular e fazer connection_made
         self.sockets = [self._service.sockets]
