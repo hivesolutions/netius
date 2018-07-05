@@ -268,7 +268,7 @@ class CompatLoop(BaseLoop):
         flags = 0,
         sock = None,
         local_addr = None,
-        server_hostname = None, 
+        server_hostname = None,
         *args,
         **kwargs
     ):
