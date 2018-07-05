@@ -24,9 +24,12 @@ install:
   - pip install -r requirements.txt
   - pip install coveralls
   - pip install twine
+  - pip install pylint
 env:
   - HTTPBIN=httpbin.bemisc.com
-script: if [[ $TRAVIS_PYTHON_VERSION != "3.2" ]]; then coverage run --source=netius setup.py test; else python setup.py test; fi
+script:
+  - pylint src/netius
+  - if [[ $TRAVIS_PYTHON_VERSION != "3.2" ]]; then coverage run --source=netius setup.py test; else python setup.py test; fi
 after_success: if [[ $TRAVIS_PYTHON_VERSION != "3.2" ]]; then coveralls; fi
 deploy:
   provider: pypi
