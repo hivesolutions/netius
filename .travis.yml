@@ -30,7 +30,7 @@ env:
 script:
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]] || [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then pylint --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" src/netius; fi
   - if [[ $TRAVIS_PYTHON_VERSION != "3.2" ]]; then coverage run --source=netius setup.py test; else python setup.py test; fi
-after_success: if [[ $TRAVIS_PYTHON_VERSION != "3.2" ]]; then coveralls; fi 
+after_success: if [[ $TRAVIS_PYTHON_VERSION != "3.2" ]]; then coveralls; fi
 deploy:
   provider: pypi
   user: joamag
