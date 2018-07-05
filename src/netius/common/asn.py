@@ -110,7 +110,7 @@ def asn1_parse(template, data):
         # verifies if the data type for the current template
         # item to be parser is tuple and based on that defined
         # the current expected data type and children values
-        is_tuple = isinstance(item, tuple)
+        is_tuple = type(item) == tuple
         if is_tuple: dtype, children = item
         else: dtype = item; children = None
 
