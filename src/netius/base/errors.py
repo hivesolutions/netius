@@ -48,7 +48,7 @@ class NetiusError(BaseException):
 
     def __init__(self, *args, **kwargs):
         BaseException.__init__(self, *args)
-        message = args[0] if len(args) > 0 else ""
+        message = args[0] if args else ""
         kwargs["message"] = kwargs.get("message", message)
         self.kwargs = kwargs
 
