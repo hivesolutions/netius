@@ -738,7 +738,7 @@ class AbstractBase(observer.Observable):
             # creates the coroutine that is going to be used to
             # encapsulate the callable, note that the result of the
             # callable is set as the result of the future (as expected)
-            def coroutine(future, *args, **kwargs):
+            def coroutine(future, *args, **kwargs): #pylint ignore=E0102
                 yield
                 result = coroutine_c(*args, **kwargs)
                 future.set_result(result)
