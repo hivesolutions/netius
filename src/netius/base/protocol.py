@@ -260,8 +260,8 @@ class Protocol(observer.Observable):
             if not self._delayed: break
             if not self._writing: break
             data, address, callback = self._delayed.pop(0)
-            if address: self.send(data, address, callback = callback)
-            else: self.send(data, callback = callback)
+            if address: self.send(data, address, callback = callback) #pylint: disable=E1101
+            else: self.send(data, callback = callback) #pylint: disable=E1101
 
 class DatagramProtocol(Protocol):
 
