@@ -74,12 +74,14 @@ QUIT_STATE = 13
 
 FINAL_STATE = 14
 
-AUTH_METHODS = (
-    "plain",
-    "login"
-)
-
 class SMTPConnection(netius.Connection):
+
+    AUTH_METHODS = (
+        "plain",
+        "login"
+    )
+    """ The sequence that defined the multiple allowed
+    methods for this SMTP protocol implementation """
 
     def __init__(self, host = "smtp.localhost", *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
@@ -437,6 +439,7 @@ class SMTPConnection(netius.Connection):
         raise netius.ParserError("Invalid state")
 
     def best_auth(self):
+        cls = self.__class__
         methods = []
         for capability in self.capabilities:
             is_auth = capability.startswith("auth ")
@@ -444,7 +447,7 @@ class SMTPConnection(netius.Connection):
             parts = capability.split(" ")
             parts = [part.strip() for part in parts]
             methods.extend(parts[1:])
-        usable = [method for method in methods if method in AUTH_METHODS]
+        usable = [method for method in methods if method in cls.AUTH_METHODS]
         return usable[0] if usable else "plain"
 
 class SMTPClient(netius.StreamClient):
@@ -509,14 +512,14 @@ class SMTPClient(netius.StreamClient):
                 # domain based clojure and if that's the case removes the
                 # reference of it from the map of tos, then verifies if the
                 # map is still valid and if that's the case returns and this
-                # is not considered the last remaining smtp session for the
+                # is not considered the last remaining SMTP session for the
                 # current send operation (still some open)
                 if domain: del tos_map[domain]
                 if tos_map: return
 
                 # verifies if the callback method is defined and if that's
                 # the case calls the callback indicating the end of the send
-                # operation (note that this may represent multiple smtp sessions)
+                # operation (note that this may represent multiple SMTP sessions)
                 callback and callback(self)
 
             def handler(response = None):
@@ -528,9 +531,9 @@ class SMTPClient(netius.StreamClient):
 
                 # in case there's a valid response provided must parse it
                 # to try to "recover" the final address that is going to be
-                # used in the establishment of the smtp connection
+                # used in the establishment of the SMTP connection
                 if response:
-                    # in case there are not answers present in the response
+                    # in case there are no answers present in the response
                     # of the dns resolution an exception must be raised, note
                     # that the on close handler is called so that proper
                     # fallback for this connections is handled
@@ -538,7 +541,7 @@ class SMTPClient(netius.StreamClient):
                         on_close()
                         if self.auto_close: self.close()
                         raise netius.NetiusError(
-                            "Not possible to resolve mx for '%s'" % domain
+                            "Not possible to resolve MX for '%s'" % domain
                         )
 
                     # retrieves the first answer (probably the most accurate)
@@ -564,8 +567,8 @@ class SMTPClient(netius.StreamClient):
 
                 # establishes the connection to the target host and port
                 # and using the provided key and certificate files and then
-                # sets the smtp information in the current connection, after
-                # the connections is completed the smtp session should start
+                # sets the SMTP information in the current connection, after
+                # the connections is completed the SMTP session should start
                 connection = self.connect(_host, _port)
                 if stls: connection.set_message_stls_seq(ehlo = ehlo)
                 else: connection.set_message_seq(ehlo = ehlo)
@@ -585,21 +588,21 @@ class SMTPClient(netius.StreamClient):
 
         # in case the host address has been provided by argument the
         # handler method is called immediately to trigger the processing
-        # of the smtp connection using the current host and port
+        # of the SMTP connection using the current host and port
         if host:
             handler = build_handler(tos)
             connection = handler()
             return connection
 
         # ensures that the proper main loop is started so that the current
-        # smtp client does not become orphan as no connection has been
+        # SMTP client does not become orphan as no connection has been
         # established as of this moment (as expected) and the dns client
         # is going to be run as a daemon (avoids process exit)
         if ensure_loop: self.ensure_loop()
 
         # creates the map that is going to be used to associate each of
         # the domains with the proper to (email) addresses, this is going
-        # to allow aggregated based smtp sessions (performance wise)
+        # to allow aggregated based SMTP sessions (performance wise)
         tos_map = dict()
         for to in tos:
             _name, domain = to.split("@", 1)
@@ -609,11 +612,15 @@ class SMTPClient(netius.StreamClient):
 
         # iterates over the complete set of domain and associated
         # to addresses list for each of them to run the mx based
-        # query operation and then start the smtp session
+        # query operation and then start the SMTP session
         for domain, tos in netius.legacy.items(tos_map):
             # creates a new handler method bound to the to addresses
             # associated with the current domain in iteration
             handler = build_handler(tos, domain = domain, tos_map = tos_map)
+
+            # prints a small debug message about the resolution of the
+            # domain for the current message (debugging purposes)
+            self.debug("Resolving MX domain for'%s' ..." % domain)
 
             # runs the dns query to be able to retrieve the proper
             # mail exchange host for the target email address and then
