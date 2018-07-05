@@ -3519,25 +3519,25 @@ class AbstractBase(observer.Observable):
         is_inet and hasattr(_socket, "TCP_KEEPIDLE") and\
             _socket.setsockopt(
                 socket.IPPROTO_TCP,
-                socket.TCP_KEEPIDLE, #@UndefinedVariable
+                socket.TCP_KEEPIDLE, #@UndefinedVariable pylint: disable=E1101
                 timeout
             )
         is_inet and hasattr(_socket, "TCP_KEEPINTVL") and\
             _socket.setsockopt(
                 socket.IPPROTO_TCP,
-                socket.TCP_KEEPINTVL, #@UndefinedVariable
+                socket.TCP_KEEPINTVL, #@UndefinedVariable pylint: disable=E1101
                 interval
             )
         is_inet and hasattr(_socket, "TCP_KEEPCNT") and\
             _socket.setsockopt(
                 socket.IPPROTO_TCP,
-                socket.TCP_KEEPCNT, #@UndefinedVariable
+                socket.TCP_KEEPCNT, #@UndefinedVariable pylint: disable=E1101
                 count
             )
         hasattr(_socket, "SO_REUSEPORT") and\
             _socket.setsockopt(
                 socket.SOL_SOCKET,
-                socket.SO_REUSEPORT, #@UndefinedVariable
+                socket.SO_REUSEPORT, #@UndefinedVariable pylint: disable=E1101
                 1
             )
 
