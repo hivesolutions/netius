@@ -18,7 +18,7 @@ Installation
     pip install netius
 
 Usage
------  
+-----
 
 WSGI Server
 ~~~~~~~~~~~
