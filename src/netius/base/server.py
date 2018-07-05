@@ -37,7 +37,7 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from .common import * #@UnusedWildImport
+from .common import * #@UnusedWildImport pylint: disable=W0614
 
 BUFFER_SIZE_S = None
 """ The size of both the send and receive buffers for
