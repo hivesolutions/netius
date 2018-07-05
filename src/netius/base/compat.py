@@ -264,7 +264,7 @@ class CompatLoop(BaseLoop):
         local_addr = None,
         remote_addr = None,
         family = 0,
-        proto = 0,
+        proto = 0, 
         flags = 0,
         reuse_address = None,
         reuse_port = None,
