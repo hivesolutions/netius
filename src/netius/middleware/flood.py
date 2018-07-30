@@ -64,6 +64,13 @@ class FloodMiddleware(Middleware):
 
     def on_connection_c(self, owner, connection):
         host = connection.address[0]
+        self._update_flood(host)
+        if not host in self.blacklist and not "*" in self.blacklist: return
+        if host in self.whitelist: return
+        self.owner.warning("Connection from '%s' dropped (flooding avoidance)" % host)
+        connection.close()
+
+    def _update_flood(self, host):
         minute = int(time.time() // 60)
         if minute == self.minute: self.conn_map.clear()
         self.minute = minute
@@ -71,7 +78,3 @@ class FloodMiddleware(Middleware):
         count += 1
         self.conn_map[host] = count
         if count > self.connections_min: self.blacklist.append(host)
-        if not host in self.blacklist and not "*" in self.blacklist: return
-        if host in self.whitelist: return
-        self.owner.warning("Connection from '%s' dropped (flooding avoidance)" % host)
-        connection.close()
