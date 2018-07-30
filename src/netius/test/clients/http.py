@@ -119,7 +119,8 @@ class HTTPClientTest(unittest.TestCase):
         self.assertEqual(result["code"], 200)
         self.assertEqual(headers["Host"], self.httpbin)
         self.assertEqual(headers["Accept-Encoding"], "gzip, deflate")
-        self.assertNotEqual(headers["User-Agent"], "")
+        self.assertEqual(headers.get("Content-Length", "0"), "0")
+        self.assertNotEqual(headers.get("User-Agent", ""), "")
 
         result = netius.clients.HTTPClient.method_s(
             "GET",
