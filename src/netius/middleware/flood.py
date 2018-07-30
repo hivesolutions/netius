@@ -51,7 +51,7 @@ class FloodMiddleware(Middleware):
 
     def start(self):
         Middleware.start(self)
-        self.connections_min = netius.conf("CONNECTIONS_MIN", 600, cast = int)
+        self.conns_per_min = netius.conf("CONNS_PER_MIN", 600, cast = int)
         self.whitelist = netius.conf("WHITELIST", [], cast = list)
         self.blacklist = []
         self.conn_map = dict()
@@ -77,4 +77,4 @@ class FloodMiddleware(Middleware):
         count = self.conn_map.get(host, 0)
         count += 1
         self.conn_map[host] = count
-        if count > self.connections_min: self.blacklist.append(host)
+        if count > self.conns_per_min: self.blacklist.append(host)
