@@ -1433,7 +1433,7 @@ class HTTPClient(netius.ClientAgent):
             # event loop call (stop operation)
             self.available.pop(protocol.key, None)
 
-            # in case the protocol that is being closed in not the one
+            # in case the protocol that is being closed is not the one
             # in usage returns immediately (no need to stop the event
             # loop for a protocol from the available pool)
             if from_pool: return
