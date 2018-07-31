@@ -1341,6 +1341,8 @@ class HTTPClient(netius.ClientAgent):
         # notice that the event loop is also re-used accordingly
         key = cls.protocol.key_g(url)
         protocol = self.available.pop(key, None)
+        if protocol and (not protocol.is_open() or\
+            protocol.transport().is_closing()): protocol = None
         if protocol: loop = loop or protocol.loop()
 
         # determines if the loop instance was provided by the user so
@@ -1387,7 +1389,7 @@ class HTTPClient(netius.ClientAgent):
             protocol.connection_made(protocol.transport())
 
         # runs the global connect stream function on netius to initialize the
-        # connection operation and maybe anew event loop (if that's required)
+        # connection operation and maybe a new event loop (if that's required)
         else:
             loop = netius.connect_stream(
                 lambda: protocol,
