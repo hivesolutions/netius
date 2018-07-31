@@ -1423,9 +1423,9 @@ class HTTPClient(netius.ClientAgent):
                 netius.compat_loop(loop).stop()
 
         def on_close(protocol):
-            # verifies if the protocol if the protocol is currently in
-            # the pool of protocol, so that decisions on the stopping
-            # of the event loop may be made latter on
+            # verifies if the protocol being closed is currently in
+            # the pool of available protocols, so that decisions on
+            # the stopping of the event loop may be made latter on
             from_pool = protocol.key in self.available
 
             # because the protocol was closed we must release it from
