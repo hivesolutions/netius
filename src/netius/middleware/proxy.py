@@ -70,14 +70,14 @@ class ProxyMiddleware(Middleware):
     def _proxy_handshake(self, connection):
         cls = self.__class__
 
-        # verifies if the connection is ssl based if that's the case
+        # verifies if the connection is SSL based if that's the case
         # the safe (reading) mode is enabled
         safe = connection.ssl
 
         # selects the proper receive method to be used to retrieve bytes
         # from the client side taking into account if the connection is
-        # secured with ssl or not, note that the "special" ssl receive method
-        # allows one to receive raw information under an ssl socket/connection
+        # secured with SSL or not, note that the "special" SSL receive method
+        # allows one to receive raw information under an SSL socket/connection
         recv = connection._recv_ssl if connection.ssl else connection.recv
 
         # in case the safe (read) mode is enabled the unit of counting
