@@ -675,6 +675,9 @@ class BaseConnection(observer.Observable):
     def is_restored(self):
         return self.pending_s <= self.min_pending
 
+    def is_pending_data(self):
+        return self.restored_s > 0
+
     def _send(self):
         # sets the write ready flag so that any further request to
         # write operation will be immediately performed
