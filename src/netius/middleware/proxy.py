@@ -93,7 +93,7 @@ class ProxyMiddleware(Middleware):
         else: buffer = bytearray()
 
         # iterates continuously trying to retrieve the set of data that is
-        # required to parse the PROXy protocol header information
+        # required to parse the PROXY protocol header information
         while True:
             # tries to receive the maximum size of data that is required
             # for the handling of the PROXY information
