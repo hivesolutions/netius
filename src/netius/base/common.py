@@ -66,7 +66,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.16.38"
+VERSION = "1.16.39"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
