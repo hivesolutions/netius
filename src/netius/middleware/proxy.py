@@ -82,7 +82,7 @@ class ProxyMiddleware(Middleware):
 
         # in case the safe (read) mode is enabled the unit of counting
         # for the receive operation is one (single byte reading) to
-        # allow no return of data (required for some environment eg: ssl)
+        # allow no return of data (required for some environment eg: SSL)
         count = 1 if safe else cls.MAX_LENGTH
 
         # verifies if there's a previously set proxy buffer defined
