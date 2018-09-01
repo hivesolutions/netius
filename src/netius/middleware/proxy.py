@@ -124,7 +124,7 @@ class ProxyMiddleware(Middleware):
             # data is ready to be parsed and the loop is stopped
             if is_ready: break
 
-        # removes the proxy buffer reference from the connection as
+        # removes the PROXY buffer reference from the connection as
         # its no longer going to be used
         del connection._proxy_buffer
 
@@ -166,5 +166,5 @@ class ProxyMiddleware(Middleware):
         connection.address = (source, int(source_p))
 
         # runs the end starter operation, indicating to the connection that
-        # the proxy header has been properly parsed
+        # the PROXY header has been properly parsed
         connection.end_starter()
