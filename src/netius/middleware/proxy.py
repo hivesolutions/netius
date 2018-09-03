@@ -252,7 +252,7 @@ class ProxyMiddleware(Middleware):
             destination_low,\
             source_p,\
             destination_p = struct.unpack("!QQQQHH", body)
-            source_high = (source_high << 64) + source_low
+            source = (source_high << 64) + source_low
             destination = (destination_high << 64) + destination_low
             source = netius.common.addr_to_ip6(source)
             destination = netius.common.addr_to_ip6(destination)
