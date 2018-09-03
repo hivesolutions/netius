@@ -104,3 +104,10 @@ the value is zero the strict transport security is disabled (defaults to `0`)
 drop all of the connections
 * `WHITELIST` (`list`) - Sequence of IP addresses that should be allowed explicitly, use `*` to allow all of the
 connection to be accepted
+
+#### Flood (Mitigation) Middleware
+
+* `CONNS_PER_MIN` (`int`) - The maximum number of connections per minute allowed per a certain IP before it becomes
+black listed and connections are dropped (default to `600`)
+* `WHITELIST` (`list`) - Sequence of IP addresses that should be allowed explicitly, use `*` to allow all of the
+connection to be accepted

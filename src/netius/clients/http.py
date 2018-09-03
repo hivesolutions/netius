@@ -1341,6 +1341,8 @@ class HTTPClient(netius.ClientAgent):
         # notice that the event loop is also re-used accordingly
         key = cls.protocol.key_g(url)
         protocol = self.available.pop(key, None)
+        if protocol and (not protocol.is_open() or\
+            protocol.transport().is_closing()): protocol = None
         if protocol: loop = loop or protocol.loop()
 
         # determines if the loop instance was provided by the user so
@@ -1387,7 +1389,7 @@ class HTTPClient(netius.ClientAgent):
             protocol.connection_made(protocol.transport())
 
         # runs the global connect stream function on netius to initialize the
-        # connection operation and maybe anew event loop (if that's required)
+        # connection operation and maybe a new event loop (if that's required)
         else:
             loop = netius.connect_stream(
                 lambda: protocol,
@@ -1421,9 +1423,9 @@ class HTTPClient(netius.ClientAgent):
                 netius.compat_loop(loop).stop()
 
         def on_close(protocol):
-            # verifies if the protocol if the protocol is currently in
-            # the pool of protocol, so that decisions on the stopping
-            # of the event loop may be made latter on
+            # verifies if the protocol being closed is currently in
+            # the pool of available protocols, so that decisions on
+            # the stopping of the event loop may be made latter on
             from_pool = protocol.key in self.available
 
             # because the protocol was closed we must release it from
@@ -1431,7 +1433,7 @@ class HTTPClient(netius.ClientAgent):
             # event loop call (stop operation)
             self.available.pop(protocol.key, None)
 
-            # in case the protocol that is being closed in not the one
+            # in case the protocol that is being closed is not the one
             # in usage returns immediately (no need to stop the event
             # loop for a protocol from the available pool)
             if from_pool: return
