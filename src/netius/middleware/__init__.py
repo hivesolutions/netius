@@ -35,9 +35,13 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 from . import base
+from . import blacklist
 from . import dummy
+from . import flood
 from . import proxy
 
 from .base import Middleware
+from .blacklist import BlacklistMiddleware
 from .dummy import DummyMiddleware
+from .flood import FloodMiddleware
 from .proxy import ProxyMiddleware

@@ -66,7 +66,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.17.27"
+VERSION = "1.17.31"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -429,7 +429,15 @@ class AbstractBase(observer.Observable):
         if not set_compat: return
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
+
+        # runs a series of patches in the current asyncio
+        # infra-structure to make sure that it's ready to
+        # "accept" the netius event loop as its main event
+        # loop instance (requires changes)
         cls.patch_asyncio()
+
+        # sets the main event loop for asyncio as the
+        # current compatible version of the netius loop
         asyncio.set_event_loop(compat)
 
     @classmethod

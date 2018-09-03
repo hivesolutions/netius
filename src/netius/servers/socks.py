@@ -112,7 +112,7 @@ class SOCKSConnection(netius.Connection):
     def on_auth(self):
         self.owner.on_auth_socks(self, self.parser)
 
-class SOCKSServer(netius.ContainerServer):
+class SOCKSServer(netius.ServerAgent):
     """
     SOCKS base server class to be used as an implementation of the
     RFC 1928 or SOCKSv5 and the SOCKSv4 protocols.
@@ -128,24 +128,19 @@ class SOCKSServer(netius.ContainerServer):
             send_buffer_c = int(max_pending * BUFFER_RATIO),
             *args,
             **kwargs
-        )
+        ) # @todo how is this going to work (receive buffer control)
         self.rules = rules
         self.throttle = throttle
         self.max_pending = max_pending
         self.min_pending = int(max_pending * MIN_RATIO)
         self.conn_map = {}
 
-        self.raw_client = netius.clients.RawClient(
-            thread = False,
-            receive_buffer = int(max_pending * BUFFER_RATIO),
-            send_buffer = int(max_pending * BUFFER_RATIO),
-            *args,
-            **kwargs
-        )
-        self.raw_client.bind("connect", self._on_raw_connect)
-        self.raw_client.bind("data", self._on_raw_data)
-        self.raw_client.bind("close", self._on_raw_close)
+        _loop, self.raw_protocol = netius.clients.RawClient.protocol()
+        self.raw_protocol.bind("connect", self._on_raw_connect)
+        self.raw_protocol.bind("data", self._on_raw_data)
+        self.raw_protocol.bind("close", self._on_raw_close)
 
+        #@todo this does not make sense
         self.add_base(self)
         self.add_base(self.raw_client)
 

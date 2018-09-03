@@ -97,3 +97,17 @@ different suffixes are used for the same host (defaults to `True`)
 
 * `STS` (`int`) - Defines the strict transport security header value (in seconds) for the reverse proxy, in case
 the value is zero the strict transport security is disabled (defaults to `0`)
+
+#### Blacklist Middleware
+
+* `BLACKLIST` (`list`) - List of IP addresses of the connections that should be dropped immediately, use `*` to
+drop all of the connections
+* `WHITELIST` (`list`) - Sequence of IP addresses that should be allowed explicitly, use `*` to allow all of the
+connection to be accepted
+
+#### Flood (Mitigation) Middleware
+
+* `CONNS_PER_MIN` (`int`) - The maximum number of connections per minute allowed per a certain IP before it becomes
+black listed and connections are dropped (default to `600`)
+* `WHITELIST` (`list`) - Sequence of IP addresses that should be allowed explicitly, use `*` to allow all of the
+connection to be accepted

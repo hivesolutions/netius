@@ -37,63 +37,16 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-import netius
+from . import ws
 
-class RawProtocol(netius.StreamProtocol):
+class EchoWSServer(ws.WSServer):
 
-    def send_basic(self):
-        """
-        Sends a basic HTTP 1.0 request, that can be used to
-        run a simple operation on the raw protocol.
-        """
-
-        self.send("GET / HTTP/1.0\r\n\r\n")
-
-class RawClient(netius.ClientAgent):
-
-    protocol = RawProtocol
-
-    @classmethod
-    def run_s(
-        cls,
-        host,
-        port = 8080,
-        loop = None,
-        *args,
-        **kwargs
-    ):
-        protocol = cls.protocol()
-
-        loop = netius.connect_stream(
-            lambda: protocol,
-            host = host,
-            port = port,
-            loop = loop,
-            *args,
-            **kwargs
-        )
-
-        return loop, protocol
+    def on_data_ws(self, connection, data):
+        ws.WSServer.on_data_ws(self, connection, data)
+        connection.send_ws(data)
 
 if __name__ == "__main__":
-
-    def on_open(protocol):
-        protocol.send_basic()
-
-    def on_data(protocol, data):
-        print(data)
-
-    def on_finsh(protocol):
-        netius.compat_loop(loop).stop()
-
-    loop, protocol = RawClient.run_s("localhost")
-
-    protocol.bind("open", on_open)
-    protocol.bind("data", on_data)
-    protocol.bind("finish", on_finsh)
-
-    loop.run_forever()
-    loop.close()
-
+    server = EchoWSServer()
+    server.serve(env = True)
 else:
     __path__ = []

@@ -93,3 +93,6 @@ class ClientAgent(Agent):
         client = cls(*args, **kwargs)
         cls._clients[tid] = client
         return client
+
+class ServerAgent(Agent):
+    pass

@@ -35,6 +35,7 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 from . import dhcp
+from . import echo_ws
 from . import echo
 from . import ftp
 from . import http
@@ -50,6 +51,7 @@ from . import ws
 from . import wsgi
 
 from .dhcp import DHCPRequest, DHCPServer
+from .echo_ws import EchoWSServer
 from .echo import EchoServer
 from .ftp import FTPConnection, FTPServer
 from .http import HTTPConnection, HTTPServer
