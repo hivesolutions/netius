@@ -306,8 +306,10 @@ class ProxyMiddleware(Middleware):
         # iterates continuously trying to retrieve the set of data that is
         # required to parse the PROXY protocol header information
         while True:
+            # determines the number of pending bytes in remaining to be read
+            # in the buffer and if that's less or equal to zero breaks the
+            # current loop (nothing pending to be read)
             pending = count - len(buffer)
-
             if pending <= 0: break
 
             # tries to receive the maximum size of data that is required
@@ -322,6 +324,7 @@ class ProxyMiddleware(Middleware):
             # execution has failed due to an exception (expected or unexpected)
             if data == False: return None
 
+            # adds the newly read data to the current buffer
             buffer += data
 
         return buffer[:count]
