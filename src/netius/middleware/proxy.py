@@ -318,7 +318,7 @@ class ProxyMiddleware(Middleware):
 
             # in case the received data represents that of a closed connection
             # the connection is closed and the control flow returned
-            if data == b"": return None
+            if data == b"": connection.close(); return None
 
             # in case the received value is false, that indicates that the
             # execution has failed due to an exception (expected or unexpected)
