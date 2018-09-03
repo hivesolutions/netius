@@ -92,6 +92,7 @@ class ProxyMiddlewareTest(unittest.TestCase):
         connection.run_starter()
 
         self.assertEqual(connection.address, ("192.168.1.1", 32598))
+        self.assertEqual(connection.restored_s, 0)
         self.assertEqual(len(connection.restored), 0)
 
         connection = netius.Connection(owner = self.server)
@@ -102,4 +103,17 @@ class ProxyMiddlewareTest(unittest.TestCase):
         connection.run_starter()
 
         self.assertEqual(connection.address, ("192.168.1.3", 32598))
+        self.assertEqual(connection.restored_s, 0)
         self.assertEqual(len(connection.restored), 0)
+
+        connection = netius.Connection(owner = self.server)
+        connection.open()
+
+        connection.restore(b"PROXY TCP4 192.168.1.3 ")
+        connection.restore(b"192.168.1.4 32598 8080\r\nGET")
+        connection.restore(b" / HTTP/1.0\r\n\r\n")
+        connection.run_starter()
+
+        self.assertEqual(connection.address, ("192.168.1.3", 32598))
+        self.assertEqual(connection.restored_s, 18)
+        self.assertEqual(len(connection.restored), 2)
