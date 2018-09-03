@@ -219,7 +219,7 @@ class ProxyMiddleware(Middleware):
             # tries to read the PROXY v2 header bytes to be able to parse
             # the body parts taking that into account
             header = self._read_safe(connection, buffer, cls.HEADER_LENGTH_V2)
-            if not header: return
+            if not header: connection.close(); return
 
             # updates the reference to the proxy header in the connection
             # and clears the buffer as it's now going to be used to load
@@ -239,7 +239,7 @@ class ProxyMiddleware(Middleware):
         netius.verify(version == 2)
 
         body = self._read_safe(connection, buffer, body_size)
-        if not body: return
+        if not body: connection.close(); return
 
         if address == cls.AF_INET_v2:
             source, destination, source_p, destination_p = struct.unpack("!IIHH", body)
@@ -318,7 +318,7 @@ class ProxyMiddleware(Middleware):
 
             # in case the received data represents that of a closed connection
             # the connection is closed and the control flow returned
-            if data == b"": connection.close(); return None
+            if data == b"": return None
 
             # in case the received value is false, that indicates that the
             # execution has failed due to an exception (expected or unexpected)
