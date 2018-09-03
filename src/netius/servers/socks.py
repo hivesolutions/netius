@@ -128,7 +128,7 @@ class SOCKSServer(netius.ServerAgent):
             send_buffer_c = int(max_pending * BUFFER_RATIO),
             *args,
             **kwargs
-        ) # @todo how is this going to work (receive buffer control )
+        ) # @todo how is this going to work (receive buffer control)
         self.rules = rules
         self.throttle = throttle
         self.max_pending = max_pending

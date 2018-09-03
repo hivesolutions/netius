@@ -70,19 +70,19 @@ class ProxyMiddleware(Middleware):
     def _proxy_handshake(self, connection):
         cls = self.__class__
 
-        # verifies if the connection is ssl based if that's the case
+        # verifies if the connection is SSL based if that's the case
         # the safe (reading) mode is enabled
         safe = connection.ssl
 
         # selects the proper receive method to be used to retrieve bytes
         # from the client side taking into account if the connection is
-        # secured with ssl or not, note that the "special" ssl receive method
-        # allows one to receive raw information under an ssl socket/connection
+        # secured with SSL or not, note that the "special" SSL receive method
+        # allows one to receive raw information under an SSL socket/connection
         recv = connection._recv_ssl if connection.ssl else connection.recv
 
         # in case the safe (read) mode is enabled the unit of counting
         # for the receive operation is one (single byte reading) to
-        # allow no return of data (required for some environment eg: ssl)
+        # allow no return of data (required for some environment eg: SSL)
         count = 1 if safe else cls.MAX_LENGTH
 
         # verifies if there's a previously set proxy buffer defined
@@ -93,7 +93,7 @@ class ProxyMiddleware(Middleware):
         else: buffer = bytearray()
 
         # iterates continuously trying to retrieve the set of data that is
-        # required to parse the PROXy protocol header information
+        # required to parse the PROXY protocol header information
         while True:
             # tries to receive the maximum size of data that is required
             # for the handling of the PROXY information
@@ -124,7 +124,7 @@ class ProxyMiddleware(Middleware):
             # data is ready to be parsed and the loop is stopped
             if is_ready: break
 
-        # removes the proxy buffer reference from the connection as
+        # removes the PROXY buffer reference from the connection as
         # its no longer going to be used
         del connection._proxy_buffer
 
@@ -166,5 +166,5 @@ class ProxyMiddleware(Middleware):
         connection.address = (source, int(source_p))
 
         # runs the end starter operation, indicating to the connection that
-        # the proxy header has been properly parsed
+        # the PROXY header has been properly parsed
         connection.end_starter()

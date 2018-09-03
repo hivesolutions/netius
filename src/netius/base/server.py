@@ -943,6 +943,11 @@ class StreamServer(Server):
         try: connection.run_starter()
         except: connection.close(); raise
 
+        # in case there's extraneous data pending to be read from the
+        # current connection's internal receive buffer it must be properly
+        # handled on the risk of blocking the newly created connection
+        if connection.is_pending_data(): self.on_read(connection.socket)
+
     def on_socket_d(self, socket_c):
         connection = self.connections_m.get(socket_c, None)
         if not connection: return
