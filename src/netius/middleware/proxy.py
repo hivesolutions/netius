@@ -246,7 +246,14 @@ class ProxyMiddleware(Middleware):
             source = netius.common.addr_to_ip4(source)
             destination = netius.common.addr_to_ip4(destination)
         elif address == cls.AF_INET6_v2:
-            source, destination, source_p, destination_p = struct.unpack("!QQHH", body)
+            source_high,\
+            source_low,\
+            destination_high,\
+            destination_low,\
+            source_p,\
+            destination_p = struct.unpack("!QQQQHH", body)
+            source = (source_high << 64) + source_low
+            destination = (destination_high << 64) + destination_low
             source = netius.common.addr_to_ip6(source)
             destination = netius.common.addr_to_ip6(destination)
         else:
