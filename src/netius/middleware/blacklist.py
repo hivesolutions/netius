@@ -47,10 +47,15 @@ class BlacklistMiddleware(Middleware):
     addresses using a very minimalistic approach.
     """
 
+    def __init__(self, owner, blacklist = None, whitelist = None):
+        Middleware.__init__(self, owner)
+        self.blacklist = blacklist or []
+        self.whitelist = whitelist or []
+
     def start(self):
         Middleware.start(self)
-        self.blacklist = netius.conf("BLACKLIST", [], cast = list)
-        self.whitelist = netius.conf("WHITELIST", [], cast = list)
+        self.blacklist = netius.conf("BLACKLIST", self.blacklist, cast = list)
+        self.whitelist = netius.conf("WHITELIST", self.whitelist, cast = list)
         self.owner.bind("connection_c", self.on_connection_c)
 
     def stop(self):

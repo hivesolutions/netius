@@ -111,3 +111,7 @@ connection to be accepted
 black listed and connections are dropped (default to `600`)
 * `WHITELIST` (`list`) - Sequence of IP addresses that should be allowed explicitly, use `*` to allow all of the
 connection to be accepted
+
+#### PROXY Middleware
+
+* `PROXY_VERSION` (`int`) - The version of the PROXY protocol that is going to be used (defaults to `1`)

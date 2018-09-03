@@ -37,8 +37,10 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import struct
 import unittest
 
+import netius.common
 import netius.middleware
 
 class ProxyMiddlewareTest(unittest.TestCase):
@@ -52,7 +54,7 @@ class ProxyMiddlewareTest(unittest.TestCase):
         unittest.TestCase.tearDown(self)
         self.server.cleanup()
 
-    def test_ipv4(self):
+    def test_ipv4_v1(self):
         instance = self.server.register_middleware(
             netius.middleware.ProxyMiddleware
         )
@@ -61,12 +63,12 @@ class ProxyMiddlewareTest(unittest.TestCase):
         connection.open()
 
         connection.restore(b"PROXY TCP4 192.168.1.1 192.168.1.2 32598 8080\r\n")
-        instance._proxy_handshake(connection)
+        instance._proxy_handshake_v1(connection)
 
         self.assertEqual(connection.address, ("192.168.1.1", 32598))
         self.assertEqual(len(connection.restored), 0)
 
-    def test_ipv6(self):
+    def test_ipv6_v1(self):
         instance = self.server.register_middleware(
             netius.middleware.ProxyMiddleware
         )
@@ -75,12 +77,12 @@ class ProxyMiddlewareTest(unittest.TestCase):
         connection.open()
 
         connection.restore(b"PROXY TCP4 fe80::787f:f63f:3176:d61b fe80::787f:f63f:3176:d61c 32598 8080\r\n")
-        instance._proxy_handshake(connection)
+        instance._proxy_handshake_v1(connection)
 
         self.assertEqual(connection.address, ("fe80::787f:f63f:3176:d61b", 32598))
         self.assertEqual(len(connection.restored), 0)
 
-    def test_starter(self):
+    def test_starter_v1(self):
         self.server.register_middleware(
             netius.middleware.ProxyMiddleware
         )
@@ -117,3 +119,35 @@ class ProxyMiddlewareTest(unittest.TestCase):
         self.assertEqual(connection.address, ("192.168.1.3", 32598))
         self.assertEqual(connection.restored_s, 18)
         self.assertEqual(len(connection.restored), 2)
+
+    def test_starter_v2(self):
+        self.server.register_middleware(
+            netius.middleware.ProxyMiddleware, version = 2
+        )
+
+        connection = netius.Connection(owner = self.server)
+        connection.open()
+
+        body = struct.pack(
+            "!IIHH",
+            netius.common.ip4_to_addr("192.168.1.1"),
+            netius.common.ip4_to_addr("192.168.1.2"),
+            32598,
+            8080
+        )
+
+        header = struct.pack(
+            "!12sBBH",
+            netius.middleware.ProxyMiddleware.HEADER_MAGIC_V2,
+            (2 << 4) + (netius.middleware.ProxyMiddleware.TYPE_PROXY_V2),
+            (netius.middleware.ProxyMiddleware.AF_INET_v2 << 4) + (netius.middleware.ProxyMiddleware.PROTO_STREAM_v2),
+            len(body)
+        )
+
+        connection.restore(header)
+        connection.restore(body)
+        connection.run_starter()
+
+        self.assertEqual(connection.address, ("192.168.1.1", 32598))
+        self.assertEqual(connection.restored_s, 0)
+        self.assertEqual(len(connection.restored), 0)

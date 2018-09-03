@@ -49,10 +49,15 @@ class FloodMiddleware(Middleware):
     of connection from a certain address.
     """
 
+    def __init__(self, owner, conns_per_min = 600, whitelist = None):
+        Middleware.__init__(self, owner)
+        self.blacklist = conns_per_min
+        self.whitelist = whitelist or []
+
     def start(self):
         Middleware.start(self)
-        self.conns_per_min = netius.conf("CONNS_PER_MIN", 600, cast = int)
-        self.whitelist = netius.conf("WHITELIST", [], cast = list)
+        self.conns_per_min = netius.conf("CONNS_PER_MIN", self.conns_per_min, cast = int)
+        self.whitelist = netius.conf("WHITELIST", self.whitelist, cast = list)
         self.blacklist = []
         self.conn_map = dict()
         self.minute = int(time.time() // 60)

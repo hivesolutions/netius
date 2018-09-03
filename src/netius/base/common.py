@@ -1395,11 +1395,11 @@ class AbstractBase(observer.Observable):
         for middleware_i in self.middleware_l: middleware_i.stop()
         del self.middleware_l[:]
 
-    def register_middleware(self, middleware_c):
+    def register_middleware(self, middleware_c, *args, **kwargs):
         # instantiates a new middleware class as a new instance and then
         # runs the start method indicating the intention to start a new
         # middleware (should properly start its internal structures)
-        middleware_i = middleware_c(self)
+        middleware_i = middleware_c(self, *args, **kwargs)
         middleware_i.start()
 
         # adds the middleware instance that has just been created to the
