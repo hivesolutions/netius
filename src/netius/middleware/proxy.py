@@ -331,4 +331,4 @@ class ProxyMiddleware(Middleware):
 
             buffer += data
 
-        return buffer[:count]
+        return bytes(buffer[:count])
