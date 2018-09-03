@@ -330,4 +330,4 @@ class ProxyMiddleware(Middleware):
         # returns the valid partial value of the buffer as requested by
         # the call to this method, in normal circumstances the buffer
         # should only contain the requested amount of data
-        return buffer[:count]
+        return bytes(buffer[:count])
