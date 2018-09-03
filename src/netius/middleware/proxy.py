@@ -327,4 +327,7 @@ class ProxyMiddleware(Middleware):
             # adds the newly read data to the current buffer
             buffer += data
 
+        # returns the valid partial value of the buffer as requested by
+        # the call to this method, in normal circumstances the buffer
+        # should only contain the requested amount of data
         return buffer[:count]
