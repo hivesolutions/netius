@@ -63,6 +63,8 @@ class ProxyMiddleware(Middleware):
     under version 2 """
 
     HEADER_MAGIC_V2 = b"\x0d\x0a\x0d\x0a\x00\x0d\x0a\x51\x55\x49\x54\x0a"
+    """ The magic byte string that starts the PROXY v2 protocol
+    header, should be used for runtime verifications """
 
     TYPE_LOCAL_V2 = 0x0
     TYPE_PROXY_V2 = 0x1
