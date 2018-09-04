@@ -229,17 +229,26 @@ class ProxyMiddleware(Middleware):
             connection._proxy_header = header
             buffer[:] = b""
 
+        # unpacks the PROXY v2 header into its components, notice that some of them
+        # contain multiple values on higher and lower bits
         magic, version_type, address_protocol, body_size = struct.unpack("!12sBBH", header)
 
+        # unpacks both the version (of the protocol) and the type (of message) by
+        # unpacking the higher and the lower bits
         version = version_type >> 4
         type = version_type & 0x0f
 
+        # unpacks the type of address to be communicated and the protocol family
         address = address_protocol >> 4
         protocol = address_protocol & 0x0f
 
+        # runs a series of assertions on some of the basic promises of the protocol
+        # (if they failed connection will be dropped)
         netius.verify(magic == cls.HEADER_MAGIC_V2)
         netius.verify(version == 2)
 
+        # reads the body part of the PROXY message taking into account the advertised
+        # size of the body (from header component)
         body = self._read_safe(connection, buffer, body_size)
         if not body: return
 
@@ -259,7 +268,7 @@ class ProxyMiddleware(Middleware):
             source = netius.common.addr_to_ip6(source)
             destination = netius.common.addr_to_ip6(destination)
         else:
-            raise netius.RuntimeError("Unsupported PROXY header")
+            raise netius.RuntimeError("Unsupported or invalid PROXY header")
 
         # removes the PROXY buffer and header references from the connection
         # as they are no longer going to be used
