@@ -3790,7 +3790,7 @@ def get_loop(
 
 def get_event_loop(*args, **kwargs):
     """
-    Compatibility alias function with the `get_loop()` function
+    Compatibility alias function with the ``get_loop()`` function
     to ensure proper compatibility with asyncio.
 
     :rtype: EventLoop

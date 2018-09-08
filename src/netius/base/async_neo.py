@@ -53,7 +53,7 @@ class Future(async_old.Future):
     syntax to be used in a future, so that it becomes compliant
     with the basic Python asyncio strategy for futures.
 
-    Using this future it should be possible to `await Future()`
+    Using this future it should be possible to ``await Future()`
     for a simpler usage.
     """
 
