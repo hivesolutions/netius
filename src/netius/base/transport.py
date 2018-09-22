@@ -97,7 +97,7 @@ class Transport(observer.Observable):
 
     def write(self, data):
         # verifies if the current connection is closing or in the process
-        # of closing and if that's the case raises an error
+        # of closing and if that's the case returns immediately
         if self.is_closing(): raise errors.RuntimeError("Connection is closed")
 
         # runs the send operation on the underlying (and concrete)
