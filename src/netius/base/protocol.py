@@ -146,7 +146,7 @@ class Protocol(observer.Observable):
         self._transport = transport
 
         # ensure that the protocol is open, please notice
-        # that most of the time the protocol is already open
+        # that most of the times the protocol is already open
         self.open()
 
     def connection_lost(self, exception):
