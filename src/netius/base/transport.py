@@ -186,7 +186,7 @@ class Transport(observer.Observable):
         or is in the process of being closed.
 
         A transport is considered closed in case the underlying
-        connection object is not set.
+        connection object is not set or is closed.
 
         :rtype: bool
         :return: If the current transport is closed or in the process
