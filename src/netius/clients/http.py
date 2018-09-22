@@ -1386,7 +1386,7 @@ class HTTPClient(netius.ClientAgent):
         # case calls the connection made directly, indicating that the connection
         # is already established (re-usage of protocol), notice that an extra
         # verification process is applied to verify is the associated transport
-        # is already closing because if that's the case it's not valid
+        # is already closing because if that's the case re-usage is not valid
         if protocol.is_open() and not protocol.transport().is_closing():
             protocol.connection_made(protocol.transport())
 
