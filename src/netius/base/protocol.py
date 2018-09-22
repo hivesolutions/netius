@@ -86,6 +86,8 @@ class Protocol(observer.Observable):
         self.trigger("close", self)
 
     def finish(self):
+        # in case the current protocol is already (completely) closed
+        # or is not in the state of closing nothing should be done
         if self.is_closed(): return
         if not self.is_closing(): return
 
