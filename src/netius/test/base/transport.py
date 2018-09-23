@@ -50,11 +50,13 @@ class TransportTest(unittest.TestCase):
         self.assertEqual(transport._loop, None)
         self.assertEqual(transport._connection, connection)
         self.assertEqual(transport.is_closing(), False)
+        self.assertEqual(connection.is_closed(), False)
 
         connection.status = netius.CLOSED
 
         self.assertEqual(transport._loop, None)
         self.assertEqual(transport._connection, connection)
         self.assertEqual(transport.is_closing(), True)
+        self.assertEqual(connection.is_closed(), True)
 
         transport.write(b"")
