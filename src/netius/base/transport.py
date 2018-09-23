@@ -71,9 +71,13 @@ class Transport(observer.Observable):
         # process of closing returns immediately (avoids duplication)
         if self.is_closing(): return
 
+        # in case there's a connection object set schedules its closing
+        # otherwise unsets the protocol object immediately
         if self._connection: self._connection.close(flush = True)
         else: self._protocol = None
 
+        # removes the reference to the underlying connection object
+        # and unsets the exhausted flag (reset of values)
         self._connection = None
         self._exhausted = False
 
@@ -190,7 +194,8 @@ class Transport(observer.Observable):
 
         :rtype: bool
         :return: If the current transport is closed or in the process
-        of being closed.
+        of being closed, if the connection is not set in the transport
+        it's also considered to be closing.
         """
 
         if not self._connection: return True
