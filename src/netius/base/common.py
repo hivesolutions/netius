@@ -3233,20 +3233,22 @@ class AbstractBase(observer.Observable):
         # the socket is of type non blocking and raises an error, note
         # that the creation of the socket varies between SSL versions
         if _socket._sslobj: return
-        if has_context: _socket._sslobj = _socket.context._wrap_socket(
-            _socket,
-            _socket.server_side,
-            _socket.server_hostname
-        )
-        else: _socket._sslobj = ssl._ssl.sslwrap(
-            _socket._sock if has_sock else _socket,
-            False,
-            _socket.keyfile,
-            _socket.certfile,
-            _socket.cert_reqs,
-            _socket.ssl_version,
-            _socket.ca_certs
-        )
+        if has_context:
+            _socket._sslobj = _socket.context._wrap_socket(
+                _socket,
+                _socket.server_side,
+                _socket.server_hostname
+            )
+        else:
+            _socket._sslobj = ssl._ssl.sslwrap(
+                _socket._sock if has_sock else _socket,
+                False,
+                _socket.keyfile,
+                _socket.certfile,
+                _socket.cert_reqs,
+                _socket.ssl_version,
+                _socket.ca_certs
+            )
 
         # verifies if the SSL object class is defined in the SSL module
         # and if that's the case an extra wrapping operation is performed
