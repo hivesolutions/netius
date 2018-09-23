@@ -320,10 +320,6 @@ class DatagramProtocol(Protocol):
                 callback = callback
             )
 
-        # in case the transport is currently in the process of closing
-        # then return immediately with a zero value (nothing to be done)
-        if self._transport.is_closing(): return 0
-
         # pushes the write data down to the transport layer immediately
         # as writing is still allowed for the current protocol
         self._transport.sendto(data, address)
@@ -380,10 +376,6 @@ class StreamProtocol(Protocol):
         # writing is again enabled (resume writing)
         if not self._writing:
             return self._delay_send(data, callback = callback)
-
-        # in case the transport is currently in the process of closing
-        # then return immediately with a zero value (nothing to be done)
-        if self._transport.is_closing(): return 0
 
         # pushes the write data down to the transport layer immediately
         # as writing is still allowed for the current protocol

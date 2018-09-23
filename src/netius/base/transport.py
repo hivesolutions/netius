@@ -97,8 +97,8 @@ class Transport(observer.Observable):
 
     def write(self, data):
         # verifies if the current connection is closing or in the process
-        # of closing and if that's the case returns immediately
-        if self.is_closing(): raise errors.RuntimeError("Connection is closed")
+        # of closing and if that's the case returns immediately (graceful)
+        if self.is_closing(): return
 
         # runs the send operation on the underlying (and concrete)
         # connection object, notice that the delay flag is unset so
@@ -108,8 +108,8 @@ class Transport(observer.Observable):
 
     def sendto(self, data, addr = None):
         # verifies if the current connection is closing or in the process
-        # of closing and if that's the case raises an error
-        if self.is_closing(): raise errors.RuntimeError("Connection is closed")
+        # of closing and if that's the case returns immediately (graceful)
+        if self.is_closing(): return
 
         # runs the send operation on the underlying (and concrete)
         # connection object, notice that the delay flag is unset so
