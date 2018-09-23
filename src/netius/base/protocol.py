@@ -86,6 +86,8 @@ class Protocol(observer.Observable):
         self.trigger("close", self)
 
     def finish(self):
+        # in case the current protocol is already (completely) closed
+        # or is not in the state of closing nothing should be done
         if self.is_closed(): return
         if not self.is_closing(): return
 
@@ -144,7 +146,7 @@ class Protocol(observer.Observable):
         self._transport = transport
 
         # ensure that the protocol is open, please notice
-        # that most of the time the protocol is already open
+        # that most of the times the protocol is already open
         self.open()
 
     def connection_lost(self, exception):

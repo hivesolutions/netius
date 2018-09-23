@@ -67,7 +67,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.17.31"
+VERSION = "1.17.34"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -1396,11 +1396,11 @@ class AbstractBase(observer.Observable):
         for middleware_i in self.middleware_l: middleware_i.stop()
         del self.middleware_l[:]
 
-    def register_middleware(self, middleware_c):
+    def register_middleware(self, middleware_c, *args, **kwargs):
         # instantiates a new middleware class as a new instance and then
         # runs the start method indicating the intention to start a new
         # middleware (should properly start its internal structures)
-        middleware_i = middleware_c(self)
+        middleware_i = middleware_c(self, *args, **kwargs)
         middleware_i.start()
 
         # adds the middleware instance that has just been created to the
@@ -3448,20 +3448,22 @@ class AbstractBase(observer.Observable):
         # the socket is of type non blocking and raises an error, note
         # that the creation of the socket varies between SSL versions
         if _socket._sslobj: return
-        if has_context: _socket._sslobj = _socket.context._wrap_socket(
-            _socket,
-            _socket.server_side,
-            _socket.server_hostname
-        )
-        else: _socket._sslobj = ssl._ssl.sslwrap(
-            _socket._sock if has_sock else _socket,
-            False,
-            _socket.keyfile,
-            _socket.certfile,
-            _socket.cert_reqs,
-            _socket.ssl_version,
-            _socket.ca_certs
-        )
+        if has_context:
+            _socket._sslobj = _socket.context._wrap_socket(
+                _socket,
+                _socket.server_side,
+                _socket.server_hostname
+            )
+        else:
+            _socket._sslobj = ssl._ssl.sslwrap(
+                _socket._sock if has_sock else _socket,
+                False,
+                _socket.keyfile,
+                _socket.certfile,
+                _socket.cert_reqs,
+                _socket.ssl_version,
+                _socket.ca_certs
+            )
 
         # verifies if the SSL object class is defined in the SSL module
         # and if that's the case an extra wrapping operation is performed
@@ -4005,7 +4007,7 @@ def get_loop(
 
 def get_event_loop(*args, **kwargs):
     """
-    Compatibility alias function with the `get_loop()` function
+    Compatibility alias function with the ``get_loop()`` function
     to ensure proper compatibility with asyncio.
 
     :rtype: EventLoop

@@ -37,6 +37,8 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import uuid
+
 class NetiusError(BaseException):
     """
     The top level base error to be used in the
@@ -51,9 +53,16 @@ class NetiusError(BaseException):
         message = args[0] if args else ""
         kwargs["message"] = kwargs.get("message", message)
         self.kwargs = kwargs
+        self._uid = None
 
     def get_kwarg(self, name, default = None):
         return self.kwargs.get(name, default)
+
+    @property
+    def uid(self):
+        if self._uid: return self._uid
+        self._uid = uuid.uuid4()
+        return self._uid
 
 class RuntimeError(NetiusError):
     """
