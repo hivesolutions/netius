@@ -128,7 +128,11 @@ class Client(Base):
         # in case the thread flag is set a new thread must be constructed
         # for the running of the client's main loop then, these thread
         # may or may not be constructed using a daemon approach
-        self._thread = BaseThread(owner = self, daemon = self.daemon)
+        self._thread = BaseThread(
+            owner = self,
+            daemon = self.daemon,
+            name = "Loop"
+        )
         self._thread.start()
 
     def join(self, timeout = None):

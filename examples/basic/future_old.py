@@ -50,7 +50,9 @@ def await_forever():
     print("Awaiting forever")
     future = netius.build_future()
     thread = threading.Thread(
-        target = set, args = (future,), kwargs = dict(raise_e = True)
+        target = set,
+        args = (future,),
+        kwargs = dict(raise_e = True)
     )
     thread.start()
     for value in future: yield value
