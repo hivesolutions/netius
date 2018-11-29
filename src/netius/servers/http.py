@@ -693,7 +693,7 @@ class HTTPServer(netius.StreamServer):
         for value in cls._gen_footer(): yield value
 
     @classmethod
-    def _gen_header(cls, title, style = True, meta = True):
+    def _gen_header(cls, title, meta = True, style = True, style_urls = []):
         yield "<!DOCTYPE html>"
         yield "<html>"
         yield "<head>"
@@ -703,6 +703,8 @@ class HTTPServer(netius.StreamServer):
         yield "<title>%s</title>" % title
         if style:
             for value in cls._gen_style(): yield value
+            for style_url in style_urls:
+                yield "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\" />" % style_url
         yield "</head>"
 
     @classmethod
