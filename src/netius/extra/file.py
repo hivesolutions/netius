@@ -589,12 +589,12 @@ class FileServer(netius.servers.HTTP2Server):
         is_partial = True if range_s else False
 
         # retrieves the last modified timestamp for the resource path and
-        # uses it to create the etag for the resource to be served
+        # uses it to create the ETag for the resource to be served
         modified = os.path.getmtime(path)
         etag = "netius-%.2f" % modified
 
         # retrieves the header that describes the previous version in the
-        # client side (client side etag) and compares both of the etags to
+        # client side (client side ETag) and compares both of the ETags to
         # verify if the file changed meanwhile or not
         _etag = parser.headers.get("if-none-match", None)
         not_modified = etag == _etag
@@ -686,7 +686,10 @@ class FileServer(netius.servers.HTTP2Server):
     def on_no_file(self, connection):
         cls = self.__class__
         connection.send_response(
-            data = cls.build_text("File not found"),
+            data = cls.build_text(
+                "File not found",
+                style_urls = self.style_urls
+            ),
             headers = dict(
                 connection = "close"
             ),
@@ -700,7 +703,8 @@ class FileServer(netius.servers.HTTP2Server):
         connection.send_response(
             data = cls.build_text(
                 "Problem handling request - %s" % str(exception),
-                trace = self.is_devel()
+                trace = self.is_devel(),
+                style_urls = self.style_urls
             ),
             headers = dict(
                 connection = "close"

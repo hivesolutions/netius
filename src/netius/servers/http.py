@@ -608,6 +608,7 @@ class HTTPServer(netius.StreamServer):
         url = None,
         trace = False,
         style = True,
+        style_urls = [],
         encode = True,
         encoding = "utf-8"
     ):
@@ -632,10 +633,18 @@ class HTTPServer(netius.StreamServer):
         text,
         trace = False,
         style = True,
+        style_urls = [],
         encode = True,
         encoding = "utf-8"
     ):
-        data = "".join(cls._gen_text(text, trace = trace, style = style))
+        data = "".join(
+            cls._gen_text(
+                text,
+                trace = trace,
+                style = style,
+                style_urls = style_urls
+            )
+        )
         if encode: data = netius.legacy.bytes(
             data,
             encoding = encoding,
@@ -649,10 +658,18 @@ class HTTPServer(netius.StreamServer):
         text,
         url,
         style = True,
+        style_urls = [],
         encode = True,
         encoding = "utf-8"
     ):
-        data = "".join(cls._gen_iframe(text, url, style = style))
+        data = "".join(
+            cls._gen_iframe(
+                text,
+                url,
+                style = style,
+                style_urls = style_urls
+            )
+        )
         if encode: data = netius.legacy.bytes(
             data,
             encoding = encoding,
@@ -661,8 +678,8 @@ class HTTPServer(netius.StreamServer):
         return data
 
     @classmethod
-    def _gen_text(cls, text, trace = False, style = True):
-        for value in cls._gen_header(text, style = style):
+    def _gen_text(cls, text, trace = False, style = True, style_urls = []):
+        for value in cls._gen_header(text, style = style, style_urls = style_urls):
             yield value
 
         yield "<body>"
@@ -682,8 +699,8 @@ class HTTPServer(netius.StreamServer):
         for value in cls._gen_footer(): yield value
 
     @classmethod
-    def _gen_iframe(cls, text, url, style = True):
-        for value in cls._gen_header(text, style = style):
+    def _gen_iframe(cls, text, url, style = True, style_urls = []):
+        for value in cls._gen_header(text, style = style, style_urls = style_urls):
             yield value
 
         yield "<body>"
