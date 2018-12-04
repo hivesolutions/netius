@@ -229,7 +229,7 @@ class FileServer(netius.servers.HTTP2Server):
             yield value
 
         yield "<body>"
-        yield "<h1>Index of %s</h1>" % path_s
+        yield "<h1 class=\"path\">Index of %s</h1>" % path_s
         yield "<hr/>"
         yield "<table>"
         yield "<thead>"
@@ -307,7 +307,7 @@ class FileServer(netius.servers.HTTP2Server):
             yield value
 
         yield "<body>"
-        yield "<h1>Index of %s</h1>" % (path_n or "/")
+        yield "<h1 class=\"path\">Index of %s</h1>" % (path_n or "/")
         yield "<table>"
         yield "<tr>"
         yield "<th valign=\"top\"><img src=\"%s\" alt=\"[ICO]\"></th>" % EMPTY_GIF
@@ -394,7 +394,7 @@ class FileServer(netius.servers.HTTP2Server):
             yield value
 
         yield "<body>"
-        yield "<h1>Index of %s</h1>" % (path_n or "/")
+        yield "<h1 class=\"path\">Index of %s</h1>" % (path_n or "/")
         yield "<hr/>"
         yield "<pre>"
         yield "<img src=\"%s\" alt=\"Icon \">" % EMPTY_GIF
