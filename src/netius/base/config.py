@@ -102,8 +102,10 @@ def conf(name, default = None, cast = None, ctx = None):
     Retrieves the configuration value for the provided value
     defaulting to the provided default value in case no value
     is found for the provided name.
+
     An optional cast operation may be performed on the value
     in case it's requested.
+
     :type name: String
     :param name: The name of the configuration value to be
     retrieved.
