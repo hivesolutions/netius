@@ -68,7 +68,7 @@ from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     stop_loop, compat_loop, get_poll, build_future, ensure, ensure_pool
 from .compat import BaseLoop, CompatLoop, is_compat, is_asyncio, build_datagram,\
     connect_stream
-from .config import conf, conf_prefix, conf_suffix, conf_s, conf_r, conf_d
+from .config import conf, conf_prefix, conf_suffix, conf_s, conf_r, conf_d, conf_ctx
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
 from .errors import NetiusError, RuntimeError, StopError, PauseError, DataError, ParserError,\
