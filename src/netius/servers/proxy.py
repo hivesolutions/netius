@@ -273,6 +273,8 @@ class ProxyServer(http2.HTTP2Server):
         pass
 
     def on_partial(self, connection, parser, data):
+        if not hasattr(connection, "proxy_c"): return
+
         proxy_c = connection.proxy_c
 
         should_throttle = self.throttle and connection.is_throttleable()
