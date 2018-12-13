@@ -37,49 +37,51 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import sys
 import time
+import datetime
+import threading
 
 import netius
 
 from .base import Middleware
 
-class FloodMiddleware(Middleware):
+class AnnoyerMiddleware(Middleware):
     """
-    Simple middleware implementation for avoiding flooding
-    of connection creation from a certain address.
+    Simple middleware that prints an "annoying" status message
+    to the standard output (stdout) from time to time providing
+    a simple diagnostics strategy.
     """
 
-    def __init__(self, owner, conns_per_min = 600, whitelist = None):
+    def __init__(self, owner, sleep_time = 10.0):
         Middleware.__init__(self, owner)
-        self.blacklist = conns_per_min
-        self.whitelist = whitelist or []
+        self.sleep_time = sleep_time
+        self._initial = None
+        self._thread = None
+        self._running = False
 
     def start(self):
         Middleware.start(self)
-        self.conns_per_min = netius.conf("CONNS_PER_MIN", self.conns_per_min, cast = int)
-        self.whitelist = netius.conf("WHITELIST", self.whitelist, cast = list)
-        self.blacklist = []
-        self.conn_map = dict()
-        self.minute = int(time.time() // 60)
-        self.owner.bind("connection_c", self.on_connection_c)
+        self.sleep_time = netius.conf("SLEEP_TIME", self.sleep_time, cast = float)
+        self._thread = threading.Thread(target = self._run)
+        self._thread.start()
 
     def stop(self):
         Middleware.stop(self)
-        self.owner.unbind("connection_c", self.on_connection_c)
+        if self._thread:
+            self._running = False
+            self._thread.join()
+            self._thread = None
 
-    def on_connection_c(self, owner, connection):
-        host = connection.address[0]
-        self._update_flood(host)
-        if not host in self.blacklist and not "*" in self.blacklist: return
-        if host in self.whitelist: return
-        self.owner.warning("Connection from '%s' dropped (flooding avoidance)" % host)
-        connection.close()
-
-    def _update_flood(self, host):
-        minute = int(time.time() // 60)
-        if minute == self.minute: self.conn_map.clear()
-        self.minute = minute
-        count = self.conn_map.get(host, 0)
-        count += 1
-        self.conn_map[host] = count
-        if count > self.conns_per_min: self.blacklist.append(host)
+    def _run(self):
+        self._initial = datetime.datetime.utcnow()
+        self._running = True
+        while self._running:
+            delta = datetime.datetime.utcnow() - self._initial
+            delta_s = self.owner._format_delta(delta)
+            sys.stdout.write(
+                "Uptime => %s | Connections => %d\n" %\
+                    (delta_s, len(self.owner.connections))
+            )
+            sys.stdout.flush()
+            time.sleep(self.sleep_time)
