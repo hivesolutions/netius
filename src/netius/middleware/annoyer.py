@@ -53,16 +53,16 @@ class AnnoyerMiddleware(Middleware):
     a simple diagnostics strategy.
     """
 
-    def __init__(self, owner, sleep_time = 10.0):
+    def __init__(self, owner, period = 10.0):
         Middleware.__init__(self, owner)
-        self.sleep_time = sleep_time
+        self.period = period
         self._initial = None
         self._thread = None
         self._running = False
 
     def start(self):
         Middleware.start(self)
-        self.sleep_time = netius.conf("SLEEP_TIME", self.sleep_time, cast = float)
+        self.period = netius.conf("ANNOYER_PERIOD", self.period, cast = float)
         self._thread = threading.Thread(target = self._run)
         self._thread.start()
 
@@ -79,9 +79,8 @@ class AnnoyerMiddleware(Middleware):
         while self._running:
             delta = datetime.datetime.utcnow() - self._initial
             delta_s = self.owner._format_delta(delta)
-            sys.stdout.write(
-                "Uptime => %s | Connections => %d\n" %\
-                    (delta_s, len(self.owner.connections))
-            )
+            message = "Uptime => %s | Connections => %d\n" %\
+                (delta_s, len(self.owner.connections))
+            sys.stdout.write(message)
             sys.stdout.flush()
-            time.sleep(self.sleep_time)
+            time.sleep(self.period)

@@ -116,3 +116,8 @@ connection to be accepted
 #### PROXY Middleware
 
 * `PROXY_VERSION` (`int`) - The version of the PROXY protocol that is going to be used (defaults to `1`)
+
+#### Annoyer Middleware
+
+* `ANNOYER_PERIOD` (`float`) - The period (in seconds) to wait in between the printing of the "annoying" diagnostics
+message, this is opposite of the frequency (defaults to `10`)
