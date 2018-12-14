@@ -2695,18 +2695,23 @@ class AbstractBase(observer.Observable):
         return self.logger.isEnabledFor(logging.CRITICAL)
 
     def debug(self, object):
+        if not logging: return
         self.log(object, level = logging.DEBUG)
 
     def info(self, object):
+        if not logging: return
         self.log(object, level = logging.INFO)
 
     def warning(self, object):
+        if not logging: return
         self.log(object, level = logging.WARNING)
 
     def error(self, object):
+        if not logging: return
         self.log(object, level = logging.ERROR)
 
     def critical(self, object):
+        if not logging: return
         self.log(object, level = logging.CRITICAL)
 
     def log_stack(self, method = None, info = True):
