@@ -428,3 +428,11 @@ def verify_not_equal(first, second, message = None, exception = None):
         message = message,
         exception = exception
     )
+
+def verify_many(sequence, message = None, exception = None):
+    for condition in sequence:
+        verify(
+            condition,
+            message = message,
+            exception = exception
+        )
