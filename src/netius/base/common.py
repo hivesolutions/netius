@@ -1817,6 +1817,11 @@ class AbstractBase(observer.Observable):
         # them (master process responsibility)
         for pid in self._childs: os.waitpid(pid, 0)
 
+        # calls the final (on) join method indicating that the complete
+        # set of child processes have been join and that now only the
+        # parent process is running actively
+        self.on_join()
+
         # prints a message about the end of the child process joining
         # this is relevant to make sure everything is ok before exit
         self.debug("Finished joining '%d' child processes" % self.children)
@@ -2336,6 +2341,9 @@ class AbstractBase(observer.Observable):
 
     def on_fork(self):
         self.trigger("fork", self)
+
+    def on_join(self):
+        self.trigger("join", self)
 
     def on_child(self):
         # triggers the child event indicating that a new child has been
