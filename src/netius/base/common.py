@@ -1807,19 +1807,19 @@ class AbstractBase(observer.Observable):
 
         # prints a debug information about the processes to be joined
         # this indicated the start of the joining process
-        self.debug("Joining '%d' children processes ..." % self.children)
+        self.debug("Joining '%d' child processes ..." % self.children)
 
         # iterates over the complete set of children to send the proper
         # terminate signal to each of them for proper termination
         for pid in self._childs: os.kill(pid, signal.SIGTERM) #@UndefinedVariable
 
         # iterates over the complete set of child processes to join
-        # them (master responsibility)
+        # them (master process responsibility)
         for pid in self._childs: os.waitpid(pid, 0)
 
         # prints a message about the end of the child process joining
         # this is relevant to make sure everything is ok before exit
-        self.debug("Finished joining %d' children processes" % self.children)
+        self.debug("Finished joining '%d' child processes" % self.children)
 
         # runs the cleanup operation for the current process this is
         # required to avoid any leaked information
