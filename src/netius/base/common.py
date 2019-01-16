@@ -1813,7 +1813,7 @@ class AbstractBase(observer.Observable):
         # terminate signal to each of them for proper termination
         for pid in self._childs: os.kill(pid, signal.SIGTERM) #@UndefinedVariable
 
-        # iterates over the complete set of child processed to join
+        # iterates over the complete set of child processes to join
         # them (master responsibility)
         for pid in self._childs: os.waitpid(pid, 0)
 
