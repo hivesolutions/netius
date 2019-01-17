@@ -1818,7 +1818,11 @@ class AbstractBase(observer.Observable):
         # reading of the pipe information from the child process to
         # the parent process (as expected)
         def pipe_handler(signum = None, frame = None):
-            command = pipein.readline()[:-1]
+            try:
+                command = pipein.readline()[:-1]
+            except BaseException as exception:
+                print(exception)
+                return
             print("Received command %s" % command)
             print(command)
             self.on_command(command)
