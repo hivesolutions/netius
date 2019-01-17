@@ -1799,6 +1799,11 @@ class AbstractBase(observer.Observable):
         def handler(signum = None, frame = None): raise errors.StopError("Stop")
         self.bind_signals(handler = handler)
 
+        #@todo make this conditional
+        def pipe_handler(signum = None, frame = None):
+            raise errors.StopError("Stop")
+        signal.signal(signal.signal.SIGUSR1, lambda())
+
         # sleeps forever, waiting for an interruption of the current
         # process that triggers the children to quit, so that it's
         # able to "join" all of them into the current process
