@@ -1764,9 +1764,14 @@ class AbstractBase(observer.Observable):
         if not hasattr(os, "fork"): return True
         if self._forked: return True
 
+        # sets the initial pid value to the value of the current
+        # master process as this is going to be used for child
+        # detection (critical for the correct logic execution)
+        ppid = os.getpid()
+
         # prints a simple debug information about the creation
         # of the pipe based communication system
-        self.debug("Creating pipes for child to parent communication")
+        self.debug("Creating pipes for child to parent communication ...")
 
         # creates both pipes for the communication between the
         # child processes and the parent process
@@ -1774,7 +1779,10 @@ class AbstractBase(observer.Observable):
 
         # builds the inline function that takes the message to be
         # sent to the output pipe, normalizes it and sends it
-        def pipe_send(message): os.write(pipeout, message + "\n")
+        def pipe_send(message):
+            if not hasattr(signal, "SIGUSR1"): return
+            os.write(pipeout, message + "\n")
+            os.kill(ppid, signal.SIGUSR1) #@UndefinedVariable
 
         # prints a debug operation about the operation that is
         # going to be performed for the forking
@@ -1783,11 +1791,6 @@ class AbstractBase(observer.Observable):
         # calls the on fork method indicating that a new fork
         # operation is soon going to be performed
         self.on_fork()
-
-        # sets the initial pid value to the value of the current
-        # master process as this is going to be used for child
-        # detection (critical for the correct logic execution)
-        pid = os.getpid()
 
         # iterates of the requested (number of children) to run
         # the concrete fork operation and fork the logic
@@ -1815,11 +1818,13 @@ class AbstractBase(observer.Observable):
         # reading of the pipe information from the child process to
         # the parent process (as expected)
         def pipe_handler(signum = None, frame = None):
-            command = pipein.readline()
+            command = pipein.readline()[:-1]
+            print("Received command %s" % command)
+            print(command)
             self.on_command(command)
 
         if hasattr(signal, "SIGUSR1"):
-            signal.signal(signal.SIGUSR1, pipe_handler)
+            signal.signal(signal.SIGUSR1, pipe_handler) #@UndefinedVariable
 
         # sleeps forever, waiting for an interruption of the current
         # process that triggers the children to quit, so that it's
