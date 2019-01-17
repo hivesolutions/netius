@@ -1764,6 +1764,18 @@ class AbstractBase(observer.Observable):
         if not hasattr(os, "fork"): return True
         if self._forked: return True
 
+        # prints a simple debug information about the creation
+        # of the pipe based communication system
+        self.debug("Creating pipes for child to parent communication")
+
+        # creates both pipes for the communication between the
+        # child processes and the parent process
+        pipein, pipeout = os.pipe()
+
+        # builds the inline function that takes the message to be
+        # sent to the output pipe, normalizes it and sends it
+        def pipe_send(message): os.write(pipeout, message + "\n")
+
         # prints a debug operation about the operation that is
         # going to be performed for the forking
         self.debug("Forking the current process into '%d' children ..." % self.children)
@@ -1782,7 +1794,7 @@ class AbstractBase(observer.Observable):
         for _index in range(self.children):
             pid = os.fork() #@UndefinedVariable
             self._child = pid == 0
-            if self._child: self.on_child()
+            if self._child: self.on_child(pipe = pipe_send)
             if self._child: break
             self._childs.append(pid)
 
@@ -1799,10 +1811,15 @@ class AbstractBase(observer.Observable):
         def handler(signum = None, frame = None): raise errors.StopError("Stop")
         self.bind_signals(handler = handler)
 
-        #@todo make this conditional
+        # creates the pipe signal handler that is responsible for the
+        # reading of the pipe information from the child process to
+        # the parent process (as expected)
         def pipe_handler(signum = None, frame = None):
-            raise errors.StopError("Stop")
-        signal.signal(signal.signal.SIGUSR1, lambda())
+            command = pipein.readline()
+            self.on_command(command)
+
+        if hasattr(signal, "SIGUSR1"):
+            signal.signal(signal.SIGUSR1, pipe_handler)
 
         # sleeps forever, waiting for an interruption of the current
         # process that triggers the children to quit, so that it's
@@ -2350,10 +2367,10 @@ class AbstractBase(observer.Observable):
     def on_join(self):
         self.trigger("join", self)
 
-    def on_child(self):
+    def on_child(self, pipe = None):
         # triggers the child event indicating that a new child has been
         # created and than any callback operation may now be performed
-        self.trigger("child", self)
+        self.trigger("child", self, pipe = pipe)
 
         # creates a new seed value from a pseudo random value and
         # then adds this new value as the base for randomness in the
