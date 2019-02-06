@@ -52,10 +52,10 @@ class EchoServerClientProtocol(asyncio.Protocol):
         message = data.decode()
         print("Data received: %s" % message)
 
-        print("Send: %s" % message)
+        print("Sending: %s" % message)
         self.transport.write(data)
 
-        print("Close the client socket")
+        print("Closing the client socket")
         self.transport.close()
 
 loop = netius.get_loop(_compat = True)

@@ -47,7 +47,7 @@ class Service(observer.Observable):
     of the meta-data associated with a service.
 
     This is considered to be the equivalent to a connection object
-    for the server side.
+    for the servers (as opposed clients).
     """
 
     def __init__(
