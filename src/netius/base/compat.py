@@ -350,11 +350,26 @@ class CompatLoop(BaseLoop):
         yield future
 
     def _set_current_task(self, task):
+        """
+        Updates the currently executing task in the global
+        asyncio state, remember that only one task can be
+        running per each event loop.
+
+        :type task: Task
+        :param task: The task object that is going to be set
+        as the currently running task.
+        """
+
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
         asyncio.Task._current_tasks[self] = task
 
     def _unset_current_task(self):
+        """
+        Removes the currently running task for the current
+        event loop (pop operation).
+        """
+
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
         asyncio.Task._current_tasks.pop(self, None)
