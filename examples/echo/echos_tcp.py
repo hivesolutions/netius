@@ -45,7 +45,7 @@ class EchoServerClientProtocol(asyncio.Protocol):
 
     def connection_made(self, transport):
         peername = transport.get_extra_info("peername")
-        print("Connection from %s" % peername)
+        print("Connection from %s" % str(peername))
         self.transport = transport
 
     def data_received(self, data):
