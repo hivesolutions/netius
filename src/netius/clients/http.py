@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -1148,6 +1148,7 @@ class HTTPClient(netius.ClientAgent):
         asynchronous = True,
         daemon = True,
         timeout = None,
+        ssl_verify = False,
         use_file = False,
         callback = None,
         on_init = None,
@@ -1181,6 +1182,7 @@ class HTTPClient(netius.ClientAgent):
             safe = safe,
             asynchronous = asynchronous,
             timeout = timeout,
+            ssl_verify = ssl_verify,
             use_file = use_file,
             callback = callback,
             on_init = on_init,
@@ -1320,6 +1322,7 @@ class HTTPClient(netius.ClientAgent):
         close = True,
         asynchronous = True,
         timeout = None,
+        ssl_verify = False,
         use_file = False,
         callback = None,
         on_init = None,
@@ -1396,6 +1399,7 @@ class HTTPClient(netius.ClientAgent):
                 protocol.host,
                 protocol.port,
                 ssl = protocol.ssl,
+                ssl_verify = ssl_verify,
                 loop = loop
             )
 

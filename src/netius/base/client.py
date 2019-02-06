@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -128,7 +128,11 @@ class Client(Base):
         # in case the thread flag is set a new thread must be constructed
         # for the running of the client's main loop then, these thread
         # may or may not be constructed using a daemon approach
-        self._thread = BaseThread(owner = self, daemon = self.daemon)
+        self._thread = BaseThread(
+            owner = self,
+            daemon = self.daemon,
+            name = "Loop"
+        )
         self._thread.start()
 
     def join(self, timeout = None):
@@ -1048,9 +1052,12 @@ class StreamClient(Client):
 
         # verifies if the SSL object class is defined in the SSL module
         # and if that's the case an extra wrapping operation is performed
-        # in order to comply with new indirection/abstraction methods
+        # in order to comply with new indirection/abstraction method, under
+        # some circumstances this operations fails with an exception because
+        # the wrapping operation is not allowed for every Python environment
         if not hasattr(ssl, "SSLObject"): return
-        _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
+        try: _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
+        except TypeError: pass
 
     def _ssl_handshake(self, connection):
         Client._ssl_handshake(self, connection)

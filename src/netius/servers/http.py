@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -608,6 +608,7 @@ class HTTPServer(netius.StreamServer):
         url = None,
         trace = False,
         style = True,
+        style_urls = [],
         encode = True,
         encoding = "utf-8"
     ):
@@ -632,10 +633,18 @@ class HTTPServer(netius.StreamServer):
         text,
         trace = False,
         style = True,
+        style_urls = [],
         encode = True,
         encoding = "utf-8"
     ):
-        data = "".join(cls._gen_text(text, trace = trace, style = style))
+        data = "".join(
+            cls._gen_text(
+                text,
+                trace = trace,
+                style = style,
+                style_urls = style_urls
+            )
+        )
         if encode: data = netius.legacy.bytes(
             data,
             encoding = encoding,
@@ -649,10 +658,18 @@ class HTTPServer(netius.StreamServer):
         text,
         url,
         style = True,
+        style_urls = [],
         encode = True,
         encoding = "utf-8"
     ):
-        data = "".join(cls._gen_iframe(text, url, style = style))
+        data = "".join(
+            cls._gen_iframe(
+                text,
+                url,
+                style = style,
+                style_urls = style_urls
+            )
+        )
         if encode: data = netius.legacy.bytes(
             data,
             encoding = encoding,
@@ -661,8 +678,8 @@ class HTTPServer(netius.StreamServer):
         return data
 
     @classmethod
-    def _gen_text(cls, text, trace = False, style = True):
-        for value in cls._gen_header(text, style = style):
+    def _gen_text(cls, text, trace = False, style = True, style_urls = []):
+        for value in cls._gen_header(text, style = style, style_urls = style_urls):
             yield value
 
         yield "<body>"
@@ -682,8 +699,8 @@ class HTTPServer(netius.StreamServer):
         for value in cls._gen_footer(): yield value
 
     @classmethod
-    def _gen_iframe(cls, text, url, style = True):
-        for value in cls._gen_header(text, style = style):
+    def _gen_iframe(cls, text, url, style = True, style_urls = []):
+        for value in cls._gen_header(text, style = style, style_urls = style_urls):
             yield value
 
         yield "<body>"
@@ -693,7 +710,7 @@ class HTTPServer(netius.StreamServer):
         for value in cls._gen_footer(): yield value
 
     @classmethod
-    def _gen_header(cls, title, style = True, meta = True):
+    def _gen_header(cls, title, meta = True, style = True, style_urls = []):
         yield "<!DOCTYPE html>"
         yield "<html>"
         yield "<head>"
@@ -703,6 +720,8 @@ class HTTPServer(netius.StreamServer):
         yield "<title>%s</title>" % title
         if style:
             for value in cls._gen_style(): yield value
+            for style_url in style_urls:
+                yield "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\" />" % style_url
         yield "</head>"
 
     @classmethod

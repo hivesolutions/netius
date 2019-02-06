@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -67,7 +67,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.17.34"
+VERSION = "1.17.39"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -1765,6 +1765,27 @@ class AbstractBase(observer.Observable):
         if not hasattr(os, "fork"): return True
         if self._forked: return True
 
+        # sets the initial pid value to the value of the current
+        # master process as this is going to be used for child
+        # detection (critical for the correct logic execution)
+        ppid = os.getpid()
+
+        # prints a simple debug information about the creation
+        # of the pipe based communication system
+        self.debug("Creating pipes for child to parent communication ...")
+
+        # creates both pipes for the communication between the
+        # child processes and the parent process
+        pipein, pipeout = os.pipe()
+
+        # builds the inline function that takes the message to be
+        # sent to the output pipe, normalizes it and sends it
+        def pipe_send(message):
+            if not hasattr(signal, "SIGUSR1"): return
+            frame = legacy.bytes(message) + b"\n"
+            os.write(pipeout, frame)
+            os.kill(ppid, signal.SIGUSR1) #@UndefinedVariable
+
         # prints a debug operation about the operation that is
         # going to be performed for the forking
         self.debug("Forking the current process into '%d' children ..." % self.children)
@@ -1773,17 +1794,12 @@ class AbstractBase(observer.Observable):
         # operation is soon going to be performed
         self.on_fork()
 
-        # sets the initial pid value to the value of the current
-        # master process as this is going to be used for child
-        # detection (critical for the correct logic execution)
-        pid = os.getpid()
-
         # iterates of the requested (number of children) to run
         # the concrete fork operation and fork the logic
         for _index in range(self.children):
             pid = os.fork() #@UndefinedVariable pylint: disable=E1101
             self._child = pid == 0
-            if self._child: self.on_child()
+            if self._child: self.on_child(pipe = pipe_send)
             if self._child: break
             self._childs.append(pid)
 
@@ -1795,32 +1811,93 @@ class AbstractBase(observer.Observable):
         # valid value should be returned (force logic continuation)
         if self._child: return True
 
+        # marks the current (parent) process as running and sets
+        # its current state as "started"
+        self._running = True
+        self._pausing = False
+        self.set_state(STATE_START)
+
+        # opens a file object for the input pipe so that it's easier
+        # to read it as a stream (read a complete line)
+        pipein_fd = os.fdopen(pipein)
+
         # registers for some of the common signals to be able to avoid
         # any possible interaction with the joining process
-        def handler(signum = None, frame = None): raise errors.StopError("Stop")
+        def handler(signum = None, frame = None):
+            self.stop()
+            raise errors.StopError("Wakeup")
         self.bind_signals(handler = handler)
+
+        # creates the pipe signal handler that is responsible for the
+        # reading of the pipe information from the child process to
+        # the parent process (as expected)
+        def pipe_handler(signum = None, frame = None):
+            # in case the current process is considered to be not
+            # running then returns the control flow immediately
+            # not possible to handle any command
+            if not self._running: return
+
+            # reads a line from the input pipe considering it to be a
+            # command and then calls the callbacks for command
+            command = pipein_fd.readline()[:-1]
+            self.on_command(command)
+
+            # raises an exception to stop the current loop
+            # cycle and allow proper review of execution
+            raise errors.StopError("Wakeup")
+
+        # in case the user signal is defined registers for it so that it's
+        # possible to establish a communication between child and parent
+        if hasattr(signal, "SIGUSR1"):
+            signal.signal(signal.SIGUSR1, pipe_handler) #@UndefinedVariable
 
         # sleeps forever, waiting for an interruption of the current
         # process that triggers the children to quit, so that it's
         # able to "join" all of them into the current process
-        try: self._wait_forever()
-        except: pass
+        while self._running:
+            try:
+                self._wait_forever()
+            except BaseException as exception:
+                self.info("Parent process received exception: %s" % exception)
+
+        # prints a simple debug message about the sleep time that is going
+        # to occur to avoid child signal collision
+        self.debug("Sleeping for some time, to avoid collision of signals ...")
+
+        # sleeps for some time giving time to the child processes to
+        # process any pending signals (sending signals in the middle of
+        # signal processing may be problematic)
+        target = time.time() + 0.5
+        while time.time() < target:
+            time.sleep(0.25)
+
+        # closes both the file based pipe for input and the pipe used
+        # for the output of information (as expected)
+        pipein_fd.close()
+        os.close(pipeout)
 
         # prints a debug information about the processes to be joined
         # this indicated the start of the joining process
-        self.debug("Joining '%d' children processes ..." % self.children)
+        self.debug("Joining '%d' child processes ..." % self.children)
 
         # iterates over the complete set of children to send the proper
         # terminate signal to each of them for proper termination
-        for pid in self._childs: os.kill(pid, signal.SIGTERM) #@UndefinedVariable
+        for pid in self._childs:
+            os.kill(pid, signal.SIGTERM) #@UndefinedVariable
 
-        # iterates over the complete set of child processed to join
-        # them (master responsibility)
-        for pid in self._childs: os.waitpid(pid, 0)
+        # iterates over the complete set of child processes to join
+        # them (master process responsibility)
+        for pid in self._childs:
+            os.waitpid(pid, 0)
+
+        # calls the final (on) join method indicating that the complete
+        # set of child processes have been join and that now only the
+        # parent process is running actively
+        self.on_join()
 
         # prints a message about the end of the child process joining
         # this is relevant to make sure everything is ok before exit
-        self.debug("Finished joining %d' children processes" % self.children)
+        self.debug("Finished joining '%d' child processes" % self.children)
 
         # runs the cleanup operation for the current process this is
         # required to avoid any leaked information
@@ -2546,10 +2623,13 @@ class AbstractBase(observer.Observable):
     def on_fork(self):
         self.trigger("fork", self)
 
-    def on_child(self):
+    def on_join(self):
+        self.trigger("join", self)
+
+    def on_child(self, pipe = None):
         # triggers the child event indicating that a new child has been
         # created and than any callback operation may now be performed
-        self.trigger("child", self)
+        self.trigger("child", self, pipe = pipe)
 
         # creates a new seed value from a pseudo random value and
         # then adds this new value as the base for randomness in the
@@ -2563,6 +2643,9 @@ class AbstractBase(observer.Observable):
         # sent from the parent process (proper exit/termination)
         self.bind_signals(handler = signal.SIG_IGN)
         self.bind_signals(signals = (signal.SIGTERM,))
+
+    def on_command(self, command):
+        self.trigger("command", self, command)
 
     def on_diag(self):
         self.trigger("diag", self)
@@ -2910,18 +2993,23 @@ class AbstractBase(observer.Observable):
         return self.logger.isEnabledFor(logging.CRITICAL)
 
     def debug(self, object):
+        if not logging: return
         self.log(object, level = logging.DEBUG)
 
     def info(self, object):
+        if not logging: return
         self.log(object, level = logging.INFO)
 
     def warning(self, object):
+        if not logging: return
         self.log(object, level = logging.WARNING)
 
     def error(self, object):
+        if not logging: return
         self.log(object, level = logging.ERROR)
 
     def critical(self, object):
+        if not logging: return
         self.log(object, level = logging.CRITICAL)
 
     def log_stack(self, method = None, info = True):
@@ -3467,9 +3555,12 @@ class AbstractBase(observer.Observable):
 
         # verifies if the SSL object class is defined in the SSL module
         # and if that's the case an extra wrapping operation is performed
-        # in order to comply with new indirection/abstraction methods
+        # in order to comply with new indirection/abstraction method, under
+        # some circumstances this operations fails with an exception because
+        # the wrapping operation is not allowed for every Python environment
         if not hasattr(ssl, "SSLObject"): return
-        _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
+        try: _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
+        except TypeError: pass
 
     def _connectf(self, connection):
         """
@@ -3898,8 +3989,9 @@ class AbstractBase(observer.Observable):
         delta_s += "%ds" % seconds
         return delta_s.strip()
 
-    def _wait_forever(self):
-        while True: time.sleep(60)
+    def _wait_forever(self, sleep = 60):
+        while True:
+            time.sleep(sleep)
 
 class DiagBase(AbstractBase):
 
