@@ -362,7 +362,7 @@ class CompatLoop(BaseLoop):
 
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
-        asyncio.Task._current_tasks[self] = task
+        self._current_tasks[self] = None
 
     def _unset_current_task(self):
         """
@@ -372,7 +372,7 @@ class CompatLoop(BaseLoop):
 
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
-        asyncio.Task._current_tasks.pop(self, None)
+        self._current_tasks.pop(self, None)
 
     def _call_delay(
         self,
@@ -428,6 +428,12 @@ class CompatLoop(BaseLoop):
     @property
     def _thread_id(self):
         return self._loop.tid
+
+    @property
+    def _current_tasks(self):
+        if hasattr(asyncio.tasks, "_current_tasks"):
+            return asyncio.tasks._current_tasks
+        return asyncio.Task._current_tasks
 
 def is_compat():
     """
