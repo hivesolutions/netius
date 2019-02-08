@@ -293,8 +293,10 @@ class HTTPConnection(netius.Connection):
         is_empty = code in (204, 304) and data_l == 0
 
         # runs a series of verifications taking into account the type
-        # of the method defined in the current request
-        if self.parser_ctx.method.upper() == "HEAD": data = b""
+        # of the method defined in the current request, for instance if
+        # the current request is a HEAD one then no data is sent (as expected)
+        if self.parser_ctx.method and self.parser_ctx.method.upper() == "HEAD":
+            data = b""
 
         # verifies if the content length header is currently present
         # in the provided headers and in case it's not inserts it
