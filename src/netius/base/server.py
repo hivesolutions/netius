@@ -461,6 +461,8 @@ class DatagramServer(Server):
                 self.on_expected(error)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception)
 
@@ -490,6 +492,8 @@ class DatagramServer(Server):
                 self.on_expected(error)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception)
 
@@ -764,6 +768,8 @@ class StreamServer(Server):
                 self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception, connection)
 
@@ -792,6 +798,8 @@ class StreamServer(Server):
                 self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception, connection)
 

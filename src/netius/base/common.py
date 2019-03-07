@@ -1546,12 +1546,21 @@ class AbstractBase(observer.Observable):
         self.set_state(STATE_START)
         self.on_start()
 
+        # unsets the error variable that control if an error should
+        # be re-raised to the upper layers
+        error = None
+
+        # determines if this event loop is considered to be the main
+        # one, this is going to be used in the decision to propagate
+        # system exit errors to the upper layers
+        is_main = self == Base.get_main()
+
         # runs the event loop, this is a blocking method that should
         # be finished by the end of the execution of by pause
         try:
             self.loop()
             self.finalize()
-        except (KeyboardInterrupt, SystemExit, errors.StopError):
+        except (KeyboardInterrupt, SystemExit, errors.StopError) as error:
             self.info("Finishing '%s' service on user request ..." % self.name)
         except errors.PauseError:
             self.debug("Pausing '%s' service main loop" % self.name)
@@ -1566,6 +1575,11 @@ class AbstractBase(observer.Observable):
         finally:
             if self.is_paused(): return
             self.finish()
+
+        # in case there's an error that should be propagated to the host
+        # event loop (main loop) then re-raises the error, this should
+        # typically be a system exit error to be propagated up
+        if error and not is_main: raise error
 
     def is_main(self):
         if not self.tid: return True
@@ -2507,6 +2521,8 @@ class AbstractBase(observer.Observable):
                 self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception, connection)
 
@@ -2547,6 +2563,8 @@ class AbstractBase(observer.Observable):
                 self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception, connection)
 
@@ -2733,6 +2751,8 @@ class AbstractBase(observer.Observable):
                 self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception, connection)
 
@@ -3291,6 +3311,8 @@ class AbstractBase(observer.Observable):
                 self.trigger("error", self, connection, error)
                 connection.close()
                 return
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.warning(exception)
             self.log_stack()

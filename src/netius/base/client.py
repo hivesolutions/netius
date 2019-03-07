@@ -193,6 +193,8 @@ class DatagramClient(Client):
                 self.on_expected(error)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception)
 
@@ -222,6 +224,8 @@ class DatagramClient(Client):
                 self.on_expected(error)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception)
 
@@ -634,6 +638,8 @@ class StreamClient(Client):
                 if error_v in VALID_ERRORS: break
                 if close: connection.close()
                 valid = False
+            except (KeyboardInterrupt, SystemExit):
+                raise
             except BaseException:
                 if close: connection.close()
                 valid = False
@@ -820,6 +826,8 @@ class StreamClient(Client):
                 self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception, connection)
 
@@ -860,6 +868,8 @@ class StreamClient(Client):
                 self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception, connection)
 
