@@ -593,7 +593,7 @@ class AbstractBase(observer.Observable):
     ):
         """
         Safe version of the delay operation to be used to insert a callable
-        from a different thread (implied lock mechanisms).
+        from a different thread (implies lock mechanisms).
 
         This method should only be used from different threads as there's
         a huge performance impact created from using this method instead of
@@ -1832,10 +1832,7 @@ class AbstractBase(observer.Observable):
         def handler(signum = None, frame = None):
             self.stop()
             raise errors.StopError("Wakeup")
-        self.bind_signals(
-            signals = (signal.SIGINT, signal.SIGTERM),
-            handler = handler
-        )
+        self.bind_signals(handler = handler)
 
         # creates the pipe signal handler that is responsible for the
         # reading of the pipe information from the child process to
@@ -1846,14 +1843,22 @@ class AbstractBase(observer.Observable):
             # not possible to handle any command
             if not self._running: return
 
-            # reads a line from the input pipe considering it to be a
-            # command and then calls the callbacks for command
-            command = pipein_fd.readline()[:-1]
-            self.on_command(command)
+            def callback():
+                # reads a line from the input pipe considering it to be a
+                # command and then calls the callbacks for command
+                command = pipein_fd.readline()[:-1]
+                self.on_command(command)
 
-            # raises an exception to stop the current loop
-            # cycle and allow proper review of execution
-            raise errors.StopError("Wakeup")
+                # raises an exception to stop the current loop
+                # cycle and allow proper review of execution
+                raise errors.StopError("Wakeup")
+
+            # schedules the current clojure to be executed as soon as
+            # possible and then forces the wakeup, because although we're
+            # running on the main thread we're possible under a blocking
+            # statement and so we need to wakeup the loop
+            self.delay(callback, immediately = True)
+            self.wakeup(force = True)
 
         # in case the user signal is defined registers for it so that it's
         # possible to establish a communication between child and parent
