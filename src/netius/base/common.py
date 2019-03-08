@@ -1893,6 +1893,10 @@ class AbstractBase(observer.Observable):
         except (KeyboardInterrupt, SystemExit, errors.StopError):
             pass
 
+        # register for the unbind of the signals, so that no more signals
+        # are handled while this operation is performed
+        self.unbind_signals()
+
         # closes both the file based pipe for input and the pipe used
         # for the output of information (as expected)
         pipein_fd.close()
