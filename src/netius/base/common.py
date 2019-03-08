@@ -1601,7 +1601,6 @@ class AbstractBase(observer.Observable):
             self.log_stack(method = self.error)
         finally:
             if self.is_paused(): return
-            time.sleep(200)
             self.stop()
             self.finish()
 
