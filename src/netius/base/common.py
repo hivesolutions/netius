@@ -1884,7 +1884,7 @@ class AbstractBase(observer.Observable):
         os.close(pipeout)
 
         # prints a debug information about the sending of the term
-        # signal to the child processes
+        # signal to the child processes (triggers shutdown)
         self.debug("Sending signal to '%d' child processes ..." % self.children)
 
         # iterates over the complete set of children to send the proper
