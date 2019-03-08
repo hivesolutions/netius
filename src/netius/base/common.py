@@ -1789,7 +1789,7 @@ class AbstractBase(observer.Observable):
         try: self.loop()
         finally: self._running = _running
 
-    def fork(self, timeout = 15):
+    def fork(self, timeout = 10):
         # ensures that the children value is converted as an
         # integer value as this is the expected structure
         self.children = int(self.children)
