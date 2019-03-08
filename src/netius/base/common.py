@@ -1600,6 +1600,7 @@ class AbstractBase(observer.Observable):
             self.critical("Critical level loop exception raised")
             self.log_stack(method = self.error)
         finally:
+            time.sleep(2) #@todo remove this
             if self.is_paused(): return
             self.stop()
             self.finish()
@@ -1936,7 +1937,7 @@ class AbstractBase(observer.Observable):
         for pid in self._childs:
             def catcher(signal, frame): raise errors.WakeupError()
             signal.signal(signal.SIGALRM, catcher) #@UndefinedVariable
-            signal.alarm(0.05) #@UndefinedVariable
+            signal.alarm(1) #@UndefinedVariable
             try:
                 os.waitpid(pid, 0)
             except errors.WakeupError:
