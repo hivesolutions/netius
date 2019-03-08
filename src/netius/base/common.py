@@ -1601,6 +1601,7 @@ class AbstractBase(observer.Observable):
             self.log_stack(method = self.error)
         finally:
             if self.is_paused(): return
+            self.stop()
             self.finish()
 
     def is_main(self):
