@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import uuid
 
-class NetiusError(BaseException):
+class NetiusError(Exception):
     """
     The top level base error to be used in the
     netius infra-structure.
@@ -49,7 +49,7 @@ class NetiusError(BaseException):
     """
 
     def __init__(self, *args, **kwargs):
-        BaseException.__init__(self, *args)
+        Exception.__init__(self, *args)
         message = args[0] if len(args) > 0 else ""
         kwargs["message"] = kwargs.get("message", message)
         self.kwargs = kwargs
