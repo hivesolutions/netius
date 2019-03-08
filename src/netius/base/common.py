@@ -1801,6 +1801,11 @@ class AbstractBase(observer.Observable):
         if not hasattr(os, "fork"): return True
         if self._forked: return True
 
+        # makes sure that no signal handlers exist for the parent
+        # process, this is relevant to avoid immediate destruction
+        # of the current process on premature signal
+        self.unbind_signals(handler = handler)
+
         # sets the initial PID value to the value of the current
         # master process as this is going to be used for child
         # detection (critical for the correct logic execution)
