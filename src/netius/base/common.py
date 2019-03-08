@@ -454,6 +454,19 @@ class AbstractBase(observer.Observable):
             asyncio.tasks.Task = asyncio.tasks._PyTask #@UndefinedVariable
         asyncio._patched = True
 
+    @classmethod
+    def waitpid(cls, pid):
+        while True:
+            try:
+                os.waitpid(pid, 0)
+                break
+            except OSError as error:
+                # needs to verify if an os error is raised with
+                # the value 3 (interrupted system call) as python
+                # does not handle these errors correctly
+                if error.errno == 4: continue
+                raise
+
     def destroy(self):
         observer.Observable.destroy(self)
 
@@ -1790,6 +1803,10 @@ class AbstractBase(observer.Observable):
         finally: self._running = _running
 
     def fork(self, timeout = 10):
+        # retrieves the reference to the parent class object
+        # to be used for the class level operations
+        cls = self.__class__
+
         # ensures that the children value is converted as an
         # integer value as this is the expected structure
         self.children = int(self.children)
@@ -1946,19 +1963,14 @@ class AbstractBase(observer.Observable):
             signal.setitimer(signal.ITIMER_REAL, max(timeout, 0.15)) #@UndefinedVariable
 
             try:
-                while True:
-                    try:
-                        os.waitpid(pid, 0)
-                        break
-                    except OSError as error:
-                        # needs to verify if an os error is raised with
-                        # the value 3 (interrupted system call) as python
-                        # does not handle these errors correctly
-                        if error.errno == 4: continue
-                        raise
+                # runs the waiting for the children PID (process to finish)
+                # notice that if the timer is reached a wakeup should occur
+                # and the process should be killed in a forced manner
+                cls.waitpid(pid)
             except errors.WakeupError:
                 self.warning("Timeout reached killing PID '%d' with SIGKILL ..." % pid)
                 os.kill(pid, signal.SIGKILL) #@UndefinedVariable
+                cls.waitpid(pid)
 
             # decrements the timeout value by the time that was
             # spent waiting for the current child PID
