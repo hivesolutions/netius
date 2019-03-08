@@ -1978,7 +1978,7 @@ class AbstractBase(observer.Observable):
 
         # resets the alarm as we've finished waiting for all of the
         # children processes, some may have been killed forcibly
-        signal.alarm(0) #@UndefinedVariable
+        signal.setitimer(signal.ITIMER_REAL, 0) #@UndefinedVariable
 
         # calls the final (on) join method indicating that the complete
         # set of child processes have been join and that now only the
