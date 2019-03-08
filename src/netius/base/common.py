@@ -1883,14 +1883,18 @@ class AbstractBase(observer.Observable):
         pipein_fd.close()
         os.close(pipeout)
 
-        # prints a debug information about the processes to be joined
-        # this indicated the start of the joining process
-        self.debug("Joining '%d' child processes ..." % self.children)
+        # prints a debug information about the sending of the term
+        # signal to the child processes
+        self.debug("Sending signal to '%d' child processes ..." % self.children)
 
         # iterates over the complete set of children to send the proper
         # terminate signal to each of them for proper termination
         for pid in self._childs:
             os.kill(pid, signal.SIGTERM) #@UndefinedVariable
+
+        # prints a debug information about the processes to be joined
+        # this indicated the start of the joining process
+        self.debug("Joining '%d' child processes ..." % self.children)
 
         # iterates over the complete set of child processes to join
         # them (master process responsibility)
