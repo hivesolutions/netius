@@ -1570,7 +1570,7 @@ class AbstractBase(observer.Observable):
             # in case the current event loop is not the main one (eg:
             # external HTTP client) then this exception must be re-raised
             # to the upper layer (main event loop) so that it can be
-            # properly handled and exit the environment
+            # properly handled to be able to exit the environment
             if not self == Base.get_main(): raise
         except errors.PauseError:
             self.debug("Pausing '%s' service main loop" % self.name)
