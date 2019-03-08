@@ -1948,7 +1948,7 @@ class AbstractBase(observer.Observable):
             try:
                 os.waitpid(pid, 0)
             except errors.WakeupError:
-                self.debug("Timeout reached killing PID '%d' with SIGKILL ..." % pid)
+                self.warning("Timeout reached killing PID '%d' with SIGKILL ..." % pid)
                 os.kill(pid, signal.SIGKILL) #@UndefinedVariable
 
             # decrements the timeout value by the time that was
