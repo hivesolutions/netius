@@ -1936,7 +1936,7 @@ class AbstractBase(observer.Observable):
         for pid in self._childs:
             def catcher(signal, frame): raise errors.WakeupError()
             signal.signal(signal.SIGALRM, catcher) #@UndefinedVariable
-            signal.alarm(0.5) #@UndefinedVariable
+            signal.alarm(0.05) #@UndefinedVariable
             try:
                 os.waitpid(pid, 0)
             except errors.WakeupError:
