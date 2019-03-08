@@ -3231,6 +3231,8 @@ class AbstractBase(observer.Observable):
             # proper exception is set so that proper top level handling
             # is defined and logging is performed
             try: method()
+            except (KeyboardInterrupt, SystemExit):
+                raise
             except BaseException as exception:
                 self.error(exception)
                 self.log_stack(method = self.warning)
