@@ -1854,6 +1854,9 @@ class AbstractBase(observer.Observable):
         # valid value should be returned (force logic continuation)
         if self._child: return True
 
+        # prints a debug operation the finished forking operation
+        self.debug("Finished forking children")
+
         # opens a file object for the input pipe so that it's easier
         # to read it as a stream (read a complete line)
         pipein_fd = os.fdopen(pipein)
@@ -1892,6 +1895,9 @@ class AbstractBase(observer.Observable):
         # possible to establish a communication between child and parent
         if hasattr(signal, "SIGUSR1"):
             signal.signal(signal.SIGUSR1, pipe_handler) #@UndefinedVariable
+
+        # prints a debug operation the finished forking operation
+        self.debug("Entering wait forever loop")
 
         # sleeps forever, waiting for an interruption of the current
         # process that triggers the children to quit, so that it's
