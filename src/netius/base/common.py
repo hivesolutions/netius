@@ -1565,6 +1565,8 @@ class AbstractBase(observer.Observable):
             self.loop()
             self.finalize()
         except (KeyboardInterrupt, SystemExit, errors.StopError) as exception:
+            # prints a small informational message indicating that the exit of
+            # the current system has been triggered by the user (signal)
             self.info("Finishing '%s' service on user request ..." % self.name)
 
             # in case the current event loop is not the main one (eg:
