@@ -1806,7 +1806,7 @@ class AbstractBase(observer.Observable):
         # of the current process on premature signal
         self.unbind_signals()
         if hasattr(signal, "SIGUSR1"):
-            self.unbind_signals(signals = signal.SIGUSR1)
+            self.unbind_signals(signals = (signal.SIGUSR1,))
 
         # sets the initial PID value to the value of the current
         # master process as this is going to be used for child
