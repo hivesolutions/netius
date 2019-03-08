@@ -1600,7 +1600,7 @@ class AbstractBase(observer.Observable):
             self.critical("Critical level loop exception raised")
             self.log_stack(method = self.error)
         finally:
-            time.sleep(2) #@todo remove this
+            time.sleep(200) #@todo remove this
             if self.is_paused(): return
             self.stop()
             self.finish()
