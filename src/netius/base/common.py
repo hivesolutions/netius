@@ -1946,7 +1946,17 @@ class AbstractBase(observer.Observable):
             signal.setitimer(signal.ITIMER_REAL, max(timeout, 0.15)) #@UndefinedVariable
 
             try:
-                os.waitpid(pid, 0)
+                while True:
+                    try:
+
+                        os.waitpid(pid, 0)
+                        break
+                    except OSError as number:
+                        # needs to verify if an os error is raised with
+                        # the value 3 (interrupted system call) as python
+                        # does not handle these errors correctly
+                        if number == 4: continue
+                        raise
             except errors.WakeupError:
                 self.warning("Timeout reached killing PID '%d' with SIGKILL ..." % pid)
                 os.kill(pid, signal.SIGKILL) #@UndefinedVariable
