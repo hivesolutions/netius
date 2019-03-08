@@ -1856,7 +1856,7 @@ class AbstractBase(observer.Observable):
             # schedules the current clojure to be executed as soon as
             # possible and then forces the wakeup, because although we're
             # running on the main thread we're possible under a blocking
-            # statement and so we need to wakeup the loop
+            # statement and so we need to wakeup the parent loop
             self.delay(callback, immediately = True)
             if hasattr(self, "_awaken") and not self._awaken:
                 raise errors.WakeupError("Delays")
@@ -1874,9 +1874,6 @@ class AbstractBase(observer.Observable):
                 self._wait_forever()
             except (KeyboardInterrupt, SystemExit, errors.StopError):
                 pass
-            except Exception as exception:
-                self.warning("Parent process received exception: %s" % exception)
-                self.log_stack()
 
         # closes both the file based pipe for input and the pipe used
         # for the output of information (as expected)
@@ -3793,6 +3790,21 @@ class AbstractBase(observer.Observable):
         return delta_s.strip()
 
     def _wait_forever(self, sleep = 60):
+        """
+        Runs a simple event loop that sleeps for a certain amount
+        of time and then processes a series of pending events.
+
+        The recommended way of waking this event loop is by raising
+        a wakeup error on the running thread.
+
+        The number of ticks in this loop should be minimal and should
+        be mostly triggered by wakeup error raising.
+
+        :type sleep: float
+        :param sleep: The amount of time to sleep in between loop
+        "ticks", should be a large value to avoid resource wasting.
+        """
+
         while True:
             try:
                 self._awaken = True
@@ -3801,6 +3813,11 @@ class AbstractBase(observer.Observable):
                 time.sleep(sleep)
             except errors.WakeupError:
                 pass
+            except (KeyboardInterrupt, SystemExit, errors.StopError, errors.PauseError):
+                raise
+            except Exception as exception:
+                self.warning("Waiting loop received exception: %s" % exception)
+                self.log_stack()
 
 class DiagBase(AbstractBase):
 
