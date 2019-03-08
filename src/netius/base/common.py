@@ -1804,7 +1804,9 @@ class AbstractBase(observer.Observable):
         # makes sure that no signal handlers exist for the parent
         # process, this is relevant to avoid immediate destruction
         # of the current process on premature signal
-        self.unbind_signals(handler = handler)
+        self.unbind_signals()
+        if hasattr(signal, "SIGUSR1"):
+            self.unbind_signals(signals = signal.SIGUSR1)
 
         # sets the initial PID value to the value of the current
         # master process as this is going to be used for child
