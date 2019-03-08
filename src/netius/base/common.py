@@ -1529,7 +1529,7 @@ class AbstractBase(observer.Observable):
         # in case the current process is the parent in a pre-fork
         # environment raises the stop error to wakeup the process
         # from its current infinite loop for stop handling
-        if self.is_parent: raise errors.StopError("Wakeup")
+        if self.is_parent: raise errors.StopError()
 
     def pause(self):
         self._running = False
@@ -1863,7 +1863,7 @@ class AbstractBase(observer.Observable):
             self.delay(callback, immediately = True)
             if hasattr(self, "_awaken") and not self._awaken:
                 self._awaken = True
-                raise errors.WakeupError("Delays")
+                raise errors.WakeupError()
 
         # in case the user signal is defined registers for it so that it's
         # possible to establish a communication between child and parent
