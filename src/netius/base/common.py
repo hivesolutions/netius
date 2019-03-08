@@ -1518,11 +1518,10 @@ class AbstractBase(observer.Observable):
         if self.is_paused(): self.finish()
         else: self._running = False
 
-        # in case the current process is the master in a pre-fork
+        # in case the current process is the parent in a pre-fork
         # environment raises the stop error to wakeup the process
         # from its current infinite loop for stop handling
-        if self._forked and not self._child:
-            raise errors.StopError("Wakeup")
+        if self.is_parent: raise errors.StopError("Wakeup")
 
     def pause(self):
         self._running = False
@@ -3076,6 +3075,18 @@ class AbstractBase(observer.Observable):
         """
 
         return self.connections_m[socket]
+
+    @property
+    def is_parent(self):
+        return self._forked and not self._child
+
+    @property
+    def is_child(self):
+        return self._forked and self._child
+
+    @property
+    def is_forked(self):
+        return self._forked
 
     def _pending(self, connection):
         """
