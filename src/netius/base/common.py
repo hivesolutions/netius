@@ -1883,7 +1883,7 @@ class AbstractBase(observer.Observable):
             # possible and then forces the wakeup, because although we're
             # running on the main thread we're possible under a blocking
             # statement and so we need to wakeup the parent loop
-            self.delay(callback, immediately = True)
+            self.delay_s(callback, immediately = True)
             if hasattr(self, "_awaken") and not self._awaken:
                 self._awaken = True
                 raise errors.WakeupError()
