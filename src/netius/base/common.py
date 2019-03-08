@@ -1507,7 +1507,7 @@ class AbstractBase(observer.Observable):
         # to the logger indicating this start, this stage
         # should block the thread until a stop call is made
         self.debug("Starting '%s' service main loop (%.2fs) ..." % (self.name, self.poll_timeout))
-        self.debug("Using thread '%s' with tid '%d'" % (self.tname, self.tid))
+        self.debug("Using thread '%s' with TID '%d'" % (self.tname, self.tid))
         self.debug("Using '%s' as polling mechanism" % poll_name)
 
         # calls the main method to be able to start the main event
@@ -1785,7 +1785,7 @@ class AbstractBase(observer.Observable):
         if not hasattr(os, "fork"): return True
         if self._forked: return True
 
-        # sets the initial pid value to the value of the current
+        # sets the initial PID value to the value of the current
         # master process as this is going to be used for child
         # detection (critical for the correct logic execution)
         ppid = os.getpid()
