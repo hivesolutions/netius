@@ -711,6 +711,8 @@ class StreamServer(Server):
                 self.on_expected_s(error)
             elif not error_v in VALID_ERRORS:
                 self.on_exception_s(error)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception_s(exception)
 

@@ -1013,6 +1013,8 @@ class StreamClient(Client):
                 self.trigger("error", self, connection, error)
                 connection.close()
                 return
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.warning(exception)
             self.log_stack()

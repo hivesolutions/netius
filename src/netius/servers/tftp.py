@@ -226,6 +226,8 @@ class TFTPServer(netius.DatagramServer):
             request.parse()
 
             self.on_data_tftp(address, request)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_error_tftp(address, exception)
 
