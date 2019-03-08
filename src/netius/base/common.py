@@ -3815,9 +3815,9 @@ class AbstractBase(observer.Observable):
                 pass
             except (KeyboardInterrupt, SystemExit, errors.StopError, errors.PauseError):
                 raise
-            except Exception as exception:
-                self.warning("Waiting loop received exception: %s" % exception)
-                self.log_stack()
+            except BaseException as exception:
+                self.error(exception)
+                self.log_stack(method = self.warning)
 
 class DiagBase(AbstractBase):
 
