@@ -1525,7 +1525,8 @@ class AbstractBase(observer.Observable):
         # in case the current process is the parent in a pre-fork
         # environment raises the stop error to wakeup the process
         # from its current infinite loop for stop handling
-        if self.is_parent: raise errors.StopError("Wakeup")
+        if self.is_parent and self.is_running():
+            raise errors.StopError("Wakeup")
 
     def pause(self):
         self._running = False
@@ -1825,12 +1826,6 @@ class AbstractBase(observer.Observable):
         # valid value should be returned (force logic continuation)
         if self._child: return True
 
-        # marks the current (parent) process as running and sets
-        # its current state as "started"
-        self._running = True
-        self._pausing = False
-        self.set_state(STATE_START)
-
         # opens a file object for the input pipe so that it's easier
         # to read it as a stream (read a complete line)
         pipein_fd = os.fdopen(pipein)
@@ -1872,11 +1867,10 @@ class AbstractBase(observer.Observable):
         # sleeps forever, waiting for an interruption of the current
         # process that triggers the children to quit, so that it's
         # able to "join" all of them into the current process
-        while self._running:
-            try:
-                self._wait_forever()
-            except (KeyboardInterrupt, SystemExit, errors.StopError):
-                pass
+        try:
+            self._wait_forever()
+        except (KeyboardInterrupt, SystemExit, errors.StopError):
+            pass
 
         # closes both the file based pipe for input and the pipe used
         # for the output of information (as expected)
@@ -3820,7 +3814,15 @@ class AbstractBase(observer.Observable):
         "ticks", should be a large value to avoid resource wasting.
         """
 
-        while True:
+        # marks the current (parent) process as running and sets
+        # its current state as "started"
+        self._running = True
+        self._pausing = False
+        self.set_state(STATE_START)
+
+        # iterates continuously (infinite loop) until the running
+        # flag is unmarked indicating that the loop should be stopped
+        while self._running:
             try:
                 self._awaken = True
                 try: self._delays()
