@@ -1923,16 +1923,31 @@ class AbstractBase(observer.Observable):
         # iterates over the complete set of children to send the proper
         # terminate signal to each of them for proper termination
         for pid in self._childs:
-            os.kill(pid, signal.SIGTERM) #@UndefinedVariable
+            os.kill(pid, signal.SIGTERM)
 
         # prints a debug information about the processes to be joined
         # this indicated the start of the joining process
         self.debug("Joining '%d' child processes ..." % self.children)
 
+
+
         # iterates over the complete set of child processes to join
         # them (master process responsibility)
         for pid in self._childs:
-            os.waitpid(pid, 0)
+            def catcher(signal, frame): raise errors.WakeupError()
+            signal.signal(signal.SIGALRM, catcher) #@UndefinedVariable
+            signal.alarm(0.5) #@UndefinedVariable
+            try:
+                os.waitpid(pid, 0)
+            except errors.WakeupError:
+                self.debug("Timeout reached killing PID '%d' with SIGKILL ..." % pid)
+                os.kill(pid, signal.SIGKILL) #@UndefinedVariable
+
+        # resets the alarm as we've finished waiting for all of the
+        # children processes, some may have been killed forcebly
+        signal.alarm(0) #@UndefinedVariable
+
+
 
         # calls the final (on) join method indicating that the complete
         # set of child processes have been join and that now only the
