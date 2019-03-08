@@ -1826,12 +1826,16 @@ class AbstractBase(observer.Observable):
         # to read it as a stream (read a complete line)
         pipein_fd = os.fdopen(pipein)
 
-        # registers for some of the common signals to be able to avoid
-        # any possible interaction with the joining process
+        # registers for some of the common signals to be able to start
+        # the process of stopping and joining with the child processes
+        # in case there's a request to do so
         def handler(signum = None, frame = None):
             self.stop()
             raise errors.StopError("Wakeup")
-        self.bind_signals(handler = handler)
+        self.bind_signals(
+            signals = (signal.SIGINT, signal.SIGTERM),
+            handler = handler
+        )
 
         # creates the pipe signal handler that is responsible for the
         # reading of the pipe information from the child process to
