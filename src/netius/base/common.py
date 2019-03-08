@@ -1515,6 +1515,10 @@ class AbstractBase(observer.Observable):
         self.main()
 
     def stop(self):
+        # in case the current loop is in pause state calls only
+        # the finish operation otherwise sets the running flag
+        # to false meaning that on the next event loop tick the
+        # unloading process will be triggered
         if self.is_paused(): self.finish()
         else: self._running = False
 
