@@ -1945,12 +1945,13 @@ class AbstractBase(observer.Observable):
             # the child process should be forcibly killed
             signal.setitimer(signal.ITIMER_REAL, max(timeout, 0.15)) #@UndefinedVariable
 
-            try:
-                while True:
-                    try:
+            found = False
 
+            try:
+                while found:
+                    try:
                         os.waitpid(pid, 0)
-                        break
+                        found = True
                     except OSError as number:
                         # needs to verify if an os error is raised with
                         # the value 3 (interrupted system call) as python
