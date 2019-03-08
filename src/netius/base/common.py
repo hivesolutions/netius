@@ -1515,6 +1515,10 @@ class AbstractBase(observer.Observable):
         self.main()
 
     def stop(self):
+        # in case the current process is neither running nor
+        # paused there's nothing pending to be done on stop
+        if not self.is_running() and not self.is_paused(): return
+
         # in case the current loop is in pause state calls only
         # the finish operation otherwise sets the running flag
         # to false meaning that on the next event loop tick the
@@ -1525,8 +1529,7 @@ class AbstractBase(observer.Observable):
         # in case the current process is the parent in a pre-fork
         # environment raises the stop error to wakeup the process
         # from its current infinite loop for stop handling
-        if self.is_parent and self.is_running():
-            raise errors.StopError("Wakeup")
+        if self.is_parent: raise errors.StopError("Wakeup")
 
     def pause(self):
         self._running = False
