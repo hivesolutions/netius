@@ -1148,6 +1148,10 @@ class AbstractBase(observer.Observable):
         # logging infra-structure of the current system
         if full: self.unload_logging()
 
+        # runs the unbind operation for the signals so that no side effects
+        # occur while the unloading is going to take place
+        self.unbind_signals()
+
         # unloads the middleware infra-structure that has been created for the
         # current service, no longer going to be used
         self.unload_middleware()
@@ -1435,6 +1439,17 @@ class AbstractBase(observer.Observable):
             if signum == None: continue
             try: signal.signal(signum, handler or base_handler)
             except: self.debug("Failed to register %d handler" % signum)
+
+    def unbind_signals(
+        self,
+        signals = (
+            signal.SIGINT,
+            signal.SIGTERM,
+            signal.SIGHUP if hasattr(signal, "SIGHUP") else None, #@UndefinedVariable
+            signal.SIGQUIT if hasattr(signal, "SIGQUIT") else None #@UndefinedVariable
+        )
+    ):
+        self.bind_signals(signals = signals, handler = signal.SIG_IGN)
 
     def bind_env(self):
         """
