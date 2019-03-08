@@ -1546,22 +1546,19 @@ class AbstractBase(observer.Observable):
         self.set_state(STATE_START)
         self.on_start()
 
-        # unsets the error variable that control if an error should
-        # be re-raised to the upper layers
-        error = None
-
-        # determines if this event loop is considered to be the main
-        # one, this is going to be used in the decision to propagate
-        # system exit errors to the upper layers
-        is_main = self == Base.get_main()
-
         # runs the event loop, this is a blocking method that should
         # be finished by the end of the execution of by pause
         try:
             self.loop()
             self.finalize()
-        except (KeyboardInterrupt, SystemExit, errors.StopError) as error:
+        except (KeyboardInterrupt, SystemExit, errors.StopError) as exception:
             self.info("Finishing '%s' service on user request ..." % self.name)
+
+            # in case the current event loop is not the main one (eg:
+            # external HTTP client) then this exception must be re-raised
+            # to the upper layer (main event loop) so that it can be
+            # properly handled and exit the environment
+            if not self == Base.get_main(): raise
         except errors.PauseError:
             self.debug("Pausing '%s' service main loop" % self.name)
             self.set_state(STATE_PAUSE)
@@ -1575,11 +1572,6 @@ class AbstractBase(observer.Observable):
         finally:
             if self.is_paused(): return
             self.finish()
-
-        # in case there's an error that should be propagated to the host
-        # event loop (main loop) then re-raises the error, this should
-        # typically be a system exit error to be propagated up
-        if error and not is_main: raise error
 
     def is_main(self):
         if not self.tid: return True
