@@ -1600,8 +1600,8 @@ class AbstractBase(observer.Observable):
             self.critical("Critical level loop exception raised")
             self.log_stack(method = self.error)
         finally:
-            time.sleep(200) #@todo remove this
             if self.is_paused(): return
+            time.sleep(200)
             self.stop()
             self.finish()
 
@@ -1790,7 +1790,7 @@ class AbstractBase(observer.Observable):
         try: self.loop()
         finally: self._running = _running
 
-    def fork(self):
+    def fork(self, timeout = 15):
         # ensures that the children value is converted as an
         # integer value as this is the expected structure
         self.children = int(self.children)
@@ -1930,25 +1930,35 @@ class AbstractBase(observer.Observable):
         # this indicated the start of the joining process
         self.debug("Joining '%d' child processes ..." % self.children)
 
-
+        # creates the catcher for the alarm signal so that a wakeup
+        # can happen that kills the (possibly) stuck children
+        def catcher(signal, frame): raise errors.WakeupError()
+        signal.signal(signal.SIGALRM, catcher) #@UndefinedVariable
 
         # iterates over the complete set of child processes to join
         # them (master process responsibility)
         for pid in self._childs:
-            def catcher(signal, frame): raise errors.WakeupError()
-            signal.signal(signal.SIGALRM, catcher) #@UndefinedVariable
-            signal.alarm(1) #@UndefinedVariable
+            # saves the initial time so that it's possible to decrement
+            # the delta time spend while waiting for the current PID
+            initial = time.time()
+
+            # registers the alarm for the remaining time until
+            # the child process should be forcibly killed
+            signal.setitimer(signal.ITIMER_REAL, max(timeout, 0.15)) #@UndefinedVariable
+
             try:
                 os.waitpid(pid, 0)
             except errors.WakeupError:
                 self.debug("Timeout reached killing PID '%d' with SIGKILL ..." % pid)
                 os.kill(pid, signal.SIGKILL) #@UndefinedVariable
 
+            # decrements the timeout value by the time that was
+            # spent waiting for the current child PID
+            timeout -= time.time() - initial
+
         # resets the alarm as we've finished waiting for all of the
-        # children processes, some may have been killed forcebly
+        # children processes, some may have been killed forcibly
         signal.alarm(0) #@UndefinedVariable
-
-
 
         # calls the final (on) join method indicating that the complete
         # set of child processes have been join and that now only the
