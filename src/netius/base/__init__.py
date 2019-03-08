@@ -71,8 +71,8 @@ from .compat import BaseLoop, CompatLoop, is_compat, is_asyncio, build_datagram,
 from .config import conf, conf_prefix, conf_suffix, conf_s, conf_r, conf_d, conf_ctx
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
-from .errors import NetiusError, RuntimeError, StopError, PauseError, DataError, ParserError,\
-    GeneratorError, SecurityError, NotImplemented, AssertionError
+from .errors import NetiusError, RuntimeError, StopError, PauseError, WakeupError,\
+    DataError, ParserError, GeneratorError, SecurityError, NotImplemented, AssertionError
 from .log import SILENT, rotating_handler, smtp_handler
 from .observer import Observable
 from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll

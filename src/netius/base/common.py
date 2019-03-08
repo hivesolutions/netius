@@ -1518,6 +1518,12 @@ class AbstractBase(observer.Observable):
         if self.is_paused(): self.finish()
         else: self._running = False
 
+        # in case the current process is the master in a pre-fork
+        # environment raises the stop error to wakeup the process
+        # from its current infinite loop for stop handling
+        if self._forked and not self._child:
+            raise errors.StopError("Wakeup")
+
     def pause(self):
         self._running = False
         self._pausing = True
@@ -1829,9 +1835,7 @@ class AbstractBase(observer.Observable):
         # registers for some of the common signals to be able to start
         # the process of stopping and joining with the child processes
         # in case there's a request to do so
-        def handler(signum = None, frame = None):
-            self.stop()
-            raise errors.StopError("Wakeup")
+        def handler(signum = None, frame = None): self.stop()
         self.bind_signals(handler = handler)
 
         # creates the pipe signal handler that is responsible for the
@@ -1849,16 +1853,13 @@ class AbstractBase(observer.Observable):
                 command = pipein_fd.readline()[:-1]
                 self.on_command(command)
 
-                # raises an exception to stop the current loop
-                # cycle and allow proper review of execution
-                raise errors.StopError("Wakeup")
-
             # schedules the current clojure to be executed as soon as
             # possible and then forces the wakeup, because although we're
             # running on the main thread we're possible under a blocking
             # statement and so we need to wakeup the loop
             self.delay(callback, immediately = True)
-            self.wakeup(force = True)
+            if hasattr(self, "_awaken") and not self._awaken:
+                raise errors.WakeupError("Delays")
 
         # in case the user signal is defined registers for it so that it's
         # possible to establish a communication between child and parent
@@ -1871,19 +1872,11 @@ class AbstractBase(observer.Observable):
         while self._running:
             try:
                 self._wait_forever()
-            except BaseException as exception:
-                self.info("Parent process received exception: %s" % exception)
-
-        # prints a simple debug message about the sleep time that is going
-        # to occur to avoid child signal collision
-        self.debug("Sleeping for some time, to avoid collision of signals ...")
-
-        # sleeps for some time giving time to the child processes to
-        # process any pending signals (sending signals in the middle of
-        # signal processing may be problematic)
-        target = time.time() + 0.5
-        while time.time() < target:
-            time.sleep(0.25)
+            except (KeyboardInterrupt, SystemExit, errors.StopError):
+                pass
+            except Exception as exception:
+                self.warning("Parent process received exception: %s" % exception)
+                self.log_stack()
 
         # closes both the file based pipe for input and the pipe used
         # for the output of information (as expected)
@@ -3240,7 +3233,7 @@ class AbstractBase(observer.Observable):
             # proper exception is set so that proper top level handling
             # is defined and logging is performed
             try: method()
-            except (KeyboardInterrupt, SystemExit):
+            except (KeyboardInterrupt, SystemExit, errors.StopError):
                 raise
             except BaseException as exception:
                 self.error(exception)
@@ -3801,7 +3794,13 @@ class AbstractBase(observer.Observable):
 
     def _wait_forever(self, sleep = 60):
         while True:
-            time.sleep(sleep)
+            try:
+                self._awaken = True
+                try: self._delays()
+                finally: self._awaken = False
+                time.sleep(sleep)
+            except errors.WakeupError:
+                pass
 
 class DiagBase(AbstractBase):
 

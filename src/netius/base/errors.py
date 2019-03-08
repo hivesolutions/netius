@@ -97,6 +97,17 @@ class PauseError(RuntimeError):
 
     pass
 
+class WakeupError(RuntimeError):
+    """
+    Error used to send a wakeup intent from one context
+    or thread to another.
+
+    This is especially useful on the context of signal
+    handling where an interruption may happen at any time.
+    """
+
+    pass
+
 class DataError(RuntimeError):
     """
     Error to be used for situations where the
