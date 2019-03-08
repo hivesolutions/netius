@@ -1841,6 +1841,12 @@ class AbstractBase(observer.Observable):
         def handler(signum = None, frame = None): self.stop()
         self.bind_signals(handler = handler)
 
+        def callback():
+            # reads a line from the input pipe considering it to be a
+            # command and then calls the callbacks for command
+            command = pipein_fd.readline()[:-1]
+            self.on_command(command)
+
         # creates the pipe signal handler that is responsible for the
         # reading of the pipe information from the child process to
         # the parent process (as expected)
@@ -1850,18 +1856,13 @@ class AbstractBase(observer.Observable):
             # not possible to handle any command
             if not self._running: return
 
-            def callback():
-                # reads a line from the input pipe considering it to be a
-                # command and then calls the callbacks for command
-                command = pipein_fd.readline()[:-1]
-                self.on_command(command)
-
             # schedules the current clojure to be executed as soon as
             # possible and then forces the wakeup, because although we're
             # running on the main thread we're possible under a blocking
             # statement and so we need to wakeup the parent loop
             self.delay(callback, immediately = True)
             if hasattr(self, "_awaken") and not self._awaken:
+                self._awaken = True
                 raise errors.WakeupError("Delays")
 
         # in case the user signal is defined registers for it so that it's
@@ -3827,19 +3828,22 @@ class AbstractBase(observer.Observable):
 
         # iterates continuously (infinite loop) until the running
         # flag is unmarked indicating that the loop should be stopped
-        while self._running:
-            try:
-                self._awaken = True
-                try: self._delays()
-                finally: self._awaken = False
-                time.sleep(sleep)
-            except errors.WakeupError:
-                pass
-            except (KeyboardInterrupt, SystemExit, errors.StopError, errors.PauseError):
-                raise
-            except BaseException as exception:
-                self.error(exception)
-                self.log_stack(method = self.warning)
+        try:
+            while self._running:
+                try:
+                    self._awaken = True
+                    try: self._delays()
+                    finally: self._awaken = False
+                    time.sleep(sleep)
+                except errors.WakeupError:
+                    continue
+                except (KeyboardInterrupt, SystemExit, errors.StopError, errors.PauseError):
+                    raise
+                except BaseException as exception:
+                    self.error(exception)
+                    self.log_stack(method = self.warning)
+        finally:
+            if hasattr(self, "_awaken"): del self._awaken
 
 class DiagBase(AbstractBase):
 
