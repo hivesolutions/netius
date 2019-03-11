@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -85,7 +85,7 @@ class Server(Base):
         # tries to close the service socket, as this is the one that
         # has no connection associated and is independent
         try: self.socket and self.socket.close()
-        except: pass
+        except Exception: pass
 
         # unsets the socket attribute as the socket should now be closed
         # and not able to be used for any kind of communication
@@ -461,6 +461,8 @@ class DatagramServer(Server):
                 self.on_expected(error)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception)
 
@@ -490,6 +492,8 @@ class DatagramServer(Server):
                 self.on_expected(error)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception)
 
@@ -692,7 +696,7 @@ class StreamServer(Server):
             while True:
                 socket_c, address = _socket.accept()
                 try: self.on_socket_c(socket_c, address)
-                except: socket_c.close(); raise
+                except Exception: socket_c.close(); raise
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
@@ -707,6 +711,8 @@ class StreamServer(Server):
                 self.on_expected_s(error)
             elif not error_v in VALID_ERRORS:
                 self.on_exception_s(error)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception_s(exception)
 
@@ -773,6 +779,8 @@ class StreamServer(Server):
                 self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception, connection)
 
@@ -810,6 +818,8 @@ class StreamServer(Server):
                 self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception, connection)
 
@@ -941,7 +951,7 @@ class StreamServer(Server):
         # may come after this one (async operation) in case an exception
         # is raises the connection is closed (avoids possible errors)
         try: connection.run_starter()
-        except: connection.close(); raise
+        except Exception: connection.close(); raise
 
         # in case there's extraneous data pending to be read from the
         # current connection's internal receive buffer it must be properly

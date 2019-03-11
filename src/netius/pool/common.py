@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -236,7 +236,7 @@ class UnixEventFile(EventFile):
     def libc(cls):
         if cls._LIBC: return cls._LIBC
         try: cls._LIBC = ctypes.cdll.LoadLibrary("libc.so.6")
-        except: return None
+        except Exception: return None
         return cls._LIBC
 
     def close(self):

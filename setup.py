@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -59,7 +59,7 @@ def read_file(path):
 netius.common.ensure_setup()
 setuptools.setup(
     name = "netius",
-    version = "1.17.34",
+    version = "1.17.49",
     author = "Hive Solutions Lda.",
     author_email = "development@hive.pt",
     description = "Netius System",
@@ -104,7 +104,8 @@ setuptools.setup(
         "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6"
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7"
     ],
     long_description = read_file("README.rst")
 )

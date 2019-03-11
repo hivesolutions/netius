@@ -71,6 +71,7 @@ context values (certificate, key, etc) for such domain
 
 * `BASE_PATH` (`str`) - The base directory path to be used for the file serving, if not defined the current directory
 is used instead (defaults to `None`)
+* `STYLE_URLS` (`list`) - The list of URLs that are going to be used to include stylesheets at directory listing
 * `INDEX_FILES` (`list`) - List of file names that should be considered for eligible for index operation (eg: `index.html`)
 * `LIST_DIRS` (`bool`) - If directory listing is enabled (may pose a security issue) (defaults to `True`)
 * `LIST_ENGINE` (`str`) - The name of the HTML generation engine to be used while listing files (eg: base, apache, legacy, etc.) (defaults to `base`)
@@ -115,3 +116,8 @@ connection to be accepted
 #### PROXY Middleware
 
 * `PROXY_VERSION` (`int`) - The version of the PROXY protocol that is going to be used (defaults to `1`)
+
+#### Annoyer Middleware
+
+* `ANNOYER_PERIOD` (`float`) - The period (in seconds) to wait in between the printing of the "annoying" diagnostics
+message, this is opposite of the frequency (defaults to `10`)

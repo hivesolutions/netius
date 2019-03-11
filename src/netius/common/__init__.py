@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -28,7 +28,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -95,5 +95,5 @@ from .torrent import info_hash, bencode, bdecode, chunk, dechunk, TorrentParser
 from .util import cstring, chunks, header_down, header_up, is_ip4, is_ip6, assert_ip4,\
     in_subnet_ip4, addr_to_ip4, addr_to_ip6, ip4_to_addr, string_to_bits, integer_to_bytes,\
     bytes_to_integer, random_integer, host, hostname, size_round_unit, verify, verify_equal,\
-    verify_not_equal
+    verify_not_equal, verify_many
 from .ws import encode_ws, decode_ws, assert_ws

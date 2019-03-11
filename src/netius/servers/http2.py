@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -309,8 +309,10 @@ class HTTP2Connection(http.HTTPConnection):
         is_empty = code in (204, 304) and data_l == 0
 
         # runs a series of verifications taking into account the type
-        # of the method defined in the current request
-        if self.parser_ctx.method.upper() == "HEAD": data = b""
+        # of the method defined in the current request, for instance if
+        # the current request is a HEAD one then no data is sent (as expected)
+        if self.parser_ctx.method and self.parser_ctx.method.upper() == "HEAD":
+            data = b""
 
         # verifies if the content length header is currently present
         # in the provided headers and in case it's not inserts it
@@ -1102,7 +1104,7 @@ class HTTP2Server(http.HTTPServer):
     @classmethod
     def _has_hpack(cls):
         try: import hpack #@UnusedImport
-        except: return False
+        except ImportError: return False
         return True
 
     @classmethod
@@ -1146,7 +1148,7 @@ class HTTP2Server(http.HTTPServer):
         if not isinstance(exception, netius.NetiusError):
             return http.HTTPServer.on_exception(self, exception, connection)
         try: self._handle_exception(exception, connection)
-        except: connection.close()
+        except Exception: connection.close()
 
     def on_ssl(self, connection):
         http.HTTPServer.on_ssl(self, connection)

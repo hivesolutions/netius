@@ -37,34 +37,50 @@ __copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import sys
+import time
+import datetime
+import threading
+
 import netius
 
 from .base import Middleware
 
-class BlacklistMiddleware(Middleware):
+class AnnoyerMiddleware(Middleware):
     """
-    Simple middleware implementation for blacklisting of IP
-    addresses using a very minimalistic approach.
+    Simple middleware that prints an "annoying" status message
+    to the standard output (stdout) from time to time providing
+    a simple diagnostics strategy.
     """
 
-    def __init__(self, owner, blacklist = None, whitelist = None):
+    def __init__(self, owner, period = 10.0):
         Middleware.__init__(self, owner)
-        self.blacklist = blacklist or []
-        self.whitelist = whitelist or []
+        self.period = period
+        self._initial = None
+        self._thread = None
+        self._running = False
 
     def start(self):
         Middleware.start(self)
-        self.blacklist = netius.conf("BLACKLIST", self.blacklist, cast = list)
-        self.whitelist = netius.conf("WHITELIST", self.whitelist, cast = list)
-        self.owner.bind("connection_c", self.on_connection_c)
+        self.period = netius.conf("ANNOYER_PERIOD", self.period, cast = float)
+        self._thread = threading.Thread(target = self._run)
+        self._thread.start()
 
     def stop(self):
         Middleware.stop(self)
-        self.owner.unbind("connection_c", self.on_connection_c)
+        if self._thread:
+            self._running = False
+            self._thread.join()
+            self._thread = None
 
-    def on_connection_c(self, owner, connection):
-        host = connection.address[0]
-        if not host in self.blacklist and not "*" in self.blacklist: return
-        if host in self.whitelist: return
-        self.owner.warning("Connection from '%s' dropped (blacklisted)" % host)
-        connection.close()
+    def _run(self):
+        self._initial = datetime.datetime.utcnow()
+        self._running = True
+        while self._running:
+            delta = datetime.datetime.utcnow() - self._initial
+            delta_s = self.owner._format_delta(delta)
+            message = "Uptime => %s | Connections => %d\n" %\
+                (delta_s, len(self.owner.connections))
+            sys.stdout.write(message)
+            sys.stdout.flush()
+            time.sleep(self.period)

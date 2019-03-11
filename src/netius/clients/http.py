@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -132,7 +132,7 @@ class HTTPProtocol(netius.StreamProtocol):
     def decode_deflate(cls, data):
         if not data: return data
         try: return zlib.decompress(data)
-        except: return zlib.decompress(data, -zlib.MAX_WBITS)
+        except Exception: return zlib.decompress(data, -zlib.MAX_WBITS)
 
     @classmethod
     def decode_zlib_file(
@@ -974,7 +974,7 @@ class HTTPProtocol(netius.StreamProtocol):
             # the gzip object (meaning no more interaction)
             self.gzip.flush(zlib.Z_FINISH)
             self.gzip = None
-        except:
+        except Exception:
             # in case the safe flag is not set re-raises the exception
             # to the caller stack (as expected by the callers)
             if not safe: raise
@@ -1148,6 +1148,7 @@ class HTTPClient(netius.ClientAgent):
         asynchronous = True,
         daemon = True,
         timeout = None,
+        ssl_verify = False,
         use_file = False,
         callback = None,
         on_init = None,
@@ -1181,6 +1182,7 @@ class HTTPClient(netius.ClientAgent):
             safe = safe,
             asynchronous = asynchronous,
             timeout = timeout,
+            ssl_verify = ssl_verify,
             use_file = use_file,
             callback = callback,
             on_init = on_init,
@@ -1320,6 +1322,7 @@ class HTTPClient(netius.ClientAgent):
         close = True,
         asynchronous = True,
         timeout = None,
+        ssl_verify = False,
         use_file = False,
         callback = None,
         on_init = None,
@@ -1396,6 +1399,7 @@ class HTTPClient(netius.ClientAgent):
                 protocol.host,
                 protocol.port,
                 ssl = protocol.ssl,
+                ssl_verify = ssl_verify,
                 loop = loop
             )
 
