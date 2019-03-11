@@ -39,13 +39,24 @@ __license__ = "Apache License, Version 2.0"
 
 import unittest
 
-import netius.pool
+import netius
 
-class EventPoolTest(unittest.TestCase):
+class TransportTest(unittest.TestCase):
 
-    def test_event(self):
-        pool = netius.pool.EventPool()
-        pool.push_event(("test", 1))
+    def test_write_closing(self):
+        connection = netius.Connection()
+        transport = netius.Transport(None, connection)
 
-        self.assertNotEqual(pool.events, [])
-        self.assertEqual(pool.pop_event(), ("test", 1))
+        self.assertEqual(transport._loop, None)
+        self.assertEqual(transport._connection, connection)
+        self.assertEqual(transport.is_closing(), False)
+        self.assertEqual(connection.is_closed(), False)
+
+        connection.status = netius.CLOSED
+
+        self.assertEqual(transport._loop, None)
+        self.assertEqual(transport._connection, connection)
+        self.assertEqual(transport.is_closing(), True)
+        self.assertEqual(connection.is_closed(), True)
+
+        transport.write(b"")

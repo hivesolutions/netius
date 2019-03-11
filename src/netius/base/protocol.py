@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -86,6 +86,8 @@ class Protocol(observer.Observable):
         self.trigger("close", self)
 
     def finish(self):
+        # in case the current protocol is already (completely) closed
+        # or is not in the state of closing nothing should be done
         if self.is_closed(): return
         if not self.is_closing(): return
 
@@ -144,7 +146,7 @@ class Protocol(observer.Observable):
         self._transport = transport
 
         # ensure that the protocol is open, please notice
-        # that most of the time the protocol is already open
+        # that most of the times the protocol is already open
         self.open()
 
     def connection_lost(self, exception):

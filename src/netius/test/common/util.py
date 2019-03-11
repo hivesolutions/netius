@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -193,4 +193,23 @@ class UtilTest(unittest.TestCase):
         self.assertRaises(
             netius.NetiusError,
             lambda: netius.common.verify_not_equal(1, 1, exception = netius.NetiusError)
+        )
+
+    def test_verify_many(self):
+        result = netius.common.verify_many((1 == 1, 2 == 2, 3 == 3))
+        self.assertEqual(result, None)
+
+        result = netius.common.verify_many(("hello" == "hello",))
+        self.assertEqual(result, None)
+
+        self.assertRaises(netius.AssertionError, lambda: netius.common.verify_many((1 == 2,)))
+
+        self.assertRaises(netius.AssertionError, lambda: netius.common.verify_many((1 == 1, 1 == 2)))
+
+        self.assertRaises(
+            netius.NetiusError,
+            lambda: netius.common.verify_many(
+                (1 == 1, 1 == 2),
+                exception = netius.NetiusError
+            )
         )

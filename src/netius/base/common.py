@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -67,7 +67,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.17.31"
+VERSION = "1.17.49"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -455,6 +455,19 @@ class AbstractBase(observer.Observable):
             asyncio.tasks.Task = asyncio.tasks._PyTask #@UndefinedVariable
         asyncio._patched = True
 
+    @classmethod
+    def waitpid(cls, pid):
+        while True:
+            try:
+                os.waitpid(pid, 0)
+                break
+            except OSError as error:
+                # needs to verify if an os error is raised with
+                # the value 3 (interrupted system call) as python
+                # does not handle these errors correctly
+                if error.errno == 4: continue
+                raise
+
     def destroy(self):
         observer.Observable.destroy(self)
 
@@ -594,7 +607,7 @@ class AbstractBase(observer.Observable):
     ):
         """
         Safe version of the delay operation to be used to insert a callable
-        from a different thread (implied lock mechanisms).
+        from a different thread (implies lock mechanisms).
 
         This method should only be used from different threads as there's
         a huge performance impact created from using this method instead of
@@ -1149,6 +1162,10 @@ class AbstractBase(observer.Observable):
         # logging infra-structure of the current system
         if full: self.unload_logging()
 
+        # runs the unbind operation for the signals so that no side effects
+        # occur while the unloading is going to take place
+        self.unbind_signals()
+
         # unloads the middleware infra-structure that has been created for the
         # current service, no longer going to be used
         self.unload_middleware()
@@ -1396,11 +1413,11 @@ class AbstractBase(observer.Observable):
         for middleware_i in self.middleware_l: middleware_i.stop()
         del self.middleware_l[:]
 
-    def register_middleware(self, middleware_c):
+    def register_middleware(self, middleware_c, *args, **kwargs):
         # instantiates a new middleware class as a new instance and then
         # runs the start method indicating the intention to start a new
         # middleware (should properly start its internal structures)
-        middleware_i = middleware_c(self)
+        middleware_i = middleware_c(self, *args, **kwargs)
         middleware_i.start()
 
         # adds the middleware instance that has just been created to the
@@ -1435,7 +1452,18 @@ class AbstractBase(observer.Observable):
         for signum in signals:
             if signum == None: continue
             try: signal.signal(signum, handler or base_handler)
-            except: self.debug("Failed to register %d handler" % signum)
+            except Exception: self.debug("Failed to register %d handler" % signum)
+
+    def unbind_signals(
+        self,
+        signals = (
+            signal.SIGINT,
+            signal.SIGTERM,
+            signal.SIGHUP if hasattr(signal, "SIGHUP") else None, #@UndefinedVariable
+            signal.SIGQUIT if hasattr(signal, "SIGQUIT") else None #@UndefinedVariable
+        )
+    ):
+        self.bind_signals(signals = signals, handler = signal.SIG_IGN)
 
     def bind_env(self):
         """
@@ -1508,7 +1536,7 @@ class AbstractBase(observer.Observable):
         # to the logger indicating this start, this stage
         # should block the thread until a stop call is made
         self.debug("Starting '%s' service main loop (%.2fs) ..." % (self.name, self.poll_timeout))
-        self.debug("Using thread '%s' with tid '%d'" % (self.tname, self.tid))
+        self.debug("Using thread '%s' with TID '%d'" % (self.tname, self.tid))
         self.debug("Using '%s' as polling mechanism" % poll_name)
 
         # calls the main method to be able to start the main event
@@ -1516,8 +1544,21 @@ class AbstractBase(observer.Observable):
         self.main()
 
     def stop(self):
+        # in case the current process is neither running nor
+        # paused there's nothing pending to be done on stop
+        if not self.is_running() and not self.is_paused(): return
+
+        # in case the current loop is in pause state calls only
+        # the finish operation otherwise sets the running flag
+        # to false meaning that on the next event loop tick the
+        # unloading process will be triggered
         if self.is_paused(): self.finish()
         else: self._running = False
+
+        # in case the current process is the parent in a pre-fork
+        # environment raises the stop error to wakeup the process
+        # from its current infinite loop for stop handling
+        if self.is_parent: raise errors.StopError()
 
     def pause(self):
         self._running = False
@@ -1552,8 +1593,16 @@ class AbstractBase(observer.Observable):
         try:
             self.loop()
             self.finalize()
-        except (KeyboardInterrupt, SystemExit, errors.StopError):
+        except (KeyboardInterrupt, SystemExit, errors.StopError) as exception:
+            # prints a small informational message indicating that the exit of
+            # the current system has been triggered by the user (signal)
             self.info("Finishing '%s' service on user request ..." % self.name)
+
+            # in case the current event loop is not the main one (eg:
+            # external HTTP client) then this exception must be re-raised
+            # to the upper layer (main event loop) so that it can be
+            # properly handled to be able to exit the environment
+            if not self == Base.get_main(): raise
         except errors.PauseError:
             self.debug("Pausing '%s' service main loop" % self.name)
             self.set_state(STATE_PAUSE)
@@ -1566,6 +1615,7 @@ class AbstractBase(observer.Observable):
             self.log_stack(method = self.error)
         finally:
             if self.is_paused(): return
+            self.stop()
             self.finish()
 
     def is_main(self):
@@ -1753,7 +1803,11 @@ class AbstractBase(observer.Observable):
         try: self.loop()
         finally: self._running = _running
 
-    def fork(self):
+    def fork(self, timeout = 10):
+        # retrieves the reference to the parent class object
+        # to be used for the class level operations
+        cls = self.__class__
+
         # ensures that the children value is converted as an
         # integer value as this is the expected structure
         self.children = int(self.children)
@@ -1765,6 +1819,34 @@ class AbstractBase(observer.Observable):
         if not hasattr(os, "fork"): return True
         if self._forked: return True
 
+        # makes sure that no signal handlers exist for the parent
+        # process, this is relevant to avoid immediate destruction
+        # of the current process on premature signal
+        self.unbind_signals()
+        if hasattr(signal, "SIGUSR1"):
+            self.unbind_signals(signals = (signal.SIGUSR1,))
+
+        # sets the initial PID value to the value of the current
+        # master process as this is going to be used for child
+        # detection (critical for the correct logic execution)
+        ppid = os.getpid()
+
+        # prints a simple debug information about the creation
+        # of the pipe based communication system
+        self.debug("Creating pipes for child to parent communication ...")
+
+        # creates both pipes for the communication between the
+        # child processes and the parent process
+        pipein, pipeout = os.pipe()
+
+        # builds the inline function that takes the message to be
+        # sent to the output pipe, normalizes it and sends it
+        def pipe_send(message):
+            if not hasattr(signal, "SIGUSR1"): return
+            frame = legacy.bytes(message) + b"\n"
+            os.write(pipeout, frame)
+            os.kill(ppid, signal.SIGUSR1) #@UndefinedVariable
+
         # prints a debug operation about the operation that is
         # going to be performed for the forking
         self.debug("Forking the current process into '%d' children ..." % self.children)
@@ -1773,17 +1855,12 @@ class AbstractBase(observer.Observable):
         # operation is soon going to be performed
         self.on_fork()
 
-        # sets the initial pid value to the value of the current
-        # master process as this is going to be used for child
-        # detection (critical for the correct logic execution)
-        pid = os.getpid()
-
         # iterates of the requested (number of children) to run
         # the concrete fork operation and fork the logic
         for _index in range(self.children):
             pid = os.fork() #@UndefinedVariable pylint: disable=E1101
             self._child = pid == 0
-            if self._child: self.on_child()
+            if self._child: self.on_child(pipe = pipe_send)
             if self._child: break
             self._childs.append(pid)
 
@@ -1795,32 +1872,123 @@ class AbstractBase(observer.Observable):
         # valid value should be returned (force logic continuation)
         if self._child: return True
 
-        # registers for some of the common signals to be able to avoid
-        # any possible interaction with the joining process
-        def handler(signum = None, frame = None): raise errors.StopError("Stop")
+        # prints a debug operation the finished forking operation
+        self.debug("Finished forking children")
+
+        # opens a file object for the input pipe so that it's easier
+        # to read it as a stream (read a complete line)
+        pipein_fd = os.fdopen(pipein)
+
+        # registers for some of the common signals to be able to start
+        # the process of stopping and joining with the child processes
+        # in case there's a request to do so
+        def handler(signum = None, frame = None): self.stop()
         self.bind_signals(handler = handler)
+
+        def callback():
+            # reads a line from the input pipe considering it to be a
+            # command and then calls the callbacks for command
+            command = pipein_fd.readline()[:-1]
+            self.on_command(command)
+
+        # creates the pipe signal handler that is responsible for the
+        # reading of the pipe information from the child process to
+        # the parent process (as expected)
+        def pipe_handler(signum = None, frame = None):
+            # in case the current process is considered to be not
+            # running then returns the control flow immediately
+            # not possible to handle any command
+            if not self._running: return
+
+            # schedules the current clojure to be executed as soon as
+            # possible and then forces the wakeup, because although we're
+            # running on the main thread we're possible under a blocking
+            # statement and so we need to wakeup the parent loop
+            self.delay_s(callback, immediately = True)
+            if hasattr(self, "_awaken") and not self._awaken:
+                self._awaken = True
+                raise errors.WakeupError()
+
+        # in case the user signal is defined registers for it so that it's
+        # possible to establish a communication between child and parent
+        if hasattr(signal, "SIGUSR1"):
+            signal.signal(signal.SIGUSR1, pipe_handler) #@UndefinedVariable
+
+        # prints a debug operation the finished forking operation
+        self.debug("Entering wait forever loop")
 
         # sleeps forever, waiting for an interruption of the current
         # process that triggers the children to quit, so that it's
         # able to "join" all of them into the current process
-        try: self._wait_forever()
-        except: pass
+        try:
+            self._wait_forever()
+        except (KeyboardInterrupt, SystemExit, errors.StopError):
+            pass
 
-        # prints a debug information about the processes to be joined
-        # this indicated the start of the joining process
-        self.debug("Joining '%d' children processes ..." % self.children)
+        # register for the unbind of the signals, so that no more signals
+        # are handled while this operation is performed
+        self.unbind_signals()
+
+        # closes both the file based pipe for input and the pipe used
+        # for the output of information (as expected)
+        pipein_fd.close()
+        os.close(pipeout)
+
+        # prints a debug information about the sending of the term
+        # signal to the child processes (triggers shutdown)
+        self.debug("Sending signal to '%d' child processes ..." % self.children)
 
         # iterates over the complete set of children to send the proper
         # terminate signal to each of them for proper termination
-        for pid in self._childs: os.kill(pid, signal.SIGTERM) #@UndefinedVariable
+        for pid in self._childs:
+            os.kill(pid, signal.SIGTERM)
 
-        # iterates over the complete set of child processed to join
-        # them (master responsibility)
-        for pid in self._childs: os.waitpid(pid, 0)
+        # prints a debug information about the processes to be joined
+        # this indicated the start of the joining process
+        self.debug("Joining '%d' child processes ..." % self.children)
+
+        # creates the catcher for the alarm signal so that a wakeup
+        # can happen that kills the (possibly) stuck children
+        def catcher(signal, frame): raise errors.WakeupError()
+        signal.signal(signal.SIGALRM, catcher) #@UndefinedVariable
+
+        # iterates over the complete set of child processes to join
+        # them (master process responsibility)
+        for pid in self._childs:
+            # saves the initial time so that it's possible to decrement
+            # the delta time spend while waiting for the current PID
+            initial = time.time()
+
+            # registers the alarm for the remaining time until
+            # the child process should be forcibly killed
+            signal.setitimer(signal.ITIMER_REAL, max(timeout, 0.15)) #@UndefinedVariable
+
+            try:
+                # runs the waiting for the children PID (process to finish)
+                # notice that if the timer is reached a wakeup should occur
+                # and the process should be killed in a forced manner
+                cls.waitpid(pid)
+            except errors.WakeupError:
+                self.warning("Timeout reached killing PID '%d' with SIGKILL ..." % pid)
+                os.kill(pid, signal.SIGKILL) #@UndefinedVariable
+                cls.waitpid(pid)
+
+            # decrements the timeout value by the time that was
+            # spent waiting for the current child PID
+            timeout -= time.time() - initial
+
+        # resets the alarm as we've finished waiting for all of the
+        # children processes, some may have been killed forcibly
+        signal.setitimer(signal.ITIMER_REAL, 0) #@UndefinedVariable
+
+        # calls the final (on) join method indicating that the complete
+        # set of child processes have been join and that now only the
+        # parent process is running actively
+        self.on_join()
 
         # prints a message about the end of the child process joining
         # this is relevant to make sure everything is ok before exit
-        self.debug("Finished joining %d' children processes" % self.children)
+        self.debug("Finished joining '%d' child processes" % self.children)
 
         # runs the cleanup operation for the current process this is
         # required to avoid any leaked information
@@ -2546,10 +2714,13 @@ class AbstractBase(observer.Observable):
     def on_fork(self):
         self.trigger("fork", self)
 
-    def on_child(self):
+    def on_join(self):
+        self.trigger("join", self)
+
+    def on_child(self, pipe = None):
         # triggers the child event indicating that a new child has been
         # created and than any callback operation may now be performed
-        self.trigger("child", self)
+        self.trigger("child", self, pipe = pipe)
 
         # creates a new seed value from a pseudo random value and
         # then adds this new value as the base for randomness in the
@@ -2563,6 +2734,9 @@ class AbstractBase(observer.Observable):
         # sent from the parent process (proper exit/termination)
         self.bind_signals(handler = signal.SIG_IGN)
         self.bind_signals(signals = (signal.SIGTERM,))
+
+    def on_command(self, command):
+        self.trigger("command", self, command)
 
     def on_diag(self):
         self.trigger("diag", self)
@@ -2633,6 +2807,8 @@ class AbstractBase(observer.Observable):
                 self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception, connection)
 
@@ -2673,6 +2849,8 @@ class AbstractBase(observer.Observable):
                 self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception, connection)
 
@@ -2749,7 +2927,7 @@ class AbstractBase(observer.Observable):
 
     def info_string(self, full = False, safe = True):
         try: info = self.info_dict(full = full)
-        except: info = dict()
+        except Exception: info = dict()
         info_s = json.dumps(
             info,
             ensure_ascii = False,
@@ -2865,6 +3043,8 @@ class AbstractBase(observer.Observable):
                 self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.on_exception(exception, connection)
 
@@ -2910,18 +3090,23 @@ class AbstractBase(observer.Observable):
         return self.logger.isEnabledFor(logging.CRITICAL)
 
     def debug(self, object):
+        if not logging: return
         self.log(object, level = logging.DEBUG)
 
     def info(self, object):
+        if not logging: return
         self.log(object, level = logging.INFO)
 
     def warning(self, object):
+        if not logging: return
         self.log(object, level = logging.WARNING)
 
     def error(self, object):
+        if not logging: return
         self.log(object, level = logging.ERROR)
 
     def critical(self, object):
+        if not logging: return
         self.log(object, level = logging.CRITICAL)
 
     def log_stack(self, method = None, info = True):
@@ -2942,14 +3127,14 @@ class AbstractBase(observer.Observable):
     def log_python_3(self, object, level = logging.INFO):
         is_str = isinstance(object, legacy.STRINGS)
         try: message = str(object) if not is_str else object
-        except: message = str(object)
+        except Exception: message = str(object)
         if not self.logger: return
         self.logger.log(level, message)
 
     def log_python_2(self, object, level = logging.INFO):
         is_str = isinstance(object, legacy.STRINGS)
         try: message = unicode(object) if not is_str else object #@UndefinedVariable
-        except: message = str(object).decode("utf-8", "ignore")
+        except Exception: message = str(object).decode("utf-8", "ignore")
         if not self.logger: return
         self.logger.log(level, message)
 
@@ -3193,6 +3378,18 @@ class AbstractBase(observer.Observable):
 
         return self.connections_m[socket]
 
+    @property
+    def is_parent(self):
+        return self._forked and not self._child
+
+    @property
+    def is_child(self):
+        return self._forked and self._child
+
+    @property
+    def is_forked(self):
+        return self._forked
+
     def _pending(self, connection):
         """
         Tries to perform the pending operations in the connection,
@@ -3346,6 +3543,8 @@ class AbstractBase(observer.Observable):
             # proper exception is set so that proper top level handling
             # is defined and logging is performed
             try: method()
+            except (KeyboardInterrupt, SystemExit, errors.StopError):
+                raise
             except BaseException as exception:
                 self.error(exception)
                 self.log_stack(method = self.warning)
@@ -3418,6 +3617,8 @@ class AbstractBase(observer.Observable):
                 self.trigger("error", self, connection, error)
                 connection.close()
                 return
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except BaseException as exception:
             self.warning(exception)
             self.log_stack()
@@ -3448,26 +3649,31 @@ class AbstractBase(observer.Observable):
         # the socket is of type non blocking and raises an error, note
         # that the creation of the socket varies between SSL versions
         if _socket._sslobj: return
-        if has_context: _socket._sslobj = _socket.context._wrap_socket(
-            _socket,
-            _socket.server_side,
-            _socket.server_hostname
-        )
-        else: _socket._sslobj = ssl._ssl.sslwrap(
-            _socket._sock if has_sock else _socket,
-            False,
-            _socket.keyfile,
-            _socket.certfile,
-            _socket.cert_reqs,
-            _socket.ssl_version,
-            _socket.ca_certs
-        )
+        if has_context:
+            _socket._sslobj = _socket.context._wrap_socket(
+                _socket,
+                _socket.server_side,
+                _socket.server_hostname
+            )
+        else:
+            _socket._sslobj = ssl._ssl.sslwrap(
+                _socket._sock if has_sock else _socket,
+                False,
+                _socket.keyfile,
+                _socket.certfile,
+                _socket.cert_reqs,
+                _socket.ssl_version,
+                _socket.ca_certs
+            )
 
         # verifies if the SSL object class is defined in the SSL module
         # and if that's the case an extra wrapping operation is performed
-        # in order to comply with new indirection/abstraction methods
+        # in order to comply with new indirection/abstraction method, under
+        # some circumstances this operations fails with an exception because
+        # the wrapping operation is not allowed for every Python environment
         if not hasattr(ssl, "SSLObject"): return
-        _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
+        try: _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
+        except TypeError: pass
 
     def _connectf(self, connection):
         """
@@ -3896,8 +4102,46 @@ class AbstractBase(observer.Observable):
         delta_s += "%ds" % seconds
         return delta_s.strip()
 
-    def _wait_forever(self):
-        while True: time.sleep(60)
+    def _wait_forever(self, sleep = 60):
+        """
+        Runs a simple event loop that sleeps for a certain amount
+        of time and then processes a series of pending events.
+
+        The recommended way of waking this event loop is by raising
+        a wakeup error on the running thread.
+
+        The number of ticks in this loop should be minimal and should
+        be mostly triggered by wakeup error raising.
+
+        :type sleep: float
+        :param sleep: The amount of time to sleep in between loop
+        "ticks", should be a large value to avoid resource wasting.
+        """
+
+        # marks the current (parent) process as running and sets
+        # its current state as "started"
+        self._running = True
+        self._pausing = False
+        self.set_state(STATE_START)
+
+        # iterates continuously (infinite loop) until the running
+        # flag is unmarked indicating that the loop should be stopped
+        try:
+            while self._running:
+                try:
+                    self._awaken = True
+                    try: self._delays()
+                    finally: self._awaken = False
+                    time.sleep(sleep)
+                except errors.WakeupError:
+                    continue
+                except (KeyboardInterrupt, SystemExit, errors.StopError, errors.PauseError):
+                    raise
+                except BaseException as exception:
+                    self.error(exception)
+                    self.log_stack(method = self.warning)
+        finally:
+            if hasattr(self, "_awaken"): del self._awaken
 
 class DiagBase(AbstractBase):
 
@@ -4005,7 +4249,7 @@ def get_loop(
 
 def get_event_loop(*args, **kwargs):
     """
-    Compatibility alias function with the `get_loop()` function
+    Compatibility alias function with the ``get_loop()`` function
     to ensure proper compatibility with asyncio.
 
     :rtype: EventLoop

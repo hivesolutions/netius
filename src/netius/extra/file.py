@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -76,6 +76,7 @@ class FileServer(netius.servers.HTTP2Server):
     def __init__(
         self,
         base_path = "",
+        style_urls = [],
         index_files = [],
         list_dirs = True,
         list_engine = "base",
@@ -86,6 +87,7 @@ class FileServer(netius.servers.HTTP2Server):
     ):
         netius.servers.HTTP2Server.__init__(self, *args, **kwargs)
         self.base_path = base_path
+        self.style_urls = style_urls
         self.index_files = index_files
         self.list_dirs = list_dirs
         self.list_engine = list_engine
@@ -169,12 +171,19 @@ class FileServer(netius.servers.HTTP2Server):
         return _items
 
     @classmethod
-    def _gen_dir(cls, engine, path, path_v, query_m, style = True, **kwargs):
+    def _gen_dir(cls, engine, path, path_v, query_m, style = True, style_urls = [], **kwargs):
         gen_dir_method = getattr(cls, "_gen_dir_" + engine)
-        return gen_dir_method(path, path_v, query_m, style = style, **kwargs)
+        return gen_dir_method(
+            path,
+            path_v,
+            query_m,
+            style = style,
+            style_urls = style_urls,
+            **kwargs
+        )
 
     @classmethod
-    def _gen_dir_base(cls, path, path_v, query_m, style = True, **kwargs):
+    def _gen_dir_base(cls, path, path_v, query_m, style = True, style_urls = [], **kwargs):
         sort = query_m.get("sort", [])
         direction = query_m.get("direction", [])
 
@@ -212,11 +221,15 @@ class FileServer(netius.servers.HTTP2Server):
         path_s = "".join(path_b)
         path_s = path_s.strip()
 
-        for value in cls._gen_header("Index of %s" % (path_n or "/"), style = style):
+        for value in cls._gen_header(
+            "Index of %s" % (path_n or "/"),
+            style = style,
+            style_urls = style_urls
+        ):
             yield value
 
         yield "<body>"
-        yield "<h1>Index of %s</h1>" % path_s
+        yield "<h1 class=\"path\">Index of %s</h1>" % path_s
         yield "<hr/>"
         yield "<table>"
         yield "<thead>"
@@ -261,7 +274,7 @@ class FileServer(netius.servers.HTTP2Server):
         for value in cls._gen_footer(): yield value
 
     @classmethod
-    def _gen_dir_apache(cls, path, path_v, query_m, style = True, **kwargs):
+    def _gen_dir_apache(cls, path, path_v, query_m, **kwargs):
         sort = query_m.get("sort", [])
         direction = query_m.get("direction", [])
 
@@ -278,7 +291,7 @@ class FileServer(netius.servers.HTTP2Server):
         items = cls._items_normalize(
             items,
             path,
-            pad = not style,
+            pad = True,
             space = False,
             simplified = True
         )
@@ -294,7 +307,7 @@ class FileServer(netius.servers.HTTP2Server):
             yield value
 
         yield "<body>"
-        yield "<h1>Index of %s</h1>" % (path_n or "/")
+        yield "<h1 class=\"path\">Index of %s</h1>" % (path_n or "/")
         yield "<table>"
         yield "<tr>"
         yield "<th valign=\"top\"><img src=\"%s\" alt=\"[ICO]\"></th>" % EMPTY_GIF
@@ -341,7 +354,7 @@ class FileServer(netius.servers.HTTP2Server):
         for value in cls._gen_footer(): yield value
 
     @classmethod
-    def _gen_dir_legacy(cls, path, path_v, query_m, style = True, **kwargs):
+    def _gen_dir_legacy(cls, path, path_v, query_m, **kwargs):
         max_length = kwargs.get("max_length", 24)
         spacing = kwargs.get("spacing", 2)
 
@@ -361,7 +374,7 @@ class FileServer(netius.servers.HTTP2Server):
         items = cls._items_normalize(
             items,
             path,
-            pad = not style,
+            pad = True,
             space = False,
             simplified = True
         )
@@ -381,7 +394,7 @@ class FileServer(netius.servers.HTTP2Server):
             yield value
 
         yield "<body>"
-        yield "<h1>Index of %s</h1>" % (path_n or "/")
+        yield "<h1 class=\"path\">Index of %s</h1>" % (path_n or "/")
         yield "<hr/>"
         yield "<pre>"
         yield "<img src=\"%s\" alt=\"Icon \">" % EMPTY_GIF
@@ -441,6 +454,7 @@ class FileServer(netius.servers.HTTP2Server):
     def on_serve(self):
         netius.servers.HTTP2Server.on_serve(self)
         if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)
+        if self.env: self.style_urls = self.get_env("STYLE_URLS", self.style_urls, cast = list)
         if self.env: self.index_files = self.get_env("INDEX_FILES", self.index_files, cast = list)
         if self.env: self.list_dirs = self.get_env("LIST_DIRS", self.list_dirs, cast = bool)
         if self.env: self.list_engine = self.get_env("LIST_ENGINE", self.list_engine)
@@ -543,7 +557,8 @@ class FileServer(netius.servers.HTTP2Server):
             path,
             path_v,
             query_m,
-            style = style
+            style = style,
+            style_urls = self.style_urls
         ))
         data = netius.legacy.bytes(data, encoding = "utf-8", force = True)
 
@@ -574,12 +589,12 @@ class FileServer(netius.servers.HTTP2Server):
         is_partial = True if range_s else False
 
         # retrieves the last modified timestamp for the resource path and
-        # uses it to create the etag for the resource to be served
+        # uses it to create the ETag for the resource to be served
         modified = os.path.getmtime(path)
         etag = "netius-%.2f" % modified
 
         # retrieves the header that describes the previous version in the
-        # client side (client side etag) and compares both of the etags to
+        # client side (client side ETag) and compares both of the ETags to
         # verify if the file changed meanwhile or not
         _etag = parser.headers.get("if-none-match", None)
         not_modified = etag == _etag
@@ -671,7 +686,10 @@ class FileServer(netius.servers.HTTP2Server):
     def on_no_file(self, connection):
         cls = self.__class__
         connection.send_response(
-            data = cls.build_text("File not found"),
+            data = cls.build_text(
+                "File not found",
+                style_urls = self.style_urls
+            ),
             headers = dict(
                 connection = "close"
             ),
@@ -685,7 +703,8 @@ class FileServer(netius.servers.HTTP2Server):
         connection.send_response(
             data = cls.build_text(
                 "Problem handling request - %s" % str(exception),
-                trace = self.is_devel()
+                trace = self.is_devel(),
+                style_urls = self.style_urls
             ),
             headers = dict(
                 connection = "close"

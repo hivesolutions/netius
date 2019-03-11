@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,13 +31,15 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-class NetiusError(BaseException):
+import uuid
+
+class NetiusError(Exception):
     """
     The top level base error to be used in the
     netius infra-structure.
@@ -47,13 +49,20 @@ class NetiusError(BaseException):
     """
 
     def __init__(self, *args, **kwargs):
-        BaseException.__init__(self, *args)
+        Exception.__init__(self, *args)
         message = args[0] if args else ""
         kwargs["message"] = kwargs.get("message", message)
         self.kwargs = kwargs
+        self._uid = None
 
     def get_kwarg(self, name, default = None):
         return self.kwargs.get(name, default)
+
+    @property
+    def uid(self):
+        if self._uid: return self._uid
+        self._uid = uuid.uuid4()
+        return self._uid
 
 class RuntimeError(NetiusError):
     """
@@ -84,6 +93,17 @@ class PauseError(RuntimeError):
 
     This error represent an operation and not a real
     error and should be used as such.
+    """
+
+    pass
+
+class WakeupError(RuntimeError):
+    """
+    Error used to send a wakeup intent from one context
+    or thread to another.
+
+    This is especially useful on the context of signal
+    handling where an interruption may happen at any time.
     """
 
     pass
