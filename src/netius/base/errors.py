@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import uuid
 
-class NetiusError(BaseException):
+class NetiusError(Exception):
     """
     The top level base error to be used in the
     netius infra-structure.
@@ -49,7 +49,7 @@ class NetiusError(BaseException):
     """
 
     def __init__(self, *args, **kwargs):
-        BaseException.__init__(self, *args)
+        Exception.__init__(self, *args)
         message = args[0] if args else ""
         kwargs["message"] = kwargs.get("message", message)
         self.kwargs = kwargs
@@ -93,6 +93,17 @@ class PauseError(RuntimeError):
 
     This error represent an operation and not a real
     error and should be used as such.
+    """
+
+    pass
+
+class WakeupError(RuntimeError):
+    """
+    Error used to send a wakeup intent from one context
+    or thread to another.
+
+    This is especially useful on the context of signal
+    handling where an interruption may happen at any time.
     """
 
     pass

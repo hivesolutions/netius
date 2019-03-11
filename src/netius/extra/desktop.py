@@ -40,7 +40,7 @@ __license__ = "Apache License, Version 2.0"
 import netius.servers
 
 try: import PIL.ImageGrab
-except: PIL = None
+except ImportError: PIL = None
 
 class DesktopServer(netius.servers.MJPGServer):
 

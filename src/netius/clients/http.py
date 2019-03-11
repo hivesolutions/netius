@@ -132,7 +132,7 @@ class HTTPProtocol(netius.StreamProtocol):
     def decode_deflate(cls, data):
         if not data: return data
         try: return zlib.decompress(data)
-        except: return zlib.decompress(data, -zlib.MAX_WBITS)
+        except Exception: return zlib.decompress(data, -zlib.MAX_WBITS)
 
     @classmethod
     def decode_zlib_file(
@@ -974,7 +974,7 @@ class HTTPProtocol(netius.StreamProtocol):
             # the gzip object (meaning no more interaction)
             self.gzip.flush(zlib.Z_FINISH)
             self.gzip = None
-        except:
+        except Exception:
             # in case the safe flag is not set re-raises the exception
             # to the caller stack (as expected by the callers)
             if not safe: raise

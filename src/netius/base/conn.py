@@ -227,7 +227,7 @@ class BaseConnection(observer.Observable):
         # operations are no longer allowed in the socket, in case there's
         # an error in the operation fails silently (on purpose)
         try: self.socket.close()
-        except: pass
+        except Exception: pass
 
         # calls the top level on connection delete handler so that the owner
         # object gets notified about the deletion of the connection (closed)

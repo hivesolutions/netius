@@ -1104,7 +1104,7 @@ class HTTP2Server(http.HTTPServer):
     @classmethod
     def _has_hpack(cls):
         try: import hpack #@UnusedImport
-        except: return False
+        except ImportError: return False
         return True
 
     @classmethod
@@ -1148,7 +1148,7 @@ class HTTP2Server(http.HTTPServer):
         if not isinstance(exception, netius.NetiusError):
             return http.HTTPServer.on_exception(self, exception, connection)
         try: self._handle_exception(exception, connection)
-        except: connection.close()
+        except Exception: connection.close()
 
     def on_ssl(self, connection):
         http.HTTPServer.on_ssl(self, connection)

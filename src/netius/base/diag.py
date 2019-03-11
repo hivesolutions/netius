@@ -42,7 +42,7 @@ import logging
 try:
     import appier
     loaded = True
-except:
+except ImportError:
     import netius.mock
     appier = netius.mock.appier
     loaded = False

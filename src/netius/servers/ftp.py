@@ -260,19 +260,19 @@ class FTPConnection(netius.Connection):
     def on_dele(self, message):
         full_path = self._get_path(extra = message)
         try: os.remove(full_path)
-        except: self.not_ok()
+        except Exception: self.not_ok()
         else: self.ok()
 
     def on_mkd(self, message):
         full_path = self._get_path(extra = message)
         try: os.makedirs(full_path)
-        except: self.not_ok()
+        except Exception: self.not_ok()
         else: self.ok()
 
     def on_rmd(self, message):
         full_path = self._get_path(extra = message)
         try: os.rmdir(full_path)
-        except: self.not_ok()
+        except Exception: self.not_ok()
         else: self.ok()
 
     def on_rnfr(self, message):
@@ -282,7 +282,7 @@ class FTPConnection(netius.Connection):
     def on_rnto(self, message):
         self.target_path = self._get_path(extra = message)
         try: os.rename(self.source_path, self.target_path)
-        except: self.not_ok()
+        except Exception: self.not_ok()
         else: self.ok()
         finally: self.source_path = self.target_path = None
 
@@ -379,7 +379,7 @@ class FTPConnection(netius.Connection):
         # should get a list of files contained in it, in case there's
         # an error in such listing an empty string is returned
         try: entries = os.listdir(relative_path)
-        except: return ""
+        except Exception: return ""
 
         # allocates space for the list that will hold the various lines
         # for the complete set of tiles in the directory
@@ -390,7 +390,7 @@ class FTPConnection(netius.Connection):
         for entry in entries:
             file_path = os.path.join(relative_path, entry)
             try: mode = os.stat(file_path)
-            except: continue
+            except Exception: continue
             permissions = self._to_unix(mode)
             timestamp = mode.st_mtime
             date_time = datetime.datetime.utcfromtimestamp(timestamp)

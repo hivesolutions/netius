@@ -236,7 +236,7 @@ class UnixEventFile(EventFile):
     def libc(cls):
         if cls._LIBC: return cls._LIBC
         try: cls._LIBC = ctypes.cdll.LoadLibrary("libc.so.6")
-        except: return None
+        except Exception: return None
         return cls._LIBC
 
     def close(self):

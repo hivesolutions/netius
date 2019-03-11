@@ -89,7 +89,7 @@ class GeoResolver(object):
     def _get_db(cls):
         if cls._db: return cls._db
         try: import maxminddb
-        except: return None
+        except ImportError: return None
         path = cls._try_all()
         if not path: return None
         cls._db = maxminddb.open_database(path)
