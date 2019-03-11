@@ -578,7 +578,7 @@ class HTTPConnection(netius.Connection):
                 # runs the flush operation for the the final finish stage
                 # (note that an exception may be raised)
                 gzip.flush(zlib.Z_FINISH)
-            except:
+            except Exception:
                 # in case the safe flag is not set re-raises the exception
                 # to the caller stack (as expected by the callers)
                 if not safe: raise

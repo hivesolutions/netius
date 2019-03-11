@@ -85,7 +85,7 @@ class Server(Base):
         # tries to close the service socket, as this is the one that
         # has no connection associated and is independent
         try: self.socket and self.socket.close()
-        except: pass
+        except Exception: pass
 
         # unsets the socket attribute as the socket should now be closed
         # and not able to be used for any kind of communication
@@ -696,7 +696,7 @@ class StreamServer(Server):
             while True:
                 socket_c, address = _socket.accept()
                 try: self.on_socket_c(socket_c, address)
-                except: socket_c.close(); raise
+                except Exception: socket_c.close(); raise
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
@@ -928,7 +928,7 @@ class StreamServer(Server):
         # may come after this one (async operation) in case an exception
         # is raises the connection is closed (avoids possible errors)
         try: connection.run_starter()
-        except: connection.close(); raise
+        except Exception: connection.close(); raise
 
         # in case there's extraneous data pending to be read from the
         # current connection's internal receive buffer it must be properly

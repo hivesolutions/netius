@@ -1451,7 +1451,7 @@ class AbstractBase(observer.Observable):
         for signum in signals:
             if signum == None: continue
             try: signal.signal(signum, handler or base_handler)
-            except: self.debug("Failed to register %d handler" % signum)
+            except Exception: self.debug("Failed to register %d handler" % signum)
 
     def unbind_signals(
         self,
@@ -2715,7 +2715,7 @@ class AbstractBase(observer.Observable):
 
     def info_string(self, full = False, safe = True):
         try: info = self.info_dict(full = full)
-        except: info = dict()
+        except Exception: info = dict()
         info_s = json.dumps(
             info,
             ensure_ascii = False,
@@ -2912,14 +2912,14 @@ class AbstractBase(observer.Observable):
     def log_python_3(self, object, level = logging.INFO):
         is_str = isinstance(object, legacy.STRINGS)
         try: message = str(object) if not is_str else object
-        except: message = str(object)
+        except Exception: message = str(object)
         if not self.logger: return
         self.logger.log(level, message)
 
     def log_python_2(self, object, level = logging.INFO):
         is_str = isinstance(object, legacy.STRINGS)
         try: message = unicode(object) if not is_str else object #@UndefinedVariable
-        except: message = str(object).decode("utf-8", "ignore")
+        except Exception: message = str(object).decode("utf-8", "ignore")
         if not self.logger: return
         self.logger.log(level, message)
 

@@ -45,7 +45,7 @@ from . import legacy
 from . import async_old
 
 try: import asyncio
-except: asyncio = None
+except ImportError: asyncio = None
 
 class Future(async_old.Future):
     """
