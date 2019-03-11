@@ -45,17 +45,17 @@ class EchoServerClientProtocol(asyncio.Protocol):
 
     def connection_made(self, transport):
         peername = transport.get_extra_info("peername")
-        print("Connection from %s" % peername)
+        print("Connection from %s" % str(peername))
         self.transport = transport
 
     def data_received(self, data):
         message = data.decode()
         print("Data received: %s" % message)
 
-        print("Send: %s" % message)
+        print("Sending: %s" % message)
         self.transport.write(data)
 
-        print("Close the client socket")
+        print("Closing the client socket")
         self.transport.close()
 
 loop = netius.get_loop(_compat = True)
