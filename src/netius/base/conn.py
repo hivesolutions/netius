@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -227,7 +227,7 @@ class BaseConnection(observer.Observable):
         # operations are no longer allowed in the socket, in case there's
         # an error in the operation fails silently (on purpose)
         try: self.socket.close()
-        except: pass
+        except Exception: pass
 
         # calls the top level on connection delete handler so that the owner
         # object gets notified about the deletion of the connection (closed)

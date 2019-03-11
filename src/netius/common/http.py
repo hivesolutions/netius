@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -53,17 +53,17 @@ default value for the parser and may be overriden using
 the dedicated parameter value in the constructor """
 
 REQUEST = 1
-""" The http request message indicator, should be
-used when identifying the http request messages """
+""" The HTTP request message indicator, should be
+used when identifying the HTTP request messages """
 
 RESPONSE = 2
-""" Indicator for the response http message, can be
+""" Indicator for the response HTTP message, can be
 used to identify chunks of data that represent an
-http based response """
+HTTP based response """
 
 LINE_STATE = 1
 """ The initial state where the status line is meant
-to be read as expected by the http specification """
+to be read as expected by the HTTP specification """
 
 HEADERS_STATE = 2
 """ State here the headers are waiting to be read this
@@ -76,7 +76,7 @@ is waiting to be processed (read) this state may persist
 for some time if the message is big enough """
 
 FINISH_STATE = 4
-""" The final state set when the complete http request or
+""" The final state set when the complete HTTP request or
 response has been processed, if a parse operation starts
 with this state the parsed is reseted """
 
@@ -100,16 +100,16 @@ kind of encoding will always used chunked encoding so
 that the content may be send in parts """
 
 HTTP_09 = 1
-""" The enumeration value for the temporary and beta http
+""" The enumeration value for the temporary and beta HTTP
 version 0.9 version (very rare) """
 
 HTTP_10 = 2
-""" Value for the first version of the http specification,
+""" Value for the first version of the HTTP specification,
 connection running under this version should be closed right
 away as defined in the specification """
 
 HTTP_11 = 3
-""" Current version of the http specification should be the
+""" Current version of the HTTP specification should be the
 most commonly used nowadays, connection running under this
 version of the protocol should keep connections open """
 
@@ -118,7 +118,7 @@ VERSIONS_MAP = {
     "HTTP/1.0" : HTTP_10,
     "HTTP/1.1" : HTTP_11
 }
-""" Maps associating the standard http version string with the
+""" Maps associating the standard HTTP version string with the
 corresponding enumeration based values for each of them """
 
 CODE_STRINGS = {
@@ -169,7 +169,7 @@ with the official descriptive message for it """
 
 class HTTPParser(parser.Parser):
     """
-    Parser object for the http format, should be able to
+    Parser object for the HTTP format, should be able to
     parse both request and response messages.
 
     The parser itself should be event driven an callback
@@ -264,7 +264,7 @@ class HTTPParser(parser.Parser):
         After this operation the parser is ready for a new parse.
 
         :type type: int
-        :param type: The type of http message that is going to be
+        :param type: The type of HTTP message that is going to be
         parsed using the current parser.
         :type store: bool
         :param store: If the complete message body should be stored
@@ -521,7 +521,7 @@ class HTTPParser(parser.Parser):
                 # must clear the current parser state, so that it may
                 # start the parsing of a new message and then continue
                 # the loop trying to find new contents for parsing, this
-                # critical for http pipelining support
+                # critical for HTTP pipelining support
                 self.clear()
                 continue
 

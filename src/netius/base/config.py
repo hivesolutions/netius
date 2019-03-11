@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -97,7 +97,7 @@ __builtins__ = __builtins__ if isinstance(__builtins__, dict) else\
 """ The global builtins reference created by the proper redefinition
 of the variable if that's required by python implementation """
 
-def conf(name, default = None, cast = None):
+def conf(name, default = None, cast = None, ctx = None):
     """
     Retrieves the configuration value for the provided value
     defaulting to the provided default value in case no value
@@ -115,42 +115,54 @@ def conf(name, default = None, cast = None):
     :type cast: Type/String
     :param cast: The cast operation to be performed in the
     resolved value (optional).
+    :type ctx: Dictionary
+    :param ctx: The context dictionary to be used for situations
+    where a more contextual configuration is meant to be used instead
+    of the process wide global configuration.
     :rtype: Object
     :return: The value for the configuration with the requested
     name or the default value if no value was found.
     """
 
+    configs = ctx["configs"] if ctx else CONFIGS
     cast = _cast_r(cast)
-    value = CONFIGS.get(name, default)
+    value = configs.get(name, default)
     if cast and not value == None: value = cast(value)
     return value
 
-def conf_prefix(prefix):
-    configs = dict()
-    for name, value in CONFIGS.items():
+def conf_prefix(prefix, ctx = None):
+    configs = ctx["configs"] if ctx else CONFIGS
+    configs_prefix = dict()
+    for name, value in configs.items():
         if not name.startswith(prefix): continue
-        configs[name] = value
-    return configs
+        configs_prefix[name] = value
+    return configs_prefix
 
-def conf_suffix(suffix):
-    configs = dict()
-    for name, value in CONFIGS.items():
+def conf_suffix(suffix, ctx = None):
+    configs = ctx["configs"] if ctx else CONFIGS
+    configs_suffix = dict()
+    for name, value in configs.items():
         if not name.endswith(suffix): continue
-        configs[name] = value
+        configs_suffix[name] = value
+    return configs_suffix
+
+def conf_s(name, value, ctx = None):
+    configs = ctx["configs"] if ctx else CONFIGS
+    configs[name] = value
+
+def conf_r(name, ctx = None):
+    configs = ctx["configs"] if ctx else CONFIGS
+    if not name in configs: return
+    del configs[name]
+
+def conf_d(ctx = None):
+    configs = ctx["configs"] if ctx else CONFIGS
     return configs
 
-def conf_s(name, value):
-    global CONFIGS
-    CONFIGS[name] = value
+def conf_ctx():
+    return dict(configs = dict(), config_f = dict())
 
-def conf_r(name):
-    if not name in CONFIGS: return
-    del CONFIGS[name]
-
-def conf_d():
-    return CONFIGS
-
-def load(names = (FILE_NAME,), path = None, encoding = "utf-8"):
+def load(names = (FILE_NAME,), path = None, encoding = "utf-8", ctx = None):
     paths = []
     homes = get_homes()
     for home in homes:
@@ -162,10 +174,13 @@ def load(names = (FILE_NAME,), path = None, encoding = "utf-8"):
     paths.append(path)
     for path in paths:
         for name in names:
-            load_file(name = name, path = path, encoding = encoding)
-    load_env()
+            load_file(name = name, path = path, encoding = encoding, ctx = ctx)
+    load_env(ctx = ctx)
 
-def load_file(name = FILE_NAME, path = None, encoding = "utf-8"):
+def load_file(name = FILE_NAME, path = None, encoding = "utf-8", ctx = None):
+    configs = ctx["configs"] if ctx else CONFIGS
+    config_f = ctx["config_f"] if ctx else CONFIG_F
+
     if path: path = os.path.normpath(path)
     if path: file_path = os.path.join(path, name)
     else: file_path = name
@@ -177,9 +192,9 @@ def load_file(name = FILE_NAME, path = None, encoding = "utf-8"):
     exists = os.path.exists(file_path)
     if not exists: return
 
-    exists = file_path in CONFIG_F
-    if exists: CONFIG_F.remove(file_path)
-    CONFIG_F.append(file_path)
+    exists = file_path in config_f
+    if exists: config_f.remove(file_path)
+    config_f.append(file_path)
 
     file = open(file_path, "rb")
     try: data = file.read()
@@ -193,9 +208,11 @@ def load_file(name = FILE_NAME, path = None, encoding = "utf-8"):
 
     for key, value in data_j.items():
         if not _is_valid(key): continue
-        CONFIGS[key] = value
+        configs[key] = value
 
-def load_env():
+def load_env(ctx = None):
+    configs = ctx["configs"] if ctx else CONFIGS
+
     config = dict(os.environ)
     homes = get_homes()
 
@@ -204,14 +221,14 @@ def load_env():
 
     for key, value in legacy.iteritems(config):
         if not _is_valid(key): continue
-        CONFIGS[key] = value
+        configs[key] = value
         is_bytes = legacy.is_bytes(value)
         if not is_bytes: continue
         for encoding in ENV_ENCODINGS:
             try: value = value.decode(encoding)
             except UnicodeDecodeError: pass
             else: break
-        CONFIGS[key] = value
+        configs[key] = value
 
 def get_homes(
     file_path = HOME_FILE,
@@ -244,7 +261,8 @@ def get_homes(
 
     data = data.decode("utf-8")
     data = data.strip()
-    paths = data.split()
+    paths = data.splitlines()
+    paths = [path.strip() for path in paths]
 
     for path in paths:
         path = path.strip()

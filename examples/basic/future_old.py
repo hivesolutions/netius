@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2018 Hive Solutions Lda.
+# Copyright (c) 2008-2019 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -50,7 +50,9 @@ def await_forever():
     print("Awaiting forever")
     future = netius.build_future()
     thread = threading.Thread(
-        target = set, args = (future,), kwargs = dict(raise_e = True)
+        target = set,
+        args = (future,),
+        kwargs = dict(raise_e = True)
     )
     thread.start()
     for value in future: yield value

@@ -71,9 +71,13 @@ class Transport(observer.Observable):
         # process of closing returns immediately (avoids duplication)
         if self.is_closing(): return
 
+        # in case there's a connection object set schedules its closing
+        # otherwise unsets the protocol object immediately
         if self._connection: self._connection.close(flush = True)
         else: self._protocol = None
 
+        # removes the reference to the underlying connection object
+        # and unsets the exhausted flag (reset of values)
         self._connection = None
         self._exhausted = False
 
@@ -97,8 +101,8 @@ class Transport(observer.Observable):
 
     def write(self, data):
         # verifies if the current connection is closing or in the process
-        # of closing and if that's the case raises an error
-        if self.is_closing(): raise errors.RuntimeError("Connection is closed")
+        # of closing and if that's the case returns immediately (graceful)
+        if self.is_closing(): return
 
         # runs the send operation on the underlying (and concrete)
         # connection object, notice that the delay flag is unset so
@@ -108,8 +112,8 @@ class Transport(observer.Observable):
 
     def sendto(self, data, addr = None):
         # verifies if the current connection is closing or in the process
-        # of closing and if that's the case raises an error
-        if self.is_closing(): raise errors.RuntimeError("Connection is closed")
+        # of closing and if that's the case returns immediately (graceful)
+        if self.is_closing(): return
 
         # runs the send operation on the underlying (and concrete)
         # connection object, notice that the delay flag is unset so
@@ -186,11 +190,12 @@ class Transport(observer.Observable):
         or is in the process of being closed.
 
         A transport is considered closed in case the underlying
-        connection object is not set.
+        connection object is not set or is closed.
 
         :rtype: bool
         :return: If the current transport is closed or in the process
-        of being closed.
+        of being closed, if the connection is not set in the transport
+        it's also considered to be closing.
         """
 
         if not self._connection: return True
