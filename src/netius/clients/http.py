@@ -826,7 +826,7 @@ class HTTPProtocol(netius.StreamProtocol):
         buffer = tempfile.NamedTemporaryFile(mode = "w+b") if use_file else []
         self.request = dict(code = None, data = None)
 
-        def on_close(protocol):
+        def on_close(protocol): #pylint: disable=E0102
             if _on_close: _on_close(protocol)
             protocol._request = None
             if self.request["code"]: return
@@ -836,7 +836,7 @@ class HTTPProtocol(netius.StreamProtocol):
                 request = self.request
             )
 
-        def on_data(protocol, parser, data):
+        def on_data(protocol, parser, data): #pylint: disable=E0102
             if _on_data: _on_data(protocol, parser, data)
             if use_file: buffer.write(data)
             else: buffer.append(data)
@@ -844,7 +844,7 @@ class HTTPProtocol(netius.StreamProtocol):
             self.request["received"] = received + len(data)
             self.request["last"] = time.time()
 
-        def callback(protocol, parser, message):
+        def callback(protocol, parser, message): #pylint: disable=E0102
             if _callback: _callback(protocol, parser, message)
             if use_file: cls.set_request_file(parser, buffer, request = self.request)
             else: cls.set_request(parser, buffer, request = self.request)
@@ -1426,7 +1426,7 @@ class HTTPClient(netius.ClientAgent):
                 self.available[protocol.key] = protocol
                 netius.compat_loop(loop).stop()
 
-        def on_close(protocol):
+        def on_close(protocol): #pylint: disable=E0102
             # verifies if the protocol being closed is currently in
             # the pool of available protocols, so that decisions on
             # the stopping of the event loop may be made latter on

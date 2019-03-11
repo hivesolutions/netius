@@ -37,7 +37,7 @@ __copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from .common import * #@UnusedWildImport
+from .common import * #@UnusedWildImport pylint: disable=W0614
 
 BUFFER_SIZE_S = None
 """ The size of both the send and receive buffers for
@@ -229,7 +229,7 @@ class Server(Base):
         # checks the type of service that is meant to be created and
         # creates a service socket according to the defined service
         family = socket.AF_INET6 if ipv6 else socket.AF_INET
-        family = socket.AF_UNIX if is_unix else family
+        family = socket.AF_UNIX if is_unix else family #@UndefinedVariable pylint: disable=E1101
         if type == TCP_TYPE: self.socket = self.socket_tcp(
             ssl,
             key_file = key_file,
@@ -257,7 +257,7 @@ class Server(Base):
 
         # in case the set user id value the user of the current process should
         # be changed so that it represents the new (possibly unprivileged user)
-        if setuid: os.setuid(setuid)
+        if setuid: os.setuid(setuid) #pylint: disable=E1101
 
         # in case the selected port is zero based, meaning that a randomly selected
         # port has been assigned by the bind operation the new port must be retrieved
