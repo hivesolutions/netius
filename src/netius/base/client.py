@@ -640,7 +640,7 @@ class StreamClient(Client):
                 valid = False
             except (KeyboardInterrupt, SystemExit):
                 raise
-            except BaseException:
+            except:
                 if close: connection.close()
                 valid = False
 
