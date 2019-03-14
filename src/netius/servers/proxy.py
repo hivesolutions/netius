@@ -297,7 +297,7 @@ class ProxyServer(http2.HTTP2Server):
         if not should_disable: return
         proxy_c.disable_read()
 
-    def new_connection(self, socket, address, ssl = False):
+    def build_connection(self, socket, address, ssl = False):
         return ProxyConnection(
             owner = self,
             socket = socket,

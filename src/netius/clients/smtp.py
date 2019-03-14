@@ -644,7 +644,7 @@ class SMTPClient(netius.StreamClient):
         if self.connections: return
         self.close()
 
-    def new_connection(self, socket, address, ssl = False):
+    def build_connection(self, socket, address, ssl = False):
         return SMTPConnection(
             owner = self,
             socket = socket,

@@ -39,6 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 from . import request
 
+from .conn import * #@UnusedWildImport
 from .common import * #@UnusedWildImport
 
 BUFFER_SIZE = None
@@ -754,7 +755,7 @@ class StreamClient(Client):
         # creates the connection object using the typical constructor
         # and then sets the SSL host (for verification) if the verify
         # SSL option is defined (secured and verified connection)
-        connection = self.new_connection(_socket, address, ssl = ssl)
+        connection = self.build_connection(_socket, address, ssl = ssl)
         if ssl_verify: connection.ssl_host = host
 
         # acquires the pending lock so that it's safe to add an element
@@ -1087,3 +1088,6 @@ class StreamClient(Client):
         # that SSL is now enabled for that socket/connection and so
         # the communication between peers is now secured
         self.on_ssl(connection)
+
+class ClientConnection(Connection):
+    pass

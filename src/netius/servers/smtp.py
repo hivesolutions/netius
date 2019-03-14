@@ -394,7 +394,7 @@ class SMTPServer(netius.StreamServer):
             (self.host, self.adapter_s, self.auth_s)
         )
 
-    def new_connection(self, socket, address, ssl = False):
+    def build_connection(self, socket, address, ssl = False):
         return SMTPConnection(
             owner = self,
             socket = socket,

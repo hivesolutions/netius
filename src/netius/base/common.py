@@ -2133,7 +2133,7 @@ class AbstractBase(observer.Observable):
         # creates a new connection object representing the datagram socket
         # that has just been created to be used for upper level operations
         # and then immediately sets it as connected
-        connection = self.new_connection(_socket, datagram = True)
+        connection = self.base_connection(_socket, datagram = True)
         connection.open()
         connection.set_connected()
 
@@ -2248,7 +2248,7 @@ class AbstractBase(observer.Observable):
         # creates the connection object using the typical constructor
         # and then sets the SSL host (for verification) if the verify
         # SSL option is defined (secured and verified connection)
-        connection = self.new_connection(_socket, address, ssl = ssl)
+        connection = self.base_connection(_socket, address, ssl = ssl)
         if ssl_verify: connection.ssl_host = host
 
         # schedules the underlying non blocking connect operation to
@@ -2276,7 +2276,7 @@ class AbstractBase(observer.Observable):
         return connection
 
     def acquire(self, connection):
-        acquire = lambda: self.on_acquire(connection)
+        acquire = lambda: self.on_acquire_base(connection)
         self.delay(acquire)
 
     def pregister(self, pool):
@@ -2579,7 +2579,7 @@ class AbstractBase(observer.Observable):
             # exception that should be handled properly
             while True:
                 data = connection.recv(CHUNK_SIZE)
-                if data: self.on_data(connection, data)
+                if data: self.on_data_base(connection, data)
                 else: connection.close(); break
                 if not connection.status == OPEN: break
                 if not connection.renable == True: break
@@ -2668,12 +2668,12 @@ class AbstractBase(observer.Observable):
     def on_connect(self, connection):
         connection.set_connected()
         if not hasattr(connection, "tuple"): return
-        self.on_acquire(connection)
+        self.on_acquire_base(connection)
 
     def on_upgrade(self, connection):
         connection.set_upgraded()
 
-    def on_ssl(self, connection):
+    def on_client_ssl(self, connection):
         # runs the connection host verification process for the SSL
         # meaning that in case an SSL host value is defined it is going
         # to be verified against the value in the certificate
@@ -2694,10 +2694,19 @@ class AbstractBase(observer.Observable):
     def on_acquire(self, connection):
         pass
 
+    def on_acquire_base(self, connection):
+        pass
+
     def on_release(self, connection):
         pass
 
+    def on_release_base(self, connection):
+        pass
+
     def on_data(self, connection, data):
+        connection.set_data(data)
+
+    def on_data_base(self, connection, data):
         connection.set_data(data)
 
     def info_dict(self, full = False):
@@ -2741,7 +2750,7 @@ class AbstractBase(observer.Observable):
         if not connection: return None
         return connection.info_dict(full = full)
 
-    def new_connection(
+    def build_connection(
         self,
         socket,
         address = None,
@@ -2777,6 +2786,19 @@ class AbstractBase(observer.Observable):
             datagram = datagram,
             ssl = ssl
         )
+
+    def base_connection(self, *args, **kwargs):
+        return Base.build_connection(self, *args, **kwargs)
+
+    def new_connection(self, connection):
+        if connection.__class__ == Connection:
+            return Base.on_connection_c(self, connection)
+        return self.on_connection_c(connection)
+
+    def del_connection(self, connection):
+        if connection.__class__ == Connection:
+            return Base.on_connection_d(self, connection)
+        return self.on_connection_d(connection)
 
     def add_callback(self, socket, callback):
         callbacks = self.callbacks_m.get(socket, [])
@@ -3487,7 +3509,7 @@ class AbstractBase(observer.Observable):
         # checks if the current connection is SSL based and if that's the
         # case starts the handshaking process (async non blocking) otherwise
         # calls the on connect callback with the newly created connection
-        if connection.ssl: connection.add_starter(self._ssl_handshake)
+        if connection.ssl: connection.add_starter(self._ssl_client_handshake)
         else: self.on_connect(connection)
 
         # runs the starter process (initial kick-off) so that all the starters
@@ -3757,10 +3779,10 @@ class AbstractBase(observer.Observable):
             server_hostname = server_hostname
         )
 
-    def _ssl_handshake(self, connection):
+    def _ssl_client_handshake(self, connection):
         """
         Low level SSL handshake operation that triggers or resumes
-        the handshake process.
+        the handshake process from the client side.
 
         It should be able to handle the exceptions raised by the the
         concrete handshake operation so that no exception is raised
@@ -3807,7 +3829,7 @@ class AbstractBase(observer.Observable):
             # calls the proper callback on the connection meaning
             # that SSL is now enabled for that socket/connection and so
             # the communication between peers is now secured
-            self.on_ssl(connection)
+            self.on_client_ssl(connection)
         except ssl.SSLError as error:
             # tries to retrieve the error code from the argument information
             # in the error, in case the error is defined in the list of
