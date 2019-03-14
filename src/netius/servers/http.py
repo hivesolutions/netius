@@ -63,7 +63,7 @@ ENCODING_MAP = dict(
 the corresponding integer value for each of them this is used
 in the initial construction of the server """
 
-class HTTPConnection(netius.ServerConnection):
+class HTTPConnection(netius.Connection):
 
     def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)

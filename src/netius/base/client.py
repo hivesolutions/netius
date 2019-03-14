@@ -1088,6 +1088,3 @@ class StreamClient(Client):
         # that SSL is now enabled for that socket/connection and so
         # the communication between peers is now secured
         self.on_ssl(connection)
-
-class ClientConnection(Connection):
-    pass

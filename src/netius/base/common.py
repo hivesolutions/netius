@@ -2788,7 +2788,9 @@ class AbstractBase(observer.Observable):
         )
 
     def base_connection(self, *args, **kwargs):
-        return Base.build_connection(self, *args, **kwargs)
+        connection = Base.build_connection(self, *args, **kwargs)
+        connection._base = True
+        return connection
 
     def new_connection(self, connection):
         if connection.__class__ == Connection:
