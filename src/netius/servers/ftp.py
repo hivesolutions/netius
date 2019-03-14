@@ -499,7 +499,7 @@ class FTPServer(netius.ContainerServer):
         self.info("Starting FTP server on '%s' using '%s' ..." % (self.host, self.auth_s))
         self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
 
-    def new_connection(self, socket, address, ssl = False):
+    def build_connection(self, socket, address, ssl = False):
         return FTPConnection(
             owner = self,
             socket = socket,

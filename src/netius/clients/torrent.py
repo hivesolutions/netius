@@ -273,7 +273,7 @@ class TorrentClient(netius.StreamClient):
         netius.StreamClient.on_data(self, connection, data)
         connection.parse(data)
 
-    def new_connection(self, socket, address, ssl = False):
+    def build_connection(self, socket, address, ssl = False):
         return TorrentConnection(
             owner = self,
             socket = socket,
