@@ -37,7 +37,8 @@ __copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
-from .common import * #@UnusedWildImport pylint: disable=W0614
+from .conn import * #@UnusedWildImport
+from .common import * #@UnusedWildImport
 
 BUFFER_SIZE_S = None
 """ The size of both the send and receive buffers for
@@ -739,6 +740,12 @@ class StreamServer(Server):
         if not connection.status == OPEN: return
         if not connection.renable == True: return
 
+        # in case the connection does not inherit from the server
+        # connection then the handling should be done by the upper
+        # layer, meaning that the handling is done upstream
+        if not isinstance(connection, ServerConnection):
+            return Base.on_read(self, _socket)
+
         try:
             # verifies if there's any pending operations in the
             # connection (eg: SSL handshaking) and performs it trying
@@ -783,6 +790,12 @@ class StreamServer(Server):
         connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
+
+        # in case the connection does not inherit from the server
+        # connection then the handling should be done by the upper
+        # layer, meaning that the handling is done upstream
+        if not isinstance(connection, ServerConnection):
+            return Base.on_write(self, _socket)
 
         try:
             connection._send()
@@ -915,7 +928,7 @@ class StreamServer(Server):
         # the process creation is considered completed and a new
         # connection is created for it and opened, from this time
         # on a new connection is considered accepted/created for server
-        connection = self.new_connection(socket_c, address, ssl = self.ssl)
+        connection = self.build_connection(socket_c, address, ssl = self.ssl)
         connection.open()
 
         # registers the SSL handshake method as a starter method
@@ -955,3 +968,6 @@ class StreamServer(Server):
         # that SSL is now enabled for that socket/connection and so
         # the communication between peers is now secured
         self.on_ssl(connection)
+
+class ServerConnection(Connection):
+    pass

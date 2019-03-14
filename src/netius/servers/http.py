@@ -63,7 +63,7 @@ ENCODING_MAP = dict(
 the corresponding integer value for each of them this is used
 in the initial construction of the server """
 
-class HTTPConnection(netius.Connection):
+class HTTPConnection(netius.ServerConnection):
 
     def __init__(self, encoding = PLAIN_ENCODING, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
@@ -757,7 +757,7 @@ class HTTPServer(netius.StreamServer):
         self.info("Starting HTTP server with '%s' encoding ..." % self.encoding_s)
         if self.common_log: self.info("Logging with Common Log Format to '%s' ..." % self.common_log)
 
-    def new_connection(self, socket, address, ssl = False):
+    def build_connection(self, socket, address, ssl = False):
         return HTTPConnection(
             owner = self,
             socket = socket,
