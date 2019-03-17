@@ -3781,10 +3781,69 @@ class AbstractBase(observer.Observable):
             server_hostname = server_hostname
         )
 
+    def _ssl_handshake(self, connection):
+        """
+        Low level SSL handshake operation that triggers or resumes
+        the handshake process.
+
+        It should be able to handle the exceptions raised by the the
+        concrete handshake operation so that no exception is raised
+        (unhandled) to the upper layers.
+
+        :type connection: Connection
+        :param connection: The connection that is going to be used in the
+        handshake operation, this should contain a valid/open socket that
+        should be registered for both read and write in the poll.
+        """
+
+        try:
+            # unsets the handshake flag associated with the ssl, meaning
+            # that the connection is considered to be currently under the
+            # handshaking process (may succeed in the current tick)
+            connection.ssl_handshake = False
+            connection.ssl_connecting = True
+
+            # tries to runs the handshake process, this represents
+            # a series of small operations both of writing and reading
+            # that a required to establish and guarantee a secure
+            # connection from this moment on, note that this operation
+            # may fail (non blocking issues) and further retries must
+            # be attempted to finish establishing the connection
+            _socket = connection.socket
+            _socket.do_handshake()
+
+            # sets the ssl handshake flag in the connection, effectively
+            # indicating that the ssl handshake process has finished, note
+            # that the connecting flag is also unset (ssl connect finished)
+            connection.ssl_handshake = True
+            connection.ssl_connecting = False
+
+            # calls the end starter method in the connection so that the
+            # connection gets notified that the current starter in process
+            # has finished and that the next one should be called as
+            # soon as possible to go further in the connection initialization
+            connection.end_starter()
+        except ssl.SSLError as error:
+            # tries to retrieve the error code from the argument information
+            # in the error, in case the error is defined in the list of
+            # valid errors, the handshake is delayed until either a write
+            # or read operation is available (retry process)
+            error_v = error.args[0] if error.args else None
+            if error_v in SSL_VALID_ERRORS:
+                if error_v == ssl.SSL_ERROR_WANT_WRITE and\
+                    not self.is_sub_write(_socket):
+                    self.sub_write(_socket)
+                elif self.is_sub_write(_socket):
+                    self.unsub_write(_socket)
+            else: raise
+
     def _ssl_client_handshake(self, connection):
         """
         Low level SSL handshake operation that triggers or resumes
         the handshake process from the client side.
+
+        This is a complete implementation that runs the proper callbacks
+        for a client running on the event loop.
 
         It should be able to handle the exceptions raised by the the
         concrete handshake operation so that no exception is raised
