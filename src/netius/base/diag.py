@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import os
 import logging
 
 try:
@@ -70,6 +71,10 @@ class DiagApp(appier.APIApp):
         level = self.field("level", "DEBUG")
         self.system.level_logging(level)
         return self.show_logger()
+
+    @appier.route("/environ", "GET")
+    def show_environ(self):
+        return self.json(dict(os.environ), sort_keys = True)
 
     @appier.route("/info", "GET")
     def system_info(self):
