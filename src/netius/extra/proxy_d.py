@@ -121,14 +121,14 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             # in case this port value represent a service
             name_ref = base.upper() + "_NAME"
             name_value = netius.conf(name_ref, None)
+            if not name_value: continue
 
             # runs a series of validation on both the base and name
             # value to make sure that this value represents a valid
-            # linked service/container
+            # linked service/container (valid name reference found)
             if name.endswith("_ENV_PORT"): continue
             if not name.find("_ENV_") == -1: continue
-            if base[-1].isdigit(): continue
-            if not name_value: continue
+            if base[-1].isdigit() and name_value[-1].isdigit(): continue
 
             # replaces the prefix of the reference (assumes HTTP) and
             # then adds the base value to the registered hosts
