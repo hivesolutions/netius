@@ -67,7 +67,7 @@ class FileServer(netius.servers.HTTP2Server):
     for directories taking into account the base path values.
 
     This is a synchronous implementation meaning that the server loop
-    will block for the various i/o operations to be performed.
+    will block for the various I/O operations to be performed.
 
     Current implementation supports byte ranges so that partial retrieval
     of a file is possible.
