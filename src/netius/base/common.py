@@ -3379,7 +3379,7 @@ class AbstractBase(observer.Observable):
 
         :type hashed: bool
         :param hashed: If the identifier should be hashed into
-        and hexadecimal string instead of an uuid based identifier.
+        and hexadecimal string instead of an UUID based identifier.
         :rtype: String
         :return: The random unique identifier generated and that
         may be used to identify objects or operations.
