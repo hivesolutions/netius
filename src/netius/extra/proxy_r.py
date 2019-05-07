@@ -555,14 +555,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             self.hosts[host] = tuple(values)
             self.hosts_o[host] = (values, resolved)
 
-        # runs the initial tick for the dns execution, this should start
-        # the dns resolution process
+        # runs the initial tick for the DNS execution, this should start
+        # the DNS resolution process
         self.dns_tick(timeout = timeout)
 
     def dns_tick(self, timeout = 120.0):
         # iterates over the complete set of original hosts to run the tick
-        # operation, this should perform dns queries for all values using
-        # the default netius dns client
+        # operation, this should perform DNS queries for all values using
+        # the default netius DNS client
         for host, composition in netius.legacy.items(self.hosts_o):
             # unpacks the original hosts value composition into the (url)
             # values and the resolved list of lists
@@ -580,12 +580,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 hostname = parsed.hostname
 
                 # validates that the parsed hostname is valid and ready
-                # to be queried as dns value, if that's not the case
+                # to be queried as DNS value, if that's not the case
                 # continues the loop skipping current iteration
                 if not hostname: continue
 
                 # creates the callback function that is going to be called
-                # after the dns resolution for proper hosts setting
+                # after the DNS resolution for proper hosts setting
                 callback = self.dns_callback(
                     host,
                     value,
@@ -594,7 +594,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                     resolved = resolved
                 )
 
-                # runs the dns query execution for the hostname associated
+                # runs the DNS query execution for the hostname associated
                 # with the current load balancing url, the callback of this
                 # call should handle the addition of the value to hosts
                 netius.clients.DNSClient.query_s(
@@ -604,7 +604,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 )
 
         # verifies if the requested timeout is zero and if that's the
-        # case only one execution of the dns tick is pretended, returns
+        # case only one execution of the DNS tick is pretended, returns
         # the control flow back to caller immediately
         if timeout == 0: return
 
@@ -628,7 +628,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         path = parsed.path
 
         def callback(response):
-            # in case there's no valid dns response there's nothing to be
+            # in case there's no valid DNS response there's nothing to be
             # done, control flow is returned immediately
             if not response: return
             if not response.answers: return
@@ -637,7 +637,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             # set of resolved URL for the current host value in resolution
             target = []
 
-            # iterates over the complete set of dns answers to re-build
+            # iterates over the complete set of DNS answers to re-build
             # the target URL value taking into account the resolved value
             # this (IP based) URL is going to be added to the list of target
             # values to be added to the resolved list on proper index
@@ -656,7 +656,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             self.hosts[host] = tuple(values)
 
         # returns the callback (clojure) function that has just been created and
-        # that is going to be called upon dns resolution
+        # that is going to be called upon DNS resolution
         return callback
 
     def _on_prx_message(self, client, parser, message):
