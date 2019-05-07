@@ -216,7 +216,7 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
         value according to the default parsed.
 
         A valid URL should contain both a valid scheme and
-        a valid hostname.
+        a not null and valid hostname.
 
         :type value: String
         :param value: The value that is going to be validated
