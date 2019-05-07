@@ -211,6 +211,20 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
                 else: self.hosts[fqn] = value
 
     def _valid_url(self, value):
+        """
+        Verifies that the provided value is a valid URL
+        value according to the default parsed.
+
+        A valid URL should contain both a valid scheme and
+        a valid hostname.
+
+        :type value: String
+        :param value: The value that is going to be validated
+        for URL compliance.
+        :rtype: bool
+        :return: If the provided value qualifies as a URL value.
+        """
+
         value = str(value)
         result = netius.legacy.urlparse(value)
         if not result.scheme: return False
