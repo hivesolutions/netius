@@ -757,7 +757,7 @@ class HTTPServer(netius.StreamServer):
         self.info("Starting HTTP server with '%s' encoding ..." % self.encoding_s)
         if self.common_log: self.info("Logging with Common Log Format to '%s' ..." % self.common_log)
 
-    def new_connection(self, socket, address, ssl = False):
+    def build_connection(self, socket, address, ssl = False):
         return HTTPConnection(
             owner = self,
             socket = socket,

@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+from .conn import * #@UnusedWildImport
 from .common import * #@UnusedWildImport
 
 BUFFER_SIZE_S = None
@@ -723,6 +724,17 @@ class StreamServer(Server):
         pass
 
     def on_read(self, _socket):
+        # tries to retrieve the connection from the provided socket
+        # object (using the associative map) this connection is going
+        # to be used over the method for multiple operations
+        connection = self.connections_m.get(_socket, None)
+
+        # in case the connection does not inherit from the server
+        # connection then the handling should be done by the upper
+        # layer, meaning that the handling is done upstream
+        if hasattr(connection, "_base"):
+            return Base.on_read(self, _socket)
+
         # tries to retrieve a possible callback registered for the socket
         # and if there's one calls it to be able to "append" extra operations
         # to the execution of the read operation in the socket
@@ -730,11 +742,9 @@ class StreamServer(Server):
         if callbacks:
             for callback in callbacks: callback("read", _socket)
 
-        # tries to retrieve the connection from the provided socket
-        # object (using the associative map) in case there no connection
+        # run a series of validations, in case there no connection
         # or the connection is not ready for return the control flow is
         # returned to the caller method (nothing to be done)
-        connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
         if not connection.renable == True: return
@@ -776,11 +786,18 @@ class StreamServer(Server):
             self.on_exception(exception, connection)
 
     def on_write(self, _socket):
+        connection = self.connections_m.get(_socket, None)
+
+        # in case the connection does not inherit from the server
+        # connection then the handling should be done by the upper
+        # layer, meaning that the handling is done upstream
+        if hasattr(connection, "_base"):
+            return Base.on_write(self, _socket)
+
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
             for callback in callbacks: callback("write", _socket)
 
-        connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
 
@@ -806,11 +823,18 @@ class StreamServer(Server):
             self.on_exception(exception, connection)
 
     def on_error(self, _socket):
+        connection = self.connections_m.get(_socket, None)
+
+        # in case the connection does not inherit from the server
+        # connection then the handling should be done by the upper
+        # layer, meaning that the handling is done upstream
+        if hasattr(connection, "_base"):
+            return Base.on_error(self, _socket)
+
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
             for callback in callbacks: callback("error", _socket)
 
-        connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
 
@@ -915,7 +939,7 @@ class StreamServer(Server):
         # the process creation is considered completed and a new
         # connection is created for it and opened, from this time
         # on a new connection is considered accepted/created for server
-        connection = self.new_connection(socket_c, address, ssl = self.ssl)
+        connection = self.build_connection(socket_c, address, ssl = self.ssl)
         connection.open()
 
         # registers the SSL handshake method as a starter method

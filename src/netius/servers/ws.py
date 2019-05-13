@@ -181,7 +181,7 @@ class WSServer(netius.StreamServer):
                 # required so that the complete client buffer is flushed
                 data = connection.get_buffer()
 
-    def new_connection(self, socket, address, ssl = False):
+    def build_connection(self, socket, address, ssl = False):
         return WSConnection(
             owner = self,
             socket = socket,

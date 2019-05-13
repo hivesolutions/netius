@@ -196,7 +196,7 @@ class SOCKSServer(netius.ServerAgent):
 
         setattr(connection, "tunnel_c", None)
 
-    def new_connection(self, socket, address, ssl = False):
+    def build_connection(self, socket, address, ssl = False):
         return SOCKSConnection(
             owner = self,
             socket = socket,

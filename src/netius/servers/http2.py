@@ -1131,7 +1131,7 @@ class HTTP2Server(http.HTTPServer):
         if self.legacy: self._protocols.extend(["http/1.1", "http/1.0"])
         return self._protocols
 
-    def new_connection(self, socket, address, ssl = False):
+    def build_connection(self, socket, address, ssl = False):
         return HTTP2Connection(
             owner = self,
             socket = socket,
@@ -1143,7 +1143,7 @@ class HTTP2Server(http.HTTPServer):
         )
 
     def on_exception(self, exception, connection):
-        if connection.legacy:
+        if hasattr(connection, "legacy") and connection.legacy:
             return http.HTTPServer.on_exception(self, exception, connection)
         if not isinstance(exception, netius.NetiusError):
             return http.HTTPServer.on_exception(self, exception, connection)

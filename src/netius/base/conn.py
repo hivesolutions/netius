@@ -158,7 +158,7 @@ class BaseConnection(observer.Observable):
 
         # calls the top level on connection creation handler so that the owner
         # object gets notified about the creation of the connection (open)
-        owner.on_connection_c(self)
+        owner.new_connection(self)
 
         # triggers the open event in the current connection so that any listening
         # object is notified about the opening of this connection, as requested by
@@ -231,7 +231,7 @@ class BaseConnection(observer.Observable):
 
         # calls the top level on connection delete handler so that the owner
         # object gets notified about the deletion of the connection (closed)
-        owner.on_connection_d(self)
+        owner.del_connection(self)
 
         # triggers the close event in the current connection so that any listening
         # object is notified about the closing of this connection, as requested by

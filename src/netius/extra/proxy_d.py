@@ -97,6 +97,7 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             value_s = value.split(token, 1)
             if not len(value_s) == 2: continue
             regex, target = value_s
+            if not self._valid_url(target): continue
             rule = (re.compile(regex), target)
             self.regex.append(rule)
 
@@ -121,14 +122,19 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
             # in case this port value represent a service
             name_ref = base.upper() + "_NAME"
             name_value = netius.conf(name_ref, None)
+            if not name_value: continue
 
             # runs a series of validation on both the base and name
             # value to make sure that this value represents a valid
             # linked service/container
+            # linked service/container (valid name reference found)
             if name.endswith("_ENV_PORT"): continue
             if not name.find("_ENV_") == -1: continue
-            if base[-1].isdigit(): continue
-            if not name_value: continue
+            if base[-1].isdigit() and name_value[-1].isdigit(): continue
+
+            # validates that the provided host is a valid URL value and
+            # if that's not the case continues the loop (ignores)
+            if not self._valid_url(host): continue
 
             # replaces the prefix of the reference (assumes HTTP) and
             # then adds the base value to the registered hosts
@@ -203,6 +209,27 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
                 fqn = name + "." + str(host_suffix)
                 if alias: self.alias[fqn] = name
                 else: self.hosts[fqn] = value
+
+    def _valid_url(self, value):
+        """
+        Verifies that the provided value is a valid URL
+        value according to the default parsed.
+
+        A valid URL should contain both a valid scheme and
+        a not null and valid hostname.
+
+        :type value: String
+        :param value: The value that is going to be validated
+        for URL compliance.
+        :rtype: bool
+        :return: If the provided value qualifies as a URL value.
+        """
+
+        value = str(value)
+        result = netius.legacy.urlparse(value)
+        if not result.scheme: return False
+        if not result.hostname: return False
+        return True
 
 if __name__ == "__main__":
     server = DockerProxyServer()

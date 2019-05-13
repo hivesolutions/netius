@@ -66,7 +66,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.17.49"
+VERSION = "1.17.52"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -2133,7 +2133,7 @@ class AbstractBase(observer.Observable):
         # creates a new connection object representing the datagram socket
         # that has just been created to be used for upper level operations
         # and then immediately sets it as connected
-        connection = self.new_connection(_socket, datagram = True)
+        connection = self.base_connection(_socket, datagram = True)
         connection.open()
         connection.set_connected()
 
@@ -2248,7 +2248,7 @@ class AbstractBase(observer.Observable):
         # creates the connection object using the typical constructor
         # and then sets the SSL host (for verification) if the verify
         # SSL option is defined (secured and verified connection)
-        connection = self.new_connection(_socket, address, ssl = ssl)
+        connection = self.base_connection(_socket, address, ssl = ssl)
         if ssl_verify: connection.ssl_host = host
 
         # schedules the underlying non blocking connect operation to
@@ -2276,7 +2276,7 @@ class AbstractBase(observer.Observable):
         return connection
 
     def acquire(self, connection):
-        acquire = lambda: self.on_acquire(connection)
+        acquire = lambda: self.on_acquire_base(connection)
         self.delay(acquire)
 
     def pregister(self, pool):
@@ -2579,7 +2579,7 @@ class AbstractBase(observer.Observable):
             # exception that should be handled properly
             while True:
                 data = connection.recv(CHUNK_SIZE)
-                if data: self.on_data(connection, data)
+                if data: self.on_data_base(connection, data)
                 else: connection.close(); break
                 if not connection.status == OPEN: break
                 if not connection.renable == True: break
@@ -2668,12 +2668,12 @@ class AbstractBase(observer.Observable):
     def on_connect(self, connection):
         connection.set_connected()
         if not hasattr(connection, "tuple"): return
-        self.on_acquire(connection)
+        self.on_acquire_base(connection)
 
     def on_upgrade(self, connection):
         connection.set_upgraded()
 
-    def on_ssl(self, connection):
+    def on_client_ssl(self, connection):
         # runs the connection host verification process for the SSL
         # meaning that in case an SSL host value is defined it is going
         # to be verified against the value in the certificate
@@ -2694,10 +2694,19 @@ class AbstractBase(observer.Observable):
     def on_acquire(self, connection):
         pass
 
+    def on_acquire_base(self, connection):
+        pass
+
     def on_release(self, connection):
         pass
 
+    def on_release_base(self, connection):
+        pass
+
     def on_data(self, connection, data):
+        connection.set_data(data)
+
+    def on_data_base(self, connection, data):
         connection.set_data(data)
 
     def info_dict(self, full = False):
@@ -2741,7 +2750,7 @@ class AbstractBase(observer.Observable):
         if not connection: return None
         return connection.info_dict(full = full)
 
-    def new_connection(
+    def build_connection(
         self,
         socket,
         address = None,
@@ -2777,6 +2786,21 @@ class AbstractBase(observer.Observable):
             datagram = datagram,
             ssl = ssl
         )
+
+    def base_connection(self, *args, **kwargs):
+        connection = Base.build_connection(self, *args, **kwargs)
+        connection._base = True
+        return connection
+
+    def new_connection(self, connection):
+        if connection.__class__ == Connection:
+            return Base.on_connection_c(self, connection)
+        return self.on_connection_c(connection)
+
+    def del_connection(self, connection):
+        if connection.__class__ == Connection:
+            return Base.on_connection_d(self, connection)
+        return self.on_connection_d(connection)
 
     def add_callback(self, socket, callback):
         callbacks = self.callbacks_m.get(socket, [])
@@ -3355,7 +3379,7 @@ class AbstractBase(observer.Observable):
 
         :type hashed: bool
         :param hashed: If the identifier should be hashed into
-        and hexadecimal string instead of an uuid based identifier.
+        and hexadecimal string instead of an UUID based identifier.
         :rtype: String
         :return: The random unique identifier generated and that
         may be used to identify objects or operations.
@@ -3487,7 +3511,7 @@ class AbstractBase(observer.Observable):
         # checks if the current connection is SSL based and if that's the
         # case starts the handshaking process (async non blocking) otherwise
         # calls the on connect callback with the newly created connection
-        if connection.ssl: connection.add_starter(self._ssl_handshake)
+        if connection.ssl: connection.add_starter(self._ssl_client_handshake)
         else: self.on_connect(connection)
 
         # runs the starter process (initial kick-off) so that all the starters
@@ -3773,6 +3797,65 @@ class AbstractBase(observer.Observable):
         """
 
         try:
+            # unsets the handshake flag associated with the ssl, meaning
+            # that the connection is considered to be currently under the
+            # handshaking process (may succeed in the current tick)
+            connection.ssl_handshake = False
+            connection.ssl_connecting = True
+
+            # tries to runs the handshake process, this represents
+            # a series of small operations both of writing and reading
+            # that a required to establish and guarantee a secure
+            # connection from this moment on, note that this operation
+            # may fail (non blocking issues) and further retries must
+            # be attempted to finish establishing the connection
+            _socket = connection.socket
+            _socket.do_handshake()
+
+            # sets the ssl handshake flag in the connection, effectively
+            # indicating that the ssl handshake process has finished, note
+            # that the connecting flag is also unset (ssl connect finished)
+            connection.ssl_handshake = True
+            connection.ssl_connecting = False
+
+            # calls the end starter method in the connection so that the
+            # connection gets notified that the current starter in process
+            # has finished and that the next one should be called as
+            # soon as possible to go further in the connection initialization
+            connection.end_starter()
+        except ssl.SSLError as error:
+            # tries to retrieve the error code from the argument information
+            # in the error, in case the error is defined in the list of
+            # valid errors, the handshake is delayed until either a write
+            # or read operation is available (retry process)
+            error_v = error.args[0] if error.args else None
+            if error_v in SSL_VALID_ERRORS:
+                if error_v == ssl.SSL_ERROR_WANT_WRITE and\
+                    not self.is_sub_write(_socket):
+                    self.sub_write(_socket)
+                elif self.is_sub_write(_socket):
+                    self.unsub_write(_socket)
+            else: raise
+
+    def _ssl_client_handshake(self, connection):
+        """
+        Low level SSL handshake operation that triggers or resumes
+        the handshake process from the client side.
+
+        This is a complete implementation that runs the proper callbacks
+        for a client running on the event loop.
+
+        It should be able to handle the exceptions raised by the the
+        concrete handshake operation so that no exception is raised
+        (unhandled) to the upper layers.
+
+        :type connection: Connection
+        :param connection: The connection that is going to be used in the
+        handshake operation, this should contain a valid/open socket that
+        should be registered for both read and write in the poll.
+        """
+
+        try:
             # unsets the handshake flag associated with the SSL, meaning
             # that the connection is considered to be currently under the
             # handshaking process (may succeed in the current tick)
@@ -3807,7 +3890,7 @@ class AbstractBase(observer.Observable):
             # calls the proper callback on the connection meaning
             # that SSL is now enabled for that socket/connection and so
             # the communication between peers is now secured
-            self.on_ssl(connection)
+            self.on_client_ssl(connection)
         except ssl.SSLError as error:
             # tries to retrieve the error code from the argument information
             # in the error, in case the error is defined in the list of

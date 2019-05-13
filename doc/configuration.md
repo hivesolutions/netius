@@ -73,6 +73,8 @@ context values (certificate, key, etc) for such domain
 is used instead (defaults to `None`)
 * `STYLE_URLS` (`list`) - The list of URLs that are going to be used to include stylesheets at directory listing
 * `INDEX_FILES` (`list`) - List of file names that should be considered for eligible for index operation (eg: `index.html`)
+* `PATH_REGEX` (`list`) - The list of regex to path values (separated by the `:` character) that provide a simple way of URL
+re-writing like behaviour under the file serving extension (eg: `.*:index.html`)
 * `LIST_DIRS` (`bool`) - If directory listing is enabled (may pose a security issue) (defaults to `True`)
 * `LIST_ENGINE` (`str`) - The name of the HTML generation engine to be used while listing files (eg: base, apache, legacy, etc.) (defaults to `base`)
 
