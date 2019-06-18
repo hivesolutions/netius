@@ -1027,13 +1027,8 @@ class HTTPProtocol(netius.StreamProtocol):
         has_length = "content-length" in headers
         has_ranges = "accept-ranges" in headers
 
-        if "transfer-encoding" in headers: del headers["transfer-encoding"]
-        if "content-encoding" in headers: del headers["content-encoding"]
-
         if is_chunked: headers["transfer-encoding"] = "chunked"
-
         if is_gzip: headers["content-encoding"] = "gzip"
-
         if is_deflate: headers["content-encoding"] = "deflate"
 
         if not is_measurable and has_length: del headers["content-length"]

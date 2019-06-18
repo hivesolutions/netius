@@ -358,8 +358,8 @@ class ProxyServer(http2.HTTP2Server):
         # and then retrieves the origin content and transfer encoding values
         # that are going to be used to determine some heuristics for the data
         connection = self.conn_map[_connection]
-        content_encoding = headers.get("content-encoding", None)
-        transfer_encoding = headers.get("transfer-encoding", None)
+        content_encoding = headers.pop("content-encoding", None)
+        transfer_encoding = headers.pop("transfer-encoding", None)
 
         # if either the proxy connection or the back-end one is compressed
         # the length values of the connection are considered unreliable and
