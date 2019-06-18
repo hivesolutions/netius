@@ -362,7 +362,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         # tries to determine the transfer encoding of the received request
         # and by using that determines the proper encoding to be applied
-        encoding = headers.get("transfer-encoding", None)
+        encoding = headers.pop("transfer-encoding", None)
         is_chunked = encoding == "chunked"
         encoding = netius.common.CHUNKED_ENCODING if is_chunked else\
             netius.common.PLAIN_ENCODING

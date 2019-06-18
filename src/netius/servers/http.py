@@ -846,13 +846,8 @@ class HTTPServer(netius.StreamServer):
         has_length = "Content-Length" in headers
         has_ranges = "Accept-Ranges" in headers
 
-        if "Transfer-Encoding" in headers: del headers["Transfer-Encoding"]
-        if "Content-Encoding" in headers: del headers["Content-Encoding"]
-
         if is_chunked: headers["Transfer-Encoding"] = "chunked"
-
         if is_gzip: headers["Content-Encoding"] = "gzip"
-
         if is_deflate: headers["Content-Encoding"] = "deflate"
 
         if not is_measurable and has_length: del headers["Content-Length"]
