@@ -1,6 +1,33 @@
+name: Main Workflow
+on: [push]
 jobs:
-  build:
+  build-py27:
+    name: Build Python 2.7
+    runs-on: ubuntu-latest
+    container: python:2.7
     steps:
-      - name: Building
-        uses: docker://hivesolutions/python
+      - uses: actions/checkout@v1
+      - run: python --version
       - run: pip install -r requirements.txt
+      - run: pip install -r extra.txt
+      - run: HTTPBIN=httpbin.bemisc.com python setup.py test
+  build-py36:
+    name: Build Python 3.6
+    runs-on: ubuntu-latest
+    container: python:3.6
+    steps:
+      - uses: actions/checkout@v1
+      - run: python3 --version
+      - run: pip3 install -r requirements.txt
+      - run: pip3 install -r extra.txt
+      - run: HTTPBIN=httpbin.bemisc.com python3 setup.py test
+  build-py37:
+    name: Build Python 3.7
+    runs-on: ubuntu-latest
+    container: python:3.7
+    steps:
+      - uses: actions/checkout@v1
+      - run: python3 --version
+      - run: pip3 install -r requirements.txt
+      - run: pip3 install -r extra.txt
+      - run: HTTPBIN=httpbin.bemisc.com python3 setup.py test
