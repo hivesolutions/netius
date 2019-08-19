@@ -2,29 +2,14 @@ name: Main Workflow
 on: [push]
 jobs:
   build-py27:
-    name: Build Python 2.7
+    name: Build
+    strategy:
+      matrix:
+        python-version: [2.7, 3.5, 3.6, 3.7]
     runs-on: ubuntu-latest
-    container: python:2.7
+    container: python:${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v1
       - run: python --version
       - run: pip install -r requirements.txt
       - run: HTTPBIN=httpbin.bemisc.com python setup.py test
-  build-py36:
-    name: Build Python 3.6
-    runs-on: ubuntu-latest
-    container: python:3.6
-    steps:
-      - uses: actions/checkout@v1
-      - run: python3 --version
-      - run: pip3 install -r requirements.txt
-      - run: HTTPBIN=httpbin.bemisc.com python3 setup.py test
-  build-py37:
-    name: Build Python 3.7
-    runs-on: ubuntu-latest
-    container: python:3.7
-    steps:
-      - uses: actions/checkout@v1
-      - run: python3 --version
-      - run: pip3 install -r requirements.txt
-      - run: HTTPBIN=httpbin.bemisc.com python3 setup.py test
