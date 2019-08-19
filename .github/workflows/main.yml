@@ -13,4 +13,3 @@ jobs:
       - run: python --version
       - run: pip install -r requirements.txt
       - run: HTTPBIN=httpbin.bemisc.com python setup.py test
- 
