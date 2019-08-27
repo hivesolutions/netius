@@ -189,7 +189,9 @@ class SMTPConnection(netius.Connection):
     def auth_plain(self, data):
         data_s = base64.b64decode(data)
         data_s = netius.legacy.str(data_s)
-        _identifier, username, password = data_s.split("\0")
+        if not data_s.count("\0") >= 2:
+            raise netius.ParserError("Invalid auth plain string '%s'" % data_s)
+        _identifier, username, password = data_s.split("\0", 2)
         self.owner.on_auth_smtp(self, username, password)
         message = "authentication successful"
         self.send_smtp(235, message)
