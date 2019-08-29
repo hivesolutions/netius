@@ -1,7 +1,7 @@
 name: Main Workflow
 on: [push]
 jobs:
-  build-py27:
+  build:
     name: Build
     strategy:
       matrix:
