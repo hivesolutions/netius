@@ -1062,7 +1062,8 @@ class StreamClient(Client):
         # and if that's the case an extra wrapping operation is performed
         # in order to comply with new indirection/abstraction methods
         if not hasattr(ssl, "SSLObject"): return
-        _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
+        try: _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
+        except TypeError: pass
 
     def _ssl_handshake(self, connection):
         Client._ssl_handshake(self, connection)
