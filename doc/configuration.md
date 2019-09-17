@@ -88,9 +88,9 @@
 
 | Name | Type | Description |
 | ----- | ----- | ----- |
-| **NAMESERVERS** | `sttr` | The sequence of DNS servers to be used for forward of resolution requests (defaults to `[]`). |
-| **NAMESERVERS_IP4** | `str` | Same as `NAMESERVERS` but just for IPv4 resolution (defaults to `[]`). |
-| **NAMESERVERS_IP6** | `str` | Same as `NAMESERVERS` but just for IPv6 resolution (defaults to `[]`). |
+| **NAMESERVERS** | `list` | The sequence of DNS servers to be used for forward of resolution requests (defaults to `[]`). |
+| **NAMESERVERS_IP4** | `list` | Same as `NAMESERVERS` but just for IPv4 resolution (defaults to `[]`). |
+| **NAMESERVERS_IP6** | `list` | Same as `NAMESERVERS` but just for IPv6 resolution (defaults to `[]`). |
 
 #### Blacklist Middleware
 
