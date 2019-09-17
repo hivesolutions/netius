@@ -84,6 +84,14 @@
 | ----- | ----- | ----- |
 | **STS** | `int` | Defines the strict transport security header value (in seconds) for the reverse proxy, in case the value is zero the strict transport security is disabled (defaults to `0`). |
 
+#### DNS
+
+| Name | Type | Description |
+| ----- | ----- | ----- |
+| **NAMESERVERS** | `sttr` | The sequence of DNS servers to be used for forward of resolution requests (defaults to `[]`). |
+| **NAMESERVERS_IP4** | `str` | Same as `NAMESERVERS` but just for IPv4 resolution (defaults to `[]`). |
+| **NAMESERVERS_IP6** | `str` | Same as `NAMESERVERS` but just for IPv6 resolution (defaults to `[]`). |
+
 #### Blacklist Middleware
 
 | Name | Type | Description |
