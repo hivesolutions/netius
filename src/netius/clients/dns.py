@@ -336,11 +336,21 @@ class DNSClient(netius.DatagramClient):
 
     @classmethod
     def ns_system(cls, type = "ip4"):
+        ns = cls.ns_conf(type = type)
+        if ns: return ns[0]
         ns = cls.ns_file(type = type)
         if ns: return ns[0]
         ns = cls.ns_google(type = type)
         if ns: return ns[0]
         return None
+
+    @classmethod
+    def ns_conf(cls, type = "ip4", force = False):
+        ns =  netius.conf("NAMESERVER_%s" % type.upper(), [], cast = list)
+        if ns: return ns
+        ns = netius.conf("NAMESERVER", [], cast = list)
+        if ns: return ns
+        return []
 
     @classmethod
     def ns_file(cls, type = "ip4", force = False):
