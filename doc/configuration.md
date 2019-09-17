@@ -84,7 +84,7 @@
 | ----- | ----- | ----- |
 | **STS** | `int` | Defines the strict transport security header value (in seconds) for the reverse proxy, in case the value is zero the strict transport security is disabled (defaults to `0`). |
 
-#### DNS
+#### DNS Client
 
 | Name | Type | Description |
 | ----- | ----- | ----- |
