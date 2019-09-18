@@ -573,7 +573,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             # original host value
             for index in netius.legacy.xrange(values_l):
 
-                # retrieves the current value (url) in iteration and then
+                # retrieves the current value (URL) in iteration and then
                 # parses it using the legacy infra-structure
                 value = values[index]
                 parsed = netius.legacy.urlparse(value)
@@ -595,7 +595,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 )
 
                 # runs the DNS query execution for the hostname associated
-                # with the current load balancing url, the callback of this
+                # with the current load balancing URL, the callback of this
                 # call should handle the addition of the value to hosts
                 netius.clients.DNSClient.query_s(
                     hostname,
