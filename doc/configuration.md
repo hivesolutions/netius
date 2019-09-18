@@ -79,11 +79,12 @@
 | Name | Type | Description |
 | ----- | ----- | ----- |
 | **STS** | `int` | Defines the strict transport security header value (in seconds) for the reverse proxy, in case the value is zero the strict transport security is disabled (defaults to `0`). |
-| **STRATEGY** | `str` | The load balancing strategy that is going to be used for multiple back-end connections (defaults to `smart`). |
+| **ECHO** | `bool` | If enabled allows for more verbose output of the rules associated with the reverse proxy (defaults to `False`). |
 | **RESOLVE** | `bool` | If the DNS based resolution of the hosts should be enabled meaning that from time to time the hostname associated with the target URLs is resolved (defaults to `True`). |
 | **RESOLVE_TIMEOUT** | `float` | The amount of seconds between DNS resolution queries (defaults to `120`). |
 | **HOST_FORWARD** | `bool` | If the `Host` header for HTTP back-end connections should be resolved from rules, avoiding `Host` header populated with the IP address (defaults to `False`). |
 | **REUSE** | `bool` | If HTTP connections/rules should be re-used from a proxy point of view, this options may pose a problem when different suffixes are used for the same host (defaults to `True`). |
+| **STRATEGY** | `str` | The load balancing strategy that is going to be used for multiple back-end connections (defaults to `smart`). |
 | **X_FORWARDED_PORT** | `str` | If defined allow "forcing" the `X-Forwarded-Port` HTTP header (defaults to `None`). |
 | **X_FORWARDED_PROTO** | `str` | If defined allow "forcing" the `X-Forwarded-Proto` HTTP header (defaults to `None`). |
 
