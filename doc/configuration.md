@@ -76,6 +76,7 @@
 | **STRATEGY** | `str` | The load balancing strategy that is going to be used for multiple back-end connections (defaults to `smart`). |
 | **RESOLVE** | `bool` | If the DNS based resolution of the hosts should be enabled meaning that from time to time the hostname associated with the target URLs is resolved (defaults to `True`). |
 | **RESOLVE_TIMEOUT** | `float` | The amount of seconds between DNS resolution queries (defaults to `120`). |
+| **HOST_FORWARD** | `bool` | If the `Host` header for HTTP back-end connections should be resolved from rules, avoiding `Host` header populated with the IP address (defaults to `False`). |
 | **REUSE** | `bool` | If HTTP connections/rules should be re-used from a proxy point of view, this options may pose a problem when different suffixes are used for the same host (defaults to `True`). |
 
 #### Proxy Reverse
