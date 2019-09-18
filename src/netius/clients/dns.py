@@ -324,7 +324,7 @@ class DNSProtocol(netius.DatagramProtocol):
 
     @classmethod
     def ns_conf(cls, type = "ip4", force = False):
-        ns =  netius.conf("NAMESERVERS_%s" % type.upper(), [], cast = list)
+        ns = netius.conf("NAMESERVERS_%s" % type.upper(), [], cast = list)
         if ns: return ns
         ns = netius.conf("NAMESERVERS", [], cast = list)
         if ns: return ns

@@ -81,6 +81,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         sts = 0,
         resolve = True,
         resolve_t = 120.0,
+        host_f = False,
         echo = False,
         *args,
         **kwargs
@@ -104,6 +105,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             sts = sts,
             resolve = resolve,
             resolve_t = resolve_t,
+            host_f = host_f,
             echo = echo,
             robin = dict(),
             smart = netius.common.PriorityDict()
@@ -140,6 +142,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if self.env: self.echo = self.get_env("ECHO", self.echo, cast = bool)
         if self.env: self.resolve = self.get_env("RESOLVE", self.resolve, cast = bool)
         if self.env: self.resolve_t = self.get_env("RESOLVE_TIMEOUT", self.resolve_t, cast = float)
+        if self.env: self.host_f = self.get_env("HOST_FORWARD", self.host_f, cast = float)
         if self.env: self.reuse = self.get_env("REUSE", self.reuse, cast = bool)
         if self.env: self.strategy = self.get_env("STRATEGY", self.strategy)
         if self.env: self.x_forwarded_port = self.get_env("X_FORWARDED_PORT", None)
@@ -339,6 +342,27 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # prefix value that has just been "resolved" using the rule engine
         # this value should be constructed based on the original path
         url = prefix + path
+
+        # sets the initial value for the domain value, to be used as the
+        # fallback in case no forward is required or the host resolution
+        # fails (eg: when there are multiple targets for the current host)
+        domain = None
+
+        # in case the host forward flag is set then the host header should
+        # be populated with the proper HTTP domain connection instead, so
+        # that the connection is properly "simulated", this requires extra
+        # computation of the target host
+        if self.host_f:
+            target = self.hosts.get(host_s, None)
+            target = self.hosts.get(host, target)
+            if host_s in self.hosts_o: target = self.hosts_o[host_s][0]
+            if host in self.hosts_o: target = self.hosts_o[host][0]
+            if target and len(target) == 1:
+                domain = netius.legacy.urlparse(target[0]).netloc
+
+        # in case the domain value was resolved then it's set in the host
+        # header to simulate proper back-end HTTP connection
+        if domain: headers["host"] = domain
 
         # updates the various headers that are related with the reverse
         # proxy operation this is required so that the request gets
@@ -548,6 +572,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         # iterates over the complete set of hosts to normalize their
         # values and then store them in the original and legacy maps
+        # this is considered the bootstrap of the hosts
         for host, values in netius.legacy.items(self.hosts):
             is_sequence = isinstance(values, (list, tuple))
             if not is_sequence: values = (values,)
