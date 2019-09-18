@@ -87,7 +87,6 @@
 | **X_FORWARDED_PORT** | `str` | If defined allow "forcing" the `X-Forwarded-Port` HTTP header (defaults to `None`). |
 | **X_FORWARDED_PROTO** | `str` | If defined allow "forcing" the `X-Forwarded-Proto` HTTP header (defaults to `None`). |
 
-
 #### DNS Client
 
 | Name | Type | Description |
