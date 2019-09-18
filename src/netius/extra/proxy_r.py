@@ -371,8 +371,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         headers["x-real-ip"] = address
         headers["x-client-ip"] = address
         headers["x-forwarded-for"] = address
-        headers["x-forwarded-proto"] = protocol
-        headers["x-forwarded-port"] = port
+        headers["x-forwarded-proto"] = self.x_forwarded_proto if self.x_forwarded_proto else protocol
+        headers["x-forwarded-port"] = self.x_forwarded_port if self.x_forwarded_port else port
         headers["x-forwarded-host"] = host_o
 
         # verifies if the current connection already contains a valid
