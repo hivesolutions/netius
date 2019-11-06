@@ -549,11 +549,6 @@ class AbstractBase(observer.Observable):
         verify = False,
         safe = False
     ):
-        # in case the legacy module is no longer defined (probably
-        # at exit execution) then returns immediately as it's not
-        # possible to proceed with this execution
-        if not legacy: return
-
         # in case the safe flag is set and the thread trying to add
         # delayed elements is not the main the proper (safe) method
         # is used meaning a safe execution is targeted
@@ -564,6 +559,11 @@ class AbstractBase(observer.Observable):
                 immediately = immediately,
                 verify = verify
             )
+
+        # in case the legacy module is no longer defined (probably
+        # at exit execution) then returns immediately as it's not
+        # possible to proceed with this execution
+        if not legacy: return
 
         # creates the original target value with a zero value (forced
         # execution in next tick) in case the timeout value is set the
