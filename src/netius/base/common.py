@@ -66,7 +66,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.17.54"
+VERSION = "1.17.55"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -549,6 +549,11 @@ class AbstractBase(observer.Observable):
         verify = False,
         safe = False
     ):
+        # in case the legacy module is no longer defined (probably
+        # at exit execution) then returns immediately as it's not
+        # possible to proceed with this execution
+        if not legacy: return
+
         # in case the safe flag is set and the thread trying to add
         # delayed elements is not the main the proper (safe) method
         # is used meaning a safe execution is targeted
