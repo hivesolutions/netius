@@ -517,6 +517,11 @@ class AbstractBase(observer.Observable):
                 verify = verify
             )
 
+        # in case the legacy module is no longer defined (probably
+        # at exit execution) then returns immediately as it's not
+        # possible to proceed with this execution
+        if not legacy: return
+
         # creates the original target value with a zero value (forced
         # execution in next tick) in case the timeout value is set the
         # value is incremented to the current time, then created the
