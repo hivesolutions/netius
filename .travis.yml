@@ -11,10 +11,21 @@ python:
   - "pypy-5.6.0"
   - "pypy-5.7.1"
   - "pypy2.7-5.8.0"
+  - "pypy2.7-5.9.0"
   - "pypy3.5-5.8.0"
+  - "pypy3.5-5.9.0"
 matrix:
   include:
   - python: 3.7
+    dist: xenial
+    sudo: true
+  - python: 3.8
+    dist: xenial
+    sudo: true
+  - python: pypy
+    dist: xenial
+    sudo: true
+  - python: pypy3
     dist: xenial
     sudo: true
 before_install:
