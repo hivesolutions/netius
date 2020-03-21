@@ -194,7 +194,7 @@ SSL_VALID_REASONS = (
 operation of the SSL connection establishment """
 
 TCP_TYPE = 1
-""" The type enumeration value that represents the tcp (stream)
+""" The type enumeration value that represents the TCP (stream)
 based communication protocol, for various usages in the base
 netius communication infra-structure """
 
@@ -3446,7 +3446,7 @@ class AbstractBase(observer.Observable):
         else:
             self._connectf(connection)
 
-        # in case the connection is not of type ssl the method
+        # in case the connection is not of type SSL the method
         # may return as there's nothing left to be done, as the
         # rest of the method is dedicated to SSL tricks
         if not connection.ssl: return
@@ -3802,7 +3802,7 @@ class AbstractBase(observer.Observable):
         """
 
         try:
-            # unsets the handshake flag associated with the ssl, meaning
+            # unsets the handshake flag associated with the SSL, meaning
             # that the connection is considered to be currently under the
             # handshaking process (may succeed in the current tick)
             connection.ssl_handshake = False
@@ -3817,9 +3817,9 @@ class AbstractBase(observer.Observable):
             _socket = connection.socket
             _socket.do_handshake()
 
-            # sets the ssl handshake flag in the connection, effectively
-            # indicating that the ssl handshake process has finished, note
-            # that the connecting flag is also unset (ssl connect finished)
+            # sets the SSL handshake flag in the connection, effectively
+            # indicating that the SSL handshake process has finished, note
+            # that the connecting flag is also unset (SSL connect finished)
             connection.ssl_handshake = True
             connection.ssl_connecting = False
 

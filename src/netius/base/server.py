@@ -366,7 +366,7 @@ class Server(Base):
         )
         self._socket_keepalive(_socket)
 
-        # returns the created tcp socket to the calling method so that it
+        # returns the created TCP socket to the calling method so that it
         # may be used from this point on
         return _socket
 
