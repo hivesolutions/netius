@@ -113,7 +113,7 @@ class APNProtocol(netius.StreamProtocol):
 
         # creates the message structure using with the
         # message (string) as the alert and then converts
-        # it into a json format (payload)
+        # it into a JSON format (payload)
         message_s = dict(
            aps = dict(
                 alert = message,
