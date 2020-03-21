@@ -41,7 +41,7 @@ import unittest
 
 import netius.common
 
-class RsaTest(unittest.TestCase):
+class RSATest(unittest.TestCase):
 
     def test_rsa_crypt(self):
         number = 87521618088882533792115812
