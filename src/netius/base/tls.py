@@ -155,7 +155,7 @@ def dump_certificate(certificate, certificate_binary, name = None):
     name = name or subject_name
     file_name = name + ".der"
 
-    # retrieves the proper ssl path (where data is going to be
+    # retrieves the proper SSL path (where data is going to be
     # stored) and creates such directory (if required)
     ssl_path = config.conf("SSL_PATH", "/tmp/ssl")
     file_path = os.path.join(ssl_path, file_name)
