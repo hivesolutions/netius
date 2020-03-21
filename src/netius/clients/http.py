@@ -601,21 +601,21 @@ class HTTPProtocol(netius.StreamProtocol):
         message = "%s %s %s" % (self.method, self.url, self.version)
         self.debug(message)
 
-        # stores the initial version of the url in a fallback variable so
+        # stores the initial version of the URL in a fallback variable so
         # that it may latter be used for the storage of that information
         # in the associated connection (used in callbacks)
         self.base = self.url
 
         # encodes the provided parameters into the query string and then
-        # adds these parameters to the end of the provided url, these
+        # adds these parameters to the end of the provided URL, these
         # values are commonly named get parameters
         query = netius.legacy.urlencode(self.params)
         if query: self.url = self.url + "?" + query
 
-        # parses the provided url and retrieves the various parts of the
-        # url that are going to be used in the creation of the connection
+        # parses the provided URL and retrieves the various parts of the
+        # URL that are going to be used in the creation of the connection
         # takes into account some default values in case their are not part
-        # of the provided url (eg: port and the scheme)
+        # of the provided URL (eg: port and the scheme)
         self.parsed = netius.legacy.urlparse(self.url)
         self.ssl = self.parsed.scheme == "https"
         self.host = self.parsed.hostname
