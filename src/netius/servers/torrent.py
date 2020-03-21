@@ -401,7 +401,7 @@ class TorrentTask(netius.Observable):
         self.owner.debug("Received %d peers from DHT peer '%s'" % (len(peers), host))
 
     def on_tracker(self, client, parser, result):
-        # extracts the data (string) contents of the http response and in case
+        # extracts the data (string) contents of the HTTP response and in case
         # there're none of them continues the loop as there's nothing to be
         # processed from this tracker response (invalid response)
         data = result["data"]

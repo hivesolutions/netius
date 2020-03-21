@@ -374,7 +374,7 @@ class HTTP2Connection(http.HTTPConnection):
         # has not creates a new empty dictionary (runtime compatibility)
         headers = headers or dict()
 
-        # defines the proper default base http version in case it has not
+        # defines the proper default base HTTP version in case it has not
         # been provided as part the default values
         version = version or "HTTP/2.0"
 

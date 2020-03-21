@@ -165,7 +165,7 @@ class WSGIServer(http2.HTTP2Server):
         # verifies if the connection already has an iterator associated with
         # it, if that's the case the connection is already in use and the current
         # request processing must be delayed for future processing, this is
-        # typically associated with http pipelining
+        # typically associated with HTTP pipelining
         if hasattr(connection, "iterator") and connection.iterator:
             if not hasattr(connection, "queue"): connection.queue = []
             connection.queue.append(environ)
@@ -212,7 +212,7 @@ class WSGIServer(http2.HTTP2Server):
 
     def _start_response(self, connection, status, headers):
         # retrieves the parser object from the connection and uses
-        # it to retrieve the string version of the http version
+        # it to retrieve the string version of the HTTP version
         parser = connection.parser
         version_s = parser.version_s
 
