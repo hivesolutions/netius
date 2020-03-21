@@ -598,12 +598,12 @@ class TorrentTask(netius.Observable):
             # the various trackers from each of them
             for tracker_url in tracker:
                 # retrieves the first element of the tracker structure as the
-                # url of it and then verifies that it references an http based
+                # URL of it and then verifies that it references an HTTP based
                 # tracker (as that's the only one supported)
                 is_http = tracker_url.startswith(("http://", "https://"))
                 if not is_http: continue
 
-                # runs the get http retrieval call (blocking call) so that it's
+                # runs the get HTTP retrieval call (blocking call) so that it's
                 # possible to retrieve the contents for the announce of the tracker
                 # this is an asynchronous call and the on tracker callback will be
                 # called at the end of the process with the message

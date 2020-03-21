@@ -370,7 +370,7 @@ class HTTPConnection(netius.Connection):
         )
 
         # "notifies" the owner of the connection that the headers have been
-        # sent all the http header information should be present
+        # sent all the HTTP header information should be present
         self.owner.on_send_http(
             self.connection_ctx,
             self.parser_ctx,
@@ -403,12 +403,12 @@ class HTTPConnection(netius.Connection):
     def resolve_encoding(self, parser):
         # in case the "target" encoding is the plain one nothing
         # is required to be done as this is allowed by any kind
-        # of http compliant connection (returns immediately)
+        # of HTTP compliant connection (returns immediately)
         if self.encoding == PLAIN_ENCODING:
             self.current = PLAIN_ENCODING
 
         # if the target encoding is chunked must verify if the
-        # type of http connection in question is 1.1 or above
+        # type of HTTP connection in question is 1.1 or above
         # otherwise must down-grade the encoding to plain
         elif self.encoding == CHUNKED_ENCODING:
             if parser.version < netius.common.HTTP_11:

@@ -206,7 +206,7 @@ class ProxyServer(http2.HTTP2Server):
 
         # tries to retrieve the reference to the tunnel connection
         # currently set in the connection in case it does not exists
-        # (initial handshake or http client proxy) runs the parse
+        # (initial handshake or HTTP client proxy) runs the parse
         # step on the data and then returns immediately
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
         if not tunnel_c: connection.parse(data); return
@@ -343,7 +343,7 @@ class ProxyServer(http2.HTTP2Server):
 
     def _on_prx_headers(self, client, parser, headers):
         # retrieves the owner of the parser as the client connection
-        # and then retrieves all the other http specific values
+        # and then retrieves all the other HTTP specific values
         _connection = parser.owner
         code_s = parser.code_s
         status_s = parser.status_s
@@ -588,7 +588,7 @@ class ProxyServer(http2.HTTP2Server):
 
         # tries to retrieve the current via string (may already exits)
         # and appends the created string to the base string or creates
-        # a new one (as defined in the http specification)
+        # a new one (as defined in the HTTP specification)
         via = headers.get("Via", "")
         if via: via += ", "
         via += via_s

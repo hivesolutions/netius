@@ -412,7 +412,7 @@ class HTTP2Connection(http.HTTPConnection):
         )
 
         # "notifies" the owner of the connection that the headers have been
-        # sent all the http header information should be present
+        # sent all the HTTP header information should be present
         self.owner.on_send_http(
             self.connection_ctx,
             self.parser_ctx,

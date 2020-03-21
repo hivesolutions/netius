@@ -50,7 +50,7 @@ class GeoResolver(object):
     information database (to be used in execution) """
 
     DOWNLOAD_URL = "https://files.bemisc.com/maxmind/GeoLite2-City.mmdb.gz"
-    """ The url to the compressed version of the GeoIP
+    """ The URL to the compressed version of the GeoIP
     city database used for resolution """
 
     VALID = ("continent", "country", "city", "location")

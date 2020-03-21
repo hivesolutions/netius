@@ -46,9 +46,9 @@ from . import http
 class MJPGProtocol(http.HTTPProtocol):
 
     MAGIC_JPEG = b"\xff\xd8\xff\xe0"
-    """ The magic signature for the jpeg infra-structure, this
+    """ The magic signature for the JPEG infra-structure, this
     sequence of bytes is going to be used to detect new frames
-    coming from the http based stream """
+    coming from the HTTP based stream """
 
     EOI_JPEG = b"\xff\xd9"
     """ The sequence of bytes that indicate the end of the current

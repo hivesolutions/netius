@@ -285,7 +285,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             )
 
         # verifies if the current host requires some kind of special authorization
-        # process using the default basic http authorization process
+        # process using the default basic HTTP authorization process
         auth = self.auth.get(DEFAULT_NAME, None)
         auth = self.auth.get(host, auth)
         auth = self.auth.get(host_s, auth)
@@ -378,7 +378,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # verifies if the current connection already contains a valid
         # a proxy connection if that's the case that must be unset from
         # the connection and from the connection map internal structures
-        # at least until the http client returns from the method call
+        # at least until the HTTP client returns from the method call
         proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
         proxy_c = proxy_c or None
         connection.proxy_c = None
@@ -393,7 +393,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         # calls the proper (HTTP) method in the client this should acquire
         # a new connection and start the process of sending the request
-        # to the associated http server (request handling)
+        # to the associated HTTP server (request handling)
         _connection = self.http_client.method(
             method,
             url,
@@ -425,7 +425,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # not been yet established (no data has been  received)
         self.debug("Setting connection as waiting, proxy connection loading ...")
 
-        # sets the current http back-end client connection as waiting and then
+        # sets the current HTTP back-end client connection as waiting and then
         # maps it as the proxy connection in the connection and also creates
         # the reverse mapping using the connection map of the current server
         _connection.waiting = True

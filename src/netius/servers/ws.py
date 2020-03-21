@@ -140,7 +140,7 @@ class WSServer(netius.StreamServer):
         netius.StreamServer.on_data(self, connection, data)
 
         # iterates while there's still data pending to be parsed from the
-        # current message received using the http or ws protocols
+        # current message received using the HTTP or WS protocols
         while data:
             if connection.handshake:
                 # retrieves the current (pending) buffer of data for the

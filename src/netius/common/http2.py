@@ -44,7 +44,6 @@ import contextlib
 import netius
 
 from . import http
-from . import util
 from . import parser
 
 HEADER_SIZE = 9
