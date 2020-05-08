@@ -102,7 +102,7 @@ The servers that come with netius out-of-the-box, can be tested through the comm
 ### Advanced topics
 
 More information can be found in the [Advanced Topics](doc/advanced.md) page.
- 
+
 ## License
 
 Netius is currently licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/).
