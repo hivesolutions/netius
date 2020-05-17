@@ -639,13 +639,20 @@ class HTTPParser(parser.Parser):
             if not len(values) == 2:
                 raise netius.ParserError("Invalid header line")
 
-            # unpacks the values an normalizes them, lowering the
+            # unpacks both the key and the value and runs some
+            # parsing validation to ensure proper HTTP compliance
+            key, value = values
+            if not key.strip() == key:
+                raise netius.ParserError("Invalid header key")
+            if not value.strip(b" ") == value.strip():
+                raise netius.ParserError("Invalid header value")
+
+            # normalizes both the key and the value, lowering the
             # case of the key and stripping the values of any extra
             # whitespace like value that may exist in them
-            key, value = values
-            key = key.strip().lower()
+            key = key.lower()
             key = netius.legacy.str(key)
-            value = value.strip()
+            value = value.strip(b" ")
             value = netius.legacy.str(value, errors = "replace")
             exists = key in self.headers
 
@@ -681,6 +688,16 @@ class HTTPParser(parser.Parser):
         # request is meant to be processed as so
         self.transfer_e = self.headers.get("transfer-encoding", None)
         self.chunked = self.transfer_e == "chunked"
+
+        # verifies if the transfer encoding is compliant with the expected
+        # kind of transfer encodings, if not fails with a parsing error
+        if not self.transfer_e in (None, "identity", "chunked"):
+            raise netius.ParserError("Invalid transfer encoding")
+
+        # verifies that if the chunked encoding is requested then the content
+        # length value must be unset (as expected)
+        if self.chunked and not self.content_l == -1:
+            raise netius.ParserError("Chunked encoding with content length set")
 
         # in case the current response in parsing has the no content
         # code (no payload present) the content length is set to the
