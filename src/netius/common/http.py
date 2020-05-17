@@ -639,13 +639,20 @@ class HTTPParser(parser.Parser):
             if not len(values) == 2:
                 raise netius.ParserError("Invalid header line")
 
-            # unpacks the values an normalizes them, lowering the
+            # unpacks both the key and the value and runs some
+            # parsing validation to ensure proper HTTP compliance
+            key, value = values
+            if not key.strip() == key:
+                raise netius.ParserError("Invalid header key")
+            if not value.strip(" ") == value.strip():
+                raise netius.ParserError("Invalid header value")
+
+            # normalizes both the key and the value, lowering the
             # case of the key and stripping the values of any extra
             # whitespace like value that may exist in them
-            key, value = values
-            key = key.strip().lower()
+            key = key.lower()
             key = netius.legacy.str(key)
-            value = value.strip()
+            value = value.strip(" ")
             value = netius.legacy.str(value, errors = "replace")
             exists = key in self.headers
 

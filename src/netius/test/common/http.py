@@ -73,6 +73,16 @@ X-Invalid-Header: Ol\xc3\xa1 Mundo\r\n\
 \r\n\
 Hello World"
 
+INVALID_HEADERS_TAB_REQUEST = b"GET / HTTP/1.1\r\n\
+X-Invalid-Tab-Header:\t 11\r\n\
+\r\n\
+Hello World"
+
+INVALID_HEADERS_NEWLINE_REQUEST = b"GET / HTTP/1.1\r\n\
+X-Invalid-Tab-Header: 11\r\n\r\n\
+\r\n\
+Hello World"
+
 INVALID_STATUS_REQUEST = b"GET /\r\n\
 Date: Wed, 1 Jan 2014 00:00:00 GMT\r\n\
 Server: Test Service/1.0.0\r\n\
@@ -174,8 +184,52 @@ class HTTPParserTest(unittest.TestCase):
         try:
             self.assertRaises(
                 netius.ParserError,
+                lambda: parser.parse(INVALID_HEADERS_TAB_REQUEST)
+            )
+            if hasattr(self, "assertRaisesRegexp"):
+                self.assertRaisesRegexp(
+                    netius.ParserError,
+                    "Invalid header line",
+                    lambda: parser.parse(INVALID_HEADERS_TAB_REQUEST)
+                )
+        finally:
+            parser.clear()
+
+        parser = netius.common.HTTPParser(
+            self,
+            type = netius.common.REQUEST,
+            store = True
+        )
+        try:
+            self.assertRaises(
+                netius.ParserError,
+                lambda: parser.parse(INVALID_HEADERS_NEWLINE_REQUEST)
+            )
+            if hasattr(self, "assertRaisesRegexp"):
+                self.assertRaisesRegexp(
+                    netius.ParserError,
+                    "Invalid status line ''",
+                    lambda: parser.parse(INVALID_HEADERS_NEWLINE_REQUEST)
+                )
+        finally:
+            parser.clear()
+
+        parser = netius.common.HTTPParser(
+            self,
+            type = netius.common.REQUEST,
+            store = True
+        )
+        try:
+            self.assertRaises(
+                netius.ParserError,
                 lambda: parser.parse(INVALID_STATUS_REQUEST)
             )
+            if hasattr(self, "assertRaisesRegexp"):
+                self.assertRaisesRegexp(
+                    netius.ParserError,
+                    "Invalid status line ",
+                    lambda: parser.parse(INVALID_STATUS_REQUEST)
+                )
         finally:
             parser.clear()
 
