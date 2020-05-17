@@ -51,9 +51,12 @@ class NetiusError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args)
         message = args[0] if len(args) > 0 else ""
+        code = args[1] if len(args) > 1 else 500
         kwargs["message"] = kwargs.get("message", message)
+        kwargs["code"] = kwargs.get("code", code)
         self.kwargs = kwargs
-        self.message = message
+        self.message = kwargs["message"]
+        self.code = kwargs["code"]
         self._uid = None
 
     def get_kwarg(self, name, default = None):
@@ -130,7 +133,10 @@ class ParserError(RuntimeError):
     structure and never outside it.
     """
 
-    pass
+    def __init__(self, *args, **kwargs):
+        kwargs["message"] = kwargs.get("message", "Parser error")
+        kwargs["code"] = kwargs.get("code", 400)
+        RuntimeError.__init__(self, *args, **kwargs)
 
 class GeneratorError(RuntimeError):
     """

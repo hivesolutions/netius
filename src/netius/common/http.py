@@ -888,16 +888,16 @@ class HTTPParser(parser.Parser):
         count += data_s
         return count
 
+    def _store_data(self, data, memory = True):
+        if not self.store: raise netius.ParserError("Store is not possible")
+        if self.message_f: self.message_f.write(data)
+        elif memory: self.message.append(data)
+
     def _parse_query(self, query):
         # runs the "default" parsing of the query string from the system
         # and then decodes the complete set of parameters properly
         params = netius.legacy.parse_qs(query, keep_blank_values = True)
         return self._decode_params(params)
-
-    def _store_data(self, data, memory = True):
-        if not self.store: raise netius.ParserError("Store is not possible")
-        if self.message_f: self.message_f.write(data)
-        elif memory: self.message.append(data)
 
     def _decode_params(self, params):
         _params = dict()

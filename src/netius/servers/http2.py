@@ -115,7 +115,14 @@ class HTTP2Connection(http.HTTPConnection):
         if not self.legacy and not self.preface:
             data = self.parse_preface(data)
             if not data: return
-        return self.parser.parse(data)
+        try:
+            return self.parser.parse(data)
+        except netius.ParserError as error:
+            if not self.legacy: raise
+            self.send_response(
+                code = error.code,
+                apply = True
+            )
 
     def parse_preface(self, data):
         """

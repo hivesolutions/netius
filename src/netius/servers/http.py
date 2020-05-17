@@ -398,7 +398,13 @@ class HTTPConnection(netius.Connection):
         return count
 
     def parse(self, data):
-        return self.parser.parse(data)
+        try:
+            return self.parser.parse(data)
+        except netius.ParserError as error:
+            self.send_response(
+                code = error.code,
+                apply = True
+            )
 
     def resolve_encoding(self, parser):
         # in case the "target" encoding is the plain one nothing
