@@ -644,7 +644,7 @@ class HTTPParser(parser.Parser):
             key, value = values
             if not key.strip() == key:
                 raise netius.ParserError("Invalid header key")
-            if not value.strip(" ") == value.strip():
+            if not value.strip(b" ") == value.strip():
                 raise netius.ParserError("Invalid header value")
 
             # normalizes both the key and the value, lowering the
@@ -652,7 +652,7 @@ class HTTPParser(parser.Parser):
             # whitespace like value that may exist in them
             key = key.lower()
             key = netius.legacy.str(key)
-            value = value.strip(" ")
+            value = value.strip(b" ")
             value = netius.legacy.str(value, errors = "replace")
             exists = key in self.headers
 
