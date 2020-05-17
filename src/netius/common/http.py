@@ -689,6 +689,16 @@ class HTTPParser(parser.Parser):
         self.transfer_e = self.headers.get("transfer-encoding", None)
         self.chunked = self.transfer_e == "chunked"
 
+        # verifies if the transfer encoding is compliant with the expected
+        # kind of transfer encodings, if not fails with a parsing error
+        if not self.transfer_e in (None, "identity", "chunked"):
+            raise netius.ParserError("Invalid transfer encoding")
+
+        # verifies that if the chunked encoding is requested then the content
+        # length value must be unset (as expected)
+        if self.chunked and not self.content_l == -1:
+            raise netius.ParserError("Chunked encoding with content length set")
+
         # in case the current response in parsing has the no content
         # code (no payload present) the content length is set to the
         # zero value in case it has not already been populated
