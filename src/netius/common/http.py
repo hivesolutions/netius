@@ -37,6 +37,7 @@ __copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import re
 import tempfile
 
 import netius
@@ -166,6 +167,11 @@ CODE_STRINGS = {
 }
 """ Dictionary associating the error code as integers
 with the official descriptive message for it """
+
+HEADER_NAME_REGEX = re.compile(r"^[\!\#\$\%\&'\*\+\-\.\^\_\`\~0-9a-zA-Z]+$")
+""" Regular expression to be used in the validation of the
+header naming tokens, so that only the valid names are captured
+avoiding possible security issues, should be compliant with RFC 7230 """
 
 class HTTPParser(parser.Parser):
     """
@@ -642,23 +648,27 @@ class HTTPParser(parser.Parser):
             # unpacks both the key and the value and runs some
             # parsing validation to ensure proper HTTP compliance
             key, value = values
-            if not key.strip() == key:
-                raise netius.ParserError("Invalid header key")
-            if not value.strip(b" ") == value.strip():
-                raise netius.ParserError("Invalid header value")
 
-            # normalizes both the key and the value, lowering the
-            # case of the key and stripping the values of any extra
-            # whitespace like value that may exist in them
+            # normalizes the header key and converts it into a string
+            # then validates its conformance according to the RFC 7230
+            # so that their components have verified compliance
             key = key.lower()
             key = netius.legacy.str(key)
+            if not HEADER_NAME_REGEX.match(key):
+                raise netius.ParserError("Invalid header key")
+
+            # obtains the value and removes any extra space value from
+            # both the beginning and the end of it, then makes sure that
+            # no extra "space like" character exist in it
             value = value.strip(b" ")
             value = netius.legacy.str(value, errors = "replace")
-            exists = key in self.headers
+            if not value == value.strip():
+                raise netius.ParserError("Invalid header value")
 
             # in case the header already exists this indicates that
             # there are multiple definitions of the header and a sequence
             # must be used in order to store the various headers
+            exists = key in self.headers
             if exists:
                 sequence = self.headers[key]
                 is_list = type(sequence) == list
