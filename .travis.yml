@@ -32,14 +32,5 @@ env:
   - HTTPBIN=httpbin.bemisc.com
 script: coverage run --source=netius setup.py test
 after_success: coveralls
-deploy:
-  provider: pypi
-  user: joamag
-  password:
-    secure: eMa8FOTkChzUO8q1GZn6AzJ5AMK5FNTQ4dGCo6clOgsevZrT16MyPfL56oz6wc/2oLVsqBSi9vSKHQiQuGVKbrsjh+R8UiGZ3ul6WMdyU+qCLR7MzKsZRljybs4fLMKSa3wT7RepCxjSSiDTSvx1GnFa8MUPtRQ1x++V02dR7ec=
-  distributions: sdist bdist_wheel
-  on:
-    tags: true
-    python: "2.7"
 notifications:
   slack: hivesolutions:838m5XXohsuxjWI0mSzghWOK
