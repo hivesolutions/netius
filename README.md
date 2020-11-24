@@ -64,6 +64,7 @@ result = netius.clients.HTTPClient.get_s(
 )
 print(result["data"])
 ```
+
 #### Asynchronous usage
 
 ```python
