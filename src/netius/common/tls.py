@@ -49,7 +49,7 @@ class TLSContextDict(dict):
         self.load(domains)
 
     def load(self, domains):
-        secure = self.owner.get_env("SSL_SECURE", True, cast = bool)
+        secure = self.owner.get_env("SSL_SECURE", 1, cast = int)
         for domain in domains:
             if not self.has_definition(domain): continue
             cer_path = self.cer_path(domain)
