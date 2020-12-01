@@ -3580,7 +3580,7 @@ class AbstractBase(observer.Observable):
         # to be used in the construction of the various SSL contexts, note that
         # the secure variable is extremely important to ensure that a proper and
         # secure SSL connection is established with the peer
-        secure = self.get_env("SSL_SECURE", True, cast = bool) if env else False
+        secure = self.get_env("SSL_SECURE", 1, cast = int) if env else 0
         contexts = self.get_env("SSL_CONTEXTS", {}, cast = dict) if env else {}
 
         # creates the main/default SSL context setting the default key
@@ -3622,7 +3622,7 @@ class AbstractBase(observer.Observable):
         connection.ssl_host = ssl_host
         connection.ssl_fingerprint = ssl_fingerprint
 
-    def _ssl_ctx(self, values, context = None, secure = True):
+    def _ssl_ctx(self, values, context = None, secure = 1):
         context = context or ssl.SSLContext(ssl.PROTOCOL_SSLv23)
         self._ssl_ctx_base(context, secure = secure)
         self._ssl_ctx_protocols(context)
@@ -3642,25 +3642,25 @@ class AbstractBase(observer.Observable):
         )
         return context
 
-    def _ssl_ctx_base(self, context, secure = True):
-        if secure and hasattr(ssl, "OP_NO_SSLv2"):
+    def _ssl_ctx_base(self, context, secure = 1):
+        if secure >= 1 and hasattr(ssl, "OP_NO_SSLv2"):
             context.options |= ssl.OP_NO_SSLv2
-        if secure and hasattr(ssl, "OP_NO_SSLv3"):
+        if secure >= 1 and hasattr(ssl, "OP_NO_SSLv3"):
             context.options |= ssl.OP_NO_SSLv3
-        if secure and hasattr(ssl, "OP_NO_TLSv1"):
-            context.options |= ssl.OP_NO_TLSv1
-        if secure and hasattr(ssl, "OP_NO_TLSv1_1"):
-            context.options |= ssl.OP_NO_TLSv1_1
-        if secure and hasattr(ssl, "OP_SINGLE_DH_USE"):
+        if secure >= 1 and hasattr(ssl, "OP_SINGLE_DH_USE"):
             context.options |= ssl.OP_SINGLE_DH_USE
-        if secure and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
+        if secure >= 1 and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
             context.options |= ssl.OP_SINGLE_ECDH_USE
-        if secure and hasattr(ssl, "OP_CIPHER_SERVER_PREFERENCE"):
+        if secure >= 1 and hasattr(ssl, "OP_CIPHER_SERVER_PREFERENCE"):
             context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
         if secure and hasattr(context, "set_ecdh_curve"):
             context.set_ecdh_curve("prime256v1")
-        if secure and SSL_DH_PATH and hasattr(context, "load_dh_params"):
+        if secure >= 1 and SSL_DH_PATH and hasattr(context, "load_dh_params"):
             context.load_dh_params(SSL_DH_PATH)
+        if secure >= 2 and hasattr(ssl, "OP_NO_TLSv1"):
+            context.options |= ssl.OP_NO_TLSv1
+        if secure >= 2 and hasattr(ssl, "OP_NO_TLSv1_1"):
+            context.options |= ssl.OP_NO_TLSv1_1
 
     def _ssl_ctx_protocols(self, context):
         self._ssl_ctx_alpn(context)
