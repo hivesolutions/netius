@@ -3647,6 +3647,10 @@ class AbstractBase(observer.Observable):
             context.options |= ssl.OP_NO_SSLv2
         if secure >= 1 and hasattr(ssl, "OP_NO_SSLv3"):
             context.options |= ssl.OP_NO_SSLv3
+        if secure >= 2 and hasattr(ssl, "OP_NO_TLSv1"):
+            context.options |= ssl.OP_NO_TLSv1
+        if secure >= 2 and hasattr(ssl, "OP_NO_TLSv1_1"):
+            context.options |= ssl.OP_NO_TLSv1_1
         if secure >= 1 and hasattr(ssl, "OP_SINGLE_DH_USE"):
             context.options |= ssl.OP_SINGLE_DH_USE
         if secure >= 1 and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
@@ -3657,10 +3661,6 @@ class AbstractBase(observer.Observable):
             context.set_ecdh_curve("prime256v1")
         if secure >= 1 and SSL_DH_PATH and hasattr(context, "load_dh_params"):
             context.load_dh_params(SSL_DH_PATH)
-        if secure >= 2 and hasattr(ssl, "OP_NO_TLSv1"):
-            context.options |= ssl.OP_NO_TLSv1
-        if secure >= 2 and hasattr(ssl, "OP_NO_TLSv1_1"):
-            context.options |= ssl.OP_NO_TLSv1_1
 
     def _ssl_ctx_protocols(self, context):
         self._ssl_ctx_alpn(context)
