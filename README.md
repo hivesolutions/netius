@@ -112,7 +112,7 @@ Netius is currently licensed under the [Apache License, Version 2.0](http://www.
 
 ## Build Automation
 
-[![Build Status](https://travis-ci.org/hivesolutions/netius.svg?branch=master)](https://travis-ci.org/hivesolutions/netius)
+[![Build Status](https://travis-ci.com/hivesolutions/netius.svg?branch=master)](https://travis-ci.com/hivesolutions/netius)
 [![Build Status GitHub](https://github.com/hivesolutions/netius/workflows/Main%20Workflow/badge.svg)](https://github.com/hivesolutions/netius/actions)
 [![Coverage Status](https://coveralls.io/repos/hivesolutions/netius/badge.svg?branch=master)](https://coveralls.io/r/hivesolutions/netius?branch=master)
 [![PyPi Status](https://img.shields.io/pypi/v/netius.svg)](https://pypi.python.org/pypi/netius)
