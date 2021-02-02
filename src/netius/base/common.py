@@ -3700,7 +3700,9 @@ class AbstractBase(observer.Observable):
         context.load_cert_chain(cer_file, keyfile = key_file)
         context.verify_mode = verify_mode
         if hasattr(context, "check_hostname"): context.check_hostname = check_hostname
-        if ca_file: context.load_verify_locations(cafile = ca_file)
+        if ca_file:
+            print(ca_file)
+            context.load_verify_locations(cafile = ca_file)
         if ca_root and hasattr(context, "load_default_certs"):
             context.load_default_certs(purpose = ssl.Purpose.SERVER_AUTH)
         if ca_root and SSL_CA_PATH:
