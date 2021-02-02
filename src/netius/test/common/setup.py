@@ -40,18 +40,18 @@ __license__ = "Apache License, Version 2.0"
 import os
 import unittest
 
-import netius.common.setup
+import netius.common
 
 class CommonTest(unittest.TestCase):
 
     def test__download_ca(self):
-        netius.common.setup._download_ca(path = "test.ca")
+        netius.common.ensure_ca(path = "test.ca")
         file = open("test.ca", "rb")
         try:
             data = file.read()
         finally:
             file.close()
             os.unlink("test.ca")
-        
+
         self.assertNotEqual(data, None)
         self.assertNotEqual(len(data), 0)
