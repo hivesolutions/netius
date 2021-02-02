@@ -38,44 +38,20 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import os
+import unittest
 
-CA_URL = "https://curl.se/ca/cacert.pem"
+import netius.common
 
-COMMON_PATH = os.path.dirname(__file__)
-BASE_PATH = os.path.join(COMMON_PATH, "..", "base")
-EXTRAS_PATH = os.path.join(BASE_PATH, "extras")
-SSL_CA_PATH = os.path.join(EXTRAS_PATH, "net.ca")
+class CommonTest(unittest.TestCase):
 
-def ensure_setup():
-    ensure_ca()
+    def test__download_ca(self):
+        netius.common.ensure_ca(path = "test.ca")
+        file = open("test.ca", "rb")
+        try:
+            data = file.read()
+        finally:
+            file.close()
+            os.unlink("test.ca")
 
-def ensure_ca(path = SSL_CA_PATH):
-    if os.path.exists(path): return
-    _download_ca(path = path)
-
-def _download_ca(path = SSL_CA_PATH, raise_e = True):
-    import netius.clients
-    ca_url = CA_URL
-    while True:
-        result = netius.clients.HTTPClient.method_s(
-            "GET",
-            ca_url,
-            asynchronous = False
-        )
-        if not result["code"] in (301, 302, 303): break
-        headers = result.get("headers", {})
-        location = headers.get("Location", None)
-        if not location: break
-        ca_url = location
-    if not result["code"] == 200:
-        if not raise_e: return
-        raise Exception("Error while downloading CA file from '%s'" % CA_URL)
-    response = netius.clients.HTTPClient.to_response(result)
-    contents = response.read()
-    _store_contents(contents, path)
-
-def _store_contents(contents, path):
-    file = open(path, "wb")
-    try: file.write(contents)
-    finally: file.close()
-    return path
+        self.assertNotEqual(data, None)
+        self.assertNotEqual(len(data), 0)
