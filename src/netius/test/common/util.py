@@ -195,6 +195,30 @@ class UtilTest(unittest.TestCase):
             lambda: netius.common.verify_not_equal(1, 1, exception = netius.NetiusError)
         )
 
+    def test_verify_type(self):
+        result = netius.common.verify_type("hello", str)
+        self.assertEqual(result, None)
+
+        result = netius.common.verify_type(1, int)
+        self.assertEqual(result, None)
+
+        result = netius.common.verify_type(None, int)
+        self.assertEqual(result, None)
+
+        self.assertRaises(netius.AssertionError, lambda: netius.common.verify_type(1, str))
+
+        self.assertRaises(
+            netius.NetiusError,
+            lambda: netius.common.verify_type(1, str, exception = netius.NetiusError)
+        )
+
+        self.assertRaises(netius.AssertionError, lambda: netius.common.verify_type(None, str, null = False))
+
+        self.assertRaises(
+            netius.NetiusError,
+            lambda: netius.common.verify_type(None, str, null = False, exception = netius.NetiusError)
+        )
+
     def test_verify_many(self):
         result = netius.common.verify_many((1 == 1, 2 == 2, 3 == 3))
         self.assertEqual(result, None)
