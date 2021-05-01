@@ -213,7 +213,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         redirect = self.redirect.get(host, redirect)
         redirect = self.redirect.get(host_s, redirect)
         redirect = self.redirect.get(host_o, redirect)
-        redirect, _match = self._resolve_regex(url, self.redirect_regex, default = auth)
+        redirect, _match = self._resolve_regex(url, self.redirect_regex, default = redirect)
         if redirect:
             # verifies if the redirect value is a sequence and if that's
             # not the case converts the value into a tuple value
