@@ -74,6 +74,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         auth = {},
         auth_regex = {},
         redirect = {},
+        redirect_regex = {},
         error_urls = {},
         forward = None,
         strategy = "robin",
@@ -89,6 +90,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         netius.servers.ProxyServer.__init__(self, *args, **kwargs)
         if isinstance(regex, dict): regex = netius.legacy.items(regex)
         if isinstance(auth_regex, dict): auth_regex = netius.legacy.items(auth_regex)
+        if isinstance(redirect_regex, dict): redirect_regex = netius.legacy.items(redirect_regex)
         if not isinstance(hosts, dict): hosts = dict(hosts)
         self.load_config(
             path = config,
@@ -98,6 +100,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             auth = auth,
             auth_regex = auth_regex,
             redirect = redirect,
+            redirect_regex = redirect_regex,
             error_urls = error_urls,
             forward = forward,
             strategy = strategy,
@@ -199,6 +202,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         protocol = "https" if is_secure else "http"
         if self.trust_origin: protocol = headers.get("x-forwarded-proto", protocol)
 
+        # constructs the URL that is going to be used by the rule engine and any
+        # other internal resolution process as the canonical URL of the request
+        url = "%s://%s%s" % (protocol, host, path)
+
         # tries to determine if a proper (client side) redirection should operation
         # should be applied to the current request, if that's the case (match) an
         # immediate response is returned with proper redirection instructions
@@ -206,6 +213,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         redirect = self.redirect.get(host, redirect)
         redirect = self.redirect.get(host_s, redirect)
         redirect = self.redirect.get(host_o, redirect)
+        redirect, _match = self._resolve_regex(url, self.redirect_regex, default = auth)
         if redirect:
             # verifies if the redirect value is a sequence and if that's
             # not the case converts the value into a tuple value
@@ -259,12 +267,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         state = connection.state if hasattr(connection, "state") else None
         reusable = hasattr(connection, "proxy_c")
 
-        # constructs the URL that is going to be used by the rule engine and
+        # uses the URL that is going to be used by the rule engine and
         # then "forwards" both the URL and the parser object to the rule engine
         # in order to obtain the possible prefix value for URL reconstruction,
         # a state value is also retrieved, this value will be used latter for
         # the acquiring and releasing parts of the balancing strategy operation
-        url = "%s://%s%s" % (protocol, host, path)
         if not self.reuse or not reusable: prefix, state = self.rules(url, parser)
 
         # in case no prefix is defined at this stage there's no matching
