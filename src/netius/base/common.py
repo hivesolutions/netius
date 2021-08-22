@@ -3610,9 +3610,9 @@ class AbstractBase(observer.Observable):
         if not hashed: return identifier
         identifier = legacy.bytes(identifier)
         hash = hashlib.sha256(identifier)
-        indetifier = hash.hexdigest()
+        identifier = hash.hexdigest()
         identifier = identifier.upper()
-        return indetifier
+        return identifier
 
     def _connect(self, connection):
         # in case the current connection has been closed meanwhile
