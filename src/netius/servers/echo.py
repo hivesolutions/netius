@@ -41,7 +41,7 @@ import netius
 
 class EchoProtocol(netius.StreamProtocol):
 
-    def __init__(self, owner=None):
+    def __init__(self, owner = None):
         netius.StreamProtocol.__init__(self, owner=owner)
 
         self.host = "0.0.0.0"
@@ -53,10 +53,9 @@ class EchoProtocol(netius.StreamProtocol):
         self.send(data)
 
     #@todo maybe move this to the upper layer
-    # as an utility
+    # as an utility, as this repeats itself many
+    # times
     def serve(self, env = False, loop = None):
-        cls = self.__class__
-
         loop = netius.serve_stream(
             lambda: self,
             host = self.host,
@@ -64,7 +63,6 @@ class EchoProtocol(netius.StreamProtocol):
             ssl = self.ssl,
             loop = loop
         )
-
         return loop, self
 
 class EchoServer(netius.ServerAgent):
