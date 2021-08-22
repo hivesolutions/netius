@@ -64,6 +64,7 @@ result = netius.clients.HTTPClient.get_s(
 )
 print(result["data"])
 ```
+
 #### Asynchronous usage
 
 ```python
@@ -86,12 +87,14 @@ netius.clients.HTTPClient.get_s(
 
 The servers that come with netius out-of-the-box, can be tested through the command line:
 
-* WSGIServer - `python -m netius.servers.wsgi`
-* FTPServer - `python -m netius.servers.ftp`
-* HelloServer - `MESSAGE="Hello Netius" python -m netius.extra.hello`
-* FileServer - `BASE_PATH=/ python -m netius.extra.file`
-* SMTPServer - `python -m netius.servers.smtp`
-* RelaySMTPServer - `python -m netius.extra.smtp_r`
+| Class           | Example                                               |
+| --------------- | ----------------------------------------------------- |
+| WSGIServer      | `python -m netius.servers.wsgi`                       |
+| FTPServer       | `python -m netius.servers.ftp`                        |
+| HelloServer     | `MESSAGE="Hello Netius" python -m netius.extra.hello` |
+| FileServer      | `BASE_PATH=/ python -m netius.extra.file`             |
+| SMTPServer      | `python -m netius.servers.smtp`                       |
+| RelaySMTPServer | `python -m netius.extra.smtp_r`                       |
 
 ## Learn more
 
@@ -109,7 +112,8 @@ Netius is currently licensed under the [Apache License, Version 2.0](http://www.
 
 ## Build Automation
 
-[![Build Status](https://travis-ci.org/hivesolutions/netius.svg?branch=master)](https://travis-ci.org/hivesolutions/netius)
+[![Build Status](https://travis-ci.com/hivesolutions/netius.svg?branch=master)](https://travis-ci.com/hivesolutions/netius)
+[![Build Status GitHub](https://github.com/hivesolutions/netius/workflows/Main%20Workflow/badge.svg)](https://github.com/hivesolutions/netius/actions)
 [![Coverage Status](https://coveralls.io/repos/hivesolutions/netius/badge.svg?branch=master)](https://coveralls.io/r/hivesolutions/netius?branch=master)
 [![PyPi Status](https://img.shields.io/pypi/v/netius.svg)](https://pypi.python.org/pypi/netius)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/)

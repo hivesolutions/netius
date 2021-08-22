@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -46,9 +46,9 @@ from . import http
 class MJPGProtocol(http.HTTPProtocol):
 
     MAGIC_JPEG = b"\xff\xd8\xff\xe0"
-    """ The magic signature for the jpeg infra-structure, this
+    """ The magic signature for the JPEG infra-structure, this
     sequence of bytes is going to be used to detect new frames
-    coming from the http based stream """
+    coming from the HTTP based stream """
 
     EOI_JPEG = b"\xff\xd9"
     """ The sequence of bytes that indicate the end of the current

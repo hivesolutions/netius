@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -601,21 +601,21 @@ class HTTPProtocol(netius.StreamProtocol):
         message = "%s %s %s" % (self.method, self.url, self.version)
         self.debug(message)
 
-        # stores the initial version of the url in a fallback variable so
+        # stores the initial version of the URL in a fallback variable so
         # that it may latter be used for the storage of that information
         # in the associated connection (used in callbacks)
         self.base = self.url
 
         # encodes the provided parameters into the query string and then
-        # adds these parameters to the end of the provided url, these
+        # adds these parameters to the end of the provided URL, these
         # values are commonly named get parameters
         query = netius.legacy.urlencode(self.params)
         if query: self.url = self.url + "?" + query
 
-        # parses the provided url and retrieves the various parts of the
-        # url that are going to be used in the creation of the connection
+        # parses the provided URL and retrieves the various parts of the
+        # URL that are going to be used in the creation of the connection
         # takes into account some default values in case their are not part
-        # of the provided url (eg: port and the scheme)
+        # of the provided URL (eg: port and the scheme)
         self.parsed = netius.legacy.urlparse(self.url)
         self.ssl = self.parsed.scheme == "https"
         self.host = self.parsed.hostname
@@ -1027,13 +1027,8 @@ class HTTPProtocol(netius.StreamProtocol):
         has_length = "content-length" in headers
         has_ranges = "accept-ranges" in headers
 
-        if "transfer-encoding" in headers: del headers["transfer-encoding"]
-        if "content-encoding" in headers: del headers["content-encoding"]
-
         if is_chunked: headers["transfer-encoding"] = "chunked"
-
         if is_gzip: headers["content-encoding"] = "gzip"
-
         if is_deflate: headers["content-encoding"] = "deflate"
 
         if not is_measurable and has_length: del headers["content-length"]

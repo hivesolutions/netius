@@ -1,0 +1,15 @@
+name: Main Workflow
+on: [push]
+jobs:
+  build:
+    name: Build
+    strategy:
+      matrix:
+        python-version: [2.7, 3.5, 3.6, 3.7, rc]
+    runs-on: ubuntu-latest
+    container: python:${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v1
+      - run: python --version
+      - run: pip install -r requirements.txt
+      - run: HTTPBIN=httpbin.bemisc.com python setup.py test

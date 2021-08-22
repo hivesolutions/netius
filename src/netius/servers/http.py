@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -370,7 +370,7 @@ class HTTPConnection(netius.Connection):
         )
 
         # "notifies" the owner of the connection that the headers have been
-        # sent all the http header information should be present
+        # sent all the HTTP header information should be present
         self.owner.on_send_http(
             self.connection_ctx,
             self.parser_ctx,
@@ -398,17 +398,23 @@ class HTTPConnection(netius.Connection):
         return count
 
     def parse(self, data):
-        return self.parser.parse(data)
+        try:
+            return self.parser.parse(data)
+        except netius.ParserError as error:
+            self.send_response(
+                code = error.code,
+                apply = True
+            )
 
     def resolve_encoding(self, parser):
         # in case the "target" encoding is the plain one nothing
         # is required to be done as this is allowed by any kind
-        # of http compliant connection (returns immediately)
+        # of HTTP compliant connection (returns immediately)
         if self.encoding == PLAIN_ENCODING:
             self.current = PLAIN_ENCODING
 
         # if the target encoding is chunked must verify if the
-        # type of http connection in question is 1.1 or above
+        # type of HTTP connection in question is 1.1 or above
         # otherwise must down-grade the encoding to plain
         elif self.encoding == CHUNKED_ENCODING:
             if parser.version < netius.common.HTTP_11:
@@ -868,13 +874,8 @@ class HTTPServer(netius.StreamServer):
         has_length = "Content-Length" in headers
         has_ranges = "Accept-Ranges" in headers
 
-        if "Transfer-Encoding" in headers: del headers["Transfer-Encoding"]
-        if "Content-Encoding" in headers: del headers["Content-Encoding"]
-
         if is_chunked: headers["Transfer-Encoding"] = "chunked"
-
         if is_gzip: headers["Content-Encoding"] = "gzip"
-
         if is_deflate: headers["Content-Encoding"] = "deflate"
 
         if not is_measurable and has_length: del headers["Content-Length"]

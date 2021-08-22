@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -312,6 +312,8 @@ class DNSProtocol(netius.DatagramProtocol):
 
     @classmethod
     def ns_system(cls, type = "ip4"):
+        ns = cls.ns_conf(type = type)
+        if ns: return ns[0]
         ns = cls.ns_file(type = type)
         if ns: return ns[0]
         ns = cls.ns_google(type = type)
@@ -319,6 +321,14 @@ class DNSProtocol(netius.DatagramProtocol):
         ns = cls.ns_cloudfare(type = type)
         if ns: return ns[0]
         return None
+
+    @classmethod
+    def ns_conf(cls, type = "ip4", force = False):
+        ns = netius.conf("NAMESERVERS_%s" % type.upper(), [], cast = list)
+        if ns: return ns
+        ns = netius.conf("NAMESERVERS", [], cast = list)
+        if ns: return ns
+        return []
 
     @classmethod
     def ns_file(cls, type = "ip4", force = False):

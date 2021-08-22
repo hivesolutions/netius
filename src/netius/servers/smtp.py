@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -43,7 +43,7 @@ import datetime
 
 import netius.common
 
-INTIAL_STATE = 1
+INITIAL_STATE = 1
 """ The initial state for the smtp communication
 meaning that no message have been exchanged between
 the server and the client parties """
@@ -98,7 +98,7 @@ class SMTPConnection(netius.Connection):
         self.from_l = []
         self.to_l = []
         self.previous = bytes()
-        self.state = INTIAL_STATE
+        self.state = INITIAL_STATE
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
@@ -153,7 +153,7 @@ class SMTPConnection(netius.Connection):
         return count
 
     def ready(self):
-        self.assert_s(INTIAL_STATE)
+        self.assert_s(INITIAL_STATE)
         message = "%s ESMTP %s" % (self.host, netius.NAME)
         self.send_smtp(220, message)
         self.state = HELO_STATE
@@ -189,7 +189,9 @@ class SMTPConnection(netius.Connection):
     def auth_plain(self, data):
         data_s = base64.b64decode(data)
         data_s = netius.legacy.str(data_s)
-        _identifier, username, password = data_s.split("\0")
+        if not data_s.count("\0") >= 2:
+            raise netius.ParserError("Invalid auth plain string '%s'" % data_s)
+        _identifier, username, password = data_s.split("\0", 2)
         self.owner.on_auth_smtp(self, username, password)
         message = "authentication successful"
         self.send_smtp(235, message)

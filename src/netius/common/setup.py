@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 import os
 
-CA_URL = "https://curl.haxx.se/ca/cacert.pem"
+CA_URL = "https://curl.se/ca/cacert.pem"
 
 COMMON_PATH = os.path.dirname(__file__)
 BASE_PATH = os.path.join(COMMON_PATH, "..", "base")
@@ -53,13 +53,23 @@ def ensure_ca(path = SSL_CA_PATH):
     if os.path.exists(path): return
     _download_ca(path = path)
 
-def _download_ca(path = SSL_CA_PATH):
+def _download_ca(path = SSL_CA_PATH, raise_e = True):
     import netius.clients
-    result = netius.clients.HTTPClient.method_s(
-        "GET",
-        CA_URL,
-        asynchronous = False
-    )
+    ca_url = CA_URL
+    while True:
+        result = netius.clients.HTTPClient.method_s(
+            "GET",
+            ca_url,
+            asynchronous = False
+        )
+        if not result["code"] in (301, 302, 303): break
+        headers = result.get("headers", {})
+        location = headers.get("Location", None)
+        if not location: break
+        ca_url = location
+    if not result["code"] == 200:
+        if not raise_e: return
+        raise Exception("Error while downloading CA file from '%s'" % CA_URL)
     response = netius.clients.HTTPClient.to_response(result)
     contents = response.read()
     _store_contents(contents, path)
