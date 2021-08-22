@@ -518,7 +518,7 @@ def _build_datagram_native(
         _transport = transport.TransportDatagram(loop, connection)
         _transport._set_compat(protocol)
         if not callback: return
-        callback((_transport, protocol))
+        if callback: callback((_transport, protocol))
 
     def on_error(connection):
         protocol.close()
@@ -554,7 +554,7 @@ def _build_datagram_compat(
             protocol.close()
         else:
             result = future.result()
-            callback and callback(result)
+            if callback: callback(result)
 
     remote_addr = (remote_host, remote_port) if\
         remote_host and remote_port else kwargs.pop("remote_addr", None)
@@ -589,6 +589,19 @@ def _connect_stream_native(
     *args,
     **kwargs
 ):
+    """
+    Runs the connect operation for a given stream using the internal
+    Netius based strategy, meaning that the underlying structures
+    involved should include connection and the base Netius event loop
+    methods should be used.
+
+    The end goal of this function is to call the provided callback
+    with a tuple containing both a transport and a protocol instance.
+
+    This callback should only be called once a proper connection has
+    been established.
+    """
+
     from . import common
 
     loop = loop or common.get_loop()
