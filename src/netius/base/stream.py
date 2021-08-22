@@ -59,6 +59,9 @@ class Stream(observer.Observable):
 
     Most of the interface for a stream should be "logically" similar
     to the one defined by a connection.
+
+    This implementation takes inspiration from the asyncio stream and
+    should be very compatible in terms of API.
     """
 
     def __init__(self, owner = None):
