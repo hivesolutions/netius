@@ -43,7 +43,7 @@ import datetime
 
 import netius.common
 
-INTIAL_STATE = 1
+INITIAL_STATE = 1
 """ The initial state for the smtp communication
 meaning that no message have been exchanged between
 the server and the client parties """
@@ -98,7 +98,7 @@ class SMTPConnection(netius.Connection):
         self.from_l = []
         self.to_l = []
         self.previous = bytes()
-        self.state = INTIAL_STATE
+        self.state = INITIAL_STATE
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
@@ -153,7 +153,7 @@ class SMTPConnection(netius.Connection):
         return count
 
     def ready(self):
-        self.assert_s(INTIAL_STATE)
+        self.assert_s(INITIAL_STATE)
         message = "%s ESMTP %s" % (self.host, netius.NAME)
         self.send_smtp(220, message)
         self.state = HELO_STATE
