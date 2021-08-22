@@ -46,7 +46,7 @@ class Service(observer.Observable):
     Top level class responsible for the single representation
     of the meta-data associated with a service.
 
-    This is considered to be the equivalent to a stream object
+    This is considered to be the equivalent to a connection object
     for the servers (as opposed to clients).
 
     This implementation takes inspiration from the asyncio stream
