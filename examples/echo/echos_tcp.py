@@ -42,6 +42,14 @@ import netius
 import asyncio
 
 class EchoServerClientProtocol(asyncio.Protocol):
+    """
+    Simple protocol implementation for an echo protocol
+    that writes back the received message through the
+    response pipeline. This implementation is inspired by
+    the Python asyncio documentation example.
+
+    :see: https://docs.python.org/3.6/library/asyncio-protocol.html#protocol-examples
+    """
 
     def connection_made(self, transport):
         peername = transport.get_extra_info("peername")
