@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -366,7 +366,7 @@ class Server(Base):
         )
         self._socket_keepalive(_socket)
 
-        # returns the created tcp socket to the calling method so that it
+        # returns the created TCP socket to the calling method so that it
         # may be used from this point on
         return _socket
 
@@ -724,6 +724,17 @@ class StreamServer(Server):
         pass
 
     def on_read(self, _socket):
+        # tries to retrieve the connection from the provided socket
+        # object (using the associative map) this connection is going
+        # to be used over the method for multiple operations
+        connection = self.connections_m.get(_socket, None)
+
+        # in case the connection does not inherit from the server
+        # connection then the handling should be done by the upper
+        # layer, meaning that the handling is done upstream
+        if hasattr(connection, "_base"):
+            return Base.on_read(self, _socket)
+
         # tries to retrieve a possible callback registered for the socket
         # and if there's one calls it to be able to "append" extra operations
         # to the execution of the read operation in the socket
@@ -731,20 +742,12 @@ class StreamServer(Server):
         if callbacks:
             for callback in callbacks: callback("read", _socket)
 
-        # tries to retrieve the connection from the provided socket
-        # object (using the associative map) in case there no connection
+        # run a series of validations, in case there no connection
         # or the connection is not ready for return the control flow is
         # returned to the caller method (nothing to be done)
-        connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
         if not connection.renable == True: return
-
-        # in case the connection does not inherit from the server
-        # connection then the handling should be done by the upper
-        # layer, meaning that the handling is done upstream
-        if not isinstance(connection, ServerConnection):
-            return Base.on_read(self, _socket)
 
         try:
             # verifies if there's any pending operations in the
@@ -783,19 +786,20 @@ class StreamServer(Server):
             self.on_exception(exception, connection)
 
     def on_write(self, _socket):
-        callbacks = self.callbacks_m.get(_socket, None)
-        if callbacks:
-            for callback in callbacks: callback("write", _socket)
-
         connection = self.connections_m.get(_socket, None)
-        if not connection: return
-        if not connection.status == OPEN: return
 
         # in case the connection does not inherit from the server
         # connection then the handling should be done by the upper
         # layer, meaning that the handling is done upstream
-        if not isinstance(connection, ServerConnection):
+        if hasattr(connection, "_base"):
             return Base.on_write(self, _socket)
+
+        callbacks = self.callbacks_m.get(_socket, None)
+        if callbacks:
+            for callback in callbacks: callback("write", _socket)
+
+        if not connection: return
+        if not connection.status == OPEN: return
 
         try:
             connection._send()
@@ -819,11 +823,18 @@ class StreamServer(Server):
             self.on_exception(exception, connection)
 
     def on_error(self, _socket):
+        connection = self.connections_m.get(_socket, None)
+
+        # in case the connection does not inherit from the server
+        # connection then the handling should be done by the upper
+        # layer, meaning that the handling is done upstream
+        if hasattr(connection, "_base"):
+            return Base.on_error(self, _socket)
+
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
             for callback in callbacks: callback("error", _socket)
 
-        connection = self.connections_m.get(_socket, None)
         if not connection: return
         if not connection.status == OPEN: return
 
@@ -968,6 +979,3 @@ class StreamServer(Server):
         # that SSL is now enabled for that socket/connection and so
         # the communication between peers is now secured
         self.on_ssl(connection)
-
-class ServerConnection(Connection):
-    pass

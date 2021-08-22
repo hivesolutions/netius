@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -332,13 +332,13 @@ def rsa_primes(number_bits):
 def rsa_exponents(prime_1, prime_2, number_bits, basic = True):
     """
     Generates both the public and the private exponents for
-    the rsa cryptography system taking as base the provided
+    the RSA cryptography system taking as base the provided
     prime numbers and the amount of bits for the values.
 
     :type prime_1: int
-    :param prime_1: The first prime number use for rsa.
+    :param prime_1: The first prime number use for RSA.
     :type prime_2: int
-    :param prime_2: The second prime number use for rsa.
+    :param prime_2: The second prime number use for RSA.
     :type number_bits: int
     :param number_bits: The number of bits that are going to be
     used for the generation of the values.
@@ -400,7 +400,7 @@ def rsa_exponents(prime_1, prime_2, number_bits, basic = True):
     )
 
     # creates the tuple that contains both the public and the private
-    # exponent values that may be used for rsa based cryptography
+    # exponent values that may be used for RSA based cryptography
     return (public_exponent, private_exponent)
 
 def rsa_bits(modulus):

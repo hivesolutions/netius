@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -427,6 +427,15 @@ def verify_not_equal(first, second, message = None, exception = None):
         not first == second,
         message = message,
         exception = exception
+    )
+
+def verify_type(value, types, null = True, message = None, exception = None, **kwargs):
+    message = message or "Expected %s to have type %s" % (repr(value), repr(types))
+    return verify(
+        (null and value == None) or isinstance(value, types),
+        message = message,
+        exception = exception,
+        **kwargs
     )
 
 def verify_many(sequence, message = None, exception = None):

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -28,7 +28,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -61,7 +61,7 @@ from .asynchronous import Future, Task, Handle, Executor, ThreadPoolExecutor, co
     async_test_all, async_test, ensure_generator, get_asyncio, is_coroutine,\
     is_coroutine_object, is_coroutine_native, is_future, is_neo, is_asynclib, is_await,\
     wakeup, sleep, wait, notify, coroutine_return
-from .client import Client, DatagramClient, StreamClient, ClientConnection
+from .client import Client, DatagramClient, StreamClient
 from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     IDENTIFIER, TCP_TYPE, UDP_TYPE, SSL_KEY_PATH, SSL_CER_PATH, SSL_CA_PATH,\
     SSL_DH_PATH, Base, BaseThread, new_loop_main, new_loop_asyncio, new_loop,\
@@ -79,7 +79,7 @@ from .observer import Observable
 from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
 from .protocol import Protocol, DatagramProtocol, StreamProtocol
 from .request import Request, Response
-from .server import Server, DatagramServer, StreamServer, ServerConnection
+from .server import Server, DatagramServer, StreamServer
 from .service import Service
 from .stream import Stream
 from .tls import fingerprint, match_fingerprint, match_hostname, dnsname_match,\

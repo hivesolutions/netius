@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -115,7 +115,14 @@ class HTTP2Connection(http.HTTPConnection):
         if not self.legacy and not self.preface:
             data = self.parse_preface(data)
             if not data: return
-        return self.parser.parse(data)
+        try:
+            return self.parser.parse(data)
+        except netius.ParserError as error:
+            if not self.legacy: raise
+            self.send_response(
+                code = error.code,
+                apply = True
+            )
 
     def parse_preface(self, data):
         """
@@ -374,7 +381,7 @@ class HTTP2Connection(http.HTTPConnection):
         # has not creates a new empty dictionary (runtime compatibility)
         headers = headers or dict()
 
-        # defines the proper default base http version in case it has not
+        # defines the proper default base HTTP version in case it has not
         # been provided as part the default values
         version = version or "HTTP/2.0"
 
@@ -412,7 +419,7 @@ class HTTP2Connection(http.HTTPConnection):
         )
 
         # "notifies" the owner of the connection that the headers have been
-        # sent all the http header information should be present
+        # sent all the HTTP header information should be present
         self.owner.on_send_http(
             self.connection_ctx,
             self.parser_ctx,

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -45,7 +45,7 @@ from . import legacy
 
 FILE_NAME = "netius.json"
 """ The default name of the file that is going to be
-used for the loading of configuration values from json """
+used for the loading of configuration values from JSON """
 
 FILE_TEMPLATE = "netius.%s.json"
 """ The template to be used in the construction of the
@@ -61,8 +61,8 @@ name that references a list of include files to be loaded """
 
 CASTS = {
     bool : lambda v: v if isinstance(v, bool) else v in ("1", "true", "True"),
-    list : lambda v: v if isinstance(v, list) else v.split(";"),
-    tuple : lambda v: v if isinstance(v, tuple) else tuple(v.split(";"))
+    list : lambda v: v if isinstance(v, list) else v.split(";") if v else [],
+    tuple : lambda v: v if isinstance(v, tuple) else tuple(v.split(";") if v else [])
 }
 """ The map containing the various cast method
 operation associated with the various data types,

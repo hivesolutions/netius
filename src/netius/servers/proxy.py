@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -206,7 +206,7 @@ class ProxyServer(http2.HTTP2Server):
 
         # tries to retrieve the reference to the tunnel connection
         # currently set in the connection in case it does not exists
-        # (initial handshake or http client proxy) runs the parse
+        # (initial handshake or HTTP client proxy) runs the parse
         # step on the data and then returns immediately
         tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
         if not tunnel_c: connection.parse(data); return
@@ -343,7 +343,7 @@ class ProxyServer(http2.HTTP2Server):
 
     def _on_prx_headers(self, client, parser, headers):
         # retrieves the owner of the parser as the client connection
-        # and then retrieves all the other http specific values
+        # and then retrieves all the other HTTP specific values
         _connection = parser.owner
         code_s = parser.code_s
         status_s = parser.status_s
@@ -358,8 +358,8 @@ class ProxyServer(http2.HTTP2Server):
         # and then retrieves the origin content and transfer encoding values
         # that are going to be used to determine some heuristics for the data
         connection = self.conn_map[_connection]
-        content_encoding = headers.get("content-encoding", None)
-        transfer_encoding = headers.get("transfer-encoding", None)
+        content_encoding = headers.pop("content-encoding", None)
+        transfer_encoding = headers.pop("transfer-encoding", None)
 
         # if either the proxy connection or the back-end one is compressed
         # the length values of the connection are considered unreliable and
@@ -590,7 +590,7 @@ class ProxyServer(http2.HTTP2Server):
 
         # tries to retrieve the current via string (may already exits)
         # and appends the created string to the base string or creates
-        # a new one (as defined in the http specification)
+        # a new one (as defined in the HTTP specification)
         via = headers.get("Via", "")
         if via: via += ", "
         via += via_s

@@ -1,4 +1,3 @@
-sudo: false
 dist: trusty
 language: python
 python:
@@ -7,33 +6,25 @@ python:
   - "3.5"
   - "3.6"
   - "nightly"
-  - "pypy-5.4.1"
-  - "pypy-5.6.0"
-  - "pypy-5.7.1"
-  - "pypy2.7-5.8.0"
-  - "pypy3.5-5.8.0"
+  - "pypy3"
 matrix:
   include:
   - python: 3.7
     dist: xenial
-    sudo: true
+  - python: 3.8
+    dist: xenial
+  - python: pypy
+    dist: xenial
+  - python: pypy3
+    dist: xenial
 before_install:
   - pip install --upgrade pip setuptools
 install:
   - pip install -r requirements.txt
-  - pip install coveralls
+  - if [[ $TRAVIS_PYTHON_VERSION != pypy* ]]; then pip install coveralls; fi
 env:
   - HTTPBIN=httpbin.bemisc.com
-script: coverage run --source=netius setup.py test
-after_success: coveralls
-deploy:
-  provider: pypi
-  user: joamag
-  password:
-    secure: eMa8FOTkChzUO8q1GZn6AzJ5AMK5FNTQ4dGCo6clOgsevZrT16MyPfL56oz6wc/2oLVsqBSi9vSKHQiQuGVKbrsjh+R8UiGZ3ul6WMdyU+qCLR7MzKsZRljybs4fLMKSa3wT7RepCxjSSiDTSvx1GnFa8MUPtRQ1x++V02dR7ec=
-  distributions: sdist bdist_wheel
-  on:
-    tags: true
-    python: "2.7"
+script: if [[ $TRAVIS_PYTHON_VERSION != pypy* ]]; then coverage run --source=netius setup.py test; else python setup.py test; fi
+after_success: if [[ $TRAVIS_PYTHON_VERSION != pypy* ]]; then coveralls; fi
 notifications:
   slack: hivesolutions:838m5XXohsuxjWI0mSzghWOK

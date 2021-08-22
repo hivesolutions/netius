@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -49,7 +49,7 @@ class TLSContextDict(dict):
         self.load(domains)
 
     def load(self, domains):
-        secure = self.owner.get_env("SSL_SECURE", True, cast = bool)
+        secure = self.owner.get_env("SSL_SECURE", 1, cast = int)
         for domain in domains:
             if not self.has_definition(domain): continue
             cer_path = self.cer_path(domain)

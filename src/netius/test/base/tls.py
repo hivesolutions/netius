@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -46,11 +46,11 @@ class TLSTest(unittest.TestCase):
     def test_fingerprint(self):
         key_der = netius.common.open_pem_key(netius.SSL_KEY_PATH)
         result = netius.fingerprint(key_der)
-        self.assertEqual(result, "07a55ee5f6798c58000541dc66ab5f5519292aed")
+        self.assertEqual(result, "5b4e55fa5ba652a9cb0c3be2dcfa303b5ae647d6")
 
         cer_der = netius.common.open_pem_key(netius.SSL_CER_PATH, token = "CERTIFICATE")
         result = netius.fingerprint(cer_der)
-        self.assertEqual(result, "5ccc67c8b27bc8f5d7c268d05ac5a284f549420b")
+        self.assertEqual(result, "55ed3769f523281134d87393ffda7f78c9dff786")
 
     def test_match_hostname(self):
         certificate = dict(

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,13 +31,14 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import os
+import re
 import datetime
 import mimetypes
 
@@ -67,7 +68,7 @@ class FileServer(netius.servers.HTTP2Server):
     for directories taking into account the base path values.
 
     This is a synchronous implementation meaning that the server loop
-    will block for the various i/o operations to be performed.
+    will block for the various I/O operations to be performed.
 
     Current implementation supports byte ranges so that partial retrieval
     of a file is possible.
@@ -78,6 +79,7 @@ class FileServer(netius.servers.HTTP2Server):
         base_path = "",
         style_urls = [],
         index_files = [],
+        path_regex = [],
         list_dirs = True,
         list_engine = "base",
         cors = False,
@@ -89,6 +91,7 @@ class FileServer(netius.servers.HTTP2Server):
         self.base_path = base_path
         self.style_urls = style_urls
         self.index_files = index_files
+        self.path_regex = path_regex
         self.list_dirs = list_dirs
         self.list_engine = list_engine
         self.cors = cors
@@ -456,10 +459,16 @@ class FileServer(netius.servers.HTTP2Server):
         if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)
         if self.env: self.style_urls = self.get_env("STYLE_URLS", self.style_urls, cast = list)
         if self.env: self.index_files = self.get_env("INDEX_FILES", self.index_files, cast = list)
+        if self.env: self.path_regex = self.get_env(
+            "PATH_REGEX",
+            self.path_regex,
+            cast = lambda v: [i.split(":") for i in v.split(";")]
+        )
         if self.env: self.list_dirs = self.get_env("LIST_DIRS", self.list_dirs, cast = bool)
         if self.env: self.list_engine = self.get_env("LIST_ENGINE", self.list_engine)
         if self.env: self.cors = self.get_env("CORS", self.cors, cast = bool)
         if self.env: self.cache = self.get_env("CACHE", self.cache, cast = int)
+        self._build_regex()
         self.base_path = os.path.abspath(self.base_path)
         self.cache_d = datetime.timedelta(seconds = self.cache)
         self.base_path = netius.legacy.u(self.base_path, force = True)
@@ -489,6 +498,7 @@ class FileServer(netius.servers.HTTP2Server):
             path = netius.legacy.unquote(path)
             path = path.lstrip("/")
             path = netius.legacy.u(path, force = True)
+            path = self._resolve(path)
             path_f = os.path.join(self.base_path, path)
             path_f = os.path.abspath(path_f)
             path_f = os.path.normpath(path_f)
@@ -770,6 +780,20 @@ class FileServer(netius.servers.HTTP2Server):
     def _file_check_close(self, connection):
         if connection.parser.keep_alive: return
         connection.close(flush = True)
+
+    def _resolve(self, path):
+        path, result = self._resolve_regex(path)
+        if result: return path
+        return path
+
+    def _build_regex(self):
+        self.path_regex = [(re.compile(regex), value) for regex, value in self.path_regex]
+
+    def _resolve_regex(self, path):
+        for regex, value in self.path_regex:
+            if not regex.match(path): continue
+            return (value, True)
+        return (path, False)
 
 if __name__ == "__main__":
     import logging

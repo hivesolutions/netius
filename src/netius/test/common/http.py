@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -73,9 +73,32 @@ X-Invalid-Header: Ol\xc3\xa1 Mundo\r\n\
 \r\n\
 Hello World"
 
+INVALID_HEADERS_TAB_REQUEST = b"GET / HTTP/1.1\r\n\
+Content-Length: 11\r\n\
+X-Invalid-Tab-Header:\t withtab\r\n\
+\r\n\
+Hello World"
+
+INVALID_HEADERS_NEWLINE_REQUEST = b"GET / HTTP/1.1\r\n\
+Content-Length: 11\r\n\
+X-Invalid-Tab-Header: withnewline\n\r\n\
+\r\n\
+Hello World"
+
+INVALID_CHUNKED_REQUEST = b"GET / HTTP/1.1\r\n\
+Content-Length: 5\r\n\
+Transfer-Encoding: chunked\r\n\
+\r\n\
+2\r\n\
+12"
+
+INVALID_TRANSFER_ENCODING_REQUEST = b"GET / HTTP/1.1\r\n\
+Content-Length: 11\r\n\
+Transfer-Encoding: gzip\r\n\
+\r\n\
+Hello World"
+
 INVALID_STATUS_REQUEST = b"GET /\r\n\
-Date: Wed, 1 Jan 2014 00:00:00 GMT\r\n\
-Server: Test Service/1.0.0\r\n\
 Content-Length: 11\r\n\
 \r\n\
 Hello World"
@@ -172,10 +195,97 @@ class HTTPParserTest(unittest.TestCase):
             store = True
         )
         try:
-            self.assertRaises(
-                netius.ParserError,
-                lambda: parser.parse(INVALID_STATUS_REQUEST)
-            )
+            if hasattr(self, "assertRaisesRegexp"):
+                self.assertRaisesRegexp(
+                    netius.ParserError,
+                    "Invalid header value",
+                    lambda: parser.parse(INVALID_HEADERS_TAB_REQUEST)
+                )
+            else:
+                self.assertRaises(
+                    netius.ParserError,
+                    lambda: parser.parse(INVALID_HEADERS_TAB_REQUEST)
+                )
+        finally:
+            parser.clear()
+
+        parser = netius.common.HTTPParser(
+            self,
+            type = netius.common.REQUEST,
+            store = True
+        )
+        try:
+            if hasattr(self, "assertRaisesRegexp"):
+                self.assertRaisesRegexp(
+                    netius.ParserError,
+                    "Invalid header value",
+                    lambda: parser.parse(INVALID_HEADERS_NEWLINE_REQUEST)
+                )
+            else:
+                self.assertRaises(
+                    netius.ParserError,
+                    lambda: parser.parse(INVALID_HEADERS_NEWLINE_REQUEST)
+                )
+        finally:
+            parser.clear()
+
+        parser = netius.common.HTTPParser(
+            self,
+            type = netius.common.REQUEST,
+            store = True
+        )
+        try:
+            if hasattr(self, "assertRaisesRegexp"):
+                self.assertRaisesRegexp(
+                    netius.ParserError,
+                    "Chunked encoding with content length set",
+                    lambda: parser.parse(INVALID_CHUNKED_REQUEST)
+                )
+            else:
+                self.assertRaises(
+                    netius.ParserError,
+                    lambda: parser.parse(INVALID_CHUNKED_REQUEST)
+                )
+        finally:
+            parser.clear()
+
+        parser = netius.common.HTTPParser(
+            self,
+            type = netius.common.REQUEST,
+            store = True
+        )
+        try:
+            if hasattr(self, "assertRaisesRegexp"):
+                self.assertRaisesRegexp(
+                    netius.ParserError,
+                    "Invalid transfer encoding",
+                    lambda: parser.parse(INVALID_TRANSFER_ENCODING_REQUEST)
+                )
+            else:
+                self.assertRaises(
+                    netius.ParserError,
+                    lambda: parser.parse(INVALID_TRANSFER_ENCODING_REQUEST)
+                )
+        finally:
+            parser.clear()
+
+        parser = netius.common.HTTPParser(
+            self,
+            type = netius.common.REQUEST,
+            store = True
+        )
+        try:
+            if hasattr(self, "assertRaisesRegexp"):
+                self.assertRaisesRegexp(
+                    netius.ParserError,
+                    "Invalid status line ",
+                    lambda: parser.parse(INVALID_STATUS_REQUEST)
+                )
+            else:
+                self.assertRaises(
+                    netius.ParserError,
+                    lambda: parser.parse(INVALID_STATUS_REQUEST)
+                )
         finally:
             parser.clear()
 

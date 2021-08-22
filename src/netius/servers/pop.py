@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -41,7 +41,7 @@ import base64
 
 import netius.common
 
-INTIAL_STATE = 1
+INITIAL_STATE = 1
 
 HELO_STATE = 2
 
@@ -83,7 +83,7 @@ class POPConnection(netius.Connection):
         self.file = None
         self.sizes = ()
         self.keys = ()
-        self.state = INTIAL_STATE
+        self.state = INITIAL_STATE
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
@@ -111,7 +111,7 @@ class POPConnection(netius.Connection):
         return count
 
     def ready(self):
-        self.assert_s(INTIAL_STATE)
+        self.assert_s(INITIAL_STATE)
         message = "POP3 server ready <%s@%s>" % (netius.NAME, self.host)
         self.send_pop(message)
         self.state = HELO_STATE

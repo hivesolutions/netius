@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -401,7 +401,7 @@ class TorrentTask(netius.Observable):
         self.owner.debug("Received %d peers from DHT peer '%s'" % (len(peers), host))
 
     def on_tracker(self, client, parser, result):
-        # extracts the data (string) contents of the http response and in case
+        # extracts the data (string) contents of the HTTP response and in case
         # there're none of them continues the loop as there's nothing to be
         # processed from this tracker response (invalid response)
         data = result["data"]
@@ -598,12 +598,12 @@ class TorrentTask(netius.Observable):
             # the various trackers from each of them
             for tracker_url in tracker:
                 # retrieves the first element of the tracker structure as the
-                # url of it and then verifies that it references an http based
+                # URL of it and then verifies that it references an HTTP based
                 # tracker (as that's the only one supported)
                 is_http = tracker_url.startswith(("http://", "https://"))
                 if not is_http: continue
 
-                # runs the get http retrieval call (blocking call) so that it's
+                # runs the get HTTP retrieval call (blocking call) so that it's
                 # possible to retrieve the contents for the announce of the tracker
                 # this is an asynchronous call and the on tracker callback will be
                 # called at the end of the process with the message

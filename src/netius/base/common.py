@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -67,7 +67,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.17.49"
+VERSION = "1.18.2"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -195,7 +195,7 @@ SSL_VALID_REASONS = (
 operation of the SSL connection establishment """
 
 TCP_TYPE = 1
-""" The type enumeration value that represents the tcp (stream)
+""" The type enumeration value that represents the TCP (stream)
 based communication protocol, for various usages in the base
 netius communication infra-structure """
 
@@ -560,6 +560,11 @@ class AbstractBase(observer.Observable):
                 immediately = immediately,
                 verify = verify
             )
+
+        # in case the legacy module is no longer defined (probably
+        # at exit execution) then returns immediately as it's not
+        # possible to proceed with this execution
+        if not legacy: return
 
         # creates the original target value with a zero value (forced
         # execution in next tick) in case the timeout value is set the
@@ -3000,7 +3005,9 @@ class AbstractBase(observer.Observable):
         )
 
     def base_connection(self, *args, **kwargs):
-        return Base.build_connection(self, *args, **kwargs)
+        connection = Base.build_connection(self, *args, **kwargs)
+        connection._base = True
+        return connection
 
     def new_connection(self, connection):
         if connection.__class__ == Connection:
@@ -3592,7 +3599,7 @@ class AbstractBase(observer.Observable):
 
         :type hashed: bool
         :param hashed: If the identifier should be hashed into
-        and hexadecimal string instead of an uuid based identifier.
+        and hexadecimal string instead of an UUID based identifier.
         :rtype: String
         :return: The random unique identifier generated and that
         may be used to identify objects or operations.
@@ -3654,7 +3661,7 @@ class AbstractBase(observer.Observable):
         else:
             self._connectf(connection)
 
-        # in case the connection is not of type ssl the method
+        # in case the connection is not of type SSL the method
         # may return as there's nothing left to be done, as the
         # rest of the method is dedicated to SSL tricks
         if not connection.ssl: return
@@ -3788,7 +3795,7 @@ class AbstractBase(observer.Observable):
         # to be used in the construction of the various SSL contexts, note that
         # the secure variable is extremely important to ensure that a proper and
         # secure SSL connection is established with the peer
-        secure = self.get_env("SSL_SECURE", True, cast = bool) if env else False
+        secure = self.get_env("SSL_SECURE", 1, cast = int) if env else 0
         contexts = self.get_env("SSL_CONTEXTS", {}, cast = dict) if env else {}
 
         # creates the main/default SSL context setting the default key
@@ -3830,7 +3837,7 @@ class AbstractBase(observer.Observable):
         connection.ssl_host = ssl_host
         connection.ssl_fingerprint = ssl_fingerprint
 
-    def _ssl_ctx(self, values, context = None, secure = True):
+    def _ssl_ctx(self, values, context = None, secure = 1):
         context = context or ssl.SSLContext(ssl.PROTOCOL_SSLv23)
         self._ssl_ctx_base(context, secure = secure)
         self._ssl_ctx_protocols(context)
@@ -3850,20 +3857,24 @@ class AbstractBase(observer.Observable):
         )
         return context
 
-    def _ssl_ctx_base(self, context, secure = True):
-        if secure and hasattr(ssl, "OP_NO_SSLv2"):
+    def _ssl_ctx_base(self, context, secure = 1):
+        if secure >= 1 and hasattr(ssl, "OP_NO_SSLv2"):
             context.options |= ssl.OP_NO_SSLv2
-        if secure and hasattr(ssl, "OP_NO_SSLv3"):
+        if secure >= 1 and hasattr(ssl, "OP_NO_SSLv3"):
             context.options |= ssl.OP_NO_SSLv3
-        if secure and hasattr(ssl, "OP_SINGLE_DH_USE"):
+        if secure >= 2 and hasattr(ssl, "OP_NO_TLSv1"):
+            context.options |= ssl.OP_NO_TLSv1
+        if secure >= 2 and hasattr(ssl, "OP_NO_TLSv1_1"):
+            context.options |= ssl.OP_NO_TLSv1_1
+        if secure >= 1 and hasattr(ssl, "OP_SINGLE_DH_USE"):
             context.options |= ssl.OP_SINGLE_DH_USE
-        if secure and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
+        if secure >= 1 and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
             context.options |= ssl.OP_SINGLE_ECDH_USE
-        if secure and hasattr(ssl, "OP_CIPHER_SERVER_PREFERENCE"):
+        if secure >= 1 and hasattr(ssl, "OP_CIPHER_SERVER_PREFERENCE"):
             context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
         if secure and hasattr(context, "set_ecdh_curve"):
             context.set_ecdh_curve("prime256v1")
-        if secure and SSL_DH_PATH and hasattr(context, "load_dh_params"):
+        if secure >= 1 and SSL_DH_PATH and hasattr(context, "load_dh_params"):
             context.load_dh_params(SSL_DH_PATH)
 
     def _ssl_ctx_protocols(self, context):
@@ -3904,7 +3915,8 @@ class AbstractBase(observer.Observable):
         context.load_cert_chain(cer_file, keyfile = key_file)
         context.verify_mode = verify_mode
         if hasattr(context, "check_hostname"): context.check_hostname = check_hostname
-        if ca_file: context.load_verify_locations(cafile = ca_file)
+        if ca_file:
+            context.load_verify_locations(cafile = ca_file)
         if ca_root and hasattr(context, "load_default_certs"):
             context.load_default_certs(purpose = ssl.Purpose.SERVER_AUTH)
         if ca_root and SSL_CA_PATH:
@@ -3994,10 +4006,69 @@ class AbstractBase(observer.Observable):
             server_hostname = server_hostname
         )
 
+    def _ssl_handshake(self, connection):
+        """
+        Low level SSL handshake operation that triggers or resumes
+        the handshake process.
+
+        It should be able to handle the exceptions raised by the the
+        concrete handshake operation so that no exception is raised
+        (unhandled) to the upper layers.
+
+        :type connection: Connection
+        :param connection: The connection that is going to be used in the
+        handshake operation, this should contain a valid/open socket that
+        should be registered for both read and write in the poll.
+        """
+
+        try:
+            # unsets the handshake flag associated with the SSL, meaning
+            # that the connection is considered to be currently under the
+            # handshaking process (may succeed in the current tick)
+            connection.ssl_handshake = False
+            connection.ssl_connecting = True
+
+            # tries to runs the handshake process, this represents
+            # a series of small operations both of writing and reading
+            # that a required to establish and guarantee a secure
+            # connection from this moment on, note that this operation
+            # may fail (non blocking issues) and further retries must
+            # be attempted to finish establishing the connection
+            _socket = connection.socket
+            _socket.do_handshake()
+
+            # sets the SSL handshake flag in the connection, effectively
+            # indicating that the SSL handshake process has finished, note
+            # that the connecting flag is also unset (SSL connect finished)
+            connection.ssl_handshake = True
+            connection.ssl_connecting = False
+
+            # calls the end starter method in the connection so that the
+            # connection gets notified that the current starter in process
+            # has finished and that the next one should be called as
+            # soon as possible to go further in the connection initialization
+            connection.end_starter()
+        except ssl.SSLError as error:
+            # tries to retrieve the error code from the argument information
+            # in the error, in case the error is defined in the list of
+            # valid errors, the handshake is delayed until either a write
+            # or read operation is available (retry process)
+            error_v = error.args[0] if error.args else None
+            if error_v in SSL_VALID_ERRORS:
+                if error_v == ssl.SSL_ERROR_WANT_WRITE and\
+                    not self.is_sub_write(_socket):
+                    self.sub_write(_socket)
+                elif self.is_sub_write(_socket):
+                    self.unsub_write(_socket)
+            else: raise
+
     def _ssl_client_handshake(self, connection):
         """
         Low level SSL handshake operation that triggers or resumes
         the handshake process from the client side.
+
+        This is a complete implementation that runs the proper callbacks
+        for a client running on the event loop.
 
         It should be able to handle the exceptions raised by the the
         concrete handshake operation so that no exception is raised

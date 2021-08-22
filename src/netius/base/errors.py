@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2019 Hive Solutions Lda.
+# Copyright (c) 2008-2020 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2019 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -50,9 +50,13 @@ class NetiusError(Exception):
 
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args)
-        message = args[0] if args else ""
+        message = args[0] if len(args) > 0 else ""
+        code = args[1] if len(args) > 1 else 500
         kwargs["message"] = kwargs.get("message", message)
+        kwargs["code"] = kwargs.get("code", code)
         self.kwargs = kwargs
+        self.message = kwargs["message"]
+        self.code = kwargs["code"]
         self._uid = None
 
     def get_kwarg(self, name, default = None):
@@ -129,7 +133,10 @@ class ParserError(RuntimeError):
     structure and never outside it.
     """
 
-    pass
+    def __init__(self, *args, **kwargs):
+        kwargs["message"] = kwargs.get("message", "Parser error")
+        kwargs["code"] = kwargs.get("code", 400)
+        RuntimeError.__init__(self, *args, **kwargs)
 
 class GeneratorError(RuntimeError):
     """
