@@ -48,6 +48,9 @@ class Service(observer.Observable):
 
     This is considered to be the equivalent to a stream object
     for the servers (as opposed to clients).
+
+    This implementation takes inspiration from the asyncio stream
+    and should be very compatible in terms of API.
     """
 
     def __init__(
