@@ -39,6 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 from . import errors
 from . import observer
+from . import asynchronous
 
 class Transport(observer.Observable):
     """
@@ -327,6 +328,8 @@ class ServerTransport(observer.Observable):
     This approach is heavily influenced by the design of the
     asyncio Python infra-structure and should provide a mostly
     compatible interface.
+
+    :see: https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Server
     """
 
     def __init__(self, loop, service, open = True):
@@ -344,7 +347,28 @@ class ServerTransport(observer.Observable):
     def close(self):
         pass
 
+    def get_loop(self):
+        return self._loop
+
+    def start_serving(self):
+        coroutine = self._start_serving()
+        return asynchronous.coroutine_return(coroutine)
+
+    def serve_forever(self):
+        coroutine = self._serve_forever()
+        return asynchronous.coroutine_return(coroutine)
+
+    def is_serving(self):
+        #@todo must implement proper logic
+        return True
+
     def _set_compat(self, protocol):
         #@todo tenho de me registear para os eventos de nova conexao
         # etc para poder encapsular e fazer connection_made
         self.sockets = [self._service.socket]
+
+    def _start_serving(self):
+        return None
+
+    def _serve_forever(self):
+        return None
