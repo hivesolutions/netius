@@ -55,7 +55,7 @@ print("Starting UDP server")
 
 loop = netius.get_loop(_compat = True)
 listen = loop.create_datagram_endpoint(
-    EchoServerProtocol,
+    lambda: EchoServerProtocol(),
     local_addr = ("127.0.0.1", 9999)
 )
 transport, protocol = loop.run_until_complete(listen)

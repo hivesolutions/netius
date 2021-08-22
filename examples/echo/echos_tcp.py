@@ -68,7 +68,10 @@ class EchoServerClientProtocol(asyncio.Protocol):
 
 loop = netius.get_loop(_compat = True)
 
-coro = loop.create_server(EchoServerClientProtocol, "127.0.0.1", 8888)
+coro = loop.create_server(
+    lambda: EchoServerClientProtocol(),
+    "127.0.0.1", 8888
+)
 server = loop.run_until_complete(coro)
 
 print("Serving on %s" % (server.sockets[0].getsockname(),))
