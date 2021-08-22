@@ -633,7 +633,7 @@ def _connect_stream_native(
         _transport = transport.TransportStream(loop, connection)
         _transport._set_compat(protocol)
         if not callback: return
-        callback((_transport, protocol))
+        if callback: callback((_transport, protocol))
 
     def on_error(connection):
         protocol.close()
@@ -675,7 +675,7 @@ def _connect_stream_compat(
             protocol.close()
         else:
             result = future.result()
-            callback and callback(result)
+            if callback: callback(result)
 
     if ssl and cer_file and key_file:
         import ssl as _ssl
