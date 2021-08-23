@@ -37,49 +37,34 @@ __copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import os
+
 import netius
 
-class EchoProtocol(netius.StreamProtocol):
+from netius.servers import EchoProtocol, EchoServer
 
-    def on_data(self, data):
-        netius.StreamProtocol.on_data(self, data)
-        self.send(data)
+async def main_asyncio():
+    # retrieves a reference to the event loop as we plan to use
+    # low-level APIs, this should return the default event loop
+    import asyncio
+    loop = asyncio.get_running_loop()
+    server = await loop.create_server(lambda: EchoProtocol(), "127.0.0.1", 8888)
+    async with server:
+        await server.serve_forever()
 
-    def serve(
-        self,
-        host = "127.0.0.1",
-        port = 8888,
-        ssl = False,
-        env = False,
-        loop = None
-    ):
-        loop = netius.serve_stream(
-            lambda: self,
-            host = host,
-            port = port,
-            ssl = ssl,
-            loop = loop,
-            env = env
-        )
-        return loop, self
-
-class EchoServer(netius.ServerAgent):
-
-    protocol = EchoProtocol
-
-    @classmethod
-    def serve_s(
-        cls,
-        env = False,
-        loop = None,
-        **kwargs
-    ):
-        protocol = cls.protocol()
-        return protocol.serve(env = env, loop = loop, **kwargs)
-
-if __name__ == "__main__":
-    loop, _protocol = EchoServer.serve_s()
+def run_native():
+    loop, _protocol = EchoServer.serve_s(host = "127.0.0.1", port = 8888)
     loop.run_forever()
     loop.close()
+
+def run_asyncio():
+    netius.run(main_asyncio())
+
+if __name__ == "__main__":
+    if os.environ.get("ASYNCIO", "0") == "1" or\
+        os.environ.get("COMPAT", "0") == "1":
+        run_asyncio()
+    else:
+        run_native()
 else:
     __path__ = []

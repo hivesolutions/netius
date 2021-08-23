@@ -19,9 +19,6 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
-__author__ = "João Magalhães <joamag@hive.pt>"
-""" The author(s) of the module """
-
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -36,50 +33,3 @@ __copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
-
-import netius
-
-class EchoProtocol(netius.StreamProtocol):
-
-    def on_data(self, data):
-        netius.StreamProtocol.on_data(self, data)
-        self.send(data)
-
-    def serve(
-        self,
-        host = "127.0.0.1",
-        port = 8888,
-        ssl = False,
-        env = False,
-        loop = None
-    ):
-        loop = netius.serve_stream(
-            lambda: self,
-            host = host,
-            port = port,
-            ssl = ssl,
-            loop = loop,
-            env = env
-        )
-        return loop, self
-
-class EchoServer(netius.ServerAgent):
-
-    protocol = EchoProtocol
-
-    @classmethod
-    def serve_s(
-        cls,
-        env = False,
-        loop = None,
-        **kwargs
-    ):
-        protocol = cls.protocol()
-        return protocol.serve(env = env, loop = loop, **kwargs)
-
-if __name__ == "__main__":
-    loop, _protocol = EchoServer.serve_s()
-    loop.run_forever()
-    loop.close()
-else:
-    __path__ = []

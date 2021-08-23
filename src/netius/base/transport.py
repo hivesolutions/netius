@@ -396,7 +396,7 @@ class ServerTransport(observer.Observable):
                 self._ssl_handshake_timeout
             )
 
-        # Skip one loop iteration so that all 'loop.add_reader'
+        # skips one loop iteration so that all 'loop.add_reader'
         # go through.
         #await tasks.sleep(0)
         return None
