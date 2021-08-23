@@ -341,6 +341,14 @@ class ServerTransport(observer.Observable):
         self._exhausted = False
         if open: self.open()
 
+    def __aenter__(self):
+        coroutine = self._aenter()
+        return asynchronous.coroutine_return(coroutine)
+
+    def __aexit__(self, *exc):
+        coroutine = self._aexit()
+        return asynchronous.coroutine_return(coroutine)
+
     def open(self):
         pass
 
@@ -371,4 +379,18 @@ class ServerTransport(observer.Observable):
         return None
 
     def _serve_forever(self):
-        return None
+        future = self._loop.create_future()
+        yield future
+
+    def _aenter(self):
+        try: future = self._loop.create_future()
+        except ReferenceError: return None
+        future.set_result(self)
+        yield future
+
+    def _aexit(self):
+        try: future = self._loop.create_future()
+        except ReferenceError: return None
+        self.close()
+        future.set_result(self)
+        yield future
