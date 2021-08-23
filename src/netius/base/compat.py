@@ -382,7 +382,7 @@ class CompatLoop(BaseLoop):
 
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
-        self._current_tasks[self] = None
+        self._current_tasks[self] = task
 
     def _unset_current_task(self):
         """
