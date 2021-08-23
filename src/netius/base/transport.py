@@ -176,7 +176,7 @@ class Transport(observer.Observable):
             compression = lambda: self._connection.socket.compression(),
             cipher = lambda: self._connection.socket.cipher(),
             peercert = lambda: self._connection.socket.getpeercert(),
-            sslcontext = lambda: self._connection.socket.context,
+            sslcontext = lambda: self._connection.socket.context if hasattr(self._connection.socket, "context") else None,
             ssl_object = lambda: self._connection.socket
         )
 
