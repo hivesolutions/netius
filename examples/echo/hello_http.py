@@ -43,6 +43,10 @@ import asyncio
 
 class HelloHTTPServerProtocol(asyncio.Protocol):
 
+    def __init__(self, keep_alive = True):
+        super().__init__()
+        self.keep_alive = keep_alive
+
     def connection_made(self, transport):
         self.transport = transport
         self.peername = transport.get_extra_info("peername")
@@ -52,8 +56,9 @@ class HelloHTTPServerProtocol(asyncio.Protocol):
         print("Connection from %s lost (%s)" % (str(self.peername), str(exc)))
 
     def data_received(self, data):
-        self.transport.write(b"HTTP/1.0 200 OK\r\nConnection: close\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, world!")
-        self.transport.close()
+        keep_alive_s = b"keep-alive" if self.keep_alive else b"close"
+        self.transport.write(b"HTTP/1.1 200 OK\r\nConnection: %s\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, world!" % keep_alive_s)
+        if not self.keep_alive: self.transport.close()
 
 loop = netius.get_loop(_compat = True)
 
