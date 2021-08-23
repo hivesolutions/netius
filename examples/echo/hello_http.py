@@ -49,7 +49,7 @@ class HelloHTTPServerProtocol(asyncio.Protocol):
         print("Connection from %s" % str(self.peername))
 
     def connection_lost(self, exc):
-        print("Connection from %s lost" % str(self.peername))
+        print("Connection from %s lost (%s)" % (str(self.peername), str(exc)))
 
     def data_received(self, data):
         self.transport.write(b"HTTP/1.0 200 OK\r\nConnection: close\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, world!")
