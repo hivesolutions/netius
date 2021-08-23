@@ -423,11 +423,22 @@ class AbstractBase(observer.Observable):
         return asyncio.get_event_loop()
 
     @classmethod
-    def set_main(cls, instance, set_compat = True):
+    def set_main(cls, instance, set_compat = True, set_running = True):
+        # encapsulates the current event loop instance with a compatibility
+        # layer (with asyncio) and then updates both the global reference
+        # to the Netius event loop and the compatibility version of it
         compat = compat_loop(instance)
         cls._MAIN = instance
         cls._MAIN_C = compat
+
+        # if the compatibility layer for setting the main event loop
+        # is not requested (updating asyncio to make sure it returns
+        # the current loop as the main one) then there's nothing else
+        # remaining to be done, returns the control flow
         if not set_compat: return
+
+        # tries to obtain the asyncio reference in case there's
+        # none vailable returns immediately (not possible to set main)
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
 
@@ -440,6 +451,15 @@ class AbstractBase(observer.Observable):
         # sets the main event loop for asyncio as the
         # current compatible version of the netius loop
         asyncio.set_event_loop(compat)
+
+        # in case the set running flag is set indicating that
+        # the currently running loop should also be set then
+        # updates the currently running loop in the asyncio
+        # infrastructure, so that the next time an executor
+        # requests the currently running loop with `get_running_loop`
+        # the current compat loop is the one they get
+        if set_running and hasattr(asyncio, "_set_running_loop"):
+            asyncio._set_running_loop(compat)
 
     @classmethod
     def unset_main(cls, set_compat = True):

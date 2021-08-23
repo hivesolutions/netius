@@ -470,6 +470,11 @@ def is_asyncio():
     asyncio = config.conf("ASYNCIO", False, cast = bool)
     return asyncio and asynchronous.is_asynclib()
 
+def run(coro):
+    from . import common
+    loop = common.get_loop(_compat = True)
+    loop.run_until_complete(coro)
+
 def build_datagram(*args, **kwargs):
     if is_compat(): return _build_datagram_compat(*args, **kwargs)
     else: return _build_datagram_native(*args, **kwargs)
