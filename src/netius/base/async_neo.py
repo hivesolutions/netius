@@ -258,14 +258,17 @@ def wait(*args, **kwargs):
 def coroutine_return(coroutine):
     """
     Allows for the abstraction of the return value of a coroutine
-    object to be the result of the future yield as the first element
+    object to be the result of the future yielded as the last element
     of the generator.
 
     This allows the possibility to provide compatibility with the legacy
     not return allowed generators.
 
+    In case no value is yielded then an invalid value is returned as the
+    result of the async coroutine.
+
     :type coroutine: CoroutineObject
-    :param coroutine: The coroutine object that is going to be yield back
+    :param coroutine: The coroutine object that is going to yield back
     and have its last future result returned from the generator.
     """
 
@@ -273,7 +276,8 @@ def coroutine_return(coroutine):
     return AwaitWrapper(generator)
 
 def _coroutine_return(coroutine):
+    future = None
     for value in coroutine:
         yield value
         future = value
-    return future.result()
+    return future.result() if future else None
