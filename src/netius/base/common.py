@@ -276,17 +276,6 @@ KEEPALIVE_COUNT = 3
 """ The amount of times the "ping" packet is re-sent until the
 connection is considered to be offline and is dropped """
 
-BUFFER_SIZE_S = None
-""" The size of both the send and receive buffers for
-the socket representing the server, this socket is
-responsible for the handling of the new connections """
-
-BUFFER_SIZE_C = None
-""" The size of the buffers (send and receive) that
-is going to be set on the on the sockets created by
-the server (client sockets), this is critical for a
-good performance of the server (large value) """
-
 ALLOW_BLOCK = False
 """ The default value for the allow sub-blocking operation, it's
 set as not allowed because this is considered to be a dangerous
@@ -2229,8 +2218,8 @@ class AbstractBase(observer.Observable):
         ssl_verify = False,
         family = socket.AF_INET,
         type = socket.SOCK_STREAM,
-        receive_buffer_s = BUFFER_SIZE_S,
-        send_buffer_s = BUFFER_SIZE_S
+        receive_buffer = None,
+        send_buffer = None
     ):
         # verifies if the provided family is of type internet and if that's
         # the case the associated flag is set to valid for usage
@@ -2274,15 +2263,15 @@ class AbstractBase(observer.Observable):
             socket.TCP_NODELAY,
             1
         )
-        if receive_buffer_s: _socket.setsockopt(
+        if receive_buffer: _socket.setsockopt(
             socket.SOL_SOCKET,
             socket.SO_RCVBUF,
-            receive_buffer_s
+            receive_buffer
         )
-        if send_buffer_s: _socket.setsockopt(
+        if send_buffer: _socket.setsockopt(
             socket.SOL_SOCKET,
             socket.SO_SNDBUF,
-            send_buffer_s
+            send_buffer
         )
         self._socket_keepalive(_socket)
 
