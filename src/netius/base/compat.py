@@ -349,6 +349,27 @@ class CompatLoop(BaseLoop):
         self._loop.delay(lambda: on_complete(connection, True))
         yield future
 
+    def _start_serving(
+        self,
+        protocol_factory,
+        sock,
+        sslcontext = None,
+        server = None,
+        backlog = 100,
+        ssl_handshake_timeout = None
+    ):
+        # @todo this is pending proper Netius implementation
+        self._add_reader(
+            sock.fileno(),
+            self._accept_connection,
+            protocol_factory,
+            sock,
+            sslcontext,
+            server,
+            backlog,
+            ssl_handshake_timeout
+        )
+
     def _set_current_task(self, task):
         """
         Updates the currently executing task in the global
@@ -498,6 +519,19 @@ def _build_datagram_native(
     *args,
     **kwargs
 ):
+    """
+    Builds a datagram assuming that the current event
+    loop in execution is a Netius one and that the support
+    for the Netius specific methods exist.
+
+    This method is typically faster than using the compat
+    one which only makes use of the asyncio API.
+
+    The end goal of this method is to call the callback method
+    with a tuple containing both the transport and the protocol
+    for the requested datagram based "connection".
+    """
+
     from . import common
 
     loop = loop or common.get_loop()

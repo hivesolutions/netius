@@ -362,6 +362,7 @@ class AbstractBase(observer.Observable):
         self._forked = False
         self._child = False
         self._concrete = False
+        self._services = {}
         self._childs = []
         self._events = {}
         self._notified = []
@@ -2060,7 +2061,11 @@ class AbstractBase(observer.Observable):
 
         # iterates over all of the read events and calls the proper on
         # read method handler to properly handle each event
-        for read in reads: self.on_read(read)
+        for read in reads:
+            if read in self._services:
+                service = self._services[read]
+                self.on_read_s(read, service)
+            self.on_read(read)
 
     def writes(self, writes, state = True):
         # in case the update state is requested updates the current loop
@@ -2192,7 +2197,8 @@ class AbstractBase(observer.Observable):
         # them may print some specific debugging information
         self.on_serve()
 
-        #@todo this is the dummy object representing the new server
+        # creates a new service instance that is going to represents the new server
+        # that is going to start accepting new connections
         service = self.new_service(_socket, ssl)
 
         # delays the operation of calling the callback with the new (service) instance
@@ -2890,14 +2896,46 @@ class AbstractBase(observer.Observable):
 
         connection.close()
 
+    def on_read_s(self, _socket, service):
+        try:
+            while True:
+                socket_c, address = _socket.accept()
+                try: service.on_socket_c(socket_c, address)
+                except Exception: socket_c.close(); raise
+        except ssl.SSLError as error:
+            error_v = error.args[0] if error.args else None
+            error_m = error.reason if hasattr(error, "reason") else None
+            if error_v in SSL_SILENT_ERRORS:
+                self.on_expected_s(error)
+            elif not error_v in SSL_VALID_ERRORS and\
+                not error_m in SSL_VALID_REASONS:
+                self.on_exception_s(error)
+        except socket.error as error:
+            error_v = error.args[0] if error.args else None
+            if error_v in SILENT_ERRORS:
+                self.on_expected_s(error)
+            elif not error_v in VALID_ERRORS:
+                self.on_exception_s(error)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except BaseException as exception:
+            self.on_exception_s(exception)
+
     def on_exception(self, exception, connection):
         self.warning(exception)
         self.log_stack()
         connection.close()
 
+    def on_exception_s(self, exception):
+        self.warning(exception)
+        self.log_stack()
+
     def on_expected(self, exception, connection):
         self.debug(exception)
         connection.close()
+
+    def on_expected_s(self, exception):
+        self.debug(exception)
 
     def on_connect(self, connection):
         connection.set_connected()
@@ -3040,7 +3078,9 @@ class AbstractBase(observer.Observable):
         return self.on_connection_d(connection)
 
     def new_service(self, socket, ssl = False):
-        return Service(owner = self, socket = socket, ssl = ssl)
+        service = Service(owner = self, socket = socket, ssl = ssl)
+        self._services[socket] = service
+        return service
 
     def add_callback(self, socket, callback):
         callbacks = self.callbacks_m.get(socket, [])

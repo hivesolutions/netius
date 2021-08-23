@@ -368,13 +368,22 @@ class ServerTransport(observer.Observable):
         return asynchronous.coroutine_return(coroutine)
 
     def is_serving(self):
-        #@todo must implement proper logic
         return True
 
     def _set_compat(self, protocol):
-        #@todo tenho de me registear para os eventos de nova conexao
-        # etc para poder encapsular e fazer connection_made
         self.sockets = [self._service.socket]
+        self._set_binds()
+        self._set_protocol(protocol)
+
+    def _set_binds(self):
+        self._service.bind("connection", self._on_connection)
+
+    def _set_protocol(self, protocol, mark = True):
+        self._protocol = protocol
+
+    def _on_connection(self, connection):
+        transport = TransportStream(self._loop, connection)
+        transport._set_compat(self._protocol)
 
     def _start_serving(self):
         # in case the current context is already serving
