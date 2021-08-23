@@ -43,24 +43,25 @@ import netius
 
 class EchoProtocol(netius.StreamProtocol):
 
-    def __init__(self, owner = None):
-        netius.StreamProtocol.__init__(self, owner = owner)
-
-        self.host = "127.0.0.1"
-        self.port = 8888
-        self.ssl = False
-
     def on_data(self, data):
         netius.StreamProtocol.on_data(self, data)
         self.send(data)
 
-    def serve(self, env = False, loop = None):
+    def serve(
+        self,
+        host = "127.0.0.1",
+        port = 8888,
+        ssl = False,
+        env = False,
+        loop = None
+    ):
         loop = netius.serve_stream(
             lambda: self,
-            host = self.host,
-            port = self.port,
-            ssl = self.ssl,
-            loop = loop
+            host = host,
+            port = port,
+            ssl = ssl,
+            loop = loop,
+            env = env
         )
         return loop, self
 
@@ -69,9 +70,14 @@ class EchoServer(netius.ServerAgent):
     protocol = EchoProtocol
 
     @classmethod
-    def serve_s(cls, env = False, loop = None):
+    def serve_s(
+        cls,
+        env = False,
+        loop = None,
+        **kwargs
+    ):
         protocol = cls.protocol()
-        return protocol.serve(env = env, loop = loop)
+        return protocol.serve(env = env, loop = loop, **kwargs)
 
 async def main_asyncio():
     # retrieves a reference to the event loop as we plan to use
@@ -83,7 +89,7 @@ async def main_asyncio():
         await server.serve_forever()
 
 def run_native():
-    loop, _protocol = EchoServer.serve_s()
+    loop, _protocol = EchoServer.serve_s(host = "127.0.0.1", port = 8888)
     loop.run_forever()
     loop.close()
 
