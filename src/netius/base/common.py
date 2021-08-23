@@ -2065,7 +2065,8 @@ class AbstractBase(observer.Observable):
             if read in self._services:
                 service = self._services[read]
                 self.on_read_s(read, service)
-            self.on_read(read)
+            else:
+                self.on_read(read)
 
     def writes(self, writes, state = True):
         # in case the update state is requested updates the current loop
