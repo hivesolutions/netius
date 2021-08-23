@@ -339,6 +339,7 @@ class ServerTransport(observer.Observable):
         self._protocol = None
         self._extra_dict = None
         self._exhausted = False
+        self._serving = False
         if open: self.open()
 
     def __aenter__(self):
@@ -376,6 +377,28 @@ class ServerTransport(observer.Observable):
         self.sockets = [self._service.socket]
 
     def _start_serving(self):
+        # in case the current context is already serving
+        # content, then ignores the current request, otherwise
+        # sets the context as serving
+        if self._serving: return
+        self._serving = True
+
+        # iterates over the complete set of sockets of the
+        # server to be able to listed to them
+        for sock in self.sockets:
+            sock.listen(self._backlog)
+            self._loop._start_serving(
+                self._protocol_factory,
+                sock,
+                self._ssl_context,
+                self,
+                self._backlog,
+                self._ssl_handshake_timeout
+            )
+
+        # Skip one loop iteration so that all 'loop.add_reader'
+        # go through.
+        #await tasks.sleep(0)
         return None
 
     def _serve_forever(self):
@@ -384,13 +407,13 @@ class ServerTransport(observer.Observable):
 
     def _aenter(self):
         try: future = self._loop.create_future()
-        except ReferenceError: return None
+        except ReferenceError: yield None; return
         future.set_result(self)
         yield future
 
     def _aexit(self):
         try: future = self._loop.create_future()
-        except ReferenceError: return None
+        except ReferenceError: yield None; return
         self.close()
         future.set_result(self)
         yield future

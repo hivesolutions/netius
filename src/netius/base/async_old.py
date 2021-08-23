@@ -350,4 +350,6 @@ def coroutine_return(coroutine):
     and have its last future result returned from the generator.
     """
 
-    for value in coroutine: yield value
+    for value in coroutine:
+        if value == None: continue
+        yield value

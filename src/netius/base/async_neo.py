@@ -276,8 +276,22 @@ def coroutine_return(coroutine):
     return AwaitWrapper(generator)
 
 def _coroutine_return(coroutine):
+    # unsets the initial future reference value, this
+    # way it's possible to avoid future based return
+    # statement in case the coroutine is "empty"
     future = None
+
+    # iterates over the coroutine generator yield
+    # the values (should be future instances) and
+    # ignoring possible invalid values, the last
+    # value yielded is considered to be future
+    # that is going to be set as the return value
     for value in coroutine:
+        if value == None: continue
         yield value
         future = value
+
+    # in case at least one valid future was yielded
+    # then set the result of such future as the result
+    # of the current coroutine (return statement)
     return future.result() if future else None
