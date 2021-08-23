@@ -370,20 +370,21 @@ class ServerTransport(observer.Observable):
     def is_serving(self):
         return True
 
-    def _set_compat(self, protocol):
+    def _set_compat(self, protocol_factory):
         self.sockets = [self._service.socket]
         self._set_binds()
-        self._set_protocol(protocol)
+        self._set_protocol_factory(protocol_factory)
 
     def _set_binds(self):
         self._service.bind("connection", self._on_connection)
 
-    def _set_protocol(self, protocol, mark = True):
-        self._protocol = protocol
+    def _set_protocol_factory(self, protocol_factory, mark = True):
+        self._protocol_factory = protocol_factory
 
     def _on_connection(self, connection):
+        protocol = self._protocol_factory()
         transport = TransportStream(self._loop, connection)
-        transport._set_compat(self._protocol)
+        transport._set_compat(protocol)
 
     def _start_serving(self):
         # in case the current context is already serving

@@ -49,7 +49,7 @@ class HelloHTTPServerProtocol(asyncio.Protocol):
         self.transport = transport
 
     def data_received(self, data):
-        self.transport.write(b"HTTP/1.0 200 OK\r\nContent-Length: 13\r\nConnection: close\r\n\r\nHello, world!")
+        self.transport.write(b"HTTP/1.0 200 OK\r\nConnection: close\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, world!")
         self.transport.close()
 
 loop = netius.get_loop(_compat = True)

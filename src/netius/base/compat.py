@@ -237,9 +237,8 @@ class CompatLoop(BaseLoop):
             else: on_error(service)
 
         def on_success(service):
-            protocol = protocol_factory()
             server = transport.ServerTransport(self, service)
-            server._set_compat(protocol)
+            server._set_compat(protocol_factory)
             future.set_result(server)
 
         def on_error(connection):
