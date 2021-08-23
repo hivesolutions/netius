@@ -371,9 +371,9 @@ class Server(Base):
         return _socket
 
     def socket_udp(self, family = socket.AF_INET, type = socket.SOCK_DGRAM):
-        # prints a small debug message about the udp socket that is going
+        # prints a small debug message about the UDP socket that is going
         # to be created for the server's connection
-        self.debug("Creating server's udp socket ...")
+        self.debug("Creating server's UDP socket ...")
 
         # creates the socket that it's going to be used for the listening
         # of new connections (server socket) and sets it as non blocking
@@ -385,7 +385,7 @@ class Server(Base):
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-        # returns the created udp socket to the calling method so that it
+        # returns the created UDP socket to the calling method so that it
         # may be used from this point on
         return _socket
 

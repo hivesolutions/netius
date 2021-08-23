@@ -200,7 +200,7 @@ based communication protocol, for various usages in the base
 netius communication infra-structure """
 
 UDP_TYPE = 2
-""" The datagram based udp protocol enumeration value to be used
+""" The datagram based UDP protocol enumeration value to be used
 in static references to this kind of socket usage """
 
 STATE_STOP = 1
@@ -275,6 +275,17 @@ important (may be calculated automatically) """
 KEEPALIVE_COUNT = 3
 """ The amount of times the "ping" packet is re-sent until the
 connection is considered to be offline and is dropped """
+
+BUFFER_SIZE_S = None
+""" The size of both the send and receive buffers for
+the socket representing the server, this socket is
+responsible for the handling of the new connections """
+
+BUFFER_SIZE_C = None
+""" The size of the buffers (send and receive) that
+is going to be set on the on the sockets created by
+the server (client sockets), this is critical for a
+good performance of the server (large value) """
 
 ALLOW_BLOCK = False
 """ The default value for the allow sub-blocking operation, it's
@@ -2208,7 +2219,6 @@ class AbstractBase(observer.Observable):
             immediately = True
         )
 
-    #@todo improve this, and maybe remove it from a concrete method
     def socket_tcp(
         self,
         ssl = False,
@@ -2218,7 +2228,9 @@ class AbstractBase(observer.Observable):
         ca_root = True,
         ssl_verify = False,
         family = socket.AF_INET,
-        type = socket.SOCK_STREAM
+        type = socket.SOCK_STREAM,
+        receive_buffer_s = BUFFER_SIZE_S,
+        send_buffer_s = BUFFER_SIZE_S
     ):
         # verifies if the provided family is of type internet and if that's
         # the case the associated flag is set to valid for usage
@@ -2262,29 +2274,26 @@ class AbstractBase(observer.Observable):
             socket.TCP_NODELAY,
             1
         )
-
-        # this variables should be passed
-        #if self.receive_buffer_s: _socket.setsockopt(
-        #    socket.SOL_SOCKET,
-        #    socket.SO_RCVBUF,
-        #    self.receive_buffer_s
-        #)
-        #if self.send_buffer_s: _socket.setsockopt(
-        ##    socket.SOL_SOCKET,
-        #    socket.SO_SNDBUF,
-        #    self.send_buffer_s
-        #)
+        if receive_buffer_s: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_RCVBUF,
+            receive_buffer_s
+        )
+        if send_buffer_s: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_SNDBUF,
+            send_buffer_s
+        )
         self._socket_keepalive(_socket)
 
         # returns the created tcp socket to the calling method so that it
         # may be used from this point on
         return _socket
 
-    #@todo improve this, and maybe remove it from a concrete method
     def socket_udp(self, family = socket.AF_INET, type = socket.SOCK_DGRAM):
-        # prints a small debug message about the udp socket that is going
+        # prints a small debug message about the UDP socket that is going
         # to be created for the server's connection
-        self.debug("Creating server's udp socket ...")
+        self.debug("Creating server's UDP socket ...")
 
         # creates the socket that it's going to be used for the listening
         # of new connections (server socket) and sets it as non blocking
@@ -2296,13 +2305,9 @@ class AbstractBase(observer.Observable):
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-        # returns the created udp socket to the calling method so that it
+        # returns the created UDP socket to the calling method so that it
         # may be used from this point on
         return _socket
-
-
-
-
 
     def datagram(
         self,

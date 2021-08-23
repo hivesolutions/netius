@@ -317,9 +317,9 @@ class DatagramClient(Client):
         # as nothing else remain to be done in the current method
         if self.socket: return
 
-        # prints a small debug message about the udp socket that is going
+        # prints a small debug message about the UDP socket that is going
         # to be created for the client's connection
-        self.debug("Creating clients's udp socket ...")
+        self.debug("Creating clients's UDP socket ...")
 
         # creates the socket that it's going to be used for the listening
         # of new connections (client socket) and sets it as non blocking
