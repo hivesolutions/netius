@@ -59,6 +59,8 @@ class Future(object):
     :see: https://en.wikipedia.org/wiki/Futures_and_promises
     """
 
+    _asyncio_future_blocking = True
+
     def __init__(self, loop = None):
         self.status = 0
         self._loop = loop
@@ -116,6 +118,18 @@ class Future(object):
 
     def add_closed_callback(self, function):
         self.closed_callbacks.append(function)
+
+    def remove_done_callback(self, function):
+        self.done_callbacks.remove(function)
+
+    def remove_partial_callback(self, function):
+        self.partial_callbacks.remove(function)
+
+    def remove_ready_callback(self, function):
+        self.ready_callbacks.remove(function)
+
+    def remove_closed_callback(self, function):
+        self.closed_callbacks.remove(function)
 
     def approve(self, cleanup = True):
         self.set_result(None, cleanup = cleanup)
