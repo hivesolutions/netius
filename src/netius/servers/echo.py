@@ -68,14 +68,9 @@ class EchoServer(netius.ServerAgent):
     protocol = EchoProtocol
 
     @classmethod
-    def serve_s(
-        cls,
-        env = False,
-        loop = None,
-        **kwargs
-    ):
+    def serve_s(cls, **kwargs):
         protocol = cls.protocol()
-        return protocol.serve(env = env, loop = loop, **kwargs)
+        return protocol.serve(**kwargs)
 
 if __name__ == "__main__":
     loop, _protocol = EchoServer.serve_s()
