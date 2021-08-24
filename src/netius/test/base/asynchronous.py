@@ -99,8 +99,8 @@ class FutureTest(unittest.TestCase):
         try: import asyncio
         except: asyncio = None
 
-        if not asyncio:
-            self.skipTest("No asyncio package available")
+        if not asyncio or not hasattr(asyncio, "isfuture"):
+            self.skipTest("No asyncio or asyncio.isfuture() available")
 
         future = netius.Future()
 
