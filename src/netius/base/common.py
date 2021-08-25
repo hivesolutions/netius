@@ -439,7 +439,7 @@ class AbstractBase(observer.Observable):
         if not set_compat: return
 
         # tries to obtain the asyncio reference in case there's
-        # none vailable returns immediately (not possible to set main)
+        # none available returns immediately (not possible to set main)
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
 
@@ -4344,10 +4344,20 @@ class BaseThread(threading.Thread):
             self.owner._thread = None
             self.owner = None
 
-def new_loop_main(factory = None, _compat = None, **kwargs):
-    factory = factory or Base
+def new_loop_main(factory = None, env = True, _compat = None, **kwargs):
     kwargs["_slave"] = kwargs.pop("_slave", True)
+
+    # obtains the factory method defaulting to the Netius base event loop
+    # constructor and creates a new instance of the event loop
+    factory = factory or Base
     instance = factory(**kwargs)
+
+    # in case the loading of the environment variables has been requested
+    # and the provided event loop instance is compatible with environment
+    # binding operation, then performs the operation
+    if env and hasattr(instance, "bind_env"):
+        instance.bind_env()
+
     return compat_loop(instance) if _compat else instance
 
 def new_loop_asyncio(**kwargs):
@@ -4361,10 +4371,23 @@ def new_loop(factory = None, _compat = None, asyncio = None, **kwargs):
     if asyncio: return new_loop_asyncio(**kwargs)
     else: return new_loop_main(factory = factory, _compat = _compat, **kwargs)
 
-def ensure_main(factory = None, **kwargs):
+def ensure_main(factory = None, env = True, **kwargs):
     if Base.get_main(): return
+
+    # obtains the factory method defaulting to the Netius base event loop
+    # constructor and creates a new instance of the event loop
     factory = factory or Base
     instance = factory(**kwargs)
+
+    # in case the loading of the environment variables has been requested
+    # and the provided event loop instance is compatible with environment
+    # binding operation, then performs the operation
+    if env and hasattr(instance, "bind_env"):
+        instance.bind_env()
+
+    # updates the reference to the main event loop under the Netius perspective
+    # so that global variables point to this event loop, possible compatibility
+    # mode rules may apply
     Base.set_main(instance)
 
 def ensure_asyncio(**kwargs):
