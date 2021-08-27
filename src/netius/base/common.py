@@ -2118,7 +2118,7 @@ class AbstractBase(observer.Observable):
     ):
         # ensures the proper default address value, taking into account
         # the type of connection that is currently being used, this avoids
-        # problems with multiple stack based servers (IPv4 and ipv6)
+        # problems with multiple stack based servers (IPv4 and IPv6)
         if host == None: host = "::1" if ipv6 else "127.0.0.1"
 
         # defaults the provided ssl key and certificate paths to the
@@ -2178,8 +2178,8 @@ class AbstractBase(observer.Observable):
         # creates the string that identifies it the current service connection
         # is using a secure channel (ssl) and then prints an info message about
         # the service that is going to be started
-        ipv6_s = " on ipv6" if ipv6 else ""
-        ssl_s = " using ssl" if ssl else ""
+        ipv6_s = " on IPv6" if ipv6 else ""
+        ssl_s = " using SSL" if ssl else ""
         self.info("Serving '%s' service on %s:%s%s%s ..." % (self.name, host, port, ipv6_s, ssl_s))
 
         # ensures that the current polling mechanism is correctly open as the

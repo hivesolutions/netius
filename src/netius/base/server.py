@@ -911,7 +911,7 @@ class StreamServer(Server):
         if self.ssl: socket_c.pending = None
 
         # verifies if the socket is of type internet (either IPv4
-        # of ipv6), this is going to be used for conditional setting
+        # of IPv6), this is going to be used for conditional setting
         # of some of the socket options
         is_inet = socket_c.family in (socket.AF_INET, socket.AF_INET6)
 
