@@ -2118,7 +2118,7 @@ class AbstractBase(observer.Observable):
     ):
         # ensures the proper default address value, taking into account
         # the type of connection that is currently being used, this avoids
-        # problems with multiple stack based servers (ipv4 and ipv6)
+        # problems with multiple stack based servers (IPv4 and ipv6)
         if host == None: host = "::1" if ipv6 else "127.0.0.1"
 
         # defaults the provided ssl key and certificate paths to the
@@ -3056,6 +3056,77 @@ class AbstractBase(observer.Observable):
             datagram = datagram,
             ssl = ssl
         )
+
+    def build_connection_client(
+        self,
+        socket_c,
+        address,
+        ssl = False,
+        receive_buffer_c = None,
+        send_buffer_c = None
+    ):
+        # verifies a series of pre-conditions on the socket so
+        # that it's ensured to be in a valid state before it's
+        # set as a new connection for the server (validation)
+        if ssl and not socket_c._sslobj: socket_c.close(); return
+
+        # in case the SSL mode is enabled, "patches" the socket
+        # object with an extra pending reference, that is going
+        # to be to store pending callable operations in it
+        if ssl: socket_c.pending = None
+
+        # verifies if the socket is of type internet (either IPv4
+        # of ipv6), this is going to be used for conditional setting
+        # of some of the socket options
+        is_inet = socket_c.family in (socket.AF_INET, socket.AF_INET6)
+
+        # sets the socket as non blocking and then updated a series
+        # of options in it, some of them taking into account if the
+        # socket if of type internet (timeout values)
+        socket_c.setblocking(0)
+        socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        if is_inet: socket_c.setsockopt(
+            socket.IPPROTO_TCP,
+            socket.TCP_NODELAY,
+            1
+        )
+        if receive_buffer_c: socket_c.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_RCVBUF,
+            receive_buffer_c
+        )
+        if send_buffer_c: socket_c.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_SNDBUF,
+            send_buffer_c
+        )
+
+        # the process creation is considered completed and a new
+        # connection is created for it and opened, from this time
+        # on a new connection is considered accepted/created for server
+        connection = self.build_connection(socket_c, address, ssl = ssl)
+        connection.open()
+
+        # registers the SSL handshake method as a starter method
+        # for the connection, so that the handshake is properly
+        # performed on the initial stage of the connection (as expected)
+        if ssl: connection.add_starter(self._ssl_handshake)
+
+        # runs the initial try for the handshaking process, note that
+        # this is an async process and further tries to the handshake
+        # may come after this one (async operation) in case an exception
+        # is raises the connection is closed (avoids possible errors)
+        try: connection.run_starter()
+        except Exception: connection.close(); raise
+
+        # in case there's extraneous data pending to be read from the
+        # current connection's internal receive buffer it must be properly
+        # handled on the risk of blocking the newly created connection
+        if connection.is_pending_data(): self.on_read(connection.socket)
+
+        # returns the connection that has been build already properly
+        # initialized and ready to be used
+        return connection
 
     def base_connection(self, *args, **kwargs):
         connection = Base.build_connection(self, *args, **kwargs)
