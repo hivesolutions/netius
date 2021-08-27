@@ -225,6 +225,7 @@ class CompatLoop(BaseLoop):
         ssl = None,
         reuse_address = None,
         reuse_port = None,
+        start_serving = True,
         *args,
         **kwargs
     ):
@@ -232,18 +233,21 @@ class CompatLoop(BaseLoop):
 
         future = self.create_future()
 
-        def on_complete(service, success):
-            if success: on_success(service)
+        def on_complete(service, serve, success):
+            if success: on_success(service, serve = serve)
             else: on_error(service)
 
-        def on_success(service):
+        def on_success(service, serve = None):
             server = transport.ServerTransport(self, service)
-            server._set_compat(protocol_factory)
+            server._set_compat(protocol_factory, serve = serve)
+            if start_serving:
+                server._serve()
+                server._serving = True
             future.set_result(server)
 
         def on_error(connection):
             future.set_exception(
-                errors.RuntimeError("Connection issue")
+                errors.RuntimeError("Server creation issue")
             )
 
         self._loop.serve(

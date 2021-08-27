@@ -2164,48 +2164,55 @@ class AbstractBase(observer.Observable):
         address = port if is_unix else (host, port)
         if is_unix and os.path.exists(address): os.remove(address)
 
-        # binds the socket to the provided address value (per spec) and then
-        # starts the listening in the socket with the provided backlog value
-        # defaulting to the typical maximum backlog as possible if not provided
-        _socket.bind(address)
-        if type == TCP_TYPE: _socket.listen(backlog)
+        def serve():
+            # binds the socket to the provided address value (per spec) and then
+            # starts the listening in the socket with the provided backlog value
+            # defaulting to the typical maximum backlog as possible if not provided
+            _socket.bind(address)
+            if type == TCP_TYPE: _socket.listen(backlog)
 
-        # in case the selected port is zero based, meaning that a randomly selected
-        # port has been assigned by the bind operation the new port must be retrieved
-        # and set for the current server instance as the new port (for future reference)
-        if port == 0: port = _socket.getsockname()[1]
+            # in case the selected port is zero based, meaning that a randomly selected
+            # port has been assigned by the bind operation the new port must be retrieved
+            # and set for the current server instance as the new port (for future reference)
+            if port == 0: port_i = _socket.getsockname()[1]
+            else: port_i = port
 
-        # creates the string that identifies it the current service connection
-        # is using a secure channel (ssl) and then prints an info message about
-        # the service that is going to be started
-        ipv6_s = " on IPv6" if ipv6 else ""
-        ssl_s = " using SSL" if ssl else ""
-        self.info("Serving '%s' service on %s:%s%s%s ..." % (self.name, host, port, ipv6_s, ssl_s))
+            # creates the string that identifies it the current service connection
+            # is using a secure channel (ssl) and then prints an info message about
+            # the service that is going to be started
+            ipv6_s = " on IPv6" if ipv6 else ""
+            ssl_s = " using SSL" if ssl else ""
+            self.info("Serving '%s' service on %s:%s%s%s ..." % (self.name, host, port_i, ipv6_s, ssl_s))
 
-        # ensures that the current polling mechanism is correctly open as the
-        # service socket is going to be added to it next, this overrides the
-        # default behavior of the common infra-structure (on start)
-        self.poll = self.build_poll()
-        self.poll.open(timeout = self.poll_timeout)
+            # ensures that the current polling mechanism is correctly open as the
+            # service socket is going to be added to it next, this overrides the
+            # default behavior of the common infra-structure (on start)
+            self.poll = self.build_poll()
+            self.poll.open(timeout = self.poll_timeout)
 
-        # adds the socket to all of the pool lists so that it's ready to read
-        # write and handle error, this is the expected behavior of a service
-        # socket so that it can handle all of the expected operations
-        self.sub_all(_socket)
+            # adds the socket to all of the pool lists so that it's ready to read
+            # write and handle error, this is the expected behavior of a service
+            # socket so that it can handle all of the expected operations
+            self.sub_all(_socket)
 
-        # calls the on serve callback handler so that underlying services may be
-        # able to respond to the fact that the service is starting and some of
-        # them may print some specific debugging information
-        self.on_serve()
+            # calls the on serve callback handler so that underlying services may be
+            # able to respond to the fact that the service is starting and some of
+            # them may print some specific debugging information
+            self.on_serve()
 
         # creates a new service instance that is going to represents the new server
         # that is going to start accepting new connections
-        service = self.new_service(_socket, ssl)
+        service = self.new_service(
+            _socket,
+            host = host,
+            port = port,
+            ssl = ssl
+        )
 
         # delays the operation of calling the callback with the new (service) instance
         # by one tick (avoids possible issues)
         self.delay(
-            lambda: callback and callback(service, True),
+            lambda: callback and callback(service, serve, True),
             immediately = True
         )
 
@@ -3143,8 +3150,20 @@ class AbstractBase(observer.Observable):
             return Base.on_connection_d(self, connection)
         return self.on_connection_d(connection)
 
-    def new_service(self, socket, ssl = False):
-        service = Service(owner = self, socket = socket, ssl = ssl)
+    def new_service(
+        self,
+        socket,
+        host = None,
+        port = None,
+        ssl = False
+    ):
+        service = Service(
+            owner = self,
+            socket = socket,
+            host = host,
+            port = port,
+            ssl = ssl
+        )
         self._services[socket] = service
         return service
 

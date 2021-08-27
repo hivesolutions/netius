@@ -336,9 +336,8 @@ class ServerTransport(observer.Observable):
         observer.Observable.__init__(self)
         self._loop = loop
         self._service = service
-        self._protocol = None
-        self._extra_dict = None
-        self._exhausted = False
+        self._protocol_family = None
+        self._serve = None
         self._serving = False
         if open: self.open()
 
@@ -370,16 +369,20 @@ class ServerTransport(observer.Observable):
     def is_serving(self):
         return True
 
-    def _set_compat(self, protocol_factory):
+    def _set_compat(self, protocol_factory, serve = None):
         self.sockets = [self._service.socket]
         self._set_binds()
         self._set_protocol_factory(protocol_factory)
+        self._set_serve(serve)
 
     def _set_binds(self):
         self._service.bind("connection", self._on_connection)
 
-    def _set_protocol_factory(self, protocol_factory, mark = True):
+    def _set_protocol_factory(self, protocol_factory):
         self._protocol_factory = protocol_factory
+
+    def _set_serve(self, serve):
+        self._serve = serve
 
     def _on_connection(self, connection):
         protocol = self._protocol_factory()
@@ -390,26 +393,26 @@ class ServerTransport(observer.Observable):
         # in case the current context is already serving
         # content, then ignores the current request, otherwise
         # sets the context as serving
-        if self._serving: return
+        if self._serving: yield None; return
+        if not self._serve: yield None; return
+
+        # creates the future that is going to be representing
+        # the async operation of enabling the server
+        future = self._loop.create_future()
+
+        # calls the serve method that should enable the server
+        # to start accepting connections, then marks the server
+        # as serving as it's now considered enabled
+        self._serve()
         self._serving = True
 
-        # iterates over the complete set of sockets of the
-        # server to be able to listed to them
-        for sock in self.sockets:
-            sock.listen(self._backlog)
-            self._loop._start_serving(
-                self._protocol_factory,
-                sock,
-                self._ssl_context,
-                self,
-                self._backlog,
-                self._ssl_handshake_timeout
-            )
+        # schedules the set of the future value marking the coroutine
+        # as finished for the next tick
+        self._loop.delay(lambda: future.set_result(None), immediately = True)
 
-        # skips one loop iteration so that all 'loop.add_reader'
-        # go through.
-        #await tasks.sleep(0)
-        return None
+        # yields the future so that any event loop executor "knows"
+        # that there's working pending to be done
+        yield future
 
     def _serve_forever(self):
         future = self._loop.create_future()

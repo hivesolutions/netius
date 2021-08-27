@@ -70,6 +70,8 @@ class Service(observer.Observable):
         owner = None,
         transport = None,
         socket = None,
+        host = None,
+        port = None,
         ssl = False,
         receive_buffer_s = BUFFER_SIZE_S,
         send_buffer_s = BUFFER_SIZE_S,
@@ -81,6 +83,8 @@ class Service(observer.Observable):
         self.owner = owner
         self.transport = transport
         self.socket = socket
+        self.host = host
+        self.port = port
         self.ssl = ssl
         self.receive_buffer_s = receive_buffer_s
         self.send_buffer_s = send_buffer_s
@@ -95,5 +99,5 @@ class Service(observer.Observable):
             receive_buffer_c = self.receive_buffer_c,
             send_buffer_c = self.send_buffer_c
         )
-        _transport = transport.TransportStream(self, connection)
+        self.transport = transport.TransportStream(self, connection)
         self.trigger("connection", connection)
