@@ -895,8 +895,8 @@ class StreamClient(Client):
 
     def on_connect(self, connection):
         self.debug(
-            "Connection '%s' from '%s' connected" %
-            (connection.id, connection.owner.name)
+            "Connection '%s' %s from '%s' connected" %
+            (connection.id, connection.address, connection.owner.name)
         )
         connection.set_connected()
         if hasattr(connection, "tuple"):
@@ -904,8 +904,8 @@ class StreamClient(Client):
 
     def on_upgrade(self, connection):
         self.debug(
-            "Connection '%s' from '%s' upgraded" %
-            (connection.id, connection.owner.name)
+            "Connection '%s' %s from '%s' upgraded" %
+            (connection.id, connection.address, connection.owner.name)
         )
         connection.set_upgraded()
 
