@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
+## [1.18.3] - 2021-11-01
+
+### Added
+
+* Better debug support for connection address
+
 ## [1.18.2] - 2021-05-01
 
 ### Added
