@@ -2447,8 +2447,8 @@ class AbstractBase(observer.Observable):
         # prints some debug information about the connection that has
         # just been created (for possible debugging purposes)
         self.debug(
-            "Connection '%s' from '%s' created" %
-            (connection.id, connection.owner.name)
+            "Connection '%s' %s from '%s' created" %
+            (connection.id, connection.address, connection.owner.name)
         )
         self.debug(
             "There are %d connections for '%s'" %
@@ -2463,8 +2463,8 @@ class AbstractBase(observer.Observable):
         # prints some debug information about the connection
         # that has just been scheduled for destruction
         self.debug(
-            "Connection '%s' from '%s' deleted" %
-            (connection.id, connection.owner.name)
+            "Connection '%s' %s from '%s' deleted" %
+            (connection.id, connection.address, connection.owner.name)
         )
         self.debug(
             "There are %d connections for '%s'" %
