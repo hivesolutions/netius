@@ -1011,7 +1011,7 @@ class HTTP2Stream(netius.Stream):
         if self.status == netius.CLOSED: return
 
         # in case the reset flag is set sends the final, tries to determine
-        # the way of reseting the stream, in case the flush flag is set
+        # the way of resetting the stream, in case the flush flag is set
         # (meaning that a less strict closing is requested) and the current
         # stream is considered ready for request handling the stream reset
         # operation consists of a final chunk sending, otherwise (in case no

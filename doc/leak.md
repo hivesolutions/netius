@@ -1,6 +1,6 @@
 # Memory Leaking
 
-Memory leaking is one of the major issues when creating a service infra-structure. A correct detection of tese
+Memory leaking is one of the major issues when creating a service infra-structure. A correct detection of these
 type of problems is important to provide a stable production environment.
 
 ## Status
