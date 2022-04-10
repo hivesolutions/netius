@@ -86,3 +86,23 @@ class AsynchronousTest(unittest.TestCase):
         self.assertEqual(timeout, 1.0)
         self.assertEqual(isinstance(future, netius.Future), True)
         self.assertEqual(future.done(), True)
+
+class FutureTest(unittest.TestCase):
+
+    def test_is_future(self):
+        future = netius.Future()
+
+        result = netius.is_future(future)
+        self.assertEqual(result, True)
+
+    def test_is_future_native(self):
+        try: import asyncio
+        except: asyncio = None
+
+        if not asyncio or not hasattr(asyncio, "isfuture"):
+            self.skipTest("No asyncio or asyncio.isfuture() available")
+
+        future = netius.Future()
+
+        result = asyncio.isfuture(future)
+        self.assertEqual(result, True)

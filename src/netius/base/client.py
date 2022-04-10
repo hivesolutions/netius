@@ -689,13 +689,13 @@ class StreamClient(Client):
         # ensures that the proper socket family is defined in case the
         # requested host value is unix socket oriented, this step greatly
         # simplifies the process of created unix socket based clients
-        family = socket.AF_UNIX if host == "unix" else family
+        family = socket.AF_UNIX if host == "unix" else family #@UndefinedVariable pylint: disable=E1101
 
         # verifies the kind of socket that is going to be used for the
         # connect operation that is going to be performed, note that the
         # unix type should be used with case as it does not exist in every
         # operative system and may raised an undefined exceptions
-        is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX
+        is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX #@UndefinedVariable pylint: disable=E1101
         is_inet = family in (socket.AF_INET, socket.AF_INET6)
 
         # runs a series of default operation for the SSL related attributes

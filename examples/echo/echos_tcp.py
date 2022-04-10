@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -39,31 +39,46 @@ __license__ = "Apache License, Version 2.0"
 
 import netius
 
-class EchoServerProtocol(object):
+import asyncio
+
+class EchoServerClientProtocol(asyncio.Protocol):
+    """
+    Simple protocol implementation for an echo protocol
+    that writes back the received message through the
+    response pipeline. This implementation is inspired by
+    the Python asyncio documentation example.
+
+    :see: https://docs.python.org/3.6/library/asyncio-protocol.html#protocol-examples
+    """
 
     def connection_made(self, transport):
-        print("Bind the server connection")
+        peername = transport.get_extra_info("peername")
+        print("Connection from %s" % str(peername))
         self.transport = transport
 
-    def datagram_received(self, data, addr):
+    def data_received(self, data):
         message = data.decode()
-        print("Received %r from %s" % (message, addr))
-        print("Send %r to %s" % (message, addr))
-        self.transport.sendto(data, addr)
+        print("Data received: %s" % message)
 
-print("Starting UDP server")
+        print("Sending: %s" % message)
+        self.transport.write(data)
+
+        print("Closing the client socket")
+        self.transport.close()
 
 loop = netius.get_loop(_compat = True)
-listen = loop.create_datagram_endpoint(
-    lambda: EchoServerProtocol(),
-    local_addr = ("127.0.0.1", 9999)
+
+coro = loop.create_server(
+    lambda: EchoServerClientProtocol(),
+    "127.0.0.1", 8888
 )
-transport, protocol = loop.run_until_complete(listen)
+server = loop.run_until_complete(coro)
 
-try:
-    loop.run_forever()
-except KeyboardInterrupt:
-    pass
+print("Serving on %s" % (server.sockets[0].getsockname(),))
 
-transport.close()
+try: loop.run_forever()
+except KeyboardInterrupt: pass
+
+server.close()
+loop.run_until_complete(server.wait_closed())
 loop.close()

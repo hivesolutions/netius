@@ -188,7 +188,7 @@ class Server(Base):
 
         # ensures the proper default address value, taking into account
         # the type of connection that is currently being used, this avoids
-        # problems with multiple stack based servers (ipv4 and ipv6)
+        # problems with multiple stack based servers (IPv4 and ipv6)
         if host == None: host = "::1" if ipv6 else "127.0.0.1"
 
         # defaults the provided SSL key and certificate paths to the
@@ -230,7 +230,7 @@ class Server(Base):
         # checks the type of service that is meant to be created and
         # creates a service socket according to the defined service
         family = socket.AF_INET6 if ipv6 else socket.AF_INET
-        family = socket.AF_UNIX if is_unix else family
+        family = socket.AF_UNIX if is_unix else family #@UndefinedVariable pylint: disable=E1101
         if type == TCP_TYPE: self.socket = self.socket_tcp(
             ssl,
             key_file = key_file,
@@ -258,7 +258,7 @@ class Server(Base):
 
         # in case the set user id value the user of the current process should
         # be changed so that it represents the new (possibly unprivileged user)
-        if setuid: os.setuid(setuid)
+        if setuid: os.setuid(setuid) #pylint: disable=E1101
 
         # in case the selected port is zero based, meaning that a randomly selected
         # port has been assigned by the bind operation the new port must be retrieved
@@ -371,9 +371,9 @@ class Server(Base):
         return _socket
 
     def socket_udp(self, family = socket.AF_INET, type = socket.SOCK_DGRAM):
-        # prints a small debug message about the udp socket that is going
+        # prints a small debug message about the UDP socket that is going
         # to be created for the server's connection
-        self.debug("Creating server's udp socket ...")
+        self.debug("Creating server's UDP socket ...")
 
         # creates the socket that it's going to be used for the listening
         # of new connections (server socket) and sets it as non blocking
@@ -385,7 +385,7 @@ class Server(Base):
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-        # returns the created udp socket to the calling method so that it
+        # returns the created UDP socket to the calling method so that it
         # may be used from this point on
         return _socket
 
@@ -910,8 +910,8 @@ class StreamServer(Server):
         # to be to store pending callable operations in it
         if self.ssl: socket_c.pending = None
 
-        # verifies if the socket is of type internet (either ipv4
-        # of ipv6), this is going to be used for conditional setting
+        # verifies if the socket is of type internet (either IPv4
+        # of IPv6), this is going to be used for conditional setting
         # of some of the socket options
         is_inet = socket_c.family in (socket.AF_INET, socket.AF_INET6)
 

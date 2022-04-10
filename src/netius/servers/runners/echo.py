@@ -37,33 +37,34 @@ __copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import os
+
 import netius
 
-class EchoServerProtocol(object):
+from netius.servers import EchoProtocol, EchoServer
 
-    def connection_made(self, transport):
-        print("Bind the server connection")
-        self.transport = transport
+async def main_asyncio():
+    # retrieves a reference to the event loop as we plan to use
+    # low-level APIs, this should return the default event loop
+    import asyncio
+    loop = asyncio.get_running_loop()
+    server = await loop.create_server(lambda: EchoProtocol(), "127.0.0.1", 8888)
+    async with server:
+        await server.serve_forever()
 
-    def datagram_received(self, data, addr):
-        message = data.decode()
-        print("Received %r from %s" % (message, addr))
-        print("Send %r to %s" % (message, addr))
-        self.transport.sendto(data, addr)
-
-print("Starting UDP server")
-
-loop = netius.get_loop(_compat = True)
-listen = loop.create_datagram_endpoint(
-    lambda: EchoServerProtocol(),
-    local_addr = ("127.0.0.1", 9999)
-)
-transport, protocol = loop.run_until_complete(listen)
-
-try:
+def run_native():
+    loop, _protocol = EchoServer.serve_s(host = "127.0.0.1", port = 8888)
     loop.run_forever()
-except KeyboardInterrupt:
-    pass
+    loop.close()
 
-transport.close()
-loop.close()
+def run_asyncio():
+    netius.run(main_asyncio())
+
+if __name__ == "__main__":
+    if os.environ.get("ASYNCIO", "0") == "1" or\
+        os.environ.get("COMPAT", "0") == "1":
+        run_asyncio()
+    else:
+        run_native()
+else:
+    __path__ = []

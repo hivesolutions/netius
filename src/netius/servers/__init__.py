@@ -52,7 +52,7 @@ from . import wsgi
 
 from .dhcp import DHCPRequest, DHCPServer
 from .echo_ws import EchoWSServer
-from .echo import EchoServer
+from .echo import EchoProtocol, EchoServer
 from .ftp import FTPConnection, FTPServer
 from .http import HTTPConnection, HTTPServer
 from .http2 import HTTP2Server

@@ -40,14 +40,41 @@ __license__ = "Apache License, Version 2.0"
 import netius
 
 class EchoProtocol(netius.StreamProtocol):
-    pass
+
+    def on_data(self, data):
+        netius.StreamProtocol.on_data(self, data)
+        self.send(data)
+
+    def serve(
+        self,
+        host = "127.0.0.1",
+        port = 8888,
+        ssl = False,
+        env = False,
+        loop = None
+    ):
+        loop = netius.serve_stream(
+            lambda: self,
+            host = host,
+            port = port,
+            ssl = ssl,
+            loop = loop,
+            env = env
+        )
+        return loop, self
 
 class EchoServer(netius.ServerAgent):
 
     protocol = EchoProtocol
 
+    @classmethod
+    def serve_s(cls, **kwargs):
+        protocol = cls.protocol()
+        return protocol.serve(**kwargs)
+
 if __name__ == "__main__":
-    server = EchoServer()
-    server.serve(env = True)
+    loop, _protocol = EchoServer.serve_s()
+    loop.run_forever()
+    loop.close()
 else:
     __path__ = []

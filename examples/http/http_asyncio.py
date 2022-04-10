@@ -48,12 +48,12 @@ def print_http_headers(url, encoding = "utf-8"):
     url = urllib.parse.urlsplit(url)
 
     if url.scheme == "https":
-        connect = asyncio.open_connection(url.hostname, 443, ssl = True)
+        connect = asyncio.open_connection(url.hostname, url.port or 443, ssl = True)
     else:
-        connect = asyncio.open_connection(url.hostname, 80)
+        connect = asyncio.open_connection(url.hostname, url.port or 80)
 
     reader, writer = yield from connect
-    query = "HEAD {path} HTTP/1.0\r\n" + "Host: {hostname}\r\n" + "\r\n"
+    query = "HEAD {path} HTTP/1.1\r\nConnection: keep-alive\r\nHost: {hostname}\r\n\r\n"
     query = query.format(path = url.path or "/", hostname = url.hostname)
     writer.write(query.encode(encoding))
 
@@ -62,6 +62,7 @@ def print_http_headers(url, encoding = "utf-8"):
         if not line: break
         line = line.decode(encoding).rstrip()
         if line: print(line)
+        else: break
 
     writer.close()
 

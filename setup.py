@@ -80,6 +80,7 @@ setuptools.setup(
         "netius.mock",
         "netius.pool",
         "netius.servers",
+        "netius.servers.runners",
         "netius.sh",
         "netius.test"
     ],

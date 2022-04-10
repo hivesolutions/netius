@@ -40,10 +40,10 @@ __license__ = "Apache License, Version 2.0"
 # imports the base (old) version of the async implementation
 # that should be compatible with all the available python
 # interpreters, base collection of async library
-from .async_old import * #@UnusedWildImport
+from .async_old import * #@UnusedWildImport pylint: disable=W0614
 
 # verifies if the current python interpreter version supports
 # the new version of the async implementation and if that's the
 # case runs the additional import of symbols, this should override
 # most of the symbols that have just been created
-if is_neo(): from .async_neo import * #@UnusedWildImport
+if is_neo(): from .async_neo import * #@UnusedWildImport pylint: disable=W0614
