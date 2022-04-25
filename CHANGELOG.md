@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Custom listing using both `apache` and `legacy` for `LIST_ENGINE`
 
 ## [1.18.3] - 2021-11-01
 
