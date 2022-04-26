@@ -9,11 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Better debug support for connection address
+*
 
 ### Changed
 
 *
+
+### Fixed
+
+*
+
+## [1.18.4] - 2022-04-26
+
+### Added
+
+* Better debug support for connection address
 
 ### Fixed
 
