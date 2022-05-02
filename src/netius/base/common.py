@@ -3581,6 +3581,7 @@ class AbstractBase(observer.Observable):
         # the secure variable is extremely important to ensure that a proper and
         # secure SSL connection is established with the peer
         secure = self.get_env("SSL_SECURE", 1, cast = int) if env else 0
+        context_options = self.get_env("SSL_CONTEXT_OPTIONS", [], cast = list) if env else []
         contexts = self.get_env("SSL_CONTEXTS", {}, cast = dict) if env else {}
 
         # creates the main/default SSL context setting the default key
@@ -3591,7 +3592,11 @@ class AbstractBase(observer.Observable):
         # that in case the strict mode is enabled (default) the context
         # is unset for situation where no callback registration is possible
         self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        self._ssl_ctx_base(self._ssl_context, secure = secure)
+        self._ssl_ctx_base(
+            self._ssl_context,
+            secure = secure,
+            context_options = context_options
+        )
         self._ssl_ctx_protocols(self._ssl_context)
         self._ssl_certs(self._ssl_context)
         has_callback = hasattr(self._ssl_context, "set_servername_callback")
@@ -3602,7 +3607,11 @@ class AbstractBase(observer.Observable):
         # and certificate paths for the various defined host names and
         # uses it to create the complete set of SSL context objects
         for hostname, values in legacy.iteritems(contexts):
-            context = self._ssl_ctx(values, secure = secure)
+            context = self._ssl_ctx(
+                values,
+                secure = secure,
+                context_options = context_options
+            )
             self._ssl_contexts[hostname] = (context, values)
 
     def _ssl_destroy(self):
@@ -3622,9 +3631,9 @@ class AbstractBase(observer.Observable):
         connection.ssl_host = ssl_host
         connection.ssl_fingerprint = ssl_fingerprint
 
-    def _ssl_ctx(self, values, context = None, secure = 1):
+    def _ssl_ctx(self, values, context = None, secure = 1, context_options = []):
         context = context or ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        self._ssl_ctx_base(context, secure = secure)
+        self._ssl_ctx_base(context, secure = secure, context_options = context_options)
         self._ssl_ctx_protocols(context)
         key_file = values.get("key_file", None)
         cer_file = values.get("cer_file", None)
@@ -3642,7 +3651,7 @@ class AbstractBase(observer.Observable):
         )
         return context
 
-    def _ssl_ctx_base(self, context, secure = 1):
+    def _ssl_ctx_base(self, context, secure = 1, context_options = []):
         if secure >= 1 and hasattr(ssl, "OP_NO_SSLv2"):
             context.options |= ssl.OP_NO_SSLv2
         if secure >= 1 and hasattr(ssl, "OP_NO_SSLv3"):
@@ -3657,6 +3666,9 @@ class AbstractBase(observer.Observable):
             context.options |= ssl.OP_SINGLE_ECDH_USE
         if secure >= 1 and hasattr(ssl, "OP_CIPHER_SERVER_PREFERENCE"):
             context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
+        for context_option in context_options:
+            if not hasattr(ssl, context_option): continue
+            context.options |= getattr(ssl, context_option)
         if secure and hasattr(context, "set_ecdh_curve"):
             context.set_ecdh_curve("prime256v1")
         if secure >= 1 and SSL_DH_PATH and hasattr(context, "load_dh_params"):
