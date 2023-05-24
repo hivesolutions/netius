@@ -116,7 +116,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # froms for the current user and verifies that the current froms
         # are all contained in the list of allowed froms, otherwise raises
         # an exception indicating that the user is not allowed to relay
-        auth_meta = getattr("connection", "auth_meta", {})
+        auth_meta = getattr(connection, "auth_meta", {})
         allowed_froms = auth_meta.get("allowed_froms", [])
         allowed = not allowed_froms or all(value in allowed_froms for value in froms)
         if not allowed:

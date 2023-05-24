@@ -198,9 +198,17 @@ class SMTPConnection(netius.Connection):
         self.state = HEADER_STATE
 
     def auth_login(self, data):
-        message = "VXNlcm5hbWU6"
-        self.send_smtp(334 , message)
-        self.state = USERNAME_STATE
+        if data:
+            data_s = base64.b64decode(data)
+            data_s = netius.legacy.str(data_s)
+            self._username = data_s
+            message = "UGFzc3dvcmQ6"
+            self.send_smtp(334 , message)
+            self.state = PASSWORD_STATE
+        else:
+            message = "VXNlcm5hbWU6"
+            self.send_smtp(334 , message)
+            self.state = USERNAME_STATE
 
     def data(self):
         self.assert_s(HEADER_STATE)
