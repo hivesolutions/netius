@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Support for `allowed_tos` in SMTP relay
+* Support for `allowed_froms` in SMTP relay
 
 ### Changed
 
