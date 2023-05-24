@@ -478,7 +478,7 @@ class DatagramClient(Client):
                     # sent latter (only then the callback is called)
                     is_valid = count == data_l
                     if is_valid:
-                        callback and callback(self)
+                        if callback: callback(self)
                     else:
                         data_o = ((data[count:], callback), address)
                         self.pending.append(data_o)
