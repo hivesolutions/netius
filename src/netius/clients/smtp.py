@@ -517,7 +517,7 @@ class SMTPClient(netius.StreamClient):
                 # verifies if the callback method is defined and if that's
                 # the case calls the callback indicating the end of the send
                 # operation (note that this may represent multiple smtp sessions)
-                callback and callback(self)
+                if callback: callback(self)
 
             def handler(response = None):
                 # in case the provided response value is invalid returns

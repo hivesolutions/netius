@@ -112,6 +112,16 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         if not hasattr(connection, "username") or not connection.username:
             raise netius.SecurityError("User is not authenticated")
 
+        # using the auth meta information retrieves the list of allowed
+        # froms for the current user and verifies that the current froms
+        # are all contained in the list of allowed froms, otherwise raises
+        # an exception indicating that the user is not allowed to relay
+        auth_meta = getattr("connection", "auth_meta", {})
+        allowed_froms = auth_meta.get("allowed_froms", [])
+        allowed = not allowed_froms or all(value in allowed_froms for value in froms)
+        if not allowed:
+            raise netius.SecurityError("User is not allowed to relay from")
+
         # retrieves the current date value formatted according to
         # the smtp based specification string value, this value
         # is going to be used for the replacement of the header

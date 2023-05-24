@@ -410,7 +410,9 @@ class SMTPServer(netius.StreamServer):
 
     def on_auth_smtp(self, connection, username, password):
         self.auth.auth_assert(username, password)
+        auth_meta = self.auth.meta(username)
         connection.username = username
+        connection.auth_meta = auth_meta
 
     def on_header_smtp(self, connection, from_l, to_l):
         # creates the list that will hold the various keys

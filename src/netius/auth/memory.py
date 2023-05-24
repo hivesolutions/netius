@@ -47,10 +47,18 @@ class MemoryAuth(base.Auth):
     @classmethod
     def auth(cls, username, password, registry = None, *args, **kwargs):
         registry = registry or cls.get_registry()
+        if not registry: return False
         register = registry.get(username, None)
         if not register: return False
         _password = register.get("password")
         return cls.verify(_password, password)
+
+    @classmethod
+    def meta(cls, username, registry = None, *args, **kwargs):
+        registry = registry or cls.get_registry()
+        if not registry: return {}
+        register = registry.get(username, {})
+        return register
 
     @classmethod
     def get_registry(cls):

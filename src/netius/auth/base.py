@@ -62,6 +62,10 @@ class Auth(object):
         raise netius.NotImplemented("Missing implementation")
 
     @classmethod
+    def meta(cls, *args, **kwargs):
+        return {}
+
+    @classmethod
     def auth_assert(cls, *args, **kwargs):
         result = cls.auth(*args, **kwargs)
         if not result: raise netius.SecurityError("Invalid authentication")
