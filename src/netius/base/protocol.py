@@ -395,9 +395,9 @@ class StreamProtocol(Protocol):
         # explicitly sent through the associated transport
         return len(data)
 
-    def update_ssl(self, callback = None):
+    def upgrade_ssl(self, callback = None):
         # ensures that there's a transport defined for the current
-        # transports as that's required for the upgrade
+        # protocol, as that's required for the upgrade operation
         util.verify(
             not self._transport == None,
             message = "To upgrade a connection the transport must be defined"
