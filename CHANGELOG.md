@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Support for `allowed_froms` in SMTP relay
+*
 
 ### Changed
 
@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.19.1] - 2022-10-15
+
+### Added
+
+* Support for `allowed_froms` in SMTP relay
+
+### Changed
+
+* Improved support in the `legacy.py` module
 
 ## [1.19.0] - 2022-05-02
 
