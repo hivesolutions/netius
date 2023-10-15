@@ -82,11 +82,18 @@ with ctx_absolute():
     try: import http.client
     except ImportError: pass
 
+with ctx_absolute():
+    try: import importlib.util
+    except ImportError: pass
+
 try: import HTMLParser
 except ImportError: import html.parser; HTMLParser = html.parser
 
 try: import cPickle
 except ImportError: import pickle; cPickle = pickle
+
+try: import imp
+except ImportError: import importlib; imp = importlib
 
 try: import importlib
 except ImportError: import imp; importlib = imp
@@ -328,6 +335,17 @@ def getargspec(func):
     has_full = hasattr(inspect, "getfullargspec")
     if has_full: return ArgSpec(*inspect.getfullargspec(func)[:4])
     else: return inspect.getargspec(func)
+
+def has_module(name):
+    if PYTHON_3:
+        try: spec = importlib.util.find_spec(name)
+        except ImportError: return False
+        if spec == None: return False
+        return True
+    try: file, _path, _description = imp.find_module(name)
+    except ImportError: return False
+    if file: file.close()
+    return True
 
 def reduce(*args, **kwargs):
     if PYTHON_3: return functools.reduce(*args, **kwargs)
