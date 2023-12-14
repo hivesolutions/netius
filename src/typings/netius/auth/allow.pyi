@@ -1,12 +1,9 @@
 import netius.auth.base
 import netius.auth.base as base
-
-__version__: str
-__revision__: str
-__date__: str
+from typing import Literal
 
 class AllowAuth(netius.auth.base.Auth):
     @classmethod
-    def auth(cls, *args, **kwargs): ...
+    def auth(cls, *args, **kwargs) -> Literal[True]: ...
     @classmethod
-    def is_simple(cls): ...
+    def is_simple(cls) -> Literal[True]: ...
