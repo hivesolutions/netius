@@ -1,0 +1,26 @@
+import netius as netius
+import unittest.case
+from typing import ClassVar
+
+__version__: str
+__revision__: str
+__date__: str
+SIMPLE_REQUEST: bytes
+CHUNKED_REQUEST: bytes
+EXTRA_SPACES_REQUEST: bytes
+INVALID_HEADERS_REQUEST: bytes
+INVALID_HEADERS_TAB_REQUEST: bytes
+INVALID_HEADERS_NEWLINE_REQUEST: bytes
+INVALID_CHUNKED_REQUEST: bytes
+INVALID_TRANSFER_ENCODING_REQUEST: bytes
+INVALID_STATUS_REQUEST: bytes
+
+class HTTPParserTest(unittest.case.TestCase):
+    _classSetupFailed: ClassVar[bool] = ...
+    _class_cleanups: ClassVar[list] = ...
+    def test_simple(self): ...
+    def test_chunked(self): ...
+    def test_malformed(self): ...
+    def test_file(self): ...
+    def test_no_store(self): ...
+    def test_clear(self): ...

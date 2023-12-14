@@ -1,0 +1,13 @@
+import netius as netius
+import unittest.case
+from typing import ClassVar
+
+__version__: str
+__revision__: str
+__date__: str
+
+class HTTPServerTest(unittest.case.TestCase):
+    _classSetupFailed: ClassVar[bool] = ...
+    _class_cleanups: ClassVar[list] = ...
+    def test__headers_upper(self): ...
+    def test__headers_normalize(self): ...
