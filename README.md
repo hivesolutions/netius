@@ -2,7 +2,7 @@
 
 **Fast and readable async non-blocking network apps**
 
-Netius is a Python network library that can be used for the rapid creation of asynchronous non-blocking
+Netius is a Python network library that can be used for the rapid creation of asynchronous, non-blocking
 servers and clients. It has no dependencies, it's cross-platform, and brings some sample netius-powered
 servers out of the box, namely a production-ready WSGI server.
 
@@ -25,8 +25,8 @@ pip install netius
 
 Or download the source from [GitHub](https://github.com/hivesolutions/netius).
 
-Netius has no dependencies and is therefore cross-platform. It's compatible with [PyPy](http://pypy.org),
-with which its benefits of performance increase up to 1.5x - 2.5x faster in most environments, when
+Netius has no dependencies and is, therefore cross-platform. It's compatible with [PyPy](http://pypy.org),
+with which its benefits of performance increase up to 1.5x - 2.5x faster in most environments when
 compared with running it with the CPython interpreter.
 
 ## Usage
