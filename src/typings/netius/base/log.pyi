@@ -1,0 +1,9 @@
+from _typeshed import Incomplete
+
+__version__: str
+__revision__: str
+__date__: str
+SILENT: int
+def rotating_handler(path: str = ..., max_bytes: int = ..., max_log: int = ..., encoding: Incomplete | None = ..., delay: bool = ...): ...
+def smtp_handler(host: str = ..., port: int = ..., sender: str = ..., receivers: list = ..., subject: str = ..., username: Incomplete | None = ..., password: Incomplete | None = ..., stls: bool = ...): ...
+def in_signature(callable, name): ...

@@ -1,0 +1,13 @@
+import netius as netius
+import netius.middleware.base
+from netius.middleware.base import Middleware as Middleware
+
+__version__: str
+__revision__: str
+__date__: str
+
+class AnnoyerMiddleware(netius.middleware.base.Middleware):
+    def __init__(self, owner, period: float = ...) -> None: ...
+    def start(self): ...
+    def stop(self): ...
+    def _run(self): ...
