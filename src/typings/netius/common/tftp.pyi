@@ -1,9 +1,0 @@
-__version__: str
-__revision__: str
-__date__: str
-RRQ_TFTP: int
-WRQ_TFTP: int
-DATA_TFTP: int
-ACK_TFTP: int
-ERROR_TFTP: int
-TYPES_TFTP: dict
