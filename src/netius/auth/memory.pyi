@@ -5,7 +5,7 @@ from netius import Auth
 class MemoryAuth(Auth):
     def __init__(
         self, registry: dict[str, Any] | None = ..., *args, **kwargs
-    ) -> None: ...
+    ): ...
     @classmethod
     def auth(
         cls,

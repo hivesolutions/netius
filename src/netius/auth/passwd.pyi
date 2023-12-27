@@ -3,7 +3,7 @@ from typing import PathLike
 from netius import Auth
 
 class PasswdAuth(Auth):
-    def __init__(self, path: PathLike[str] | None = ..., *args, **kwargs) -> None: ...
+    def __init__(self, path: PathLike[str] | None = ..., *args, **kwargs): ...
     @classmethod
     def auth(
         cls, username: str, password: str, path: str = ..., *args, **kwargs

@@ -5,7 +5,7 @@ from netius import Auth
 class SimpleAuth(Auth):
     def __init__(
         self, username: str | None = ..., password: str | None = ..., *args, **kwargs
-    ) -> None: ...
+    ): ...
     @classmethod
     def auth(
         cls,
