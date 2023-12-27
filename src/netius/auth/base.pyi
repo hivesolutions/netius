@@ -1,6 +1,6 @@
-import netius as netius
-
 from typing import Any, Literal, NoReturn, PathLike, Unbound
+
+HashType = Literal["plain", "md5", "sha1", "sha256", "sha512"] 
 
 class Auth:
     def __init__(self, *args, **kwargs) -> None: ...
@@ -13,7 +13,7 @@ class Auth:
     @classmethod
     def verify(cls, encoded: str, decoded: str) -> bool: ...
     @classmethod
-    def generate(cls, password: str, type: str = ..., salt: str = ...) -> str: ...
+    def generate(cls, password: str, type: HashType = ..., salt: str = ...) -> str: ...
     @classmethod
     def unpack(cls, password) -> tuple[Any | Literal["plain"], bytes | Any | str | None, Any | None, Unbound | Any | None]: ...
     @classmethod
