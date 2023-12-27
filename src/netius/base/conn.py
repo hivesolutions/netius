@@ -52,12 +52,12 @@ from . import legacy
 from . import observer
 
 OPEN = 1
-""" The open status value, meant to be used in situations
+""" The open status value meant to be used in situations
 where the status of the entity is open (opposite of d) """
 
 CLOSED = 2
 """ Closed status value to be used in entities which have
-no pending structured opened and operations are limited """
+no pending structured opened, and operations are limited """
 
 PENDING = 3
 """ The pending status used for transient states (eg created)
@@ -71,10 +71,10 @@ class BaseConnection(observer.Observable):
     """
     Abstract connection object that should encapsulate
     a socket object enabling it to be accessed in much
-    more "protected" way avoiding possible sync problems.
+    more "protected" way, avoiding possible sync problems.
 
     It should also abstract the developer from all the
-    select associated complexities adding and removing the
+    select associated complexities, adding and removing the
     underlying socket from the selecting mechanism for the
     appropriate operations.
     """
@@ -141,22 +141,22 @@ class BaseConnection(observer.Observable):
         owner.sub_error(self.socket)
 
         # adds the current connection object to the list of
-        # connections in the owner and the registers it in
+        # connections in the owner and the registers in
         # the map that associates the socket with the connection
         owner.connections.append(self)
         owner.connections_m[self.socket] = self
 
-        # sets the status of the current connection as open
+        # sets the current connection status as open
         # as all the internal structures have been correctly
         # updated and not it's safe to perform operations
         self.status = OPEN
 
-        # in case the connect flag is set must set the current
-        # connection as connecting indicating that some extra
+        # in case the connect flag is set, must set the current
+        # connection as connecting, indicating that some extra
         # steps are still required to complete the connection
         if connect: self.set_connecting()
 
-        # calls the top level on connection creation handler so that the owner
+        # calls the top level of connection creation handler so that the owner
         # object gets notified about the creation of the connection (open)
         owner.new_connection(self)
 
@@ -166,25 +166,25 @@ class BaseConnection(observer.Observable):
         self.trigger("open", self)
 
     def close(self, flush = False, destroy = True):
-        # in case the current status of the connection is closes it does
+        # in case the current status of the connection is closed it does
         # nor make sense to proceed with the closing as the connection
         # is already in the closed state (nothing to be done)
         if self.status == CLOSED: return
 
-        # in case the flush flag is set a different approach is taken
+        # in case the flush flag is set, a different approach is taken
         # where all the pending data is flushed (as possible) before
         # the connection is effectively closed, this is only valid in
         # case the current connection status is open and not connecting
         if flush and self.status == OPEN and not self.connecting:
             return self.close_flush()
 
-        # immediately sets the status of the connection as closed
-        # so that no one else changed the current connection status
+        # immediately sets the connection status as closed
+        # so that no one else changes the current connection status
         # this is relevant to avoid any erroneous situation
         self.status = CLOSED
 
         # unsets the connecting flag this is for connections that
-        # are under the connecting state and that must be reverted
+        # are under the connecting state, and that must be reverted
         # to the original not connecting state
         self.connecting = False
 
@@ -198,8 +198,8 @@ class BaseConnection(observer.Observable):
         # should avoid extra erroneous write operations
         self.wready = False
 
-        # resets the size of the data pending to be send and the clears
-        # the list of pending information (invalidation the previous one)
+        # resets the size of the data pending to be sent and the clears
+        # the list of pending information (invalidation of the previous one)
         self.pending_s = 0
         self.pending.clear()
 
@@ -209,27 +209,27 @@ class BaseConnection(observer.Observable):
         self.restored.clear()
 
         # retrieves the reference to the owner object from the
-        # current instance to be used to removed the socket from the
+        # current instance to be used to remove the socket from the
         # proper pooling mechanisms (at least for reading)
         owner = self.owner
 
         # removes the socket from all the polling mechanisms so that
-        # interaction with it is no longer part of the selecting mechanism
+        # interaction with it is no longer part of the selection mechanism
         self.owner.unsub_all(self.socket)
 
-        # removes the current connection from the list of connection in the
+        # removes the current connection from the list of connections in the
         # owner and also from the map that associates the socket with the
         # proper connection (also in the owner)
         if self in owner.connections: owner.connections.remove(self)
         if self.socket in owner.connections_m: del owner.connections_m[self.socket]
 
-        # closes the socket, using the proper gracefully way so that
-        # operations are no longer allowed in the socket, in case there's
+        # closes the socket, using the proper grace way so that
+        # operations are no longer allowed in the socket in case there are
         # an error in the operation fails silently (on purpose)
         try: self.socket.close()
         except Exception: pass
 
-        # calls the top level on connection delete handler so that the owner
+        # calls the top level of the connection delete handler so that the owner
         # object gets notified about the deletion of the connection (closed)
         owner.del_connection(self)
 
@@ -238,9 +238,9 @@ class BaseConnection(observer.Observable):
         # the current netius specification and strategy
         self.trigger("close", self)
 
-        # in case the destroy flag is set the current object is destroy meaning that
-        # for instance the current event registered handlers will no longer be available
-        # this is important to avoid any memory leak from circular references, from
+        # in case the destroy flag is set, the current object is destroyed meaning that
+        # for instance, the current event registered handlers will no longer be available
+        # this is important to avoid any memory leak from circular references from
         # this moment on the connection is considered disabled (not ready for usage)
         if destroy: self.destroy()
 
@@ -248,8 +248,8 @@ class BaseConnection(observer.Observable):
         self.send(None, callback = self._close_callback)
 
     def upgrade(self, key_file = None, cer_file = None, ca_file = None, server = True):
-        # in case the current connection is already an SSL oriented one there's
-        # nothing to be done here and the method returns immediately to caller
+        # in case the current connection is already an SSL-oriented one there's
+        # nothing to be done here, and the method returns immediately to the caller
         if self.ssl: return
 
         # prints a debug message about the upgrading of the connection that is
@@ -263,7 +263,7 @@ class BaseConnection(observer.Observable):
         self.ssl = True
         self.upgrading = True
 
-        # determines if the arguments based certificate and key values should be used
+        # determines if the arguments-based certificate and key values should be used
         # of if instead the owner values should be used as a fallback process, these
         # values are going to be used as part of the SSL upgrade process
         if hasattr(self.owner, "key_file"): key_file = key_file or self.owner.key_file
@@ -282,9 +282,9 @@ class BaseConnection(observer.Observable):
         del self.owner.connections_m[self.socket]
         self.owner.unsub_all(self.socket)
 
-        # upgrades the current socket into an SSL oriented socket, note that the server
-        # flag controls if the socket to be created is a client or a server one this
-        # is relevant for the SSL handshaking part of the connection, the resulting
+        # upgrades the current socket into an SSL-oriented socket, note that the server
+        # flag controls if the socket to be created is a client or a server on this
+        # is relevant for the SSL handshaking part of the connection, and the resulting
         # encapsulated SSL socket is then set as the current connection's socket
         self.socket = self.owner._ssl_upgrade(
             self.socket,
@@ -294,8 +294,8 @@ class BaseConnection(observer.Observable):
             server = server
         )
 
-        # updates the current socket in connection resolution map with the new SSL one
-        # and then subscribes the same socket for the read and error events
+        # updates the current socket in the connection resolution map with the new SSL one
+        # and then subscribes to the same socket for the read and error events
         self.owner.connections_m[self.socket] = self
         self.owner.sub_read(self.socket)
         self.owner.sub_error(self.socket)
@@ -340,19 +340,19 @@ class BaseConnection(observer.Observable):
         if not is_safe: return self.owner.delay(self.ensure_write, safe = True)
 
         # verifies if the status of the connection is open and
-        # in case it's not returns immediately as there's no reason
+        # in case it's not returned immediately as there's no reason
         # to so it for writing
         if not self.status == OPEN: return
 
         # in case the write ready flag is enabled (writes allowed)
-        # and the flush parameter is set the ensure operation performs
+        # and the flush parameter is set to the ensure operation performs
         # the flush of the write operations (instead of subscription)
         # this may be done because it's safe to flush the write operations
         # when the write ready flag for the connection is set
         if self.wready and flush: return self._flush_write()
 
         # verifies if the owner object is already subscribed for the
-        # write operation in case it is returns immediately in order
+        # write operation in case it is returned immediately in order
         # avoid any extra subscription operation
         if self.owner.is_sub_write(self.socket): return
 
@@ -370,7 +370,7 @@ class BaseConnection(observer.Observable):
         Enables read operations for the current connection
         this will set the read enable flag and then subscribe
         to the read operations in case the underlying poll
-        method is not of type edge (level based).
+        method is not of type edge (level-based).
 
         This is a dangerous operation as it may cause the system
         to stall if misused.
@@ -384,7 +384,7 @@ class BaseConnection(observer.Observable):
 
     def disable_read(self):
         """
-        Disables any read operation on the current socket, does that
+        Disables any read operation on the current socket does that
         by disabling the current read enable and then unsubscribing
         the current connection from the read operation.
 
@@ -400,7 +400,7 @@ class BaseConnection(observer.Observable):
 
     def send(self, data, address = None, delay = True, force = False, callback = None):
         """
-        The main send call to be used by a proxy connection and
+        The main send call is to be used by a proxy connection and
         from different threads.
 
         This method is the equivalent on a socket basis to both the
@@ -411,7 +411,7 @@ class BaseConnection(observer.Observable):
         the delay flag should be set and the sending will be delayed.
         This is especially useful to avoid a stack overflow situation
         because of extended callback calling, for example while sending
-        very large chunks of information (eg: multi megabyte files).
+        very large chunks of information (eg: multi-megabyte files).
 
         An optional callback attribute may be sent, so that when the
         send is complete it's called with a reference to the data object.
@@ -425,11 +425,11 @@ class BaseConnection(observer.Observable):
         through this connection to the other endpoint.
         :type address: Tuple
         :param address: The target address for the send operation,
-        this is relevant only for datagram based connections.
+        this is relevant only for datagram-based connections.
         :type delay: bool
         :param delay: If the send operation should be delayed until
         the next tick operation or if it should be performed as
-        soon as possible (as defined in specification).
+        soon as possible (as defined in the specification).
         :type force: bool
         :param force: If the sending of the data should be "forced",
         meaning that even if the connection is not open the data
@@ -462,7 +462,7 @@ class BaseConnection(observer.Observable):
         data = (data, address, callback)
 
         # retrieves the identifier of the current thread and then
-        # verifies if it's the same as thread where the event loop
+        # verifies if it's the same as the thread where the event loop
         # is being executed (safe execution) for options to be taken
         cthread = threading.current_thread()
         tid = cthread.ident or 0
@@ -473,12 +473,12 @@ class BaseConnection(observer.Observable):
         # sent in the proper (flush) write operation
         self.pend(data)
 
-        # verifies if the write ready flag is set, for that case the
+        # verifies if the write-ready flag is set, for that case the
         # write flushing operation must be performed, so that all pending
         # bytes to be sent in the connection may be flushed as fast as
         # possible (avoiding extra loops in polling)
         if self.wready:
-            # checks if the safe flag is set and if it is runs
+            # checks if the safe flag is set and if it runs
             # the send operation right way otherwise "waits" until
             # the next tick operation (delayed execution), note that
             # running the flush operation immediately may lead to
@@ -492,7 +492,7 @@ class BaseConnection(observer.Observable):
             )
 
         # otherwise the write stream is not ready and so the
-        # connection must be ensured to be write ready, should
+        # connection must be ensured to write ready, should
         # subscribe to the write events as soon as possible
         else: self.ensure_write()
 
@@ -512,15 +512,15 @@ class BaseConnection(observer.Observable):
         else: data_b = data
 
         # calculates the size in bytes of the provided data so
-        # that it may be used latter for the incrementing of
+        # that it may be used later for the incrementing of
         # of the total size of pending bytes
         data_l = len(data_b) if data_b else 0
 
         # acquires the pending lock and then inserts the data into
         # the list of pending information to sent to the client end
         # point, notice that it's inserted at the beginning of the list
-        # as the pop operation is performed at the end of list, meaning
-        # that the fifo strategy is maintained
+        # as the pop operation is performed at the end of the list, meaning
+        # that the FIFO strategy is maintained
         self.pending_lock.acquire()
         try:
             if back: self.pending.appendleft(data)
@@ -546,13 +546,13 @@ class BaseConnection(observer.Observable):
         :param data: The buffer of data that is going to be restored
         to the internal receive buffers.
         :type back: bool
-        :param back: If the data should be restore to the "back" of
+        :param back: If the data should be restored to the "back" of
         the internal buffers, or if instead it should be added to the
         front (next to be received) part of the buffer.
         """
 
         # calculates the size in bytes of the provided data so
-        # that it may be used latter for the incrementing of
+        # that it may be used later for the incrementing of
         # of the total size of restored bytes
         data_l = len(data) if data else 0
 
@@ -574,8 +574,8 @@ class BaseConnection(observer.Observable):
         # iterates continuously around the set of registered
         # starters for the current connection to try to run as
         # much as possible all of their logic, some of them may
-        # fail as the complete set of resources are not available
-        # and should resume on next loop tick
+        # fail as the complete set of resources is not available
+        # and should resume on the next loop tick
         while True:
             # tries to retrieve the proper starter method to be
             # used in the current iteration, either from the currently
@@ -596,7 +596,7 @@ class BaseConnection(observer.Observable):
             starter(self)
 
             # tries to determine if the start has finished and if
-            # that's note the case breaks the loop, as stater should
+            # that's note the case breaks the loop, as the stater should
             # finish on the next loop tick
             finished = self._starter == None
             if not finished: return True
@@ -703,7 +703,7 @@ class BaseConnection(observer.Observable):
 
         # in case the current connection is under the connecting stage
         # it's not possible to perform a sending operation and the
-        # send operation is ignored, note that the write ready flag
+        # send operation is ignored, note that the write-ready flag
         # is still set as it may be used later for flushing operations
         if self.connecting: return
 
@@ -716,13 +716,13 @@ class BaseConnection(observer.Observable):
             # sent is correctly sent to the other peer if that's possible
             while True:
                 # verifies if there's data pending to be sent in case
-                # there's not returns immediately, because there's
-                # nothing pending to be done for such case
+                # there's not returns immediately, because there is
+                # nothing pending to be done for such a case
                 if not self.pending: break
 
-                # retrieves the current data chunk to be send from the
+                # retrieves the current data chunk to be sent from the
                 # list of pending things and then saves the data chunk
-                # in an "original" object an tries to unpack it in case
+                # in an "original" object and tries to unpack it in case
                 # the type of it is a tuple
                 data = self.pending.pop()
                 data_o = data
@@ -737,7 +737,7 @@ class BaseConnection(observer.Observable):
                     # the same as the size of the data in case only
                     # part of the data has been sent, note that if no
                     # data is provided the shutdown operation is performed
-                    # instead to close the stream between both sockets
+                    # instead of closing the stream between both sockets
                     if is_close: self._shutdown(); count = 0
                     elif address: count = self.socket.sendto(data, address)
                     elif data: count = self.socket.send(data)
@@ -746,7 +746,7 @@ class BaseConnection(observer.Observable):
                     # verifies if the current situation is that of a non
                     # closed socket and valid data, and if that's the case
                     # and no data has been sent the socket is considered to
-                    # be in a would block situation and and such an error
+                    # be in a would-block situation and such an error
                     # is raised indicating the issue (is going to be caught
                     # as a normal would block exception)
                     if not is_close and data and count == 0:
@@ -768,13 +768,13 @@ class BaseConnection(observer.Observable):
                     self.pending.append(data_o)
 
                     # re-raises the current to the upper layers so that they
-                    # can properly handle what happened here, sometime this
-                    # is going to imply a graceful handling other times the
+                    # can properly handle what happened here, sometimes this
+                    # is going to imply a graceful handling of other times the
                     # exception is critical and a more severe handling applies
                     raise
                 else:
                     # decrements the size of the pending buffer by the number
-                    # of bytes that were correctly send through the buffer
+                    # of bytes that were correctly sent through the buffer
                     self.pending_s -= count
 
                     # verifies if the data has been correctly (and completely)
@@ -832,9 +832,9 @@ class BaseConnection(observer.Observable):
         if self.status == CLOSED: return
 
         try:
-            # verifies the type of connection and taking that
+            # verifies the type of connection and takes that
             # into account runs the proper shutdown operation
-            # either the SSL based shutdown that unwraps the
+            # either the SSL-based shutdown that unwraps the
             # current secure connection and send a graceful
             # shutdown notification to the other peer, or the
             # normal shutdown operation for the socket
@@ -842,10 +842,10 @@ class BaseConnection(observer.Observable):
                 self.socket._sslobj.shutdown()
             if force: self.socket.shutdown(socket.SHUT_RDWR)
         except (IOError, socket.error, ssl.SSLError):
-            # ignores the IO/SSL error that has just been raise, this
+            # ignores the IO/SSL error that has just been raised, this
             # assumes that the problem that has just occurred is not
             # relevant as the socket is shutting down and if a problem
-            # occurs that must be related with the socket being closed
+            # occurs that must be related to the socket being closed
             # on the other side of the connection
             if not ignore: raise
 
@@ -856,7 +856,7 @@ class BaseConnection(observer.Observable):
 
     def _close_callback(self, connection):
         """
-        The callback to the delayed (flush based) close operation
+        The callback to the delayed (flush-based) close operation
         of the connection. This callback should be able to destroy
         and close all the resources associated with the connection.
 
@@ -869,7 +869,7 @@ class BaseConnection(observer.Observable):
 
     def _flush_write(self):
         """
-        Flush operations to be called by the delaying controller
+        Flush operations are to be called by the delaying controller
         (in ticks) that will trigger all the write operations
         pending for the current connection's socket.
         """
