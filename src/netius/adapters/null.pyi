@@ -1,4 +1,4 @@
-import netius.adapters.base
-import netius.adapters.base as base
+from netius import BaseAdapter
 
-class NullAdapter(netius.adapters.base.BaseAdapter): ...
+class NullAdapter(BaseAdapter):
+    pass

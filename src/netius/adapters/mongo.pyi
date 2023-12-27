@@ -1,6 +1,4 @@
-import netius.adapters.base
-import netius.adapters.base as base
+from netius import BaseAdapter
 
-class MongoAdapter(netius.adapters.base.BaseAdapter):
-    def set(self, value: str, owner: str = ...): ...
-    def get(self, key: str): ...
+class MongoAdapter(BaseAdapter):
+    pass
