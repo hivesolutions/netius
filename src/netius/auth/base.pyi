@@ -1,4 +1,4 @@
-from typing import Any, Literal, NoReturn, PathLike
+from typing import Any, Literal, Mapping, NoReturn, PathLike
 
 HashType = Literal["plain", "md5", "sha1", "sha256", "sha512"]
 
@@ -7,7 +7,7 @@ class Auth:
     @classmethod
     def auth(cls, *args, **kwargs) -> bool: ...
     @classmethod
-    def meta(cls, *args, **kwargs) -> dict[str, Any]: ...
+    def meta(cls, *args, **kwargs) -> Mapping[str, Any]: ...
     @classmethod
     def auth_assert(cls, *args, **kwargs) -> NoReturn: ...
     @classmethod
