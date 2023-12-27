@@ -1,0 +1,6 @@
+from netius import Auth
+
+class DummyAuth(Auth):
+    def __init__(self, value: bool = ..., *args, **kwargs) -> None: ...
+    @classmethod
+    def auth(cls, value: bool = ..., *args, **kwargs) -> bool: ...
