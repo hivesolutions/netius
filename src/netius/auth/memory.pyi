@@ -1,17 +1,25 @@
-import netius as netius
-import netius.auth.base
-import netius.auth.base as base
+from typing import Any
 
-from typing import Dict
+from netius import Auth
 
-class MemoryAuth(netius.auth.base.Auth):
-    def __init__(self, registry: Dict | None = ..., *args, **kwargs) -> None: ...
+class MemoryAuth(Auth):
+    def __init__(
+        self, registry: dict[str, Any] | None = ..., *args, **kwargs
+    ) -> None: ...
     @classmethod
-    def auth(cls, username: str, password: str, registry: dict | None = ..., *args, **kwargs) -> bool: ...
+    def auth(
+        cls,
+        username: str,
+        password: str,
+        registry: dict[str, Any] | None = ...,
+        *args,
+        **kwargs
+    ) -> bool: ...
     @classmethod
-    def meta(cls, username: str, registry: Dict | None = ..., *args, **kwargs) -> Dict: ...
+    def meta(
+        cls, username: str, registry: dict[str, Any] | None = ..., *args, **kwargs
+    ) -> dict[str, Any]: ...
     @classmethod
-    def get_registry(cls) -> Dict: ...
+    def get_registry(cls) -> dict[str, Any]: ...
     @classmethod
-    def load_registry(cls) -> Dict: ...
-    def auth_i(self, username: str, password: str, *args, **kwargs) -> bool: ...
+    def load_registry(cls) -> dict[str, Any]: ...

@@ -1,12 +1,13 @@
-import netius.auth.base
-import netius.auth.base as base
+from typing import PathLike
 
-from typing import PathLike, Any, Dict
+from netius import Auth
 
-class PasswdAuth(netius.auth.base.Auth):
+class PasswdAuth(Auth):
     def __init__(self, path: PathLike[str] | None = ..., *args, **kwargs) -> None: ...
     @classmethod
-    def auth(cls, username: str, password: str, path: str = ..., *args, **kwargs) -> bool: ...
+    def auth(
+        cls, username: str, password: str, path: str = ..., *args, **kwargs
+    ) -> bool: ...
     @classmethod
-    def get_passwd(cls, path: PathLike[str], cache: bool = ...) -> (Any | Dict): ...
+    def get_passwd(cls, path: PathLike[str], cache: bool = ...) -> dict[str, str]: ...
     def auth_i(self, username: str, password: str, *args, **kwargs) -> bool: ...
