@@ -323,6 +323,9 @@ class BaseConnection(observer.Observable):
         if address: self.trigger("data", self, data, address)
         else: self.trigger("data", self, data)
 
+    def set_exception(self, exception):
+        self.trigger("exception", self, exception)
+
     def ensure_write(self, flush = True):
         # retrieves the identifier of the current thread and
         # checks if it's the same as the one defined in the

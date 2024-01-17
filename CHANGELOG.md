@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Support for Postmaster email in SMTP relay using the `POSTMASTER` configuration value
+* Support for the `exception` event in the `Connection` triggered when a exception is raised in the connection domain
 
 ### Changed
 

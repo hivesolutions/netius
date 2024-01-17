@@ -54,15 +54,18 @@ class RelaySMTPServer(netius.servers.SMTPServer):
     to relay the messages.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, postmaster = None, *args, **kwargs):
         netius.servers.SMTPServer.__init__(self, *args, **kwargs)
+        self.postmaster = postmaster
         self.dkim = {}
 
     def on_serve(self):
         netius.servers.SMTPServer.on_serve(self)
+        self.postmaster = self.get_env("POSTMASTER", self.postmaster)
         self.dkim = self.get_env("DKIM", self.dkim)
         dkim_l = len(self.dkim)
         self.info("Starting Relay SMTP server with %d DKIM registers  ..." % dkim_l)
+        if self.postmaster: self.info("Using '%s' as the Postmaster email sender ..." % self.postmaster)
 
     def on_header_smtp(self, connection, from_l, to_l):
         netius.servers.SMTPServer.on_header_smtp(self, connection, from_l, to_l)
@@ -131,7 +134,12 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # the one that is going to be used for message id generation
         # and then generates a new "temporary" message id
         first = froms[0]
-        message_id = self.message_id(connection, email = first)
+        message_id = self.message_id(connection = connection, email = first)
+
+        # the default reply to value is the first from value and it
+        # should serve as a way to reply with errors in case they
+        # exist - this way we can notify the sender (postmaster)
+        reply_to = first
 
         # parses the provided contents as mime text and then appends
         # the various extra fields so that the relay operation is
@@ -145,7 +153,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         headers.set("Message-ID", message_id)
         contents = netius.common.rfc822_join(headers, body)
 
-        # tries to sign the message using dkim, the server is going to
+        # tries to sign the message using DKIM, the server is going to
         # search the current registry, trying to find a registry for the
         # domain of the sender and if it finds one signs the message using
         # the information provided by the registry
@@ -157,6 +165,13 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # all the hosts associated with the recipients are notified
         callback = lambda smtp_client: smtp_client.close()
 
+        # creates the callback to the error as a function that sends a
+        # postmaster email to the reply to address found in the message,
+        # note that this is only performed in case there's a valid email
+        # address defined as postmaster for this SMTP server
+        callback_error = lambda smtp_client, context, exception:\
+            self.relay_postmaster(reply_to, context, exception)
+
         # generates a new smtp client for the sending of the message,
         # uses the current host for identification and then triggers
         # the message event to send the message to the target host
@@ -166,21 +181,73 @@ class RelaySMTPServer(netius.servers.SMTPServer):
             tos,
             contents,
             mark = False,
-            callback = callback
+            callback = callback,
+            callback_error = callback_error
+        )
+
+    def relay_postmaster(self, reply_to, context, exception):
+        # validates that the base information required for
+        # postmaster processing is available, meaning that
+        # a reply to address is present and the postmaster
+        # email was defined for the server
+        if not reply_to: return
+        if not self.postmaster: return
+
+        # tries to extract both the main message and the details
+        # from the information available from the exception
+        message = exception.message if hasattr(exception, "message") else str(exception)
+        details = exception.details if (hasattr(exception, "details") and\
+            isinstance(exception.details, (list, tuple))) else []
+
+        # builds the base sender and receiver information for
+        # the postmaster email to be sent
+        froms = (self.postmaster,)
+        tos = (reply_to,)
+        first = froms[0]
+
+        # builds the contents of the message, using the extracted
+        # exception information
+        tos_s = ",".join(context.get("tos", []))
+        subject = "Problem sending SMTP email to: %s" % tos_s
+        contents = "Subject: %s\r\n\r\n%s\r\n%s\r\nDetails: %s" % (
+            subject,
+            subject,
+            message,
+            "\n".join(details) or "-"
+        )
+
+        # builds a new SMTP client that is going to be used
+        # for the postmaster operation, ensures that the
+        # correct contents are set in the message (including DKIM)
+        smtp_client = netius.clients.SMTPClient(host = self.host)
+        contents = smtp_client.comply(
+            contents,
+            froms = froms,
+            tos = tos,
+            message_id = self.message_id(email = first)
+        )
+        contents = smtp_client.mark(contents)
+        contents = self.dkim_contents(contents, email = first)
+        smtp_client.message(
+            froms,
+            tos,
+            contents,
+            mark = False
         )
 
     def date(self):
         date_time = datetime.datetime.utcnow()
         return date_time.strftime("%a, %d %b %Y %H:%M:%S +0000")
 
-    def message_id(self, connection, email = "user@localhost"):
+    def message_id(self, connection = None, email = "user@localhost"):
         _user, domain = email.split("@", 1)
         domain = self.host or domain
         identifier = str(uuid.uuid4())
         identifier = netius.legacy.bytes(identifier)
         identifier = hashlib.sha1(identifier).hexdigest()
         identifier = identifier.upper()
-        identifier = connection.identifier or identifier
+        if connection and connection.identifier:
+            identifier = connection.identifier
         return "<%s@%s>" % (identifier, domain)
 
     def dkim_contents(self, contents, email = "user@localhost", creation = None):

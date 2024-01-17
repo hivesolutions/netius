@@ -54,9 +54,11 @@ class NetiusError(Exception):
         code = args[1] if len(args) > 1 else 500
         kwargs["message"] = kwargs.get("message", message)
         kwargs["code"] = kwargs.get("code", code)
+        kwargs["details"] = kwargs.get("details", [])
         self.kwargs = kwargs
         self.message = kwargs["message"]
         self.code = kwargs["code"]
+        self.details = kwargs["details"]
         self._uid = None
 
     def get_kwarg(self, name, default = None):

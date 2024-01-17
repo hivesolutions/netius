@@ -888,6 +888,7 @@ class StreamClient(Client):
     def on_exception(self, exception, connection):
         self.warning(exception)
         self.log_stack()
+        connection.set_exception(exception)
         connection.close()
 
     def on_expected(self, exception, connection):
