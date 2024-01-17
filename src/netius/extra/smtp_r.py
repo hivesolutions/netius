@@ -208,13 +208,15 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # builds the contents of the message, using the extracted
         # exception information
         tos_s = ",".join(context.get("tos", []))
-        subject = "Problem sending SMTP email to: %s" % tos_s
-        contents = "Subject: %s\r\n\r\n%s\r\n%s\r\nDetails: %s" % (
-            subject,
-            subject,
-            message,
-            "\n".join(details) or "-"
-        )
+        contents_o = context.get("contents", [])
+        subject = "Delivery Status Notification (Failure) - %s" % tos_s
+        contents_l = []
+        contents_l.append("Subject: %s\r\n\r\n" % subject)
+        contents_l.append("%s\r\n" % subject)
+        contents_l.append("Message: %s\r\n" % message)
+        contents_l.append("Details: %s\r\n\r\n" % ("\n".join(details) or "-"))
+        contents_l.append("----- Original message -----\r\n\r\n%s" % contents_o)
+        contents = "".join(contents_l)
 
         # builds a new SMTP client that is going to be used
         # for the postmaster operation, ensures that the
