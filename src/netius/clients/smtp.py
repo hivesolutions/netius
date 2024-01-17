@@ -517,20 +517,22 @@ class SMTPClient(netius.StreamClient):
         # this should provide some extra information on the agent
         if mark: contents = self.mark(contents)
 
-        # creates the context object that will be used to pass
-        # contextual information to the callbacks
-        context = dict(
-            froms = froms,
-            tos = tos,
-            contents = contents,
-            mark = mark,
-            comply = comply,
-            ensure_loop = ensure_loop
-        )
-
         # creates the method that is able to generate handler for a
         # certain sequence of to based (email) addresses
         def build_handler(tos, domain = None, tos_map = None):
+
+            # creates the context object that will be used to pass
+            # contextual information to the callbacks
+            context = dict(
+                froms = froms,
+                tos = tos,
+                contents = contents,
+                mark = mark,
+                comply = comply,
+                ensure_loop = ensure_loop,
+                domain = domain,
+                tos_map = tos_map
+            )
 
             def on_close(connection = None):
                 # verifies if the current handler has been build with a
