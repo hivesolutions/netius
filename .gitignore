@@ -10,6 +10,8 @@ session.shelve*
 net.ca
 fs.data
 
+/.venv
+
 /dist
 /build
 /src/netius.egg-info

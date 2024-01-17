@@ -8,7 +8,7 @@ servers out of the box, namely a production-ready WSGI server.
 
 Simplicity and performance are the main drivers of this project. The codebase adheres to rigorous
 code standards and is extensively commented on. As far as performance is concerned, it aims to
-be up to par with equivalent native implementations, where [PyPy](http://pypy.org) can 
+be up to par with equivalent native implementations, where [PyPy](http://pypy.org) can
 provide the extra boost to raise performance up to these standards.
 
 Bear in mind that although netius is non-blocking, it will naturally still block if the operations
