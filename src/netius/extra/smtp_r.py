@@ -215,7 +215,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         contents_l.append("%s\r\n" % subject)
         contents_l.append("Message: %s\r\n" % message)
         contents_l.append("Details: %s\r\n\r\n" % ("\n".join(details) or "-"))
-        contents_l.append("----- Original message -----\r\n\r\n%s" % contents_o)
+        contents_l.append("----- Original message -----\r\n\r\n%s" % netius.legacy.str(contents_o))
         contents = "".join(contents_l)
 
         # builds a new SMTP client that is going to be used
@@ -229,6 +229,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
             message_id = self.message_id(email = first)
         )
         contents = smtp_client.mark(contents)
+        contents = netius.legacy.bytes(contents)
         contents = self.dkim_contents(contents, email = first)
         smtp_client.message(
             froms,
