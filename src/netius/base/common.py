@@ -3591,13 +3591,14 @@ class AbstractBase(observer.Observable):
         # is available, so that proper concrete context may be set, note
         # that in case the strict mode is enabled (default) the context
         # is unset for situation where no callback registration is possible
-        self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        self._ssl_ctx_base(
-            self._ssl_context,
-            secure = secure,
-            context_options = context_options
-        )
-        self._ssl_ctx_protocols(self._ssl_context)
+        self._ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        #self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        #self._ssl_ctx_base(
+        #    self._ssl_context,
+        #    secure = secure,
+        #    context_options = context_options
+        #)
+        #self._ssl_ctx_protocols(self._ssl_context)
         self._ssl_certs(self._ssl_context)
         has_callback = hasattr(self._ssl_context, "set_servername_callback")
         if has_callback: self._ssl_context.set_servername_callback(self._ssl_callback)
@@ -3683,14 +3684,14 @@ class AbstractBase(observer.Observable):
         if not ssl.HAS_ALPN: return
         if hasattr(context, "set_alpn_protocols"):
             protocols = self.get_protocols()
-            protocols and context.set_alpn_protocols(protocols)
+            if protocols: context.set_alpn_protocols(protocols)
 
     def _ssl_ctx_npn(self, context):
         if not hasattr(ssl, "HAS_NPN"): return
         if not ssl.HAS_NPN: return
         if hasattr(context, "set_npn_protocols"):
             protocols = self.get_protocols()
-            protocols and context.set_npn_protocols(protocols)
+            if protocols: context.set_npn_protocols(protocols)
 
     def _ssl_certs(
         self,
