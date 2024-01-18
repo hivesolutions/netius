@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+*
+
+### Fixed
+
+*
+
+## [1.19.3] - 2024-01-18
+
+### Changed
+
 * Improved the structure of the Postmaster message
 
 ### Fixed
