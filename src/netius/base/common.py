@@ -3591,14 +3591,13 @@ class AbstractBase(observer.Observable):
         # is available, so that proper concrete context may be set, note
         # that in case the strict mode is enabled (default) the context
         # is unset for situation where no callback registration is possible
-        self._ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        #self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        #self._ssl_ctx_base(
-        #    self._ssl_context,
-        #    secure = secure,
-        #    context_options = context_options
-        #)
-        #self._ssl_ctx_protocols(self._ssl_context)
+        self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        self._ssl_ctx_base(
+            self._ssl_context,
+            secure = secure,
+            context_options = context_options
+        )
+        self._ssl_ctx_protocols(self._ssl_context)
         self._ssl_certs(self._ssl_context)
         has_callback = hasattr(self._ssl_context, "set_servername_callback")
         if has_callback: self._ssl_context.set_servername_callback(self._ssl_callback)
@@ -3670,7 +3669,7 @@ class AbstractBase(observer.Observable):
         for context_option in context_options:
             if not hasattr(ssl, context_option): continue
             context.options |= getattr(ssl, context_option)
-        if secure and hasattr(context, "set_ecdh_curve"):
+        if secure >= 2 and hasattr(context, "set_ecdh_curve"):
             context.set_ecdh_curve("prime256v1")
         if secure >= 1 and SSL_DH_PATH and hasattr(context, "load_dh_params"):
             context.load_dh_params(SSL_DH_PATH)
