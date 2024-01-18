@@ -3669,7 +3669,7 @@ class AbstractBase(observer.Observable):
         for context_option in context_options:
             if not hasattr(ssl, context_option): continue
             context.options |= getattr(ssl, context_option)
-        if secure and hasattr(context, "set_ecdh_curve"):
+        if secure >= 2 and hasattr(context, "set_ecdh_curve"):
             context.set_ecdh_curve("prime256v1")
         if secure >= 1 and SSL_DH_PATH and hasattr(context, "load_dh_params"):
             context.load_dh_params(SSL_DH_PATH)
@@ -3683,14 +3683,14 @@ class AbstractBase(observer.Observable):
         if not ssl.HAS_ALPN: return
         if hasattr(context, "set_alpn_protocols"):
             protocols = self.get_protocols()
-            protocols and context.set_alpn_protocols(protocols)
+            if protocols: context.set_alpn_protocols(protocols)
 
     def _ssl_ctx_npn(self, context):
         if not hasattr(ssl, "HAS_NPN"): return
         if not ssl.HAS_NPN: return
         if hasattr(context, "set_npn_protocols"):
             protocols = self.get_protocols()
-            protocols and context.set_npn_protocols(protocols)
+            if protocols: context.set_npn_protocols(protocols)
 
     def _ssl_certs(
         self,

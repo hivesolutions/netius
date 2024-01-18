@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Context information `tos` in the Postmaster email handling
+* Critical issue with the SMTP client when connecting with SMTP servers with older versions of OpenSSL
 
 ## [1.19.2] - 2024-01-17
 
