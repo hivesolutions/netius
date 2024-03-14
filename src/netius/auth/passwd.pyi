@@ -1,4 +1,5 @@
-from typing import Mapping, PathLike
+from os import PathLike
+from typing import Mapping
 
 from netius import Auth
 

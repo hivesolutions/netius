@@ -1,4 +1,5 @@
-from typing import Any, Literal, Mapping, NoReturn, PathLike
+from os import PathLike
+from typing import Any, Literal, Mapping, NoReturn
 
 HashType = Literal["plain", "md5", "sha1", "sha256", "sha512"]
 
