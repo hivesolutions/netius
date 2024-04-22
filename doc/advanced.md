@@ -75,7 +75,7 @@ The results are a result of executing the benchmark on `servidor4.hive`.
 
 The `h2spec` tools allows proper verification of the RFC 5741 statements on a quick fashion.
 
-```
+```bash
 scu install go
 export GOPATH=~/go
 mkdir -p ~/go

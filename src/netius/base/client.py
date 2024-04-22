@@ -478,7 +478,7 @@ class DatagramClient(Client):
                     # sent latter (only then the callback is called)
                     is_valid = count == data_l
                     if is_valid:
-                        callback and callback(self)
+                        if callback: callback(self)
                     else:
                         data_o = ((data[count:], callback), address)
                         self.pending.append(data_o)
@@ -888,6 +888,7 @@ class StreamClient(Client):
     def on_exception(self, exception, connection):
         self.warning(exception)
         self.log_stack()
+        connection.set_exception(exception)
         connection.close()
 
     def on_expected(self, exception, connection):
@@ -896,8 +897,8 @@ class StreamClient(Client):
 
     def on_connect(self, connection):
         self.debug(
-            "Connection '%s' from '%s' connected" %
-            (connection.id, connection.owner.name)
+            "Connection '%s' %s from '%s' connected" %
+            (connection.id, connection.address, connection.owner.name)
         )
         connection.set_connected()
         if hasattr(connection, "tuple"):
@@ -905,8 +906,8 @@ class StreamClient(Client):
 
     def on_upgrade(self, connection):
         self.debug(
-            "Connection '%s' from '%s' upgraded" %
-            (connection.id, connection.owner.name)
+            "Connection '%s' %s from '%s' upgraded" %
+            (connection.id, connection.address, connection.owner.name)
         )
         connection.set_upgraded()
 

@@ -198,9 +198,17 @@ class SMTPConnection(netius.Connection):
         self.state = HEADER_STATE
 
     def auth_login(self, data):
-        message = "VXNlcm5hbWU6"
-        self.send_smtp(334 , message)
-        self.state = USERNAME_STATE
+        if data:
+            data_s = base64.b64decode(data)
+            data_s = netius.legacy.str(data_s)
+            self._username = data_s
+            message = "UGFzc3dvcmQ6"
+            self.send_smtp(334 , message)
+            self.state = PASSWORD_STATE
+        else:
+            message = "VXNlcm5hbWU6"
+            self.send_smtp(334 , message)
+            self.state = USERNAME_STATE
 
     def data(self):
         self.assert_s(HEADER_STATE)
@@ -298,8 +306,8 @@ class SMTPConnection(netius.Connection):
         # verifies if the method for the current code exists in case it
         # does not raises an exception indicating the problem with the
         # code that has just been received (probably erroneous)
-        extists = hasattr(self, method_n)
-        if not extists: raise netius.ParserError("Invalid code '%s'" % code)
+        exists = hasattr(self, method_n)
+        if not exists: raise netius.ParserError("Invalid code '%s'" % code)
 
         # retrieves the reference to the method that is going to be called
         # for the handling of the current line from the current instance and
@@ -410,7 +418,9 @@ class SMTPServer(netius.StreamServer):
 
     def on_auth_smtp(self, connection, username, password):
         self.auth.auth_assert(username, password)
+        auth_meta = self.auth.meta(username)
         connection.username = username
+        connection.auth_meta = auth_meta
 
     def on_header_smtp(self, connection, from_l, to_l):
         # creates the list that will hold the various keys

@@ -44,7 +44,7 @@ from . import observer
 class Protocol(observer.Observable):
     """
     Abstract class from which concrete implementation of
-    protocol logic should inherit.
+    protocol logic should be inherited.
 
     The logic of a protocol should implement both a reaction
     to the arrival of information (receive) and the sending
@@ -64,7 +64,7 @@ class Protocol(observer.Observable):
         self._callbacks = []
 
     def open(self):
-        # in case the protocol is already open ignores the current
+        # in case the protocol is already open, ignores the current
         # call as it's considered a double opening
         if self.is_open(): return
 
@@ -75,7 +75,7 @@ class Protocol(observer.Observable):
         self.trigger("open", self)
 
     def close(self):
-        # in case the protocol is already closed ignores the current
+        # in case the protocol is already closed, ignores the current
         # call considering it a double closing operation
         if self.is_closed() or self.is_closing(): return
 
@@ -87,7 +87,7 @@ class Protocol(observer.Observable):
 
     def finish(self):
         # in case the current protocol is already (completely) closed
-        # or is not in the state of closing nothing should be done
+        # or is not in the state of closing, nothing should be done
         if self.is_closed(): return
         if not self.is_closing(): return
 
@@ -103,7 +103,7 @@ class Protocol(observer.Observable):
 
     def open_c(self):
         # unmarks the current protocol from closed (and closing)
-        # meaning that it's going to be opened one more time and
+        # meaning that it will be opened one more time and
         # so it must not be considered as closed
         self._open = True
         self._closed = False
@@ -146,7 +146,7 @@ class Protocol(observer.Observable):
         self._transport = transport
 
         # ensure that the protocol is open, please notice
-        # that most of the times the protocol is already open
+        # that most of the time the protocol is already open
         self.open()
 
     def connection_lost(self, exception):
@@ -178,11 +178,11 @@ class Protocol(observer.Observable):
 
     def delay(self, callable, timeout = None):
         # in case there's no event loop defined for the protocol
-        # it's not possible to delay this execution and so the
+        # it's not possible to delay this execution so the
         # callable is called immediately
         if not self._loop: return callable()
 
-        # verifies if the assigned loop contains the non standard
+        # verifies if the assigned loop contains the non-standard
         # delay method and if that's the case calls it instead of
         # the base asyncio API ones (compatibility)
         if hasattr(self._loop, "delay"):
@@ -383,8 +383,8 @@ class StreamProtocol(Protocol):
 
         # in case there's a callback associated with the send
         # tries to see if the data has been completely flushed
-        # (writing still enabled) and if so schedules the callback
-        # to be called on the next tick, otherwise adds it to the
+        # (writing still enabled), and if so, schedules the callback
+        # to be called on the next tick otherwise adds it to the
         # callbacks to be called upon the next write resume operation
         if callback:
             if self._writing: self.delay(lambda: callback(self._transport))

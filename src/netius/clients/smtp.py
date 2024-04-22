@@ -247,7 +247,7 @@ class SMTPConnection(netius.Connection):
         # according to the ones that have "generate" handling methods, otherwise
         # raises a parser error indicating the problem
         if self.state > self.state_l:
-            raise netius.ParserError("Invalid state")
+            raise netius.ParserError("Invalid state", details = self.messages)
 
         # runs the calling of the next state based method according to the
         # currently defined state, this is the increments in calling
@@ -431,12 +431,13 @@ class SMTPConnection(netius.Connection):
         if valid: return
         raise netius.ParserError(
             "Invalid response code expected '%d' received '%d'" %
-            (expected, code_i)
+            (expected, code_i),
+            details = self.messages
         )
 
     def assert_s(self, expected):
         if self.state == expected: return
-        raise netius.ParserError("Invalid state")
+        raise netius.ParserError("Invalid state", details = self.messages)
 
     def best_auth(self):
         cls = self.__class__
@@ -488,6 +489,7 @@ class SMTPClient(netius.StreamClient):
         froms,
         tos,
         contents,
+        message_id = None,
         host = None,
         port = 25,
         username = None,
@@ -495,9 +497,21 @@ class SMTPClient(netius.StreamClient):
         ehlo = True,
         stls = False,
         mark = True,
+        comply = False,
         ensure_loop = True,
-        callback = None
+        callback = None,
+        callback_error = None
     ):
+        # in case the comply flag is set then ensure that a series
+        # of mandatory fields are present in the contents
+        if comply:
+            contents = self.comply(
+                contents,
+                froms = froms,
+                tos = tos,
+                message_id = message_id
+            )
+
         # in case the mark flag is set the contents data is modified
         # and "marked" with the pre-defined header values of the client
         # this should provide some extra information on the agent
@@ -506,6 +520,19 @@ class SMTPClient(netius.StreamClient):
         # creates the method that is able to generate handler for a
         # certain sequence of to based (email) addresses
         def build_handler(tos, domain = None, tos_map = None):
+
+            # creates the context object that will be used to pass
+            # contextual information to the callbacks
+            context = dict(
+                froms = froms,
+                tos = tos,
+                contents = contents,
+                mark = mark,
+                comply = comply,
+                ensure_loop = ensure_loop,
+                domain = domain,
+                tos_map = tos_map
+            )
 
             def on_close(connection = None):
                 # verifies if the current handler has been build with a
@@ -520,7 +547,10 @@ class SMTPClient(netius.StreamClient):
                 # verifies if the callback method is defined and if that's
                 # the case calls the callback indicating the end of the send
                 # operation (note that this may represent multiple SMTP sessions)
-                callback and callback(self)
+                if callback: callback(self)
+
+            def on_exception(connection = None, exception = None):
+                if callback_error: callback_error(self, context, exception)
 
             def handler(response = None):
                 # in case the provided response value is invalid returns
@@ -540,9 +570,11 @@ class SMTPClient(netius.StreamClient):
                     if not response.answers:
                         on_close()
                         if self.auto_close: self.close()
-                        raise netius.NetiusError(
+                        exception = netius.NetiusError(
                             "Not possible to resolve MX for '%s'" % domain
                         )
+                        if callback_error: callback_error(self, context, exception)
+                        raise exception
 
                     # retrieves the first answer (probably the most accurate)
                     # and then unpacks it until the mx address is retrieved
@@ -580,6 +612,7 @@ class SMTPClient(netius.StreamClient):
                     password = password
                 )
                 connection.bind("close", on_close)
+                connection.bind("exception", on_exception)
                 return connection
 
             # returns the clojure bound handler method, ready
@@ -653,12 +686,36 @@ class SMTPClient(netius.StreamClient):
             host = self.host
         )
 
+    def comply(self, contents, froms = None, tos = None, message_id = None):
+        parser = email.parser.Parser()
+        message = parser.parsestr(contents)
+        if froms: self.from_(message, froms[0])
+        if tos: self.to(message, ",".join(tos))
+        if message_id: self.message_id(message, message_id)
+        return message.as_string()
+
     def mark(self, contents):
         parser = email.parser.Parser()
         message = parser.parsestr(contents)
         self.date(message)
         self.user_agent(message)
         return message.as_string()
+
+    def from_(self, message, value):
+        from_ = message.get("From", None)
+        if from_: return
+        message["From"] = value
+
+    def to(self, message, value):
+        to = message.get("To", None)
+        if to: return
+        message["To"] = value
+
+    def message_id(self, message, value):
+        message_id = message.get("Message-Id", None)
+        message_id = message.get("Message-ID", message_id)
+        if message_id: return
+        message["Message-ID"] = value
 
     def date(self, message):
         date = message.get("Date", None)

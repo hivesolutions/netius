@@ -47,14 +47,14 @@ from . import legacy
 
 class Future(object):
     """
-    Base future object that represents a promise that a certain
-    operation is going to be accomplished.
+    The base future object that represents a promise that a
+    certain operation is going to be accomplished.
 
-    Should be used as a placeholder for the callbacks for error
-    and success and the for the final result of the execution.
+    It should be used as a placeholder for the callbacks for error
+    and success and for the final result of the execution.
 
-    Most of the implementation takes inspiration on the reference
-    Python implementation on futures.
+    Most of the implementation takes inspiration from the
+    reference Python implementation on futures.
 
     :see: https://en.wikipedia.org/wiki/Futures_and_promises
     """
@@ -258,14 +258,14 @@ def coroutine(function):
             is_future_ = is_future(result)
             is_generator = inspect.isgenerator(result)
 
-            # in case the result is either a future or a generator the
-            # complete set of values are properly yield to the caller
-            # method as expected
+            # in case the result is either a future or a generator
+            # the complete set of values is properly yield
+            # to the caller method as expected
             if is_future_ or is_generator:
                 for value in result: yield value
 
-            # otherwise the single resulting value is yield to the
-            # caller method (simple propagation)
+            # otherwise, the single resulting value is yield
+            # to the caller method (simple propagation)
             else:
                 yield result
 
@@ -353,8 +353,8 @@ def coroutine_return(coroutine):
     object to be the result of the future yielded as the last element
     of the generator.
 
-    This allows the possibility to provide compatibility with the legacy
-    not return allowed generators.
+    This allows the possibility of providing compatibility
+    with the legacy not return allowed generators.
 
     In case no value is yielded then an invalid value is returned as the
     result of the async coroutine.

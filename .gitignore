@@ -5,10 +5,12 @@ session.shelve*
 
 .DS_Store
 
+/.vscode/settings.json
+
 net.ca
 fs.data
 
-/.vscode/settings.json
+/.venv
 
 /dist
 /build

@@ -4,11 +4,7 @@
         "name": "Python",
         "type": "python",
         "request": "launch",
-        "python": "${command:python.interpreterPath}",
         "program": "${file}",
-        "debugOptions": [
-            "RedirectOutput"
-        ],
         "env": {
             "PYTHONPATH": "${workspaceRoot}/src:{env.PYTHONPATH}"
         }
