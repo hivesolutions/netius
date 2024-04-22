@@ -67,7 +67,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.19.3"
+VERSION = "1.19.4"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -324,7 +324,8 @@ class AbstractBase(observer.Observable):
         poll = cls.test_poll()
         self.name = name or self.__class__.__name__
         self.handler_stream = logging.StreamHandler()
-        self.handlers = handlers or (self.handler_stream,)
+        self.handler_remote = log.LogstashHandler() if log.LogstashHandler.is_ready() else None
+        self.handlers = handlers or (self.handler_stream,) + ((self.handler_remote,) if self.handler_remote else ())
         self.level = kwargs.get("level", logging.INFO)
         self.diag = kwargs.get("diag", False)
         self.middleware = kwargs.get("middleware", [])
@@ -3263,25 +3264,25 @@ class AbstractBase(observer.Observable):
         if not self.logger: return False
         return self.logger.isEnabledFor(logging.CRITICAL)
 
-    def debug(self, object):
+    def debug(self, object, **kwargs):
         if not logging: return
-        self.log(object, level = logging.DEBUG)
+        self.log(object, level = logging.DEBUG, **kwargs)
 
-    def info(self, object):
+    def info(self, object, **kwargs):
         if not logging: return
-        self.log(object, level = logging.INFO)
+        self.log(object, level = logging.INFO, **kwargs)
 
-    def warning(self, object):
+    def warning(self, object, **kwargs):
         if not logging: return
-        self.log(object, level = logging.WARNING)
+        self.log(object, level = logging.WARNING, **kwargs)
 
-    def error(self, object):
+    def error(self, object, **kwargs):
         if not logging: return
-        self.log(object, level = logging.ERROR)
+        self.log(object, level = logging.ERROR, **kwargs)
 
-    def critical(self, object):
+    def critical(self, object, **kwargs):
         if not logging: return
-        self.log(object, level = logging.CRITICAL)
+        self.log(object, level = logging.CRITICAL, **kwargs)
 
     def log_stack(self, method = None, info = True):
         if not method: method = self.info
@@ -3298,19 +3299,19 @@ class AbstractBase(observer.Observable):
         if legacy.PYTHON_3: return self.log_python_3(*args, **kwargs)
         else: return self.log_python_2(*args, **kwargs)
 
-    def log_python_3(self, object, level = logging.INFO):
+    def log_python_3(self, object, level = logging.INFO, **kwargs):
         is_str = isinstance(object, legacy.STRINGS)
         try: message = str(object) if not is_str else object
         except Exception: message = str(object)
         if not self.logger: return
-        self.logger.log(level, message)
+        self.logger.log(level, message, **kwargs)
 
-    def log_python_2(self, object, level = logging.INFO):
+    def log_python_2(self, object, level = logging.INFO, **kwargs):
         is_str = isinstance(object, legacy.STRINGS)
         try: message = unicode(object) if not is_str else object #@UndefinedVariable
         except Exception: message = str(object).decode("utf-8", "ignore")
         if not self.logger: return
-        self.logger.log(level, message)
+        self.logger.log(level, message, **kwargs)
 
     def build_poll(self):
         # retrieves the reference to the parent class associated with
