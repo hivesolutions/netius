@@ -125,7 +125,6 @@ class LogstashHandler(logging.Handler):
             "level": record.levelname,
             "path": record.pathname,
             "lineno": record.lineno,
-            "meta": getattr(record, "meta", None),
             "host": socket.gethostname(),
             "hostname": socket.gethostname(),
             "tid": threading.current_thread().ident,
@@ -136,6 +135,8 @@ class LogstashHandler(logging.Handler):
             "identifier_long": common.IDENTIFIER_LONG,
             "netius": True
         }
+        if hasattr(record, "meta"):
+            log["meta"] = record.meta
 
         self.messages.append(log)
         should_flush = len(self.messages) >= self.max_length
