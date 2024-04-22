@@ -47,7 +47,6 @@ import collections
 
 import logging.handlers
 
-from . import common
 from . import config
 
 SILENT = logging.CRITICAL + 1
@@ -94,6 +93,8 @@ class LogstashHandler(logging.Handler):
         return True
 
     def emit(self, record):
+        from . import common
+
         # verifies if the API structure is defined and set and if
         # that's not the case returns immediately
         if not self.api:
