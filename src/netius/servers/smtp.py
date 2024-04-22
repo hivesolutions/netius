@@ -306,8 +306,8 @@ class SMTPConnection(netius.Connection):
         # verifies if the method for the current code exists in case it
         # does not raises an exception indicating the problem with the
         # code that has just been received (probably erroneous)
-        extists = hasattr(self, method_n)
-        if not extists: raise netius.ParserError("Invalid code '%s'" % code)
+        exists = hasattr(self, method_n)
+        if not exists: raise netius.ParserError("Invalid code '%s'" % code)
 
         # retrieves the reference to the method that is going to be called
         # for the handling of the current line from the current instance and
