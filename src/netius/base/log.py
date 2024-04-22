@@ -54,7 +54,7 @@ SILENT = logging.CRITICAL + 1
 or an handler, this is used as an utility for debugging
 purposes more that a real feature for production systems """
 
-MAX_LENGTH_LOGSTASH = 64
+MAX_LENGTH_LOGSTASH = 256
 """ The maximum amount of messages that are kept in
 memory until they are flushed, avoid a very large
 number for this value or else a large amount of memory
