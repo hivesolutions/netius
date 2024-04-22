@@ -47,6 +47,7 @@ import collections
 
 import logging.handlers
 
+from . import common
 from . import config
 
 SILENT = logging.CRITICAL + 1
@@ -108,6 +109,14 @@ class LogstashHandler(logging.Handler):
         now = datetime.datetime.utcnow()
         now_s = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
+        # tries to build the right version of the meta information
+        # present in the record using either the structure `meta` 
+        # value or the lazy evaluation of the `meta_c` method
+        if hasattr(record, "meta"):
+            record.meta = record.meta
+        elif hasattr(record, "meta_c"):
+            record.meta = record.meta_c()
+
         log = {
             "@timestamp": now_s,
             "message_fmt": message,
@@ -121,6 +130,11 @@ class LogstashHandler(logging.Handler):
             "hostname": socket.gethostname(),
             "tid": threading.current_thread().ident,
             "pid": os.getpid() if hasattr(os, "getpid") else -1,
+            "agent": common.NAME,
+            "version": common.VERSION,
+            "identifier": common.IDENTIFIER_SHORT,
+            "identifier_long": common.IDENTIFIER_LONG,
+            "netius": True
         }
 
         self.messages.append(log)
