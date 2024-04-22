@@ -323,7 +323,8 @@ class AbstractBase(observer.Observable):
         poll = cls.test_poll()
         self.name = name or self.__class__.__name__
         self.handler_stream = logging.StreamHandler()
-        self.handlers = handlers or (self.handler_stream,)
+        self.handler_remote = log.LogstashHandler() if log.LogstashHandler.is_ready() else None
+        self.handlers = handlers or (self.handler_stream,) + ((self.handler_remote,) if self.handler_remote else ())
         self.level = kwargs.get("level", logging.INFO)
         self.diag = kwargs.get("diag", False)
         self.middleware = kwargs.get("middleware", [])
