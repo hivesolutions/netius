@@ -333,17 +333,14 @@ class FileServer(netius.servers.HTTP2Server):
         yield "</tr>"
         yield "<tr><th colspan=\"5\"><hr></th></tr>"
         for item in items:
-            if item["name_s"] == "..": type_s = "PARENTDIR"
+            if item["name_s"] == "../": type_s = "PARENTDIR"
             elif item["is_dir"]: type_s = "DIR"
             else: type_s = "ARC"
-            if item["name_s"] == "..": name_s = "Parent Directory"
-            elif item["is_dir"]: name_s = item["name_s"] + "/"
+            if item["name_s"] == "../": name_s = "Parent Directory"
             else: name_s = item["name_s"]
-            if item["is_dir"]: name_q = item["name_q"] + "/"
-            else: name_q = item["name_q"]
             yield "<tr>"
             yield "<td valign=\"top\"><img src=\"%s\" alt=\"[%s]\"></td>" % (EMPTY_GIF, type_s)
-            yield "<td><a href=\"%s\">%s</a></td>" % (name_q, name_s)
+            yield "<td><a href=\"%s\">%s</a></td>" % (item["name_q"], name_s)
             yield "<td>%s</td>" % item["modified"]
             yield "<td align=\"right\">%s</td>" % item["size_s"]
             yield "<td>%s</td>" % item["type_s"]
@@ -412,18 +409,15 @@ class FileServer(netius.servers.HTTP2Server):
             (_direction, "selected" if sort == "size" else "")
         yield "<hr/>"
         for item in items:
-            if item["name_s"] == "..": type_s = "PARENTDIR"
+            if item["name_s"] == "../": type_s = "PARENTDIR"
             elif item["is_dir"]: type_s = "DIR"
             else: type_s = "ARC"
-            if item["name_s"] == "..": name_s = "Parent Directory"
-            elif item["is_dir"]: name_s = item["name_s"] + "/"
+            if item["name_s"] == "../": name_s = "Parent Directory"
             else: name_s = item["name_s"]
-            if item["is_dir"]: name_q = item["name_q"] + "/"
-            else: name_q = item["name_q"]
             name_s = name_s[:max_length]
             padding_r = max_length - len(name_s)
             yield "<img src=\"%s\" alt=\"[%s]\" />" % (EMPTY_GIF, type_s)
-            yield "<a href=\"%s\">%s</a>" % (name_q, name_s)
+            yield "<a href=\"%s\">%s</a>" % (item["name_q"], name_s)
             yield " " * padding_r
             yield spacing_s
             yield "%s%s%s" % (item["modified"], spacing_s, item["size_s"].ljust(5))

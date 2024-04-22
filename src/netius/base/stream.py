@@ -41,24 +41,28 @@ from . import observer
 
 OPEN = 1
 """ The open status value, meant to be used in situations
-where the status of the entity is open (opposite of d) """
+where the status of the entity is open (opposite of closed) """
 
 CLOSED = 2
 """ Closed status value to be used in entities which have
 no pending structured opened and operations are limited """
 
 PENDING = 3
-""" The pending status used for transient states (eg created)
+""" The pending status used for transient states (eg: created)
 connections under this state must be used carefully """
 
 class Stream(observer.Observable):
     """
     Abstract stream class responsible for the representation of
     a "virtual" connection state for situation where multiplexing
-    of single connection exists.
+    of single connection exists (connections within connections)
 
     Most of the interface for a stream should be "logically" similar
     to the one defined by a connection.
+
+    A good example of the stream usage is the HTTP2 protocol where
+    multiple parallel streams co-exist within a single TCP connection
+    allowing huge performance improvements.
     """
 
     def __init__(self, owner = None):

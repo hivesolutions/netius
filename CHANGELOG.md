@@ -19,6 +19,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
+## [1.19.3] - 2024-01-18
+
+### Changed
+
+* Improved the structure of the Postmaster message
+
+### Fixed
+
+* Context information `tos` in the Postmaster email handling
+* Critical issue with the SMTP client when connecting with SMTP servers with older versions of OpenSSL
+
+## [1.19.2] - 2024-01-17
+
+### Added
+
+* Support for Postmaster email in SMTP relay using the `POSTMASTER` configuration value
+* Support for the `exception` event in the `Connection` triggered when a exception is raised in the connection domain
+
+## [1.19.1] - 2022-10-15
+
+### Added
+
+* Support for `allowed_froms` in SMTP relay
+
+### Changed
+
+* Improved support in the `legacy.py` module
+
+## [1.19.0] - 2022-05-02
+
+### Added
+
+* Support for `SSL_CONTEXT_OPTIONS` to netius SSL context creation
+
+## [1.18.4] - 2022-04-26
+
+### Added
+
+* Better debug support for connection address
+
+### Fixed
+
+* Custom listing using both `apache` and `legacy` for `LIST_ENGINE`
+
+## [1.18.3] - 2021-11-01
+
+### Added
+
+* Better debug support for connection address
+
 ## [1.18.2] - 2021-05-01
 
 ### Added

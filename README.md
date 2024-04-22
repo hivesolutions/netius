@@ -2,19 +2,19 @@
 
 **Fast and readable async non-blocking network apps**
 
-Netius is a Python network library that can be used for the rapid creation of asynchronous non-blocking
+Netius is a Python network library that can be used for the rapid creation of asynchronous, non-blocking
 servers and clients. It has no dependencies, it's cross-platform, and brings some sample netius-powered
 servers out of the box, namely a production-ready WSGI server.
 
-Simplicity and performance are the main drivers of this project. The codebase adheres to very strict
-code standards, and is extensively commented; and as far as performance is concerned, it aims to
-be up to par with equivalent native implementations, where [PyPy](http://pypy.org) can be used to
+Simplicity and performance are the main drivers of this project. The codebase adheres to rigorous
+code standards and is extensively commented on. As far as performance is concerned, it aims to
+be up to par with equivalent native implementations, where [PyPy](http://pypy.org) can
 provide the extra boost to raise performance up to these standards.
 
 Bear in mind that although netius is non-blocking, it will naturally still block if the operations
 performed within the event loop are blocking, like reading or writing a file, which are both blocking
 operations in the Python standard library. Running multiple netius instances in parallel, and having
-a fast server like [NGINX](http://nginx.org) act as their reverse proxy, is one way of minimising the
+a fast server like [NGINX](http://nginx.org) acts as their reverse proxy, which is one way of minimizing the
 perceptibility of such blockages.
 
 ## Installation
@@ -25,9 +25,9 @@ pip install netius
 
 Or download the source from [GitHub](https://github.com/hivesolutions/netius).
 
-Netius has no dependencies, and is therefore cross-platform. It's compatible with [PyPy](http://pypy.org),
-with which it benefits of performance increases up to 1.5x - 2.5x faster in most environments, when
-compared with running it with the cPython interpreter.
+Netius has no dependencies and is, therefore cross-platform. It's compatible with [PyPy](http://pypy.org),
+with which its benefits of performance increase up to 1.5x - 2.5x faster in most environments when
+compared with running it with the CPython interpreter.
 
 ## Usage
 
@@ -112,7 +112,7 @@ Netius is currently licensed under the [Apache License, Version 2.0](http://www.
 
 ## Build Automation
 
-[![Build Status](https://travis-ci.com/hivesolutions/netius.svg?branch=master)](https://travis-ci.com/hivesolutions/netius)
+[![Build Status](https://app.travis-ci.com/hivesolutions/netius.svg?branch=master)](https://travis-ci.com/github/hivesolutions/netius)
 [![Build Status GitHub](https://github.com/hivesolutions/netius/workflows/Main%20Workflow/badge.svg)](https://github.com/hivesolutions/netius/actions)
 [![Coverage Status](https://coveralls.io/repos/hivesolutions/netius/badge.svg?branch=master)](https://coveralls.io/r/hivesolutions/netius?branch=master)
 [![PyPi Status](https://img.shields.io/pypi/v/netius.svg)](https://pypi.python.org/pypi/netius)

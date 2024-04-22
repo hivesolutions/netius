@@ -319,7 +319,7 @@ def _is_devel():
 
 def _is_secure():
     """
-    Simple secure variable that should be overriden only under
+    Simple secure variable that should be overridden only under
     very specific/critical operation that control if the current
     environment should hide information that would otherwise
     compromise some of the system's secrecy (eg: version, name, etc.)

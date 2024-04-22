@@ -317,9 +317,9 @@ class DatagramClient(Client):
         # as nothing else remain to be done in the current method
         if self.socket: return
 
-        # prints a small debug message about the udp socket that is going
+        # prints a small debug message about the UDP socket that is going
         # to be created for the client's connection
-        self.debug("Creating clients's udp socket ...")
+        self.debug("Creating clients's UDP socket ...")
 
         # creates the socket that it's going to be used for the listening
         # of new connections (client socket) and sets it as non blocking
@@ -478,7 +478,7 @@ class DatagramClient(Client):
                     # sent latter (only then the callback is called)
                     is_valid = count == data_l
                     if is_valid:
-                        callback and callback(self)
+                        if callback: callback(self)
                     else:
                         data_o = ((data[count:], callback), address)
                         self.pending.append(data_o)
@@ -888,6 +888,7 @@ class StreamClient(Client):
     def on_exception(self, exception, connection):
         self.warning(exception)
         self.log_stack()
+        connection.set_exception(exception)
         connection.close()
 
     def on_expected(self, exception, connection):
@@ -896,8 +897,8 @@ class StreamClient(Client):
 
     def on_connect(self, connection):
         self.debug(
-            "Connection '%s' from '%s' connected" %
-            (connection.id, connection.owner.name)
+            "Connection '%s' %s from '%s' connected" %
+            (connection.id, connection.address, connection.owner.name)
         )
         connection.set_connected()
         if hasattr(connection, "tuple"):
@@ -905,8 +906,8 @@ class StreamClient(Client):
 
     def on_upgrade(self, connection):
         self.debug(
-            "Connection '%s' from '%s' upgraded" %
-            (connection.id, connection.owner.name)
+            "Connection '%s' %s from '%s' upgraded" %
+            (connection.id, connection.address, connection.owner.name)
         )
         connection.set_upgraded()
 

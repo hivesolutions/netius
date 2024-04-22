@@ -38,7 +38,6 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import os
-import imp
 import sys
 import inspect
 import functools
@@ -72,6 +71,10 @@ with ctx_absolute():
     except ImportError: http = None
 
 with ctx_absolute():
+    try: import types
+    except ImportError: types = None
+
+with ctx_absolute():
     try: import urllib.error
     except ImportError: pass
 
@@ -83,11 +86,21 @@ with ctx_absolute():
     try: import http.client
     except ImportError: pass
 
+with ctx_absolute():
+    try: import importlib.util
+    except ImportError: pass
+
 try: import HTMLParser
 except ImportError: import html.parser; HTMLParser = html.parser
 
 try: import cPickle
 except ImportError: import pickle; cPickle = pickle
+
+try: import imp
+except ImportError: import importlib; imp = importlib
+
+try: import importlib
+except ImportError: import imp; importlib = imp
 
 try: import cStringIO
 except ImportError: import io; cStringIO = io
@@ -327,12 +340,30 @@ def getargspec(func):
     if has_full: return ArgSpec(*inspect.getfullargspec(func)[:4])
     else: return inspect.getargspec(func)
 
+def has_module(name):
+    if PYTHON_3:
+        try: spec = importlib.util.find_spec(name)
+        except ImportError: return False
+        if spec == None: return False
+        return True
+    try: file, _path, _description = imp.find_module(name)
+    except ImportError: return False
+    if file: file.close()
+    return True
+
+def new_module(name):
+    if hasattr(types, "ModuleType"):
+        return types.ModuleType(name)
+    if hasattr(imp, "new_module"):
+        return imp.new_module(name)
+    raise ValueError("No module build method available")
+
 def reduce(*args, **kwargs):
     if PYTHON_3: return functools.reduce(*args, **kwargs)
     return _reduce(*args, **kwargs)
 
 def reload(*args, **kwargs):
-    if PYTHON_3: return imp.reload(*args, **kwargs)
+    if PYTHON_3: return importlib.reload(*args, **kwargs)
     return _reload(*args, **kwargs)
 
 def unichr(*args, **kwargs):

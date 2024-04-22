@@ -50,10 +50,10 @@ except ImportError: asyncio = None
 class Future(async_old.Future):
     """
     Specialized Future class that supports the async/await
-    syntax to be used in a future, so that it becomes compliant
+    syntax to be used in the future so that it becomes compliant
     with the basic Python asyncio strategy for futures.
 
-    Using this future it should be possible to ``await Future()`
+    Using this future, it should be possible to `await Future()`
     for a simpler usage.
     """
 
@@ -80,7 +80,7 @@ class Future(async_old.Future):
 class AwaitWrapper(object):
     """
     Wrapper class meant to be used to encapsulate "old"
-    generator based objects as async generator objects that
+    generator-based objects as async generator object that
     are eligible to be used with the async/await syntax.
 
     It's also possible to pass simple values instead of
@@ -90,7 +90,7 @@ class AwaitWrapper(object):
     _is_generator = True
     """ Hard coded static flag that allows the underlying
     infra-structure to know that this type is considered
-    to be generator compliant """
+    to be generator compliant. """
 
     def __init__(self, generator, generate = False):
         if generate: generator = self.generate(generator)
@@ -166,7 +166,7 @@ def coroutine(function):
             is_generator = inspect.isgenerator(result)
 
             # in case the returned value is either a future or a generator
-            # the complete set of yielded elements are propagated and
+            # the complete set of yielded elements is propagated and
             # the result is stored as the "new" result
             if is_future_ or is_generator:
                 result = yield from result
@@ -261,7 +261,7 @@ def coroutine_return(coroutine):
     object to be the result of the future yield as the first element
     of the generator.
 
-    This allows the possibility to provide compatibility with the legacy
+    This allows the possibility of providing compatibility with the legacy
     not return allowed generators.
 
     :type coroutine: CoroutineObject
