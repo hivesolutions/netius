@@ -633,6 +633,11 @@ class BaseConnection(observer.Observable):
         )
         return info
 
+    def log_dict(self, full = False):
+        info = self.info_dict(full = full)
+        info["address"] = str(self.address)
+        return info
+
     def ssl_certificate(self, binary = False):
         if not self.ssl: return None
         return self.socket.getpeercert(binary_form = binary)

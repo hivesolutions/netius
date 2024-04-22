@@ -136,7 +136,7 @@ class SMTPConnection(netius.Connection):
         base = "%d %s" % (code, message)
         data = base + "\r\n"
         count = self.send(data, delay = delay, callback = callback)
-        self.owner.debug(base)
+        self.owner.debug(base, extra = dict(meta_c = lambda: self.log_dict()))
         return count
 
     def send_smtp_lines(self, code, message = "", lines = (), delay = True, callback = None):
@@ -149,7 +149,7 @@ class SMTPConnection(netius.Connection):
         lines_s.append("%d %s" % (code, tail))
         data = "\r\n".join(lines_s) + "\r\n"
         count = self.send(data, delay = delay, callback = callback)
-        self.owner.debug(base)
+        self.owner.debug(base, extra = dict(meta_c = lambda: self.log_dict()))
         return count
 
     def ready(self):
@@ -291,7 +291,7 @@ class SMTPConnection(netius.Connection):
         # "joins" the code and the message part of the message into the base
         # string and then uses this value to print some debug information
         base = "%s %s" % (code, message)
-        self.owner.debug(base)
+        self.owner.debug(base, extra = dict(meta_c = lambda: self.log_dict()))
 
         # calls the proper top level owner based line information handler that
         # should ignore any usages as the connection will take care of the proper
