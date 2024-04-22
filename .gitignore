@@ -10,6 +10,7 @@ session.shelve*
 net.ca
 fs.data
 
+/.env
 /.venv
 
 /dist
