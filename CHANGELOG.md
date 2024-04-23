@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
+## [1.19.9] - 2024-04-23
+
+### Changed
+
+* Support for logger flush timeout
+
 ## [1.19.8] - 2024-04-23
 
 ### Changed
