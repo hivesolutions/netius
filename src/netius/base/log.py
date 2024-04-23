@@ -110,13 +110,15 @@ class LogstashHandler(logging.Handler):
         now = datetime.datetime.utcnow()
         now_s = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
-        # tries to build the right version of the meta information
+        # tries to build the right version of the `meta` information
         # present in the record using either the structure `meta` 
         # value or the lazy evaluation of the `meta_c` method
         if hasattr(record, "meta"):
-            record.meta = record.meta
+            meta = record.meta
         elif hasattr(record, "meta_c"):
-            record.meta = record.meta_c()
+            meta = record.meta_c()
+        else:
+            meta = None
 
         log = {
             "@timestamp": now_s,
@@ -136,7 +138,7 @@ class LogstashHandler(logging.Handler):
             "identifier_long": common.IDENTIFIER_LONG,
             "netius": True
         }
-        if hasattr(record, "meta"):
+        if not meta == None:
             log["meta"] = record.meta
 
         self.messages.append(log)
