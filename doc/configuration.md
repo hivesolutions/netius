@@ -11,10 +11,16 @@
 | **UNIX_PATH**  | `str`  | The path to the file that is going to be used for Unix domain sockets (defaults to `$PORT`), note that under the hood the port variable is used as the path for the socket.                                                                                                  |
 | **BACKLOG**    | `int`  | The number of connections to be hold waiting in queue while pending accept operation.                                                                                                                                                                                        |
 | **ALLOWED**    | `list` | Sequence of IP or Subnet addresses (eg: 172.16.0.0/16) that are considered to be allowed as clients for a given server, any client connection with an IP address not contained in the list will be dropped (defaults to `[]`).                                               |
-| **CHILDREN**   | `int`  | Number of child processes that are meant to be created upon launch using a pre-fork approach. (defaults to `0`).                                                                                                                                                             |
+| **CHILDREN**   | `int`  | Number of child processes that are meant to be created upon launch using a pre-fork approach (defaults to `0`).                                                                                                                                                              |
 | **CHILD**      | `int`  | Same as `CHILDREN`.                                                                                                                                                                                                                                                          |
 | **MIDDLEWARE** | `list` | The middleware as a set of strings (eg: proxy) that is going to be loaded into the instance, the notation used to define the modules to be loaded should be underscore based (notice that loading extra middleware into an instance may impact the performance of the same). |
 | **SECURE**     | `bool` | Control if a secure production environment should be ensured by hiding some critical information (eg: version) (defaults to `True`).                                                                                                                                         |
+
+#### Logging
+
+| Name                     | Type    | Description                                                                                             |
+| ------------------------ | ------- | ------------------------------------------------------------------------------------------------------- |
+| **LOGGER_FLUSH_TIMEOUT** | `float` | The amount of time in seconds in between flush operations on the logging handlers (defaults to `60.0`). |
 
 #### Internal
 

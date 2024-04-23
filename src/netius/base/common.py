@@ -1527,6 +1527,8 @@ class AbstractBase(observer.Observable):
         self.middleware = self.get_env("MIDDLEWARE", self.middleware, cast = list)
         self.children = self.get_env("CHILD", self.children, cast = int)
         self.children = self.get_env("CHILDREN", self.children, cast = int)
+        self.logger_flush_t = self.get_env("LOGGER_FLUSH_T", self.logger_flush_t, cast = float)
+        self.logger_flush_t = self.get_env("LOGGER_FLUSH_TIMEOUT", self.logger_flush_t, cast = float)
         self.logging = self.get_env("LOGGING", self.logging)
         self.poll_name = self.get_env("POLL", self.poll_name)
 
