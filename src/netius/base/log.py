@@ -61,7 +61,7 @@ number for this value or else a large amount of memory
 may be used for logging purposes """
 
 TIMEOUT_LOGSTASH = 30.0
-""" The maximum amount of time in between flush 
+""" The maximum amount of time in between flush
 operations in the logstash handler """
 
 class LogstashHandler(logging.Handler):
@@ -111,7 +111,7 @@ class LogstashHandler(logging.Handler):
         now_s = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         # tries to build the right version of the `meta` information
-        # present in the record using either the structure `meta` 
+        # present in the record using either the structure `meta`
         # value or the lazy evaluation of the `meta_c` method
         if hasattr(record, "meta"):
             meta = record.meta

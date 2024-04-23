@@ -1239,6 +1239,15 @@ class AbstractBase(observer.Observable):
         self.logger._counter = counter - 1
         if not is_old: return
 
+        # iterates over the complete set of handlers to flush their
+        # stream if needed, this will ensure that no log data is lost
+        for handler in self.handlers:
+            if not hasattr(handler, "flush"): continue
+            try:
+                handler.flush()
+            except Exception:
+                pass
+
         # iterates over the complete set of handlers in the current
         # base element and removes them from the current logger
         for handler in self.handlers:
