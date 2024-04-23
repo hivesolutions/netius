@@ -1145,7 +1145,7 @@ class AbstractBase(observer.Observable):
 
         # loads the various parts of the base system, under this calls each
         # of the systems should have it's internal structures started
-        self.load_logging(self.level)
+        self.load_logging(self.level, unique = not self._main)
 
         # loads the diagnostics application handlers that allows external
         # interaction with the service for diagnostics/debugging
@@ -1544,6 +1544,14 @@ class AbstractBase(observer.Observable):
         # current execution stack (as expected)
         if self.is_running(): return self.block()
 
+        # retrieves the complete set of information regarding the current
+        # thread that is being used for the starting of the loop, this data
+        # may be used for runtime debugging purposes (debug only data)
+        cthread = threading.current_thread()
+        self.tid = cthread.ident or 0
+        self.tname = cthread.getName()
+        self._main = self.tname == "MainThread"
+
         # re-builds the polling structure with the new name this
         # is required so that it's possible to change the polling
         # mechanism in the middle of the loading process
@@ -1568,14 +1576,6 @@ class AbstractBase(observer.Observable):
         # notification (required for multi threaded environments) is created
         # and ready to be used (as expected)
         self.nensure()
-
-        # retrieves the complete set of information regarding the current
-        # thread that is being used for the starting of the loop, this data
-        # may be used for runtime debugging purposes (debug only data)
-        cthread = threading.current_thread()
-        self.tid = cthread.ident or 0
-        self.tname = cthread.getName()
-        self._main = self.tname == "MainThread"
 
         # in case the current thread is the main one, the global main instance
         # is set as the current instance, just in case no main variable is
