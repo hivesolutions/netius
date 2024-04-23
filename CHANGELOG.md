@@ -19,7 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
-## [1.19.7] - 2024-04-24
+## [1.19.8] - 2024-04-23
+
+### Changed
+
+* Moved flush operation up in the chain
+
+## [1.19.7] - 2024-04-23
 
 ### Changed
 
