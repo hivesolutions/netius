@@ -13,11 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Optional `raise_e` support in `LogstashHandler`
+*
 
 ### Fixed
 
 *
+
+## [1.19.6] - 2024-04-23
+
+### Changed
+
+* Optional `raise_e` support in `LogstashHandler`
 
 ## [1.19.5] - 2024-04-23
 
