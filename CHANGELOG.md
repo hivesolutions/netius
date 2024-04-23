@@ -19,6 +19,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
+## [1.19.9] - 2024-04-23
+
+### Changed
+
+* Support for logger flush timeout
+
+## [1.19.8] - 2024-04-23
+
+### Changed
+
+* Moved flush operation up in the chain
+
+## [1.19.7] - 2024-04-23
+
+### Changed
+
+* Flush of loggers before on logger unloading
+
+## [1.19.6] - 2024-04-23
+
+### Changed
+
+* Optional `raise_e` support in `LogstashHandler`
+
+## [1.19.5] - 2024-04-23
+
+### Fixed
+
+* Support for multiple messages for same SMTP session - [#40](https://github.com/hivesolutions/netius/issues/40)
+
 ## [1.19.4] - 2024-04-22
 
 ### Added
