@@ -44,7 +44,7 @@ import datetime
 import netius.common
 
 INITIAL_STATE = 1
-""" The initial state for the smtp communication
+""" The initial state for the SMTP communication
 meaning that no message have been exchanged between
 the server and the client parties """
 
@@ -58,7 +58,7 @@ HEADER_STATE = 3
 the message to be sent is defined """
 
 DATA_STATE = 4
-""" Final stage of the smtp session where the message
+""" Final stage of the SMTP session where the message
 contents are sent over the connection """
 
 USERNAME_STATE = 5
@@ -73,7 +73,7 @@ this step proper authentication is possible under the
 login type of authentication """
 
 TERMINATION_SIZE = 5
-""" The size of the termination sequence of the smtp message
+""" The size of the termination sequence of the SMTP message
 this is going to be used in some parsing calculus, this value
 should be exposed so that it may be re-used by other modules """
 
@@ -82,7 +82,7 @@ CAPABILITIES = (
     "STARTTLS"
 )
 """ The sequence defining the various capabilities that are
-available under the current smtp server implementation, the
+available under the current SMTP server implementation, the
 description of these capabilities should conform with the rfp """
 
 class SMTPConnection(netius.Connection):
@@ -335,6 +335,7 @@ class SMTPConnection(netius.Connection):
         self.auth(method, data)
 
     def on_mail(self, message):
+        self.reset_message()
         self.from_l.append(message)
         self.ok()
 
@@ -364,6 +365,11 @@ class SMTPConnection(netius.Connection):
             "by %s (netius) with ESMTP id %s" % (self.host, self.identifier) +\
             (" for %s" % to_s if for_s else "") +\
             "; %s" % date_s
+
+    def reset_message(self):
+        self.from_l = []
+        self.to_l = []
+        self.previous = bytes()
 
 class SMTPServer(netius.StreamServer):
 

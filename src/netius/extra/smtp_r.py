@@ -47,10 +47,10 @@ import netius.servers
 
 class RelaySMTPServer(netius.servers.SMTPServer):
     """
-    Relay version of the smtp server that relays messages
+    Relay version of the SMTP server that relays messages
     that are not considered to be local to other servers.
 
-    The servers uses the default smtp client implementation
+    The servers uses the default SMTP client implementation
     to relay the messages.
     """
 
@@ -72,7 +72,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
 
         # retrieves the list or remote emails for each a relay
         # operation will have to be performed as requested by
-        # the current smtp specification (federation based)
+        # the current SMTP specification (federation based)
         remotes = self._remotes(to_l)
 
         # updates the current connection with the list of remote
@@ -126,7 +126,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
             raise netius.SecurityError("User is not allowed to relay from")
 
         # retrieves the current date value formatted according to
-        # the smtp based specification string value, this value
+        # the SMTP based specification string value, this value
         # is going to be used for the replacement of the header
         date = self.date()
 
@@ -161,7 +161,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
 
         # creates the callback that will close the client once the message
         # is sent to all the recipients (better auto close support), note
-        # that multiple smtp session may be created for the message so that
+        # that multiple SMTP session may be created for the message so that
         # all the hosts associated with the recipients are notified
         callback = lambda smtp_client: smtp_client.close()
 
@@ -172,7 +172,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         callback_error = lambda smtp_client, context, exception:\
             self.relay_postmaster(reply_to, context, exception)
 
-        # generates a new smtp client for the sending of the message,
+        # generates a new SMTP client for the sending of the message,
         # uses the current host for identification and then triggers
         # the message event to send the message to the target host
         smtp_client = netius.clients.SMTPClient(host = self.host)

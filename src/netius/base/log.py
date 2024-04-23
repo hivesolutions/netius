@@ -61,7 +61,7 @@ number for this value or else a large amount of memory
 may be used for logging purposes """
 
 TIMEOUT_LOGSTASH = 30.0
-""" The maximum amount of time in between flush 
+""" The maximum amount of time in between flush
 operations in the logstash handler """
 
 class LogstashHandler(logging.Handler):
@@ -92,7 +92,7 @@ class LogstashHandler(logging.Handler):
             return False
         return True
 
-    def emit(self, record):
+    def emit(self, record, raise_e=False):
         from . import common
 
         # verifies if the API structure is defined and set and if
@@ -110,13 +110,15 @@ class LogstashHandler(logging.Handler):
         now = datetime.datetime.utcnow()
         now_s = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
-        # tries to build the right version of the meta information
-        # present in the record using either the structure `meta` 
+        # tries to build the right version of the `meta` information
+        # present in the record using either the structure `meta`
         # value or the lazy evaluation of the `meta_c` method
         if hasattr(record, "meta"):
-            record.meta = record.meta
+            meta = record.meta
         elif hasattr(record, "meta_c"):
-            record.meta = record.meta_c()
+            meta = record.meta_c()
+        else:
+            meta = None
 
         log = {
             "@timestamp": now_s,
@@ -136,16 +138,19 @@ class LogstashHandler(logging.Handler):
             "identifier_long": common.IDENTIFIER_LONG,
             "netius": True
         }
-        if hasattr(record, "meta"):
-            log["meta"] = record.meta
+        if not meta == None:
+            log["meta"] = meta
 
         self.messages.append(log)
         should_flush = len(self.messages) >= self.max_length
         should_flush = should_flush or time.time() - self._last_flush > self.timeout
         if should_flush:
-            self.flush()
+            try:
+                self.flush(raise_e=raise_e)
+            except Exception:
+                if raise_e: raise
 
-    def flush(self, force=False):
+    def flush(self, force=False, raise_e=False):
         logging.Handler.flush(self)
 
         # verifies if the API structure is defined and set and if
@@ -161,7 +166,7 @@ class LogstashHandler(logging.Handler):
 
         # posts the complete set of messages to logstash and then clears the messages
         # and updates the last flush time
-        self.api.log_bulk(messages, tag="default")
+        self.api.log_bulk(messages, tag="default", raise_e=raise_e)
         self.messages = []
         self.last_flush = time.time()
 
