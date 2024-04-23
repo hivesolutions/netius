@@ -139,7 +139,7 @@ class LogstashHandler(logging.Handler):
             "netius": True
         }
         if not meta == None:
-            log["meta"] = record.meta
+            log["meta"] = meta
 
         self.messages.append(log)
         should_flush = len(self.messages) >= self.max_length
