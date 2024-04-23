@@ -123,7 +123,7 @@ class SMTPParser(parser.Parser):
         if not len(values) > 1: values.append("")
 
         # unpacks the set of values that have just been parsed into the code
-        # and the message items as expected by the smtp specification
+        # and the message items as expected by the SMTP specification
         code, message = values
 
         # verifies if the current line is a final line meaning that no more
@@ -139,7 +139,7 @@ class SMTPParser(parser.Parser):
         is_final = not is_continuation
 
         # triggers the on line event so that the listeners are notified
-        # about the end of the parsing of the smtp line and then
+        # about the end of the parsing of the SMTP line and then
         # returns the count of the parsed bytes of the message
         self.trigger("on_line", code, message, is_final = is_final)
         return index + 1
