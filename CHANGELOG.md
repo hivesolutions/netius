@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
+## [1.19.13] - 2024-04-23
+
+### Fixed
+
+* SMTP logging issue
+
 ## [1.19.12] - 2024-04-23
 
 ### Changed
