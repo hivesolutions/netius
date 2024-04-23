@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
+## [1.19.10] - 2024-04-23
+
+### Changed
+
+* Flexible logger flush timeout using `LOGGER_FLUSH_TIMEOUT` env variable
+
 ## [1.19.9] - 2024-04-23
 
 ### Changed
