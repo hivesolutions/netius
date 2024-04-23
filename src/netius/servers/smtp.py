@@ -149,7 +149,7 @@ class SMTPConnection(netius.Connection):
         lines_s.append("%d %s" % (code, tail))
         data = "\r\n".join(lines_s) + "\r\n"
         count = self.send(data, delay = delay, callback = callback)
-        self.debug(base, extra = dict(meta_c = lambda: self.log_dict()))
+        self.debug(base)
         return count
 
     def ready(self):
