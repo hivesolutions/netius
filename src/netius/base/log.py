@@ -116,7 +116,9 @@ class LogstashHandler(logging.Handler):
         if hasattr(record, "meta"):
             meta = record.meta
         elif hasattr(record, "meta_c"):
-            meta = record.meta_c()
+            meta = dict()
+            for callable in record.meta_c:
+                meta.update(callable())
         else:
             meta = None
 

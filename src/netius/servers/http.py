@@ -774,7 +774,7 @@ class HTTPServer(netius.StreamServer):
 
     def on_data_http(self, connection, parser):
         is_debug = self.is_debug()
-        is_debug and self._log_request(connection, parser)
+        if is_debug: self._log_request(connection, parser)
         connection.resolve_encoding(parser)
 
     def on_send_http(
@@ -786,7 +786,7 @@ class HTTPServer(netius.StreamServer):
         code = 200,
         code_s = None
     ):
-        self.common_file and self._log_request(
+        if self.common_file: self._log_request(
             connection,
             parser,
             headers = headers,
@@ -798,7 +798,7 @@ class HTTPServer(netius.StreamServer):
         )
 
     def on_flush_http(self, connection, parser, encoding = None):
-        self.debug(
+        connection.debug(
             "Connection '%s' %s from '%s' flushed" %\
             (connection.id, connection.address, self.name)
         )
@@ -929,7 +929,7 @@ class HTTPServer(netius.StreamServer):
     def _log_request_basic(self, connection, parser, output = None):
         # runs the defaulting operation on the logger output
         # method so that the default logger output is used instead
-        output = output or self.debug
+        output = output or connection.debug
 
         # unpacks the various values that are going to be part of
         # the log message to be printed in the debug
@@ -959,7 +959,7 @@ class HTTPServer(netius.StreamServer):
     ):
         # runs the defaulting operation on the logger output
         # method so that the default logger output is used instead
-        output = output or self.debug
+        output = output or connection.debug
 
         # unpacks the various values that are going to be part of
         # the log message to be printed in the debug, these values

@@ -2774,6 +2774,10 @@ class AbstractBase(observer.Observable):
         )
         return info
 
+    def log_dict(self, full = False):
+        info = self.info_dict(full = full)
+        return info
+
     def info_string(self, full = False, safe = True):
         try: info = self.info_dict(full = full)
         except Exception: info = dict()
@@ -2982,6 +2986,7 @@ class AbstractBase(observer.Observable):
         for line in info_string.split("\n"): method(line)
 
     def log(self, *args, **kwargs):
+        self.add_log_ctx(kwargs, self.log_ctx)
         if legacy.PYTHON_3: return self.log_python_3(*args, **kwargs)
         else: return self.log_python_2(*args, **kwargs)
 
@@ -2998,6 +3003,15 @@ class AbstractBase(observer.Observable):
         except Exception: message = str(object).decode("utf-8", "ignore")
         if not self.logger: return
         self.logger.log(level, message, **kwargs)
+
+    def log_ctx(self):
+        return dict(service = self.log_dict(full = True))
+
+    def add_log_ctx(self, kwargs, callable):
+        extra = kwargs.get("extra", dict(meta_c = []))
+        meta_c = extra["meta_c"]
+        meta_c.append(callable)
+        kwargs["extra"] = extra
 
     def build_poll(self):
         # retrieves the reference to the parent class associated with

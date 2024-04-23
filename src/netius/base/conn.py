@@ -674,6 +674,34 @@ class BaseConnection(observer.Observable):
         if not hasattr(self.socket, "selected_npn_protocol"): return None
         return self.socket.selected_npn_protocol()
 
+    def debug(self, object, **kwargs):
+        if not self.owner: return
+        self.owner.add_log_ctx(kwargs, lambda: dict(connection = self.log_dict()))
+        self.owner.debug(object, **kwargs)
+
+    def info(self, object, **kwargs):
+        if not self.owner: return
+        self.owner.add_log_ctx(kwargs, self.log_ctx)
+        self.owner.info(object, **kwargs)
+
+    def warning(self, object, **kwargs):
+        if not self.owner: return
+        self.owner.add_log_ctx(kwargs, self.log_ctx)
+        self.owner.warning(object, **kwargs)
+
+    def error(self, object, **kwargs):
+        if not self.owner: return
+        self.owner.add_log_ctx(kwargs, self.log_ctx)
+        self.owner.error(object, **kwargs)
+
+    def critical(self, object, **kwargs):
+        if not self.owner: return
+        self.owner.add_log_ctx(kwargs, self.log_ctx)
+        self.owner.critical(object, **kwargs)
+
+    def log_ctx(self):
+        return dict(connection = self.log_dict())
+
     def is_open(self):
         return self.status == OPEN
 

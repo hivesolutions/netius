@@ -585,7 +585,7 @@ class FileServer(netius.servers.HTTP2Server):
 
         # prints a debug message about the file that is going to be read
         # from the current file system to be sent to the connection
-        self.debug("Reading file '%s' from file system" % path_s)
+        connection.debug("Reading file '%s' from file system" % path_s)
 
         # uses the parser from the connection to be able to gather the
         # range as a string to be used latter for conversion

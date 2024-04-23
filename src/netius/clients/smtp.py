@@ -218,7 +218,7 @@ class SMTPConnection(netius.Connection):
         base = "%s %s" % (code, message)
         data = base + "\r\n"
         count = self.send(data, delay = delay, callback = callback)
-        self.owner.debug(base)
+        self.debug(base)
         return count
 
     def on_line(self, code, message, is_final = True):
@@ -226,7 +226,7 @@ class SMTPConnection(netius.Connection):
         # message associated with it, then logs the values into the
         # current debug logger support (for traceability)
         base = "%s %s" % (code, message)
-        self.owner.debug(base)
+        self.debug(base)
 
         # adds the message part of the line to the buffer that holds the
         # various messages "pending" for the current response, these values
