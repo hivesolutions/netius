@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Support for multiple messages for same SMTP session - [#40](https://github.com/hivesolutions/netius/issues/40)
 
 ## [1.19.4] - 2024-04-22
 

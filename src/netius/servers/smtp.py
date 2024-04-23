@@ -335,6 +335,7 @@ class SMTPConnection(netius.Connection):
         self.auth(method, data)
 
     def on_mail(self, message):
+        self.reset_message()
         self.from_l.append(message)
         self.ok()
 
@@ -364,6 +365,11 @@ class SMTPConnection(netius.Connection):
             "by %s (netius) with ESMTP id %s" % (self.host, self.identifier) +\
             (" for %s" % to_s if for_s else "") +\
             "; %s" % date_s
+
+    def reset_message(self):
+        self.from_l = []
+        self.to_l = []
+        self.previous = bytes()
 
 class SMTPServer(netius.StreamServer):
 
