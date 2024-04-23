@@ -509,7 +509,7 @@ class DatagramServer(Server):
         if not _socket == self.socket: return
 
     def on_exception(self, exception):
-        self.warning(exception)
+        self.warning(exception, stack = True)
         self.log_stack()
 
     def on_expected(self, exception):
@@ -841,12 +841,12 @@ class StreamServer(Server):
         connection.close()
 
     def on_exception(self, exception, connection):
-        self.warning(exception)
+        self.warning(exception, stack = True)
         self.log_stack()
         connection.close()
 
     def on_exception_s(self, exception):
-        self.warning(exception)
+        self.warning(exception, stack = True)
         self.log_stack()
 
     def on_expected(self, exception, connection):

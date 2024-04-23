@@ -241,7 +241,7 @@ class DatagramClient(Client):
         if not _socket == self.socket: return
 
     def on_exception(self, exception):
-        self.warning(exception)
+        self.warning(exception, stack = True)
         self.log_stack()
 
     def on_expected(self, exception):
@@ -886,7 +886,7 @@ class StreamClient(Client):
         connection.close()
 
     def on_exception(self, exception, connection):
-        self.warning(exception)
+        self.warning(exception, stack = True)
         self.log_stack()
         connection.set_exception(exception)
         connection.close()
@@ -1002,7 +1002,7 @@ class StreamClient(Client):
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             if not error_v in SSL_VALID_ERRORS:
-                self.warning(error)
+                self.warning(error, stack = True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
                 connection.close()
@@ -1010,7 +1010,7 @@ class StreamClient(Client):
         except socket.error as error:
             error_v = error.args[0] if error.args else None
             if not error_v in VALID_ERRORS:
-                self.warning(error)
+                self.warning(error, stack = True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
                 connection.close()
@@ -1018,7 +1018,7 @@ class StreamClient(Client):
         except (KeyboardInterrupt, SystemExit):
             raise
         except BaseException as exception:
-            self.warning(exception)
+            self.warning(exception, stack = True)
             self.log_stack()
             self.trigger("error", self, connection, exception)
             connection.close()

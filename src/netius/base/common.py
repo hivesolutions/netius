@@ -510,7 +510,7 @@ class AbstractBase(observer.Observable):
             # in case there's an exception displays a warning
             # about the raised exception and the logs the current
             # stack so that the exception is traceable
-            self.warning(exception)
+            self.warning(exception, stack = True)
             self.log_stack()
 
     def wait_event(self, callable, name = None):
@@ -1659,10 +1659,10 @@ class AbstractBase(observer.Observable):
             self.set_state(STATE_PAUSE)
             self.on_pause()
         except BaseException as exception:
-            self.error(exception)
+            self.error(exception, stack = True)
             self.log_stack(method = self.warning)
         except:
-            self.critical("Critical level loop exception raised")
+            self.critical("Critical level loop exception raised", stack = True)
             self.log_stack(method = self.error)
         finally:
             if self.is_paused(): return
@@ -2709,7 +2709,7 @@ class AbstractBase(observer.Observable):
         connection.close()
 
     def on_exception(self, exception, connection):
-        self.warning(exception)
+        self.warning(exception, stack = True)
         self.log_stack()
         connection.close()
 
@@ -2977,16 +2977,19 @@ class AbstractBase(observer.Observable):
     def log_stack(self, method = None, info = True):
         if not method: method = self.info
         lines = traceback.format_exc().splitlines()
-        for line in lines: method(line)
+        for line in lines:
+            method(line, extra = dict(stack = True))
         if info: self.log_info(method = method)
 
     def log_info(self, method = None):
         if not method: method = self.info
         info_string = self.info_string(full = True)
-        for line in info_string.split("\n"): method(line)
+        for line in info_string.split("\n"):
+            method(line, extra = dict(stack = True))
 
     def log(self, *args, **kwargs):
         self.add_log_ctx(kwargs, self.log_ctx)
+        self.add_log_stack(kwargs)
         if legacy.PYTHON_3: return self.log_python_3(*args, **kwargs)
         else: return self.log_python_2(*args, **kwargs)
 
@@ -3007,11 +3010,25 @@ class AbstractBase(observer.Observable):
     def log_ctx(self):
         return dict(service = self.log_dict(full = True))
 
-    def add_log_ctx(self, kwargs, callable):
-        extra = kwargs.get("extra", dict(meta_c = []))
-        meta_c = extra["meta_c"]
-        meta_c.append(callable)
+    def log_stack_ctx(self):
+        return dict(traceback = traceback.format_exc().splitlines())
+
+    def add_log_extra(self, kwargs, key, value):
+        extra = kwargs.get("extra", dict())
+        extra[key] = value
         kwargs["extra"] = extra
+
+    def add_log_ctx(self, kwargs, callable):
+        extra = kwargs.get("extra", dict())
+        meta_c = extra.get("meta_c", [])
+        meta_c.append(callable)
+        extra["meta_c"] = meta_c
+        kwargs["extra"] = extra
+
+    def add_log_stack(self, kwargs):
+        stack = kwargs.pop("stack", False)
+        if not stack: return
+        self.add_log_ctx(kwargs, self.log_stack_ctx)
 
     def build_poll(self):
         # retrieves the reference to the parent class associated with
@@ -3019,7 +3036,7 @@ class AbstractBase(observer.Observable):
         cls = self.__class__
 
         # verifies if the currently set polling mechanism is open in
-        # case it's ther's no need to re-build the polling mechanism
+        # case it's there's no need to re-build the polling mechanism
         # otherwise rebuilds the polling mechanism with the current
         # name and returns the new poll object to the caller method
         if self.poll and self.poll.is_open(): return self.poll
@@ -3421,7 +3438,7 @@ class AbstractBase(observer.Observable):
             except (KeyboardInterrupt, SystemExit, errors.StopError):
                 raise
             except BaseException as exception:
-                self.error(exception)
+                self.error(exception, stack = True)
                 self.log_stack(method = self.warning)
 
         # iterates over all the pending callable tuple values and adds
@@ -3479,7 +3496,7 @@ class AbstractBase(observer.Observable):
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             if not error_v in SSL_VALID_ERRORS:
-                self.warning(error)
+                self.warning(error, stack = True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
                 connection.close()
@@ -3487,7 +3504,7 @@ class AbstractBase(observer.Observable):
         except socket.error as error:
             error_v = error.args[0] if error.args else None
             if not error_v in VALID_ERRORS:
-                self.warning(error)
+                self.warning(error, stack = True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
                 connection.close()
@@ -3495,7 +3512,7 @@ class AbstractBase(observer.Observable):
         except (KeyboardInterrupt, SystemExit):
             raise
         except BaseException as exception:
-            self.warning(exception)
+            self.warning(exception, stack = True)
             self.log_stack()
             self.trigger("error", self, connection, exception)
             connection.close()
@@ -4089,7 +4106,7 @@ class AbstractBase(observer.Observable):
                 except (KeyboardInterrupt, SystemExit, errors.StopError, errors.PauseError):
                     raise
                 except BaseException as exception:
-                    self.error(exception)
+                    self.error(exception, stack = True)
                     self.log_stack(method = self.warning)
         finally:
             if hasattr(self, "_awaken"): del self._awaken

@@ -1245,7 +1245,7 @@ class HTTP2Server(http.HTTPServer):
         error_code = exception.get_kwarg("error_code", 0x00)
         message = exception.get_kwarg("message", "")
         ignore = exception.get_kwarg("ignore", False)
-        self.warning(exception)
+        self.warning(exception, stack = True)
         self.log_stack()
         if ignore: return connection.send_ping(ack = True)
         if stream: return connection.error_stream(
