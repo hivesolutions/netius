@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
+## [1.19.11] - 2024-04-23
+
+### Fixed
+
+* Race condition when re-using loggers
+
 ## [1.19.10] - 2024-04-23
 
 ### Changed
