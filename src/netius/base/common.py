@@ -329,6 +329,7 @@ class AbstractBase(observer.Observable):
         self.diag = kwargs.get("diag", False)
         self.middleware = kwargs.get("middleware", [])
         self.children = kwargs.get("children", 0)
+        self.logger_flush_t = kwargs.get("logger_flush_t", 60.0)
         self.tid = None
         self.tname = None
         self.logger = None
@@ -652,6 +653,31 @@ class AbstractBase(observer.Observable):
         # been called from a different thread and the event loop should
         # awaken as soon as possible to handle the event
         if wakeup: self.wakeup()
+
+    def interval_s(
+        self,
+        callable,
+        timeout = None,
+        immediately = True,
+        verify = False,
+        wakeup = True
+    ):
+        def callable_i():
+            callable()
+            self.delay_s(
+                callable_i,
+                timeout = timeout,
+                immediately = immediately,
+                verify = verify,
+                wakeup = wakeup
+            )
+        self.delay_s(
+            callable_i,
+            timeout = timeout,
+            immediately = immediately,
+            verify = verify,
+            wakeup = wakeup
+        )
 
     def delay_m(self):
         """
@@ -1225,6 +1251,10 @@ class AbstractBase(observer.Observable):
             if not handler: continue
             self.logger.addHandler(handler)
 
+        # schedules an interval operation to make sure that the logging
+        # is properly flushed from time to time
+        self.interval_s(self.flush_logging, timeout = self.logger_flush_t)
+
     def unload_logging(self, safe = True):
         # verifies if there's a valid logger instance set in the
         # current service, in case there's not returns immediately
@@ -1239,14 +1269,9 @@ class AbstractBase(observer.Observable):
         self.logger._counter = counter - 1
         if not is_old: return
 
-        # iterates over the complete set of handlers to flush their
-        # stream if needed, this will ensure that no log data is lost
-        for handler in self.handlers:
-            if not hasattr(handler, "flush"): continue
-            try:
-                handler.flush()
-            except Exception:
-                pass
+        # flushes the logging contents making sure that no log data
+        # is lost in the process, this is considered a critical operation
+        self.flush_logging()
 
         # iterates over the complete set of handlers in the current
         # base element and removes them from the current logger
@@ -1274,6 +1299,18 @@ class AbstractBase(observer.Observable):
         # unset the logger reference in the current service so that
         # it's not possible to use it any longer
         self.logger = None
+
+    def flush_logging(self, raise_e = False):
+        print("flush_logging")
+
+        # iterates over the complete set of handlers to flush their
+        # stream if needed, this will ensure that no log data is lost
+        for handler in self.handlers:
+            if not hasattr(handler, "flush"): continue
+            try:
+                handler.flush()
+            except Exception:
+                if raise_e: raise
 
     def extra_logging(self, level, formatter):
         """
