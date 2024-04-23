@@ -1301,8 +1301,6 @@ class AbstractBase(observer.Observable):
         self.logger = None
 
     def flush_logging(self, raise_e = False):
-        print("flush_logging")
-
         # iterates over the complete set of handlers to flush their
         # stream if needed, this will ensure that no log data is lost
         for handler in self.handlers:
