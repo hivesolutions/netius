@@ -13,11 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Flush of loggers before on logger unloading
+*
 
 ### Fixed
 
 *
+
+## [1.19.7] - 2024-04-24
+
+### Changed
+
+* Flush of loggers before on logger unloading
 
 ## [1.19.6] - 2024-04-23
 
