@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Support for selective logging of stacktrace
+*
 
 ### Changed
 
@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.19.14] - 2024-04-25
+
+### Added
+
+* Support for selective logging of stacktrace in `LogstashHandler`
 
 ## [1.19.13] - 2024-04-23
 
