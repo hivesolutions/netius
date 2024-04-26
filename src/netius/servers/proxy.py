@@ -483,21 +483,23 @@ class ProxyServer(http2.HTTP2Server):
         # in case the connection is under the waiting state
         # the forbidden response is set to the client otherwise
         # the front-end connection is closed immediately
-        if _connection.waiting: connection.send_response(
-            data = cls.build_data(
-                "Forbidden",
-                url = _connection.error_url if\
-                    hasattr(_connection, "error_url") else None
-            ),
-            headers = dict(
-                connection = "close"
-            ),
-            code = 403,
-            code_s = "Forbidden",
-            apply = True,
-            callback = self._prx_close
-        )
-        else: connection.close(flush = True)
+        if _connection.waiting:
+            connection.send_response(
+                data = cls.build_data(
+                    "Forbidden",
+                    url = _connection.error_url if\
+                        hasattr(_connection, "error_url") else None
+                ),
+                headers = dict(
+                    connection = "close"
+                ),
+                code = 403,
+                code_s = "Forbidden",
+                apply = True,
+                callback = self._prx_close
+            )
+        else:
+            connection.close(flush = True)
 
         # removes the waiting state from the connection and
         # the removes the back-end to front-end connection

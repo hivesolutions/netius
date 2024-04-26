@@ -219,7 +219,7 @@ def random_integer(number_bits):
 def host(default = "127.0.0.1"):
     """
     Retrieves the host for the current machine,
-    typically this would be the ipv4 address of
+    typically this would be the IPv4 address of
     the main network interface.
 
     No result type are guaranteed and a local address

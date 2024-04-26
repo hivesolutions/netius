@@ -53,7 +53,7 @@ class Future(async_old.Future):
     syntax to be used in the future so that it becomes compliant
     with the basic Python asyncio strategy for futures.
 
-    Using this future, it should be possible to `await Future()`
+    Using this future it should be possible to `await Future()`
     for a simpler usage.
     """
 
@@ -258,14 +258,17 @@ def wait(*args, **kwargs):
 def coroutine_return(coroutine):
     """
     Allows for the abstraction of the return value of a coroutine
-    object to be the result of the future yield as the first element
+    object to be the result of the future yielded as the last element
     of the generator.
 
     This allows the possibility of providing compatibility with the legacy
     not return allowed generators.
 
+    In case no value is yielded then an invalid value is returned as the
+    result of the async coroutine.
+
     :type coroutine: CoroutineObject
-    :param coroutine: The coroutine object that is going to be yield back
+    :param coroutine: The coroutine object that is going to yield back
     and have its last future result returned from the generator.
     """
 
@@ -273,7 +276,22 @@ def coroutine_return(coroutine):
     return AwaitWrapper(generator)
 
 def _coroutine_return(coroutine):
+    # unsets the initial future reference value, this
+    # way it's possible to avoid future based return
+    # statement in case the coroutine is "empty"
+    future = None
+
+    # iterates over the coroutine generator yield
+    # the values (should be future instances) and
+    # ignoring possible invalid values, the last
+    # value yielded is considered to be future
+    # that is going to be set as the return value
     for value in coroutine:
+        if value == None: continue
         yield value
         future = value
-    return future.result()
+
+    # in case at least one valid future was yielded
+    # then set the result of such future as the result
+    # of the current coroutine (return statement)
+    return future.result() if future else None

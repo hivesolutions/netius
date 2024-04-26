@@ -57,9 +57,10 @@ from . import asynchronous
 
 from .. import middleware
 
-from .conn import * #@UnusedWildImport
-from .poll import * #@UnusedWildImport
-from .asynchronous import * #@UnusedWildImport
+from .conn import * #@UnusedWildImport pylint: disable=W0614
+from .poll import * #@UnusedWildImport pylint: disable=W0614
+from .service import * #@UnusedWildImport pylint: disable=W0614
+from .asynchronous import * #@UnusedWildImport pylint: disable=W0614
 
 NAME = "netius"
 """ The global infra-structure name to be used in the
@@ -199,7 +200,7 @@ based communication protocol, for various usages in the base
 netius communication infra-structure """
 
 UDP_TYPE = 2
-""" The datagram based udp protocol enumeration value to be used
+""" The datagram based UDP protocol enumeration value to be used
 in static references to this kind of socket usage """
 
 STATE_STOP = 1
@@ -363,6 +364,7 @@ class AbstractBase(observer.Observable):
         self._forked = False
         self._child = False
         self._concrete = False
+        self._services = {}
         self._childs = []
         self._events = {}
         self._notified = []
@@ -424,11 +426,22 @@ class AbstractBase(observer.Observable):
         return asyncio.get_event_loop()
 
     @classmethod
-    def set_main(cls, instance, set_compat = True):
+    def set_main(cls, instance, set_compat = True, set_running = True):
+        # encapsulates the current event loop instance with a compatibility
+        # layer (with asyncio) and then updates both the global reference
+        # to the Netius event loop and the compatibility version of it
         compat = compat_loop(instance)
         cls._MAIN = instance
         cls._MAIN_C = compat
+
+        # if the compatibility layer for setting the main event loop
+        # is not requested (updating asyncio to make sure it returns
+        # the current loop as the main one) then there's nothing else
+        # remaining to be done, returns the control flow
         if not set_compat: return
+
+        # tries to obtain the asyncio reference in case there's
+        # none available returns immediately (not possible to set main)
         asyncio = asynchronous.get_asyncio()
         if not asyncio: return
 
@@ -441,6 +454,15 @@ class AbstractBase(observer.Observable):
         # sets the main event loop for asyncio as the
         # current compatible version of the netius loop
         asyncio.set_event_loop(compat)
+
+        # in case the set running flag is set indicating that
+        # the currently running loop should also be set then
+        # updates the currently running loop in the asyncio
+        # infrastructure, so that the next time an executor
+        # requests the currently running loop with `get_running_loop`
+        # the current compat loop is the one they get
+        if set_running and hasattr(asyncio, "_set_running_loop"):
+            asyncio._set_running_loop(compat)
 
     @classmethod
     def unset_main(cls, set_compat = True):
@@ -782,7 +804,7 @@ class AbstractBase(observer.Observable):
             # creates the coroutine that is going to be used to
             # encapsulate the callable, note that the result of the
             # callable is set as the result of the future (as expected)
-            def coroutine(future, *args, **kwargs):
+            def coroutine(future, *args, **kwargs): #pylint ignore=E0102
                 yield
                 result = coroutine_c(*args, **kwargs)
                 future.set_result(result)
@@ -1489,8 +1511,8 @@ class AbstractBase(observer.Observable):
         signals = (
             signal.SIGINT,
             signal.SIGTERM,
-            signal.SIGHUP if hasattr(signal, "SIGHUP") else None, #@UndefinedVariable
-            signal.SIGQUIT if hasattr(signal, "SIGQUIT") else None #@UndefinedVariable
+            signal.SIGHUP if hasattr(signal, "SIGHUP") else None, #@UndefinedVariable pylint: disable=E1101
+            signal.SIGQUIT if hasattr(signal, "SIGQUIT") else None #@UndefinedVariable pylint: disable=E1101
         ),
         handler = None
     ):
@@ -1909,7 +1931,7 @@ class AbstractBase(observer.Observable):
         # iterates of the requested (number of children) to run
         # the concrete fork operation and fork the logic
         for _index in range(self.children):
-            pid = os.fork() #@UndefinedVariable
+            pid = os.fork() #@UndefinedVariable pylint: disable=E1101
             self._child = pid == 0
             if self._child: self.on_child(pipe = pipe_send)
             if self._child: break
@@ -2086,7 +2108,12 @@ class AbstractBase(observer.Observable):
 
         # iterates over all of the read events and calls the proper on
         # read method handler to properly handle each event
-        for read in reads: self.on_read(read)
+        for read in reads:
+            if read in self._services:
+                service = self._services[read]
+                self.on_read_s(read, service)
+            else:
+                self.on_read(read)
 
     def writes(self, writes, state = True):
         # in case the update state is requested updates the current loop
@@ -2115,6 +2142,216 @@ class AbstractBase(observer.Observable):
         # iterates over all of the error events and calls the proper on
         # error method handler to properly handle each event
         for error in errors: self.on_error(error)
+
+    def serve(
+        self,
+        host = None,
+        port = 9090,
+        type = TCP_TYPE,
+        ipv6 = False,
+        ssl = False,
+        key_file = None,
+        cer_file = None,
+        ca_file = None,
+        ca_root = True,
+        ssl_verify = False,
+        ssl_host = None,
+        ssl_fingerprint = None,
+        ssl_dump = False,
+        family = socket.AF_INET,
+        backlog = socket.SOMAXCONN,
+        env = False,
+        callback = None
+    ):
+        # ensures the proper default address value, taking into account
+        # the type of connection that is currently being used, this avoids
+        # problems with multiple stack based servers (IPv4 and IPv6)
+        if host == None: host = "::1" if ipv6 else "127.0.0.1"
+
+        # defaults the provided ssl key and certificate paths to the
+        # ones statically defined (dummy certificates), please beware
+        # that using these certificates may create validation problems
+        key_file = key_file or SSL_KEY_PATH
+        cer_file = cer_file or SSL_CER_PATH
+        ca_file = ca_file or SSL_CA_PATH
+
+        # determines if the client side certificate should be verified
+        # according to the loaded certificate authority values or if
+        # on the contrary no (client) validation should be performed
+        ssl_verify = ssl_verify or False
+
+        # verifies if the type of server that is going to be created is
+        # unix or internet based, this allows the current infra-structure
+        # to work under the much more latency free unix sockets
+        is_unix = host == "unix"
+
+        # checks the type of service that is meant to be created and
+        # creates a service socket according to the defined service
+        family = socket.AF_INET6 if ipv6 else socket.AF_INET
+        family = socket.AF_UNIX if is_unix else family #@UndefinedVariable pylint: disable=E1101
+        if type == TCP_TYPE:
+            _socket = self.socket_tcp(
+                ssl,
+                key_file = key_file,
+                cer_file = cer_file,
+                ca_file = ca_file,
+                ca_root = ca_root,
+                ssl_verify = ssl_verify,
+                family = family
+            )
+        elif type == UDP_TYPE:
+            _socket = self.socket_udp()
+        else:
+            raise errors.NetiusError("Invalid server type provided '%d'" % type)
+
+        # "calculates" the address "bind target", taking into account that this
+        # server may be running under a unix based socket infra-structure and
+        # if that's the case the target (file path) is also removed, avoiding
+        # a duplicated usage of the socket (required for address re-usage)
+        address = port if is_unix else (host, port)
+        if is_unix and os.path.exists(address): os.remove(address)
+
+        def serve():
+            # binds the socket to the provided address value (per spec) and then
+            # starts the listening in the socket with the provided backlog value
+            # defaulting to the typical maximum backlog as possible if not provided
+            _socket.bind(address)
+            if type == TCP_TYPE: _socket.listen(backlog)
+
+            # in case the selected port is zero based, meaning that a randomly selected
+            # port has been assigned by the bind operation the new port must be retrieved
+            # and set for the current server instance as the new port (for future reference)
+            if port == 0: port_i = _socket.getsockname()[1]
+            else: port_i = port
+
+            # creates the string that identifies it the current service connection
+            # is using a secure channel (ssl) and then prints an info message about
+            # the service that is going to be started
+            ipv6_s = " on IPv6" if ipv6 else ""
+            ssl_s = " using SSL" if ssl else ""
+            self.info("Serving '%s' service on %s:%s%s%s ..." % (self.name, host, port_i, ipv6_s, ssl_s))
+
+            # ensures that the current polling mechanism is correctly open as the
+            # service socket is going to be added to it next, this overrides the
+            # default behavior of the common infra-structure (on start)
+            self.poll = self.build_poll()
+            self.poll.open(timeout = self.poll_timeout)
+
+            # adds the socket to all of the pool lists so that it's ready to read
+            # write and handle error, this is the expected behavior of a service
+            # socket so that it can handle all of the expected operations
+            self.sub_all(_socket)
+
+            # calls the on serve callback handler so that underlying services may be
+            # able to respond to the fact that the service is starting and some of
+            # them may print some specific debugging information
+            self.on_serve()
+
+        # creates a new service instance that is going to represents the new server
+        # that is going to start accepting new connections
+        service = self.new_service(
+            _socket,
+            host = host,
+            port = port,
+            ssl = ssl
+        )
+
+        # delays the operation of calling the callback with the new (service) instance
+        # by one tick (avoids possible issues)
+        self.delay(
+            lambda: callback and callback(service, serve, True),
+            immediately = True
+        )
+
+    def socket_tcp(
+        self,
+        ssl = False,
+        key_file = None,
+        cer_file = None,
+        ca_file = None,
+        ca_root = True,
+        ssl_verify = False,
+        family = socket.AF_INET,
+        type = socket.SOCK_STREAM,
+        receive_buffer = None,
+        send_buffer = None
+    ):
+        # verifies if the provided family is of type internet and if that's
+        # the case the associated flag is set to valid for usage
+        is_inet = family in (socket.AF_INET, socket.AF_INET6)
+
+        # retrieves the proper string based type for the current server socket
+        # and the prints a series of log message about the socket to be created
+        type_s = " SSL" if ssl else ""
+        self.debug("Creating server's TCP%s socket ..." % type_s)
+        if ssl: self.debug("Loading '%s' as key file" % key_file)
+        if ssl: self.debug("Loading '%s' as certificate file" % cer_file)
+        if ssl and ca_file: self.debug("Loading '%s' as certificate authority file" % ca_file)
+        if ssl and ssl_verify: self.debug("Loading with client SSL verification")
+
+        # creates the socket that it's going to be used for the listening
+        # of new connections (server socket) and sets it as non blocking
+        _socket = socket.socket(family, type)
+        _socket.setblocking(0)
+
+        # in case the server is meant to be used as SSL wraps the socket
+        # in suck fashion so that it becomes "secured"
+        if ssl: _socket = self._ssl_wrap(
+            _socket,
+            key_file = key_file,
+            cer_file = cer_file,
+            ca_file = ca_file,
+            ca_root = ca_root,
+            server = True,
+            ssl_verify = ssl_verify
+        )
+
+        # sets the various options in the service socket so that it becomes
+        # ready for the operation with the highest possible performance, these
+        # options include the reuse address to be able to re-bind to the port
+        # and address and the keep alive that drops connections after some time
+        # avoiding the leak of connections (operative system managed)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        if is_inet: _socket.setsockopt(
+            socket.IPPROTO_TCP,
+            socket.TCP_NODELAY,
+            1
+        )
+        if receive_buffer: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_RCVBUF,
+            receive_buffer
+        )
+        if send_buffer: _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_SNDBUF,
+            send_buffer
+        )
+        self._socket_keepalive(_socket)
+
+        # returns the created tcp socket to the calling method so that it
+        # may be used from this point on
+        return _socket
+
+    def socket_udp(self, family = socket.AF_INET, type = socket.SOCK_DGRAM):
+        # prints a small debug message about the UDP socket that is going
+        # to be created for the server's connection
+        self.debug("Creating server's UDP socket ...")
+
+        # creates the socket that it's going to be used for the listening
+        # of new connections (server socket) and sets it as non blocking
+        _socket = socket.socket(family, type)
+        _socket.setblocking(0)
+
+        # sets the various options in the service socket so that it becomes
+        # ready for the operation with the highest possible performance
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+        # returns the created UDP socket to the calling method so that it
+        # may be used from this point on
+        return _socket
 
     def datagram(
         self,
@@ -2234,13 +2471,13 @@ class AbstractBase(observer.Observable):
         # ensures that the proper socket family is defined in case the
         # requested host value is unix socket oriented, this step greatly
         # simplifies the process of created unix socket based clients
-        family = socket.AF_UNIX if host == "unix" else family
+        family = socket.AF_UNIX if host == "unix" else family #@UndefinedVariable pylint: disable=E1101
 
         # verifies the kind of socket that is going to be used for the
         # connect operation that is going to be performed, note that the
         # unix type should be used with case as it does not exist in every
         # operative system and may raised an undefined exceptions
-        is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX
+        is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX #@UndefinedVariable pylint: disable=E1101
         is_inet = family in (socket.AF_INET, socket.AF_INET6)
 
         # runs a series of default operation for the SSL related attributes
@@ -2708,14 +2945,46 @@ class AbstractBase(observer.Observable):
 
         connection.close()
 
+    def on_read_s(self, _socket, service):
+        try:
+            while True:
+                socket_c, address = _socket.accept()
+                try: service.on_socket_c(socket_c, address)
+                except Exception: socket_c.close(); raise
+        except ssl.SSLError as error:
+            error_v = error.args[0] if error.args else None
+            error_m = error.reason if hasattr(error, "reason") else None
+            if error_v in SSL_SILENT_ERRORS:
+                self.on_expected_s(error)
+            elif not error_v in SSL_VALID_ERRORS and\
+                not error_m in SSL_VALID_REASONS:
+                self.on_exception_s(error)
+        except socket.error as error:
+            error_v = error.args[0] if error.args else None
+            if error_v in SILENT_ERRORS:
+                self.on_expected_s(error)
+            elif not error_v in VALID_ERRORS:
+                self.on_exception_s(error)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except BaseException as exception:
+            self.on_exception_s(exception)
+
     def on_exception(self, exception, connection):
         self.warning(exception, stack = True)
         self.log_stack()
         connection.close()
 
+    def on_exception_s(self, exception):
+        self.warning(exception)
+        self.log_stack()
+
     def on_expected(self, exception, connection):
         self.debug(exception)
         connection.close()
+
+    def on_expected_s(self, exception):
+        self.debug(exception)
 
     def on_connect(self, connection):
         connection.set_connected()
@@ -2760,6 +3029,9 @@ class AbstractBase(observer.Observable):
 
     def on_data_base(self, connection, data):
         connection.set_data(data)
+
+    def on_serve(self):
+        pass
 
     def info_dict(self, full = False):
         info = dict(
@@ -2843,6 +3115,77 @@ class AbstractBase(observer.Observable):
             ssl = ssl
         )
 
+    def build_connection_client(
+        self,
+        socket_c,
+        address,
+        ssl = False,
+        receive_buffer_c = None,
+        send_buffer_c = None
+    ):
+        # verifies a series of pre-conditions on the socket so
+        # that it's ensured to be in a valid state before it's
+        # set as a new connection for the server (validation)
+        if ssl and not socket_c._sslobj: socket_c.close(); return
+
+        # in case the SSL mode is enabled, "patches" the socket
+        # object with an extra pending reference, that is going
+        # to be to store pending callable operations in it
+        if ssl: socket_c.pending = None
+
+        # verifies if the socket is of type internet (either IPv4
+        # of ipv6), this is going to be used for conditional setting
+        # of some of the socket options
+        is_inet = socket_c.family in (socket.AF_INET, socket.AF_INET6)
+
+        # sets the socket as non blocking and then updated a series
+        # of options in it, some of them taking into account if the
+        # socket if of type internet (timeout values)
+        socket_c.setblocking(0)
+        socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        if is_inet: socket_c.setsockopt(
+            socket.IPPROTO_TCP,
+            socket.TCP_NODELAY,
+            1
+        )
+        if receive_buffer_c: socket_c.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_RCVBUF,
+            receive_buffer_c
+        )
+        if send_buffer_c: socket_c.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_SNDBUF,
+            send_buffer_c
+        )
+
+        # the process creation is considered completed and a new
+        # connection is created for it and opened, from this time
+        # on a new connection is considered accepted/created for server
+        connection = self.build_connection(socket_c, address, ssl = ssl)
+        connection.open()
+
+        # registers the SSL handshake method as a starter method
+        # for the connection, so that the handshake is properly
+        # performed on the initial stage of the connection (as expected)
+        if ssl: connection.add_starter(self._ssl_handshake)
+
+        # runs the initial try for the handshaking process, note that
+        # this is an async process and further tries to the handshake
+        # may come after this one (async operation) in case an exception
+        # is raises the connection is closed (avoids possible errors)
+        try: connection.run_starter()
+        except Exception: connection.close(); raise
+
+        # in case there's extraneous data pending to be read from the
+        # current connection's internal receive buffer it must be properly
+        # handled on the risk of blocking the newly created connection
+        if connection.is_pending_data(): self.on_read(connection.socket)
+
+        # returns the connection that has been build already properly
+        # initialized and ready to be used
+        return connection
+
     def base_connection(self, *args, **kwargs):
         connection = Base.build_connection(self, *args, **kwargs)
         connection._base = True
@@ -2857,6 +3200,23 @@ class AbstractBase(observer.Observable):
         if connection.__class__ == Connection:
             return Base.on_connection_d(self, connection)
         return self.on_connection_d(connection)
+
+    def new_service(
+        self,
+        socket,
+        host = None,
+        port = None,
+        ssl = False
+    ):
+        service = Service(
+            owner = self,
+            socket = socket,
+            host = host,
+            port = port,
+            ssl = ssl
+        )
+        self._services[socket] = service
+        return service
 
     def add_callback(self, socket, callback):
         callbacks = self.callbacks_m.get(socket, [])
@@ -3615,27 +3975,27 @@ class AbstractBase(observer.Observable):
         if count == None: count = self.keepalive_count
         is_inet = _socket.family in (socket.AF_INET, socket.AF_INET6)
         is_inet and hasattr(_socket, "TCP_KEEPIDLE") and\
-            self.socket.setsockopt(
+            _socket.setsockopt(
                 socket.IPPROTO_TCP,
-                socket.TCP_KEEPIDLE, #@UndefinedVariable
+                socket.TCP_KEEPIDLE, #@UndefinedVariable pylint: disable=E1101
                 timeout
             )
         is_inet and hasattr(_socket, "TCP_KEEPINTVL") and\
-            self.socket.setsockopt(
+            _socket.setsockopt(
                 socket.IPPROTO_TCP,
-                socket.TCP_KEEPINTVL, #@UndefinedVariable
+                socket.TCP_KEEPINTVL, #@UndefinedVariable pylint: disable=E1101
                 interval
             )
         is_inet and hasattr(_socket, "TCP_KEEPCNT") and\
-            self.socket.setsockopt(
+            _socket.setsockopt(
                 socket.IPPROTO_TCP,
-                socket.TCP_KEEPCNT, #@UndefinedVariable
+                socket.TCP_KEEPCNT, #@UndefinedVariable pylint: disable=E1101
                 count
             )
         hasattr(_socket, "SO_REUSEPORT") and\
-            self.socket.setsockopt(
+            _socket.setsockopt(
                 socket.SOL_SOCKET,
-                socket.SO_REUSEPORT, #@UndefinedVariable
+                socket.SO_REUSEPORT, #@UndefinedVariable pylint: disable=E1101
                 1
             )
 
@@ -4164,10 +4524,20 @@ class BaseThread(threading.Thread):
             self.owner._thread = None
             self.owner = None
 
-def new_loop_main(factory = None, _compat = None, **kwargs):
-    factory = factory or Base
+def new_loop_main(factory = None, env = True, _compat = None, **kwargs):
     kwargs["_slave"] = kwargs.pop("_slave", True)
+
+    # obtains the factory method defaulting to the Netius base event loop
+    # constructor and creates a new instance of the event loop
+    factory = factory or Base
     instance = factory(**kwargs)
+
+    # in case the loading of the environment variables has been requested
+    # and the provided event loop instance is compatible with environment
+    # binding operation, then performs the operation
+    if env and hasattr(instance, "bind_env"):
+        instance.bind_env()
+
     return compat_loop(instance) if _compat else instance
 
 def new_loop_asyncio(**kwargs):
@@ -4181,10 +4551,23 @@ def new_loop(factory = None, _compat = None, asyncio = None, **kwargs):
     if asyncio: return new_loop_asyncio(**kwargs)
     else: return new_loop_main(factory = factory, _compat = _compat, **kwargs)
 
-def ensure_main(factory = None, **kwargs):
+def ensure_main(factory = None, env = True, **kwargs):
     if Base.get_main(): return
+
+    # obtains the factory method defaulting to the Netius base event loop
+    # constructor and creates a new instance of the event loop
     factory = factory or Base
     instance = factory(**kwargs)
+
+    # in case the loading of the environment variables has been requested
+    # and the provided event loop instance is compatible with environment
+    # binding operation, then performs the operation
+    if env and hasattr(instance, "bind_env"):
+        instance.bind_env()
+
+    # updates the reference to the main event loop under the Netius perspective
+    # so that global variables point to this event loop, possible compatibility
+    # mode rules may apply
     Base.set_main(instance)
 
 def ensure_asyncio(**kwargs):

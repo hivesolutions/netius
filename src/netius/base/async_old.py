@@ -59,6 +59,8 @@ class Future(object):
     :see: https://en.wikipedia.org/wiki/Futures_and_promises
     """
 
+    _asyncio_future_blocking = True
+
     def __init__(self, loop = None):
         self.status = 0
         self._loop = loop
@@ -116,6 +118,18 @@ class Future(object):
 
     def add_closed_callback(self, function):
         self.closed_callbacks.append(function)
+
+    def remove_done_callback(self, function):
+        self.done_callbacks.remove(function)
+
+    def remove_partial_callback(self, function):
+        self.partial_callbacks.remove(function)
+
+    def remove_ready_callback(self, function):
+        self.ready_callbacks.remove(function)
+
+    def remove_closed_callback(self, function):
+        self.closed_callbacks.remove(function)
 
     def approve(self, cleanup = True):
         self.set_result(None, cleanup = cleanup)
@@ -336,15 +350,20 @@ def notify(event, data = None):
 def coroutine_return(coroutine):
     """
     Allows for the abstraction of the return value of a coroutine
-    object to be the result of the future yield as the first element
+    object to be the result of the future yielded as the last element
     of the generator.
 
     This allows the possibility of providing compatibility
     with the legacy not return allowed generators.
 
+    In case no value is yielded then an invalid value is returned as the
+    result of the async coroutine.
+
     :type coroutine: CoroutineObject
-    :param coroutine: The coroutine object that is going to be yield back
+    :param coroutine: The coroutine object that is going to yield back
     and have its last future result returned from the generator.
     """
 
-    for value in coroutine: yield value
+    for value in coroutine:
+        if value == None: continue
+        yield value

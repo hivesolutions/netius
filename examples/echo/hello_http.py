@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2018 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -31,7 +31,7 @@ __revision__ = "$LastChangedRevision$"
 __date__ = "$LastChangedDate$"
 """ The last change date of the module """
 
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -39,31 +39,40 @@ __license__ = "Apache License, Version 2.0"
 
 import netius
 
-class EchoServerProtocol(object):
+import asyncio
+
+class HelloHTTPServerProtocol(asyncio.Protocol):
+
+    def __init__(self, keep_alive = True):
+        super().__init__()
+        self.keep_alive = keep_alive
 
     def connection_made(self, transport):
-        print("Bind the server connection")
         self.transport = transport
+        self.peername = transport.get_extra_info("peername")
+        print("Connection from %s" % str(self.peername))
 
-    def datagram_received(self, data, addr):
-        message = data.decode()
-        print("Received %r from %s" % (message, addr))
-        print("Send %r to %s" % (message, addr))
-        self.transport.sendto(data, addr)
+    def connection_lost(self, exc):
+        print("Connection from %s lost (%s)" % (str(self.peername), str(exc)))
 
-print("Starting UDP server")
+    def data_received(self, data):
+        keep_alive_s = b"keep-alive" if self.keep_alive else b"close"
+        self.transport.write(b"HTTP/1.1 200 OK\r\nConnection: %s\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, world!" % keep_alive_s)
+        if not self.keep_alive: self.transport.close()
 
 loop = netius.get_loop(_compat = True)
-listen = loop.create_datagram_endpoint(
-    lambda: EchoServerProtocol(),
-    local_addr = ("127.0.0.1", 9999)
+
+coro = loop.create_server(
+    lambda: HelloHTTPServerProtocol(),
+    "127.0.0.1", 8888
 )
-transport, protocol = loop.run_until_complete(listen)
+server = loop.run_until_complete(coro)
 
-try:
-    loop.run_forever()
-except KeyboardInterrupt:
-    pass
+print("Serving on %s" % (server.sockets[0].getsockname(),))
 
-transport.close()
+try: loop.run_forever()
+except KeyboardInterrupt: pass
+
+server.close()
+loop.run_until_complete(server.wait_closed())
 loop.close()

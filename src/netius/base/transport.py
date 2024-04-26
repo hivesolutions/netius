@@ -39,6 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 from . import errors
 from . import observer
+from . import asynchronous
 
 class Transport(observer.Observable):
     """
@@ -54,6 +55,7 @@ class Transport(observer.Observable):
     """
 
     def __init__(self, loop, connection, open = True):
+        observer.Observable.__init__(self)
         self._loop = loop
         self._connection = connection
         self._protocol = None
@@ -174,7 +176,7 @@ class Transport(observer.Observable):
             compression = lambda: self._connection.socket.compression(),
             cipher = lambda: self._connection.socket.cipher(),
             peercert = lambda: self._connection.socket.getpeercert(),
-            sslcontext = lambda: self._connection.socket.context,
+            sslcontext = lambda: self._connection.socket.context if hasattr(self._connection.socket, "context") else None,
             ssl_object = lambda: self._connection.socket
         )
 
@@ -313,3 +315,118 @@ class TransportStream(Transport):
         if not self._protocol == None:
             self._protocol.eof_received()
         self._cleanup()
+
+class ServerTransport(observer.Observable):
+    """
+    Decorator class to be used to add the functionality of a
+    server layer using a simplified and standard API that provides
+    the usage of the previously defined transport.
+
+    Allows adding the functionality to an internal netius
+    service (or equivalent) object.
+
+    This approach is heavily influenced by the design of the
+    asyncio Python infra-structure and should provide a mostly
+    compatible interface.
+
+    :see: https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Server
+    """
+
+    def __init__(self, loop, service, open = True):
+        observer.Observable.__init__(self)
+        self._loop = loop
+        self._service = service
+        self._protocol_family = None
+        self._serve = None
+        self._serving = False
+        if open: self.open()
+
+    def __aenter__(self):
+        coroutine = self._aenter()
+        return asynchronous.coroutine_return(coroutine)
+
+    def __aexit__(self, *exc):
+        coroutine = self._aexit()
+        return asynchronous.coroutine_return(coroutine)
+
+    def open(self):
+        pass
+
+    def close(self):
+        pass
+
+    def get_loop(self):
+        return self._loop
+
+    def start_serving(self):
+        coroutine = self._start_serving()
+        return asynchronous.coroutine_return(coroutine)
+
+    def serve_forever(self):
+        coroutine = self._serve_forever()
+        return asynchronous.coroutine_return(coroutine)
+
+    def is_serving(self):
+        return True
+
+    def _set_compat(self, protocol_factory, serve = None):
+        self.sockets = [self._service.socket]
+        self._set_binds()
+        self._set_protocol_factory(protocol_factory)
+        self._set_serve(serve)
+
+    def _set_binds(self):
+        self._service.bind("connection", self._on_connection)
+
+    def _set_protocol_factory(self, protocol_factory):
+        self._protocol_factory = protocol_factory
+
+    def _set_serve(self, serve):
+        self._serve = serve
+
+    def _on_connection(self, connection):
+        protocol = self._protocol_factory()
+        transport = TransportStream(self._loop, connection)
+        transport._set_compat(protocol)
+
+    def _start_serving(self):
+        # in case the current context is already serving
+        # content, then ignores the current request, otherwise
+        # sets the context as serving
+        if self._serving: yield None; return
+        if not self._serve: yield None; return
+
+        # creates the future that is going to be representing
+        # the async operation of enabling the server
+        future = self._loop.create_future()
+
+        # calls the serve method that should enable the server
+        # to start accepting connections, then marks the server
+        # as serving as it's now considered enabled
+        self._serve()
+        self._serving = True
+
+        # schedules the set of the future value marking the coroutine
+        # as finished for the next tick
+        self._loop.delay(lambda: future.set_result(None), immediately = True)
+
+        # yields the future so that any event loop executor "knows"
+        # that there's working pending to be done
+        yield future
+
+    def _serve_forever(self):
+        future = self._loop.create_future()
+        yield future
+
+    def _aenter(self):
+        try: future = self._loop.create_future()
+        except ReferenceError: yield None; return
+        future.set_result(self)
+        yield future
+
+    def _aexit(self):
+        try: future = self._loop.create_future()
+        except ReferenceError: yield None; return
+        self.close()
+        future.set_result(self)
+        yield future

@@ -39,7 +39,7 @@ __license__ = "Apache License, Version 2.0"
 
 from . import server
 
-from .common import * #@UnusedWildImport
+from .common import * #@UnusedWildImport pylint: disable=W0614
 
 class Container(Base):
 

@@ -50,6 +50,7 @@ from . import poll
 from . import protocol
 from . import request
 from . import server
+from . import service
 from . import stream
 from . import tls
 from . import transport
@@ -66,8 +67,8 @@ from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
     SSL_DH_PATH, Base, BaseThread, new_loop_main, new_loop_asyncio, new_loop,\
     ensure_main, ensure_asyncio, ensure_loop, get_main, get_loop, get_event_loop,\
     stop_loop, compat_loop, get_poll, build_future, ensure, ensure_pool
-from .compat import BaseLoop, CompatLoop, is_compat, is_asyncio, build_datagram,\
-    connect_stream
+from .compat import BaseLoop, CompatLoop, is_compat, is_asyncio, run, build_datagram,\
+    connect_stream, serve_stream
 from .config import conf, conf_prefix, conf_suffix, conf_s, conf_r, conf_d, conf_ctx
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
@@ -79,8 +80,9 @@ from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
 from .protocol import Protocol, DatagramProtocol, StreamProtocol
 from .request import Request, Response
 from .server import Server, DatagramServer, StreamServer
+from .service import Service
 from .stream import Stream
 from .tls import fingerprint, match_fingerprint, match_hostname, dnsname_match,\
     dump_certificate
-from .transport import Transport, TransportDatagram, TransportStream
+from .transport import Transport, TransportDatagram, TransportStream, ServerTransport
 from .util import camel_to_underscore, verify

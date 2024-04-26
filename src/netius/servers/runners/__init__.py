@@ -19,9 +19,6 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
-__author__ = "João Magalhães <joamag@hive.pt>"
-""" The author(s) of the module """
-
 __version__ = "1.0.0"
 """ The version of the module """
 
@@ -36,34 +33,3 @@ __copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
 
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
-
-import netius
-
-class EchoServerProtocol(object):
-
-    def connection_made(self, transport):
-        print("Bind the server connection")
-        self.transport = transport
-
-    def datagram_received(self, data, addr):
-        message = data.decode()
-        print("Received %r from %s" % (message, addr))
-        print("Send %r to %s" % (message, addr))
-        self.transport.sendto(data, addr)
-
-print("Starting UDP server")
-
-loop = netius.get_loop(_compat = True)
-listen = loop.create_datagram_endpoint(
-    lambda: EchoServerProtocol(),
-    local_addr = ("127.0.0.1", 9999)
-)
-transport, protocol = loop.run_until_complete(listen)
-
-try:
-    loop.run_forever()
-except KeyboardInterrupt:
-    pass
-
-transport.close()
-loop.close()
