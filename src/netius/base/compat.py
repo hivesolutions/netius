@@ -835,7 +835,7 @@ def _serve_stream_compat(
 
     def build_protocol():
         return protocol
-    
+
     def on_build(future):
         if future.cancelled() or future.exception():
             protocol.close()
@@ -843,7 +843,7 @@ def _serve_stream_compat(
             result = future.result()
             if callback:
                 callback(result)
-    
+
     if ssl and cer_file and key_file:
         import ssl as _ssl
 
@@ -852,7 +852,7 @@ def _serve_stream_compat(
         ssl = ssl_context
     else:
         ssl = None
-    
+
     # removes some of the extra arguments that may be
     # present in kwargs and would create issues
     kwargs.pop("env", None)
