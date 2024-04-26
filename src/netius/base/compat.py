@@ -587,7 +587,12 @@ def _build_datagram_compat(
     )
 
     connect = loop.create_datagram_endpoint(
-        build_protocol, family=family, remote_addr=remote_addr, *args, **kwargs
+        build_protocol,
+        family=family,
+        proto=type,
+        remote_addr=remote_addr,
+        *args,
+        **kwargs
     )
 
     future = loop.create_task(connect)
@@ -715,9 +720,18 @@ def _connect_stream_compat(
         ssl_context = _ssl.SSLContext()
         ssl_context.load_cert_chain(cer_file, keyfile=key_file)
         ssl = ssl_context
+    else:
+        ssl = None
 
     connect = loop.create_connection(
-        build_protocol, host=host, port=port, ssl=ssl, family=family, *args, **kwargs
+        build_protocol,
+        host=host,
+        port=port,
+        ssl=ssl,
+        family=family,
+        proto=type,
+        *args,
+        **kwargs
     )
 
     future = loop.create_task(connect)
@@ -758,15 +772,15 @@ def _serve_stream_native(
     def on_ready():
         loop.serve(host=host, port=port, callback=on_complete)
 
-    def on_complete(service, success):
+    def on_complete(service, serve, success):
         if success:
-            on_success(service)
+            on_success(service, serve=serve)
         else:
             on_error(service)
 
-    def on_success(service):
+    def on_success(service, serve=None):
         server = transport.ServerTransport(loop, service)
-        server._set_compat(protocol)
+        server._set_compat(protocol, serve=serve)
         if not callback:
             return
         callback(server)
@@ -799,5 +813,61 @@ def _serve_stream_compat(
     *args,
     **kwargs
 ):
-    # @TODO: implement this stuff
-    pass
+    """
+    Compatible version of the stream server creation method to
+    make use of the same netius bootstrap infrastructure and
+    the asyncio event loop.
+
+    :see: https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.create_server
+    """
+
+    # @TODO: implement this stuff meaning that the compat
+    # mode is the mode in which Netius runs compatible
+    # with the asyncio module
+    from . import common
+
+    loop = loop or common.get_loop()
+
+    protocol = protocol_factory()
+    has_loop_set = hasattr(protocol, "loop_set")
+    if has_loop_set:
+        protocol.loop_set(loop)
+
+    def build_protocol():
+        return protocol
+    
+    def on_build(future):
+        if future.cancelled() or future.exception():
+            protocol.close()
+        else:
+            result = future.result()
+            if callback:
+                callback(result)
+    
+    if ssl and cer_file and key_file:
+        import ssl as _ssl
+
+        ssl_context = _ssl.SSLContext()
+        ssl_context.load_cert_chain(cer_file, keyfile=key_file)
+        ssl = ssl_context
+    else:
+        ssl = None
+    
+    # removes some of the extra arguments that may be
+    # present in kwargs and would create issues
+    kwargs.pop("env", None)
+
+    build = loop.create_server(
+        build_protocol,
+        host=host,
+        port=port,
+        ssl=ssl or None,
+        family=family,
+        *args,
+        **kwargs
+    )
+
+    future = loop.create_task(build)
+    future.add_done_callback(on_build)
+
+    return loop
