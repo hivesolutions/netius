@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,22 +22,14 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import netius
+
 
 class RawProtocol(netius.StreamProtocol):
 
@@ -49,31 +41,21 @@ class RawProtocol(netius.StreamProtocol):
 
         self.send("GET / HTTP/1.0\r\n\r\n")
 
+
 class RawClient(netius.ClientAgent):
 
     protocol = RawProtocol
 
     @classmethod
-    def run_s(
-        cls,
-        host,
-        port = 8080,
-        loop = None,
-        *args,
-        **kwargs
-    ):
+    def run_s(cls, host, port=8080, loop=None, *args, **kwargs):
         protocol = cls.protocol()
 
         loop = netius.connect_stream(
-            lambda: protocol,
-            host = host,
-            port = port,
-            loop = loop,
-            *args,
-            **kwargs
+            lambda: protocol, host=host, port=port, loop=loop, *args, **kwargs
         )
 
         return loop, protocol
+
 
 if __name__ == "__main__":
 

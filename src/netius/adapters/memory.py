@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -41,6 +32,7 @@ import netius
 
 from . import base
 
+
 class MemoryAdapter(base.BaseAdapter):
 
     def __init__(self):
@@ -48,16 +40,17 @@ class MemoryAdapter(base.BaseAdapter):
         self.map = dict()
         self.owners = dict()
 
-    def set(self, value, owner = "nobody"):
+    def set(self, value, owner="nobody"):
         map_o = self._ensure(owner)
         key = self.generate()
-        item = dict(value = value, owner = owner)
+        item = dict(value=value, owner=owner)
         self.map[key] = item
         map_o[key] = item
         return key
 
-    def get_file(self, key, mode = "rb"):
-        if not key in self.map: netius.NetiusError("Key not found")
+    def get_file(self, key, mode="rb"):
+        if not key in self.map:
+            netius.NetiusError("Key not found")
         item = self.map[key]
         value = item["value"]
         file = netius.legacy.StringIO(value)
@@ -66,7 +59,7 @@ class MemoryAdapter(base.BaseAdapter):
         file.close = close
         return file
 
-    def delete(self, key, owner = "nobody"):
+    def delete(self, key, owner="nobody"):
         item = self.map[key]
         owner = item["owner"]
         map_o = self._ensure(owner)
@@ -91,11 +84,11 @@ class MemoryAdapter(base.BaseAdapter):
         _value = item["value"]
         return len(_value)
 
-    def count(self, owner = None):
+    def count(self, owner=None):
         map = self._ensure(owner) if owner else self.map
         return len(map)
 
-    def list(self, owner = None):
+    def list(self, owner=None):
         map = self._ensure(owner) if owner else self.map
         return map.keys()
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -39,14 +30,15 @@ __license__ = "Apache License, Version 2.0"
 
 from . import base
 
+
 class DummyAuth(base.Auth):
 
-    def __init__(self, value = True, *args, **kwargs):
+    def __init__(self, value=True, *args, **kwargs):
         base.Auth.__init__(self, *args, **kwargs)
         self.value = value
 
     @classmethod
-    def auth(cls, value = True, *args, **kwargs):
+    def auth(cls, value=True, *args, **kwargs):
         return value
 
     @classmethod
@@ -54,8 +46,4 @@ class DummyAuth(base.Auth):
         return True
 
     def auth_i(self, *args, **kwargs):
-        return self.__class__.auth(
-            value = self.value,
-            *args,
-            **kwargs
-        )
+        return self.__class__.auth(value=self.value, *args, **kwargs)

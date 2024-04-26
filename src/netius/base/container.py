@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -39,7 +30,8 @@ __license__ = "Apache License, Version 2.0"
 
 from . import server
 
-from .common import * #@UnusedWildImport pylint: disable=W0614
+from .common import *  # @UnusedWildImport pylint: disable=W0614
+
 
 class Container(Base):
 
@@ -84,7 +76,8 @@ class Container(Base):
 
         # iterates over all the bases registered and propagates the cleanup operation
         # over them, deleting the list of bases afterwards (no more usage for them)
-        for base in self.bases: base.cleanup()
+        for base in self.bases:
+            base.cleanup()
         del self.bases[:]
 
         # unbinds the start operation from the on start event, as this is no longer
@@ -119,29 +112,33 @@ class Container(Base):
     def ticks(self):
         self.set_state(STATE_TICK)
         self._lid = (self._lid + 1) % 2147483647
-        for base in self.bases: base.ticks()
+        for base in self.bases:
+            base.ticks()
 
-    def connections_dict(self, full = False):
+    def connections_dict(self, full=False):
         all = dict()
         for base in self.bases:
             is_owner = base == self.owner
-            if is_owner: connections = base.connections_dict(
-                full = full, parent = True
-            )
-            else: connections = base.connections_dict(full = full)
+            if is_owner:
+                connections = base.connections_dict(full=full, parent=True)
+            else:
+                connections = base.connections_dict(full=full)
             all[base.name] = connections
         return all
 
-    def connection_dict(self, id, full = False):
+    def connection_dict(self, id, full=False):
         connection = None
         for base in self.bases:
             for _connection in base.connections:
-                if not _connection.id == id: continue
+                if not _connection.id == id:
+                    continue
                 connection = _connection
                 break
-            if connection: break
-        if not connection: return None
-        return connection.info_dict(full = full)
+            if connection:
+                break
+        if not connection:
+            return None
+        return connection.info_dict(full=full)
 
     def on_start(self):
         Base.on_start(self)
@@ -165,10 +162,12 @@ class Container(Base):
         base.load()
 
     def start_all(self):
-        for base in self.bases: self.start_base(base)
+        for base in self.bases:
+            self.start_base(base)
 
     def apply_all(self):
-        for base in self.bases: self.apply_base(base)
+        for base in self.bases:
+            self.apply_base(base)
 
     def apply_base(self, base):
         base.tid = self.tid
@@ -183,7 +182,9 @@ class Container(Base):
             method(*args, **kwargs)
 
     def trigger_all(self, name, *args, **kwargs):
-        for base in self.bases: base.trigger(name, base, *args, **kwargs)
+        for base in self.bases:
+            base.trigger(name, base, *args, **kwargs)
+
 
 class ContainerServer(server.StreamServer):
 
@@ -202,7 +203,8 @@ class ContainerServer(server.StreamServer):
         # verifies if there's a container object currently defined in
         # the object and in case it does exist propagates the stop call
         # to the container so that the proper stop operation is performed
-        if not self.container: return
+        if not self.container:
+            return
         self.container.stop()
 
     def cleanup(self):
@@ -215,7 +217,8 @@ class ContainerServer(server.StreamServer):
 
         # verifies if the container is valid and if that's not the case
         # returns the control flow immediately (as expected)
-        if not container: return
+        if not container:
+            return
 
         # runs the cleanup operation on the cleanup, this should properly
         # propagate the operation to the owner container (as expected)

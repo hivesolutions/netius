@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -19,16 +19,7 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -57,24 +48,95 @@ from . import transport
 from . import util
 
 from .agent import Agent, ClientAgent, ServerAgent
-from .asynchronous import Future, Task, Handle, Executor, ThreadPoolExecutor, coroutine,\
-    async_test_all, async_test, ensure_generator, get_asyncio, is_coroutine,\
-    is_coroutine_object, is_coroutine_native, is_future, is_neo, is_asynclib, is_await,\
-    wakeup, sleep, wait, notify, coroutine_return
+from .asynchronous import (
+    Future,
+    Task,
+    Handle,
+    Executor,
+    ThreadPoolExecutor,
+    coroutine,
+    async_test_all,
+    async_test,
+    ensure_generator,
+    get_asyncio,
+    is_coroutine,
+    is_coroutine_object,
+    is_coroutine_native,
+    is_future,
+    is_neo,
+    is_asynclib,
+    is_await,
+    wakeup,
+    sleep,
+    wait,
+    notify,
+    coroutine_return,
+)
 from .client import Client, DatagramClient, StreamClient
-from .common import NAME, VERSION, IDENTIFIER_SHORT, IDENTIFIER_LONG,\
-    IDENTIFIER, TCP_TYPE, UDP_TYPE, SSL_KEY_PATH, SSL_CER_PATH, SSL_CA_PATH,\
-    SSL_DH_PATH, Base, BaseThread, new_loop_main, new_loop_asyncio, new_loop,\
-    ensure_main, ensure_asyncio, ensure_loop, get_main, get_loop, get_event_loop,\
-    stop_loop, compat_loop, get_poll, build_future, ensure, ensure_pool
-from .compat import BaseLoop, CompatLoop, is_compat, is_asyncio, run, build_datagram,\
-    connect_stream, serve_stream
+from .common import (
+    NAME,
+    VERSION,
+    IDENTIFIER_SHORT,
+    IDENTIFIER_LONG,
+    IDENTIFIER,
+    TCP_TYPE,
+    UDP_TYPE,
+    SSL_KEY_PATH,
+    SSL_CER_PATH,
+    SSL_CA_PATH,
+    SSL_DH_PATH,
+    Base,
+    BaseThread,
+    new_loop_main,
+    new_loop_asyncio,
+    new_loop,
+    ensure_main,
+    ensure_asyncio,
+    ensure_loop,
+    get_main,
+    get_loop,
+    get_event_loop,
+    stop_loop,
+    compat_loop,
+    get_poll,
+    build_future,
+    ensure,
+    ensure_pool,
+)
+from .compat import (
+    BaseLoop,
+    CompatLoop,
+    is_compat,
+    is_asyncio,
+    run,
+    build_datagram,
+    connect_stream,
+    serve_stream,
+)
 from .config import conf, conf_prefix, conf_suffix, conf_s, conf_r, conf_d, conf_ctx
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
-from .errors import NetiusError, RuntimeError, StopError, PauseError, WakeupError,\
-    DataError, ParserError, GeneratorError, SecurityError, NotImplemented, AssertionError
-from .log import SILENT, MAX_LENGTH_LOGSTASH, TIMEOUT_LOGSTASH, LogstashHandler, rotating_handler, smtp_handler
+from .errors import (
+    NetiusError,
+    RuntimeError,
+    StopError,
+    PauseError,
+    WakeupError,
+    DataError,
+    ParserError,
+    GeneratorError,
+    SecurityError,
+    NotImplemented,
+    AssertionError,
+)
+from .log import (
+    SILENT,
+    MAX_LENGTH_LOGSTASH,
+    TIMEOUT_LOGSTASH,
+    LogstashHandler,
+    rotating_handler,
+    smtp_handler,
+)
 from .observer import Observable
 from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
 from .protocol import Protocol, DatagramProtocol, StreamProtocol
@@ -82,7 +144,12 @@ from .request import Request, Response
 from .server import Server, DatagramServer, StreamServer
 from .service import Service
 from .stream import Stream
-from .tls import fingerprint, match_fingerprint, match_hostname, dnsname_match,\
-    dump_certificate
+from .tls import (
+    fingerprint,
+    match_fingerprint,
+    match_hostname,
+    dnsname_match,
+    dump_certificate,
+)
 from .transport import Transport, TransportDatagram, TransportStream, ServerTransport
 from .util import camel_to_underscore, verify

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -43,30 +34,35 @@ import urllib.parse
 
 import netius
 
+
 @asyncio.coroutine
-def print_http_headers(url, encoding = "utf-8"):
+def print_http_headers(url, encoding="utf-8"):
     url = urllib.parse.urlsplit(url)
 
     if url.scheme == "https":
-        connect = asyncio.open_connection(url.hostname, url.port or 443, ssl = True)
+        connect = asyncio.open_connection(url.hostname, url.port or 443, ssl=True)
     else:
         connect = asyncio.open_connection(url.hostname, url.port or 80)
 
     reader, writer = yield from connect
     query = "HEAD {path} HTTP/1.1\r\nConnection: keep-alive\r\nHost: {hostname}\r\n\r\n"
-    query = query.format(path = url.path or "/", hostname = url.hostname)
+    query = query.format(path=url.path or "/", hostname=url.hostname)
     writer.write(query.encode(encoding))
 
     while True:
         line = yield from reader.readline()
-        if not line: break
+        if not line:
+            break
         line = line.decode(encoding).rstrip()
-        if line: print(line)
-        else: break
+        if line:
+            print(line)
+        else:
+            break
 
     writer.close()
 
-loop = netius.get_loop(_compat = True)
+
+loop = netius.get_loop(_compat=True)
 task = asyncio.ensure_future(print_http_headers("https://www.flickr.com/"))
 loop.run_until_complete(task)
 loop.close()

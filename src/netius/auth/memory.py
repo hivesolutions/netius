@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -19,16 +19,7 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -38,31 +29,36 @@ import netius
 
 from . import base
 
+
 class MemoryAuth(base.Auth):
 
-    def __init__(self, registry = None, *args, **kwargs):
+    def __init__(self, registry=None, *args, **kwargs):
         base.Auth.__init__(self, *args, **kwargs)
         self.registry = registry
 
     @classmethod
-    def auth(cls, username, password, registry = None, *args, **kwargs):
+    def auth(cls, username, password, registry=None, *args, **kwargs):
         registry = registry or cls.get_registry()
-        if not registry: return False
+        if not registry:
+            return False
         register = registry.get(username, None)
-        if not register: return False
+        if not register:
+            return False
         _password = register.get("password")
         return cls.verify(_password, password)
 
     @classmethod
-    def meta(cls, username, registry = None, *args, **kwargs):
+    def meta(cls, username, registry=None, *args, **kwargs):
         registry = registry or cls.get_registry()
-        if not registry: return {}
+        if not registry:
+            return {}
         register = registry.get(username, {})
         return register
 
     @classmethod
     def get_registry(cls):
-        if hasattr(cls, "registry"): return cls.registry
+        if hasattr(cls, "registry"):
+            return cls.registry
         cls.registry = cls.load_registry()
         return cls.registry
 
@@ -72,9 +68,5 @@ class MemoryAuth(base.Auth):
 
     def auth_i(self, username, password, *args, **kwargs):
         return self.__class__.auth(
-            username,
-            password,
-            registry = self.registry,
-            *args,
-            **kwargs
+            username, password, registry=self.registry, *args, **kwargs
         )

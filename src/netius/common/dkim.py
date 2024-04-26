@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -50,19 +41,14 @@ from . import rsa
 from . import util
 from . import mime
 
+
 def dkim_sign(
-    message,
-    selector,
-    domain,
-    private_key,
-    identity = None,
-    separator = ":",
-    creation = None
+    message, selector, domain, private_key, identity=None, separator=":", creation=None
 ):
     separator = netius.legacy.bytes(separator)
     identity = identity or "@" + domain
 
-    headers, body = mime.rfc822_parse(message, strip = False)
+    headers, body = mime.rfc822_parse(message, strip=False)
 
     if not identity.endswith(domain):
         raise netius.GeneratorError("Identity must end with domain")
@@ -71,7 +57,9 @@ def dkim_sign(
     body = dkim_body(body)
 
     include_headers = [name.lower() for name, _value in headers]
-    sign_headers = [header for header in headers if header[0].lower() in include_headers]
+    sign_headers = [
+        header for header in headers if header[0].lower() in include_headers
+    ]
     sign_names = [name for name, _value in sign_headers]
 
     hash = hashlib.sha256()
@@ -118,13 +106,19 @@ def dkim_sign(
     digest = hash.digest()
 
     digest_info = asn.asn1_gen(
-        (asn.SEQUENCE, [
-            (asn.SEQUENCE, [
-                (asn.OBJECT_IDENTIFIER, asn.HASHID_SHA256),
-                (asn.NULL, None),
-            ]),
-            (asn.OCTET_STRING, digest),
-        ])
+        (
+            asn.SEQUENCE,
+            [
+                (
+                    asn.SEQUENCE,
+                    [
+                        (asn.OBJECT_IDENTIFIER, asn.HASHID_SHA256),
+                        (asn.NULL, None),
+                    ],
+                ),
+                (asn.OCTET_STRING, digest),
+            ],
+        )
     )
 
     modulus = private_key["modulus"]
@@ -143,22 +137,25 @@ def dkim_sign(
     base_i = util.bytes_to_integer(base)
 
     signature_i = rsa.rsa_crypt(base_i, exponent, modulus)
-    signature_s = util.integer_to_bytes(signature_i, length = modulus_l)
+    signature_s = util.integer_to_bytes(signature_i, length=modulus_l)
 
     signature += base64.b64encode(signature_s) + b"\r\n"
     return signature
+
 
 def dkim_headers(headers):
     # returns the headers exactly the way they were parsed
     # as this is the simple strategy approach
     return headers
 
+
 def dkim_body(body):
     # remove the complete set of empty lines in the body
     # and adds only one line to the end of it as requested
     return re.sub(b"(\r\n)*$", b"\r\n", body)
 
-def dkim_fold(header, length = 72):
+
+def dkim_fold(header, length=72):
     """
     Folds a header line into multiple line feed separated lines
     at column length defined (defaults to 72).
@@ -178,7 +175,8 @@ def dkim_fold(header, length = 72):
     """
 
     index = header.rfind(b"\r\n ")
-    if index == -1: pre = b""
+    if index == -1:
+        pre = b""
     else:
         index += 3
         pre = header[:index]
@@ -186,23 +184,27 @@ def dkim_fold(header, length = 72):
 
     while len(header) > length:
         index = header[:length].rfind(b" ")
-        if index == -1: _index = index
-        else: _index = index + 1
+        if index == -1:
+            _index = index
+        else:
+            _index = index + 1
         pre += header[:index] + b"\r\n "
         header = header[_index:]
 
     return pre + header
 
-def dkim_generate(domain, suffix = None, number_bits = 1024):
+
+def dkim_generate(domain, suffix=None, number_bits=1024):
     date_time = datetime.datetime.utcnow()
 
     selector = date_time.strftime("%Y%m%d%H%M%S")
-    if suffix: selector += "." + suffix
+    if suffix:
+        selector += "." + suffix
 
     selector_full = "%s._domainkey.%s." % (selector, domain)
 
     private_key = rsa.rsa_private(number_bits)
-    rsa.assert_private(private_key, number_bits = number_bits)
+    rsa.assert_private(private_key, number_bits=number_bits)
     public_key = rsa.private_to_public(private_key)
 
     buffer = netius.legacy.BytesIO()
@@ -217,11 +219,11 @@ def dkim_generate(domain, suffix = None, number_bits = 1024):
     public_b64 = base64.b64encode(public_data)
     public_b64 = netius.legacy.str(public_b64)
 
-    dns_txt = "%s IN TXT \"k=rsa; p=%s\"" % (selector_full, public_b64)
+    dns_txt = '%s IN TXT "k=rsa; p=%s"' % (selector_full, public_b64)
 
     return dict(
-        selector = selector,
-        selector_full = selector_full,
-        private_pem = private_pem,
-        dns_txt = dns_txt
+        selector=selector,
+        selector_full=selector_full,
+        private_pem=private_pem,
+        dns_txt=dns_txt,
     )

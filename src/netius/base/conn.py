@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -67,6 +58,7 @@ CHUNK_SIZE = 16384
 """ The size of the chunk to be used while received
 data from the service socket """
 
+
 class BaseConnection(observer.Observable):
     """
     Abstract connection object that should encapsulate
@@ -81,13 +73,13 @@ class BaseConnection(observer.Observable):
 
     def __init__(
         self,
-        owner = None,
-        socket = None,
-        address = None,
-        datagram = False,
-        ssl = False,
-        max_pending = -1,
-        min_pending = -1
+        owner=None,
+        socket=None,
+        address=None,
+        datagram=False,
+        ssl=False,
+        max_pending=-1,
+        min_pending=-1,
     ):
         observer.Observable.__init__(self)
         self.status = PENDING
@@ -124,11 +116,12 @@ class BaseConnection(observer.Observable):
         self.pending.clear()
         self.restored.clear()
 
-    def open(self, connect = False):
+    def open(self, connect=False):
         # in case the current status of the connection is already open
         # it does not make sense to proceed with the opening of the
         # connection as the connection is already open
-        if self.status == OPEN: return
+        if self.status == OPEN:
+            return
 
         # retrieves the reference to the owner object from the
         # current instance to be used to add the socket to the
@@ -154,7 +147,8 @@ class BaseConnection(observer.Observable):
         # in case the connect flag is set, must set the current
         # connection as connecting, indicating that some extra
         # steps are still required to complete the connection
-        if connect: self.set_connecting()
+        if connect:
+            self.set_connecting()
 
         # calls the top level of connection creation handler so that the owner
         # object gets notified about the creation of the connection (open)
@@ -165,11 +159,12 @@ class BaseConnection(observer.Observable):
         # the current netius specification and strategy
         self.trigger("open", self)
 
-    def close(self, flush = False, destroy = True):
+    def close(self, flush=False, destroy=True):
         # in case the current status of the connection is closed it does
         # nor make sense to proceed with the closing as the connection
         # is already in the closed state (nothing to be done)
-        if self.status == CLOSED: return
+        if self.status == CLOSED:
+            return
 
         # in case the flush flag is set, a different approach is taken
         # where all the pending data is flushed (as possible) before
@@ -220,14 +215,18 @@ class BaseConnection(observer.Observable):
         # removes the current connection from the list of connections in the
         # owner and also from the map that associates the socket with the
         # proper connection (also in the owner)
-        if self in owner.connections: owner.connections.remove(self)
-        if self.socket in owner.connections_m: del owner.connections_m[self.socket]
+        if self in owner.connections:
+            owner.connections.remove(self)
+        if self.socket in owner.connections_m:
+            del owner.connections_m[self.socket]
 
         # closes the socket, using the proper grace way so that
         # operations are no longer allowed in the socket in case there are
         # an error in the operation fails silently (on purpose)
-        try: self.socket.close()
-        except Exception: pass
+        try:
+            self.socket.close()
+        except Exception:
+            pass
 
         # calls the top level of the connection delete handler so that the owner
         # object gets notified about the deletion of the connection (closed)
@@ -242,15 +241,17 @@ class BaseConnection(observer.Observable):
         # for instance, the current event registered handlers will no longer be available
         # this is important to avoid any memory leak from circular references from
         # this moment on the connection is considered disabled (not ready for usage)
-        if destroy: self.destroy()
+        if destroy:
+            self.destroy()
 
     def close_flush(self):
-        self.send(None, callback = self._close_callback)
+        self.send(None, callback=self._close_callback)
 
-    def upgrade(self, key_file = None, cer_file = None, ca_file = None, server = True):
+    def upgrade(self, key_file=None, cer_file=None, ca_file=None, server=True):
         # in case the current connection is already an SSL-oriented one there's
         # nothing to be done here, and the method returns immediately to the caller
-        if self.ssl: return
+        if self.ssl:
+            return
 
         # prints a debug message about the upgrading of the connection that is
         # going to be performed for the current connection
@@ -266,15 +267,21 @@ class BaseConnection(observer.Observable):
         # determines if the arguments-based certificate and key values should be used
         # of if instead the owner values should be used as a fallback process, these
         # values are going to be used as part of the SSL upgrade process
-        if hasattr(self.owner, "key_file"): key_file = key_file or self.owner.key_file
-        if hasattr(self.owner, "cer_file"): cer_file = cer_file or self.owner.cer_file
-        if hasattr(self.owner, "ca_file"): ca_file = ca_file or self.owner.ca_file
+        if hasattr(self.owner, "key_file"):
+            key_file = key_file or self.owner.key_file
+        if hasattr(self.owner, "cer_file"):
+            cer_file = cer_file or self.owner.cer_file
+        if hasattr(self.owner, "ca_file"):
+            ca_file = ca_file or self.owner.ca_file
 
         # prints some debug information about the files that are going to be used for
         # the SSL based connection upgrade, this is mainly for debugging purposes
-        if key_file: self.owner.debug("Using '%s' as key file" % key_file)
-        if cer_file: self.owner.debug("Using '%s' as certificate file" % cer_file)
-        if ca_file: self.owner.debug("Using '%s' as certificate authority file" % ca_file)
+        if key_file:
+            self.owner.debug("Using '%s' as key file" % key_file)
+        if cer_file:
+            self.owner.debug("Using '%s' as certificate file" % cer_file)
+        if ca_file:
+            self.owner.debug("Using '%s' as certificate authority file" % ca_file)
 
         # removes the "old" association socket association for the connection and
         # unsubscribes the "old" socket from the complete set of events, this should
@@ -288,10 +295,10 @@ class BaseConnection(observer.Observable):
         # encapsulated SSL socket is then set as the current connection's socket
         self.socket = self.owner._ssl_upgrade(
             self.socket,
-            key_file = key_file,
-            cer_file = cer_file,
-            ca_file = ca_file,
-            server = server
+            key_file=key_file,
+            cer_file=cer_file,
+            ca_file=ca_file,
+            server=server,
         )
 
         # updates the current socket in the connection resolution map with the new SSL one
@@ -319,14 +326,16 @@ class BaseConnection(observer.Observable):
         self.upgrading = False
         self.trigger("upgrade", self)
 
-    def set_data(self, data, address = None):
-        if address: self.trigger("data", self, data, address)
-        else: self.trigger("data", self, data)
+    def set_data(self, data, address=None):
+        if address:
+            self.trigger("data", self, data, address)
+        else:
+            self.trigger("data", self, data)
 
     def set_exception(self, exception):
         self.trigger("exception", self, exception)
 
-    def ensure_write(self, flush = True):
+    def ensure_write(self, flush=True):
         # retrieves the identifier of the current thread and
         # checks if it's the same as the one defined in the
         # owner in case it's not then the operation is not
@@ -340,24 +349,28 @@ class BaseConnection(observer.Observable):
         # safe and so it must be delayed to be executed in the
         # next loop of the thread cycle, must return immediately
         # to avoid extra subscription operations
-        if not is_safe: return self.owner.delay(self.ensure_write, safe = True)
+        if not is_safe:
+            return self.owner.delay(self.ensure_write, safe=True)
 
         # verifies if the status of the connection is open and
         # in case it's not returned immediately as there's no reason
         # to so it for writing
-        if not self.status == OPEN: return
+        if not self.status == OPEN:
+            return
 
         # in case the write ready flag is enabled (writes allowed)
         # and the flush parameter is set to the ensure operation performs
         # the flush of the write operations (instead of subscription)
         # this may be done because it's safe to flush the write operations
         # when the write ready flag for the connection is set
-        if self.wready and flush: return self._flush_write()
+        if self.wready and flush:
+            return self._flush_write()
 
         # verifies if the owner object is already subscribed for the
         # write operation in case it is returned immediately in order
         # avoid any extra subscription operation
-        if self.owner.is_sub_write(self.socket): return
+        if self.owner.is_sub_write(self.socket):
+            return
 
         # adds the current socket to the list of write operations
         # so that it's going to be available for writing as soon
@@ -365,7 +378,8 @@ class BaseConnection(observer.Observable):
         self.owner.sub_write(self.socket)
 
     def remove_write(self):
-        if not self.status == OPEN: return
+        if not self.status == OPEN:
+            return
         self.owner.unsub_write(self.socket)
 
     def enable_read(self):
@@ -379,8 +393,10 @@ class BaseConnection(observer.Observable):
         to stall if misused.
         """
 
-        if not self.status == OPEN: return
-        if not self.renable == False: return
+        if not self.status == OPEN:
+            return
+        if not self.renable == False:
+            return
 
         self.renable = True
         self.owner.sub_read(self.socket)
@@ -395,13 +411,15 @@ class BaseConnection(observer.Observable):
         of the event poll is required to avoid stalling.
         """
 
-        if not self.status == OPEN: return
-        if not self.renable == True: return
+        if not self.status == OPEN:
+            return
+        if not self.renable == True:
+            return
 
         self.renable = False
         self.owner.unsub_read(self.socket)
 
-    def send(self, data, address = None, delay = True, force = False, callback = None):
+    def send(self, data, address=None, delay=True, force=False, callback=None):
         """
         The main send call is to be used by a proxy connection and
         from different threads.
@@ -457,7 +475,8 @@ class BaseConnection(observer.Observable):
         # verifies that the connection is currently in the open
         # state and then verifies if that's not the case returns
         # immediately, not possible to send data
-        if not self.status == OPEN and not force: return 0
+        if not self.status == OPEN and not force:
+            return 0
 
         # creates the tuple that is going to represent the data
         # to be sent, this tuple should contain the data itself
@@ -486,33 +505,36 @@ class BaseConnection(observer.Observable):
             # the next tick operation (delayed execution), note that
             # running the flush operation immediately may lead to
             # typical stack overflow errors (due to recursion limit)
-            if is_safe and not delay: self._flush_write()
-            else: self.owner.delay(
-                self._flush_write,
-                immediately = True,
-                verify = True,
-                safe = True
-            )
+            if is_safe and not delay:
+                self._flush_write()
+            else:
+                self.owner.delay(
+                    self._flush_write, immediately=True, verify=True, safe=True
+                )
 
         # otherwise the write stream is not ready and so the
         # connection must be ensured to write ready, should
         # subscribe to the write events as soon as possible
-        else: self.ensure_write()
+        else:
+            self.ensure_write()
 
         # returns the final number of bytes (length of data)
         # that has been submitted to be sent (as soon as possible)
         return data_l
 
-    def recv(self, size = CHUNK_SIZE, force = False):
-        if not self.status == OPEN and not force: return b""
-        return self._recv(size = size)
+    def recv(self, size=CHUNK_SIZE, force=False):
+        if not self.status == OPEN and not force:
+            return b""
+        return self._recv(size=size)
 
-    def pend(self, data, back = True):
+    def pend(self, data, back=True):
         # verifies if the provided data is a tuple and if that's
         # the case unpacks the callback value from it, required
         is_tuple = type(data) == tuple
-        if is_tuple: data_b, _address, _callback = data
-        else: data_b = data
+        if is_tuple:
+            data_b, _address, _callback = data
+        else:
+            data_b = data
 
         # calculates the size in bytes of the provided data so
         # that it may be used later for the incrementing of
@@ -526,8 +548,10 @@ class BaseConnection(observer.Observable):
         # that the FIFO strategy is maintained
         self.pending_lock.acquire()
         try:
-            if back: self.pending.appendleft(data)
-            else: self.pending.append(data)
+            if back:
+                self.pending.appendleft(data)
+            else:
+                self.pending.append(data)
         finally:
             self.pending_lock.release()
 
@@ -540,7 +564,7 @@ class BaseConnection(observer.Observable):
         # some of the flow controlling operation may have to be performed
         self.trigger("pend", self)
 
-    def restore(self, data, back = True):
+    def restore(self, data, back=True):
         """
         Restore data to the pending (to receive) so that they are
         going to be "received" in the next receive operation.
@@ -564,8 +588,10 @@ class BaseConnection(observer.Observable):
         # going to be used in the next receive operation
         self.restored_lock.acquire()
         try:
-            if back: self.restored.appendleft(data)
-            else: self.restored.append(data)
+            if back:
+                self.restored.appendleft(data)
+            else:
+                self.restored.append(data)
         finally:
             self.restored_lock.release()
 
@@ -584,14 +610,18 @@ class BaseConnection(observer.Observable):
             # used in the current iteration, either from the currently
             # pending operation, next in line or as fallback an invalid
             # one, that is going to invalidate the iteration
-            if self._starter: starter = self._starter
-            elif self.starters: starter = self.starters.pop()
-            else: starter = None
+            if self._starter:
+                starter = self._starter
+            elif self.starters:
+                starter = self.starters.pop()
+            else:
+                starter = None
 
             # in case there's no starter pending and no other is set
             # in the queue for the connection (to be executed next)
             # breaks the current loop (nothing left to be done)
-            if not starter: break
+            if not starter:
+                break
 
             # sets the current starter as the starter currently selected
             # by the loop set of operations
@@ -602,7 +632,8 @@ class BaseConnection(observer.Observable):
             # that's note the case breaks the loop, as the stater should
             # finish on the next loop tick
             finished = self._starter == None
-            if not finished: return True
+            if not finished:
+                return True
 
         # returns the default invalid value, meaning that no more starter
         # operations are pending for the the current connection
@@ -611,96 +642,111 @@ class BaseConnection(observer.Observable):
     def end_starter(self):
         self._starter = None
 
-    def add_starter(self, starter, back = True):
-        if back: self.starters.appendleft(starter)
-        else: self.starters.append(starter)
+    def add_starter(self, starter, back=True):
+        if back:
+            self.starters.appendleft(starter)
+        else:
+            self.starters.append(starter)
 
     def remove_starter(self, starter):
         self.starters.remove(starter)
 
-    def info_dict(self, full = False):
+    def info_dict(self, full=False):
         info = dict(
-            status = self.status,
-            id = self.id,
-            connecting = self.connecting,
-            upgrading = self.upgrading,
-            address = self.address,
-            ssl = self.ssl,
-            renable = self.renable,
-            wready = self.wready,
-            pending_s = self.pending_s,
-            restored_s = self.restored_s
+            status=self.status,
+            id=self.id,
+            connecting=self.connecting,
+            upgrading=self.upgrading,
+            address=self.address,
+            ssl=self.ssl,
+            renable=self.renable,
+            wready=self.wready,
+            pending_s=self.pending_s,
+            restored_s=self.restored_s,
         )
         return info
 
-    def log_dict(self, full = False):
-        info = self.info_dict(full = full)
+    def log_dict(self, full=False):
+        info = self.info_dict(full=full)
         info["address"] = str(self.address)
         return info
 
-    def ssl_certificate(self, binary = False):
-        if not self.ssl: return None
-        return self.socket.getpeercert(binary_form = binary)
+    def ssl_certificate(self, binary=False):
+        if not self.ssl:
+            return None
+        return self.socket.getpeercert(binary_form=binary)
 
-    def ssl_verify_host(self, host = None):
+    def ssl_verify_host(self, host=None):
         host = host or self.ssl_host
-        if not host: return
+        if not host:
+            return
         certificate = self.ssl_certificate()
         tls.match_hostname(certificate, host)
 
-    def ssl_verify_fingerprint(self, fingerprint = None):
+    def ssl_verify_fingerprint(self, fingerprint=None):
         fingerprint = fingerprint or self.ssl_fingerprint
-        if not fingerprint: return
-        certificate = self.ssl_certificate(binary = True)
+        if not fingerprint:
+            return
+        certificate = self.ssl_certificate(binary=True)
         tls.match_fingerprint(certificate, fingerprint)
 
-    def ssl_dump_certificate(self, dump = False):
+    def ssl_dump_certificate(self, dump=False):
         dump = dump or self.ssl_dump
-        if not dump: return
+        if not dump:
+            return
         certificate = self.ssl_certificate()
-        certificate_binary = self.ssl_certificate(binary = True)
+        certificate_binary = self.ssl_certificate(binary=True)
         tls.dump_certificate(certificate, certificate_binary)
 
     def ssl_protocol(self):
         return self.ssl_alpn_protocol() or self.ssl_npn_protocol()
 
     def ssl_alpn_protocol(self):
-        if not self.socket: return None
-        if not hasattr(self.socket, "selected_alpn_protocol"): return None
+        if not self.socket:
+            return None
+        if not hasattr(self.socket, "selected_alpn_protocol"):
+            return None
         return self.socket.selected_alpn_protocol()
 
     def ssl_npn_protocol(self):
-        if not self.socket: return None
-        if not hasattr(self.socket, "selected_npn_protocol"): return None
+        if not self.socket:
+            return None
+        if not hasattr(self.socket, "selected_npn_protocol"):
+            return None
         return self.socket.selected_npn_protocol()
 
     def debug(self, object, **kwargs):
-        if not self.owner: return
-        self.owner.add_log_ctx(kwargs, lambda: dict(connection = self.log_dict()))
+        if not self.owner:
+            return
+        self.owner.add_log_ctx(kwargs, lambda: dict(connection=self.log_dict()))
         self.owner.debug(object, **kwargs)
 
     def info(self, object, **kwargs):
-        if not self.owner: return
+        if not self.owner:
+            return
         self.owner.add_log_ctx(kwargs, self.log_ctx)
         self.owner.info(object, **kwargs)
 
     def warning(self, object, **kwargs):
-        if not self.owner: return
+        if not self.owner:
+            return
         self.owner.add_log_ctx(kwargs, self.log_ctx)
         self.owner.warning(object, **kwargs)
 
     def error(self, object, **kwargs):
-        if not self.owner: return
+        if not self.owner:
+            return
         self.owner.add_log_ctx(kwargs, self.log_ctx)
         self.owner.error(object, **kwargs)
 
     def critical(self, object, **kwargs):
-        if not self.owner: return
+        if not self.owner:
+            return
         self.owner.add_log_ctx(kwargs, self.log_ctx)
         self.owner.critical(object, **kwargs)
 
     def log_ctx(self):
-        return dict(connection = self.log_dict())
+        return dict(connection=self.log_dict())
 
     def is_open(self):
         return self.status == OPEN
@@ -741,7 +787,8 @@ class BaseConnection(observer.Observable):
         # it's not possible to perform a sending operation and the
         # send operation is ignored, note that the write-ready flag
         # is still set as it may be used later for flushing operations
-        if self.connecting: return
+        if self.connecting:
+            return
 
         # acquires the pending lock so that no other access to the
         # the pending structure is made from a different thread
@@ -754,7 +801,8 @@ class BaseConnection(observer.Observable):
                 # verifies if there's data pending to be sent in case
                 # there's not returns immediately, because there is
                 # nothing pending to be done for such a case
-                if not self.pending: break
+                if not self.pending:
+                    break
 
                 # retrieves the current data chunk to be sent from the
                 # list of pending things and then saves the data chunk
@@ -774,10 +822,15 @@ class BaseConnection(observer.Observable):
                     # part of the data has been sent, note that if no
                     # data is provided the shutdown operation is performed
                     # instead of closing the stream between both sockets
-                    if is_close: self._shutdown(); count = 0
-                    elif address: count = self.socket.sendto(data, address)
-                    elif data: count = self.socket.send(data)
-                    else: count = 0
+                    if is_close:
+                        self._shutdown()
+                        count = 0
+                    elif address:
+                        count = self.socket.sendto(data, address)
+                    elif data:
+                        count = self.socket.send(data)
+                    else:
+                        count = 0
 
                     # verifies if the current situation is that of a non
                     # closed socket and valid data, and if that's the case
@@ -829,7 +882,8 @@ class BaseConnection(observer.Observable):
                     # in case the is valid flag is set (all of the data for
                     # the current write operation has been sent) calls the
                     # the associated callback (in case it exists)
-                    if is_valid and callback: callback(self)
+                    if is_valid and callback:
+                        callback(self)
         finally:
             # releases the pending access lock so that no leaks
             # exists and no access to the pending is prevented
@@ -841,31 +895,40 @@ class BaseConnection(observer.Observable):
 
     def _recv(self, size):
         data = self._recv_restored(size)
-        if data: return data
-        if self.datagram: return self.socket.recvfrom(size)
-        else: return self.socket.recv(size)
+        if data:
+            return data
+        if self.datagram:
+            return self.socket.recvfrom(size)
+        else:
+            return self.socket.recv(size)
 
     def _recv_ssl(self, size):
         data = self._recv_restored(size)
-        if data: return data
+        if data:
+            return data
         has_socket = hasattr(self.socket, "_sock")
-        if has_socket: return self.socket._sock.recv(size)
-        else: return socket.socket.recv(self.socket, size)
+        if has_socket:
+            return self.socket._sock.recv(size)
+        else:
+            return socket.socket.recv(self.socket, size)
 
     def _recv_restored(self, size):
-        if not self.restored_s: return b""
+        if not self.restored_s:
+            return b""
         data = self.restored.pop()
         data = data[:size]
         remaining = data[size:]
         self.restored_s -= len(data)
-        if remaining: self.restore(remaining, back = False)
+        if remaining:
+            self.restore(remaining, back=False)
         return data
 
-    def _shutdown(self, close = False, force = False, ignore = True):
+    def _shutdown(self, close=False, force=False, ignore=True):
         # in case the status of the current connection is
         # already closed returns immediately as it's not
         # possible to shutdown a closed connection
-        if self.status == CLOSED: return
+        if self.status == CLOSED:
+            return
 
         try:
             # verifies the type of connection and takes that
@@ -876,19 +939,22 @@ class BaseConnection(observer.Observable):
             # normal shutdown operation for the socket
             if self.ssl and hasattr(self.socket._sslobj, "shutdown"):
                 self.socket._sslobj.shutdown()
-            if force: self.socket.shutdown(socket.SHUT_RDWR)
+            if force:
+                self.socket.shutdown(socket.SHUT_RDWR)
         except (IOError, socket.error, ssl.SSLError):
             # ignores the IO/SSL error that has just been raised, this
             # assumes that the problem that has just occurred is not
             # relevant as the socket is shutting down and if a problem
             # occurs that must be related to the socket being closed
             # on the other side of the connection
-            if not ignore: raise
+            if not ignore:
+                raise
 
         # in case the close (connection) flag is active the
         # current connection should be closed immediately
         # following the successful shutdown of the socket
-        if close: self.close()
+        if close:
+            self.close()
 
     def _close_callback(self, connection):
         """
@@ -910,7 +976,8 @@ class BaseConnection(observer.Observable):
         pending for the current connection's socket.
         """
 
-        self.owner.writes((self.socket,), state = False)
+        self.owner.writes((self.socket,), state=False)
+
 
 class DiagConnection(BaseConnection):
 
@@ -934,17 +1001,18 @@ class DiagConnection(BaseConnection):
         self.sends += 1
         return result
 
-    def info_dict(self, full = False):
-        info = BaseConnection.info_dict(self, full = full)
+    def info_dict(self, full=False):
+        info = BaseConnection.info_dict(self, full=full)
         info.update(
-            uptime = self._uptime(),
-            recvs = self.recvs,
-            sends = self.sends,
-            in_bytes = self.in_bytes,
-            out_bytes = self.out_bytes
+            uptime=self._uptime(),
+            recvs=self.recvs,
+            sends=self.sends,
+            in_bytes=self.in_bytes,
+            out_bytes=self.out_bytes,
         )
         geo = self._resolve(self.address)
-        if geo: info["geo"] = geo
+        if geo:
+            info["geo"] = geo
         return info
 
     def _uptime(self):
@@ -955,9 +1023,13 @@ class DiagConnection(BaseConnection):
 
     def _resolve(self, address):
         import netius.common
+
         ip, _port = address
         return netius.common.GeoResolver.resolve(ip)
 
-is_diag = config.conf("DIAG", False, cast = bool)
-if is_diag: Connection = DiagConnection
-else: Connection = BaseConnection
+
+is_diag = config.conf("DIAG", False, cast=bool)
+if is_diag:
+    Connection = DiagConnection
+else:
+    Connection = BaseConnection

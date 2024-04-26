@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -42,6 +33,7 @@ import hashlib
 import binascii
 
 import netius
+
 
 class Auth(object):
     """
@@ -68,13 +60,16 @@ class Auth(object):
     @classmethod
     def auth_assert(cls, *args, **kwargs):
         result = cls.auth(*args, **kwargs)
-        if not result: raise netius.SecurityError("Invalid authentication")
+        if not result:
+            raise netius.SecurityError("Invalid authentication")
 
     @classmethod
     def verify(cls, encoded, decoded):
         type, salt, digest, plain = cls.unpack(encoded)
-        if plain: return encoded == decoded
-        if salt: decoded += salt
+        if plain:
+            return encoded == decoded
+        if salt:
+            decoded += salt
         type = type.lower()
         decoded = netius.legacy.bytes(decoded)
         hash = hashlib.new(type, decoded)
@@ -82,13 +77,16 @@ class Auth(object):
         return _digest == digest
 
     @classmethod
-    def generate(cls, password, type = "sha256", salt = "netius"):
-        if type == "plain" : return password
-        if salt: password += salt
+    def generate(cls, password, type="sha256", salt="netius"):
+        if type == "plain":
+            return password
+        if salt:
+            password += salt
         password = netius.legacy.bytes(password)
         hash = hashlib.new(type, password)
         digest = hash.hexdigest()
-        if not salt: return "%s:%s" % (type, digest)
+        if not salt:
+            return "%s:%s" % (type, digest)
         salt = netius.legacy.bytes(salt)
         salt = binascii.hexlify(salt)
         salt = netius.legacy.str(salt)
@@ -97,17 +95,28 @@ class Auth(object):
     @classmethod
     def unpack(cls, password):
         count = password.count(":")
-        if count == 2: type, salt, digest = password.split(":")
-        elif count == 1: type, digest = password.split(":"); salt = None
-        else: plain = password; type = "plain"; salt = None; digest = None
-        if not type == "plain": plain = None
-        if salt: salt = netius.legacy.bytes(salt)
-        if salt: salt = binascii.unhexlify(salt)
-        if salt: salt = netius.legacy.str(salt)
+        if count == 2:
+            type, salt, digest = password.split(":")
+        elif count == 1:
+            type, digest = password.split(":")
+            salt = None
+        else:
+            plain = password
+            type = "plain"
+            salt = None
+            digest = None
+        if not type == "plain":
+            plain = None
+        if salt:
+            salt = netius.legacy.bytes(salt)
+        if salt:
+            salt = binascii.unhexlify(salt)
+        if salt:
+            salt = netius.legacy.str(salt)
         return (type, salt, digest, plain)
 
     @classmethod
-    def get_file(cls, path, cache = False, encoding = None):
+    def get_file(cls, path, cache=False, encoding=None):
         """
         Retrieves the (file) contents for the file located "under"
         the provided path, these contents are returned as a normal
@@ -142,26 +151,32 @@ class Auth(object):
 
         # verifies if the cache attribute already exists under the current class
         # and in case it does not creates the initial cache dictionary
-        if not hasattr(cls, "_cache"): cls._cache = dict()
+        if not hasattr(cls, "_cache"):
+            cls._cache = dict()
 
         # tries to retrieve the contents of the file using a caches approach
         # and returns such value in case the cache flag is enabled
         result = cls._cache.get(path, None)
-        if cache and not result == None: return result
+        if cache and not result == None:
+            return result
 
         # as the cache retrieval has not been successful there's a need to
         # load the file from the secondary storage (file system)
         file = open(path, "rb")
-        try: contents = file.read()
-        finally: file.close()
+        try:
+            contents = file.read()
+        finally:
+            file.close()
 
         # in case an encoding value has been passed the contents must be properly
         # decoded so that the "final" contents string is defined
-        if encoding: contents = contents.decode(encoding)
+        if encoding:
+            contents = contents.decode(encoding)
 
         # verifies if the cache mode/flag is enabled and if that's the case
         # store the complete file contents in memory under the dictionary
-        if cache: cls._cache[path] = contents
+        if cache:
+            cls._cache[path] = contents
         return contents
 
     @classmethod
@@ -173,7 +188,8 @@ class Auth(object):
 
     def auth_assert_i(self, *args, **kwargs):
         result = self.auth_i(*args, **kwargs)
-        if not result: raise netius.SecurityError("Invalid authentication")
+        if not result:
+            raise netius.SecurityError("Invalid authentication")
 
     def is_simple_i(self):
         return self.__class__.is_simple()

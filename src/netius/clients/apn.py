@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -42,6 +33,7 @@ import struct
 import binascii
 
 import netius
+
 
 class APNProtocol(netius.StreamProtocol):
     """
@@ -86,24 +78,18 @@ class APNProtocol(netius.StreamProtocol):
         self.send_notification(
             self.token,
             self.message,
-            sound = self.sound,
-            badge = self.badge,
-            close = self._close
+            sound=self.sound,
+            badge=self.badge,
+            close=self._close,
         )
 
-    def send_notification(
-        self,
-        token,
-        message,
-        sound = "default",
-        badge = 0,
-        close = False
-    ):
+    def send_notification(self, token, message, sound="default", badge=0, close=False):
         # creates the callback handler that closes the current
         # client infra-structure after sending, this will close
         # the connection using a graceful approach to avoid any
         # of the typical problems with the connection shutdown
-        def callback(transport): self.close()
+        def callback(transport):
+            self.close()
 
         # converts the current token (in hexadecimal) to a set
         # of binary string elements and uses that value to get
@@ -114,20 +100,15 @@ class APNProtocol(netius.StreamProtocol):
         # creates the message structure using with the
         # message (string) as the alert and then converts
         # it into a JSON format (payload)
-        message_s = dict(
-           aps = dict(
-                alert = message,
-                sound = sound,
-                badge = badge
-            )
-        )
+        message_s = dict(aps=dict(alert=message, sound=sound, badge=badge))
         payload = json.dumps(message_s)
 
         # verifies if the resulting payload object is unicode based
         # and in case it is encodes it into a string representation
         # so that it may be used for the packing of structure
         is_unicode = netius.legacy.is_unicode(payload)
-        if is_unicode: payload = payload.encode("utf-8")
+        if is_unicode:
+            payload = payload.encode("utf-8")
 
         # sets the command with the zero value (simplified)
         # then calculates the token and payload lengths
@@ -140,20 +121,22 @@ class APNProtocol(netius.StreamProtocol):
         # applies the various components of the message and packs
         # them according to the generated template
         template = "!BH%dsH%ds" % (token_length, payload_length)
-        message = struct.pack(template, command, token_length, token, payload_length, payload)
+        message = struct.pack(
+            template, command, token_length, token, payload_length, payload
+        )
         callback = callback if close else None
-        self.send(message, callback = callback)
+        self.send(message, callback=callback)
 
     def set(
         self,
         token,
         message,
-        sound = "default",
-        badge = 0,
-        sandbox = True,
-        key_file = None,
-        cer_file = None,
-        _close = True
+        sound="default",
+        badge=0,
+        sandbox=True,
+        key_file=None,
+        cer_file=None,
+        _close=True,
     ):
         self.token = token
         self.message = message
@@ -164,7 +147,7 @@ class APNProtocol(netius.StreamProtocol):
         self.cer_file = cer_file
         self._close = _close
 
-    def notify(self, token, loop = None, **kwargs):
+    def notify(self, token, loop=None, **kwargs):
         # retrieves the intance's parent class object to be
         # used to global class operations
         cls = self.__class__
@@ -193,40 +176,43 @@ class APNProtocol(netius.StreamProtocol):
         self.set(
             token,
             message,
-            sound = sound,
-            badge = badge,
-            sandbox = sandbox,
-            key_file = key_file,
-            cer_file = cer_file,
-            _close = _close
+            sound=sound,
+            badge=badge,
+            sandbox=sandbox,
+            key_file=key_file,
+            cer_file=cer_file,
+            _close=_close,
         )
 
         # establishes the connection to the target host and port
         # and using the provided key and certificate files
         loop = netius.connect_stream(
             lambda: self,
-            host = self.host,
-            port = self.port,
-            ssl = True,
-            key_file = key_file,
-            cer_file = cer_file,
-            loop = loop
+            host=self.host,
+            port=self.port,
+            ssl=True,
+            key_file=key_file,
+            cer_file=cer_file,
+            loop=loop,
         )
 
         # returns both the current associated loop and the current
         # instance to the protocol defined by the current instance
         return loop, self
 
+
 class APNClient(netius.ClientAgent):
 
     protocol = APNProtocol
 
     @classmethod
-    def notify_s(cls, token, loop = None, **kwargs):
+    def notify_s(cls, token, loop=None, **kwargs):
         protocol = cls.protocol()
-        return protocol.notify(token, loop = loop, **kwargs)
+        return protocol.notify(token, loop=loop, **kwargs)
+
 
 if __name__ == "__main__":
+
     def on_finish(protocol):
         netius.compat_loop(loop).stop()
 
@@ -234,9 +220,7 @@ if __name__ == "__main__":
     key_file = netius.conf("APN_KEY_FILE", None)
     cer_file = netius.conf("APN_CER_FILE", None)
 
-    loop, protocol = APNClient.notify_s(
-        token, key_file = key_file, cer_file = cer_file
-    )
+    loop, protocol = APNClient.notify_s(token, key_file=key_file, cer_file=cer_file)
 
     protocol.bind("finish", on_finish)
 

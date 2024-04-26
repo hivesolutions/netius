@@ -22,15 +22,6 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
 __copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
 """ The copyright for the module """
 
@@ -53,6 +44,7 @@ is going to be set on the on the sockets created by
 the server (client sockets), this is critical for a
 good performance of the server (large value) """
 
+
 class Service(observer.Observable):
     """
     Top level class responsible for the single representation
@@ -67,16 +59,16 @@ class Service(observer.Observable):
 
     def __init__(
         self,
-        owner = None,
-        transport = None,
-        socket = None,
-        host = None,
-        port = None,
-        ssl = False,
-        receive_buffer_s = BUFFER_SIZE_S,
-        send_buffer_s = BUFFER_SIZE_S,
-        receive_buffer_c = BUFFER_SIZE_C,
-        send_buffer_c = BUFFER_SIZE_C
+        owner=None,
+        transport=None,
+        socket=None,
+        host=None,
+        port=None,
+        ssl=False,
+        receive_buffer_s=BUFFER_SIZE_S,
+        send_buffer_s=BUFFER_SIZE_S,
+        receive_buffer_c=BUFFER_SIZE_C,
+        send_buffer_c=BUFFER_SIZE_C,
     ):
         observer.Observable.__init__(self)
         self.id = str(uuid.uuid4())
@@ -95,9 +87,9 @@ class Service(observer.Observable):
         connection = self.owner.build_connection_client(
             socket_c,
             address,
-            ssl = self.ssl,
-            receive_buffer_c = self.receive_buffer_c,
-            send_buffer_c = self.send_buffer_c
+            ssl=self.ssl,
+            receive_buffer_c=self.receive_buffer_c,
+            send_buffer_c=self.send_buffer_c,
         )
         self.transport = transport.TransportStream(self, connection)
         self.trigger("connection", connection)

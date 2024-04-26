@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -43,21 +34,22 @@ import netius
 
 from .base import Middleware
 
+
 class FloodMiddleware(Middleware):
     """
     Simple middleware implementation for avoiding flooding
     of connection creation from a certain address.
     """
 
-    def __init__(self, owner, conns_per_min = 600, whitelist = None):
+    def __init__(self, owner, conns_per_min=600, whitelist=None):
         Middleware.__init__(self, owner)
         self.blacklist = conns_per_min
         self.whitelist = whitelist or []
 
     def start(self):
         Middleware.start(self)
-        self.conns_per_min = netius.conf("CONNS_PER_MIN", self.conns_per_min, cast = int)
-        self.whitelist = netius.conf("WHITELIST", self.whitelist, cast = list)
+        self.conns_per_min = netius.conf("CONNS_PER_MIN", self.conns_per_min, cast=int)
+        self.whitelist = netius.conf("WHITELIST", self.whitelist, cast=list)
         self.blacklist = []
         self.conn_map = dict()
         self.minute = int(time.time() // 60)
@@ -70,16 +62,20 @@ class FloodMiddleware(Middleware):
     def on_connection_c(self, owner, connection):
         host = connection.address[0]
         self._update_flood(host)
-        if not host in self.blacklist and not "*" in self.blacklist: return
-        if host in self.whitelist: return
+        if not host in self.blacklist and not "*" in self.blacklist:
+            return
+        if host in self.whitelist:
+            return
         self.owner.warning("Connection from '%s' dropped (flooding avoidance)" % host)
         connection.close()
 
     def _update_flood(self, host):
         minute = int(time.time() // 60)
-        if minute == self.minute: self.conn_map.clear()
+        if minute == self.minute:
+            self.conn_map.clear()
         self.minute = minute
         count = self.conn_map.get(host, 0)
         count += 1
         self.conn_map[host] = count
-        if count > self.conns_per_min: self.blacklist.append(host)
+        if count > self.conns_per_min:
+            self.blacklist.append(host)

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -41,6 +32,7 @@ import os
 
 import netius
 
+
 class TLSContextDict(dict):
 
     def __init__(self, owner, domains, *args, **kwargs):
@@ -49,20 +41,23 @@ class TLSContextDict(dict):
         self.load(domains)
 
     def load(self, domains):
-        secure = self.owner.get_env("SSL_SECURE", 1, cast = int)
+        secure = self.owner.get_env("SSL_SECURE", 1, cast=int)
         for domain in domains:
-            if not self.has_definition(domain): continue
+            if not self.has_definition(domain):
+                continue
             cer_path = self.cer_path(domain)
             key_path = self.key_path(domain)
-            values = dict(cer_file = cer_path, key_file = key_path)
-            context = self.owner._ssl_ctx(values, secure = secure)
+            values = dict(cer_file=cer_path, key_file=key_path)
+            context = self.owner._ssl_ctx(values, secure=secure)
             self[domain] = (context, values)
 
     def has_definition(self, domain):
         cer_path = self.cer_path(domain)
         key_path = self.key_path(domain)
-        if not os.path.exists(cer_path): return False
-        if not os.path.exists(key_path): return False
+        if not os.path.exists(cer_path):
+            return False
+        if not os.path.exists(key_path):
+            return False
         return True
 
     def cer_path(self, domain):
@@ -70,6 +65,7 @@ class TLSContextDict(dict):
 
     def key_path(self, domain):
         raise netius.NotImplemented("Missing implementation")
+
 
 class LetsEncryptDict(TLSContextDict):
 

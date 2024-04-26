@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -41,6 +32,7 @@ import base64
 import hashlib
 
 import netius.common
+
 
 class WSConnection(netius.Connection):
     """
@@ -62,21 +54,23 @@ class WSConnection(netius.Connection):
         self.headers = {}
 
     def send_ws(self, data):
-        encoded = netius.common.encode_ws(data, mask = False)
+        encoded = netius.common.encode_ws(data, mask=False)
         return self.send(encoded)
 
-    def recv_ws(self, size = netius.CHUNK_SIZE):
-        data = self.recv(size = size)
+    def recv_ws(self, size=netius.CHUNK_SIZE):
+        data = self.recv(size=size)
         decoded = netius.common.decode_ws(data)
         return decoded
 
     def add_buffer(self, data):
         self.buffer_l.append(data)
 
-    def get_buffer(self, delete = True):
-        if not self.buffer_l: return b""
+    def get_buffer(self, delete=True):
+        if not self.buffer_l:
+            return b""
         buffer = b"".join(self.buffer_l)
-        if delete: del self.buffer_l[:]
+        if delete:
+            del self.buffer_l[:]
         return buffer
 
     def do_handshake(self):
@@ -85,16 +79,18 @@ class WSConnection(netius.Connection):
 
         buffer = b"".join(self.buffer_l)
         end_index = buffer.find(b"\r\n\r\n")
-        if end_index == -1: raise netius.DataError("Missing data for handshake")
+        if end_index == -1:
+            raise netius.DataError("Missing data for handshake")
 
-        data = buffer[:end_index + 4]
-        remaining = buffer[end_index + 4:]
+        data = buffer[: end_index + 4]
+        remaining = buffer[end_index + 4 :]
 
         lines = data.split(b"\r\n")
         for line in lines[1:]:
             values = line.split(b":", 1)
             values_l = len(values)
-            if not values_l == 2: continue
+            if not values_l == 2:
+                continue
 
             key, value = values
             key = key.strip()
@@ -110,7 +106,8 @@ class WSConnection(netius.Connection):
         del self.buffer_l[:]
         self.handshake = True
 
-        if remaining: self.add_buffer(remaining)
+        if remaining:
+            self.add_buffer(remaining)
 
     def accept_key(self):
         socket_key = self.headers.get("Sec-WebSocket-Key", None)
@@ -123,6 +120,7 @@ class WSConnection(netius.Connection):
         accept_key = base64.b64encode(hash_digest)
         accept_key = netius.legacy.str(accept_key)
         return accept_key
+
 
 class WSServer(netius.StreamServer):
     """
@@ -149,8 +147,11 @@ class WSServer(netius.StreamServer):
                 # a problem the (pending) data is added to the buffer
                 buffer = connection.get_buffer()
                 data = buffer + data
-                try: decoded, data = netius.common.decode_ws(data)
-                except netius.DataError: connection.add_buffer(data); break
+                try:
+                    decoded, data = netius.common.decode_ws(data)
+                except netius.DataError:
+                    connection.add_buffer(data)
+                    break
                 self.on_data_ws(connection, decoded)
 
             else:
@@ -162,8 +163,10 @@ class WSServer(netius.StreamServer):
                 # current connection in case it fails due to an
                 # handshake error must delay the execution to the
                 # next iteration (not enough data)
-                try: connection.do_handshake()
-                except netius.DataError: return
+                try:
+                    connection.do_handshake()
+                except netius.DataError:
+                    return
 
                 # retrieves (and computes) the accept key value for
                 # the current request and sends it as the handshake
@@ -181,16 +184,11 @@ class WSServer(netius.StreamServer):
                 # required so that the complete client buffer is flushed
                 data = connection.get_buffer()
 
-    def build_connection(self, socket, address, ssl = False):
-        return WSConnection(
-            owner = self,
-            socket = socket,
-            address = address,
-            ssl = ssl
-        )
+    def build_connection(self, socket, address, ssl=False):
+        return WSConnection(owner=self, socket=socket, address=address, ssl=ssl)
 
     def send_ws(self, connection, data):
-        encoded = netius.common.encode_ws(data, mask = False)
+        encoded = netius.common.encode_ws(data, mask=False)
         return connection.send(encoded)
 
     def on_data_ws(self, connection, data):
@@ -215,8 +213,10 @@ class WSServer(netius.StreamServer):
         the specification and the provided accept key.
         """
 
-        data = "HTTP/1.1 101 Switching Protocols\r\n" +\
-            "Upgrade: websocket\r\n" +\
-            "Connection: Upgrade\r\n" +\
-            "Sec-WebSocket-Accept: %s\r\n\r\n" % accept_key
+        data = (
+            "HTTP/1.1 101 Switching Protocols\r\n"
+            + "Upgrade: websocket\r\n"
+            + "Connection: Upgrade\r\n"
+            + "Sec-WebSocket-Accept: %s\r\n\r\n" % accept_key
+        )
         return data

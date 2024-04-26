@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -52,54 +43,48 @@ HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/45.0.2454.101 Safari/537.36"
     ),
-    "connection": ("keep-alive")
+    "connection": ("keep-alive"),
 }
 
-async def get_players(player_args, season = "2016-17"):
+
+async def get_players(player_args, season="2016-17"):
     endpoint = "/commonallplayers"
 
-    params = dict(
-        season = season,
-        leagueid = "00",
-        isonlycurrentseason = "1"
-    )
+    params = dict(season=season, leagueid="00", isonlycurrentseason="1")
     url = BASE_URL + endpoint
 
     print("Getting all players for season %s ..." % season)
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers = HEADERS, params = params) as resp:
+        async with session.get(url, headers=HEADERS, params=params) as resp:
             data = await resp.json()
 
-    player_args.extend(
-        [(item[0], item[2]) for item in data["resultSets"][0]["rowSet"]])
+    player_args.extend([(item[0], item[2]) for item in data["resultSets"][0]["rowSet"]])
+
 
 async def get_player(player_id, player_name):
     endpoint = "/commonplayerinfo"
-    params = dict(playerid = player_id)
+    params = dict(playerid=player_id)
     url = BASE_URL + endpoint
 
     print("Getting player %s" % player_name)
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers = HEADERS, params = params) as resp:
+        async with session.get(url, headers=HEADERS, params=params) as resp:
             data = await resp.text()
             print(data)
 
     async with aiofiles.open(
-            "players/%s.json" % player_name.replace(" ", "_"), "w"
-        ) as file:
+        "players/%s.json" % player_name.replace(" ", "_"), "w"
+    ) as file:
         await file.write(data)
 
-loop = netius.get_loop(_compat = True)
 
-os.makedirs("players", exist_ok = True)
+loop = netius.get_loop(_compat=True)
+
+os.makedirs("players", exist_ok=True)
 
 player_args = []
 loop.run_until_complete(get_players(player_args))
-loop.run_until_complete(
-    asyncio.gather(
-        *(get_player(*args) for args in player_args)
-    )
-)
+loop.run_until_complete(asyncio.gather(*(get_player(*args) for args in player_args)))
 loop.close()

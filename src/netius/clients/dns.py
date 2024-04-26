@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -59,36 +50,35 @@ DNS_TC = 0x02
 DNS_RD = 0x01
 
 DNS_TYPES = dict(
-    A = 0x01,
-    NS = 0x02,
-    MD = 0x03,
-    MF = 0x04,
-    CNAME = 0x05,
-    SOA = 0x06,
-    MB = 0x07,
-    MG = 0x08,
-    MR = 0x09,
-    NULL = 0x0a,
-    WKS = 0x0b,
-    PTR = 0x0c,
-    HINFO = 0x0d,
-    MINFO = 0x0e,
-    MX = 0x0f,
-    TXT = 0x10,
-    AAAA = 0x1c
+    A=0x01,
+    NS=0x02,
+    MD=0x03,
+    MF=0x04,
+    CNAME=0x05,
+    SOA=0x06,
+    MB=0x07,
+    MG=0x08,
+    MR=0x09,
+    NULL=0x0A,
+    WKS=0x0B,
+    PTR=0x0C,
+    HINFO=0x0D,
+    MINFO=0x0E,
+    MX=0x0F,
+    TXT=0x10,
+    AAAA=0x1C,
 )
 
-DNS_CLASSES = dict(
-    IN = 0x01
-)
+DNS_CLASSES = dict(IN=0x01)
 
 DNS_TYPES_R = dict(zip(DNS_TYPES.values(), DNS_TYPES.keys()))
 DNS_CLASSES_R = dict(zip(DNS_CLASSES.values(), DNS_CLASSES.keys()))
 
+
 class DNSRequest(netius.Request):
 
-    def __init__(self, name, type = "a", cls = "in", callback = None):
-        netius.Request.__init__(self, callback = callback)
+    def __init__(self, name, type="a", cls="in", callback=None):
+        netius.Request.__init__(self, callback=callback)
         self.name = name
         self.type = type
         self.cls = cls
@@ -119,18 +109,14 @@ class DNSRequest(netius.Request):
         data = struct.pack(format, *result)
         buffer.append(data)
 
-        query = self._query(
-            self.name,
-            type = self.type,
-            cls = self.cls
-        )
+        query = self._query(self.name, type=self.type, cls=self.cls)
         buffer.append(query)
 
         data = b"".join(buffer)
 
         return data
 
-    def _query(self, name, type = "a", cls = "in"):
+    def _query(self, name, type="a", cls="in"):
         type_i = DNS_TYPES.get(type.upper(), 0x00)
         clsi = DNS_CLASSES.get(cls.upper(), 0x00)
 
@@ -156,6 +142,7 @@ class DNSRequest(netius.Request):
         buffer.append(b"\0")
         data = b"".join(buffer)
         return data
+
 
 class DNSResponse(netius.Response):
 
@@ -247,8 +234,10 @@ class DNSResponse(netius.Response):
             initial = data[index]
             initial_i = netius.legacy.ord(initial)
 
-            if initial_i == 0: index += 1; break
-            is_pointer = initial_i & 0xc0
+            if initial_i == 0:
+                index += 1
+                break
+            is_pointer = initial_i & 0xC0
 
             if is_pointer:
                 index, _data = self.parse_pointer(data, index)
@@ -256,7 +245,7 @@ class DNSResponse(netius.Response):
                 data = b".".join(buffer)
                 return (index, data)
 
-            _data = data[index + 1:index + initial_i + 1]
+            _data = data[index + 1 : index + initial_i + 1]
 
             buffer.append(_data)
             index += initial_i + 1
@@ -265,10 +254,10 @@ class DNSResponse(netius.Response):
         return (index, data)
 
     def parse_pointer(self, data, index):
-        slice = data[index:index + 2]
+        slice = data[index : index + 2]
 
-        offset, = struct.unpack("!H", slice)
-        offset &= 0x3fff
+        (offset,) = struct.unpack("!H", slice)
+        offset &= 0x3FFF
 
         _index, label = self.parse_label(data, offset)
 
@@ -287,59 +276,68 @@ class DNSResponse(netius.Response):
         return (index, address)
 
     def parse_byte(self, data, index):
-        _data = data[index:index + 1]
-        short, = struct.unpack("!B", _data)
+        _data = data[index : index + 1]
+        (short,) = struct.unpack("!B", _data)
         return (index + 1, short)
 
     def parse_short(self, data, index):
-        _data = data[index:index + 2]
-        short, = struct.unpack("!H", _data)
+        _data = data[index : index + 2]
+        (short,) = struct.unpack("!H", _data)
         return (index + 2, short)
 
     def parse_long(self, data, index):
-        _data = data[index:index + 4]
-        long, = struct.unpack("!L", _data)
+        _data = data[index : index + 4]
+        (long,) = struct.unpack("!L", _data)
         return (index + 4, long)
 
     def parse_long_long(self, data, index):
-        _data = data[index:index + 8]
-        long_long, = struct.unpack("!Q", _data)
+        _data = data[index : index + 8]
+        (long_long,) = struct.unpack("!Q", _data)
         return (index + 8, long_long)
+
 
 class DNSProtocol(netius.DatagramProtocol):
 
     ns_file_l = None
 
     @classmethod
-    def ns_system(cls, type = "ip4"):
-        ns = cls.ns_conf(type = type)
-        if ns: return ns[0]
-        ns = cls.ns_file(type = type)
-        if ns: return ns[0]
-        ns = cls.ns_google(type = type)
-        if ns: return ns[0]
-        ns = cls.ns_cloudfare(type = type)
-        if ns: return ns[0]
+    def ns_system(cls, type="ip4"):
+        ns = cls.ns_conf(type=type)
+        if ns:
+            return ns[0]
+        ns = cls.ns_file(type=type)
+        if ns:
+            return ns[0]
+        ns = cls.ns_google(type=type)
+        if ns:
+            return ns[0]
+        ns = cls.ns_cloudfare(type=type)
+        if ns:
+            return ns[0]
         return None
 
     @classmethod
-    def ns_conf(cls, type = "ip4", force = False):
-        ns = netius.conf("NAMESERVERS_%s" % type.upper(), [], cast = list)
-        if ns: return ns
-        ns = netius.conf("NAMESERVERS", [], cast = list)
-        if ns: return ns
+    def ns_conf(cls, type="ip4", force=False):
+        ns = netius.conf("NAMESERVERS_%s" % type.upper(), [], cast=list)
+        if ns:
+            return ns
+        ns = netius.conf("NAMESERVERS", [], cast=list)
+        if ns:
+            return ns
         return []
 
     @classmethod
-    def ns_file(cls, type = "ip4", force = False):
+    def ns_file(cls, type="ip4", force=False):
         # verifies if the list value for the file based name server
         # retrieval value is defined and if that's the case and the
         # force flag is not set returns it immediately
-        if not cls.ns_file_l == None and not force: return cls.ns_file_l
+        if not cls.ns_file_l == None and not force:
+            return cls.ns_file_l
 
         # verifies if the resolve file exists and if it does not returns
         # immediately indicating the impossibility to resolve the value
-        if not os.path.exists("/etc/resolv.conf"): return None
+        if not os.path.exists("/etc/resolv.conf"):
+            return None
 
         # retrieves the reference to the function that is going to validate
         # if the provided name server complies with the proper (address) type
@@ -348,8 +346,10 @@ class DNSProtocol(netius.DatagramProtocol):
         # opens the resolve file and reads the complete set of contents
         # from it, closing the file afterwards
         file = open("/etc/resolv.conf", "rb")
-        try: data = file.read()
-        finally: file.close()
+        try:
+            data = file.read()
+        finally:
+            file.close()
 
         # starts the list that is going to store the various name server
         # values, this is going to be populated with the file contents
@@ -359,12 +359,14 @@ class DNSProtocol(netius.DatagramProtocol):
         # to find the name servers defined in it to be added to the list
         for line in data.split(b"\n"):
             line = line.strip()
-            if not line.startswith(b"nameserver"): continue
+            if not line.startswith(b"nameserver"):
+                continue
             _header, ns = line.split(b" ", 1)
             ns = ns.strip()
             ns = netius.legacy.str(ns)
             is_valid = validator(ns)
-            if not is_valid: continue
+            if not is_valid:
+                continue
             cls.ns_file_l.append(ns)
 
         # returns the final value of the list of name servers loaded from
@@ -372,24 +374,22 @@ class DNSProtocol(netius.DatagramProtocol):
         return cls.ns_file_l
 
     @classmethod
-    def ns_google(cls, type = "ip4"):
-        if type == "ip4": return ["8.8.8.8", "8.8.4.4"]
-        if type == "ip6": return [
-            "2001:4860:4860::8888",
-            "2001:4860:4860::8844"
-        ]
+    def ns_google(cls, type="ip4"):
+        if type == "ip4":
+            return ["8.8.8.8", "8.8.4.4"]
+        if type == "ip6":
+            return ["2001:4860:4860::8888", "2001:4860:4860::8844"]
         return []
 
     @classmethod
-    def ns_cloudfare(cls, type = "ip4"):
-        if type == "ip4": return ["1.1.1.1", "1.0.0.1"]
-        if type == "ip6": return [
-            "2606:4700:4700::1111",
-            "2606:4700:4700::1001"
-        ]
+    def ns_cloudfare(cls, type="ip4"):
+        if type == "ip4":
+            return ["1.1.1.1", "1.0.0.1"]
+        if type == "ip6":
+            return ["2606:4700:4700::1111", "2606:4700:4700::1001"]
         return []
 
-    def query(self, name, type = "a", cls = "in", ns = None, callback = None):
+    def query(self, name, type="a", cls="in", ns=None, callback=None):
         # retrieves the reference to the class associated with the
         # current instance to be used to access class operations
         _cls = self.__class__
@@ -402,12 +402,7 @@ class DNSProtocol(netius.DatagramProtocol):
         # creates a new DNS request object describing the query that was
         # just sent and then generates the request stream code that is
         # going to be used for sending the request through network
-        request = DNSRequest(
-            name,
-            type = type,
-            cls = cls,
-            callback = callback
-        )
+        request = DNSRequest(name, type=type, cls=cls, callback=callback)
         data = request.request()
 
         # prints some debug information about the DNS query that is going
@@ -442,7 +437,8 @@ class DNSProtocol(netius.DatagramProtocol):
         # response and in case none is found returns immediately as
         # there's nothing remaining to be done
         request = self.get_request(response)
-        if not request: return
+        if not request:
+            return
 
         # removes the request being handled from the current request
         # structures so that a callback is no longer answered
@@ -451,47 +447,34 @@ class DNSProtocol(netius.DatagramProtocol):
         # in case no callback is not defined for the request returns
         # immediately as there's nothing else remaining to be done,
         # otherwise calls the proper callback with the response
-        if not request.callback: return
+        if not request.callback:
+            return
         request.callback(response)
+
 
 class DNSClient(netius.ClientAgent):
 
     protocol = DNSProtocol
 
     @classmethod
-    def query_s(
-        cls,
-        name,
-        type = "a",
-        cls_ = "in",
-        ns = None,
-        callback = None,
-        loop = None
-    ):
+    def query_s(cls, name, type="a", cls_="in", ns=None, callback=None, loop=None):
         ns = ns or cls.protocol.ns_system()
         address = (ns, 53)
         protocol = cls.protocol()
 
         def on_connect(result):
             _transport, protocol = result
-            protocol.query(
-                name,
-                type = type,
-                cls = cls_,
-                ns = ns,
-                callback = callback
-            )
+            protocol.query(name, type=type, cls=cls_, ns=ns, callback=callback)
 
         loop = netius.build_datagram(
-            lambda: protocol,
-            callback = on_connect,
-            loop = loop,
-            remote_addr = address
+            lambda: protocol, callback=on_connect, loop=loop, remote_addr=address
         )
 
         return loop, protocol
 
+
 if __name__ == "__main__":
+
     def handler(response):
         # closes the current protocol to correctly close
         # all of the underlying structures
@@ -505,7 +488,9 @@ if __name__ == "__main__":
         # in case the provided response is not valid
         # a timeout message is printed to indicate the
         # problem with the resolution
-        if not response: print("Timeout in resolution"); return
+        if not response:
+            print("Timeout in resolution")
+            return
 
         # unpacks the complete set of contents from
         # the various answers so that only the address
@@ -529,12 +514,7 @@ if __name__ == "__main__":
     # runs the static version of a DNS query, note that
     # the daemon flag is unset so that the global client
     # runs in foreground avoiding the exit of the process
-    loop, protocol = DNSClient.query_s(
-        name,
-        type = type,
-        ns = ns,
-        callback = handler
-    )
+    loop, protocol = DNSClient.query_s(name, type=type, ns=ns, callback=handler)
     loop.run_forever()
     loop.close()
 else:

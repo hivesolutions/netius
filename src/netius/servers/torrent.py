@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -78,6 +69,7 @@ PEER_PATHS = ("peers.txt", "~/peers.txt", "\\peers.txt")
 """ The sequence defining the various paths that are going to be search
 trying to find the (static) peers file with format host:ip in each line """
 
+
 class Pieces(netius.Observable):
     """
     Class that represents the logical structure of a file that is
@@ -106,16 +98,19 @@ class Pieces(netius.Observable):
 
     def piece_blocks(self, index):
         is_last = index == self.number_pieces - 1
-        if not is_last: return self.number_blocks
+        if not is_last:
+            return self.number_blocks
         piece_size = self.piece_size(index)
         number_blocks = math.ceil(piece_size / float(BLOCK_SIZE))
         return int(number_blocks)
 
     def piece_size(self, index):
         is_last = index == self.number_pieces - 1
-        if not is_last: return self.number_blocks * BLOCK_SIZE
+        if not is_last:
+            return self.number_blocks * BLOCK_SIZE
         modulus = self.length % self.piece_length
-        if modulus == 0: return self.piece_length
+        if modulus == 0:
+            return self.piece_length
         return modulus
 
     def block(self, index, begin):
@@ -126,31 +121,36 @@ class Pieces(netius.Observable):
     def block_size(self, index, begin):
         block_index = begin // BLOCK_SIZE
         is_last_piece = index == self.number_pieces - 1
-        if not is_last_piece: return BLOCK_SIZE
+        if not is_last_piece:
+            return BLOCK_SIZE
         is_last_block = block_index == self.final_blocks - 1
-        if not is_last_block: return BLOCK_SIZE
+        if not is_last_block:
+            return BLOCK_SIZE
         piece_size = self.piece_size(index)
         modulus = piece_size % BLOCK_SIZE
-        if modulus == 0: return BLOCK_SIZE
+        if modulus == 0:
+            return BLOCK_SIZE
         return modulus
 
-    def pop_block(self, bitfield, mark = True):
+    def pop_block(self, bitfield, mark=True):
         index = 0
         result = self._and(bitfield, self.bitfield)
         for bit in result:
-            if bit == True: break
+            if bit == True:
+                break
             index += 1
 
-        if index == len(result): return None
+        if index == len(result):
+            return None
 
-        begin = self.update_block(index, mark = mark)
+        begin = self.update_block(index, mark=mark)
         length = self.block_size(index, begin)
         return (index, begin, length)
 
     def push_block(self, index, begin):
-        self.mark_block(index, begin, value = True)
+        self.mark_block(index, begin, value=True)
 
-    def mark_piece(self, index, value = False):
+    def mark_piece(self, index, value=False):
         base = index * self.number_blocks
         block_count = self.piece_blocks(index)
 
@@ -159,23 +159,25 @@ class Pieces(netius.Observable):
 
         self.bitfield[index] = value
 
-    def mark_block(self, index, begin, value = False):
+    def mark_block(self, index, begin, value=False):
         base = index * self.number_blocks
         block_index = begin // BLOCK_SIZE
         self.mask[base + block_index] = value
         self.trigger("block", self, index, begin)
         self.update_piece(index)
 
-    def update_block(self, index, mark = True):
+    def update_block(self, index, mark=True):
         base = index * self.number_blocks
         block_count = self.piece_blocks(index)
 
         for block_index in netius.legacy.xrange(block_count):
             state = self.mask[base + block_index]
-            if state == True: break
+            if state == True:
+                break
 
         begin = block_index * BLOCK_SIZE
-        if mark: self.mark_block(index, begin)
+        if mark:
+            self.mark_block(index, begin)
         return begin
 
     def update_piece(self, index):
@@ -192,7 +194,8 @@ class Pieces(netius.Observable):
         # unmarked (all the blocks unmarked accordingly)
         for block_index in netius.legacy.xrange(block_count):
             state = self.mask[base + block_index]
-            if state == False: continue
+            if state == False:
+                continue
             piece_state = True
             break
 
@@ -200,7 +203,8 @@ class Pieces(netius.Observable):
         # note that the false value indicates that the piece has been
         # unmarked (and this is considered the objective)
         self.bitfield[index] = piece_state
-        if piece_state == True: return
+        if piece_state == True:
+            return
 
         # triggers the piece event indicating that a new piece has
         # been completely unmarked according to rules
@@ -210,7 +214,8 @@ class Pieces(netius.Observable):
         # bit field to verify if the file has been completely unmarked
         # in case it did not returns the control flow to caller
         for bit in self.bitfield:
-            if bit == True: return
+            if bit == True:
+                return
 
         # triggers the complete event to any of the handlers indicating
         # that the current torrent file has been completely unmarked
@@ -225,18 +230,21 @@ class Pieces(netius.Observable):
     def marked_pieces(self):
         counter = 0
         for bit in self.bitfield:
-            if bit == True: continue
+            if bit == True:
+                continue
             counter += 1
         return counter
 
     @property
-    def missing_pieces(self, max_missing = MAX_MISSING):
+    def missing_pieces(self, max_missing=MAX_MISSING):
         missing_count = self.total_pieces - self.marked_pieces
-        if missing_count > max_missing: return []
+        if missing_count > max_missing:
+            return []
         missing = []
         for index in netius.legacy.xrange(self.total_pieces):
             bit = self.bitfield[index]
-            if bit == False: continue
+            if bit == False:
+                continue
             missing.append(index)
         return missing
 
@@ -249,28 +257,34 @@ class Pieces(netius.Observable):
     def marked_blocks(self):
         counter = 0
         for bit in self.mask:
-            if bit == True: continue
+            if bit == True:
+                continue
             counter += 1
         return counter
 
     @property
-    def missing_blocks(self, max_missing = MAX_MISSING):
+    def missing_blocks(self, max_missing=MAX_MISSING):
         missing_count = self.total_blocks - self.marked_blocks
-        if missing_count > max_missing: return []
+        if missing_count > max_missing:
+            return []
         missing = []
         for index in netius.legacy.xrange(self.total_blocks):
             bit = self.mask[index]
-            if bit == False: continue
+            if bit == False:
+                continue
             missing.append(index)
         return missing
 
     def _and(self, first, second):
         result = []
         for _first, _second in zip(first, second):
-            if _first and _second: value = True
-            else: value = False
+            if _first and _second:
+                value = True
+            else:
+                value = False
             result.append(value)
         return result
+
 
 class TorrentTask(netius.Observable):
     """
@@ -285,7 +299,7 @@ class TorrentTask(netius.Observable):
     a proper easily described interface.
     """
 
-    def __init__(self, owner, target_path, torrent_path = None, info_hash = None):
+    def __init__(self, owner, target_path, torrent_path=None, info_hash=None):
         netius.Observable.__init__(self)
 
         self.owner = owner
@@ -302,8 +316,10 @@ class TorrentTask(netius.Observable):
         self.peers_m = {}
 
     def load(self):
-        if self.torrent_path: self.info = self.load_info(self.torrent_path)
-        else: self.info = dict(info_hash = self.info_hash)
+        if self.torrent_path:
+            self.info = self.load_info(self.torrent_path)
+        else:
+            self.info = dict(info_hash=self.info_hash)
 
         self.pieces_tracker()
         self.peers_dht()
@@ -325,7 +341,8 @@ class TorrentTask(netius.Observable):
         self.unchoked -= 1 if is_unchoked else 0
 
     def ticks(self):
-        if time.time() < self.next_refresh: return
+        if time.time() < self.next_refresh:
+            return
         self.refresh()
 
     def refresh(self):
@@ -345,7 +362,8 @@ class TorrentTask(netius.Observable):
         self.trigger("block", self, index, begin)
 
     def on_piece(self, pieces, index):
-        try: self.verify_piece(index)
+        try:
+            self.verify_piece(index)
         except netius.DataError:
             self.refute_piece(index)
         else:
@@ -358,7 +376,8 @@ class TorrentTask(netius.Observable):
     def on_dht(self, response):
         # verifies if the response is valid and in case it's not
         # returns immediately to avoid any erroneous parsing
-        if not response: return
+        if not response:
+            return
 
         # retrieves the payload for the response and then uses it
         # to retrieves the nodes part of the response for parsing
@@ -379,12 +398,13 @@ class TorrentTask(netius.Observable):
             chunk = netius.legacy.bytes(chunk)
             peer_id, address, port = struct.unpack("!20sLH", chunk)
             ip = netius.common.addr_to_ip4(address)
-            peer = dict(id = peer_id, ip = ip, port = port)
+            peer = dict(id=peer_id, ip=ip, port=port)
             peers.append(peer)
 
         # in case no valid peers have been parsed there's no need
         # to continue with the processing, nothing to be done
-        if not peers: return
+        if not peers:
+            return
 
         # extends the currently defined peers list in the current
         # torrent task with the ones that have been discovered
@@ -405,7 +425,8 @@ class TorrentTask(netius.Observable):
         # there're none of them continues the loop as there's nothing to be
         # processed from this tracker response (invalid response)
         data = result["data"]
-        if not data: return
+        if not data:
+            return
 
         # tries to decode the provided data from the tracker using the bencoder
         # and extracts the peers part of the message to be processed
@@ -415,7 +436,8 @@ class TorrentTask(netius.Observable):
         # verifies if the provided peers part is not compact (already a dictionary)
         # if that's the case there's nothing remaining to be done, otherwise extra
         # processing must be done to
-        if isinstance(peers, dict): self.extend_peers(peers)
+        if isinstance(peers, dict):
+            self.extend_peers(peers)
 
         # need to normalize the peer structure by decoding the peers string into a
         # set of address port sub strings (as defined in torrent specification)
@@ -425,12 +447,14 @@ class TorrentTask(netius.Observable):
                 peer = netius.legacy.bytes(peer)
                 address, port = struct.unpack("!LH", peer)
                 ip = netius.common.addr_to_ip4(address)
-                peer = dict(ip = ip, port = port)
+                peer = dict(ip=ip, port=port)
                 self.add_peer(peer)
 
         # prints a debug message about the peer loading that has just occurred, this
         # may be used for the purpose of development (and traceability)
-        self.owner.debug("Received %d peers from '%s'" % (len(peers), parser.owner.base))
+        self.owner.debug(
+            "Received %d peers from '%s'" % (len(peers), parser.owner.base)
+        )
 
         # refreshes the connection with the peers because new peers have been added
         # to the current task and there may be new connections pending
@@ -438,16 +462,20 @@ class TorrentTask(netius.Observable):
 
     def load_info(self, torrent_path):
         file = open(torrent_path, "rb")
-        try: data = file.read()
-        finally: file.close()
+        try:
+            data = file.read()
+        finally:
+            file.close()
 
         struct = netius.common.bdecode(data)
         struct["info_hash"] = self.info_hash = netius.common.info_hash(struct)
         return struct
 
     def load_file(self):
-        if self._is_single(): return self.load_single()
-        else: return self.load_multiple()
+        if self._is_single():
+            return self.load_single()
+        else:
+            return self.load_multiple()
 
     def load_single(self):
         # retrieves the length of the current (single file) and
@@ -464,7 +492,8 @@ class TorrentTask(netius.Observable):
         # not the case creates the appropriate directories so that
         # they area available for the file stream creation
         is_dir = os.path.isdir(target_path)
-        if not is_dir: os.makedirs(target_path)
+        if not is_dir:
+            os.makedirs(target_path)
 
         # creates the "final" file path from the target path and the
         # name of the file and then constructs a file stream with the
@@ -484,13 +513,15 @@ class TorrentTask(netius.Observable):
 
         dir_path = os.path.join(target_path, name)
         is_dir = os.path.isdir(dir_path)
-        if not is_dir: os.makedirs(dir_path)
+        if not is_dir:
+            os.makedirs(dir_path)
 
         self.file = netius.common.FilesStream(dir_path, size, files)
         self.file.open()
 
     def unload_file(self):
-        if not self.file: return
+        if not self.file:
+            return
         self.file.close()
         self.file = None
 
@@ -505,8 +536,10 @@ class TorrentTask(netius.Observable):
         self.stored.bind("complete", self.on_complete)
 
     def unload_pieces(self):
-        if self.requested: self.requested.destroy()
-        if self.stored: self.stored.destroy()
+        if self.requested:
+            self.requested.destroy()
+        if self.stored:
+            self.stored.destroy()
         self.requested = None
         self.stored = None
 
@@ -533,7 +566,8 @@ class TorrentTask(netius.Observable):
         # immediately as this is a duplicated block setting, possible
         # in the last part of the file retrieval (end game)
         block = self.stored.block(index, begin)
-        if not block: return
+        if not block:
+            return
 
         # retrieves the size of a piece and uses that value together
         # with the block begin offset to calculate the final file offset
@@ -559,21 +593,24 @@ class TorrentTask(netius.Observable):
         # and in case it succeeds sets the proper DHT (port) value in the peer
         # so that it may latter be used for DHT based operations
         peer = self.peers_m.get(peer_t, None)
-        if not peer: return
+        if not peer:
+            return
         peer["dht"] = port
 
     def peers_dht(self):
-        if not self.info_hash: return
+        if not self.info_hash:
+            return
         for peer in self.peers:
             port = peer.get("dht", None)
-            if not port: continue
+            if not port:
+                continue
             host = peer["ip"]
             self.owner.dht_client.get_peers(
-                host = host,
-                port = port,
-                peer_id = self.owner.peer_id,
-                info_hash = self.info_hash,
-                callback = self.on_dht
+                host=host,
+                port=port,
+                peer_id=self.owner.peer_id,
+                info_hash=self.info_hash,
+                callback=self.on_dht,
             )
             self.owner.debug("Requested peers from DHT peer '%s'" % host)
 
@@ -601,7 +638,8 @@ class TorrentTask(netius.Observable):
                 # URL of it and then verifies that it references an HTTP based
                 # tracker (as that's the only one supported)
                 is_http = tracker_url.startswith(("http://", "https://"))
-                if not is_http: continue
+                if not is_http:
+                    continue
 
                 # runs the get HTTP retrieval call (blocking call) so that it's
                 # possible to retrieve the contents for the announce of the tracker
@@ -609,20 +647,20 @@ class TorrentTask(netius.Observable):
                 # called at the end of the process with the message
                 self.owner.http_client.get(
                     tracker_url,
-                    params = dict(
-                        info_hash = self.info_hash,
-                        peer_id = self.owner.peer_id,
-                        port = 6881,
-                        uploaded = self.uploaded,
-                        downloaded = self.downloaded,
-                        left = self.left(),
-                        compact = 1,
-                        no_peer_id = 0,
-                        event = "started",
-                        numwant = 50,
-                        key = self.owner.get_id()
+                    params=dict(
+                        info_hash=self.info_hash,
+                        peer_id=self.owner.peer_id,
+                        port=6881,
+                        uploaded=self.uploaded,
+                        downloaded=self.downloaded,
+                        left=self.left(),
+                        compact=1,
+                        no_peer_id=0,
+                        event="started",
+                        numwant=50,
+                        key=self.owner.get_id(),
                     ),
-                    on_result = self.on_tracker
+                    on_result=self.on_tracker,
                 )
 
                 # prints a debug message about the request for peer that was just
@@ -633,24 +671,28 @@ class TorrentTask(netius.Observable):
         for path in PEER_PATHS:
             path = os.path.expanduser(path)
             path = os.path.normpath(path)
-            if not os.path.exists(path): continue
+            if not os.path.exists(path):
+                continue
             file = open(path, "r")
             for line in file:
                 line = line.strip()
                 host, port = line.split(":", 1)
                 port = int(port)
-                peer = dict(ip = host, port = port)
+                peer = dict(ip=host, port=port)
                 self.add_peer(peer)
 
     def connect_peers(self):
-        for peer in self.peers: self.connect_peer(peer)
+        for peer in self.peers:
+            self.connect_peer(peer)
 
     def disconnect_peers(self):
         connections = copy.copy(self.connections)
-        for connection in connections: connection.close(flush = True)
+        for connection in connections:
+            connection.close(flush=True)
 
     def connect_peer(self, peer):
-        if not peer["new"]: return
+        if not peer["new"]:
+            return
         peer["new"] = False
         self.owner.debug("Connecting to peer '%s:%d'" % (peer["ip"], peer["port"]))
         connection = self.owner.client.peer(self, peer["ip"], peer["port"])
@@ -660,18 +702,22 @@ class TorrentTask(netius.Observable):
         connection.bind("unchoked", self.on_unchoked)
 
     def info_string(self):
-        return "==== STATUS ====\n" +\
-            "peers       := %d\n" % len(self.peers) +\
-            "connections := %d\n" % len(self.connections) +\
-            "choked      := %d\n" % (len(self.connections) - self.unchoked) +\
-            "unchoked    := %d\n" % self.unchoked +\
-            "pieces      := %d/%d\n" % (self.stored.marked_pieces, self.stored.total_pieces) +\
-            "blocks      := %d/%d\n" % (self.stored.marked_blocks, self.stored.total_blocks) +\
-            "pieces miss := %s\n" % self.stored.missing_pieces +\
-            "blocks miss := %s\n" % self.stored.missing_blocks +\
-            "percent     := %.2f % %\n" % self.percent() +\
-            "left        := %d/%d bytes\n" % (self.left(), self.info["length"]) +\
-            "speed       := %s/s" % self.speed_s()
+        return (
+            "==== STATUS ====\n"
+            + "peers       := %d\n" % len(self.peers)
+            + "connections := %d\n" % len(self.connections)
+            + "choked      := %d\n" % (len(self.connections) - self.unchoked)
+            + "unchoked    := %d\n" % self.unchoked
+            + "pieces      := %d/%d\n"
+            % (self.stored.marked_pieces, self.stored.total_pieces)
+            + "blocks      := %d/%d\n"
+            % (self.stored.marked_blocks, self.stored.total_blocks)
+            + "pieces miss := %s\n" % self.stored.missing_pieces
+            + "blocks miss := %s\n" % self.stored.missing_blocks
+            + "percent     := %.2f % %\n" % self.percent()
+            + "left        := %d/%d bytes\n" % (self.left(), self.info["length"])
+            + "speed       := %s/s" % self.speed_s()
+        )
 
     def left(self):
         size = self.info["length"]
@@ -695,11 +741,7 @@ class TorrentTask(netius.Observable):
         return bytes_second
 
     def speed_s(self):
-        return netius.common.size_round_unit(
-            self.speed(),
-            space = True,
-            reduce = False
-        )
+        return netius.common.size_round_unit(self.speed(), space=True, reduce=False)
 
     def percent(self):
         size = self.info["length"]
@@ -709,11 +751,13 @@ class TorrentTask(netius.Observable):
         left = self.left()
         is_end = left < THRESHOLD_END
         structure = self.stored if is_end else self.requested
-        if not structure: return None
-        return structure.pop_block(bitfield, mark = not is_end)
+        if not structure:
+            return None
+        return structure.pop_block(bitfield, mark=not is_end)
 
     def push_block(self, index, begin):
-        if not self.requested: return
+        if not self.requested:
+            return
         self.requested.push_block(index, begin)
 
     def verify_piece(self, index):
@@ -724,16 +768,18 @@ class TorrentTask(netius.Observable):
         self.downloaded += piece_size
 
     def refute_piece(self, index):
-        self.requested.mark_piece(index, value = True)
-        self.stored.mark_piece(index, value = True)
+        self.requested.mark_piece(index, value=True)
+        self.stored.mark_piece(index, value=True)
         self.owner.warning("Refuted piece '%d' (probably invalid)" % index)
 
     def extend_peers(self, peers):
-        for peer in peers: self.add_peer(peer)
+        for peer in peers:
+            self.add_peer(peer)
 
     def add_peer(self, peer):
         peer_t = (peer["ip"], peer["port"])
-        if peer_t in self.peers_m: return
+        if peer_t in self.peers_m:
+            return
         peer["time"] = time.time()
         peer["new"] = True
         self.peers_m[peer_t] = peer
@@ -741,7 +787,8 @@ class TorrentTask(netius.Observable):
 
     def remove_peer(self, peer):
         peer_t = (peer["ip"], peer["port"])
-        if not peer_t in self.peers_m: return
+        if not peer_t in self.peers_m:
+            return
         del self.peers_m[peer_t]
         self.peers.remove(peer)
 
@@ -756,36 +803,27 @@ class TorrentTask(netius.Observable):
         pending = self.stored.piece_size(index)
         hash = hashlib.sha1()
         while True:
-            if pending == 0: break
+            if pending == 0:
+                break
             count = BLOCK_SIZE if pending > BLOCK_SIZE else pending
             data = file.read(count)
             hash.update(data)
             pending -= count
         digest = hash.digest()
         piece = netius.legacy.bytes(piece)
-        if digest == piece: return
+        if digest == piece:
+            return
         raise netius.DataError("Verifying piece index '%d'" % index)
+
 
 class TorrentServer(netius.ContainerServer):
 
     def __init__(self, *args, **kwargs):
         netius.ContainerServer.__init__(self, *args, **kwargs)
         self.peer_id = self._generate_id()
-        self.client = netius.clients.TorrentClient(
-            thread = False,
-            *args,
-            **kwargs
-        )
-        self.http_client = netius.clients.HTTPClient(
-            thread = False,
-            *args,
-            **kwargs
-        )
-        self.dht_client = netius.clients.DHTClient(
-            thread = False,
-            *args,
-            **kwargs
-        )
+        self.client = netius.clients.TorrentClient(thread=False, *args, **kwargs)
+        self.http_client = netius.clients.HTTPClient(thread=False, *args, **kwargs)
+        self.dht_client = netius.clients.DHTClient(thread=False, *args, **kwargs)
         self.tasks = []
         self.add_base(self.client)
         self.add_base(self.http_client)
@@ -798,9 +836,10 @@ class TorrentServer(netius.ContainerServer):
 
     def ticks(self):
         netius.ContainerServer.ticks(self)
-        for task in self.tasks: task.ticks()
+        for task in self.tasks:
+            task.ticks()
 
-    def download(self, target_path, torrent_path = None, info_hash = None, close = False):
+    def download(self, target_path, torrent_path=None, info_hash=None, close=False):
         """
         Starts the "downloading" process of a torrent associated file
         using the defined peer to peer torrent strategy using either
@@ -835,13 +874,11 @@ class TorrentServer(netius.ContainerServer):
         def on_complete(task):
             owner = task.owner
             self.remove_task(task)
-            if close: owner.close()
+            if close:
+                owner.close()
 
         task = TorrentTask(
-            self,
-            target_path,
-            torrent_path = torrent_path,
-            info_hash = info_hash
+            self, target_path, torrent_path=torrent_path, info_hash=info_hash
         )
         task.load()
         task.connect_peers()
@@ -858,7 +895,8 @@ class TorrentServer(netius.ContainerServer):
 
     def cleanup_tasks(self):
         tasks = copy.copy(self.tasks)
-        for task in tasks: self.remove_task(task)
+        for task in tasks:
+            self.remove_task(task)
 
     def _generate_id(self):
         random = str(uuid.uuid4())
@@ -868,14 +906,17 @@ class TorrentServer(netius.ContainerServer):
         id = "-%s-%s" % (ID_STRING, digest[:12])
         return id
 
+
 if __name__ == "__main__":
     import logging
 
-    if len(sys.argv) > 1: file_path = sys.argv[1]
-    else: file_path = "\\file.torrent"
+    if len(sys.argv) > 1:
+        file_path = sys.argv[1]
+    else:
+        file_path = "\\file.torrent"
 
     def on_start(server):
-        task = server.download("~/Downloads", file_path, close = True)
+        task = server.download("~/Downloads", file_path, close=True)
         task.bind("piece", on_piece)
         task.bind("complete", on_complete)
 
@@ -890,8 +931,8 @@ if __name__ == "__main__":
     def on_complete(task):
         print("Download completed")
 
-    server = TorrentServer(level = logging.DEBUG)
+    server = TorrentServer(level=logging.DEBUG)
     server.bind("start", on_start)
-    server.serve(env = True)
+    server.serve(env=True)
 else:
     __path__ = []

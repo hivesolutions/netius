@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -50,7 +41,8 @@ ALL_CAP_REGEX = re.compile("([a-z0-9])([A-Z])")
 upper case letter regex that will provide a way of
 putting the underscore in the middle of the transition """
 
-def camel_to_underscore(camel, separator = "_"):
+
+def camel_to_underscore(camel, separator="_"):
     """
     Converts the provided camel cased based value into
     a normalized underscore based string.
@@ -74,7 +66,8 @@ def camel_to_underscore(camel, separator = "_"):
     value = value.lower()
     return value
 
-def verify(condition, message = None, exception = None):
+
+def verify(condition, message=None, exception=None):
     """
     Ensures that the requested condition returns a valid value
     and if that's no the case an exception raised breaking the
@@ -92,6 +85,7 @@ def verify(condition, message = None, exception = None):
     verification operation fails.
     """
 
-    if condition: return
+    if condition:
+        return
     exception = exception or errors.AssertionError
     raise exception(message or "Assertion Error")

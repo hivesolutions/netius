@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -63,12 +54,11 @@ RESULT = b"DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=netius.hive.pt;
  bh=sIAi0xXPHrEtJmW97Q5q9AZTwKC+l1Iy+0m8vQIc/DY=; b=Pr7dVjQIX3ovG78v1X45seFwA/+uyIAofJbxn5iXTRBA5Mv+YVdiI9QMm/gU1ljoSGqqC+hvLS4iB2N1kC4fGuDxXOyNaApOLSA2hl/mBpzca6SNyu6CYvUDdhmfD+8TsYMe6Vy8UY9lWpPYNgfb9BhORqPvxiC8A8F9ScTVT/s=\r\nHeader: Value\r\n\r\nHello World"
 
 REGISTRY = {
-    "netius.hive.pt" : dict(
-        key_b64 = PRIVATE_KEY,
-        selector = "20160523113052",
-        domain = "netius.hive.pt"
+    "netius.hive.pt": dict(
+        key_b64=PRIVATE_KEY, selector="20160523113052", domain="netius.hive.pt"
     )
 }
+
 
 class RelaySMTPServerTest(unittest.TestCase):
 
@@ -83,9 +73,7 @@ class RelaySMTPServerTest(unittest.TestCase):
     def test_dkim(self):
         self.server.dkim = REGISTRY
         result = self.server.dkim_contents(
-            MESSAGE,
-            email = "email@netius.hive.pt",
-            creation = 1464003802
+            MESSAGE, email="email@netius.hive.pt", creation=1464003802
         )
 
         self.assertEqual(result, RESULT)

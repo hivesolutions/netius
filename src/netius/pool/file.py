@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -49,13 +40,13 @@ CLOSE_ACTION = 2
 READ_ACTION = 3
 WRITE_ACTION = 4
 
+
 class FileThread(common.Thread):
 
     def execute(self, work):
         type = work[0]
-        if not type == FILE_WORK: netius.NotImplemented(
-            "Cannot execute type '%d'" % type
-        )
+        if not type == FILE_WORK:
+            netius.NotImplemented("Cannot execute type '%d'" % type)
 
         try:
             self._execute(work)
@@ -80,29 +71,35 @@ class FileThread(common.Thread):
 
     def _execute(self, work):
         action = work[1]
-        if action == OPEN_ACTION: self.open(*work[2:])
-        elif action == CLOSE_ACTION: self.close(*work[2:])
-        elif action == READ_ACTION: self.read(*work[2:])
-        elif action == WRITE_ACTION: self.read(*work[2:])
-        else: netius.NotImplemented("Undefined file action '%d'" % action)
+        if action == OPEN_ACTION:
+            self.open(*work[2:])
+        elif action == CLOSE_ACTION:
+            self.close(*work[2:])
+        elif action == READ_ACTION:
+            self.read(*work[2:])
+        elif action == WRITE_ACTION:
+            self.read(*work[2:])
+        else:
+            netius.NotImplemented("Undefined file action '%d'" % action)
+
 
 class FilePool(common.EventPool):
 
-    def __init__(self, base = FileThread, count = 10):
-        common.EventPool.__init__(self, base = base, count = count)
+    def __init__(self, base=FileThread, count=10):
+        common.EventPool.__init__(self, base=base, count=count)
 
-    def open(self, path, mode = "r", data = None):
+    def open(self, path, mode="r", data=None):
         work = (FILE_WORK, OPEN_ACTION, path, mode, data)
         self.push(work)
 
-    def close(self, file, data = None):
+    def close(self, file, data=None):
         work = (FILE_WORK, CLOSE_ACTION, file, data)
         self.push(work)
 
-    def read(self, file, count = -1, data = None):
+    def read(self, file, count=-1, data=None):
         work = (FILE_WORK, READ_ACTION, file, count, data)
         self.push(work)
 
-    def write(self, file, buffer, data = None):
+    def write(self, file, buffer, data=None):
         work = (FILE_WORK, WRITE_ACTION, file, buffer, data)
         self.push(work)

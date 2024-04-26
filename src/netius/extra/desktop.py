@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -39,8 +30,11 @@ __license__ = "Apache License, Version 2.0"
 
 import netius.servers
 
-try: import PIL.ImageGrab
-except ImportError: PIL = None
+try:
+    import PIL.ImageGrab
+except ImportError:
+    PIL = None
+
 
 class DesktopServer(netius.servers.MJPGServer):
 
@@ -48,7 +42,8 @@ class DesktopServer(netius.servers.MJPGServer):
         return 1
 
     def get_image(self, connection):
-        if not PIL: return None
+        if not PIL:
+            return None
         image = PIL.ImageGrab.grab()
         buffer = netius.legacy.BytesIO()
         try:
@@ -58,8 +53,9 @@ class DesktopServer(netius.servers.MJPGServer):
             buffer.close()
         return data
 
+
 if __name__ == "__main__":
     server = DesktopServer()
-    server.serve(env = True)
+    server.serve(env=True)
 else:
     __path__ = []

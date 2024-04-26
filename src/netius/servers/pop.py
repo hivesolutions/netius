@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -54,24 +45,19 @@ CHUNK_SIZE = 16384
 of the message to the client, this value will affect the
 memory used by the server and its network performance """
 
-CAPABILITIES = (
-    "TOP",
-    "USER",
-    "STLS"
-)
+CAPABILITIES = ("TOP", "USER", "STLS")
 """ The capabilities that are going to be exposed to the client
 as the ones handled by the server, should only expose the ones
 that are properly handled by the server """
 
-AUTH_METHODS = (
-    "PLAIN",
-)
+AUTH_METHODS = ("PLAIN",)
 """ Authentication methods that are available to be "used" by
 the client, should be mapped into the proper auth handlers """
 
+
 class POPConnection(netius.Connection):
 
-    def __init__(self, host = "pop.localhost", *args, **kwargs):
+    def __init__(self, host="pop.localhost", *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
         self.parser = None
         self.host = host
@@ -87,26 +73,34 @@ class POPConnection(netius.Connection):
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
-        if not self.is_open(): return
+        if not self.is_open():
+            return
         self.parser = netius.common.POPParser(self)
         self.parser.bind("on_line", self.on_line)
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
-        if not self.is_closed(): return
-        if self.file: self.file.close(); self.file = None
-        if self.parser: self.parser.destroy()
+        if not self.is_closed():
+            return
+        if self.file:
+            self.file.close()
+            self.file = None
+        if self.parser:
+            self.parser.destroy()
 
     def parse(self, data):
-        if self.state == AUTH_STATE: self.on_user(data)
-        else: return self.parser.parse(data)
+        if self.state == AUTH_STATE:
+            self.on_user(data)
+        else:
+            return self.parser.parse(data)
 
-    def send_pop(self, message = "", lines = (), status = "OK", delay = True, callback = None):
+    def send_pop(self, message="", lines=(), status="OK", delay=True, callback=None):
         status_s = "+" + status if status == "OK" else "-" + status
         base = "%s %s" % (status_s, message)
         data = base + "\r\n"
-        if lines: data += "\r\n".join(lines) + "\r\n.\r\n"
-        count = self.send(data, delay = delay, callback = callback)
+        if lines:
+            data += "\r\n".join(lines) + "\r\n.\r\n"
+        count = self.send(data, delay=delay, callback=callback)
         self.owner.debug(base)
         return count
 
@@ -118,21 +112,22 @@ class POPConnection(netius.Connection):
 
     def starttls(self):
         def callback(connection):
-            connection.upgrade(server = True)
+            connection.upgrade(server=True)
+
         message = "go ahead"
-        self.send_pop(message, callback = callback)
+        self.send_pop(message, callback=callback)
         self.state = HELO_STATE
 
     def capa(self):
         self.assert_s(HELO_STATE)
         message = "list follows"
-        self.send_pop(message, lines = CAPABILITIES)
+        self.send_pop(message, lines=CAPABILITIES)
         self.state = HELO_STATE
 
     def auth(self):
         self.assert_s(HELO_STATE)
         message = "list follows"
-        self.send_pop(message, lines = AUTH_METHODS)
+        self.send_pop(message, lines=AUTH_METHODS)
         self.state = HELO_STATE
 
     def accept(self):
@@ -154,7 +149,7 @@ class POPConnection(netius.Connection):
             size = self.sizes[index]
             line = "%d %d" % (index, size)
             lines.append(line)
-        self.send_pop(message, lines = lines)
+        self.send_pop(message, lines=lines)
 
     def uidl(self):
         self.owner.on_uidl_pop(self)
@@ -164,18 +159,24 @@ class POPConnection(netius.Connection):
             key = self.keys[index]
             line = "%d %s" % (index, key)
             lines.append(line)
-        self.send_pop(message, lines = lines)
+        self.send_pop(message, lines=lines)
 
     def retr(self, index):
         def callback(connection):
-            if not connection.file: return
+            if not connection.file:
+                return
             file = connection.file
             contents = file.read(CHUNK_SIZE)
-            if contents: self.send(contents, callback = callback)
-            else: self.send("\r\n.\r\n"); file.close(); connection.file = None
+            if contents:
+                self.send(contents, callback=callback)
+            else:
+                self.send("\r\n.\r\n")
+                file.close()
+                connection.file = None
+
         self.owner.on_retr_pop(self, index)
         message = "%d octets" % self.size
-        self.send_pop(message, callback = callback)
+        self.send_pop(message, callback=callback)
         callback(self)
 
     def dele(self, index):
@@ -193,7 +194,7 @@ class POPConnection(netius.Connection):
 
     def not_implemented(self):
         message = "not implemented"
-        self.send_pop(message, status = "ERR")
+        self.send_pop(message, status="ERR")
 
     def on_line(self, code, message):
         # "joins" the code and the message part of the message into the base
@@ -215,7 +216,8 @@ class POPConnection(netius.Connection):
         # does not raises an exception indicating the problem with the
         # code that has just been received (probably erroneous)
         exists = hasattr(self, method_n)
-        if not exists: raise netius.ParserError("Invalid code '%s'" % code)
+        if not exists:
+            raise netius.ParserError("Invalid code '%s'" % code)
 
         # retrieves the reference to the method that is going to be called
         # for the handling of the current line from the current instance and
@@ -230,8 +232,10 @@ class POPConnection(netius.Connection):
         self.capa()
 
     def on_auth(self, message):
-        if message: self.accept()
-        else: self.auth()
+        if message:
+            self.accept()
+        else:
+            self.auth()
 
     def on_stat(self, message):
         self.stat()
@@ -252,7 +256,7 @@ class POPConnection(netius.Connection):
 
     def on_quit(self, message):
         self.bye()
-        self.close(flush = True)
+        self.close(flush=True)
 
     def on_user(self, token):
         # adds the partial token value to the token buffer and
@@ -260,7 +264,8 @@ class POPConnection(netius.Connection):
         # case continues the parsing otherwise returns immediately
         self.token_buf.append(token)
         index = token.find(b"\n")
-        if index == -1: return
+        if index == -1:
+            return
 
         # removes the extra characters from the token so that no
         # extra value is considered to be part of the token
@@ -287,18 +292,20 @@ class POPConnection(netius.Connection):
         self.state = SESSION_STATE
 
     def assert_s(self, expected):
-        if self.state == expected: return
+        if self.state == expected:
+            return
         raise netius.ParserError("Invalid state")
+
 
 class POPServer(netius.StreamServer):
 
-    def __init__(self, adapter_s = "memory", auth_s = "dummy", *args, **kwargs):
+    def __init__(self, adapter_s="memory", auth_s="dummy", *args, **kwargs):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.adapter_s = adapter_s
         self.auth_s = auth_s
 
-    def serve(self, host = "pop.localhost", port = 110, *args, **kwargs):
-        netius.StreamServer.serve(self, port = port, *args, **kwargs)
+    def serve(self, host="pop.localhost", port=110, *args, **kwargs):
+        netius.StreamServer.serve(self, port=port, *args, **kwargs)
         self.host = host
 
     def on_connection_c(self, connection):
@@ -307,7 +314,9 @@ class POPServer(netius.StreamServer):
 
     def on_connection_d(self, connection):
         netius.StreamServer.on_connection_d(self, connection)
-        if connection.file: connection.file.close(); connection.file = None
+        if connection.file:
+            connection.file.close()
+            connection.file = None
 
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
@@ -315,23 +324,22 @@ class POPServer(netius.StreamServer):
 
     def on_serve(self):
         netius.StreamServer.on_serve(self)
-        if self.env: self.host = self.get_env("POP_HOST", self.host)
-        if self.env: self.adapter_s = self.get_env("POP_ADAPTER", self.adapter_s)
-        if self.env: self.auth_s = self.get_env("POP_AUTH", self.auth_s)
+        if self.env:
+            self.host = self.get_env("POP_HOST", self.host)
+        if self.env:
+            self.adapter_s = self.get_env("POP_ADAPTER", self.adapter_s)
+        if self.env:
+            self.auth_s = self.get_env("POP_AUTH", self.auth_s)
         self.adapter = self.get_adapter(self.adapter_s)
         self.auth = self.get_auth(self.auth_s)
         self.info(
-            "Starting POP server on '%s' using '%s' and '%s' ..." %
-            (self.host, self.adapter_s, self.auth_s)
+            "Starting POP server on '%s' using '%s' and '%s' ..."
+            % (self.host, self.adapter_s, self.auth_s)
         )
 
-    def build_connection(self, socket, address, ssl = False):
+    def build_connection(self, socket, address, ssl=False):
         return POPConnection(
-            owner = self,
-            socket = socket,
-            address = address,
-            ssl = ssl,
-            host = self.host
+            owner=self, socket=socket, address=address, ssl=ssl, host=self.host
         )
 
     def on_line_pop(self, connection, code, message):
@@ -343,19 +351,19 @@ class POPServer(netius.StreamServer):
 
     def on_stat_pop(self, connection):
         username = connection.username
-        count = self.adapter.count(owner = username)
-        total = self.adapter.total(owner = username)
+        count = self.adapter.count(owner=username)
+        total = self.adapter.total(owner=username)
         connection.count = count
         connection.byte_c = total
 
     def on_list_pop(self, connection):
         username = connection.username
-        sizes = self.adapter.sizes(owner = username)
+        sizes = self.adapter.sizes(owner=username)
         connection.sizes = sizes
 
     def on_uidl_pop(self, connection):
         username = connection.username
-        connection.keys = self.adapter.list(owner = username)
+        connection.keys = self.adapter.list(owner=username)
 
     def on_retr_pop(self, connection, index):
         key = connection.keys[index]
@@ -365,11 +373,13 @@ class POPServer(netius.StreamServer):
     def on_dele_pop(self, connection, index):
         username = connection.username
         key = connection.keys[index]
-        self.adapter.delete(key, owner = username)
+        self.adapter.delete(key, owner=username)
+
 
 if __name__ == "__main__":
     import logging
-    server = POPServer(level = logging.DEBUG)
-    server.serve(env = True)
+
+    server = POPServer(level=logging.DEBUG)
+    server.serve(env=True)
 else:
     __path__ = []

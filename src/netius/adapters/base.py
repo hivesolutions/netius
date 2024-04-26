@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -43,6 +34,7 @@ import hashlib
 
 import netius
 
+
 class BaseAdapter(object):
     """
     Top level abstract representation of a netius adapter.
@@ -52,29 +44,34 @@ class BaseAdapter(object):
     storage, torrent hash table storage, sessions, etc.)
     """
 
-    def set(self, value, owner = "nobody"):
+    def set(self, value, owner="nobody"):
         pass
 
     def get(self, key):
         file = self.get_file(key)
-        if not file: return file
-        try: value = file.read()
-        finally: file.close()
+        if not file:
+            return file
+        try:
+            value = file.read()
+        finally:
+            file.close()
         return value
 
-    def get_file(self, key, mode = "rb"):
+    def get_file(self, key, mode="rb"):
         return netius.legacy.StringIO()
 
-    def delete(self, key, owner = "nobody"):
+    def delete(self, key, owner="nobody"):
         pass
 
     def append(self, key, value):
-        file = self.get_file(key, mode = "ab")
-        try: file.write(value)
-        finally: file.close()
+        file = self.get_file(key, mode="ab")
+        try:
+            file.write(value)
+        finally:
+            file.close()
 
     def truncate(self, key, count):
-        file = self.get_file(key, mode = "rb+")
+        file = self.get_file(key, mode="rb+")
         try:
             offset = count * -1
             file.seek(offset, os.SEEK_END)
@@ -85,24 +82,25 @@ class BaseAdapter(object):
     def size(self, key):
         return 0
 
-    def sizes(self, owner = None):
-        list = self.list(owner = owner)
+    def sizes(self, owner=None):
+        list = self.list(owner=owner)
         sizes = [self.size(key) for key in list]
         return sizes
 
-    def total(self, owner = None):
+    def total(self, owner=None):
         total = 0
-        list = self.list(owner = owner)
-        for key in list: total += self.size(key)
+        list = self.list(owner=owner)
+        for key in list:
+            total += self.size(key)
         return total
 
-    def reserve(self, owner = "nobody"):
-        return self.set("", owner = owner)
+    def reserve(self, owner="nobody"):
+        return self.set("", owner=owner)
 
-    def count(self, owner = None):
+    def count(self, owner=None):
         return 0
 
-    def list(self, owner = None):
+    def list(self, owner=None):
         return ()
 
     def generate(self):

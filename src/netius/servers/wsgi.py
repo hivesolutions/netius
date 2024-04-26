@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -54,6 +45,7 @@ COMPRESSED_LIMIT = 5242880
 content, this should ensure proper resource usage avoiding extreme
 high levels of resource usage for compression of large files """
 
+
 class WSGIServer(http2.HTTP2Server):
     """
     Base class for the creation of a wsgi compliant server
@@ -64,9 +56,9 @@ class WSGIServer(http2.HTTP2Server):
     def __init__(
         self,
         app,
-        mount = "",
-        decode = True,
-        compressed_limit = COMPRESSED_LIMIT,
+        mount="",
+        decode=True,
+        compressed_limit=COMPRESSED_LIMIT,
         *args,
         **kwargs
     ):
@@ -91,12 +83,13 @@ class WSGIServer(http2.HTTP2Server):
 
     def on_serve(self):
         http2.HTTP2Server.on_serve(self)
-        if self.env: self.compressed_limit = self.get_env(
-            "COMPRESSED_LIMIT", self.compressed_limit, cast = int
-        )
+        if self.env:
+            self.compressed_limit = self.get_env(
+                "COMPRESSED_LIMIT", self.compressed_limit, cast=int
+            )
         self.info(
-            "Starting WSGI server with %d bytes limit on compression ..." %\
-            self.compressed_limit
+            "Starting WSGI server with %d bytes limit on compression ..."
+            % self.compressed_limit
         )
 
     def on_data_http(self, connection, parser):
@@ -105,16 +98,17 @@ class WSGIServer(http2.HTTP2Server):
         # retrieves the path for the current request and then retrieves
         # the query string part for it also, after that computes the
         # path info value as the substring of the path without the mount
-        path = parser.get_path(normalize = True)
+        path = parser.get_path(normalize=True)
         query = parser.get_query()
-        path_info = path[self.mount_l:]
+        path_info = path[self.mount_l :]
 
         # verifies if the path and query values should be encoded and if
         # that's the case the decoding process should unquote the received
         # path and then convert it into a valid string representation, this
         # is especially relevant for the python 3 infra-structure, this is
         # a tricky process but is required for the wsgi compliance
-        if self.decode: path_info = self._decode(path_info)
+        if self.decode:
+            path_info = self._decode(path_info)
 
         # retrieves a possible forwarded protocol value from the request
         # headers and calculates the appropriate (final scheme value)
@@ -127,17 +121,17 @@ class WSGIServer(http2.HTTP2Server):
         # variables that should enable the application to handle the request
         # and respond to it in accordance
         environ = dict(
-            REQUEST_METHOD = parser.method.upper(),
-            SCRIPT_NAME = self.mount,
-            PATH_INFO = path_info,
-            QUERY_STRING = query,
-            CONTENT_TYPE = parser.headers.get("content-type", ""),
-            CONTENT_LENGTH = "" if parser.content_l == -1 else parser.content_l,
-            SERVER_NAME = self.host,
-            SERVER_PORT = str(self.port),
-            SERVER_PROTOCOL = parser.version_s,
-            SERVER_SOFTWARE = SERVER_SOFTWARE,
-            REMOTE_ADDR = connection.address[0]
+            REQUEST_METHOD=parser.method.upper(),
+            SCRIPT_NAME=self.mount,
+            PATH_INFO=path_info,
+            QUERY_STRING=query,
+            CONTENT_TYPE=parser.headers.get("content-type", ""),
+            CONTENT_LENGTH="" if parser.content_l == -1 else parser.content_l,
+            SERVER_NAME=self.host,
+            SERVER_PORT=str(self.port),
+            SERVER_PROTOCOL=parser.version_s,
+            SERVER_SOFTWARE=SERVER_SOFTWARE,
+            REMOTE_ADDR=connection.address[0],
         )
 
         # updates the environment map with all the structures referring
@@ -145,7 +139,7 @@ class WSGIServer(http2.HTTP2Server):
         # as a buffer to be able to handle the file specific operations
         environ["wsgi.version"] = (1, 0)
         environ["wsgi.url_scheme"] = scheme
-        environ["wsgi.input"] = parser.get_message_b(copy = True)
+        environ["wsgi.input"] = parser.get_message_b(copy=True)
         environ["wsgi.errors"] = sys.stderr
         environ["wsgi.multithread"] = False
         environ["wsgi.multiprocess"] = False
@@ -159,7 +153,8 @@ class WSGIServer(http2.HTTP2Server):
         # in the standard specification
         for key, value in netius.legacy.iteritems(parser.headers):
             key = "HTTP_" + key.replace("-", "_").upper()
-            if isinstance(value, (list, tuple)): value = ";".join(value)
+            if isinstance(value, (list, tuple)):
+                value = ";".join(value)
             environ[key] = value
 
         # verifies if the connection already has an iterator associated with
@@ -167,7 +162,8 @@ class WSGIServer(http2.HTTP2Server):
         # request processing must be delayed for future processing, this is
         # typically associated with HTTP pipelining
         if hasattr(connection, "iterator") and connection.iterator:
-            if not hasattr(connection, "queue"): connection.queue = []
+            if not hasattr(connection, "queue"):
+                connection.queue = []
             connection.queue.append(environ)
             return
 
@@ -202,8 +198,10 @@ class WSGIServer(http2.HTTP2Server):
         # the queue structure that handles the queueing/pipelining of requests
         # if it does not or the queue is empty returns immediately, as there's
         # nothing currently pending to be done/processed
-        if not hasattr(connection, "queue"): return
-        if not connection.queue: return
+        if not hasattr(connection, "queue"):
+            return
+        if not connection.queue:
+            return
 
         # retrieves the current/first element in the connection queue to for
         # the processing and then runs the proper callback for the environ
@@ -233,25 +231,29 @@ class WSGIServer(http2.HTTP2Server):
         length = headers.get("Content-Length", -1)
         length = int(length)
         length = 0 if status_c in (204, 304) else length
-        if length == 0: connection.set_encoding(http.PLAIN_ENCODING)
+        if length == 0:
+            connection.set_encoding(http.PLAIN_ENCODING)
 
         # verifies if the length value of the message payload overflow
         # the currently defined limit, if that's the case the connection
         # is set as uncompressed to avoid unnecessary encoding that would
         # consume a lot of resources (mostly processor)
-        if length > self.compressed_limit: connection.set_uncompressed()
+        if length > self.compressed_limit:
+            connection.set_uncompressed()
 
         # tries to determine if the accept ranges value is set and if
         # that's the case forces the uncompressed encoding to avoid possible
         # range missmatch due to re-encoding of the content
         ranges = headers.get("Accept-Ranges", None)
-        if ranges == "bytes": connection.set_uncompressed()
+        if ranges == "bytes":
+            connection.set_uncompressed()
 
         # determines if the content range header is set, meaning that
         # a partial chunk value is being sent if that's the case the
         # uncompressed encoding is forced to avoid re-encoding issues
         content_range = headers.get("Content-Range", None)
-        if content_range: connection.set_uncompressed()
+        if content_range:
+            connection.set_uncompressed()
 
         # verifies if the current connection is using a chunked based
         # stream as this will affect some of the decisions that are
@@ -264,7 +266,8 @@ class WSGIServer(http2.HTTP2Server):
         # requires the content length to be defined or the target
         # encoding type to be chunked
         has_length = not length == -1
-        if not has_length: parser.keep_alive = is_chunked
+        if not has_length:
+            parser.keep_alive = is_chunked
 
         # applies the base (static) headers to the headers map and then
         # applies the parser based values to the headers map, these
@@ -279,10 +282,7 @@ class WSGIServer(http2.HTTP2Server):
         # should serialize the various headers and send them through the
         # current connection according to the currently associated protocol
         connection.send_header(
-            headers = headers,
-            version = version_s,
-            code = status_c,
-            code_s = status_m
+            headers=headers, version=version_s, code=status_c, code_s=status_m
         )
 
     def _send_part(self, connection):
@@ -301,12 +301,15 @@ class WSGIServer(http2.HTTP2Server):
         # case the stop iteration is received sets the is final flag
         # so that no more data is sent through the connection and
         # releases the iterator from the connection
-        try: data = next(iterator) if iterator else None
+        try:
+            data = next(iterator) if iterator else None
         except StopIteration as exception:
             # tries to extract possible data coming from the exception
             # return value and sets the is final flag otherwise
-            if exception.args: data = exception.args[0]
-            else: is_final = True
+            if exception.args:
+                data = exception.args[0]
+            else:
+                is_final = True
 
             # releases the iterator from the connection as it's no longer
             # considered to be valid for the current connection context
@@ -317,20 +320,20 @@ class WSGIServer(http2.HTTP2Server):
         # for the handling on the end of the iteration
         is_future = netius.is_future(data)
         if is_future:
+
             def on_partial(future, value):
-                if not value: return
-                if not self.is_main(): return self.delay_s(
-                    lambda: on_partial(future, value)
-                )
-                connection.send_part(value, final = False)
+                if not value:
+                    return
+                if not self.is_main():
+                    return self.delay_s(lambda: on_partial(future, value))
+                connection.send_part(value, final=False)
 
             def on_done(future):
                 # in case the current threads is not the main one (running using
                 # thread pool) delays the current callback to be called upon
                 # the next main event loop ticks
-                if not self.is_main(): return self.delay_s(
-                    lambda: on_done(future)
-                )
+                if not self.is_main():
+                    return self.delay_s(lambda: on_done(future))
 
                 # unsets the future from the connection as it has been
                 # completely processed, not going to be used anymore
@@ -353,10 +356,8 @@ class WSGIServer(http2.HTTP2Server):
                 # otherwise runs the send part operation on the next tick so
                 # that it gets handled as fast as possible, this should continue
                 # the iteration on the overall async generator
-                else: self.delay(
-                    lambda: self._send_part(connection),
-                    immediately = True
-                )
+                else:
+                    self.delay(lambda: self._send_part(connection), immediately=True)
 
             def on_ready():
                 return connection.wready
@@ -383,19 +384,18 @@ class WSGIServer(http2.HTTP2Server):
 
         # ensures that the provided data is a byte sequence as expected
         # by the underlying server infra-structure
-        if data: data = netius.legacy.bytes(data)
+        if data:
+            data = netius.legacy.bytes(data)
 
         # in case the final flag is set runs the flush operation in the
         # connection setting the proper callback method for it so that
         # the connection state is defined in the proper way (closed or
         # kept untouched) otherwise sends the retrieved data setting the
         # callback to the current method so that more that is sent
-        if is_final: connection.flush_s(callback = self._final)
-        else: connection.send_part(
-            data,
-            final = False,
-            callback = self._send_part
-        )
+        if is_final:
+            connection.flush_s(callback=self._final)
+        else:
+            connection.send_part(data, final=False, callback=self._send_part)
 
     def _final(self, connection):
         # retrieves the parser of the current connection and then determines
@@ -405,7 +405,9 @@ class WSGIServer(http2.HTTP2Server):
 
         # in case the connection is not meant to be kept alive must
         # must call the proper underlying close operation (expected)
-        if not keep_alive: self._close(connection); return
+        if not keep_alive:
+            self._close(connection)
+            return
 
         # the map of environment must be destroyed properly, avoiding
         # any possible memory leak for the current handling and then the
@@ -415,7 +417,7 @@ class WSGIServer(http2.HTTP2Server):
         self._next_queue(connection)
 
     def _close(self, connection):
-        connection.close(flush = True)
+        connection.close(flush=True)
 
     def _release(self, connection):
         self._release_future(connection)
@@ -427,7 +429,8 @@ class WSGIServer(http2.HTTP2Server):
         # verifies if there's a future associated/running under the
         # current connection, if that's not the case returns immediately
         future = hasattr(connection, "future") and connection.future
-        if not future: return
+        if not future:
+            return
 
         # runs the cancel operation on the future, note that this
         # operation is only performed in case the future is still
@@ -443,13 +446,15 @@ class WSGIServer(http2.HTTP2Server):
         # in the connection so that it may be close in case that's
         # required, this is mandatory to avoid any memory leak
         iterator = hasattr(connection, "iterator") and connection.iterator
-        if not iterator: return
+        if not iterator:
+            return
 
         # verifies if the close attributes is defined in the iterator
         # and if that's the case calls the close method in order to
         # avoid any memory leak caused by the generator
         has_close = hasattr(iterator, "close")
-        if has_close: iterator.close()
+        if has_close:
+            iterator.close()
 
         # unsets the iterator attribute in the connection object so that
         # it may no longer be used by any chunk of logic code
@@ -459,7 +464,8 @@ class WSGIServer(http2.HTTP2Server):
         # tries to retrieve the map of environment for the current
         # connection and in case it does not exists returns immediately
         environ = hasattr(connection, "environ") and connection.environ
-        if not environ: return
+        if not environ:
+            return
 
         # retrieves the input stream (buffer) and closes it as there's
         # not going to be any further operation in it (avoids leak)
@@ -482,7 +488,8 @@ class WSGIServer(http2.HTTP2Server):
         # connection in case it does not exist returns immediately as
         # there's no queue element to be release/cleared
         queue = hasattr(connection, "queue") and connection.queue
-        if not queue: return
+        if not queue:
+            return
 
         # iterates over the complete set of queue elements (environ
         # based maps) to clear their elements properly
@@ -523,6 +530,7 @@ class WSGIServer(http2.HTTP2Server):
         value = netius.legacy.str(value)
         return value
 
+
 if __name__ == "__main__":
     import logging
 
@@ -533,12 +541,12 @@ if __name__ == "__main__":
         headers = (
             ("Content-Length", content_l),
             ("Content-type", "text/plain"),
-            ("Connection", "keep-alive")
+            ("Connection", "keep-alive"),
         )
         start_response(status, headers)
         yield contents
 
-    server = WSGIServer(app = app, level = logging.INFO)
-    server.serve(env = True)
+    server = WSGIServer(app=app, level=logging.INFO)
+    server.serve(env=True)
 else:
     __path__ = []

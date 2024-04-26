@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -43,26 +34,30 @@ import netius
 
 from netius.servers import EchoProtocol, EchoServer
 
+
 async def main_asyncio():
     # retrieves a reference to the event loop as we plan to use
     # low-level APIs, this should return the default event loop
     import asyncio
+
     loop = asyncio.get_running_loop()
     server = await loop.create_server(lambda: EchoProtocol(), "127.0.0.1", 8888)
     async with server:
         await server.serve_forever()
 
+
 def run_native():
-    loop, _protocol = EchoServer.serve_s(host = "127.0.0.1", port = 8888)
+    loop, _protocol = EchoServer.serve_s(host="127.0.0.1", port=8888)
     loop.run_forever()
     loop.close()
+
 
 def run_asyncio():
     netius.run(main_asyncio())
 
+
 if __name__ == "__main__":
-    if os.environ.get("ASYNCIO", "0") == "1" or\
-        os.environ.get("COMPAT", "0") == "1":
+    if os.environ.get("ASYNCIO", "0") == "1" or os.environ.get("COMPAT", "0") == "1":
         run_asyncio()
     else:
         run_native()

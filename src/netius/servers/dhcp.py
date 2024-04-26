@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -41,6 +32,7 @@ import re
 import struct
 
 import netius.common
+
 
 class DHCPRequest(object):
 
@@ -55,7 +47,8 @@ class DHCPRequest(object):
 
     @classmethod
     def generate(cls):
-        if cls.options_m: return
+        if cls.options_m:
+            return
         cls.options_m = (
             cls._option_subnet,
             cls._option_router,
@@ -74,7 +67,7 @@ class DHCPRequest(object):
             cls._option_renewal,
             cls._option_rebind,
             cls._option_proxy,
-            cls._option_end
+            cls._option_end,
         )
         cls.options_l = len(cls.options_m)
 
@@ -140,12 +133,13 @@ class DHCPRequest(object):
         index = 0
         while True:
             byte = self.options[index]
-            if netius.legacy.ord(byte) == 0xff: break
+            if netius.legacy.ord(byte) == 0xFF:
+                break
 
             type = byte
             type_i = netius.legacy.ord(type)
             length = netius.legacy.ord(self.options[index + 1])
-            payload = self.options[index + 2:index + length + 2]
+            payload = self.options[index + 2 : index + length + 2]
 
             self.options_p[type_i] = payload
 
@@ -153,14 +147,16 @@ class DHCPRequest(object):
 
     def get_requested(self):
         payload = self.options_p.get(50, None)
-        if not payload: return "0.0.0.0"
-        value, = struct.unpack("!I", payload)
+        if not payload:
+            return "0.0.0.0"
+        (value,) = struct.unpack("!I", payload)
         requested = netius.common.addr_to_ip4(value)
         return requested
 
     def get_type(self):
         payload = self.options_p.get(53, None)
-        if not payload: return 0x00
+        if not payload:
+            return 0x00
         type = netius.legacy.ord(payload)
         return type
 
@@ -177,7 +173,7 @@ class DHCPRequest(object):
         mac_addr = ":".join(addr_l)
         return mac_addr
 
-    def response(self, yiaddr, options = {}):
+    def response(self, yiaddr, options={}):
         cls = self.__class__
 
         host = netius.common.host()
@@ -226,8 +222,10 @@ class DHCPRequest(object):
 
         for option, values in netius.legacy.iteritems(options):
             method = cls.options_m[option - 1]
-            if values: option_s = method(**values)
-            else: option_s = method()
+            if values:
+                option_s = method(**values)
+            else:
+                option_s = method()
             buffer.append(option_s)
 
         buffer.append(end)
@@ -252,47 +250,47 @@ class DHCPRequest(object):
         return b"".join(result)
 
     @classmethod
-    def _option_subnet(cls, subnet = "255.255.255.0"):
+    def _option_subnet(cls, subnet="255.255.255.0"):
         subnet_a = netius.common.ip4_to_addr(subnet)
         subnet_s = struct.pack("!I", subnet_a)
         payload = cls._str(subnet_s)
         return b"\x01" + payload
 
     @classmethod
-    def _option_router(cls, routers = ["192.168.0.1"]):
+    def _option_router(cls, routers=["192.168.0.1"]):
         routers_a = [netius.common.ip4_to_addr(router) for router in routers]
         routers_s = cls._pack_m(routers_a, "!I")
         payload = cls._str(routers_s)
         return b"\x03" + payload
 
     @classmethod
-    def _option_dns(cls, servers = ["192.168.0.1", "192.168.0.2"]):
+    def _option_dns(cls, servers=["192.168.0.1", "192.168.0.2"]):
         servers_a = [netius.common.ip4_to_addr(server) for server in servers]
         servers_s = cls._pack_m(servers_a, "!I")
         payload = cls._str(servers_s)
         return b"\x06" + payload
 
     @classmethod
-    def _option_name(cls, name = "server.com"):
+    def _option_name(cls, name="server.com"):
         payload = cls._str(name)
         return b"\x0f" + payload
 
     @classmethod
-    def _option_broadcast(cls, broadcast = "192.168.0.255"):
+    def _option_broadcast(cls, broadcast="192.168.0.255"):
         subnet_a = netius.common.ip4_to_addr(broadcast)
         subnet_s = struct.pack("!I", subnet_a)
         payload = cls._str(subnet_s)
         return b"\x1c" + payload
 
     @classmethod
-    def _option_requested(cls, ip = "192.168.0.11"):
+    def _option_requested(cls, ip="192.168.0.11"):
         ip_a = netius.common.ip4_to_addr(ip)
         ip_s = struct.pack("!I", ip_a)
         payload = cls._str(ip_s)
         return b"\x32" + payload
 
     @classmethod
-    def _option_lease(cls, time = 3600):
+    def _option_lease(cls, time=3600):
         time_s = struct.pack("!I", time)
         payload = cls._str(time_s)
         return b"\x33" + payload
@@ -322,26 +320,26 @@ class DHCPRequest(object):
         return b"\x35\x01\x06"
 
     @classmethod
-    def _option_identifier(cls, identifier = "192.168.0.1"):
+    def _option_identifier(cls, identifier="192.168.0.1"):
         subnet_a = netius.common.ip4_to_addr(identifier)
         subnet_s = struct.pack("!I", subnet_a)
         payload = cls._str(subnet_s)
         return b"\x36" + payload
 
     @classmethod
-    def _option_renewal(cls, time = 3600):
+    def _option_renewal(cls, time=3600):
         time_s = struct.pack("!I", time)
         payload = cls._str(time_s)
         return b"\x3a" + payload
 
     @classmethod
-    def _option_rebind(cls, time = 3600):
+    def _option_rebind(cls, time=3600):
         time_s = struct.pack("!I", time)
         payload = cls._str(time_s)
         return b"\x3b" + payload
 
     @classmethod
-    def _option_proxy(cls, url = "http://localhost/proxy.pac"):
+    def _option_proxy(cls, url="http://localhost/proxy.pac"):
         length = len(url)
         length_o = netius.legacy.chr(length)
         return b"\xfc" + length_o + netius.legacy.bytes(url)
@@ -350,10 +348,11 @@ class DHCPRequest(object):
     def _option_end(cls):
         return b"\xff"
 
+
 class DHCPServer(netius.DatagramServer):
 
-    def serve(self, port = 67, type = netius.UDP_TYPE, *args, **kwargs):
-        netius.DatagramServer.serve(self, port = port, type = type, *args, **kwargs)
+    def serve(self, port=67, type=netius.UDP_TYPE, *args, **kwargs):
+        netius.DatagramServer.serve(self, port=port, type=type, *args, **kwargs)
 
     def on_data(self, address, data):
         netius.DatagramServer.on_data(self, address, data)
@@ -370,9 +369,8 @@ class DHCPServer(netius.DatagramServer):
 
         self.debug("Received %s message from '%s'" % (type_s, mac))
 
-        if not type in (0x01, 0x03): raise netius.NetiusError(
-            "Invalid operation type '%d'", type
-        )
+        if not type in (0x01, 0x03):
+            raise netius.NetiusError("Invalid operation type '%d'", type)
 
         type_r = self.get_type(request)
         options = self.get_options(request)
@@ -384,7 +382,7 @@ class DHCPServer(netius.DatagramServer):
 
         self.debug("%s address '%s' ..." % (verb, yiaddr))
 
-        response = request.response(yiaddr, options = options)
+        response = request.response(yiaddr, options=options)
         self.send_dhcp(response)
 
     def get_verb(self, type_r):
@@ -403,9 +401,11 @@ class DHCPServer(netius.DatagramServer):
     def get_yiaddr(self, request):
         raise netius.NetiusError("Not implemented")
 
+
 if __name__ == "__main__":
     import logging
-    server = DHCPServer(level = logging.INFO)
-    server.serve(env = True)
+
+    server = DHCPServer(level=logging.INFO)
+    server.serve(env=True)
 else:
     __path__ = []

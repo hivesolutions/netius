@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -48,6 +39,7 @@ DEFAULT_NAME = "default"
 """ The token name to be used as the default value when trying
 to resolve host based map information, should not be changed
 as it represents the default way of setting values """
+
 
 class ReverseProxyServer(netius.servers.ProxyServer):
     """
@@ -67,93 +59,107 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
     def __init__(
         self,
-        config = "proxy.json",
-        regex = {},
-        hosts = {},
-        alias = {},
-        auth = {},
-        auth_regex = {},
-        redirect = {},
-        redirect_regex = {},
-        error_urls = {},
-        forward = None,
-        strategy = "robin",
-        reuse = True,
-        sts = 0,
-        resolve = True,
-        resolve_t = 120.0,
-        host_f = False,
-        echo = False,
+        config="proxy.json",
+        regex={},
+        hosts={},
+        alias={},
+        auth={},
+        auth_regex={},
+        redirect={},
+        redirect_regex={},
+        error_urls={},
+        forward=None,
+        strategy="robin",
+        reuse=True,
+        sts=0,
+        resolve=True,
+        resolve_t=120.0,
+        host_f=False,
+        echo=False,
         *args,
         **kwargs
     ):
         netius.servers.ProxyServer.__init__(self, *args, **kwargs)
-        if isinstance(regex, dict): regex = netius.legacy.items(regex)
-        if isinstance(auth_regex, dict): auth_regex = netius.legacy.items(auth_regex)
-        if isinstance(redirect_regex, dict): redirect_regex = netius.legacy.items(redirect_regex)
-        if not isinstance(hosts, dict): hosts = dict(hosts)
+        if isinstance(regex, dict):
+            regex = netius.legacy.items(regex)
+        if isinstance(auth_regex, dict):
+            auth_regex = netius.legacy.items(auth_regex)
+        if isinstance(redirect_regex, dict):
+            redirect_regex = netius.legacy.items(redirect_regex)
+        if not isinstance(hosts, dict):
+            hosts = dict(hosts)
         self.load_config(
-            path = config,
-            regex = regex,
-            hosts = hosts,
-            alias = alias,
-            auth = auth,
-            auth_regex = auth_regex,
-            redirect = redirect,
-            redirect_regex = redirect_regex,
-            error_urls = error_urls,
-            forward = forward,
-            strategy = strategy,
-            reuse = reuse,
-            sts = sts,
-            resolve = resolve,
-            resolve_t = resolve_t,
-            host_f = host_f,
-            echo = echo,
-            robin = dict(),
-            smart = netius.common.PriorityDict()
+            path=config,
+            regex=regex,
+            hosts=hosts,
+            alias=alias,
+            auth=auth,
+            auth_regex=auth_regex,
+            redirect=redirect,
+            redirect_regex=redirect_regex,
+            error_urls=error_urls,
+            forward=forward,
+            strategy=strategy,
+            reuse=reuse,
+            sts=sts,
+            resolve=resolve,
+            resolve_t=resolve_t,
+            host_f=host_f,
+            echo=echo,
+            robin=dict(),
+            smart=netius.common.PriorityDict(),
         )
         self.hosts_o = None
         self.busy_conn = 0
         self._set_strategy()
 
-    def info_dict(self, full = False):
-        info = netius.servers.ProxyServer.info_dict(self, full = full)
-        info.update(
-            reuse = self.reuse,
-            strategy = self.strategy,
-            busy_conn = self.busy_conn
-        )
+    def info_dict(self, full=False):
+        info = netius.servers.ProxyServer.info_dict(self, full=full)
+        info.update(reuse=self.reuse, strategy=self.strategy, busy_conn=self.busy_conn)
         return info
 
     def proxy_r_dict(self):
-        return dict(
-            hosts = self.hosts,
-            hosts_o = self.hosts_o
-        )
+        return dict(hosts=self.hosts, hosts_o=self.hosts_o)
 
     def on_diag(self):
         self.diag_app.add_route("GET", "/proxy_r", self.proxy_r_dict)
 
     def on_start(self):
         netius.servers.ProxyServer.on_start(self)
-        if self.resolve: self.dns_start(timeout = self.resolve_t)
+        if self.resolve:
+            self.dns_start(timeout=self.resolve_t)
 
     def on_serve(self):
         netius.servers.ProxyServer.on_serve(self)
-        if self.env: self.sts = self.get_env("STS", self.sts, cast = int)
-        if self.env: self.echo = self.get_env("ECHO", self.echo, cast = bool)
-        if self.env: self.resolve = self.get_env("RESOLVE", self.resolve, cast = bool)
-        if self.env: self.resolve_t = self.get_env("RESOLVE_TIMEOUT", self.resolve_t, cast = float)
-        if self.env: self.host_f = self.get_env("HOST_FORWARD", self.host_f, cast = float)
-        if self.env: self.reuse = self.get_env("REUSE", self.reuse, cast = bool)
-        if self.env: self.strategy = self.get_env("STRATEGY", self.strategy)
-        if self.env: self.x_forwarded_port = self.get_env("X_FORWARDED_PORT", None)
-        if self.env: self.x_forwarded_proto = self.get_env("X_FORWARDED_PROTO", None)
-        if self.sts: self.info("Strict transport security set to %d seconds" % self.sts)
-        if self.resolve: self.info("DNS based resolution enabled in proxy with %.2fs timeout" % self.resolve_t)
-        if self.strategy: self.info("Using '%s' as load balancing strategy" % self.strategy)
-        if self.echo: self._echo()
+        if self.env:
+            self.sts = self.get_env("STS", self.sts, cast=int)
+        if self.env:
+            self.echo = self.get_env("ECHO", self.echo, cast=bool)
+        if self.env:
+            self.resolve = self.get_env("RESOLVE", self.resolve, cast=bool)
+        if self.env:
+            self.resolve_t = self.get_env("RESOLVE_TIMEOUT", self.resolve_t, cast=float)
+        if self.env:
+            self.host_f = self.get_env("HOST_FORWARD", self.host_f, cast=float)
+        if self.env:
+            self.reuse = self.get_env("REUSE", self.reuse, cast=bool)
+        if self.env:
+            self.strategy = self.get_env("STRATEGY", self.strategy)
+        if self.env:
+            self.x_forwarded_port = self.get_env("X_FORWARDED_PORT", None)
+        if self.env:
+            self.x_forwarded_proto = self.get_env("X_FORWARDED_PROTO", None)
+        if self.sts:
+            self.info("Strict transport security set to %d seconds" % self.sts)
+        if self.resolve:
+            self.info(
+                "DNS based resolution enabled in proxy with %.2fs timeout"
+                % self.resolve_t
+            )
+        if self.strategy:
+            self.info("Using '%s' as load balancing strategy" % self.strategy)
+        if self.echo:
+            self._echo()
         self._set_strategy()
 
     def on_headers(self, connection, parser):
@@ -194,13 +200,15 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # the port of the server bind port and the host based port and falling
         # back to the forwarded port in case the  "origin" is considered "trustable"
         port = port_s or str(self.port)
-        if self.trust_origin: port = headers.get("x-forwarded-port", port)
+        if self.trust_origin:
+            port = headers.get("x-forwarded-port", port)
 
         # tries to discover the protocol representation of the current
         # connections, note that the forwarded for header is only used in case
         # the current "origin" is considered "trustable"
         protocol = "https" if is_secure else "http"
-        if self.trust_origin: protocol = headers.get("x-forwarded-proto", protocol)
+        if self.trust_origin:
+            protocol = headers.get("x-forwarded-proto", protocol)
 
         # constructs the URL that is going to be used by the rule engine and any
         # other internal resolution process as the canonical URL of the request
@@ -213,12 +221,15 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         redirect = self.redirect.get(host, redirect)
         redirect = self.redirect.get(host_s, redirect)
         redirect = self.redirect.get(host_o, redirect)
-        redirect, _match = self._resolve_regex(url, self.redirect_regex, default = redirect)
+        redirect, _match = self._resolve_regex(
+            url, self.redirect_regex, default=redirect
+        )
         if redirect:
             # verifies if the redirect value is a sequence and if that's
             # not the case converts the value into a tuple value
             is_sequence = isinstance(redirect, (list, tuple))
-            if not is_sequence: redirect = (redirect,)
+            if not is_sequence:
+                redirect = (redirect,)
 
             # converts the possible tuple value into a list so that it
             # may be changed (mutable sequence is required)
@@ -226,8 +237,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
             # adds the proper trail values to the redirect sequence so that
             # both the protocol and the path are ensured to exist
-            if len(redirect) == 1: redirect += [protocol, path]
-            if len(redirect) == 2: redirect += [path]
+            if len(redirect) == 1:
+                redirect += [protocol, path]
+            if len(redirect) == 2:
+                redirect += [path]
 
             # unpacks the redirect sequence and builds the new location
             # value taking into account the proper values
@@ -237,8 +250,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             # verifies if the current request already matched the redirection
             # rule and if that't the case ignores the, note that the host value
             # is verified against all the possible combinations
-            is_match = host_o == redirect_t or host_s == redirect_t or\
-                host == redirect_t
+            is_match = (
+                host_o == redirect_t or host_s == redirect_t or host == redirect_t
+            )
             is_match &= protocol == protocol_t
             is_match &= path == path_t
             redirect = not is_match
@@ -248,13 +262,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             # if the redirection is really required
             if redirect:
                 return connection.send_response(
-                    headers = dict(
-                        location = location
-                    ),
-                    version = version_s,
-                    code = 303,
-                    code_s = "See Other",
-                    apply = True
+                    headers=dict(location=location),
+                    version=version_s,
+                    code=303,
+                    code_s="See Other",
+                    apply=True,
                 )
 
         # tries to extract the various attributes of the current connection
@@ -272,7 +284,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # in order to obtain the possible prefix value for URL reconstruction,
         # a state value is also retrieved, this value will be used latter for
         # the acquiring and releasing parts of the balancing strategy operation
-        if not self.reuse or not reusable: prefix, state = self.rules(url, parser)
+        if not self.reuse or not reusable:
+            prefix, state = self.rules(url, parser)
 
         # in case no prefix is defined at this stage there's no matching
         # against the currently defined rules and so an error must be raised
@@ -280,15 +293,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if not prefix:
             self.debug("No proxy endpoint found")
             return connection.send_response(
-                data = cls.build_text("No proxy endpoint found"),
-                headers = dict(
-                    connection = "close"
-                ),
-                version = version_s,
-                code = 404,
-                code_s = "Not Found",
-                apply = True,
-                callback = self._prx_close
+                data=cls.build_text("No proxy endpoint found"),
+                headers=dict(connection="close"),
+                version=version_s,
+                code=404,
+                code_s="Not Found",
+                apply=True,
+                callback=self._prx_close,
             )
 
         # verifies if the current host requires some kind of special authorization
@@ -297,7 +308,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         auth = self.auth.get(host, auth)
         auth = self.auth.get(host_s, auth)
         auth = self.auth.get(host_o, auth)
-        auth, _match = self._resolve_regex(url, self.auth_regex, default = auth)
+        auth, _match = self._resolve_regex(url, self.auth_regex, default=auth)
         if auth:
             # determines if the provided authentication method is a sequence
             # and if that't not the case casts it as one (iterative validation)
@@ -310,8 +321,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             # situation/request, note that this is considered an or operation
             # and should be used carefully to avoid unexpected behavior
             for auth in auths:
-                result = self.authorize(connection, parser, auth = auth)
-                if result: break
+                result = self.authorize(connection, parser, auth=auth)
+                if result:
+                    break
 
             # in case the result of the authentication chain is not valid (none
             # of the authentication methods was successful) sends the invalid
@@ -319,16 +331,16 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             if not result:
                 self.debug("Not authorized")
                 return connection.send_response(
-                    data = cls.build_text("Not authorized"),
-                    headers = {
-                        "connection" : "close",
-                        "wWW-authenticate" : "Basic realm=\"default\""
+                    data=cls.build_text("Not authorized"),
+                    headers={
+                        "connection": "close",
+                        "wWW-authenticate": 'Basic realm="default"',
                     },
-                    version = version_s,
-                    code = 401,
-                    code_s = "Not Authorized",
-                    apply = True,
-                    callback = self._prx_close
+                    version=version_s,
+                    code=401,
+                    code_s="Not Authorized",
+                    apply=True,
+                    callback=self._prx_close,
                 )
 
         # tries to use all the possible strategies to retrieve the best possible
@@ -362,14 +374,17 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if self.host_f:
             target = self.hosts.get(host_s, None)
             target = self.hosts.get(host, target)
-            if host_s in self.hosts_o: target = self.hosts_o[host_s][0]
-            if host in self.hosts_o: target = self.hosts_o[host][0]
+            if host_s in self.hosts_o:
+                target = self.hosts_o[host_s][0]
+            if host in self.hosts_o:
+                target = self.hosts_o[host][0]
             if target and len(target) == 1:
                 domain = netius.legacy.urlparse(target[0]).netloc
 
         # in case the domain value was resolved then it's set in the host
         # header to simulate proper back-end HTTP connection
-        if domain: headers["host"] = domain
+        if domain:
+            headers["host"] = domain
 
         # updates the various headers that are related with the reverse
         # proxy operation this is required so that the request gets
@@ -378,8 +393,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         headers["x-real-ip"] = address
         headers["x-client-ip"] = address
         headers["x-forwarded-for"] = address
-        headers["x-forwarded-proto"] = self.x_forwarded_proto if self.x_forwarded_proto else protocol
-        headers["x-forwarded-port"] = self.x_forwarded_port if self.x_forwarded_port else port
+        headers["x-forwarded-proto"] = (
+            self.x_forwarded_proto if self.x_forwarded_proto else protocol
+        )
+        headers["x-forwarded-port"] = (
+            self.x_forwarded_port if self.x_forwarded_port else port
+        )
         headers["x-forwarded-host"] = host_o
 
         # verifies if the current connection already contains a valid
@@ -389,14 +408,18 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
         proxy_c = proxy_c or None
         connection.proxy_c = None
-        if proxy_c in self.conn_map: del self.conn_map[proxy_c]
+        if proxy_c in self.conn_map:
+            del self.conn_map[proxy_c]
 
         # tries to determine the transfer encoding of the received request
         # and by using that determines the proper encoding to be applied
         encoding = headers.pop("transfer-encoding", None)
         is_chunked = encoding == "chunked"
-        encoding = netius.common.CHUNKED_ENCODING if is_chunked else\
-            netius.common.PLAIN_ENCODING
+        encoding = (
+            netius.common.CHUNKED_ENCODING
+            if is_chunked
+            else netius.common.PLAIN_ENCODING
+        )
 
         # calls the proper (HTTP) method in the client this should acquire
         # a new connection and start the process of sending the request
@@ -404,11 +427,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         _connection = self.http_client.method(
             method,
             url,
-            headers = headers,
-            encoding = encoding,
-            encodings = None,
-            safe = True,
-            connection = proxy_c
+            headers=headers,
+            encoding=encoding,
+            encodings=None,
+            safe=True,
+            connection=proxy_c,
         )
 
         # sets the state attribute in the connection so that it's possible
@@ -445,11 +468,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
     def rules(self, url, parser):
         resolved = self.rules_regex(url, parser)
-        if resolved[0]: return resolved
+        if resolved[0]:
+            return resolved
         resolved = self.rules_host(url, parser)
-        if resolved[0]: return resolved
+        if resolved[0]:
+            return resolved
         resolved = self.rules_forward(url, parser)
-        if resolved[0]: return resolved
+        if resolved[0]:
+            return resolved
         return None, None
 
     def rules_regex(self, url, parser):
@@ -462,7 +488,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # sequence of regex values, this is an iterative process in case
         # there's no match the default value is returned immediately
         _prefix, match = self._resolve_regex(url, self.regex)
-        if not _prefix: return prefix, state
+        if not _prefix:
+            return prefix, state
 
         # prints a debug message about the matching that has just occurred
         # so that proper debugging may take place if required
@@ -472,7 +499,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # proper final prefix and its associated state
         _prefix, _state = self.balancer(_prefix)
         groups = match.groups()
-        if groups: _prefix = _prefix.format(*groups)
+        if groups:
+            _prefix = _prefix.format(*groups)
         prefix = _prefix
         state = _state
 
@@ -523,7 +551,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
     def balancer(self, values):
         is_sequence = isinstance(values, (list, tuple))
-        if not is_sequence: return values, None
+        if not is_sequence:
+            return values, None
         return self.balancer_m(values)
 
     def balancer_robin(self, values):
@@ -537,7 +566,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         queue = self.smart.get(values, None)
         if not queue:
             queue = netius.common.PriorityDict()
-            for value in values: queue[value] = [0, 0]
+            for value in values:
+                queue[value] = [0, 0]
             self.smart[values] = queue
 
         prefix = queue.smallest()
@@ -551,7 +581,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         pass
 
     def acquirer_smart(self, state):
-        if not state: return
+        if not state:
+            return
         prefix, queue = state
         sorter = queue[prefix]
         sorter[0] += 1
@@ -564,14 +595,16 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         pass
 
     def releaser_smart(self, state):
-        if not state: return
+        if not state:
+            return
         prefix, queue = state
         sorter = queue[prefix]
         sorter[0] -= 1
-        if sorter[0] == 0: sorter[1] = time.time() * -1
+        if sorter[0] == 0:
+            sorter[1] = time.time() * -1
         queue[prefix] = sorter
 
-    def dns_start(self, timeout = 120.0):
+    def dns_start(self, timeout=120.0):
         # creates the dictionary that is going to hold the original
         # values for the hosts, this is going to be required for later
         # computation of the resolved values
@@ -582,16 +615,17 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # this is considered the bootstrap of the hosts
         for host, values in netius.legacy.items(self.hosts):
             is_sequence = isinstance(values, (list, tuple))
-            if not is_sequence: values = (values,)
+            if not is_sequence:
+                values = (values,)
             resolved = [[value] for value in values]
             self.hosts[host] = tuple(values)
             self.hosts_o[host] = (values, resolved)
 
         # runs the initial tick for the DNS execution, this should start
         # the DNS resolution process
-        self.dns_tick(timeout = timeout)
+        self.dns_tick(timeout=timeout)
 
-    def dns_tick(self, timeout = 120.0):
+    def dns_tick(self, timeout=120.0):
         # iterates over the complete set of original hosts to run the tick
         # operation, this should perform DNS queries for all values using
         # the default netius DNS client
@@ -614,46 +648,33 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 # validates that the parsed hostname is valid and ready
                 # to be queried as DNS value, if that's not the case
                 # continues the loop skipping current iteration
-                if not hostname: continue
+                if not hostname:
+                    continue
 
                 # creates the callback function that is going to be called
                 # after the DNS resolution for proper hosts setting
                 callback = self.dns_callback(
-                    host,
-                    value,
-                    parsed,
-                    index = index,
-                    resolved = resolved
+                    host, value, parsed, index=index, resolved=resolved
                 )
 
                 # runs the DNS query execution for the hostname associated
                 # with the current load balancing URL, the callback of this
                 # call should handle the addition of the value to hosts
-                netius.clients.DNSClient.query_s(
-                    hostname,
-                    type = "a",
-                    callback = callback
-                )
+                netius.clients.DNSClient.query_s(hostname, type="a", callback=callback)
 
         # verifies if the requested timeout is zero and if that's the
         # case only one execution of the DNS tick is pretended, returns
         # the control flow back to caller immediately
-        if timeout == 0: return
+        if timeout == 0:
+            return
 
         # schedules a delayed execution taking into account the timeout
         # that has been provided, this is going to update the various
         # servers that are defined for the registered domains
-        tick = lambda: self.dns_tick(timeout = timeout)
-        self.delay(tick, timeout = timeout)
+        tick = lambda: self.dns_tick(timeout=timeout)
+        self.delay(tick, timeout=timeout)
 
-    def dns_callback(
-        self,
-        host,
-        hostname,
-        parsed,
-        index = 0,
-        resolved = []
-    ):
+    def dns_callback(self, host, hostname, parsed, index=0, resolved=[]):
         # constructs both the port string based value and extracts
         # the path of the base URL that gave origin to this resolution
         port_s = ":" + str(parsed.port) if parsed.port else ""
@@ -662,8 +683,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         def callback(response):
             # in case there's no valid DNS response there's nothing to be
             # done, control flow is returned immediately
-            if not response: return
-            if not response.answers: return
+            if not response:
+                return
+            if not response.answers:
+                return
 
             # creates the list that is going to be used t store the complete
             # set of resolved URL for the current host value in resolution
@@ -676,7 +699,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             for answer in response.answers:
                 type_s = answer[1]
                 address = answer[4]
-                if not type_s in ("A", "AAAA"): continue
+                if not type_s in ("A", "AAAA"):
+                    continue
                 url = "%s://%s%s%s" % (parsed.scheme, address, port_s, path)
                 target.append(url)
 
@@ -696,156 +720,156 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         busy = _connection.busy if hasattr(_connection, "busy") else 0
         state = _connection.state if hasattr(_connection, "state") else None
         error_url = _connection.state if hasattr(_connection, "error_url") else None
-        if busy: self.busy_conn -= 1; _connection.busy -= 1
-        if state: self.releaser(state); _connection.state = None
-        if error_url: _connection.error_url = None
+        if busy:
+            self.busy_conn -= 1
+            _connection.busy -= 1
+        if state:
+            self.releaser(state)
+            _connection.state = None
+        if error_url:
+            _connection.error_url = None
         netius.servers.ProxyServer._on_prx_message(self, client, parser, message)
 
     def _on_prx_close(self, client, _connection):
         busy = _connection.busy if hasattr(_connection, "busy") else 0
         state = _connection.state if hasattr(_connection, "state") else None
         error_url = _connection.state if hasattr(_connection, "error_url") else None
-        if busy: self.busy_conn -= busy; _connection.busy -= busy
-        if state: self.releaser(state); _connection.state = None
-        if error_url: _connection.error_url = None
+        if busy:
+            self.busy_conn -= busy
+            _connection.busy -= busy
+        if state:
+            self.releaser(state)
+            _connection.state = None
+        if error_url:
+            _connection.error_url = None
         netius.servers.ProxyServer._on_prx_close(self, client, _connection)
 
     def _apply_all(
-        self,
-        parser,
-        connection,
-        headers,
-        upper = True,
-        normalize = False,
-        replace = False
+        self, parser, connection, headers, upper=True, normalize=False, replace=False
     ):
         netius.servers.ProxyServer._apply_all(
             self,
             parser,
             connection,
             headers,
-            upper = upper,
-            normalize = normalize,
-            replace = replace
+            upper=upper,
+            normalize=normalize,
+            replace=replace,
         )
 
         # in case a strict transport security value (number) is defined it
         # is going to be used as the max age value to be applied for such
         # behavior, note that this is considered dangerous at it may corrupt
         # the serving of assets through non secure (no SSL) connections
-        if self.sts: headers["Strict-Transport-Security"] = "max-age=%d" % self.sts
+        if self.sts:
+            headers["Strict-Transport-Security"] = "max-age=%d" % self.sts
 
-    def _apply_headers(self, parser, connection, parser_prx, headers, upper = True):
+    def _apply_headers(self, parser, connection, parser_prx, headers, upper=True):
         netius.servers.ProxyServer._apply_headers(
-            self,
-            parser,
-            connection,
-            parser_prx,
-            headers,
-            upper = upper
+            self, parser, connection, parser_prx, headers, upper=upper
         )
 
         # in case a strict transport security value (number) is defined it
         # is going to be used as the max age value to be applied for such
         # behavior, note that this is considered dangerous at it may corrupt
         # the serving of assets through non secure (no SSL) connections
-        if self.sts: headers["Strict-Transport-Security"] = "max-age=%d" % self.sts
+        if self.sts:
+            headers["Strict-Transport-Security"] = "max-age=%d" % self.sts
 
         # in case the parser has determined that the current connection is
         # meant to be kept alive the connection header is forced to be keep
         # alive this avoids issues where in HTTP 1.1 the connection header
         # is omitted and an ambiguous situation may be created raising the
         # level of incompatibility with user agents
-        if parser_prx.keep_alive: parser_prx.headers["Connection"] = "keep-alive"
+        if parser_prx.keep_alive:
+            parser_prx.headers["Connection"] = "keep-alive"
 
     def _set_strategy(self):
         self.balancer_m = getattr(self, "balancer_" + self.strategy)
         self.acquirer_m = getattr(self, "acquirer_" + self.strategy)
         self.releaser_m = getattr(self, "releaser_" + self.strategy)
 
-    def _resolve_regex(self, value, regexes, default = None):
+    def _resolve_regex(self, value, regexes, default=None):
         for regex, result in regexes:
             match = regex.match(value)
-            if not match: continue
+            if not match:
+                continue
             return result, match
         return default, None
 
-    def _echo(self, sort = True):
-        self._echo_regex(sort = sort)
-        self._echo_hosts(sort = sort)
-        self._echo_alias(sort = sort)
-        self._echo_redirect(sort = sort)
-        self._echo_error_urls(sort = sort)
+    def _echo(self, sort=True):
+        self._echo_regex(sort=sort)
+        self._echo_hosts(sort=sort)
+        self._echo_alias(sort=sort)
+        self._echo_redirect(sort=sort)
+        self._echo_error_urls(sort=sort)
 
-    def _echo_regex(self, sort = True):
+    def _echo_regex(self, sort=True):
         self.info("Regex registration information")
-        for key, value in self.regex: self.info("%s => %s" % (key, value))
+        for key, value in self.regex:
+            self.info("%s => %s" % (key, value))
 
-    def _echo_hosts(self, sort = True):
+    def _echo_hosts(self, sort=True):
         keys = netius.legacy.keys(self.hosts)
-        if sort: keys.sort()
+        if sort:
+            keys.sort()
         self.info("Host registration information")
-        for key in keys: self.info("%s => %s" % (key, self.hosts[key]))
+        for key in keys:
+            self.info("%s => %s" % (key, self.hosts[key]))
 
-    def _echo_alias(self, sort = True):
+    def _echo_alias(self, sort=True):
         keys = netius.legacy.keys(self.alias)
-        if sort: keys.sort()
+        if sort:
+            keys.sort()
         self.info("Alias registration information")
-        for key in keys: self.info("%s => %s" % (key, self.alias[key]))
+        for key in keys:
+            self.info("%s => %s" % (key, self.alias[key]))
 
-    def _echo_redirect(self, sort = True):
+    def _echo_redirect(self, sort=True):
         keys = netius.legacy.keys(self.redirect)
-        if sort: keys.sort()
+        if sort:
+            keys.sort()
         self.info("Redirect registration information")
-        for key in keys: self.info("%s => %s" % (key, self.redirect[key]))
+        for key in keys:
+            self.info("%s => %s" % (key, self.redirect[key]))
 
-    def _echo_error_urls(self, sort = True):
+    def _echo_error_urls(self, sort=True):
         keys = netius.legacy.keys(self.error_urls)
-        if sort: keys.sort()
+        if sort:
+            keys.sort()
         self.info("Error URLs registration information")
-        for key in keys: self.info("%s => %s" % (key, self.error_urls[key]))
+        for key in keys:
+            self.info("%s => %s" % (key, self.error_urls[key]))
+
 
 if __name__ == "__main__":
     import logging
+
     regex = (
         (re.compile(r"https://host\.com"), "http://localhost"),
-        (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}")
+        (re.compile(r"https://([a-zA-Z]*)\.host\.com"), "http://localhost/{0}"),
     )
-    hosts = {
-        "default" : "http://default.host.com",
-        "host.com" : "http://host.com"
-    }
-    alias = {
-        "alias.host.com" : "host.com"
-    }
-    auth = {
-        "host.com" : netius.SimpleAuth("root", "root")
-    }
+    hosts = {"default": "http://default.host.com", "host.com": "http://host.com"}
+    alias = {"alias.host.com": "host.com"}
+    auth = {"host.com": netius.SimpleAuth("root", "root")}
     auth_regex = (
         (
             re.compile(r"https://host\.com:9090"),
-            (
-                netius.SimpleAuth("root", "root"),
-                netius.AddressAuth(["127.0.0.1"])
-            )
+            (netius.SimpleAuth("root", "root"), netius.AddressAuth(["127.0.0.1"])),
         ),
     )
-    redirect = {
-        "host.com" : "other.host.com"
-    }
-    error_urls = {
-        "host.com" : "http://host.com/error"
-    }
+    redirect = {"host.com": "other.host.com"}
+    error_urls = {"host.com": "http://host.com/error"}
     server = ReverseProxyServer(
-        regex = regex,
-        hosts = hosts,
-        alias = alias,
-        auth = auth,
-        auth_regex = auth_regex,
-        redirect = redirect,
-        error_urls = error_urls,
-        level = logging.INFO
+        regex=regex,
+        hosts=hosts,
+        alias=alias,
+        auth=auth,
+        auth_regex=auth_regex,
+        redirect=redirect,
+        error_urls=error_urls,
+        level=logging.INFO,
     )
-    server.serve(env = True)
+    server.serve(env=True)
 else:
     __path__ = []

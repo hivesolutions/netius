@@ -22,15 +22,6 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
 __copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
 """ The copyright for the module """
 
@@ -40,6 +31,7 @@ __license__ = "Apache License, Version 2.0"
 from . import errors
 from . import observer
 from . import asynchronous
+
 
 class Transport(observer.Observable):
     """
@@ -54,14 +46,15 @@ class Transport(observer.Observable):
     compatible interface.
     """
 
-    def __init__(self, loop, connection, open = True):
+    def __init__(self, loop, connection, open=True):
         observer.Observable.__init__(self)
         self._loop = loop
         self._connection = connection
         self._protocol = None
         self._extra_dict = None
         self._exhausted = False
-        if open: self.open()
+        if open:
+            self.open()
 
     def open(self):
         self.set_handlers()
@@ -71,12 +64,15 @@ class Transport(observer.Observable):
     def close(self):
         # in case the current transport is already closed or in the
         # process of closing returns immediately (avoids duplication)
-        if self.is_closing(): return
+        if self.is_closing():
+            return
 
         # in case there's a connection object set schedules its closing
         # otherwise unsets the protocol object immediately
-        if self._connection: self._connection.close(flush = True)
-        else: self._protocol = None
+        if self._connection:
+            self._connection.close(flush=True)
+        else:
+            self._protocol = None
 
         # removes the reference to the underlying connection object
         # and unsets the exhausted flag (reset of values)
@@ -86,14 +82,17 @@ class Transport(observer.Observable):
     def abort(self):
         # in case the current transport is already closed or in the
         # process of closing returns immediately (avoids duplication)
-        if self.is_closing(): return
+        if self.is_closing():
+            return
 
         # in case there's a connection set runs the (forced) close
         # operation so that no more interaction exists otherwise
         # unsets the protocol (notice that if the connection exists
         # the close operation will trigger the close protocol callback)
-        if self._connection: self._connection.close()
-        else: self._protocol = None
+        if self._connection:
+            self._connection.close()
+        else:
+            self._protocol = None
 
         # unsets the connection object (as it's no longer eligible
         # to be used) and unsets the current transport for exhausted
@@ -104,44 +103,45 @@ class Transport(observer.Observable):
     def write(self, data):
         # verifies if the current connection is closing or in the process
         # of closing and if that's the case returns immediately (graceful)
-        if self.is_closing(): return
+        if self.is_closing():
+            return
 
         # runs the send operation on the underlying (and concrete)
         # connection object, notice that the delay flag is unset so
         # that the send flushing operation runs immediately (to provide
         # behaviour level compatibility with the asyncio library)
-        self._connection.send(data, delay = False)
+        self._connection.send(data, delay=False)
 
-    def sendto(self, data, addr = None):
+    def sendto(self, data, addr=None):
         # verifies if the current connection is closing or in the process
         # of closing and if that's the case returns immediately (graceful)
-        if self.is_closing(): return
+        if self.is_closing():
+            return
 
         # runs the send operation on the underlying (and concrete)
         # connection object, notice that the delay flag is unset so
         # that the send flushing operation runs immediately (to provide
         # behaviour level compatibility with the asyncio library)
-        self._connection.send(data, address = addr, delay = False)
+        self._connection.send(data, address=addr, delay=False)
 
-    def get_extra_info(self, name, default = None):
+    def get_extra_info(self, name, default=None):
         callable = self._extra_dict.get(name, None)
-        if callable: return callable()
-        else: return default
+        if callable:
+            return callable()
+        else:
+            return default
 
     def get_write_buffer_size(self):
         return self._connection.pending_s
 
     def get_write_buffer_limits(self):
-        return (
-            self._connection.min_pending,
-            self._connection.max_pending
-        )
+        return (self._connection.min_pending, self._connection.max_pending)
 
     def set_handlers(self):
         self._connection.bind("pend", self._buffer_touched)
         self._connection.bind("unpend", self._buffer_touched)
 
-    def set_write_buffer_limits(self, high = None, low = None):
+    def set_write_buffer_limits(self, high=None, low=None):
         """
         Sets the write buffer limits in the underlying connection
         object using the provided values.
@@ -159,9 +159,12 @@ class Transport(observer.Observable):
         """
 
         if high is None:
-            if low == None: high = 65536
-            else: high = 4 * low
-        if low == None: low = high // 4
+            if low == None:
+                high = 65536
+            else:
+                high = 4 * low
+        if low == None:
+            low = high // 4
         if not high >= low >= 0:
             raise errors.RuntimeError("High must be larger than low")
 
@@ -170,21 +173,25 @@ class Transport(observer.Observable):
 
     def set_extra_dict(self):
         self._extra_dict = dict(
-            socket = lambda: self._connection.socket,
-            peername = lambda: self._connection.socket.getpeername(),
-            sockname = lambda: self._connection.socket.getsockname(),
-            compression = lambda: self._connection.socket.compression(),
-            cipher = lambda: self._connection.socket.cipher(),
-            peercert = lambda: self._connection.socket.getpeercert(),
-            sslcontext = lambda: self._connection.socket.context if hasattr(self._connection.socket, "context") else None,
-            ssl_object = lambda: self._connection.socket
+            socket=lambda: self._connection.socket,
+            peername=lambda: self._connection.socket.getpeername(),
+            sockname=lambda: self._connection.socket.getsockname(),
+            compression=lambda: self._connection.socket.compression(),
+            cipher=lambda: self._connection.socket.cipher(),
+            peercert=lambda: self._connection.socket.getpeercert(),
+            sslcontext=lambda: (
+                self._connection.socket.context
+                if hasattr(self._connection.socket, "context")
+                else None
+            ),
+            ssl_object=lambda: self._connection.socket,
         )
 
     def get_protocol(self):
         return self._protocol
 
     def set_protocol(self, protocol):
-        self._set_protocol(protocol, mark = False)
+        self._set_protocol(protocol, mark=False)
 
     def is_closing(self):
         """
@@ -200,8 +207,10 @@ class Transport(observer.Observable):
         it's also considered to be closing.
         """
 
-        if not self._connection: return True
-        if self._connection.is_closed(): return True
+        if not self._connection:
+            return True
+        if self._connection.is_closed():
+            return True
         return False
 
     def _on_data(self, connection, data):
@@ -218,24 +227,28 @@ class Transport(observer.Observable):
         self._connection.bind("data", self._on_data)
         self._connection.bind("close", self._on_close)
 
-    def _set_protocol(self, protocol, mark = True):
+    def _set_protocol(self, protocol, mark=True):
         self._protocol = protocol
-        if mark: self._protocol.connection_made(self)
+        if mark:
+            self._protocol.connection_made(self)
 
     def _buffer_touched(self, connection):
         self._handle_flow()
 
     def _handle_flow(self):
-        if not self._connection: return
+        if not self._connection:
+            return
 
         if self._exhausted:
             is_restored = self._connection.is_restored()
-            if not is_restored: return
+            if not is_restored:
+                return
             self._exhausted = False
             self._protocol.resume_writing()
         else:
             is_exhausted = self._connection.is_exhausted()
-            if not is_exhausted: return
+            if not is_exhausted:
+                return
             self._exhausted = True
             self._protocol.pause_writing()
 
@@ -281,7 +294,8 @@ class Transport(observer.Observable):
             self._loop.call_soon(callback, *args)
         else:
             callable = lambda: callback(*args)
-            self._loop.delay(callable, immediately = True)
+            self._loop.delay(callable, immediately=True)
+
 
 class TransportDatagram(Transport):
     """
@@ -298,6 +312,7 @@ class TransportDatagram(Transport):
 
     def _on_close(self, connection):
         self._cleanup()
+
 
 class TransportStream(Transport):
     """
@@ -316,6 +331,7 @@ class TransportStream(Transport):
             self._protocol.eof_received()
         self._cleanup()
 
+
 class ServerTransport(observer.Observable):
     """
     Decorator class to be used to add the functionality of a
@@ -332,14 +348,15 @@ class ServerTransport(observer.Observable):
     :see: https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Server
     """
 
-    def __init__(self, loop, service, open = True):
+    def __init__(self, loop, service, open=True):
         observer.Observable.__init__(self)
         self._loop = loop
         self._service = service
         self._protocol_family = None
         self._serve = None
         self._serving = False
-        if open: self.open()
+        if open:
+            self.open()
 
     def __aenter__(self):
         coroutine = self._aenter()
@@ -369,7 +386,7 @@ class ServerTransport(observer.Observable):
     def is_serving(self):
         return True
 
-    def _set_compat(self, protocol_factory, serve = None):
+    def _set_compat(self, protocol_factory, serve=None):
         self.sockets = [self._service.socket]
         self._set_binds()
         self._set_protocol_factory(protocol_factory)
@@ -393,8 +410,12 @@ class ServerTransport(observer.Observable):
         # in case the current context is already serving
         # content, then ignores the current request, otherwise
         # sets the context as serving
-        if self._serving: yield None; return
-        if not self._serve: yield None; return
+        if self._serving:
+            yield None
+            return
+        if not self._serve:
+            yield None
+            return
 
         # creates the future that is going to be representing
         # the async operation of enabling the server
@@ -408,7 +429,7 @@ class ServerTransport(observer.Observable):
 
         # schedules the set of the future value marking the coroutine
         # as finished for the next tick
-        self._loop.delay(lambda: future.set_result(None), immediately = True)
+        self._loop.delay(lambda: future.set_result(None), immediately=True)
 
         # yields the future so that any event loop executor "knows"
         # that there's working pending to be done
@@ -419,14 +440,20 @@ class ServerTransport(observer.Observable):
         yield future
 
     def _aenter(self):
-        try: future = self._loop.create_future()
-        except ReferenceError: yield None; return
+        try:
+            future = self._loop.create_future()
+        except ReferenceError:
+            yield None
+            return
         future.set_result(self)
         yield future
 
     def _aexit(self):
-        try: future = self._loop.create_future()
-        except ReferenceError: yield None; return
+        try:
+            future = self._loop.create_future()
+        except ReferenceError:
+            yield None
+            return
         self.close()
         future.set_result(self)
         yield future

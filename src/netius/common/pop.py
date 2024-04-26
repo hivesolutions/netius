@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -41,9 +32,10 @@ import netius
 
 from . import parser
 
+
 class POPParser(parser.Parser):
 
-    def __init__(self, owner, store = False):
+    def __init__(self, owner, store=False):
         parser.Parser.__init__(self, owner)
 
         self.buffer = []
@@ -78,7 +70,8 @@ class POPParser(parser.Parser):
             # zero the parsing iteration is broken
             method = self._parse_line
             count = method(data)
-            if count == 0: break
+            if count == 0:
+                break
 
             # decrements the size of the data buffer by the
             # size of the parsed bytes and then retrieves the
@@ -89,7 +82,8 @@ class POPParser(parser.Parser):
         # in case not all of the data has been processed
         # must add it to the buffer so that it may be used
         # latter in the next parsing of the message
-        if size > 0: self.buffer.append(data)
+        if size > 0:
+            self.buffer.append(data)
 
         # returns the number of read (processed) bytes of the
         # data that has been sent to the parser
@@ -99,7 +93,8 @@ class POPParser(parser.Parser):
         # tries to find the new line character in the currently received
         # data in case it's not found returns immediately with no data processed
         index = data.find(b"\n")
-        if index == -1: return 0
+        if index == -1:
+            return 0
 
         # adds the partial data (until new line) to the current buffer and
         # then joins it retrieving the current line, then deletes the buffer
@@ -113,7 +108,8 @@ class POPParser(parser.Parser):
         # the split is not successful (not enough information) then an extra
         # value is added to the sequence of values for compatibility
         values = self.line_s.split(" ", 1)
-        if not len(values) > 1: values.append(b"")
+        if not len(values) > 1:
+            values.append(b"")
 
         # unpacks the set of values that have just been parsed into the code
         # and the message items as expected by the pop specification

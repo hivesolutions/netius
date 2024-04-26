@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -43,23 +34,25 @@ from . import common
 
 TASK_WORK = 10
 
+
 class TaskThread(common.Thread):
 
     def execute(self, work):
         type = work[0]
-        if not type == TASK_WORK: netius.NotImplemented(
-            "Cannot execute type '%d'" % type
-        )
+        if not type == TASK_WORK:
+            netius.NotImplemented("Cannot execute type '%d'" % type)
 
         callable, args, kwargs, callback = work[1:]
         result = callable(*args, **kwargs)
-        if callback: callback(result)
+        if callback:
+            callback(result)
+
 
 class TaskPool(common.EventPool):
 
-    def __init__(self, base = TaskThread, count = 10):
-        common.EventPool.__init__(self, base = base, count = count)
+    def __init__(self, base=TaskThread, count=10):
+        common.EventPool.__init__(self, base=base, count=count)
 
-    def execute(self, callable, args = [], kwargs = {}, callback = None):
+    def execute(self, callable, args=[], kwargs={}, callback=None):
         work = (TASK_WORK, callable, args, kwargs, callback)
         self.push(work)

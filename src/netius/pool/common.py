@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -46,9 +37,10 @@ import netius
 
 CALLABLE_WORK = 1
 
+
 class Thread(threading.Thread):
 
-    def __init__(self, identifier, owner = None, *args, **kwargs):
+    def __init__(self, identifier, owner=None, *args, **kwargs):
         threading.Thread.__init__(self, *args, **kwargs)
         self.identifier = identifier
         self.owner = owner
@@ -64,14 +56,16 @@ class Thread(threading.Thread):
     def run(self):
         threading.Thread.run(self)
         self._run = True
-        while self._run: self.tick()
+        while self._run:
+            self.tick()
 
     def tick(self):
         self.owner.condition.acquire()
         while not self.owner.peek() and self._run:
             self.owner.condition.wait()
         try:
-            if not self._run: return
+            if not self._run:
+                return
             work = self.owner.pop()
         finally:
             self.owner.condition.release()
@@ -79,12 +73,15 @@ class Thread(threading.Thread):
 
     def execute(self, work):
         type = work[0]
-        if type == CALLABLE_WORK: work[1]()
-        else: raise netius.NotImplemented("Cannot execute type '%d'" % type)
+        if type == CALLABLE_WORK:
+            work[1]()
+        else:
+            raise netius.NotImplemented("Cannot execute type '%d'" % type)
+
 
 class ThreadPool(object):
 
-    def __init__(self, base = Thread, count = 32):
+    def __init__(self, base=Thread, count=32):
         self.base = base
         self.count = count
         self.instances = []
@@ -97,32 +94,41 @@ class ThreadPool(object):
         for instance in self.instances:
             instance.start()
 
-    def stop(self, join = True):
-        for instance in self.instances: instance.stop()
+    def stop(self, join=True):
+        for instance in self.instances:
+            instance.stop()
         self.condition.acquire()
-        try: self.condition.notify_all()
-        finally: self.condition.release()
-        if not join: return
-        for instance in self.instances: instance.join()
+        try:
+            self.condition.notify_all()
+        finally:
+            self.condition.release()
+        if not join:
+            return
+        for instance in self.instances:
+            instance.join()
 
     def build(self):
-        if self._built: return
+        if self._built:
+            return
         for index in range(self.count):
-            instance = self.base(index, owner = self)
+            instance = self.base(index, owner=self)
             self.instances.append(instance)
         self._built = True
 
     def peek(self):
-        if not self.queue: return None
+        if not self.queue:
+            return None
         return self.queue[0]
 
-    def pop(self, lock = True):
+    def pop(self, lock=True):
         lock and self.condition.acquire()
-        try: value = self.queue.pop(0)
-        finally: lock and self.condition.release()
+        try:
+            value = self.queue.pop(0)
+        finally:
+            lock and self.condition.release()
         return value
 
-    def push(self, work, lock = True):
+    def push(self, work, lock=True):
         lock and self.condition.acquire()
         try:
             value = self.queue.append(work)
@@ -135,52 +141,62 @@ class ThreadPool(object):
         work = (CALLABLE_WORK, callable)
         self.push(work)
 
+
 class EventPool(ThreadPool):
 
-    def __init__(self, base = Thread, count = 32):
-        ThreadPool.__init__(self, base = base, count = count)
+    def __init__(self, base=Thread, count=32):
+        ThreadPool.__init__(self, base=base, count=count)
         self.events = []
         self.event_lock = threading.RLock()
         self._eventfd = None
 
-    def stop(self, join = True):
-        ThreadPool.stop(self, join = join)
-        if not self._eventfd: return
+    def stop(self, join=True):
+        ThreadPool.stop(self, join=join)
+        if not self._eventfd:
+            return
         self._eventfd.close()
         self._eventfd = None
 
     def push_event(self, event):
         self.event_lock.acquire()
-        try: self.events.append(event)
-        finally: self.event_lock.release()
+        try:
+            self.events.append(event)
+        finally:
+            self.event_lock.release()
         self.notify()
 
     def pop_event(self):
         self.event_lock.acquire()
-        try: event = self.events.pop(0)
-        finally: self.event_lock.release()
+        try:
+            event = self.events.pop(0)
+        finally:
+            self.event_lock.release()
         return event
 
-    def pop_all(self, denotify = False):
+    def pop_all(self, denotify=False):
         self.event_lock.acquire()
         try:
             events = list(self.events)
             del self.events[:]
-            if events and denotify: self.denotify()
+            if events and denotify:
+                self.denotify()
         finally:
             self.event_lock.release()
         return events
 
     def notify(self):
-        if not self._eventfd: return
+        if not self._eventfd:
+            return
         self._eventfd.notify()
 
     def denotify(self):
-        if not self._eventfd: return
+        if not self._eventfd:
+            return
         self._eventfd.denotify()
 
     def eventfd(self):
-        if self._eventfd: return self._eventfd
+        if self._eventfd:
+            return self._eventfd
         if UnixEventFile.available():
             self._eventfd = UnixEventFile()
         elif PipeEventFile.available():
@@ -188,6 +204,7 @@ class EventPool(ThreadPool):
         else:
             self._eventfd = SocketEventFile()
         return self._eventfd
+
 
 class EventFile(object):
 
@@ -214,6 +231,7 @@ class EventFile(object):
     def denotify(self):
         raise netius.NotImplemented("Missing implementation")
 
+
 class UnixEventFile(EventFile):
 
     _LIBC = None
@@ -229,14 +247,18 @@ class UnixEventFile(EventFile):
 
     @classmethod
     def available(cls):
-        if not os.name == "posix": return False
+        if not os.name == "posix":
+            return False
         return True if cls.libc() else False
 
     @classmethod
     def libc(cls):
-        if cls._LIBC: return cls._LIBC
-        try: cls._LIBC = ctypes.cdll.LoadLibrary("libc.so.6")
-        except Exception: return None
+        if cls._LIBC:
+            return cls._LIBC
+        try:
+            cls._LIBC = ctypes.cdll.LoadLibrary("libc.so.6")
+        except Exception:
+            return None
         return cls._LIBC
 
     def close(self):
@@ -249,22 +271,26 @@ class UnixEventFile(EventFile):
     def denotify(self):
         self._read()
 
-    def _read(self, length = 8):
-        if self.closed: return None
+    def _read(self, length=8):
+        if self.closed:
+            return None
         return os.read(self._rfileno, length)
 
     def _write(self, value):
-        if self.closed: return
+        if self.closed:
+            return
         os.write(self._wfileno, ctypes.c_ulonglong(value))
+
 
 class PipeEventFile(EventFile):
 
     def __init__(self, *args, **kwargs):
         import fcntl
+
         EventFile.__init__(self, *args, **kwargs)
         self._rfileno, self._wfileno = os.pipe()
-        fcntl.fcntl(self._rfileno, fcntl.F_SETFL, os.O_NONBLOCK) #@UndefinedVariable
-        fcntl.fcntl(self._wfileno, fcntl.F_SETFL, os.O_NONBLOCK) #@UndefinedVariable
+        fcntl.fcntl(self._rfileno, fcntl.F_SETFL, os.O_NONBLOCK)  # @UndefinedVariable
+        fcntl.fcntl(self._wfileno, fcntl.F_SETFL, os.O_NONBLOCK)  # @UndefinedVariable
         self._read_file = os.fdopen(self._rfileno, "rb", 0)
         self._write_file = os.fdopen(self._wfileno, "wb", 0)
         self._lock = threading.RLock()
@@ -272,8 +298,10 @@ class PipeEventFile(EventFile):
 
     @classmethod
     def available(cls):
-        if not os.name == "posix": return False
-        if not hasattr(os, "pipe"): return False
+        if not os.name == "posix":
+            return False
+        if not hasattr(os, "pipe"):
+            return False
         return True
 
     def close(self):
@@ -297,13 +325,16 @@ class PipeEventFile(EventFile):
         finally:
             self._lock.release()
 
-    def _read(self, length = 4096):
-        if self.closed: return None
+    def _read(self, length=4096):
+        if self.closed:
+            return None
         return self._read_file.read(length)
 
     def _write(self, data):
-        if self.closed: return
+        if self.closed:
+            return
         self._write_file.write(data)
+
 
 class SocketEventFile(EventFile):
 
@@ -337,16 +368,19 @@ class SocketEventFile(EventFile):
     def denotify(self):
         self._lock.acquire()
         try:
-            if self._count == 0: return
+            if self._count == 0:
+                return
             data = self._read()
             self._count -= len(data)
         finally:
             self._lock.release()
 
-    def _read(self, length = 4096):
-        if self.closed: return None
+    def _read(self, length=4096):
+        if self.closed:
+            return None
         return self._read_socket.recv(length)
 
     def _write(self, data):
-        if self.closed: return
+        if self.closed:
+            return
         self._write_socket.send(data)

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -44,8 +35,11 @@ from . import errors
 from . import legacy
 from . import async_old
 
-try: import asyncio
-except ImportError: asyncio = None
+try:
+    import asyncio
+except ImportError:
+    asyncio = None
+
 
 class Future(async_old.Future):
     """
@@ -77,6 +71,7 @@ class Future(async_old.Future):
             raise self.exception()
         return self.result()
 
+
 class AwaitWrapper(object):
     """
     Wrapper class meant to be used to encapsulate "old"
@@ -92,14 +87,17 @@ class AwaitWrapper(object):
     infra-structure to know that this type is considered
     to be generator compliant. """
 
-    def __init__(self, generator, generate = False):
-        if generate: generator = self.generate(generator)
+    def __init__(self, generator, generate=False):
+        if generate:
+            generator = self.generate(generator)
         self.generator = generator
         self.is_generator = legacy.is_generator(generator)
 
     def __await__(self):
-        if self.is_generator: return self._await_generator()
-        else: return self._await_basic()
+        if self.is_generator:
+            return self._await_generator()
+        else:
+            return self._await_basic()
 
     def __iter__(self):
         return self
@@ -121,6 +119,7 @@ class AwaitWrapper(object):
         return self.generator
         yield
 
+
 class CoroutineWrapper(object):
     """
     Wrapper class meant to encapsulate a coroutine object
@@ -139,21 +138,25 @@ class CoroutineWrapper(object):
         return self
 
     def __next__(self):
-        if self._buffer: return self._buffer.pop(0)
+        if self._buffer:
+            return self._buffer.pop(0)
         return self.coroutine.send(None)
 
     def next(self):
         return self.__next__()
 
     def restore(self, value):
-        if self._buffer == None: self._buffer = []
+        if self._buffer == None:
+            self._buffer = []
         self._buffer.append(value)
+
 
 def coroutine(function):
 
     if inspect.isgeneratorfunction(function):
         routine = function
     else:
+
         @functools.wraps(function)
         def routine(*args, **kwargs):
             # calls the underlying function with the expected arguments
@@ -184,76 +187,91 @@ def coroutine(function):
     wrapper._is_coroutine = True
     return wrapper
 
+
 def ensure_generator(value):
     if legacy.is_generator(value):
         return True, value
 
-    if hasattr(inspect, "iscoroutine") and\
-        inspect.iscoroutine(value): #@UndefinedVariable
+    if hasattr(inspect, "iscoroutine") and inspect.iscoroutine(
+        value
+    ):  # @UndefinedVariable
         return True, CoroutineWrapper(value)
 
     return False, value
 
+
 def get_asyncio():
     return asyncio
+
 
 def is_coroutine(callable):
     if hasattr(callable, "_is_coroutine"):
         return True
 
-    if hasattr(inspect, "iscoroutinefunction") and\
-        inspect.iscoroutinefunction(callable): #@UndefinedVariable
+    if hasattr(inspect, "iscoroutinefunction") and inspect.iscoroutinefunction(
+        callable
+    ):  # @UndefinedVariable
         return True
 
     return False
+
 
 def is_coroutine_object(generator):
     if legacy.is_generator(generator):
         return True
 
-    if hasattr(inspect, "iscoroutine") and\
-        inspect.iscoroutine(generator): #@UndefinedVariable
+    if hasattr(inspect, "iscoroutine") and inspect.iscoroutine(
+        generator
+    ):  # @UndefinedVariable
         return True
 
     return False
+
 
 def is_coroutine_native(generator):
-    if hasattr(inspect, "iscoroutine") and\
-        inspect.iscoroutine(generator): #@UndefinedVariable
+    if hasattr(inspect, "iscoroutine") and inspect.iscoroutine(
+        generator
+    ):  # @UndefinedVariable
         return True
 
     return False
 
+
 def is_future(future):
-    if isinstance(future, async_old.Future): return True
-    if asyncio and isinstance(future, asyncio.Future): return True
+    if isinstance(future, async_old.Future):
+        return True
+    if asyncio and isinstance(future, asyncio.Future):
+        return True
     return False
 
-def _sleep(timeout, compat = True):
+
+def _sleep(timeout, compat=True):
     from .common import get_loop
+
     loop = get_loop()
     compat &= hasattr(loop, "_sleep")
     sleep = loop._sleep if compat else loop.sleep
     result = yield from sleep(timeout)
     return result
 
-def _wait(event, timeout = None, future = None):
+
+def _wait(event, timeout=None, future=None):
     from .common import get_loop
+
     loop = get_loop()
-    result = yield from loop.wait(
-        event,
-        timeout = timeout,
-        future = future
-    )
+    result = yield from loop.wait(event, timeout=timeout, future=future)
     return result
+
 
 def sleep(*args, **kwargs):
     generator = _sleep(*args, **kwargs)
     return AwaitWrapper(generator)
 
+
 def wait(*args, **kwargs):
     generator = _wait(*args, **kwargs)
     return AwaitWrapper(generator)
+
 
 def coroutine_return(coroutine):
     """
@@ -275,6 +293,7 @@ def coroutine_return(coroutine):
     generator = _coroutine_return(coroutine)
     return AwaitWrapper(generator)
 
+
 def _coroutine_return(coroutine):
     # unsets the initial future reference value, this
     # way it's possible to avoid future based return
@@ -287,7 +306,8 @@ def _coroutine_return(coroutine):
     # value yielded is considered to be future
     # that is going to be set as the return value
     for value in coroutine:
-        if value == None: continue
+        if value == None:
+            continue
         yield value
         future = value
 

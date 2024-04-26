@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -41,15 +32,16 @@ import unittest
 
 import netius
 
+
 class AsynchronousTest(unittest.TestCase):
 
     def test_basic(self):
-        loop = netius.get_loop(asyncio = False)
+        loop = netius.get_loop(asyncio=False)
 
         self.assertNotEqual(loop, None)
         self.assertEqual(isinstance(loop, netius.Base), True)
 
-        future = netius.build_future(compat = False, asyncio = False)
+        future = netius.build_future(compat=False, asyncio=False)
 
         self.assertNotEqual(future, None)
         self.assertEqual(isinstance(future, netius.Future), True)
@@ -57,7 +49,7 @@ class AsynchronousTest(unittest.TestCase):
         self.assertEqual(isinstance(future._loop, netius.Base), True)
 
         previous = loop
-        loop = netius.get_loop(_compat = True)
+        loop = netius.get_loop(_compat=True)
 
         self.assertNotEqual(loop, None)
 
@@ -66,7 +58,7 @@ class AsynchronousTest(unittest.TestCase):
         self.assertEqual(loop, previous._compat)
         self.assertEqual(loop._loop_ref(), previous)
 
-        loop = netius.get_loop(asyncio = True)
+        loop = netius.get_loop(asyncio=True)
 
         self.assertNotEqual(loop, None)
 
@@ -87,6 +79,7 @@ class AsynchronousTest(unittest.TestCase):
         self.assertEqual(isinstance(future, netius.Future), True)
         self.assertEqual(future.done(), True)
 
+
 class FutureTest(unittest.TestCase):
 
     def test_is_future(self):
@@ -96,8 +89,10 @@ class FutureTest(unittest.TestCase):
         self.assertEqual(result, True)
 
     def test_is_future_native(self):
-        try: import asyncio
-        except: asyncio = None
+        try:
+            import asyncio
+        except:
+            asyncio = None
 
         if not asyncio or not hasattr(asyncio, "isfuture"):
             self.skipTest("No asyncio or asyncio.isfuture() available")

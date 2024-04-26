@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -39,29 +30,19 @@ __license__ = "Apache License, Version 2.0"
 
 import netius
 
+
 class EchoProtocol(netius.StreamProtocol):
 
     def on_data(self, data):
         netius.StreamProtocol.on_data(self, data)
         self.send(data)
 
-    def serve(
-        self,
-        host = "127.0.0.1",
-        port = 8888,
-        ssl = False,
-        env = False,
-        loop = None
-    ):
+    def serve(self, host="127.0.0.1", port=8888, ssl=False, env=False, loop=None):
         loop = netius.serve_stream(
-            lambda: self,
-            host = host,
-            port = port,
-            ssl = ssl,
-            loop = loop,
-            env = env
+            lambda: self, host=host, port=port, ssl=ssl, loop=loop, env=env
         )
         return loop, self
+
 
 class EchoServer(netius.ServerAgent):
 
@@ -71,6 +52,7 @@ class EchoServer(netius.ServerAgent):
     def serve_s(cls, **kwargs):
         protocol = cls.protocol()
         return protocol.serve(**kwargs)
+
 
 if __name__ == "__main__":
     loop, _protocol = EchoServer.serve_s()

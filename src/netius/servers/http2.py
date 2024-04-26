@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -44,14 +35,15 @@ import netius.common
 
 from . import http
 
+
 class HTTP2Connection(http.HTTPConnection):
 
     def __init__(
         self,
-        legacy = True,
-        window = netius.common.HTTP2_WINDOW,
-        settings = netius.common.HTTP2_SETTINGS_OPTIMAL,
-        settings_r = netius.common.HTTP2_SETTINGS,
+        legacy=True,
+        window=netius.common.HTTP2_WINDOW,
+        settings=netius.common.HTTP2_SETTINGS_OPTIMAL,
+        settings_r=netius.common.HTTP2_SETTINGS,
         *args,
         **kwargs
     ):
@@ -70,34 +62,33 @@ class HTTP2Connection(http.HTTPConnection):
 
     def open(self, *args, **kwargs):
         http.HTTPConnection.open(self, *args, **kwargs)
-        if not self.is_open(): return
-        if not self.legacy: self.set_h2()
+        if not self.is_open():
+            return
+        if not self.legacy:
+            self.set_h2()
 
-    def info_dict(self, full = False):
-        info = http.HTTPConnection.info_dict(self, full = full)
+    def info_dict(self, full=False):
+        info = http.HTTPConnection.info_dict(self, full=full)
         info.update(
-            legacy = self.legacy,
-            window = self.window,
-            window_o = self.window_o,
-            window_l = self.window_l,
-            window_t = self.window_t,
-            frames = len(self.frames)
+            legacy=self.legacy,
+            window=self.window,
+            window_o=self.window_o,
+            window_l=self.window_l,
+            window_t=self.window_t,
+            frames=len(self.frames),
         )
         return info
 
-    def flush_s(self, stream = None, callback = None):
+    def flush_s(self, stream=None, callback=None):
         return self.send_part(
-            b"",
-            stream = stream,
-            final = True,
-            flush = True,
-            callback = callback
+            b"", stream=stream, final=True, flush=True, callback=callback
         )
 
     def set_h2(self):
         self.legacy = False
-        if self.parser: self.parser.destroy()
-        self.parser = netius.common.HTTP2Parser(self, store = True)
+        if self.parser:
+            self.parser.destroy()
+        self.parser = netius.common.HTTP2Parser(self, store=True)
         self.parser.bind("on_data", self.on_data)
         self.parser.bind("on_header", self.on_header)
         self.parser.bind("on_payload", self.on_payload)
@@ -114,15 +105,14 @@ class HTTP2Connection(http.HTTPConnection):
     def parse(self, data):
         if not self.legacy and not self.preface:
             data = self.parse_preface(data)
-            if not data: return
+            if not data:
+                return
         try:
             return self.parser.parse(data)
         except netius.ParserError as error:
-            if not self.legacy: raise
-            self.send_response(
-                code = error.code,
-                apply = True
-            )
+            if not self.legacy:
+                raise
+            self.send_response(code=error.code, apply=True)
 
     def parse_preface(self, data):
         """
@@ -150,7 +140,8 @@ class HTTP2Connection(http.HTTPConnection):
         self.preface_b += data
         preface_l = len(netius.common.HTTP2_PREFACE)
         is_size = len(self.preface_b) >= preface_l
-        if not is_size: return None
+        if not is_size:
+            return None
 
         # retrieves the preface string from the buffer (according to size)
         # and runs the string based verification, raising an exception in
@@ -176,33 +167,18 @@ class HTTP2Connection(http.HTTPConnection):
         # parsed by any extra operation
         return data
 
-    def send_plain(
-        self,
-        data,
-        stream = None,
-        final = True,
-        delay = True,
-        callback = None
-    ):
-        if self.legacy: return http.HTTPConnection.send_plain(
-            self,
-            data,
-            stream = stream,
-            final = final,
-            delay = delay,
-            callback = callback
-        )
+    def send_plain(self, data, stream=None, final=True, delay=True, callback=None):
+        if self.legacy:
+            return http.HTTPConnection.send_plain(
+                self, data, stream=stream, final=final, delay=delay, callback=callback
+            )
 
         # verifies if the data should be fragmented for the provided
         # stream and if that's not required send the required data
         # straight away with any required splitting/fragmentation of it
         if not self.fragmentable_stream(stream, data):
             return self.send_data(
-                data,
-                stream = stream,
-                end_stream = final,
-                delay = delay,
-                callback = callback
+                data, stream=stream, end_stream=final, delay=delay, callback=callback
             )
 
         # sends the same data but using a fragmented approach where the
@@ -210,45 +186,19 @@ class HTTP2Connection(http.HTTPConnection):
         # frame size, this is required to overcome limitations in the connection
         # that has been established with the other peer
         return self.send_fragmented(
-            data,
-            stream = stream,
-            final = final,
-            delay = delay,
-            callback = callback
+            data, stream=stream, final=final, delay=delay, callback=callback
         )
 
-    def send_chunked(
-        self,
-        data,
-        stream = None,
-        final = True,
-        delay = True,
-        callback = None
-    ):
-        if self.legacy: return http.HTTPConnection.send_chunked(
-            self,
-            data,
-            stream = stream,
-            final = final,
-            delay = delay,
-            callback = callback
-        )
+    def send_chunked(self, data, stream=None, final=True, delay=True, callback=None):
+        if self.legacy:
+            return http.HTTPConnection.send_chunked(
+                self, data, stream=stream, final=final, delay=delay, callback=callback
+            )
         return self.send_plain(
-            data,
-            stream = stream,
-            final = final,
-            delay = delay,
-            callback = callback
+            data, stream=stream, final=final, delay=delay, callback=callback
         )
 
-    def send_fragmented(
-        self,
-        data,
-        stream = None,
-        final = True,
-        delay = True,
-        callback = None
-    ):
+    def send_fragmented(self, data, stream=None, final=True, delay=True, callback=None):
         count = 0
         fragments = self.fragment_stream(stream, data)
         fragments = list(fragments)
@@ -260,51 +210,49 @@ class HTTP2Connection(http.HTTPConnection):
             if is_last:
                 count += self.send_data(
                     fragment,
-                    stream = stream,
-                    end_stream = final,
-                    delay = delay,
-                    callback = callback
+                    stream=stream,
+                    end_stream=final,
+                    delay=delay,
+                    callback=callback,
                 )
             else:
                 count += self.send_data(
-                    fragment,
-                    stream = stream,
-                    end_stream = False,
-                    delay = delay
+                    fragment, stream=stream, end_stream=False, delay=delay
                 )
 
         return count
 
     def send_response(
         self,
-        data = None,
-        headers = None,
-        version = None,
-        code = 200,
-        code_s = None,
-        apply = False,
-        stream = None,
-        final = True,
-        flush = True,
-        delay = True,
-        callback = None
+        data=None,
+        headers=None,
+        version=None,
+        code=200,
+        code_s=None,
+        apply=False,
+        stream=None,
+        final=True,
+        flush=True,
+        delay=True,
+        callback=None,
     ):
         # in case the legacy mode is enabled the send response call is
         # forwarded to the upper layers so that it's handled properly
-        if self.legacy: return http.HTTPConnection.send_response(
-            self,
-            data = data,
-            headers = headers,
-            version = version,
-            code = code,
-            code_s = code_s,
-            apply = apply,
-            stream = stream,
-            final = final,
-            flush = flush,
-            delay = delay,
-            callback = callback
-        )
+        if self.legacy:
+            return http.HTTPConnection.send_response(
+                self,
+                data=data,
+                headers=headers,
+                version=version,
+                code=code,
+                code_s=code_s,
+                apply=apply,
+                stream=stream,
+                final=final,
+                flush=flush,
+                delay=delay,
+                callback=callback,
+            )
 
         # retrieves the various parts that define the response
         # and runs a series of normalization processes to retrieve
@@ -329,53 +277,51 @@ class HTTP2Connection(http.HTTPConnection):
         # in case the apply flag is set the apply all operation is performed
         # so that a series of headers are applied to the current context
         # (things like the name of the server connection, etc)
-        if apply: self.owner._apply_all(self.parser, self, headers)
+        if apply:
+            self.owner._apply_all(self.parser, self, headers)
 
         # sends the initial headers data (including status line), this should
         # trigger the initial data sent to the peer/client
         count = self.send_header(
-            headers = headers,
-            version = version,
-            code = code,
-            code_s = code_s,
-            stream = stream
+            headers=headers, version=version, code=code, code_s=code_s, stream=stream
         )
 
         # sends the part/payload information (data) to the client and optionally
         # flushes the current internal buffers to enforce sending of the value
         count += self.send_part(
             data,
-            stream = stream,
-            final = final,
-            flush = flush,
-            delay = delay,
-            callback = callback
+            stream=stream,
+            final=final,
+            flush=flush,
+            delay=delay,
+            callback=callback,
         )
         return count
 
     def send_header(
         self,
-        headers = None,
-        version = None,
-        code = 200,
-        code_s = None,
-        stream = None,
-        final = False,
-        delay = True,
-        callback = None
+        headers=None,
+        version=None,
+        code=200,
+        code_s=None,
+        stream=None,
+        final=False,
+        delay=True,
+        callback=None,
     ):
         # in case the legacy mode is enabled the send header call is
         # forwarded to the upper layers so that it's handled properly
-        if self.legacy: return http.HTTPConnection.send_header(
-            self,
-            headers = headers,
-            version = version,
-            code = code,
-            code_s = code_s,
-            stream = stream,
-            delay = delay,
-            callback = callback
-        )
+        if self.legacy:
+            return http.HTTPConnection.send_header(
+                self,
+                headers=headers,
+                version=version,
+                code=code,
+                code_s=code_s,
+                stream=stream,
+                delay=delay,
+                callback=callback,
+            )
 
         # verifies if the headers value has been provided and in case it
         # has not creates a new empty dictionary (runtime compatibility)
@@ -394,9 +340,12 @@ class HTTP2Connection(http.HTTPConnection):
         # them and add them to the currently defined base list
         for key, value in netius.legacy.iteritems(headers):
             key = netius.common.header_down(key)
-            if key in ("connection", "transfer-encoding"): continue
-            if not isinstance(value, list): value = (value,)
-            for _value in value: headers_b.append((key, _value))
+            if key in ("connection", "transfer-encoding"):
+                continue
+            if not isinstance(value, list):
+                value = (value,)
+            for _value in value:
+                headers_b.append((key, _value))
 
         # verifies if this is considered to be the final operation in the stream
         # and if that's the case creates a new callback for the closing of the
@@ -405,17 +354,13 @@ class HTTP2Connection(http.HTTPConnection):
             old_callback = callback
 
             def callback(connection):
-                self.close_stream(stream, final = final)
+                self.close_stream(stream, final=final)
                 old_callback and old_callback(connection)
 
         # runs the send headers operations that should send the headers list
         # to the other peer and returns the number of bytes sent
         count = self.send_headers(
-            headers_b,
-            end_stream = final,
-            stream = stream,
-            delay = delay,
-            callback = callback
+            headers_b, end_stream=final, stream=stream, delay=delay, callback=callback
         )
 
         # "notifies" the owner of the connection that the headers have been
@@ -423,10 +368,10 @@ class HTTP2Connection(http.HTTPConnection):
         self.owner.on_send_http(
             self.connection_ctx,
             self.parser_ctx,
-            headers = headers,
-            version = version,
-            code = code,
-            code_s = code_s
+            headers=headers,
+            version=version,
+            code=code,
+            code_s=code_s,
         )
 
         # returns the final number of bytes that have been sent during the current
@@ -434,23 +379,18 @@ class HTTP2Connection(http.HTTPConnection):
         return count
 
     def send_part(
-        self,
-        data,
-        stream = None,
-        final = True,
-        flush = False,
-        delay = True,
-        callback = None
+        self, data, stream=None, final=True, flush=False, delay=True, callback=None
     ):
-        if self.legacy: return http.HTTPConnection.send_part(
-            self,
-            data,
-            stream = stream,
-            final = final,
-            flush = flush,
-            delay = delay,
-            callback = callback
-        )
+        if self.legacy:
+            return http.HTTPConnection.send_part(
+                self,
+                data,
+                stream=stream,
+                final=final,
+                flush=flush,
+                delay=delay,
+                callback=callback,
+            )
 
         # verifies if this is considered to be the final operation in the stream
         # and if that's the case creates a new callback for the closing of the
@@ -459,7 +399,7 @@ class HTTP2Connection(http.HTTPConnection):
             old_callback = callback
 
             def callback(connection):
-                self.close_stream(stream, final = final)
+                self.close_stream(stream, final=final)
                 old_callback and old_callback(connection)
 
         # verifies if the current connection/stream is flushed meaning that it requires
@@ -469,52 +409,34 @@ class HTTP2Connection(http.HTTPConnection):
         flush = flush and self.is_flushed()
 
         if flush:
-            count = self.send_base(
-                data,
-                stream = stream,
-                final = False
-            )
-            self.flush(stream = stream, callback = callback)
+            count = self.send_base(data, stream=stream, final=False)
+            self.flush(stream=stream, callback=callback)
         else:
             count = self.send_base(
-                data,
-                stream = stream,
-                final = final,
-                delay = delay,
-                callback = callback
+                data, stream=stream, final=final, delay=delay, callback=callback
             )
         return count
 
     def send_frame(
-        self,
-        type = 0x01,
-        flags = 0x00,
-        payload = b"",
-        stream = 0x00,
-        delay = True,
-        callback = None
+        self, type=0x01, flags=0x00, payload=b"", stream=0x00, delay=True, callback=None
     ):
         size = len(payload)
         size_h = size >> 16
-        size_l = size & 0xffff
+        size_l = size & 0xFFFF
         header = struct.pack("!BHBBI", size_h, size_l, type, flags, stream)
         message = header + payload
         self.owner.on_send_http2(self, self.parser, type, flags, payload, stream)
-        return self.send(message, delay = delay, callback = callback)
+        return self.send(message, delay=delay, callback=callback)
 
     def send_data(
-        self,
-        data = b"",
-        end_stream = True,
-        stream = None,
-        delay = True,
-        callback = None
+        self, data=b"", end_stream=True, stream=None, delay=True, callback=None
     ):
         # builds the flags byte taking into account the various
         # options that have been passed to the sending of data
         flags = 0x00
         data_l = len(data)
-        if end_stream: flags |= 0x01
+        if end_stream:
+            flags |= 0x01
 
         # builds the callback clojure so that the connection state
         # is properly updated upon the sending of data
@@ -525,29 +447,29 @@ class HTTP2Connection(http.HTTPConnection):
         # the sending of the frame to when the stream becomes available
         if not self.available_stream(stream, data_l):
             count = self.delay_frame(
-                type = netius.common.DATA,
-                flags = flags,
-                payload = data,
-                stream = stream,
-                delay = delay,
-                callback = callback
+                type=netius.common.DATA,
+                flags=flags,
+                payload=data,
+                stream=stream,
+                delay=delay,
+                callback=callback,
             )
             self.try_unavailable(stream)
             return count
 
         # runs the increments remove window value, decrementing the window
         # by the size of the data being sent
-        self.increment_remote(stream, data_l * -1, all = True)
+        self.increment_remote(stream, data_l * -1, all=True)
 
         # runs the "proper" sending of the data frame, registering the callback
         # with the expected clojure
         count = self.send_frame(
-            type = netius.common.DATA,
-            flags = flags,
-            payload = data,
-            stream = stream,
-            delay = delay,
-            callback = callback
+            type=netius.common.DATA,
+            flags=flags,
+            payload=data,
+            stream=stream,
+            delay=delay,
+            callback=callback,
         )
 
         # runs the try unavailable method to verify if the stream did became
@@ -560,89 +482,77 @@ class HTTP2Connection(http.HTTPConnection):
 
     def send_headers(
         self,
-        headers = [],
-        end_stream = False,
-        end_headers = True,
-        stream = None,
-        delay = True,
-        callback = None
+        headers=[],
+        end_stream=False,
+        end_headers=True,
+        stream=None,
+        delay=True,
+        callback=None,
     ):
         flags = 0x00
-        if end_stream: flags |= 0x01
-        if end_headers: flags |= 0x04
+        if end_stream:
+            flags |= 0x01
+        if end_headers:
+            flags |= 0x04
         payload = self.parser.encoder.encode(headers)
         return self.send_frame(
-            type = netius.common.HEADERS,
-            flags = flags,
-            payload = payload,
-            stream = stream,
-            delay = delay,
-            callback = callback
+            type=netius.common.HEADERS,
+            flags=flags,
+            payload=payload,
+            stream=stream,
+            delay=delay,
+            callback=callback,
         )
 
-    def send_rst_stream(
-        self,
-        error_code = 0x00,
-        stream = None,
-        delay = True,
-        callback = None
-    ):
+    def send_rst_stream(self, error_code=0x00, stream=None, delay=True, callback=None):
         payload = struct.pack("!I", error_code)
         return self.send_frame(
-            type = netius.common.RST_STREAM,
-            payload = payload,
-            stream = stream,
-            delay = delay,
-            callback = callback
+            type=netius.common.RST_STREAM,
+            payload=payload,
+            stream=stream,
+            delay=delay,
+            callback=callback,
         )
 
-    def send_settings(
-        self,
-        settings = (),
-        ack = False,
-        delay = True,
-        callback = None
-    ):
+    def send_settings(self, settings=(), ack=False, delay=True, callback=None):
         flags = 0x00
-        if ack: flags |= 0x01
+        if ack:
+            flags |= 0x01
         buffer = []
         for ident, value in settings:
             setting_s = struct.pack("!HI", ident, value)
             buffer.append(setting_s)
         payload = b"".join(buffer)
         return self.send_frame(
-            type = netius.common.SETTINGS,
-            flags = flags,
-            payload = payload,
-            delay = delay,
-            callback = callback
+            type=netius.common.SETTINGS,
+            flags=flags,
+            payload=payload,
+            delay=delay,
+            callback=callback,
         )
 
     def send_ping(
-        self,
-        opaque = b"\0\0\0\0\0\0\0\0",
-        ack = False,
-        delay = True,
-        callback = None
+        self, opaque=b"\0\0\0\0\0\0\0\0", ack=False, delay=True, callback=None
     ):
         flags = 0x00
-        if ack: flags |= 0x01
+        if ack:
+            flags |= 0x01
         return self.send_frame(
-            type = netius.common.PING,
-            flags = flags,
-            payload = opaque,
-            delay = delay,
-            callback = callback
+            type=netius.common.PING,
+            flags=flags,
+            payload=opaque,
+            delay=delay,
+            callback=callback,
         )
 
     def send_goaway(
         self,
-        last_stream = 0x00,
-        error_code = 0x00,
-        message = "",
-        close = True,
-        delay = True,
-        callback = None
+        last_stream=0x00,
+        error_code=0x00,
+        message="",
+        close=True,
+        delay=True,
+        callback=None,
     ):
         if close:
             old_callback = callback
@@ -655,33 +565,29 @@ class HTTP2Connection(http.HTTPConnection):
         payload = struct.pack("!II", last_stream, error_code)
         payload += message
         return self.send_frame(
-            type = netius.common.GOAWAY,
-            payload = payload,
-            delay = delay,
-            callback = callback
+            type=netius.common.GOAWAY, payload=payload, delay=delay, callback=callback
         )
 
-    def send_window_update(
-        self,
-        increment = 0,
-        stream = None,
-        delay = True,
-        callback = None
-    ):
+    def send_window_update(self, increment=0, stream=None, delay=True, callback=None):
         payload = struct.pack("!I", increment)
         return self.send_frame(
-            type = netius.common.WINDOW_UPDATE,
-            payload = payload,
-            stream = stream,
-            delay = delay,
-            callback = callback
+            type=netius.common.WINDOW_UPDATE,
+            payload=payload,
+            stream=stream,
+            delay=delay,
+            callback=callback,
         )
 
     def send_delta(self):
-        delta = self.window_l -\
-            netius.common.HTTP2_SETTINGS[netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE]
-        if delta == 0: return
-        self.send_window_update(increment = delta, stream = 0x00)
+        delta = (
+            self.window_l
+            - netius.common.HTTP2_SETTINGS[
+                netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE
+            ]
+        )
+        if delta == 0:
+            return
+        self.send_window_update(increment=delta, stream=0x00)
 
     def delay_frame(self, *args, **kwargs):
         # retrieves the reference to the stream identifier for which
@@ -700,7 +606,7 @@ class HTTP2Connection(http.HTTPConnection):
         # "immediately" by this method
         return 0
 
-    def flush_frames(self, all = True):
+    def flush_frames(self, all=True):
         """
         Runs the flush operation on the delayed/pending frames, meaning
         that the window/availability tests are going to be run, checking
@@ -753,14 +659,15 @@ class HTTP2Connection(http.HTTPConnection):
 
             # retrieves the reference to the stream object from the
             # identifier of the stream, this may an invalid/unset value
-            _stream = self.parser._get_stream(stream, strict = False)
+            _stream = self.parser._get_stream(stream, strict=False)
 
             # verifies if the current stream to be flushed is still
             # open and if that's not the case removes the frame from
             # the frames queue and skips the current iteration
             if not _stream or not _stream.is_open():
                 self.frames.pop(offset)
-                if _stream: _stream.frames -= 1
+                if _stream:
+                    _stream.frames -= 1
                 continue
 
             # makes sure that the stream is currently marked as not available
@@ -776,8 +683,9 @@ class HTTP2Connection(http.HTTPConnection):
             # all flush operation is enabled in which the stream is marked
             # as starved and the current iteration is skipped trying to
             # flush frames from different streams
-            available = self.available_stream(stream, payload_l, strict = False)
-            if not available and not all: return False
+            available = self.available_stream(stream, payload_l, strict=False)
+            if not available and not all:
+                return False
             if not available and all:
                 starved[stream] = True
                 offset += 1
@@ -790,7 +698,7 @@ class HTTP2Connection(http.HTTPConnection):
 
             # decrements the current stream window by the size of the payload
             # and then runs the send frame operation for the pending frame
-            self.increment_remote(stream, payload_l * -1, all = True)
+            self.increment_remote(stream, payload_l * -1, all=True)
             self.send_frame(*args, **kwargs)
 
         # returns the final result with a valid value meaning that all of the
@@ -816,21 +724,29 @@ class HTTP2Connection(http.HTTPConnection):
     def set_settings(self, settings):
         self.settings_r.update(settings)
 
-    def close_stream(self, stream, final = False, flush = False, reset = False):
-        if not self.parser._has_stream(stream): return
+    def close_stream(self, stream, final=False, flush=False, reset=False):
+        if not self.parser._has_stream(stream):
+            return
         stream = self.parser._get_stream(stream)
-        if not stream: return
+        if not stream:
+            return
         stream.end_stream_l = final
-        stream.close(flush = flush, reset = reset)
+        stream.close(flush=flush, reset=reset)
 
-    def available_stream(self, stream, length, strict = True):
-        if self.window == 0: return False
-        if self.window < length: return False
+    def available_stream(self, stream, length, strict=True):
+        if self.window == 0:
+            return False
+        if self.window < length:
+            return False
         stream = self.parser._get_stream(stream)
-        if not stream: return True
-        if stream.window == 0: return False
-        if stream.window < length: return False
-        if strict and stream.frames: return False
+        if not stream:
+            return True
+        if stream.window == 0:
+            return False
+        if stream.window < length:
+            return False
+        if strict and stream.frames:
+            return False
         return True
 
     def fragment_stream(self, stream, data):
@@ -842,11 +758,12 @@ class HTTP2Connection(http.HTTPConnection):
         return stream.fragmentable(data)
 
     def open_stream(self, stream):
-        stream = self.parser._get_stream(stream, strict = False)
-        if not stream : return False
+        stream = self.parser._get_stream(stream, strict=False)
+        if not stream:
+            return False
         return True if stream and stream.is_open() else False
 
-    def try_available(self, stream, strict = True):
+    def try_available(self, stream, strict=True):
         """
         Tries to determine if the stream with the provided identifier
         has just became available (unblocked from blocked state), this
@@ -864,12 +781,13 @@ class HTTP2Connection(http.HTTPConnection):
         # verifies if the stream is currently present in the map of unavailable
         # or blocked streams and if that's the case returns immediately as
         # the connection is not blocked
-        if not stream in self.unavailable: return
+        if not stream in self.unavailable:
+            return
 
         # tries to retrieve the stream object reference from the identifier and
         # in case none is retrieved (probably stream closed) returns immediately
         # and removes the stream from the map of unavailability
-        _stream = self.parser._get_stream(stream, strict = False)
+        _stream = self.parser._get_stream(stream, strict=False)
         if not _stream:
             del self.unavailable[stream]
             return
@@ -877,14 +795,15 @@ class HTTP2Connection(http.HTTPConnection):
         # tries to determine if the stream is available for the sending of at
         # least one byte and if that's not the case returns immediately, not
         # setting the stream as available
-        if not self.available_stream(stream, 1, strict = strict): return
+        if not self.available_stream(stream, 1, strict=strict):
+            return
 
         # removes the stream from the map of unavailable stream and "notifies"
         # the stream about the state changing operation to available/unblocked
         del self.unavailable[stream]
         _stream.available()
 
-    def try_unavailable(self, stream, strict = True):
+    def try_unavailable(self, stream, strict=True):
         """
         Runs the unavailability test on the stream with the provided identifier
         meaning that a series of validation will be performed to try to determine
@@ -902,25 +821,28 @@ class HTTP2Connection(http.HTTPConnection):
 
         # in case the stream identifier is already present in the unavailable
         # map it cannot be marked as unavailable again
-        if stream in self.unavailable: return
+        if stream in self.unavailable:
+            return
 
         # tries to retrieve the reference to the stream object to be tested
         # an in case none is found (connection closed) returns immediately
-        _stream = self.parser._get_stream(stream, strict = False)
-        if not _stream: return
+        _stream = self.parser._get_stream(stream, strict=False)
+        if not _stream:
+            return
 
         # runs the proper availability verification by testing the capacity
         # of the stream to send one byte and in case there's capacity to send
         # that byte the stream is considered available or unblocked, so the
         # control flow must be returned (stream not marked)
-        if self.available_stream(stream, 1, strict = strict): return
+        if self.available_stream(stream, 1, strict=strict):
+            return
 
         # marks the stream as unavailable and "notifies" the stream object
         # about the changing to the unavailable/blocked state
         self.unavailable[stream] = True
         _stream.unavailable()
 
-    def increment_remote(self, stream, increment, all = False):
+    def increment_remote(self, stream, increment, all=False):
         """
         Increments the size of the remove window associated with
         the stream passed by argument by the size defined in the
@@ -941,10 +863,13 @@ class HTTP2Connection(http.HTTPConnection):
         should be updated by the increment operation.
         """
 
-        if not stream or all: self.window += increment
-        if not stream: return
+        if not stream or all:
+            self.window += increment
+        if not stream:
+            return
         stream = self.parser._get_stream(stream)
-        if not stream: return
+        if not stream:
+            return
         stream.remote_update(increment)
 
     def increment_local(self, stream, increment):
@@ -956,8 +881,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.window_l += increment
         if self.window_l < self.window_t:
             self.send_window_update(
-                increment = self.window_o - self.window_l,
-                stream = 0x00
+                increment=self.window_o - self.window_l, stream=0x00
             )
             self.window_l = self.window_o
 
@@ -965,44 +889,40 @@ class HTTP2Connection(http.HTTPConnection):
         # provided identifier and then runs the local update
         # operation in it (may trigger window update flushing)
         stream = self.parser._get_stream(stream)
-        if not stream: return
+        if not stream:
+            return
         stream.local_update(increment)
 
     def error_connection(
-        self,
-        last_stream = 0x00,
-        error_code = 0x00,
-        message = "",
-        close = True,
-        callback = None
+        self, last_stream=0x00, error_code=0x00, message="", close=True, callback=None
     ):
         self.send_goaway(
-            last_stream = last_stream,
-            error_code = error_code,
-            message = message,
-            close = close,
-            callback = callback
+            last_stream=last_stream,
+            error_code=error_code,
+            message=message,
+            close=close,
+            callback=callback,
         )
 
     def error_stream(
         self,
         stream,
-        last_stream = 0x00,
-        error_code = 0x00,
-        message = "",
-        close = True,
-        callback = None
+        last_stream=0x00,
+        error_code=0x00,
+        message="",
+        close=True,
+        callback=None,
     ):
         self.send_rst_stream(
-            error_code = error_code,
-            stream = stream,
-            callback = lambda c: self.error_connection(
-                last_stream = last_stream,
-                error_code = error_code,
-                message = message,
-                close = close,
-                callback = callback
-            )
+            error_code=error_code,
+            stream=stream,
+            callback=lambda c: self.error_connection(
+                last_stream=last_stream,
+                error_code=error_code,
+                message=message,
+                close=close,
+                callback=callback,
+            ),
         )
 
     def on_header(self, header):
@@ -1015,10 +935,7 @@ class HTTP2Connection(http.HTTPConnection):
         self.owner.on_frame_http2(self, self.parser)
 
     def on_data_h2(self, stream, contents):
-        self.increment_local(
-            stream and stream.identifier,
-            increment = len(contents) * -1
-        )
+        self.increment_local(stream and stream.identifier, increment=len(contents) * -1)
         self.owner.on_data_http2(self, self.parser, stream, contents)
 
     def on_headers_h2(self, stream):
@@ -1046,55 +963,64 @@ class HTTP2Connection(http.HTTPConnection):
         self.owner.on_continuation_http2(self, self.parser, stream)
 
     def is_throttleable(self):
-        if self.legacy: return http.HTTPConnection.is_throttleable(self)
+        if self.legacy:
+            return http.HTTPConnection.is_throttleable(self)
         return False
 
     @property
     def connection_ctx(self):
-        if self.legacy: return super(HTTP2Connection, self).connection_ctx
-        if not self.parser: return self
-        if not self.parser.stream_o: return self
+        if self.legacy:
+            return super(HTTP2Connection, self).connection_ctx
+        if not self.parser:
+            return self
+        if not self.parser.stream_o:
+            return self
         return self.parser.stream_o
 
     @property
     def parser_ctx(self):
-        if self.legacy: return super(HTTP2Connection, self).parser_ctx
-        if not self.parser: return None
-        if not self.parser.stream_o: return self.parser
+        if self.legacy:
+            return super(HTTP2Connection, self).parser_ctx
+        if not self.parser:
+            return None
+        if not self.parser.stream_o:
+            return self.parser
         return self.parser.stream_o
 
     def _build_c(self, callback, stream, data_l):
-        stream = self.parser._get_stream(stream, strict = False)
-        if not stream: return callback
+        stream = self.parser._get_stream(stream, strict=False)
+        if not stream:
+            return callback
 
         stream.pending_s += data_l
         old_callback = callback
 
         def callback(connection):
             stream.pending_s -= data_l
-            if not old_callback: return
+            if not old_callback:
+                return
             return old_callback(connection)
 
         return callback
 
-    def _flush_plain(self, stream = None, callback = None):
-        self.send_part(b"", stream = stream, callback = callback)
+    def _flush_plain(self, stream=None, callback=None):
+        self.send_part(b"", stream=stream, callback=callback)
 
-    def _flush_chunked(self, stream = None, callback = None):
-        if self.legacy: return http.HTTPConnection._flush_chunked(
-            self,
-            stream = stream,
-            callback = callback
-        )
-        self._flush_plain(stream = stream, callback = callback)
+    def _flush_chunked(self, stream=None, callback=None):
+        if self.legacy:
+            return http.HTTPConnection._flush_chunked(
+                self, stream=stream, callback=callback
+            )
+        self._flush_plain(stream=stream, callback=callback)
+
 
 class HTTP2Server(http.HTTPServer):
 
     def __init__(
         self,
-        legacy = True,
-        safe = False,
-        settings = netius.common.HTTP2_SETTINGS_OPTIMAL,
+        legacy=True,
+        safe=False,
+        settings=netius.common.HTTP2_SETTINGS_OPTIMAL,
         *args,
         **kwargs
     ):
@@ -1105,13 +1031,15 @@ class HTTP2Server(http.HTTPServer):
         self.has_h2 = self._has_h2()
         self.has_all_h2 = self._has_all_h2()
         self._protocols = []
-        self.safe = self.get_env("SAFE", self.safe, cast = bool)
+        self.safe = self.get_env("SAFE", self.safe, cast=bool)
         http.HTTPServer.__init__(self, *args, **kwargs)
 
     @classmethod
     def _has_hpack(cls):
-        try: import hpack #@UnusedImport
-        except ImportError: return False
+        try:
+            import hpack  # @UnusedImport
+        except ImportError:
+            return False
         return True
 
     @classmethod
@@ -1122,31 +1050,34 @@ class HTTP2Server(http.HTTPServer):
     def _has_npn(cls):
         return ssl.HAS_NPN
 
-    def info_dict(self, full = False):
-        info = http.HTTPServer.info_dict(self, full = full)
+    def info_dict(self, full=False):
+        info = http.HTTPServer.info_dict(self, full=full)
         info.update(
-            legacy = self.legacy,
-            safe = self.safe,
-            has_h2 = self.has_h2,
-            has_all_h2 = self.has_all_h2
+            legacy=self.legacy,
+            safe=self.safe,
+            has_h2=self.has_h2,
+            has_all_h2=self.has_all_h2,
         )
         return info
 
     def get_protocols(self):
-        if self._protocols: return self._protocols
-        if not self.safe and self.has_h2: self._protocols.extend(["h2"])
-        if self.legacy: self._protocols.extend(["http/1.1", "http/1.0"])
+        if self._protocols:
+            return self._protocols
+        if not self.safe and self.has_h2:
+            self._protocols.extend(["h2"])
+        if self.legacy:
+            self._protocols.extend(["http/1.1", "http/1.0"])
         return self._protocols
 
-    def build_connection(self, socket, address, ssl = False):
+    def build_connection(self, socket, address, ssl=False):
         return HTTP2Connection(
-            owner = self,
-            socket = socket,
-            address = address,
-            ssl = ssl,
-            encoding = self.encoding,
-            legacy = self.legacy,
-            settings = self.settings
+            owner=self,
+            socket=socket,
+            address=address,
+            ssl=ssl,
+            encoding=self.encoding,
+            legacy=self.legacy,
+            settings=self.settings,
         )
 
     def on_exception(self, exception, connection):
@@ -1154,32 +1085,40 @@ class HTTP2Server(http.HTTPServer):
             return http.HTTPServer.on_exception(self, exception, connection)
         if not isinstance(exception, netius.NetiusError):
             return http.HTTPServer.on_exception(self, exception, connection)
-        try: self._handle_exception(exception, connection)
-        except Exception: connection.close()
+        try:
+            self._handle_exception(exception, connection)
+        except Exception:
+            connection.close()
 
     def on_ssl(self, connection):
         http.HTTPServer.on_ssl(self, connection)
-        if self.safe or not self.has_h2: return
+        if self.safe or not self.has_h2:
+            return
         protocol = connection.ssl_protocol()
-        if not protocol == "h2": return
+        if not protocol == "h2":
+            return
         connection.set_h2()
 
     def on_serve(self):
         http.HTTPServer.on_serve(self)
         safe_s = "with" if self.safe else "without"
         self.info("Starting HTTP2 server %s safe mode ..." % safe_s)
-        if not self.has_h2: self.info("No support for HTTP2 is available ...")
-        elif not self.has_all_h2: self.info("Limited support for HTTP2 is available ...")
+        if not self.has_h2:
+            self.info("No support for HTTP2 is available ...")
+        elif not self.has_all_h2:
+            self.info("Limited support for HTTP2 is available ...")
         for setting, name in netius.common.HTTP2_TUPLES:
-            if not self.env: continue
-            value = self.get_env(name, None, cast = int)
-            if value == None: continue
+            if not self.env:
+                continue
+            value = self.get_env(name, None, cast=int)
+            if value == None:
+                continue
             self.settings[setting] = value
             self.info("Setting HTTP2 setting %s with value '%d' ..." % (name, value))
         self.settings_t = netius.legacy.items(self.settings)
 
     def on_preface_http2(self, connection, parser):
-        connection.send_settings(settings = self.settings_t)
+        connection.send_settings(settings=self.settings_t)
         connection.send_delta()
 
     def on_header_http2(self, connection, parser, header):
@@ -1199,23 +1138,27 @@ class HTTP2Server(http.HTTPServer):
         pass
 
     def on_rst_stream_http2(self, connection, parser, stream, error_code):
-        if not stream: return
+        if not stream:
+            return
         stream.end_stream = True
         stream.end_stream_l = True
-        stream.close(reset = False)
+        stream.close(reset=False)
 
     def on_settings_http2(self, connection, parser, settings, ack):
-        if ack: return
+        if ack:
+            return
         self.debug("Received settings %s for connection" % str(settings))
         connection.set_settings(dict(settings))
-        connection.send_settings(ack = True)
+        connection.send_settings(ack=True)
 
     def on_ping_http2(self, connection, parser, opaque, ack):
-        if ack: return
-        connection.send_ping(opaque = opaque, ack = True)
+        if ack:
+            return
+        connection.send_ping(opaque=opaque, ack=True)
 
     def on_goaway_http2(self, connection, parser, last_stream, error_code, extra):
-        if error_code == 0x00: return
+        if error_code == 0x00:
+            return
         self._log_error(error_code, extra)
 
     def on_window_update_http2(self, connection, parser, stream, increment):
@@ -1230,14 +1173,18 @@ class HTTP2Server(http.HTTPServer):
 
     def _has_h2(self):
         cls = self.__class__
-        if not cls._has_hpack(): return False
+        if not cls._has_hpack():
+            return False
         return True
 
     def _has_all_h2(self):
         cls = self.__class__
-        if not cls._has_hpack(): return False
-        if not cls._has_alpn(): return False
-        if not cls._has_npn(): return False
+        if not cls._has_hpack():
+            return False
+        if not cls._has_alpn():
+            return False
+        if not cls._has_npn():
+            return False
         return True
 
     def _handle_exception(self, exception, connection):
@@ -1245,84 +1192,78 @@ class HTTP2Server(http.HTTPServer):
         error_code = exception.get_kwarg("error_code", 0x00)
         message = exception.get_kwarg("message", "")
         ignore = exception.get_kwarg("ignore", False)
-        self.warning(exception, stack = True)
+        self.warning(exception, stack=True)
         self.log_stack()
-        if ignore: return connection.send_ping(ack = True)
-        if stream: return connection.error_stream(
-            stream,
-            error_code = error_code,
-            message = message
-        )
-        return connection.error_connection(
-            error_code = error_code,
-            message = message
-        )
+        if ignore:
+            return connection.send_ping(ack=True)
+        if stream:
+            return connection.error_stream(
+                stream, error_code=error_code, message=message
+            )
+        return connection.error_connection(error_code=error_code, message=message)
 
     def _log_frame(self, connection, parser):
         self.debug(
-            "Received frame 0x%02x (%s) for stream %d with length %d bytes" %\
-            (parser.type, parser.type_s, parser.stream, parser.length)
+            "Received frame 0x%02x (%s) for stream %d with length %d bytes"
+            % (parser.type, parser.type_s, parser.stream, parser.length)
         )
 
         self._log_frame_details(
-            parser,
-            parser.type_s,
-            parser.flags,
-            parser.payload,
-            parser.stream,
-            False
+            parser, parser.type_s, parser.flags, parser.payload, parser.stream, False
         )
 
     def _log_error(self, error_code, extra):
         message = netius.legacy.str(extra)
-        self.warning(
-            "Received error 0x%02x with message '%s'" %\
-            (error_code, message)
-        )
+        self.warning("Received error 0x%02x with message '%s'" % (error_code, message))
 
     def _log_send(self, connection, parser, type, flags, payload, stream):
         length = len(payload)
         type_s = parser.get_type_s(type)
 
         self.debug(
-            "Sent frame 0x%02x (%s) for stream %d with length %d bytes" %\
-            (type, type_s, stream, length)
+            "Sent frame 0x%02x (%s) for stream %d with length %d bytes"
+            % (type, type_s, stream, length)
         )
 
         self._log_frame_details(parser, type_s, flags, payload, stream, True)
 
-    def _log_window(self, parser, stream, remote = False):
+    def _log_window(self, parser, stream, remote=False):
         name = "SEND" if remote else "RECV"
         connection = parser.connection
         window = connection.window if remote else connection.window_l
         self.debug("Connection %s window size is %d bytes" % (name, window))
-        stream = parser._get_stream(stream, strict = False)
-        if not stream: return
+        stream = parser._get_stream(stream, strict=False)
+        if not stream:
+            return
         window = stream.window if remote else stream.window_l
         self.debug(
-            "Stream %d (dependency = %d, weight = %d) %s window size is %d bytes" %\
-            (stream.identifier, stream.dependency, stream.weight, name, window)
+            "Stream %d (dependency = %d, weight = %d) %s window size is %d bytes"
+            % (stream.identifier, stream.dependency, stream.weight, name, window)
         )
 
     def _log_frame_details(self, parser, type_s, flags, payload, stream, out):
         type_l = type_s.lower()
         method_s = "_log_frame_" + type_l
-        if not hasattr(self, method_s): return
+        if not hasattr(self, method_s):
+            return
         method = getattr(self, method_s)
         method(parser, flags, payload, stream, out)
 
     def _log_frame_flags(self, type_s, *args):
         flags = ", ".join(args)
         pluralized = "flags" if len(args) > 1 else "flag"
-        if flags: self.debug("%s with %s %s active" % (type_s, pluralized, flags))
-        else: self.debug("Frame %s with no flags active" % type_s)
+        if flags:
+            self.debug("%s with %s %s active" % (type_s, pluralized, flags))
+        else:
+            self.debug("Frame %s with no flags active" % type_s)
 
     def _log_frame_data(self, parser, flags, payload, stream, out):
-        _stream = parser._get_stream(stream, strict = False)
+        _stream = parser._get_stream(stream, strict=False)
         flags_l = self._flags_l(flags, (("END_STREAM", 0x01),))
         self._log_frame_flags("DATA", *flags_l)
-        if _stream: self.debug("Frame DATA for path '%s'" % _stream.path_s)
-        self._log_window(parser, stream, remote = out)
+        if _stream:
+            self.debug("Frame DATA for path '%s'" % _stream.path_s)
+        self._log_window(parser, stream, remote=out)
 
     def _log_frame_headers(self, parser, flags, payload, stream, out):
         flags_l = self._flags_l(
@@ -1331,32 +1272,33 @@ class HTTP2Server(http.HTTPServer):
                 ("END_STREAM", 0x01),
                 ("END_HEADERS", 0x04),
                 ("PADDED", 0x08),
-                ("PRIORITY", 0x20)
-            )
+                ("PRIORITY", 0x20),
+            ),
         )
         self._log_frame_flags("HEADERS", *flags_l)
 
     def _log_frame_rst_stream(self, parser, flags, payload, stream, out):
-        error_code, = struct.unpack("!I", payload)
+        (error_code,) = struct.unpack("!I", payload)
         self.debug("Frame RST_STREAM with error code %d" % error_code)
 
     def _log_frame_goaway(self, parser, flags, payload, stream, out):
         last_stream, error_code = struct.unpack("!II", payload[:8])
         extra = payload[8:]
         self.debug(
-            "Frame GOAWAY with last stream %d, error code %d and message %s" %\
-            (last_stream, error_code, extra)
+            "Frame GOAWAY with last stream %d, error code %d and message %s"
+            % (last_stream, error_code, extra)
         )
 
     def _log_frame_window_update(self, parser, flags, payload, stream, out):
-        increment, = struct.unpack("!I", payload)
+        (increment,) = struct.unpack("!I", payload)
         self.debug("Frame WINDOW_UPDATE with increment %d" % increment)
-        self._log_window(parser, stream, remote = not out)
+        self._log_window(parser, stream, remote=not out)
 
     def _flags_l(self, flags, definition):
         flags_l = []
         for name, value in definition:
             valid = True if flags & value else False
-            if not valid: continue
+            if not valid:
+                continue
             flags_l.append(name)
         return flags_l

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,22 +22,14 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import netius
+
 
 class EchoServerProtocol(object):
 
@@ -51,12 +43,12 @@ class EchoServerProtocol(object):
         print("Send %r to %s" % (message, addr))
         self.transport.sendto(data, addr)
 
+
 print("Starting UDP server")
 
-loop = netius.get_loop(_compat = True)
+loop = netius.get_loop(_compat=True)
 listen = loop.create_datagram_endpoint(
-    lambda: EchoServerProtocol(),
-    local_addr = ("127.0.0.1", 9999)
+    lambda: EchoServerProtocol(), local_addr=("127.0.0.1", 9999)
 )
 transport, protocol = loop.run_until_complete(listen)
 

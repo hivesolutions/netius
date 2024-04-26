@@ -22,15 +22,6 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
 __copyright__ = "Copyright (c) 2008-2018 Hive Solutions Lda."
 """ The copyright for the module """
 
@@ -41,9 +32,10 @@ import netius
 
 import asyncio
 
+
 class HelloHTTPServerProtocol(asyncio.Protocol):
 
-    def __init__(self, keep_alive = True):
+    def __init__(self, keep_alive=True):
         super().__init__()
         self.keep_alive = keep_alive
 
@@ -57,21 +49,25 @@ class HelloHTTPServerProtocol(asyncio.Protocol):
 
     def data_received(self, data):
         keep_alive_s = b"keep-alive" if self.keep_alive else b"close"
-        self.transport.write(b"HTTP/1.1 200 OK\r\nConnection: %s\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, world!" % keep_alive_s)
-        if not self.keep_alive: self.transport.close()
+        self.transport.write(
+            b"HTTP/1.1 200 OK\r\nConnection: %s\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, world!"
+            % keep_alive_s
+        )
+        if not self.keep_alive:
+            self.transport.close()
 
-loop = netius.get_loop(_compat = True)
 
-coro = loop.create_server(
-    lambda: HelloHTTPServerProtocol(),
-    "127.0.0.1", 8888
-)
+loop = netius.get_loop(_compat=True)
+
+coro = loop.create_server(lambda: HelloHTTPServerProtocol(), "127.0.0.1", 8888)
 server = loop.run_until_complete(coro)
 
 print("Serving on %s" % (server.sockets[0].getsockname(),))
 
-try: loop.run_forever()
-except KeyboardInterrupt: pass
+try:
+    loop.run_forever()
+except KeyboardInterrupt:
+    pass
 
 server.close()
 loop.run_until_complete(server.wait_closed())

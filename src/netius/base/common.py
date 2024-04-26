@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -57,10 +48,10 @@ from . import asynchronous
 
 from .. import middleware
 
-from .conn import * #@UnusedWildImport pylint: disable=W0614
-from .poll import * #@UnusedWildImport pylint: disable=W0614
-from .service import * #@UnusedWildImport pylint: disable=W0614
-from .asynchronous import * #@UnusedWildImport pylint: disable=W0614
+from .conn import *  # @UnusedWildImport pylint: disable=W0614
+from .poll import *  # @UnusedWildImport pylint: disable=W0614
+from .service import *  # @UnusedWildImport pylint: disable=W0614
+from .asynchronous import *  # @UnusedWildImport pylint: disable=W0614
 
 NAME = "netius"
 """ The global infra-structure name to be used in the
@@ -78,7 +69,7 @@ PLATFORM = "%s %d.%d.%d.%s %s" % (
     sys.version_info[1],
     sys.version_info[2],
     sys.version_info[3],
-    sys.platform
+    sys.platform,
 )
 """ Extra system information containing some of the details
 of the technical platform that is running the system, this
@@ -100,8 +91,11 @@ IDENTIFIER_LONG = "%s/%s (%s)" % (NAME, VERSION, PLATFORM)
 development like environment as it shows critical information
 about the system internals that may expose the system """
 
-IDENTIFIER = IDENTIFIER_LONG if config._is_devel() else\
-    IDENTIFIER_TINY if config._is_secure() else IDENTIFIER_SHORT
+IDENTIFIER = (
+    IDENTIFIER_LONG
+    if config._is_devel()
+    else IDENTIFIER_TINY if config._is_secure() else IDENTIFIER_SHORT
+)
 """ The identifier that may be used to identify an user agent
 or service running under the current platform, this string
 should comply with the typical structure for such values,
@@ -131,12 +125,7 @@ where the certificate does not required re-loading as it is
 already present in the hash table, this error may be safely
 ignored as it does not represent a threat """
 
-POLL_ORDER = (
-    EpollPoll,
-    KqueuePoll,
-    PollPoll,
-    SelectPoll
-)
+POLL_ORDER = (EpollPoll, KqueuePoll, PollPoll, SelectPoll)
 """ The order from which the poll methods are going to be
 selected from the fastest to the slowest, in case no explicit
 poll method is defined for a base service they are selected
@@ -147,7 +136,7 @@ SILENT_ERRORS = (
     errno.ECONNRESET,
     errno.EPIPE,
     WSAECONNABORTED,
-    WSAECONNRESET
+    WSAECONNRESET,
 )
 """ List that contain the various connection error states that
 should not raise any extra logging information because even though
@@ -159,15 +148,12 @@ VALID_ERRORS = (
     errno.EPERM,
     errno.ENOENT,
     errno.EINPROGRESS,
-    WSAEWOULDBLOCK
+    WSAEWOULDBLOCK,
 )
 """ List containing the complete set of error that represent
 non ready operations in a non blocking socket """
 
-SSL_SILENT_ERRORS = (
-    ssl.SSL_ERROR_EOF,
-    ssl.SSL_ERROR_ZERO_RETURN
-)
+SSL_SILENT_ERRORS = (ssl.SSL_ERROR_EOF, ssl.SSL_ERROR_ZERO_RETURN)
 """ The list containing the errors that should be silenced
 while still making the connection dropped as they are expected
 to occur and should not be considered an exception """
@@ -175,22 +161,20 @@ to occur and should not be considered an exception """
 SSL_VALID_ERRORS = (
     ssl.SSL_ERROR_WANT_READ,
     ssl.SSL_ERROR_WANT_WRITE,
-    SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE
+    SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE,
 )
 """ The list containing the valid errors for the handshake
 operation of the SSL connection establishment """
 
 SSL_ERROR_NAMES = {
-    ssl.SSL_ERROR_WANT_READ : "SSL_ERROR_WANT_READ",
-    ssl.SSL_ERROR_WANT_WRITE : "SSL_ERROR_WANT_WRITE",
-    SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE : "SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE"
+    ssl.SSL_ERROR_WANT_READ: "SSL_ERROR_WANT_READ",
+    ssl.SSL_ERROR_WANT_WRITE: "SSL_ERROR_WANT_WRITE",
+    SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE: "SSL_ERROR_CERT_ALREADY_IN_HASH_TABLE",
 }
 """ The dictionary containing the association between the
 various SSL errors and their string representation """
 
-SSL_VALID_REASONS = (
-    "CERT_ALREADY_IN_HASH_TABLE",
-)
+SSL_VALID_REASONS = ("CERT_ALREADY_IN_HASH_TABLE",)
 """ The list containing the valid reasons for the handshake
 operation of the SSL connection establishment """
 
@@ -255,7 +239,7 @@ STATE_STRINGS = (
     "TICK",
     "READ",
     "WRITE",
-    "ERROR"
+    "ERROR",
 )
 """ Sequence that contains the various strings associated with
 the various states for the base service, this may be used to
@@ -295,8 +279,11 @@ SSL_KEY_PATH = os.path.join(EXTRAS_PATH, "net.key")
 SSL_CER_PATH = os.path.join(EXTRAS_PATH, "net.cer")
 SSL_CA_PATH = os.path.join(EXTRAS_PATH, "net.ca")
 SSL_DH_PATH = os.path.join(EXTRAS_PATH, "dh.pem")
-if not os.path.exists(SSL_CA_PATH): SSL_CA_PATH = None
-if not os.path.exists(SSL_DH_PATH): SSL_DH_PATH = None
+if not os.path.exists(SSL_CA_PATH):
+    SSL_CA_PATH = None
+if not os.path.exists(SSL_DH_PATH):
+    SSL_DH_PATH = None
+
 
 class AbstractBase(observer.Observable):
     """
@@ -318,14 +305,18 @@ class AbstractBase(observer.Observable):
     should be used to provide compatibility with protocol and
     transports used by the new API """
 
-    def __init__(self, name = None, handlers = None, *args, **kwargs):
+    def __init__(self, name=None, handlers=None, *args, **kwargs):
         observer.Observable.__init__(self, *args, **kwargs)
         cls = self.__class__
         poll = cls.test_poll()
         self.name = name or self.__class__.__name__
         self.handler_stream = logging.StreamHandler()
-        self.handler_remote = log.LogstashHandler() if log.LogstashHandler.is_ready() else None
-        self.handlers = handlers or (self.handler_stream,) + ((self.handler_remote,) if self.handler_remote else ())
+        self.handler_remote = (
+            log.LogstashHandler() if log.LogstashHandler.is_ready() else None
+        )
+        self.handlers = handlers or (self.handler_stream,) + (
+            (self.handler_remote,) if self.handler_remote else ()
+        )
         self.level = kwargs.get("level", logging.INFO)
         self.diag = kwargs.get("diag", False)
         self.middleware = kwargs.get("middleware", [])
@@ -378,7 +369,7 @@ class AbstractBase(observer.Observable):
         self.set_state(STATE_STOP)
 
     @classmethod
-    def test_poll(cls, preferred = None):
+    def test_poll(cls, preferred=None):
         # sets the initial selected variable with the unselected
         # (invalid) value so that at lease one selection must be
         # done in order for this method to succeed
@@ -389,44 +380,49 @@ class AbstractBase(observer.Observable):
         # the current situation, either the preferred poll method or
         # the most performant one in case it's not possible
         for poll in POLL_ORDER:
-            if not poll.test(): continue
-            if not selected: selected = poll
-            if not preferred: break
+            if not poll.test():
+                continue
+            if not selected:
+                selected = poll
+            if not preferred:
+                break
             name = poll.name()
-            if not name == preferred: continue
+            if not name == preferred:
+                continue
             selected = poll
             break
 
         # in case no polling method was selected must raise an exception
         # indicating that no valid polling mechanism is available
-        if not selected: raise errors.NetiusError(
-            "No valid poll mechanism available"
-        )
+        if not selected:
+            raise errors.NetiusError("No valid poll mechanism available")
 
         # returns the selected polling mechanism class to the caller method
         # as expected by the current method
         return selected
 
     @classmethod
-    def get_loop(cls, compat = False, asyncio = False):
+    def get_loop(cls, compat=False, asyncio=False):
         loop = cls.get_asyncio() if asyncio else None
-        loop = loop or cls.get_main(compat = compat)
+        loop = loop or cls.get_main(compat=compat)
         return loop
 
     @classmethod
-    def get_main(cls, compat = False):
+    def get_main(cls, compat=False):
         return cls._MAIN_C if compat else cls._MAIN
 
     @classmethod
     def get_asyncio(cls):
         asyncio = asynchronous.get_asyncio()
-        if not asyncio: return None
+        if not asyncio:
+            return None
         policy = asyncio.get_event_loop_policy()
-        if not policy._local._loop: return None
+        if not policy._local._loop:
+            return None
         return asyncio.get_event_loop()
 
     @classmethod
-    def set_main(cls, instance, set_compat = True, set_running = True):
+    def set_main(cls, instance, set_compat=True, set_running=True):
         # encapsulates the current event loop instance with a compatibility
         # layer (with asyncio) and then updates both the global reference
         # to the Netius event loop and the compatibility version of it
@@ -438,12 +434,14 @@ class AbstractBase(observer.Observable):
         # is not requested (updating asyncio to make sure it returns
         # the current loop as the main one) then there's nothing else
         # remaining to be done, returns the control flow
-        if not set_compat: return
+        if not set_compat:
+            return
 
         # tries to obtain the asyncio reference in case there's
         # none available returns immediately (not possible to set main)
         asyncio = asynchronous.get_asyncio()
-        if not asyncio: return
+        if not asyncio:
+            return
 
         # runs a series of patches in the current asyncio
         # infra-structure to make sure that it's ready to
@@ -465,17 +463,19 @@ class AbstractBase(observer.Observable):
             asyncio._set_running_loop(compat)
 
     @classmethod
-    def unset_main(cls, set_compat = True):
-        cls.set_main(None, set_compat = set_compat)
+    def unset_main(cls, set_compat=True):
+        cls.set_main(None, set_compat=set_compat)
 
     @classmethod
     def patch_asyncio(cls):
         asyncio = asynchronous.get_asyncio()
-        if not asyncio: return
-        if hasattr(asyncio, "_patched"): return
+        if not asyncio:
+            return
+        if hasattr(asyncio, "_patched"):
+            return
         if hasattr(asyncio.tasks, "_PyTask"):
-            asyncio.Task = asyncio.tasks._PyTask #@UndefinedVariable
-            asyncio.tasks.Task = asyncio.tasks._PyTask #@UndefinedVariable
+            asyncio.Task = asyncio.tasks._PyTask  # @UndefinedVariable
+            asyncio.tasks.Task = asyncio.tasks._PyTask  # @UndefinedVariable
         asyncio._patched = True
 
     @classmethod
@@ -488,7 +488,8 @@ class AbstractBase(observer.Observable):
                 # needs to verify if an os error is raised with
                 # the value 3 (interrupted system call) as python
                 # does not handle these errors correctly
-                if error.errno == 4: continue
+                if error.errno == 4:
+                    continue
                 raise
 
     def destroy(self):
@@ -496,14 +497,15 @@ class AbstractBase(observer.Observable):
 
         # iterates over the complete set of sockets in the connections
         # map to properly close them (avoids any leak of resources)
-        for _socket in self.connections_m: _socket.close()
+        for _socket in self.connections_m:
+            _socket.close()
 
         # clears some of the internal structure so that they don't
         # get called any longer (as expected)
         self.connections_m.clear()
         self.callbacks_m.clear()
 
-    def call_safe(self, callable, args = [], kwargs = {}):
+    def call_safe(self, callable, args=[], kwargs={}):
         """
         Calls the provided callable object using a safe strategy
         meaning that in case there's an exception raised in the
@@ -532,16 +534,17 @@ class AbstractBase(observer.Observable):
             # in case there's an exception displays a warning
             # about the raised exception and the logs the current
             # stack so that the exception is traceable
-            self.warning(exception, stack = True)
+            self.warning(exception, stack=True)
             self.log_stack()
 
-    def wait_event(self, callable, name = None):
+    def wait_event(self, callable, name=None):
         # tries to retrieve the list of binds for the event
         # to be "waited" for, this list should contain the
         # complete list of callables to be called upon the
         # event notification/trigger
         binds = self._events.get(name, [])
-        if callable in binds: return
+        if callable in binds:
+            return
 
         # adds the callable to the list of binds for the event
         # the complete set of callables will be called whenever
@@ -549,12 +552,13 @@ class AbstractBase(observer.Observable):
         binds.append(callable)
         self._events[name] = binds
 
-    def unwait_event(self, callable, name = None):
+    def unwait_event(self, callable, name=None):
         # tries to retrieve the list of binds for the event
         # and verifies that the callable is present on them
         # and if that's not the case ignores the operation
         binds = self._events.get(name, None)
-        if not binds or not callable in binds: return
+        if not binds or not callable in binds:
+            return
 
         # removes the callable from the binds list so that
         # it's no longer going to be called
@@ -562,39 +566,35 @@ class AbstractBase(observer.Observable):
 
         # verifies if the binds list is still valid deleting
         # it from the map of events otherwise
-        if binds: self._events[name] = binds
-        else: del self._events[name]
+        if binds:
+            self._events[name] = binds
+        else:
+            del self._events[name]
 
     def delay(
-        self,
-        callable,
-        timeout = None,
-        immediately = False,
-        verify = False,
-        safe = False
+        self, callable, timeout=None, immediately=False, verify=False, safe=False
     ):
         # in case the safe flag is set and the thread trying to add
         # delayed elements is not the main the proper (safe) method
         # is used meaning a safe execution is targeted
         if safe and not self.is_main():
             return self.delay_s(
-                callable,
-                timeout = timeout,
-                immediately = immediately,
-                verify = verify
+                callable, timeout=timeout, immediately=immediately, verify=verify
             )
 
         # in case the legacy module is no longer defined (probably
         # at exit execution) then returns immediately as it's not
         # possible to proceed with this execution
-        if not legacy: return
+        if not legacy:
+            return
 
         # creates the original target value with a zero value (forced
         # execution in next tick) in case the timeout value is set the
         # value is incremented to the current time, then created the
         # callable original tuple with the target (time) and the callable
         target = -1 if immediately else 0
-        if timeout: target = time.time() + timeout
+        if timeout:
+            target = time.time() + timeout
         callable_o = (target, callable)
         callable_o = legacy.orderable(callable_o)
 
@@ -602,7 +602,8 @@ class AbstractBase(observer.Observable):
         # is already inserted in the list of delayed operations in
         # case it does returns immediately to avoid duplicated values
         is_duplicate = verify and callable_o in self._delayed_o
-        if is_duplicate: return
+        if is_duplicate:
+            return
 
         # creates the list that is going to be used to populate the
         # options to be used by the calling tuple
@@ -626,12 +627,7 @@ class AbstractBase(observer.Observable):
         return callable_t
 
     def delay_s(
-        self,
-        callable,
-        timeout = None,
-        immediately = True,
-        verify = False,
-        wakeup = True
+        self, callable, timeout=None, immediately=True, verify=False, wakeup=True
     ):
         """
         Safe version of the delay operation to be used to insert a callable
@@ -668,37 +664,36 @@ class AbstractBase(observer.Observable):
         # the delayed (next) list is only going to be joined/merged with delay
         # operations and list on the next tick (through the merge operation)
         self._delayed_l.acquire()
-        try: self._delayed_n.append(next)
-        finally: self._delayed_l.release()
+        try:
+            self._delayed_n.append(next)
+        finally:
+            self._delayed_l.release()
 
         # in case the wakeup flag is set this delay operation should have
         # been called from a different thread and the event loop should
         # awaken as soon as possible to handle the event
-        if wakeup: self.wakeup()
+        if wakeup:
+            self.wakeup()
 
     def interval_s(
-        self,
-        callable,
-        timeout = None,
-        immediately = True,
-        verify = False,
-        wakeup = True
+        self, callable, timeout=None, immediately=True, verify=False, wakeup=True
     ):
         def callable_i():
             callable()
             self.delay_s(
                 callable_i,
-                timeout = timeout,
-                immediately = immediately,
-                verify = verify,
-                wakeup = wakeup
+                timeout=timeout,
+                immediately=immediately,
+                verify=verify,
+                wakeup=wakeup,
             )
+
         self.delay_s(
             callable_i,
-            timeout = timeout,
-            immediately = immediately,
-            verify = verify,
-            wakeup = wakeup
+            timeout=timeout,
+            immediately=immediately,
+            verify=verify,
+            wakeup=wakeup,
         )
 
     def delay_m(self):
@@ -710,17 +705,15 @@ class AbstractBase(observer.Observable):
 
         # verifies if the delay next list is not valid or empty and if that's
         # the case returns immediately as there's nothing to be merged
-        if not self._delayed_n: return
+        if not self._delayed_n:
+            return
 
         # iterates over the complete set of next elements in the delay next list
         # and schedules them as delay for the next tick execution
         for next in self._delayed_n:
             callable, timeout, immediately, verify = next
             self.delay(
-                callable,
-                timeout = timeout,
-                immediately = immediately,
-                verify = verify
+                callable, timeout=timeout, immediately=immediately, verify=verify
             )
 
         # deletes the complete set of elements present in the delay next list, this
@@ -728,13 +721,7 @@ class AbstractBase(observer.Observable):
         del self._delayed_n[:]
 
     def ensure(
-        self,
-        coroutine,
-        args = [],
-        kwargs = {},
-        thread = None,
-        future = None,
-        immediately = True
+        self, coroutine, args=[], kwargs={}, thread=None, future=None, immediately=True
     ):
         """
         Main method for the queuing/startup of an asynchronous coroutine
@@ -785,7 +772,8 @@ class AbstractBase(observer.Observable):
         is_coroutine = asynchronous.is_coroutine(coroutine)
         is_coroutine_object = asynchronous.is_coroutine_object(coroutine)
         is_defined = is_coroutine or is_coroutine_object
-        if thread == None: thread = False if is_defined else True
+        if thread == None:
+            thread = False if is_defined else True
 
         # verifies if a future variable is meant to be re-used
         # or if instead a new one should be created for the new
@@ -804,7 +792,7 @@ class AbstractBase(observer.Observable):
             # creates the coroutine that is going to be used to
             # encapsulate the callable, note that the result of the
             # callable is set as the result of the future (as expected)
-            def coroutine(future, *args, **kwargs): #pylint ignore=E0102
+            def coroutine(future, *args, **kwargs):  # pylint ignore=E0102
                 yield
                 result = coroutine_c(*args, **kwargs)
                 future.set_result(result)
@@ -813,9 +801,12 @@ class AbstractBase(observer.Observable):
         # operation from the "parent" future to the child one, this
         # should also close the associated generator
         def cleanup(future):
-            if not future.cancelled(): return
-            if not hasattr(future, "child"): return
-            if not future.child: return
+            if not future.cancelled():
+                return
+            if not hasattr(future, "child"):
+                return
+            if not future.child:
+                return
             future.child.cancel()
 
         # adds the cleanup function as a done callback so that whenever
@@ -844,22 +835,27 @@ class AbstractBase(observer.Observable):
             # will be used for the control of the execution, notice that
             # the future is only passed in case the coroutine has been
             # determined to be receiving the future as first argument
-            if is_future: sequence = coroutine(future, *args, **kwargs)
-            else: sequence = coroutine(*args, **kwargs)
+            if is_future:
+                sequence = coroutine(future, *args, **kwargs)
+            else:
+                sequence = coroutine(*args, **kwargs)
 
         # calls the ensure generator method so that the provided sequence
         # gets properly "normalized" into the expected generator structure
         # in case the normalization is not possible a proper exception is
         # raised indicating the "critical" problem
         is_generator, sequence = asynchronous.ensure_generator(sequence)
-        if not is_generator: raise errors.AssertionError("Expected generator")
+        if not is_generator:
+            raise errors.AssertionError("Expected generator")
 
         # creates the callable that is going to be used to call
         # the coroutine with the proper future variable as argument
         # note that in case the thread mode execution is enabled the
         # callable is going to be executed on a different thread
-        if thread: callable = lambda f = future: self.texecute(step, [f])
-        else: callable = lambda f = future: step(f)
+        if thread:
+            callable = lambda f=future: self.texecute(step, [f])
+        else:
+            callable = lambda f=future: step(f)
 
         # creates the function that will be used to step through the
         # various elements in the sequence created from the calling of
@@ -913,10 +909,12 @@ class AbstractBase(observer.Observable):
                 # and then breaks the loop, notice that if there's an
                 # exception raised in the middle of the generator iteration
                 # it's set on the future (indirect notification)
-                try: value = next(sequence)
+                try:
+                    value = next(sequence)
                 except StopIteration as exception:
                     result = exception.args[0] if exception.args else None
-                    if future.running(): future.set_result(result)
+                    if future.running():
+                        future.set_result(result)
                     break
                 except BaseException as exception:
                     future.set_exception(exception)
@@ -943,6 +941,7 @@ class AbstractBase(observer.Observable):
                     # so that the event loop on the main thread gets unblocked and
                     # the proper partial value handling is performed (always on main thread)
                     if thread:
+
                         def handler():
                             future.partial(value)
                             callable()
@@ -957,10 +956,10 @@ class AbstractBase(observer.Observable):
 
         # delays the execution of the callable so that it is executed
         # immediately if possible (event on the same iteration)
-        self.delay(callable, immediately = immediately)
+        self.delay(callable, immediately=immediately)
         return future
 
-    def resolve_hostname(self, hostname, type = "a"):
+    def resolve_hostname(self, hostname, type="a"):
         """
         Resolve the provided hostname according to the provided type
         resolution. The resolution process itself is asynchronous and
@@ -990,27 +989,16 @@ class AbstractBase(observer.Observable):
 
             future.set_result(address)
 
-        netius.clients.DNSClient.query_s(
-            hostname,
-            type = type,
-            callback = handler
-        )
+        netius.clients.DNSClient.query_s(hostname, type=type, callback=handler)
 
         return future
 
     def run_forever(self):
         # starts the current event loop, this is a blocking operation until
         # the the stop method is called to unblock the loop
-        self.forever(env = False)
+        self.forever(env=False)
 
-    def run_coroutine(
-        self,
-        coroutine,
-        args = [],
-        kwargs = {},
-        thread = None,
-        close = None
-    ):
+    def run_coroutine(self, coroutine, args=[], kwargs={}, thread=None, close=None):
         # creates the callback function that is going to be called when
         # the future associated with the provided ensure context gets
         # finished (on done callback)
@@ -1027,12 +1015,11 @@ class AbstractBase(observer.Observable):
 
         # ensures that the provided coroutine get executed under a new
         # context and retrieves the resulting future
-        future = self.ensure(
-            coroutine,
-            args = args,
-            kwargs = kwargs,
-            thread = thread
-        ) if is_coroutine else coroutine
+        future = (
+            self.ensure(coroutine, args=args, kwargs=kwargs, thread=thread)
+            if is_coroutine
+            else coroutine
+        )
 
         # defines the cleanup operation (loop stop) as the target for the
         # done operation on the future (allows cleanup)
@@ -1047,27 +1034,31 @@ class AbstractBase(observer.Observable):
         # execution and returns the control flow immediately with
         # the future's result, to be used by the caller
         exception = future.exception()
-        if not exception: return future.result()
+        if not exception:
+            return future.result()
 
         # raises the exception to the upper layers so that it's properly
         # handled by them, this is the expected behaviour by this sync
         # execution mode of the coroutine inside an event loop
         raise exception
 
-    def wakeup(self, force = False):
+    def wakeup(self, force=False):
         # verifies if this is the main thread and if that's not the case
         # and the force flag is not set ignore the wakeup operation, avoiding
         # extra usage of resources (not required)
-        if self.is_main() and not force: return
+        if self.is_main() and not force:
+            return
 
         # makes sure that the the notify pool is started (required for proper
         # event notification) and then runs the notification process, should
         # "wake" the main event loop as soon as possible
-        if force: self.nensure()
-        if not self.npool: return
+        if force:
+            self.nensure()
+        if not self.npool:
+            return
         self.npool.notify()
 
-    def sleep(self, timeout, future = None):
+    def sleep(self, timeout, future=None):
         # verifies if a future variable is meant to be re-used
         # or if instead a new one should be created for the new
         # sleep operation to be executed
@@ -1080,10 +1071,10 @@ class AbstractBase(observer.Observable):
         # delays the execution of the callable so that it is executed
         # after the requested amount of timeout, note that the resolution
         # of the event loop will condition the precision of the timeout
-        self.delay(callable, timeout = timeout)
+        self.delay(callable, timeout=timeout)
         return future
 
-    def wait(self, event, timeout = None, future = None):
+    def wait(self, event, timeout=None, future=None):
         # verifies if a future variable is meant to be re-used
         # or if instead a new one should be created for the new
         # sleep operation to be executed
@@ -1093,21 +1084,23 @@ class AbstractBase(observer.Observable):
         # the final value of the future variable, the result
         # set in the future represents the payload of the event
         def callable(data):
-            if future.cancelled(): return
+            if future.cancelled():
+                return
             future.set_result(data)
 
         # creates the callable that is going to be called in case
         # the timeout has been reached, this avoids constant waiting
         # for an event to happen (dead lock)
         def canceler():
-            if future.done(): return
+            if future.done():
+                return
             future.cancel()
 
         # creates the callback function that is going to be called
         # whenever the future is completed (either error or success)
         # this should run the series of cleanup operations
         def cleanup(future):
-            self.unwait_event(callable, name = event)
+            self.unwait_event(callable, name=event)
 
         # registers the cleanup function for the done operation so that
         # the waiting for the event is canceled whenever the future is
@@ -1117,30 +1110,32 @@ class AbstractBase(observer.Observable):
         # waits the execution of the callable until the event with the
         # provided name is notified/triggered, the execution should be
         # triggered on the same event loop tick as the notification
-        self.wait_event(callable, name = event)
+        self.wait_event(callable, name=event)
 
         # in case a valid timeout is set schedules the canceler operation
         # to be performed (to unblock the waiting element)
-        if timeout: self.delay(canceler, timeout = timeout)
+        if timeout:
+            self.delay(canceler, timeout=timeout)
 
         # returns the provided future or a new one in case none has been
         # provided, this will be used for proper event registration
         return future
 
-    def notify(self, event, data = None):
+    def notify(self, event, data=None):
         # adds the event with the provided name to the list of notifications
         # that are going to be processed in the current tick operation
         self._notified.append((event, data))
 
         # in case this is considered to be the main thread there no need to
         # proceed with the task pool notification process (expensive)
-        if self.is_main(): return
+        if self.is_main():
+            return
 
         # runs the wakeup operation making sure that as soon as possible the
         # main event loop gets unblocked for event processing
         self.wakeup()
 
-    def load(self, full = False):
+    def load(self, full=False):
         """
         Starts the loading process for the current engine, this should be
         a singleton (run once) operation to be executed once per instance.
@@ -1158,7 +1153,8 @@ class AbstractBase(observer.Observable):
 
         # in case the current structure is considered/marked as already loaded
         # there's no need to continue with the loading execution (returns immediately)
-        if self._loaded: return
+        if self._loaded:
+            return
 
         # calls the boot hook responsible for the initialization of the various
         # structures of the base system, note that is going to be called once
@@ -1167,7 +1163,7 @@ class AbstractBase(observer.Observable):
 
         # loads the various parts of the base system, under this calls each
         # of the systems should have it's internal structures started
-        self.load_logging(self.level, unique = not self._main)
+        self.load_logging(self.level, unique=not self._main)
 
         # loads the diagnostics application handlers that allows external
         # interaction with the service for diagnostics/debugging
@@ -1191,7 +1187,7 @@ class AbstractBase(observer.Observable):
         # will be done after this first call to the loading (no duplicates)
         self._loaded = True
 
-    def unload(self, full = True):
+    def unload(self, full=True):
         """
         Unloads the structures associated with the current engine, so that
         the state of the current engine is reversed to the original one.
@@ -1209,11 +1205,13 @@ class AbstractBase(observer.Observable):
         # verifies if the current structure is considered/marked as already
         # "unloaded", if that's the case returns the control flow immediately
         # as there's nothing pending to be (undone)
-        if not self._loaded: return
+        if not self._loaded:
+            return
 
         # triggers the operation that will start the unloading process of the
         # logging infra-structure of the current system
-        if full: self.unload_logging()
+        if full:
+            self.unload_logging()
 
         # runs the unbind operation for the signals so that no side effects
         # occur while the unloading is going to take place
@@ -1233,10 +1231,11 @@ class AbstractBase(observer.Observable):
     def welcome(self):
         pass
 
-    def load_logging(self, level = logging.DEBUG, format = LOG_FORMAT, unique = False):
+    def load_logging(self, level=logging.DEBUG, format=LOG_FORMAT, unique=False):
         # verifies if there's a logger already set in the current service
         # if that's the case ignores the call no double reloading allowed
-        if self.logger: return
+        if self.logger:
+            return
 
         # normalizes the provided level value so that it represents
         # a proper and understandable value, then starts the formatter
@@ -1244,7 +1243,7 @@ class AbstractBase(observer.Observable):
         # identifier to be used in the logger retrieval/identification
         level = self._level(level)
         formatter = logging.Formatter(format)
-        identifier = self.get_id(unique = unique)
+        identifier = self.get_id(unique=unique)
 
         # retrieves the logger that is going to be according to the
         # decided identifier and then verifies that the counter value
@@ -1255,7 +1254,8 @@ class AbstractBase(observer.Observable):
         counter = self.logger._counter if hasattr(self.logger, "_counter") else 0
         is_new = counter == 0
         self.logger._counter = counter + 1
-        if not is_new: return
+        if not is_new:
+            return
 
         # start the extra logging infrastructure (extra handlers)
         # and initializes the stream handlers with the proper level
@@ -1270,18 +1270,20 @@ class AbstractBase(observer.Observable):
         self.logger.parent = None
         self.logger.setLevel(level)
         for handler in self.handlers:
-            if not handler: continue
+            if not handler:
+                continue
             self.logger.addHandler(handler)
 
         # schedules an interval operation to make sure that the logging
         # is properly flushed from time to time
-        self.interval_s(self.flush_logging, timeout = self.logger_flush_t)
+        self.interval_s(self.flush_logging, timeout=self.logger_flush_t)
 
-    def unload_logging(self, safe = True):
+    def unload_logging(self, safe=True):
         # verifies if there's a valid logger instance set in the
         # current service, in case there's not returns immediately
         # as there's nothing remaining to be done here
-        if not self.logger: return
+        if not self.logger:
+            return
 
         # updates the counter value for the logger and validates
         # that no more "clients" are using the logger so that it
@@ -1289,7 +1291,8 @@ class AbstractBase(observer.Observable):
         counter = self.logger._counter
         is_old = counter == 1
         self.logger._counter = counter - 1
-        if not is_old: return
+        if not is_old:
+            return
 
         # flushes the logging contents making sure that no log data
         # is lost in the process, this is considered a critical operation
@@ -1298,7 +1301,8 @@ class AbstractBase(observer.Observable):
         # iterates over the complete set of handlers in the current
         # base element and removes them from the current logger
         for handler in self.handlers:
-            if not handler: continue
+            if not handler:
+                continue
             self.logger.removeHandler(handler)
 
         # in case the safe flag is set, iterates over the complete
@@ -1306,7 +1310,8 @@ class AbstractBase(observer.Observable):
         # from the current logger, this is required so that proper
         # handler unregistration is ensured even for complex scenarios
         for handler in self.logger.handlers if safe else ():
-            if not handler: continue
+            if not handler:
+                continue
             self.logger.removeHandler(handler)
 
         # closes the base stream handler as it's no longer going to
@@ -1316,21 +1321,24 @@ class AbstractBase(observer.Observable):
         # iterates over the complete set of (built) extra handlers
         # and runs the close operation for each of them, as they are
         # no longer considered required for logging purposes
-        for handler in self._extra_handlers: handler.close()
+        for handler in self._extra_handlers:
+            handler.close()
 
         # unset the logger reference in the current service so that
         # it's not possible to use it any longer
         self.logger = None
 
-    def flush_logging(self, raise_e = False):
+    def flush_logging(self, raise_e=False):
         # iterates over the complete set of handlers to flush their
         # stream if needed, this will ensure that no log data is lost
         for handler in self.handlers:
-            if not hasattr(handler, "flush"): continue
+            if not hasattr(handler, "flush"):
+                continue
             try:
                 handler.flush()
             except Exception:
-                if raise_e: raise
+                if raise_e:
+                    raise
 
     def extra_logging(self, level, formatter):
         """
@@ -1356,7 +1364,8 @@ class AbstractBase(observer.Observable):
         # defined and in case it's not returns immediately, otherwise
         # starts by converting the currently defined set of handlers into
         # a list so that it may be correctly manipulated (add handlers)
-        if not self.logging: return
+        if not self.logging:
+            return
         self.handlers = list(self.handlers)
 
         # iterates over the complete set of handler configuration in the
@@ -1371,13 +1380,16 @@ class AbstractBase(observer.Observable):
             # "clones" the configuration dictionary and then removes the base
             # values so that they do not interfere with the building
             config = dict(config)
-            if "level" in config: del config["level"]
-            if "name" in config: del config["name"]
+            if "level" in config:
+                del config["level"]
+            if "name" in config:
+                del config["name"]
 
             # retrieves the proper building, skipping the current loop in case
             # it does not exits and then builds the new handler instance, setting
             # the proper level and formatter and then adding it to the set
-            if not hasattr(log, name + "_handler"): continue
+            if not hasattr(log, name + "_handler"):
+                continue
             builder = getattr(log, name + "_handler")
             handler = builder(**config)
             handler.setLevel(_level)
@@ -1414,13 +1426,15 @@ class AbstractBase(observer.Observable):
 
         # iterates over the complete set of attached handlers to
         # update their respective logging level
-        for handler in self.handlers: handler.setLevel(level)
+        for handler in self.handlers:
+            handler.setLevel(level)
 
-    def load_diag(self, env = True):
+    def load_diag(self, env=True):
         # verifies if the diagnostics "feature" has been requested
         # for the current infra-structure and if that's not the case
         # returns the control flow immediately to the caller
-        if not self.diag: return
+        if not self.diag:
+            return
 
         # runs the import operations for the diag module, note that
         # this must be performed locally no avoid any unwanted behavior
@@ -1438,7 +1452,7 @@ class AbstractBase(observer.Observable):
         # server, taking into account if the env flag is set
         server = self.get_env("DIAG_SERVER", "netius") if env else "netius"
         host = self.get_env("DIAG_HOST", "127.0.0.1") if env else "127.0.0.1"
-        port = self.get_env("DIAG_PORT", 5050, cast = int) if env else 5050
+        port = self.get_env("DIAG_PORT", 5050, cast=int) if env else 5050
 
         # creates the application object that is going to be
         # used for serving the diagnostics app
@@ -1451,15 +1465,10 @@ class AbstractBase(observer.Observable):
         # starts the "serving" procedure of it under a new thread
         # to avoid blocking the current context of execution
         self.diag_app.serve(
-            server = server,
-            host = host,
-            port = port,
-            diag = False,
-            threaded = True,
-            conf = False
+            server=server, host=host, port=port, diag=False, threaded=True, conf=False
         )
 
-    def load_middleware(self, suffix = "Middleware"):
+    def load_middleware(self, suffix="Middleware"):
         # iterates over the complete set of string that define the middleware
         # that is going to be loaded and executes the loading process
         for name in self.middleware:
@@ -1481,7 +1490,8 @@ class AbstractBase(observer.Observable):
         # iterates over the complete set of middleware instance to stop
         # them (close internal structures) and then removes the middleware
         # list so that they don't get used any longer
-        for middleware_i in self.middleware_l: middleware_i.stop()
+        for middleware_i in self.middleware_l:
+            middleware_i.stop()
         del self.middleware_l[:]
 
     def register_middleware(self, middleware_c, *args, **kwargs):
@@ -1508,33 +1518,44 @@ class AbstractBase(observer.Observable):
 
     def bind_signals(
         self,
-        signals = (
+        signals=(
             signal.SIGINT,
             signal.SIGTERM,
-            signal.SIGHUP if hasattr(signal, "SIGHUP") else None, #@UndefinedVariable pylint: disable=E1101
-            signal.SIGQUIT if hasattr(signal, "SIGQUIT") else None #@UndefinedVariable pylint: disable=E1101
+            (
+                signal.SIGHUP if hasattr(signal, "SIGHUP") else None
+            ),  # @UndefinedVariable pylint: disable=E1101
+            (
+                signal.SIGQUIT if hasattr(signal, "SIGQUIT") else None
+            ),  # @UndefinedVariable pylint: disable=E1101
         ),
-        handler = None
+        handler=None,
     ):
         # creates the signal handler function that propagates the raising
         # of the system exit exception (proper logic is executed) and then
         # registers such handler for the (typical) sigterm signal
-        def base_handler(signum = None, frame = None): raise SystemExit()
+        def base_handler(signum=None, frame=None):
+            raise SystemExit()
+
         for signum in signals:
-            if signum == None: continue
-            try: signal.signal(signum, handler or base_handler)
-            except Exception: self.debug("Failed to register %d handler" % signum)
+            if signum == None:
+                continue
+            try:
+                signal.signal(signum, handler or base_handler)
+            except Exception:
+                self.debug("Failed to register %d handler" % signum)
 
     def unbind_signals(
         self,
-        signals = (
+        signals=(
             signal.SIGINT,
             signal.SIGTERM,
-            signal.SIGHUP if hasattr(signal, "SIGHUP") else None, #@UndefinedVariable
-            signal.SIGQUIT if hasattr(signal, "SIGQUIT") else None #@UndefinedVariable
-        )
+            signal.SIGHUP if hasattr(signal, "SIGHUP") else None,  # @UndefinedVariable
+            (
+                signal.SIGQUIT if hasattr(signal, "SIGQUIT") else None
+            ),  # @UndefinedVariable
+        ),
     ):
-        self.bind_signals(signals = signals, handler = signal.SIG_IGN)
+        self.bind_signals(signals=signals, handler=signal.SIG_IGN)
 
     def bind_env(self):
         """
@@ -1543,28 +1564,35 @@ class AbstractBase(observer.Observable):
         """
 
         self.level = self.get_env("LEVEL", self.level)
-        self.diag = self.get_env("DIAG", self.diag, cast = bool)
-        self.middleware = self.get_env("MIDDLEWARE", self.middleware, cast = list)
-        self.children = self.get_env("CHILD", self.children, cast = int)
-        self.children = self.get_env("CHILDREN", self.children, cast = int)
-        self.logger_flush_t = self.get_env("LOGGER_FLUSH_T", self.logger_flush_t, cast = float)
-        self.logger_flush_t = self.get_env("LOGGER_FLUSH_TIMEOUT", self.logger_flush_t, cast = float)
+        self.diag = self.get_env("DIAG", self.diag, cast=bool)
+        self.middleware = self.get_env("MIDDLEWARE", self.middleware, cast=list)
+        self.children = self.get_env("CHILD", self.children, cast=int)
+        self.children = self.get_env("CHILDREN", self.children, cast=int)
+        self.logger_flush_t = self.get_env(
+            "LOGGER_FLUSH_T", self.logger_flush_t, cast=float
+        )
+        self.logger_flush_t = self.get_env(
+            "LOGGER_FLUSH_TIMEOUT", self.logger_flush_t, cast=float
+        )
         self.logging = self.get_env("LOGGING", self.logging)
         self.poll_name = self.get_env("POLL", self.poll_name)
 
-    def forever(self, env = True):
-        if env: self.bind_env()
+    def forever(self, env=True):
+        if env:
+            self.bind_env()
         return self.start()
 
     def start(self):
         # in case the current instance is currently paused runs the
         # resume operation instead as that's the expected operation
-        if self.is_paused(): return self.resume()
+        if self.is_paused():
+            return self.resume()
 
         # in case the event loop is already running then a new sub-
         # context based loop should be created in order to block the
         # current execution stack (as expected)
-        if self.is_running(): return self.block()
+        if self.is_running():
+            return self.block()
 
         # retrieves the complete set of information regarding the current
         # thread that is being used for the starting of the loop, this data
@@ -1592,7 +1620,7 @@ class AbstractBase(observer.Observable):
         # opens the polling mechanism so that its internal structures
         # become ready for the polling cycle, the inverse operation
         # (close) should be performed as part of the cleanup
-        self.poll.open(timeout = self.poll_timeout)
+        self.poll.open(timeout=self.poll_timeout)
 
         # makes sure that the notify pool is created so that the event
         # notification (required for multi threaded environments) is created
@@ -1608,7 +1636,10 @@ class AbstractBase(observer.Observable):
         # enters the main loop operation by printing a message
         # to the logger indicating this start, this stage
         # should block the thread until a stop call is made
-        self.debug("Starting '%s' service main loop (%.2fs) ..." % (self.name, self.poll_timeout))
+        self.debug(
+            "Starting '%s' service main loop (%.2fs) ..."
+            % (self.name, self.poll_timeout)
+        )
         self.debug("Using thread '%s' with TID '%d'" % (self.tname, self.tid))
         self.debug("Using '%s' as polling mechanism" % poll_name)
 
@@ -1619,26 +1650,33 @@ class AbstractBase(observer.Observable):
     def stop(self):
         # in case the current process is neither running nor
         # paused there's nothing pending to be done on stop
-        if not self.is_running() and not self.is_paused(): return
+        if not self.is_running() and not self.is_paused():
+            return
 
         # in case the current loop is in pause state calls only
         # the finish operation otherwise sets the running flag
         # to false meaning that on the next event loop tick the
         # unloading process will be triggered
-        if self.is_paused(): self.finish()
-        else: self._running = False
+        if self.is_paused():
+            self.finish()
+        else:
+            self._running = False
 
         # in case the current process is the parent in a pre-fork
         # environment raises the stop error to wakeup the process
         # from its current infinite loop for stop handling
-        if self.is_parent: raise errors.StopError()
+        if self.is_parent:
+            raise errors.StopError()
 
     def pause(self):
         self._running = False
         self._pausing = True
 
     def resume(self):
-        self.debug("Resuming '%s' service main loop (%.2fs) ..." % (self.name, self.poll_timeout))
+        self.debug(
+            "Resuming '%s' service main loop (%.2fs) ..."
+            % (self.name, self.poll_timeout)
+        )
         self.on_resume()
         self.main()
 
@@ -1675,24 +1713,27 @@ class AbstractBase(observer.Observable):
             # external HTTP client) then this exception must be re-raised
             # to the upper layer (main event loop) so that it can be
             # properly handled to be able to exit the environment
-            if not self == Base.get_main(): raise
+            if not self == Base.get_main():
+                raise
         except errors.PauseError:
             self.debug("Pausing '%s' service main loop" % self.name)
             self.set_state(STATE_PAUSE)
             self.on_pause()
         except BaseException as exception:
-            self.error(exception, stack = True)
-            self.log_stack(method = self.warning)
+            self.error(exception, stack=True)
+            self.log_stack(method=self.warning)
         except:
-            self.critical("Critical level loop exception raised", stack = True)
-            self.log_stack(method = self.error)
+            self.critical("Critical level loop exception raised", stack=True)
+            self.log_stack(method=self.error)
         finally:
-            if self.is_paused(): return
+            if self.is_paused():
+                return
             self.stop()
             self.finish()
 
     def is_main(self):
-        if not self.tid: return True
+        if not self.tid:
+            return True
         return threading.current_thread().ident == self.tid
 
     def is_running(self):
@@ -1723,19 +1764,19 @@ class AbstractBase(observer.Observable):
         return self.poll.is_sub_error(socket)
 
     def sub_all(self, socket):
-        return self.poll.sub_all(socket, owner = self)
+        return self.poll.sub_all(socket, owner=self)
 
     def unsub_all(self, socket):
         return self.poll.unsub_all(socket)
 
     def sub_read(self, socket):
-        return self.poll.sub_read(socket, owner = self)
+        return self.poll.sub_read(socket, owner=self)
 
     def sub_write(self, socket):
-        return self.poll.sub_write(socket, owner = self)
+        return self.poll.sub_write(socket, owner=self)
 
     def sub_error(self, socket):
-        return self.poll.sub_error(socket, owner = self)
+        return self.poll.sub_error(socket, owner=self)
 
     def unsub_read(self, socket):
         return self.poll.unsub_read(socket)
@@ -1746,7 +1787,7 @@ class AbstractBase(observer.Observable):
     def unsub_error(self, socket):
         return self.poll.unsub_error(socket)
 
-    def cleanup(self, destroy = True):
+    def cleanup(self, destroy=True):
         # runs the unload operation for the current base container this should
         # unset/unload some of the components for this base infra-structure
         self.unload()
@@ -1775,17 +1816,20 @@ class AbstractBase(observer.Observable):
         # verifies if there's a valid (and open) notify pool, if that's
         # the case starts the stop process for it so that there's no
         # leaking of task descriptors and other structures
-        if self.npool: self.nstop()
+        if self.npool:
+            self.nstop()
 
         # verifies if there's a valid (and open) task pool, if that's
         # the case starts the stop process for it so that there's no
         # leaking of task descriptors and other structures
-        if self.tpool: self.tstop()
+        if self.tpool:
+            self.tstop()
 
         # verifies if there's a valid (and open) file pool, if that's
         # the case starts the stop process for it so that there's no
         # leaking of file descriptors and other structures
-        if self.fpool: self.fstop()
+        if self.fpool:
+            self.fstop()
 
         # creates a copy of the connections list because this structure
         # is going to be changed in the closing of the connection object
@@ -1794,11 +1838,13 @@ class AbstractBase(observer.Observable):
         # iterates over the complete set of connections currently
         # registered in the base structure and closes them so that
         # can no longer be used and are gracefully disconnected
-        for connection in connections: connection.close()
+        for connection in connections:
+            connection.close()
 
         # iterates over the complete set of sockets in the connections
         # map to properly close them (avoids any leak of resources)
-        for _socket in self.connections_m: _socket.close()
+        for _socket in self.connections_m:
+            _socket.close()
 
         # in case the current thread is the main one then in case the
         # instance set as global main is this one unsets the value
@@ -1810,7 +1856,8 @@ class AbstractBase(observer.Observable):
         # from an open poll system (memory leaks, etc.), note that this is
         # only performed in case the current base instance is the owner of
         # the poll that is going to be closed (works with containers)
-        if self.poll_owner: self.poll.close()
+        if self.poll_owner:
+            self.poll.close()
 
         # deletes some of the internal data structures created for the instance
         # and that are considered as they are considered to be no longer required
@@ -1821,7 +1868,8 @@ class AbstractBase(observer.Observable):
 
         # runs the destroy operation for the current instance, this should remove
         # the most obscure parts of the current instance
-        if destroy: self.destroy()
+        if destroy:
+            self.destroy()
 
     def loop(self):
         # iterates continuously while the running flag is set, once
@@ -1836,7 +1884,8 @@ class AbstractBase(observer.Observable):
             # in case running flag is disabled it's time to break the
             # cycle (just before the possible block) as it would imply
             # extra time before we could stop the event loop
-            if not self._running: break
+            if not self._running:
+                break
 
             # updates the current state to poll to indicate
             # that the base service is selecting the connections
@@ -1873,10 +1922,12 @@ class AbstractBase(observer.Observable):
         # saves the current running state and then runs the loop again
         # restoring the same state at the end of the execution
         _running = self._running
-        try: self.loop()
-        finally: self._running = _running
+        try:
+            self.loop()
+        finally:
+            self._running = _running
 
-    def fork(self, timeout = 10):
+    def fork(self, timeout=10):
         # retrieves the reference to the parent class object
         # to be used for the class level operations
         cls = self.__class__
@@ -1887,17 +1938,21 @@ class AbstractBase(observer.Observable):
 
         # runs a series of validations to be able to verify
         # if the fork operation should really be performed
-        if not self.children: return True
-        if not self.children > 0: return True
-        if not hasattr(os, "fork"): return True
-        if self._forked: return True
+        if not self.children:
+            return True
+        if not self.children > 0:
+            return True
+        if not hasattr(os, "fork"):
+            return True
+        if self._forked:
+            return True
 
         # makes sure that no signal handlers exist for the parent
         # process, this is relevant to avoid immediate destruction
         # of the current process on premature signal
         self.unbind_signals()
         if hasattr(signal, "SIGUSR1"):
-            self.unbind_signals(signals = (signal.SIGUSR1,))
+            self.unbind_signals(signals=(signal.SIGUSR1,))
 
         # sets the initial PID value to the value of the current
         # master process as this is going to be used for child
@@ -1915,10 +1970,11 @@ class AbstractBase(observer.Observable):
         # builds the inline function that takes the message to be
         # sent to the output pipe, normalizes it and sends it
         def pipe_send(message):
-            if not hasattr(signal, "SIGUSR1"): return
+            if not hasattr(signal, "SIGUSR1"):
+                return
             frame = legacy.bytes(message) + b"\n"
             os.write(pipeout, frame)
-            os.kill(ppid, signal.SIGUSR1) #@UndefinedVariable
+            os.kill(ppid, signal.SIGUSR1)  # @UndefinedVariable
 
         # prints a debug operation about the operation that is
         # going to be performed for the forking
@@ -1931,10 +1987,12 @@ class AbstractBase(observer.Observable):
         # iterates of the requested (number of children) to run
         # the concrete fork operation and fork the logic
         for _index in range(self.children):
-            pid = os.fork() #@UndefinedVariable pylint: disable=E1101
+            pid = os.fork()  # @UndefinedVariable pylint: disable=E1101
             self._child = pid == 0
-            if self._child: self.on_child(pipe = pipe_send)
-            if self._child: break
+            if self._child:
+                self.on_child(pipe=pipe_send)
+            if self._child:
+                break
             self._childs.append(pid)
 
         # sets the forked flag, meaning that the current process
@@ -1943,7 +2001,8 @@ class AbstractBase(observer.Observable):
 
         # in case the current process is a child one an immediate
         # valid value should be returned (force logic continuation)
-        if self._child: return True
+        if self._child:
+            return True
 
         # prints a debug operation the finished forking operation
         self.debug("Finished forking children")
@@ -1955,8 +2014,10 @@ class AbstractBase(observer.Observable):
         # registers for some of the common signals to be able to start
         # the process of stopping and joining with the child processes
         # in case there's a request to do so
-        def handler(signum = None, frame = None): self.stop()
-        self.bind_signals(handler = handler)
+        def handler(signum=None, frame=None):
+            self.stop()
+
+        self.bind_signals(handler=handler)
 
         def callback():
             # reads a line from the input pipe considering it to be a
@@ -1967,17 +2028,18 @@ class AbstractBase(observer.Observable):
         # creates the pipe signal handler that is responsible for the
         # reading of the pipe information from the child process to
         # the parent process (as expected)
-        def pipe_handler(signum = None, frame = None):
+        def pipe_handler(signum=None, frame=None):
             # in case the current process is considered to be not
             # running then returns the control flow immediately
             # not possible to handle any command
-            if not self._running: return
+            if not self._running:
+                return
 
             # schedules the current clojure to be executed as soon as
             # possible and then forces the wakeup, because although we're
             # running on the main thread we're possible under a blocking
             # statement and so we need to wakeup the parent loop
-            self.delay_s(callback, immediately = True)
+            self.delay_s(callback, immediately=True)
             if hasattr(self, "_awaken") and not self._awaken:
                 self._awaken = True
                 raise errors.WakeupError()
@@ -1985,7 +2047,7 @@ class AbstractBase(observer.Observable):
         # in case the user signal is defined registers for it so that it's
         # possible to establish a communication between child and parent
         if hasattr(signal, "SIGUSR1"):
-            signal.signal(signal.SIGUSR1, pipe_handler) #@UndefinedVariable
+            signal.signal(signal.SIGUSR1, pipe_handler)  # @UndefinedVariable
 
         # prints a debug operation the finished forking operation
         self.debug("Entering wait forever loop")
@@ -2022,8 +2084,10 @@ class AbstractBase(observer.Observable):
 
         # creates the catcher for the alarm signal so that a wakeup
         # can happen that kills the (possibly) stuck children
-        def catcher(signal, frame): raise errors.WakeupError()
-        signal.signal(signal.SIGALRM, catcher) #@UndefinedVariable
+        def catcher(signal, frame):
+            raise errors.WakeupError()
+
+        signal.signal(signal.SIGALRM, catcher)  # @UndefinedVariable
 
         # iterates over the complete set of child processes to join
         # them (master process responsibility)
@@ -2034,7 +2098,9 @@ class AbstractBase(observer.Observable):
 
             # registers the alarm for the remaining time until
             # the child process should be forcibly killed
-            signal.setitimer(signal.ITIMER_REAL, max(timeout, 0.15)) #@UndefinedVariable
+            signal.setitimer(
+                signal.ITIMER_REAL, max(timeout, 0.15)
+            )  # @UndefinedVariable
 
             try:
                 # runs the waiting for the children PID (process to finish)
@@ -2043,7 +2109,7 @@ class AbstractBase(observer.Observable):
                 cls.waitpid(pid)
             except errors.WakeupError:
                 self.warning("Timeout reached killing PID '%d' with SIGKILL ..." % pid)
-                os.kill(pid, signal.SIGKILL) #@UndefinedVariable
+                os.kill(pid, signal.SIGKILL)  # @UndefinedVariable
                 cls.waitpid(pid)
 
             # decrements the timeout value by the time that was
@@ -2052,7 +2118,7 @@ class AbstractBase(observer.Observable):
 
         # resets the alarm as we've finished waiting for all of the
         # children processes, some may have been killed forcibly
-        signal.setitimer(signal.ITIMER_REAL, 0) #@UndefinedVariable
+        signal.setitimer(signal.ITIMER_REAL, 0)  # @UndefinedVariable
 
         # calls the final (on) join method indicating that the complete
         # set of child processes have been join and that now only the
@@ -2074,8 +2140,10 @@ class AbstractBase(observer.Observable):
     def finalize(self):
         # verifies a series of conditions and raises a proper error in case
         # any of them is verified under the current state
-        if self._pausing: raise errors.PauseError("Pause state expected")
-        if self._running: raise errors.AssertionError("Not expected running")
+        if self._pausing:
+            raise errors.PauseError("Pause state expected")
+        if self._running:
+            raise errors.AssertionError("Not expected running")
 
     def ticks(self):
         # updates the current state value to the tick state indicating
@@ -2096,15 +2164,17 @@ class AbstractBase(observer.Observable):
         # calls are called if the correct time has been reached
         self._delays()
 
-    def reads(self, reads, state = True):
+    def reads(self, reads, state=True):
         # in case the update state is requested updates the current loop
         # instance into the read state (debugging purposes)
-        if state: self.set_state(STATE_READ)
+        if state:
+            self.set_state(STATE_READ)
 
         # in case the concrete flag is set return immediately as the
         # concrete instance (eg: client, server) should implement the
         # concrete handling specifics for this event
-        if self._concrete: return
+        if self._concrete:
+            return
 
         # iterates over all of the read events and calls the proper on
         # read method handler to properly handle each event
@@ -2115,58 +2185,65 @@ class AbstractBase(observer.Observable):
             else:
                 self.on_read(read)
 
-    def writes(self, writes, state = True):
+    def writes(self, writes, state=True):
         # in case the update state is requested updates the current loop
         # instance into the write state (debugging purposes)
-        if state: self.set_state(STATE_WRITE)
+        if state:
+            self.set_state(STATE_WRITE)
 
         # in case the concrete flag is set return immediately as the
         # concrete instance (eg: client, server) should implement the
         # concrete handling specifics for this event
-        if self._concrete: return
+        if self._concrete:
+            return
 
         # iterates over all of the write events and calls the proper on
         # write method handler to properly handle each event
-        for write in writes: self.on_write(write)
+        for write in writes:
+            self.on_write(write)
 
-    def errors(self, errors, state = True):
+    def errors(self, errors, state=True):
         # in case the update state is requested updates the current loop
         # instance into the error state (debugging purposes)
-        if state: self.set_state(STATE_ERRROR)
+        if state:
+            self.set_state(STATE_ERRROR)
 
         # in case the concrete flag is set return immediately as the
         # concrete instance (eg: client, server) should implement the
         # concrete handling specifics for this event
-        if self._concrete: return
+        if self._concrete:
+            return
 
         # iterates over all of the error events and calls the proper on
         # error method handler to properly handle each event
-        for error in errors: self.on_error(error)
+        for error in errors:
+            self.on_error(error)
 
     def serve(
         self,
-        host = None,
-        port = 9090,
-        type = TCP_TYPE,
-        ipv6 = False,
-        ssl = False,
-        key_file = None,
-        cer_file = None,
-        ca_file = None,
-        ca_root = True,
-        ssl_verify = False,
-        ssl_host = None,
-        ssl_fingerprint = None,
-        ssl_dump = False,
-        family = socket.AF_INET,
-        backlog = socket.SOMAXCONN,
-        env = False,
-        callback = None
+        host=None,
+        port=9090,
+        type=TCP_TYPE,
+        ipv6=False,
+        ssl=False,
+        key_file=None,
+        cer_file=None,
+        ca_file=None,
+        ca_root=True,
+        ssl_verify=False,
+        ssl_host=None,
+        ssl_fingerprint=None,
+        ssl_dump=False,
+        family=socket.AF_INET,
+        backlog=socket.SOMAXCONN,
+        env=False,
+        callback=None,
     ):
         # ensures the proper default address value, taking into account
         # the type of connection that is currently being used, this avoids
         # problems with multiple stack based servers (IPv4 and IPv6)
-        if host == None: host = "::1" if ipv6 else "127.0.0.1"
+        if host == None:
+            host = "::1" if ipv6 else "127.0.0.1"
 
         # defaults the provided ssl key and certificate paths to the
         # ones statically defined (dummy certificates), please beware
@@ -2188,16 +2265,18 @@ class AbstractBase(observer.Observable):
         # checks the type of service that is meant to be created and
         # creates a service socket according to the defined service
         family = socket.AF_INET6 if ipv6 else socket.AF_INET
-        family = socket.AF_UNIX if is_unix else family #@UndefinedVariable pylint: disable=E1101
+        family = (
+            socket.AF_UNIX if is_unix else family
+        )  # @UndefinedVariable pylint: disable=E1101
         if type == TCP_TYPE:
             _socket = self.socket_tcp(
                 ssl,
-                key_file = key_file,
-                cer_file = cer_file,
-                ca_file = ca_file,
-                ca_root = ca_root,
-                ssl_verify = ssl_verify,
-                family = family
+                key_file=key_file,
+                cer_file=cer_file,
+                ca_file=ca_file,
+                ca_root=ca_root,
+                ssl_verify=ssl_verify,
+                family=family,
             )
         elif type == UDP_TYPE:
             _socket = self.socket_udp()
@@ -2209,33 +2288,40 @@ class AbstractBase(observer.Observable):
         # if that's the case the target (file path) is also removed, avoiding
         # a duplicated usage of the socket (required for address re-usage)
         address = port if is_unix else (host, port)
-        if is_unix and os.path.exists(address): os.remove(address)
+        if is_unix and os.path.exists(address):
+            os.remove(address)
 
         def serve():
             # binds the socket to the provided address value (per spec) and then
             # starts the listening in the socket with the provided backlog value
             # defaulting to the typical maximum backlog as possible if not provided
             _socket.bind(address)
-            if type == TCP_TYPE: _socket.listen(backlog)
+            if type == TCP_TYPE:
+                _socket.listen(backlog)
 
             # in case the selected port is zero based, meaning that a randomly selected
             # port has been assigned by the bind operation the new port must be retrieved
             # and set for the current server instance as the new port (for future reference)
-            if port == 0: port_i = _socket.getsockname()[1]
-            else: port_i = port
+            if port == 0:
+                port_i = _socket.getsockname()[1]
+            else:
+                port_i = port
 
             # creates the string that identifies it the current service connection
             # is using a secure channel (ssl) and then prints an info message about
             # the service that is going to be started
             ipv6_s = " on IPv6" if ipv6 else ""
             ssl_s = " using SSL" if ssl else ""
-            self.info("Serving '%s' service on %s:%s%s%s ..." % (self.name, host, port_i, ipv6_s, ssl_s))
+            self.info(
+                "Serving '%s' service on %s:%s%s%s ..."
+                % (self.name, host, port_i, ipv6_s, ssl_s)
+            )
 
             # ensures that the current polling mechanism is correctly open as the
             # service socket is going to be added to it next, this overrides the
             # default behavior of the common infra-structure (on start)
             self.poll = self.build_poll()
-            self.poll.open(timeout = self.poll_timeout)
+            self.poll.open(timeout=self.poll_timeout)
 
             # adds the socket to all of the pool lists so that it's ready to read
             # write and handle error, this is the expected behavior of a service
@@ -2249,32 +2335,26 @@ class AbstractBase(observer.Observable):
 
         # creates a new service instance that is going to represents the new server
         # that is going to start accepting new connections
-        service = self.new_service(
-            _socket,
-            host = host,
-            port = port,
-            ssl = ssl
-        )
+        service = self.new_service(_socket, host=host, port=port, ssl=ssl)
 
         # delays the operation of calling the callback with the new (service) instance
         # by one tick (avoids possible issues)
         self.delay(
-            lambda: callback and callback(service, serve, True),
-            immediately = True
+            lambda: callback and callback(service, serve, True), immediately=True
         )
 
     def socket_tcp(
         self,
-        ssl = False,
-        key_file = None,
-        cer_file = None,
-        ca_file = None,
-        ca_root = True,
-        ssl_verify = False,
-        family = socket.AF_INET,
-        type = socket.SOCK_STREAM,
-        receive_buffer = None,
-        send_buffer = None
+        ssl=False,
+        key_file=None,
+        cer_file=None,
+        ca_file=None,
+        ca_root=True,
+        ssl_verify=False,
+        family=socket.AF_INET,
+        type=socket.SOCK_STREAM,
+        receive_buffer=None,
+        send_buffer=None,
     ):
         # verifies if the provided family is of type internet and if that's
         # the case the associated flag is set to valid for usage
@@ -2284,10 +2364,14 @@ class AbstractBase(observer.Observable):
         # and the prints a series of log message about the socket to be created
         type_s = " SSL" if ssl else ""
         self.debug("Creating server's TCP%s socket ..." % type_s)
-        if ssl: self.debug("Loading '%s' as key file" % key_file)
-        if ssl: self.debug("Loading '%s' as certificate file" % cer_file)
-        if ssl and ca_file: self.debug("Loading '%s' as certificate authority file" % ca_file)
-        if ssl and ssl_verify: self.debug("Loading with client SSL verification")
+        if ssl:
+            self.debug("Loading '%s' as key file" % key_file)
+        if ssl:
+            self.debug("Loading '%s' as certificate file" % cer_file)
+        if ssl and ca_file:
+            self.debug("Loading '%s' as certificate authority file" % ca_file)
+        if ssl and ssl_verify:
+            self.debug("Loading with client SSL verification")
 
         # creates the socket that it's going to be used for the listening
         # of new connections (server socket) and sets it as non blocking
@@ -2296,15 +2380,16 @@ class AbstractBase(observer.Observable):
 
         # in case the server is meant to be used as SSL wraps the socket
         # in suck fashion so that it becomes "secured"
-        if ssl: _socket = self._ssl_wrap(
-            _socket,
-            key_file = key_file,
-            cer_file = cer_file,
-            ca_file = ca_file,
-            ca_root = ca_root,
-            server = True,
-            ssl_verify = ssl_verify
-        )
+        if ssl:
+            _socket = self._ssl_wrap(
+                _socket,
+                key_file=key_file,
+                cer_file=cer_file,
+                ca_file=ca_file,
+                ca_root=ca_root,
+                server=True,
+                ssl_verify=ssl_verify,
+            )
 
         # sets the various options in the service socket so that it becomes
         # ready for the operation with the highest possible performance, these
@@ -2313,28 +2398,19 @@ class AbstractBase(observer.Observable):
         # avoiding the leak of connections (operative system managed)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        if is_inet: _socket.setsockopt(
-            socket.IPPROTO_TCP,
-            socket.TCP_NODELAY,
-            1
-        )
-        if receive_buffer: _socket.setsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_RCVBUF,
-            receive_buffer
-        )
-        if send_buffer: _socket.setsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_SNDBUF,
-            send_buffer
-        )
+        if is_inet:
+            _socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        if receive_buffer:
+            _socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, receive_buffer)
+        if send_buffer:
+            _socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, send_buffer)
         self._socket_keepalive(_socket)
 
         # returns the created tcp socket to the calling method so that it
         # may be used from this point on
         return _socket
 
-    def socket_udp(self, family = socket.AF_INET, type = socket.SOCK_DGRAM):
+    def socket_udp(self, family=socket.AF_INET, type=socket.SOCK_DGRAM):
         # prints a small debug message about the UDP socket that is going
         # to be created for the server's connection
         self.debug("Creating server's UDP socket ...")
@@ -2355,13 +2431,13 @@ class AbstractBase(observer.Observable):
 
     def datagram(
         self,
-        family = socket.AF_INET,
-        type = socket.SOCK_DGRAM,
-        local_host = None,
-        local_port = None,
-        remote_host = None,
-        remote_port = None,
-        callback = None
+        family=socket.AF_INET,
+        type=socket.SOCK_DGRAM,
+        local_host=None,
+        local_port=None,
+        remote_host=None,
+        remote_port=None,
+        callback=None,
     ):
         """
         Builds a datagram based connection for the provided family and
@@ -2412,23 +2488,26 @@ class AbstractBase(observer.Observable):
         # in case both the local host and port are defined runs the bind
         # operation so that the current socket is st to listen for new
         # datagrams on the associated host and port
-        if local_host and local_port: _socket.bind((local_host, local_port))
+        if local_host and local_port:
+            _socket.bind((local_host, local_port))
 
         # verifies if both the host and the port are set and if that's the
         # case runs the connect (send bind) operation in the datagram socket
         # notice that this is not a "real" remote connection
-        if remote_host and remote_port: _socket.connect((remote_host, remote_port))
+        if remote_host and remote_port:
+            _socket.connect((remote_host, remote_port))
 
         # creates a new connection object representing the datagram socket
         # that has just been created to be used for upper level operations
         # and then immediately sets it as connected
-        connection = self.base_connection(_socket, datagram = True)
+        connection = self.base_connection(_socket, datagram=True)
         connection.open()
         connection.set_connected()
 
         # in case a callback is defined schedules its execution for the next
         # tick to avoid possible issues with same tick registration
-        if callback: self.delay(lambda: callback(connection, True), immediately = True)
+        if callback:
+            self.delay(lambda: callback(connection, True), immediately=True)
 
         # returns the connection to the caller method so that it may be used
         # for operation from now on (latter usage)
@@ -2438,23 +2517,25 @@ class AbstractBase(observer.Observable):
         self,
         host,
         port,
-        receive_buffer = None,
-        send_buffer = None,
-        ssl = False,
-        key_file = None,
-        cer_file = None,
-        ca_file = None,
-        ca_root = True,
-        ssl_verify = False,
-        family = socket.AF_INET,
-        type = socket.SOCK_STREAM,
-        callback = None,
-        env = True
+        receive_buffer=None,
+        send_buffer=None,
+        ssl=False,
+        key_file=None,
+        cer_file=None,
+        ca_file=None,
+        ca_root=True,
+        ssl_verify=False,
+        family=socket.AF_INET,
+        type=socket.SOCK_STREAM,
+        callback=None,
+        env=True,
     ):
         # runs a series of pre-validations on the provided parameters, raising
         # exceptions in case they do not comply with expected values
-        if not host: raise errors.NetiusError("Invalid host for connect operation")
-        if not port: raise errors.NetiusError("Invalid port for connect operation")
+        if not host:
+            raise errors.NetiusError("Invalid host for connect operation")
+        if not port:
+            raise errors.NetiusError("Invalid port for connect operation")
 
         # tries to retrieve some of the environment variable related values
         # so that some of these values are accessible via an external environment
@@ -2462,22 +2543,28 @@ class AbstractBase(observer.Observable):
         key_file = self.get_env("KEY_FILE", key_file) if env else key_file
         cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
         ca_file = self.get_env("CA_FILE", ca_file) if env else ca_file
-        ca_root = self.get_env("CA_ROOT", ca_root, cast = bool) if env else ca_root
-        ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
-        key_file = self.get_env("KEY_DATA", key_file, expand = True) if env else key_file
-        cer_file = self.get_env("CER_DATA", cer_file, expand = True) if env else cer_file
-        ca_file = self.get_env("CA_DATA", ca_file, expand = True) if env else ca_file
+        ca_root = self.get_env("CA_ROOT", ca_root, cast=bool) if env else ca_root
+        ssl_verify = (
+            self.get_env("SSL_VERIFY", ssl_verify, cast=bool) if env else ssl_verify
+        )
+        key_file = self.get_env("KEY_DATA", key_file, expand=True) if env else key_file
+        cer_file = self.get_env("CER_DATA", cer_file, expand=True) if env else cer_file
+        ca_file = self.get_env("CA_DATA", ca_file, expand=True) if env else ca_file
 
         # ensures that the proper socket family is defined in case the
         # requested host value is unix socket oriented, this step greatly
         # simplifies the process of created unix socket based clients
-        family = socket.AF_UNIX if host == "unix" else family #@UndefinedVariable pylint: disable=E1101
+        family = (
+            socket.AF_UNIX if host == "unix" else family
+        )  # @UndefinedVariable pylint: disable=E1101
 
         # verifies the kind of socket that is going to be used for the
         # connect operation that is going to be performed, note that the
         # unix type should be used with case as it does not exist in every
         # operative system and may raised an undefined exceptions
-        is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX #@UndefinedVariable pylint: disable=E1101
+        is_unix = (
+            hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX
+        )  # @UndefinedVariable pylint: disable=E1101
         is_inet = family in (socket.AF_INET, socket.AF_INET6)
 
         # runs a series of default operation for the SSL related attributes
@@ -2497,36 +2584,28 @@ class AbstractBase(observer.Observable):
 
         # in case the SSL option is enabled the socket should be wrapped into
         # a proper SSL socket interface so that it may be operated accordingly
-        if ssl: _socket = self._ssl_wrap(
-            _socket,
-            key_file = key_file,
-            cer_file = cer_file,
-            ca_file = ca_file,
-            ca_root = ca_root,
-            server = False,
-            ssl_verify = ssl_verify,
-            server_hostname = host
-        )
+        if ssl:
+            _socket = self._ssl_wrap(
+                _socket,
+                key_file=key_file,
+                cer_file=cer_file,
+                ca_file=ca_file,
+                ca_root=ca_root,
+                server=False,
+                ssl_verify=ssl_verify,
+                server_hostname=host,
+            )
 
         # sets a series of options in the socket to ensure that it's
         # prepared for the client operations to be performed
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        if is_inet: _socket.setsockopt(
-            socket.IPPROTO_TCP,
-            socket.TCP_NODELAY,
-            1
-        )
-        if receive_buffer: _socket.setsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_RCVBUF,
-            receive_buffer
-        )
-        if send_buffer: _socket.setsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_SNDBUF,
-            send_buffer
-        )
+        if is_inet:
+            _socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        if receive_buffer:
+            _socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, receive_buffer)
+        if send_buffer:
+            _socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, send_buffer)
         self._socket_keepalive(_socket)
 
         # constructs the address tuple taking into account if the
@@ -2537,16 +2616,14 @@ class AbstractBase(observer.Observable):
         # creates the connection object using the typical constructor
         # and then sets the SSL host (for verification) if the verify
         # SSL option is defined (secured and verified connection)
-        connection = self.base_connection(_socket, address, ssl = ssl)
-        if ssl_verify: connection.ssl_host = host
+        connection = self.base_connection(_socket, address, ssl=ssl)
+        if ssl_verify:
+            connection.ssl_host = host
 
         # schedules the underlying non blocking connect operation to
         # be executed as soon as possible to start the process of
         # connecting for the current connection
-        self.delay(
-            lambda: self._connect(connection),
-            immediately = True
-        )
+        self.delay(lambda: self._connect(connection), immediately=True)
 
         def on_close(conection):
             callback and callback(connection, False)
@@ -2557,8 +2634,10 @@ class AbstractBase(observer.Observable):
 
         # in case there's a callback defined for the connection establishment
         # then registers such callback for the connect event in the connection
-        if callback: connection.bind("connect", on_connect, oneshot = True)
-        if callback: connection.bind("close", on_close, oneshot = True)
+        if callback:
+            connection.bind("connect", on_connect, oneshot=True)
+        if callback:
+            connection.bind("close", on_close, oneshot=True)
 
         # returns the "final" connection, that is now scheduled for connect
         # to the caller method, it may now be used for operations
@@ -2577,9 +2656,12 @@ class AbstractBase(observer.Observable):
         # object that is notified for each operation associated with
         # the pool, (primary communication mechanism)
         eventfd = pool.eventfd()
-        if not eventfd: self.warning("Starting pool without eventfd")
-        if not eventfd: return
-        if not self.poll: return
+        if not eventfd:
+            self.warning("Starting pool without eventfd")
+        if not eventfd:
+            return
+        if not self.poll:
+            return
         self.sub_read(eventfd)
 
         # creates the callback clojure around the current context
@@ -2610,14 +2692,18 @@ class AbstractBase(observer.Observable):
         # the pool an in case it exists unsubscribes
         # from it under the current polling system
         eventfd = pool.eventfd()
-        if not eventfd: self.warning("Stopping pool without eventfd")
-        if not eventfd: return
-        if not self.poll: return
+        if not eventfd:
+            self.warning("Stopping pool without eventfd")
+        if not eventfd:
+            return
+        if not self.poll:
+            return
         self.unsub_read(eventfd)
 
         # verifies if the callback operation in the event fd is defined
         # for the pool and if that's not the case returns immediately
-        if not hasattr(pool, "_callback"): return
+        if not hasattr(pool, "_callback"):
+            return
 
         # unregisters from a callback operation in the event fd so that
         # no more events are handled by the notifier, this is expected
@@ -2635,58 +2721,63 @@ class AbstractBase(observer.Observable):
     def pcallback(self, event, socket, pool):
         # runs a series of pre-validations on the callback so that
         # no operations is performed for such conditions
-        if not pool: return
-        if not event == "read": return
+        if not pool:
+            return
+        if not event == "read":
+            return
 
         # runs the de-notify operation clearing the pool from any
         # possible extra notification (avoid extra counter)
         pool.denotify()
 
     def nensure(self):
-        if self.npool: return
+        if self.npool:
+            return
         self.nstart()
 
     def nstart(self):
-        if self.npool: return
+        if self.npool:
+            return
         self.npool = netius.pool.NotifyPool()
         self.npool.start()
         self.pregister(self.npool)
 
     def nstop(self):
-        if not self.npool: return
+        if not self.npool:
+            return
         self.punregister(self.npool)
         self.npool.stop()
 
     def tensure(self):
-        if self.tpool: return
+        if self.tpool:
+            return
         self.tstart()
 
     def tstart(self):
-        if self.tpool: return
+        if self.tpool:
+            return
         self.tpool = netius.pool.TaskPool()
         self.tpool.start()
         self.pregister(self.tpool)
 
     def tstop(self):
-        if not self.tpool: return
+        if not self.tpool:
+            return
         self.punregister(self.tpool)
         self.tpool.stop()
 
-    def texecute(self, callable, args = [], kwargs = {}, callback = None):
+    def texecute(self, callable, args=[], kwargs={}, callback=None):
         self.tensure()
-        self.tpool.execute(
-            callable,
-            args = args,
-            kwargs = kwargs,
-            callback = callback
-        )
+        self.tpool.execute(callable, args=args, kwargs=kwargs, callback=callback)
 
     def files(self):
-        if not self.fpool: return
+        if not self.fpool:
+            return
         events = self.fpool.pop_all()
         for event in events:
             callback = event[-1]
-            if not callback: continue
+            if not callback:
+                continue
             callback(*event[1:-1])
 
     def fopen(self, *args, **kwargs):
@@ -2706,14 +2797,16 @@ class AbstractBase(observer.Observable):
         return self.fpool.write(*args, **kwargs)
 
     def fensure(self):
-        if self.fpool: return
+        if self.fpool:
+            return
         self.fstart()
 
     def fstart(self):
         # verifies if there's an already open file pool for
         # the current system and if that's not the case creates
         # a new one and starts it's thread cycle
-        if self.fpool: return
+        if self.fpool:
+            return
         self.fpool = netius.pool.FilePool()
         self.fpool.start()
         self.pregister(self.fpool)
@@ -2723,7 +2816,8 @@ class AbstractBase(observer.Observable):
         # if that's the case initializes the stopping of
         # such system, note that this is blocking call as
         # all of the thread will be joined under it
-        if not self.fpool: return
+        if not self.fpool:
+            return
         self.punregister(self.fpool)
         self.fpool.stop()
 
@@ -2731,12 +2825,12 @@ class AbstractBase(observer.Observable):
         # prints some debug information about the connection that has
         # just been created (for possible debugging purposes)
         self.debug(
-            "Connection '%s' %s from '%s' created" %
-            (connection.id, connection.address, connection.owner.name)
+            "Connection '%s' %s from '%s' created"
+            % (connection.id, connection.address, connection.owner.name)
         )
         self.debug(
-            "There are %d connections for '%s'" %
-            (len(connection.owner.connections), connection.owner.name)
+            "There are %d connections for '%s'"
+            % (len(connection.owner.connections), connection.owner.name)
         )
 
         # triggers the event notifying any listener about the new connection
@@ -2747,12 +2841,12 @@ class AbstractBase(observer.Observable):
         # prints some debug information about the connection
         # that has just been scheduled for destruction
         self.debug(
-            "Connection '%s' %s from '%s' deleted" %
-            (connection.id, connection.address, connection.owner.name)
+            "Connection '%s' %s from '%s' deleted"
+            % (connection.id, connection.address, connection.owner.name)
         )
         self.debug(
-            "There are %d connections for '%s'" %
-            (len(connection.owner.connections), connection.owner.name)
+            "There are %d connections for '%s'"
+            % (len(connection.owner.connections), connection.owner.name)
         )
 
         # triggers the event notifying any listener about the
@@ -2767,8 +2861,7 @@ class AbstractBase(observer.Observable):
         # prints some debug information on the stream that has just been
         # created (may be used for debugging purposes)
         self.debug(
-            "Stream '%s' from '%s' created" %
-            (stream.identifier, connection.owner.name)
+            "Stream '%s' from '%s' created" % (stream.identifier, connection.owner.name)
         )
 
         # notifies any listener of the stream created event about the
@@ -2783,8 +2876,7 @@ class AbstractBase(observer.Observable):
         # prints some debug information on the stream that has just been
         # deleted (may be used for debugging purposes)
         self.debug(
-            "Stream '%s' from '%s' deleted" %
-            (stream.identifier, connection.owner.name)
+            "Stream '%s' from '%s' deleted" % (stream.identifier, connection.owner.name)
         )
 
         # notifies any listener of the stream deleted event about the
@@ -2797,10 +2889,10 @@ class AbstractBase(observer.Observable):
     def on_join(self):
         self.trigger("join", self)
 
-    def on_child(self, pipe = None):
+    def on_child(self, pipe=None):
         # triggers the child event indicating that a new child has been
         # created and than any callback operation may now be performed
-        self.trigger("child", self, pipe = pipe)
+        self.trigger("child", self, pipe=pipe)
 
         # creates a new seed value from a pseudo random value and
         # then adds this new value as the base for randomness in the
@@ -2812,8 +2904,8 @@ class AbstractBase(observer.Observable):
         # ignores the complete set of signals (avoids signal duplication)
         # and registers for the exit on the term signal that should be
         # sent from the parent process (proper exit/termination)
-        self.bind_signals(handler = signal.SIG_IGN)
-        self.bind_signals(signals = (signal.SIGTERM,))
+        self.bind_signals(handler=signal.SIG_IGN)
+        self.bind_signals(signals=(signal.SIGTERM,))
 
     def on_command(self, command):
         self.trigger("command", self, command)
@@ -2839,47 +2931,58 @@ class AbstractBase(observer.Observable):
         # to the execution of the read operation in the socket
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
-            for callback in callbacks: callback("read", _socket)
+            for callback in callbacks:
+                callback("read", _socket)
 
         # retrieves the connection object associated with the
         # current socket that is going to be read in case there's
         # no connection available or the status is not open
         # must return the control flow immediately to the caller
         connection = self.connections_m.get(_socket, None)
-        if not connection: return
-        if not connection.status == OPEN: return
-        if not connection.renable == True: return
+        if not connection:
+            return
+        if not connection.status == OPEN:
+            return
+        if not connection.renable == True:
+            return
 
         try:
             # in case the connection is under the connecting state
             # the socket must be verified for errors and in case
             # there's none the connection must proceed, for example
             # the SSL connection handshake must be performed/retried
-            if connection.connecting: self._connectf(connection)
+            if connection.connecting:
+                self._connectf(connection)
 
             # verifies if there's any pending operations in the
             # connection (eg: SSL handshaking) and performs it trying
             # to finish them, if they are still pending at the current
             # state returns immediately (waits for next loop)
-            if self._pending(connection): return
+            if self._pending(connection):
+                return
 
             # iterates continuously trying to read as much data as possible
             # when there's a failure to read more data it should raise an
             # exception that should be handled properly
             while True:
                 data = connection.recv(CHUNK_SIZE)
-                if data: self.on_data_base(connection, data)
-                else: connection.close(); break
-                if not connection.status == OPEN: break
-                if not connection.renable == True: break
-                if not connection.socket == _socket: break
+                if data:
+                    self.on_data_base(connection, data)
+                else:
+                    connection.close()
+                    break
+                if not connection.status == OPEN:
+                    break
+                if not connection.renable == True:
+                    break
+                if not connection.socket == _socket:
+                    break
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
             if error_v in SSL_SILENT_ERRORS:
                 self.on_expected(error, connection)
-            elif not error_v in SSL_VALID_ERRORS and\
-                not error_m in SSL_VALID_REASONS:
+            elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error, connection)
         except socket.error as error:
             error_v = error.args[0] if error.args else None
@@ -2898,20 +3001,24 @@ class AbstractBase(observer.Observable):
         # to the execution of the read operation in the socket
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
-            for callback in callbacks: callback("write", _socket)
+            for callback in callbacks:
+                callback("write", _socket)
 
         # retrieves the connection associated with the socket that
         # is ready for the write operation and verifies that it
         # exists and the current status of it is open (required)
         connection = self.connections_m.get(_socket, None)
-        if not connection: return
-        if not connection.status == OPEN: return
+        if not connection:
+            return
+        if not connection.status == OPEN:
+            return
 
         # in case the connection is under the connecting state
         # the socket must be verified for errors and in case
         # there's none the connection must proceed, for example
         # the SSL connection handshake must be performed/retried
-        if connection.connecting: self._connectf(connection)
+        if connection.connecting:
+            self._connectf(connection)
 
         try:
             connection._send()
@@ -2920,8 +3027,7 @@ class AbstractBase(observer.Observable):
             error_m = error.reason if hasattr(error, "reason") else None
             if error_v in SSL_SILENT_ERRORS:
                 self.on_expected(error, connection)
-            elif not error_v in SSL_VALID_ERRORS and\
-                not error_m in SSL_VALID_REASONS:
+            elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error, connection)
         except socket.error as error:
             error_v = error.args[0] if error.args else None
@@ -2937,11 +3043,14 @@ class AbstractBase(observer.Observable):
     def on_error(self, _socket):
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
-            for callback in callbacks: callback("error", _socket)
+            for callback in callbacks:
+                callback("error", _socket)
 
         connection = self.connections_m.get(_socket, None)
-        if not connection: return
-        if not connection.status == OPEN: return
+        if not connection:
+            return
+        if not connection.status == OPEN:
+            return
 
         connection.close()
 
@@ -2949,15 +3058,17 @@ class AbstractBase(observer.Observable):
         try:
             while True:
                 socket_c, address = _socket.accept()
-                try: service.on_socket_c(socket_c, address)
-                except Exception: socket_c.close(); raise
+                try:
+                    service.on_socket_c(socket_c, address)
+                except Exception:
+                    socket_c.close()
+                    raise
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
             if error_v in SSL_SILENT_ERRORS:
                 self.on_expected_s(error)
-            elif not error_v in SSL_VALID_ERRORS and\
-                not error_m in SSL_VALID_REASONS:
+            elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception_s(error)
         except socket.error as error:
             error_v = error.args[0] if error.args else None
@@ -2971,7 +3082,7 @@ class AbstractBase(observer.Observable):
             self.on_exception_s(exception)
 
     def on_exception(self, exception, connection):
-        self.warning(exception, stack = True)
+        self.warning(exception, stack=True)
         self.log_stack()
         connection.close()
 
@@ -2988,7 +3099,8 @@ class AbstractBase(observer.Observable):
 
     def on_connect(self, connection):
         connection.set_connected()
-        if not hasattr(connection, "tuple"): return
+        if not hasattr(connection, "tuple"):
+            return
         self.on_acquire_base(connection)
 
     def on_upgrade(self, connection):
@@ -3009,8 +3121,10 @@ class AbstractBase(observer.Observable):
         # and calls the proper event handler for each event, this is
         # required because the connection workflow is probably dependent
         # on the calling of these event handlers to proceed
-        if connection.connecting: self.on_connect(connection)
-        elif connection.upgrading: self.on_upgrade(connection)
+        if connection.connecting:
+            self.on_connect(connection)
+        elif connection.upgrading:
+            self.on_upgrade(connection)
 
     def on_acquire(self, connection):
         pass
@@ -3033,58 +3147,50 @@ class AbstractBase(observer.Observable):
     def on_serve(self):
         pass
 
-    def info_dict(self, full = False):
+    def info_dict(self, full=False):
         info = dict(
-            loaded = self._loaded,
-            connections = len(self.connections),
-            state = self.get_state_s(),
-            poll = self.get_poll_name()
+            loaded=self._loaded,
+            connections=len(self.connections),
+            state=self.get_state_s(),
+            poll=self.get_poll_name(),
         )
-        if full: info.update(
-            name = self.name,
-            _lid = self._lid
-        )
+        if full:
+            info.update(name=self.name, _lid=self._lid)
         return info
 
-    def log_dict(self, full = False):
-        info = self.info_dict(full = full)
+    def log_dict(self, full=False):
+        info = self.info_dict(full=full)
         return info
 
-    def info_string(self, full = False, safe = True):
-        try: info = self.info_dict(full = full)
-        except Exception: info = dict()
+    def info_string(self, full=False, safe=True):
+        try:
+            info = self.info_dict(full=full)
+        except Exception:
+            info = dict()
         info_s = json.dumps(
-            info,
-            ensure_ascii = False,
-            indent = 4,
-            separators = (",", " : "),
-            sort_keys = True
+            info, ensure_ascii=False, indent=4, separators=(",", " : "), sort_keys=True
         )
         return info_s
 
-    def connections_dict(self, full = False):
+    def connections_dict(self, full=False):
         connections = []
         for connection in self.connections:
-            info = connection.info_dict(full = full)
+            info = connection.info_dict(full=full)
             connections.append(info)
         return connections
 
-    def connection_dict(self, id, full = False):
+    def connection_dict(self, id, full=False):
         connection = None
         for _connection in self.connections:
-            if not _connection.id == id: continue
+            if not _connection.id == id:
+                continue
             connection = _connection
             break
-        if not connection: return None
-        return connection.info_dict(full = full)
+        if not connection:
+            return None
+        return connection.info_dict(full=full)
 
-    def build_connection(
-        self,
-        socket,
-        address = None,
-        datagram = False,
-        ssl = False
-    ):
+    def build_connection(self, socket, address=None, datagram=False, ssl=False):
         """
         Creates a new connection for the provided socket
         object and string based address, the returned
@@ -3108,30 +3214,24 @@ class AbstractBase(observer.Observable):
         """
 
         return Connection(
-            owner = self,
-            socket = socket,
-            address = address,
-            datagram = datagram,
-            ssl = ssl
+            owner=self, socket=socket, address=address, datagram=datagram, ssl=ssl
         )
 
     def build_connection_client(
-        self,
-        socket_c,
-        address,
-        ssl = False,
-        receive_buffer_c = None,
-        send_buffer_c = None
+        self, socket_c, address, ssl=False, receive_buffer_c=None, send_buffer_c=None
     ):
         # verifies a series of pre-conditions on the socket so
         # that it's ensured to be in a valid state before it's
         # set as a new connection for the server (validation)
-        if ssl and not socket_c._sslobj: socket_c.close(); return
+        if ssl and not socket_c._sslobj:
+            socket_c.close()
+            return
 
         # in case the SSL mode is enabled, "patches" the socket
         # object with an extra pending reference, that is going
         # to be to store pending callable operations in it
-        if ssl: socket_c.pending = None
+        if ssl:
+            socket_c.pending = None
 
         # verifies if the socket is of type internet (either IPv4
         # of ipv6), this is going to be used for conditional setting
@@ -3143,44 +3243,40 @@ class AbstractBase(observer.Observable):
         # socket if of type internet (timeout values)
         socket_c.setblocking(0)
         socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        if is_inet: socket_c.setsockopt(
-            socket.IPPROTO_TCP,
-            socket.TCP_NODELAY,
-            1
-        )
-        if receive_buffer_c: socket_c.setsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_RCVBUF,
-            receive_buffer_c
-        )
-        if send_buffer_c: socket_c.setsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_SNDBUF,
-            send_buffer_c
-        )
+        if is_inet:
+            socket_c.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        if receive_buffer_c:
+            socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, receive_buffer_c)
+        if send_buffer_c:
+            socket_c.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, send_buffer_c)
 
         # the process creation is considered completed and a new
         # connection is created for it and opened, from this time
         # on a new connection is considered accepted/created for server
-        connection = self.build_connection(socket_c, address, ssl = ssl)
+        connection = self.build_connection(socket_c, address, ssl=ssl)
         connection.open()
 
         # registers the SSL handshake method as a starter method
         # for the connection, so that the handshake is properly
         # performed on the initial stage of the connection (as expected)
-        if ssl: connection.add_starter(self._ssl_handshake)
+        if ssl:
+            connection.add_starter(self._ssl_handshake)
 
         # runs the initial try for the handshaking process, note that
         # this is an async process and further tries to the handshake
         # may come after this one (async operation) in case an exception
         # is raises the connection is closed (avoids possible errors)
-        try: connection.run_starter()
-        except Exception: connection.close(); raise
+        try:
+            connection.run_starter()
+        except Exception:
+            connection.close()
+            raise
 
         # in case there's extraneous data pending to be read from the
         # current connection's internal receive buffer it must be properly
         # handled on the risk of blocking the newly created connection
-        if connection.is_pending_data(): self.on_read(connection.socket)
+        if connection.is_pending_data():
+            self.on_read(connection.socket)
 
         # returns the connection that has been build already properly
         # initialized and ready to be used
@@ -3201,50 +3297,44 @@ class AbstractBase(observer.Observable):
             return Base.on_connection_d(self, connection)
         return self.on_connection_d(connection)
 
-    def new_service(
-        self,
-        socket,
-        host = None,
-        port = None,
-        ssl = False
-    ):
-        service = Service(
-            owner = self,
-            socket = socket,
-            host = host,
-            port = port,
-            ssl = ssl
-        )
+    def new_service(self, socket, host=None, port=None, ssl=False):
+        service = Service(owner=self, socket=socket, host=host, port=port, ssl=ssl)
         self._services[socket] = service
         return service
 
     def add_callback(self, socket, callback):
         callbacks = self.callbacks_m.get(socket, [])
-        if callback in callbacks: return
+        if callback in callbacks:
+            return
         callbacks.append(callback)
         self.callbacks_m[socket] = callbacks
 
     def remove_callback(self, socket, callback):
         callbacks = self.callbacks_m.get(socket, [])
-        if not callback in callbacks: return
+        if not callback in callbacks:
+            return
         callbacks.remove(callback)
-        if callbacks: return
+        if callbacks:
+            return
         del self.callbacks_m[socket]
 
-    def load_config(self, path = "config.json", **kwargs):
+    def load_config(self, path="config.json", **kwargs):
         kwargs = self.apply_config(path, kwargs)
         for key, value in legacy.iteritems(kwargs):
             setattr(self, key, value)
 
     def apply_config(self, path, kwargs):
-        if not os.path.exists(path): return kwargs
+        if not os.path.exists(path):
+            return kwargs
 
         self.info("Applying configuration file '%s' ..." % path)
 
         kwargs = copy.copy(kwargs)
         file = open(path, "rb")
-        try: contents = json.load(file)
-        finally: file.close()
+        try:
+            contents = json.load(file)
+        finally:
+            file.close()
 
         for key, value in legacy.iteritems(contents):
             kwargs[key] = value
@@ -3259,8 +3349,7 @@ class AbstractBase(observer.Observable):
             error_m = error.reason if hasattr(error, "reason") else None
             if error_v in SSL_SILENT_ERRORS:
                 self.on_expected(error, connection)
-            elif not error_v in SSL_VALID_ERRORS and\
-                not error_m in SSL_VALID_REASONS:
+            elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error, connection)
         except socket.error as error:
             error_v = error.args[0] if error.args else None
@@ -3295,83 +3384,104 @@ class AbstractBase(observer.Observable):
         return self.is_debug()
 
     def is_debug(self):
-        if not self.logger: return False
+        if not self.logger:
+            return False
         return self.logger.isEnabledFor(logging.DEBUG)
 
     def is_info(self):
-        if not self.logger: return False
+        if not self.logger:
+            return False
         return self.logger.isEnabledFor(logging.INFO)
 
     def is_warning(self):
-        if not self.logger: return False
+        if not self.logger:
+            return False
         return self.logger.isEnabledFor(logging.WARNING)
 
     def is_error(self):
-        if not self.logger: return False
+        if not self.logger:
+            return False
         return self.logger.isEnabledFor(logging.ERROR)
 
     def is_critical(self):
-        if not self.logger: return False
+        if not self.logger:
+            return False
         return self.logger.isEnabledFor(logging.CRITICAL)
 
     def debug(self, object, **kwargs):
-        if not logging: return
-        self.log(object, level = logging.DEBUG, **kwargs)
+        if not logging:
+            return
+        self.log(object, level=logging.DEBUG, **kwargs)
 
     def info(self, object, **kwargs):
-        if not logging: return
-        self.log(object, level = logging.INFO, **kwargs)
+        if not logging:
+            return
+        self.log(object, level=logging.INFO, **kwargs)
 
     def warning(self, object, **kwargs):
-        if not logging: return
-        self.log(object, level = logging.WARNING, **kwargs)
+        if not logging:
+            return
+        self.log(object, level=logging.WARNING, **kwargs)
 
     def error(self, object, **kwargs):
-        if not logging: return
-        self.log(object, level = logging.ERROR, **kwargs)
+        if not logging:
+            return
+        self.log(object, level=logging.ERROR, **kwargs)
 
     def critical(self, object, **kwargs):
-        if not logging: return
-        self.log(object, level = logging.CRITICAL, **kwargs)
+        if not logging:
+            return
+        self.log(object, level=logging.CRITICAL, **kwargs)
 
-    def log_stack(self, method = None, info = True):
-        if not method: method = self.info
+    def log_stack(self, method=None, info=True):
+        if not method:
+            method = self.info
         lines = traceback.format_exc().splitlines()
         for line in lines:
-            method(line, extra = dict(stack = True))
-        if info: self.log_info(method = method)
+            method(line, extra=dict(stack=True))
+        if info:
+            self.log_info(method=method)
 
-    def log_info(self, method = None):
-        if not method: method = self.info
-        info_string = self.info_string(full = True)
+    def log_info(self, method=None):
+        if not method:
+            method = self.info
+        info_string = self.info_string(full=True)
         for line in info_string.split("\n"):
-            method(line, extra = dict(stack = True))
+            method(line, extra=dict(stack=True))
 
     def log(self, *args, **kwargs):
         self.add_log_ctx(kwargs, self.log_ctx)
         self.add_log_stack(kwargs)
-        if legacy.PYTHON_3: return self.log_python_3(*args, **kwargs)
-        else: return self.log_python_2(*args, **kwargs)
+        if legacy.PYTHON_3:
+            return self.log_python_3(*args, **kwargs)
+        else:
+            return self.log_python_2(*args, **kwargs)
 
-    def log_python_3(self, object, level = logging.INFO, **kwargs):
+    def log_python_3(self, object, level=logging.INFO, **kwargs):
         is_str = isinstance(object, legacy.STRINGS)
-        try: message = str(object) if not is_str else object
-        except Exception: message = str(object)
-        if not self.logger: return
+        try:
+            message = str(object) if not is_str else object
+        except Exception:
+            message = str(object)
+        if not self.logger:
+            return
         self.logger.log(level, message, **kwargs)
 
-    def log_python_2(self, object, level = logging.INFO, **kwargs):
+    def log_python_2(self, object, level=logging.INFO, **kwargs):
         is_str = isinstance(object, legacy.STRINGS)
-        try: message = unicode(object) if not is_str else object #@UndefinedVariable
-        except Exception: message = str(object).decode("utf-8", "ignore")
-        if not self.logger: return
+        try:
+            message = unicode(object) if not is_str else object  # @UndefinedVariable
+        except Exception:
+            message = str(object).decode("utf-8", "ignore")
+        if not self.logger:
+            return
         self.logger.log(level, message, **kwargs)
 
     def log_ctx(self):
-        return dict(service = self.log_dict(full = True))
+        return dict(service=self.log_dict(full=True))
 
     def log_stack_ctx(self):
-        return dict(traceback = traceback.format_exc().splitlines())
+        return dict(traceback=traceback.format_exc().splitlines())
 
     def add_log_extra(self, kwargs, key, value):
         extra = kwargs.get("extra", dict())
@@ -3387,7 +3497,8 @@ class AbstractBase(observer.Observable):
 
     def add_log_stack(self, kwargs):
         stack = kwargs.pop("stack", False)
-        if not stack: return
+        if not stack:
+            return
         self.add_log_ctx(kwargs, self.log_stack_ctx)
 
     def build_poll(self):
@@ -3399,13 +3510,15 @@ class AbstractBase(observer.Observable):
         # case it's there's no need to re-build the polling mechanism
         # otherwise rebuilds the polling mechanism with the current
         # name and returns the new poll object to the caller method
-        if self.poll and self.poll.is_open(): return self.poll
+        if self.poll and self.poll.is_open():
+            return self.poll
 
         # runs the testing of the poll again and verifies if the polling
         # class has changed in case it did not returns the current poll
         # instance as expected by the current infra-structure
-        poll_c = cls.test_poll(preferred = self.poll_name)
-        if poll_c == self.poll_c: return self.poll
+        poll_c = cls.test_poll(preferred=self.poll_name)
+        if poll_c == self.poll_c:
+            return self.poll
 
         # updates the polling class with the new value and re-creates
         # the polling instance with the new polling class returning this
@@ -3414,7 +3527,7 @@ class AbstractBase(observer.Observable):
         self.poll = self.poll_c()
         return self.poll
 
-    def build_future(self, compat = True, asyncio = True):
+    def build_future(self, compat=True, asyncio=True):
         """
         Creates a future object that is bound to the current event
         loop context, this allows for latter access to the owning loop.
@@ -3432,13 +3545,14 @@ class AbstractBase(observer.Observable):
 
         # creates a normal future object, setting the current loop (global) as
         # the loop, then returns the future to the caller method
-        loop = self.get_loop(compat = compat, asyncio = asyncio)
-        future = asynchronous.Future(loop = loop)
+        loop = self.get_loop(compat=compat, asyncio=asyncio)
+        future = asynchronous.Future(loop=loop)
         return future
 
-    def get_id(self, unique = True):
+    def get_id(self, unique=True):
         base = NAME + "-" + util.camel_to_underscore(self.name)
-        if not unique: return base
+        if not unique:
+            return base
         return base + "-" + str(self._uuid)
 
     def get_poll(self):
@@ -3455,7 +3569,7 @@ class AbstractBase(observer.Observable):
     def set_state(self, state):
         self._state = state
 
-    def get_state_s(self, lower = True):
+    def get_state_s(self, lower=True):
         """
         Retrieves a string describing the current state
         of the system, this string should be as descriptive
@@ -3476,7 +3590,7 @@ class AbstractBase(observer.Observable):
         state_s = state_s.lower() if lower else state_s
         return state_s
 
-    def get_env(self, name, default = None, cast = None, expand = False):
+    def get_env(self, name, default=None, cast=None, expand=False):
         """
         Retrieves the value of the environment variable with the
         requested name, defaulting to the provided value in case
@@ -3511,14 +3625,17 @@ class AbstractBase(observer.Observable):
         properly casted into the target value.
         """
 
-        if not name in config.CONFIGS: return default
+        if not name in config.CONFIGS:
+            return default
         value = config.CONFIGS.get(name, default)
-        if expand: value = self.expand(value)
+        if expand:
+            value = self.expand(value)
         cast = config.CASTS.get(cast, cast)
-        if cast and not value == None: value = cast(value)
+        if cast and not value == None:
+            value = cast(value)
         return value
 
-    def expand(self, value, encoding = "utf-8", force = False):
+    def expand(self, value, encoding="utf-8", force=False):
         """
         Expands the provided string/bytes value into a file in the
         current file system so that it may be correctly used by interfaces
@@ -3545,15 +3662,19 @@ class AbstractBase(observer.Observable):
         for the expansion of the provided value.
         """
 
-        if not value and not force: return value
+        if not value and not force:
+            return value
         is_bytes = legacy.is_bytes(value)
-        if not is_bytes: value = value.encode(encoding)
+        if not is_bytes:
+            value = value.encode(encoding)
         value = value.replace(b"\\n", b"\n")
         fd, file_path = tempfile.mkstemp()
         os.close(fd)
         file = open(file_path, "wb")
-        try: file.write(value)
-        finally: file.close()
+        try:
+            file.write(value)
+        finally:
+            file.close()
         self._expanded.append(file_path)
         return file_path
 
@@ -3570,7 +3691,7 @@ class AbstractBase(observer.Observable):
 
         return None
 
-    def get_adapter(self, name = "memory", *args, **kwargs):
+    def get_adapter(self, name="memory", *args, **kwargs):
         """
         Retrieves an instance of a storage adapter described
         by the provided name, note that the dynamic (extra)
@@ -3590,7 +3711,7 @@ class AbstractBase(observer.Observable):
         adapter = adapter_c(*args, **kwargs)
         return adapter
 
-    def get_auth(self, name = "memory", *args, **kwargs):
+    def get_auth(self, name="memory", *args, **kwargs):
         """
         Gathers the proper authentication handler that is being
         requested with the provided name. The retrieved auth
@@ -3690,7 +3811,8 @@ class AbstractBase(observer.Observable):
         while self._notified:
             event, data = self._notified.pop(0)
             binds = self._events.pop(event, [])
-            for callable in binds: callable(data)
+            for callable in binds:
+                callable(data)
             count += 1
 
         # returns the number of processed notifications to the
@@ -3722,7 +3844,8 @@ class AbstractBase(observer.Observable):
         # in case there's no delayed items to be called returns the control
         # flow immediately, note that the notified elements (pending process)
         # are also going to be verified for presence
-        if not self._delayed and not self._notified: return
+        if not self._delayed and not self._notified:
+            return
 
         # retrieves the value for the current timestamp, to be used in
         # comparisons against the target timestamps of the callables
@@ -3742,7 +3865,8 @@ class AbstractBase(observer.Observable):
             # runs the notifies verification cycle and if there's at
             # least one processed event continues the loop meaning that
             # the if test evaluations must be re-processed
-            if self._notifies(): continue
+            if self._notifies():
+                continue
 
             # "pops" the current item from the delayed list to be used
             # in the execution of the current iteration cycle
@@ -3758,7 +3882,8 @@ class AbstractBase(observer.Observable):
             # for the comparison against the current time reference
             # this is performed by defaulting the value against negative
             # ensuring immediate execution of the associated callable
-            if target == None: target = -1
+            if target == None:
+                target = -1
 
             # tests if the current target is valid (less than or
             # equals to the current time value) and in case it's
@@ -3782,11 +3907,12 @@ class AbstractBase(observer.Observable):
 
             # unpacks the multiple options so that it's possible to determine
             # the way the delayed operation is going to be executed
-            run, = options
+            (run,) = options
 
             # in case the method is not meant to be run, probably canceled
             # the execution of it should be properly ignored
-            if not run: continue
+            if not run:
+                continue
 
             # calls the callback method as the delayed operation is
             # now meant to be run, this is an operation that may change
@@ -3794,12 +3920,13 @@ class AbstractBase(observer.Observable):
             # must be implemented with the proper precautions, note that
             # proper exception is set so that proper top level handling
             # is defined and logging is performed
-            try: method()
+            try:
+                method()
             except (KeyboardInterrupt, SystemExit, errors.StopError):
                 raise
             except BaseException as exception:
-                self.error(exception, stack = True)
-                self.log_stack(method = self.warning)
+                self.error(exception, stack=True)
+                self.log_stack(method=self.warning)
 
         # iterates over all the pending callable tuple values and adds
         # them back to the delayed heap list so that they are called
@@ -3810,9 +3937,10 @@ class AbstractBase(observer.Observable):
 
         # in case the delayed list is empty resets the delay id so that
         # it never gets into a very large number, would break performance
-        if not self._delayed: self._did = 0
+        if not self._delayed:
+            self._did = 0
 
-    def _generate(self, hashed = True):
+    def _generate(self, hashed=True):
         """
         Generates a random unique identifier that may be used
         to uniquely identify a certain object or operation.
@@ -3830,7 +3958,8 @@ class AbstractBase(observer.Observable):
 
         identifier = str(uuid.uuid4())
         identifier = identifier.upper()
-        if not hashed: return identifier
+        if not hashed:
+            return identifier
         identifier = legacy.bytes(identifier)
         hash = hashlib.sha256(identifier)
         identifier = hash.hexdigest()
@@ -3841,22 +3970,24 @@ class AbstractBase(observer.Observable):
         # in case the current connection has been closed meanwhile
         # the current connection is meant to be avoided and so the
         # method must return immediately to the caller method
-        if connection.status == CLOSED: return
+        if connection.status == CLOSED:
+            return
 
         # retrieves the socket associated with the connection
         # and calls the open method of the connection to proceed
         # with the correct operations for the connection
         _socket = connection.socket
-        connection.open(connect = True)
+        connection.open(connect=True)
 
         # tries to run the non blocking connection it should
         # fail and the connection should only be considered as
         # open when a write event is raised for the connection
-        try: _socket.connect(connection.address)
+        try:
+            _socket.connect(connection.address)
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             if not error_v in SSL_VALID_ERRORS:
-                self.warning(error, stack = True)
+                self.warning(error, stack=True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
                 connection.close()
@@ -3864,7 +3995,7 @@ class AbstractBase(observer.Observable):
         except socket.error as error:
             error_v = error.args[0] if error.args else None
             if not error_v in VALID_ERRORS:
-                self.warning(error, stack = True)
+                self.warning(error, stack=True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
                 connection.close()
@@ -3872,7 +4003,7 @@ class AbstractBase(observer.Observable):
         except (KeyboardInterrupt, SystemExit):
             raise
         except BaseException as exception:
-            self.warning(exception, stack = True)
+            self.warning(exception, stack=True)
             self.log_stack()
             self.trigger("error", self, connection, exception)
             connection.close()
@@ -3887,7 +4018,8 @@ class AbstractBase(observer.Observable):
         # in case the connection is not of type SSL the method
         # may return as there's nothing left to be done, as the
         # rest of the method is dedicated to SSL tricks
-        if not connection.ssl: return
+        if not connection.ssl:
+            return
 
         # verifies if the current SSL object is a context oriented one
         # (newest versions) or a legacy oriented one, that does not uses
@@ -3900,12 +4032,11 @@ class AbstractBase(observer.Observable):
         # destroyed by the underlying SSL library (as an error) because
         # the socket is of type non blocking and raises an error, note
         # that the creation of the socket varies between SSL versions
-        if _socket._sslobj: return
+        if _socket._sslobj:
+            return
         if has_context:
             _socket._sslobj = _socket.context._wrap_socket(
-                _socket,
-                _socket.server_side,
-                _socket.server_hostname
+                _socket, _socket.server_side, _socket.server_hostname
             )
         else:
             _socket._sslobj = ssl._ssl.sslwrap(
@@ -3915,7 +4046,7 @@ class AbstractBase(observer.Observable):
                 _socket.certfile,
                 _socket.cert_reqs,
                 _socket.ssl_version,
-                _socket.ca_certs
+                _socket.ca_certs,
             )
 
         # verifies if the SSL object class is defined in the SSL module
@@ -3923,9 +4054,12 @@ class AbstractBase(observer.Observable):
         # in order to comply with new indirection/abstraction method, under
         # some circumstances this operations fails with an exception because
         # the wrapping operation is not allowed for every Python environment
-        if not hasattr(ssl, "SSLObject"): return
-        try: _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
-        except TypeError: pass
+        if not hasattr(ssl, "SSLObject"):
+            return
+        try:
+            _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner=_socket)
+        except TypeError:
+            pass
 
     def _connectf(self, connection):
         """
@@ -3943,19 +4077,24 @@ class AbstractBase(observer.Observable):
         # in case the SSL connection is still undergoing the handshaking
         # procedures (marked as connecting) ignores the call as this must
         # be a duplicated call to this method (to be ignored)
-        if connection.ssl_connecting: return
+        if connection.ssl_connecting:
+            return
 
         # verifies if there was an error in the middle of the connection
         # operation and if that's the case calls the proper callback and
         # returns the control flow to the caller method
         error = connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
-        if error: self.on_error(connection.socket); return
+        if error:
+            self.on_error(connection.socket)
+            return
 
         # checks if the current connection is SSL based and if that's the
         # case starts the handshaking process (async non blocking) otherwise
         # calls the on connect callback with the newly created connection
-        if connection.ssl: connection.add_starter(self._ssl_client_handshake)
-        else: self.on_connect(connection)
+        if connection.ssl:
+            connection.add_starter(self._ssl_client_handshake)
+        else:
+            self.on_connect(connection)
 
         # runs the starter process (initial kick-off) so that all the starters
         # registered for the connection may start to be executed, note that if
@@ -3963,43 +4102,36 @@ class AbstractBase(observer.Observable):
         # going to be triggered by this call
         connection.run_starter()
 
-    def _socket_keepalive(
-        self,
-        _socket,
-        timeout = None,
-        interval = None,
-        count = None
-    ):
-        if timeout == None: timeout = self.keepalive_timeout
-        if interval == None: interval = self.keepalive_interval
-        if count == None: count = self.keepalive_count
+    def _socket_keepalive(self, _socket, timeout=None, interval=None, count=None):
+        if timeout == None:
+            timeout = self.keepalive_timeout
+        if interval == None:
+            interval = self.keepalive_interval
+        if count == None:
+            count = self.keepalive_count
         is_inet = _socket.family in (socket.AF_INET, socket.AF_INET6)
-        is_inet and hasattr(_socket, "TCP_KEEPIDLE") and\
-            _socket.setsockopt(
-                socket.IPPROTO_TCP,
-                socket.TCP_KEEPIDLE, #@UndefinedVariable pylint: disable=E1101
-                timeout
-            )
-        is_inet and hasattr(_socket, "TCP_KEEPINTVL") and\
-            _socket.setsockopt(
-                socket.IPPROTO_TCP,
-                socket.TCP_KEEPINTVL, #@UndefinedVariable pylint: disable=E1101
-                interval
-            )
-        is_inet and hasattr(_socket, "TCP_KEEPCNT") and\
-            _socket.setsockopt(
-                socket.IPPROTO_TCP,
-                socket.TCP_KEEPCNT, #@UndefinedVariable pylint: disable=E1101
-                count
-            )
-        hasattr(_socket, "SO_REUSEPORT") and\
-            _socket.setsockopt(
-                socket.SOL_SOCKET,
-                socket.SO_REUSEPORT, #@UndefinedVariable pylint: disable=E1101
-                1
-            )
+        is_inet and hasattr(_socket, "TCP_KEEPIDLE") and _socket.setsockopt(
+            socket.IPPROTO_TCP,
+            socket.TCP_KEEPIDLE,  # @UndefinedVariable pylint: disable=E1101
+            timeout,
+        )
+        is_inet and hasattr(_socket, "TCP_KEEPINTVL") and _socket.setsockopt(
+            socket.IPPROTO_TCP,
+            socket.TCP_KEEPINTVL,  # @UndefinedVariable pylint: disable=E1101
+            interval,
+        )
+        is_inet and hasattr(_socket, "TCP_KEEPCNT") and _socket.setsockopt(
+            socket.IPPROTO_TCP,
+            socket.TCP_KEEPCNT,  # @UndefinedVariable pylint: disable=E1101
+            count,
+        )
+        hasattr(_socket, "SO_REUSEPORT") and _socket.setsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_REUSEPORT,  # @UndefinedVariable pylint: disable=E1101
+            1,
+        )
 
-    def _ssl_init(self, strict = True, env = True):
+    def _ssl_init(self, strict=True, env=True):
         # initializes the values of both the "main" context for SSL
         # and the map that associated an hostname and a context, both
         # are going to be used (if possible) at runtime for proper
@@ -4012,15 +4144,18 @@ class AbstractBase(observer.Observable):
         # returned to the caller method as it's not possible to created
         # any kind of context information for SSL
         has_context = hasattr(ssl, "SSLContext")
-        if not has_context: return
+        if not has_context:
+            return
 
         # retrieves the reference to the environment variables that are going
         # to be used in the construction of the various SSL contexts, note that
         # the secure variable is extremely important to ensure that a proper and
         # secure SSL connection is established with the peer
-        secure = self.get_env("SSL_SECURE", 1, cast = int) if env else 0
-        context_options = self.get_env("SSL_CONTEXT_OPTIONS", [], cast = list) if env else []
-        contexts = self.get_env("SSL_CONTEXTS", {}, cast = dict) if env else {}
+        secure = self.get_env("SSL_SECURE", 1, cast=int) if env else 0
+        context_options = (
+            self.get_env("SSL_CONTEXT_OPTIONS", [], cast=list) if env else []
+        )
+        contexts = self.get_env("SSL_CONTEXTS", {}, cast=dict) if env else {}
 
         # creates the main/default SSL context setting the default key
         # and certificate information in such context, then verifies
@@ -4031,24 +4166,22 @@ class AbstractBase(observer.Observable):
         # is unset for situation where no callback registration is possible
         self._ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
         self._ssl_ctx_base(
-            self._ssl_context,
-            secure = secure,
-            context_options = context_options
+            self._ssl_context, secure=secure, context_options=context_options
         )
         self._ssl_ctx_protocols(self._ssl_context)
         self._ssl_certs(self._ssl_context)
         has_callback = hasattr(self._ssl_context, "set_servername_callback")
-        if has_callback: self._ssl_context.set_servername_callback(self._ssl_callback)
-        elif strict: self._ssl_context = None
+        if has_callback:
+            self._ssl_context.set_servername_callback(self._ssl_callback)
+        elif strict:
+            self._ssl_context = None
 
         # retrieves the reference to the map containing the various key
         # and certificate paths for the various defined host names and
         # uses it to create the complete set of SSL context objects
         for hostname, values in legacy.iteritems(contexts):
             context = self._ssl_ctx(
-                values,
-                secure = secure,
-                context_options = context_options
+                values, secure=secure, context_options=context_options
             )
             self._ssl_contexts[hostname] = (context, values)
 
@@ -4060,18 +4193,21 @@ class AbstractBase(observer.Observable):
         context, values = self._ssl_contexts.get(hostname, (context, None))
         self._ssl_ctx_protocols(context)
         socket.context = context
-        if not values: return
+        if not values:
+            return
         ssl_host = values.get("ssl_host", None)
         ssl_fingerprint = values.get("ssl_fingerprint", None)
-        if not ssl_host and not ssl_fingerprint: return
+        if not ssl_host and not ssl_fingerprint:
+            return
         connection = self.connections_m.get(socket, None)
-        if not connection: return
+        if not connection:
+            return
         connection.ssl_host = ssl_host
         connection.ssl_fingerprint = ssl_fingerprint
 
-    def _ssl_ctx(self, values, context = None, secure = 1, context_options = []):
+    def _ssl_ctx(self, values, context=None, secure=1, context_options=[]):
         context = context or ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        self._ssl_ctx_base(context, secure = secure, context_options = context_options)
+        self._ssl_ctx_base(context, secure=secure, context_options=context_options)
         self._ssl_ctx_protocols(context)
         key_file = values.get("key_file", None)
         cer_file = values.get("cer_file", None)
@@ -4081,15 +4217,15 @@ class AbstractBase(observer.Observable):
         cert_reqs = ssl.CERT_REQUIRED if ssl_verify else ssl.CERT_NONE
         self._ssl_certs(
             context,
-            key_file = key_file,
-            cer_file = cer_file,
-            ca_file = ca_file,
-            ca_root = ca_root,
-            verify_mode = cert_reqs
+            key_file=key_file,
+            cer_file=cer_file,
+            ca_file=ca_file,
+            ca_root=ca_root,
+            verify_mode=cert_reqs,
         )
         return context
 
-    def _ssl_ctx_base(self, context, secure = 1, context_options = []):
+    def _ssl_ctx_base(self, context, secure=1, context_options=[]):
         if secure >= 1 and hasattr(ssl, "OP_NO_SSLv2"):
             context.options |= ssl.OP_NO_SSLv2
         if secure >= 1 and hasattr(ssl, "OP_NO_SSLv3"):
@@ -4105,7 +4241,8 @@ class AbstractBase(observer.Observable):
         if secure >= 1 and hasattr(ssl, "OP_CIPHER_SERVER_PREFERENCE"):
             context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
         for context_option in context_options:
-            if not hasattr(ssl, context_option): continue
+            if not hasattr(ssl, context_option):
+                continue
             context.options |= getattr(ssl, context_option)
         if secure >= 2 and hasattr(context, "set_ecdh_curve"):
             context.set_ecdh_curve("prime256v1")
@@ -4117,28 +4254,34 @@ class AbstractBase(observer.Observable):
         self._ssl_ctx_npn(context)
 
     def _ssl_ctx_alpn(self, context):
-        if not hasattr(ssl, "HAS_ALPN"): return
-        if not ssl.HAS_ALPN: return
+        if not hasattr(ssl, "HAS_ALPN"):
+            return
+        if not ssl.HAS_ALPN:
+            return
         if hasattr(context, "set_alpn_protocols"):
             protocols = self.get_protocols()
-            if protocols: context.set_alpn_protocols(protocols)
+            if protocols:
+                context.set_alpn_protocols(protocols)
 
     def _ssl_ctx_npn(self, context):
-        if not hasattr(ssl, "HAS_NPN"): return
-        if not ssl.HAS_NPN: return
+        if not hasattr(ssl, "HAS_NPN"):
+            return
+        if not ssl.HAS_NPN:
+            return
         if hasattr(context, "set_npn_protocols"):
             protocols = self.get_protocols()
-            if protocols: context.set_npn_protocols(protocols)
+            if protocols:
+                context.set_npn_protocols(protocols)
 
     def _ssl_certs(
         self,
         context,
-        key_file = None,
-        cer_file = None,
-        ca_file = None,
-        ca_root = False,
-        verify_mode = ssl.CERT_NONE,
-        check_hostname = False
+        key_file=None,
+        cer_file=None,
+        ca_file=None,
+        ca_root=False,
+        verify_mode=ssl.CERT_NONE,
+        check_hostname=False,
     ):
         dir_path = os.path.dirname(__file__)
         root_path = os.path.join(dir_path, "../")
@@ -4147,49 +4290,50 @@ class AbstractBase(observer.Observable):
         extras_path = os.path.join(base_path, "extras")
         key_file = key_file or os.path.join(extras_path, "net.key")
         cer_file = cer_file or os.path.join(extras_path, "net.cer")
-        context.load_cert_chain(cer_file, keyfile = key_file)
+        context.load_cert_chain(cer_file, keyfile=key_file)
         context.verify_mode = verify_mode
-        if hasattr(context, "check_hostname"): context.check_hostname = check_hostname
+        if hasattr(context, "check_hostname"):
+            context.check_hostname = check_hostname
         if ca_file:
-            context.load_verify_locations(cafile = ca_file)
+            context.load_verify_locations(cafile=ca_file)
         if ca_root and hasattr(context, "load_default_certs"):
-            context.load_default_certs(purpose = ssl.Purpose.SERVER_AUTH)
+            context.load_default_certs(purpose=ssl.Purpose.SERVER_AUTH)
         if ca_root and SSL_CA_PATH:
-            context.load_verify_locations(cafile = SSL_CA_PATH)
+            context.load_verify_locations(cafile=SSL_CA_PATH)
 
     def _ssl_upgrade(
         self,
         _socket,
-        key_file = None,
-        cer_file = None,
-        ca_file = None,
-        ca_root = True,
-        server = True,
-        ssl_verify = False,
-        server_hostname = None
+        key_file=None,
+        cer_file=None,
+        ca_file=None,
+        ca_root=True,
+        server=True,
+        ssl_verify=False,
+        server_hostname=None,
     ):
         socket_ssl = self._ssl_wrap(
             _socket,
-            key_file = key_file,
-            cer_file = cer_file,
-            ca_file = ca_file,
-            ca_root = ca_root,
-            server = server,
-            ssl_verify = ssl_verify,
-            server_hostname = server_hostname
+            key_file=key_file,
+            cer_file=cer_file,
+            ca_file=ca_file,
+            ca_root=ca_root,
+            server=server,
+            ssl_verify=ssl_verify,
+            server_hostname=server_hostname,
         )
         return socket_ssl
 
     def _ssl_wrap(
         self,
         _socket,
-        key_file = None,
-        cer_file = None,
-        ca_file = None,
-        ca_root = True,
-        server = True,
-        ssl_verify = False,
-        server_hostname = None
+        key_file=None,
+        cer_file=None,
+        ca_file=None,
+        ca_root=True,
+        server=True,
+        ssl_verify=False,
+        server_hostname=None,
     ):
         # tries to determine the value for the check hostname flag to be
         # passed to the wrap function by ensuring that both the SSL verify
@@ -4215,30 +4359,30 @@ class AbstractBase(observer.Observable):
         if not self._ssl_context:
             return ssl.wrap_socket(
                 _socket,
-                keyfile = key_file,
-                certfile = cer_file,
-                server_side = server,
-                cert_reqs = cert_reqs,
-                ca_certs = ca_file,
-                ssl_version = ssl.PROTOCOL_SSLv23,
-                do_handshake_on_connect = False
+                keyfile=key_file,
+                certfile=cer_file,
+                server_side=server,
+                cert_reqs=cert_reqs,
+                ca_certs=ca_file,
+                ssl_version=ssl.PROTOCOL_SSLv23,
+                do_handshake_on_connect=False,
             )
 
         self._ssl_certs(
             self._ssl_context,
-            key_file = key_file,
-            cer_file = cer_file,
-            ca_file = ca_file,
-            ca_root = ca_root,
-            verify_mode = cert_reqs,
-            check_hostname = check_hostname
+            key_file=key_file,
+            cer_file=cer_file,
+            ca_file=ca_file,
+            ca_root=ca_root,
+            verify_mode=cert_reqs,
+            check_hostname=check_hostname,
         )
 
         return self._ssl_context.wrap_socket(
             _socket,
-            server_side = server,
-            do_handshake_on_connect = False,
-            server_hostname = server_hostname
+            server_side=server,
+            do_handshake_on_connect=False,
+            server_hostname=server_hostname,
         )
 
     def _ssl_handshake(self, connection):
@@ -4290,12 +4434,14 @@ class AbstractBase(observer.Observable):
             # or read operation is available (retry process)
             error_v = error.args[0] if error.args else None
             if error_v in SSL_VALID_ERRORS:
-                if error_v == ssl.SSL_ERROR_WANT_WRITE and\
-                    not self.is_sub_write(_socket):
+                if error_v == ssl.SSL_ERROR_WANT_WRITE and not self.is_sub_write(
+                    _socket
+                ):
                     self.sub_write(_socket)
                 elif self.is_sub_write(_socket):
                     self.unsub_write(_socket)
-            else: raise
+            else:
+                raise
 
     def _ssl_client_handshake(self, connection):
         """
@@ -4358,12 +4504,14 @@ class AbstractBase(observer.Observable):
             # or read operation is available (retry process)
             error_v = error.args[0] if error.args else None
             if error_v in SSL_VALID_ERRORS:
-                if error_v == ssl.SSL_ERROR_WANT_WRITE and\
-                    not self.is_sub_write(_socket):
+                if error_v == ssl.SSL_ERROR_WANT_WRITE and not self.is_sub_write(
+                    _socket
+                ):
                     self.sub_write(_socket)
                 elif self.is_sub_write(_socket):
                     self.unsub_write(_socket)
-            else: raise
+            else:
+                raise
 
     def _expand_destroy(self):
         """
@@ -4377,8 +4525,10 @@ class AbstractBase(observer.Observable):
         # iterates over the complete list of expanded file paths to remove
         # their corresponding files (graceful error handling)
         for expanded in self._expanded:
-            try: os.remove(expanded)
-            except OSError: pass
+            try:
+                os.remove(expanded)
+            except OSError:
+                pass
 
         # deletes the complete set of path references from the expanded
         # list so that it is not going to be used any longer
@@ -4403,14 +4553,17 @@ class AbstractBase(observer.Observable):
         """
 
         level_t = type(level)
-        if level_t == int: return level
-        if level == None: return level
-        if level == "SILENT": return log.SILENT
+        if level_t == int:
+            return level
+        if level == None:
+            return level
+        if level == "SILENT":
+            return log.SILENT
         if hasattr(logging, "_checkLevel"):
             return logging._checkLevel(level)
         return logging.getLevelName(level)
 
-    def _format_delta(self, time_delta, count = 2):
+    def _format_delta(self, time_delta, count=2):
         days = time_delta.days
         hours, remainder = divmod(time_delta.seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
@@ -4418,19 +4571,22 @@ class AbstractBase(observer.Observable):
         if days > 0:
             delta_s += "%dd " % days
             count -= 1
-        if count == 0: return delta_s.strip()
+        if count == 0:
+            return delta_s.strip()
         if hours > 0:
             delta_s += "%dh " % hours
             count -= 1
-        if count == 0: return delta_s.strip()
+        if count == 0:
+            return delta_s.strip()
         if minutes > 0:
             delta_s += "%dm " % minutes
             count -= 1
-        if count == 0: return delta_s.strip()
+        if count == 0:
+            return delta_s.strip()
         delta_s += "%ds" % seconds
         return delta_s.strip()
 
-    def _wait_forever(self, sleep = 60):
+    def _wait_forever(self, sleep=60):
         """
         Runs a simple event loop that sleeps for a certain amount
         of time and then processes a series of pending events.
@@ -4458,18 +4614,27 @@ class AbstractBase(observer.Observable):
             while self._running:
                 try:
                     self._awaken = True
-                    try: self._delays()
-                    finally: self._awaken = False
+                    try:
+                        self._delays()
+                    finally:
+                        self._awaken = False
                     time.sleep(sleep)
                 except errors.WakeupError:
                     continue
-                except (KeyboardInterrupt, SystemExit, errors.StopError, errors.PauseError):
+                except (
+                    KeyboardInterrupt,
+                    SystemExit,
+                    errors.StopError,
+                    errors.PauseError,
+                ):
                     raise
                 except BaseException as exception:
-                    self.error(exception, stack = True)
-                    self.log_stack(method = self.warning)
+                    self.error(exception, stack=True)
+                    self.log_stack(method=self.warning)
         finally:
-            if hasattr(self, "_awaken"): del self._awaken
+            if hasattr(self, "_awaken"):
+                del self._awaken
+
 
 class DiagBase(AbstractBase):
 
@@ -4491,14 +4656,13 @@ class DiagBase(AbstractBase):
         AbstractBase.errors(self, *args, **kwargs)
         self.errors_c += 1
 
-    def info_dict(self, full = False):
-        info = AbstractBase.info_dict(self, full = full)
+    def info_dict(self, full=False):
+        info = AbstractBase.info_dict(self, full=full)
         info.update(
-            reads_c = self.reads_c,
-            writes_c = self.writes_c,
-            errors_c = self.errors_c
+            reads_c=self.reads_c, writes_c=self.writes_c, errors_c=self.errors_c
         )
         return info
+
 
 class BaseThread(threading.Thread):
     """
@@ -4509,14 +4673,15 @@ class BaseThread(threading.Thread):
     a main thread to continue with execution logic.
     """
 
-    def __init__(self, owner = None, daemon = False, *args, **kwargs):
+    def __init__(self, owner=None, daemon=False, *args, **kwargs):
         threading.Thread.__init__(self, *args, **kwargs)
         self.owner = owner
         self.daemon = daemon
 
     def run(self):
         threading.Thread.run(self)
-        if not self.owner: return
+        if not self.owner:
+            return
         self.owner._thread = self
         try:
             self.owner.start()
@@ -4524,7 +4689,8 @@ class BaseThread(threading.Thread):
             self.owner._thread = None
             self.owner = None
 
-def new_loop_main(factory = None, env = True, _compat = None, **kwargs):
+
+def new_loop_main(factory=None, env=True, _compat=None, **kwargs):
     kwargs["_slave"] = kwargs.pop("_slave", True)
 
     # obtains the factory method defaulting to the Netius base event loop
@@ -4540,19 +4706,26 @@ def new_loop_main(factory = None, env = True, _compat = None, **kwargs):
 
     return compat_loop(instance) if _compat else instance
 
+
 def new_loop_asyncio(**kwargs):
     asyncio = asynchronous.get_asyncio()
-    if not asyncio: return None
+    if not asyncio:
+        return None
     return asyncio.new_event_loop()
 
-def new_loop(factory = None, _compat = None, asyncio = None, **kwargs):
+
+def new_loop(factory=None, _compat=None, asyncio=None, **kwargs):
     _compat = compat.is_compat() if _compat == None else _compat
     asyncio = compat.is_asyncio() if asyncio == None else asyncio
-    if asyncio: return new_loop_asyncio(**kwargs)
-    else: return new_loop_main(factory = factory, _compat = _compat, **kwargs)
+    if asyncio:
+        return new_loop_asyncio(**kwargs)
+    else:
+        return new_loop_main(factory=factory, _compat=_compat, **kwargs)
 
-def ensure_main(factory = None, env = True, **kwargs):
-    if Base.get_main(): return
+
+def ensure_main(factory=None, env=True, **kwargs):
+    if Base.get_main():
+        return
 
     # obtains the factory method defaulting to the Netius base event loop
     # constructor and creates a new instance of the event loop
@@ -4570,33 +4743,37 @@ def ensure_main(factory = None, env = True, **kwargs):
     # mode rules may apply
     Base.set_main(instance)
 
+
 def ensure_asyncio(**kwargs):
     asyncio = asynchronous.get_asyncio()
-    if not asyncio: return None
+    if not asyncio:
+        return None
     return asyncio.get_event_loop()
 
-def ensure_loop(factory = None, asyncio = None, **kwargs):
-    asyncio = compat.is_asyncio() if asyncio == None else asyncio
-    if asyncio: ensure_asyncio()
-    else: ensure_main(factory = factory, **kwargs)
 
-def get_main(factory = None, ensure = True, **kwargs):
-    if ensure: ensure_main(factory = factory, **kwargs)
+def ensure_loop(factory=None, asyncio=None, **kwargs):
+    asyncio = compat.is_asyncio() if asyncio == None else asyncio
+    if asyncio:
+        ensure_asyncio()
+    else:
+        ensure_main(factory=factory, **kwargs)
+
+
+def get_main(factory=None, ensure=True, **kwargs):
+    if ensure:
+        ensure_main(factory=factory, **kwargs)
     return Base.get_main()
 
-def get_loop(
-    factory = None,
-    ensure = True,
-    _compat = None,
-    asyncio = None,
-    **kwargs
-):
+
+def get_loop(factory=None, ensure=True, _compat=None, asyncio=None, **kwargs):
     _compat = compat.is_compat() if _compat == None else _compat
     asyncio = compat.is_asyncio() if asyncio == None else asyncio
-    if ensure: ensure_loop(factory = factory, asyncio = asyncio)
-    loop = Base.get_loop(compat = _compat, asyncio = asyncio)
-    loop = loop or get_main(factory = factory, **kwargs)
+    if ensure:
+        ensure_loop(factory=factory, asyncio=asyncio)
+    loop = Base.get_loop(compat=_compat, asyncio=asyncio)
+    loop = loop or get_main(factory=factory, **kwargs)
     return loop
+
 
 def get_event_loop(*args, **kwargs):
     """
@@ -4610,10 +4787,13 @@ def get_event_loop(*args, **kwargs):
 
     return get_loop(*args, **kwargs)
 
-def stop_loop(compat = True, asyncio = True):
-    loop = get_loop(ensure = False, _compat = compat, asyncio = asyncio)
-    if not loop: return
+
+def stop_loop(compat=True, asyncio=True):
+    loop = get_loop(ensure=False, _compat=compat, asyncio=asyncio)
+    if not loop:
+        return
     loop.stop()
+
 
 def compat_loop(loop):
     """
@@ -4630,33 +4810,32 @@ def compat_loop(loop):
 
     return loop._compat if hasattr(loop, "_compat") else loop
 
+
 def get_poll():
     main = get_main()
-    if not main: return None
+    if not main:
+        return None
     return main.poll
 
-def build_future(compat = True, asyncio = True):
+
+def build_future(compat=True, asyncio=True):
     main = get_main()
-    if not main: return None
-    return main.build_future(compat = compat, asyncio = asyncio)
+    if not main:
+        return None
+    return main.build_future(compat=compat, asyncio=asyncio)
 
-def ensure(coroutine, args = [], kwargs = {}, thread = None):
+
+def ensure(coroutine, args=[], kwargs={}, thread=None):
     loop = get_loop()
-    return loop.ensure(
-        coroutine,
-        args = args,
-        kwargs = kwargs,
-        thread = thread
-    )
+    return loop.ensure(coroutine, args=args, kwargs=kwargs, thread=thread)
 
-def ensure_pool(coroutine, args = [], kwargs = {}):
-    return ensure(
-        coroutine,
-        args = args,
-        kwargs = kwargs,
-        thread = True
-    )
 
-is_diag = config.conf("DIAG", False, cast = bool)
-if is_diag: Base = DiagBase
-else: Base = AbstractBase
+def ensure_pool(coroutine, args=[], kwargs={}):
+    return ensure(coroutine, args=args, kwargs=kwargs, thread=True)
+
+
+is_diag = config.conf("DIAG", False, cast=bool)
+if is_diag:
+    Base = DiagBase
+else:
+    Base = AbstractBase

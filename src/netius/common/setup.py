@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -46,36 +37,43 @@ BASE_PATH = os.path.join(COMMON_PATH, "..", "base")
 EXTRAS_PATH = os.path.join(BASE_PATH, "extras")
 SSL_CA_PATH = os.path.join(EXTRAS_PATH, "net.ca")
 
+
 def ensure_setup():
     ensure_ca()
 
-def ensure_ca(path = SSL_CA_PATH):
-    if os.path.exists(path): return
-    _download_ca(path = path)
 
-def _download_ca(path = SSL_CA_PATH, raise_e = True):
+def ensure_ca(path=SSL_CA_PATH):
+    if os.path.exists(path):
+        return
+    _download_ca(path=path)
+
+
+def _download_ca(path=SSL_CA_PATH, raise_e=True):
     import netius.clients
+
     ca_url = CA_URL
     while True:
-        result = netius.clients.HTTPClient.method_s(
-            "GET",
-            ca_url,
-            asynchronous = False
-        )
-        if not result["code"] in (301, 302, 303): break
+        result = netius.clients.HTTPClient.method_s("GET", ca_url, asynchronous=False)
+        if not result["code"] in (301, 302, 303):
+            break
         headers = result.get("headers", {})
         location = headers.get("Location", None)
-        if not location: break
+        if not location:
+            break
         ca_url = location
     if not result["code"] == 200:
-        if not raise_e: return
+        if not raise_e:
+            return
         raise Exception("Error while downloading CA file from '%s'" % CA_URL)
     response = netius.clients.HTTPClient.to_response(result)
     contents = response.read()
     _store_contents(contents, path)
 
+
 def _store_contents(contents, path):
     file = open(path, "wb")
-    try: file.write(contents)
-    finally: file.close()
+    try:
+        file.write(contents)
+    finally:
+        file.close()
     return path

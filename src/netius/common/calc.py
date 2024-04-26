@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -43,6 +34,7 @@ import random
 import netius
 
 from . import util
+
 
 def prime(number_bits):
     """
@@ -70,14 +62,17 @@ def prime(number_bits):
         # using the primality testing strategy, and in case
         # it's breaks the current loop as a prime has been
         # found with the pre-defined number of bits
-        if is_prime(integer): break
+        if is_prime(integer):
+            break
 
     # returns the (generated) and verified prime integer
     # to the caller method, may be used for exponent
     return integer
 
+
 def is_prime(number):
     return random_primality(number, 6)
+
 
 def relatively_prime(first, second):
     # retrieves the greatest common divisor between the
@@ -85,6 +80,7 @@ def relatively_prime(first, second):
     # such situations they are "relative primes"
     divisor = gcd(first, second)
     return divisor == 1
+
 
 def gcd(first, second):
     """
@@ -104,7 +100,8 @@ def gcd(first, second):
 
     # in case the p value is smaller than the q value
     # reverses the order of the arguments and re-computes
-    if first < second: return gcd(second, first)
+    if first < second:
+        return gcd(second, first)
 
     # in case the q value is zero
     if second == 0:
@@ -117,6 +114,7 @@ def gcd(first, second):
     # iteration for those calculus
     next = abs(first % second)
     return gcd(second, next)
+
 
 def egcd(first, second):
     """
@@ -136,13 +134,15 @@ def egcd(first, second):
     :see: http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
     """
 
-    if second == 0: return (first, 1, 0)
+    if second == 0:
+        return (first, 1, 0)
 
     q = abs(first % second)
     r = first // second
     d, k, l = egcd(second, q)
 
     return (d, l, k - l * r)
+
 
 def modinv(first, second):
     """
@@ -164,8 +164,11 @@ def modinv(first, second):
     """
 
     d, l, _e = egcd(first, second)
-    if d != 1: raise netius.DataError("Modular inverse does not exist")
-    else: return l % second
+    if d != 1:
+        raise netius.DataError("Modular inverse does not exist")
+    else:
+        return l % second
+
 
 def random_integer_interval(min_value, max_value):
     # sets the default minimum number of bits, even if the
@@ -194,6 +197,7 @@ def random_integer_interval(min_value, max_value):
     # value to the generated value and returns it to the caller
     random_base_value = util.random_integer(number_bits) % range
     return random_base_value + min_value
+
 
 def random_primality(number, k):
     """
@@ -225,11 +229,13 @@ def random_primality(number, k):
         # is going to be verified
         random_number = random_integer_interval(1, number - 1)
         is_witness = jacobi_witness(random_number, number)
-        if is_witness: return False
+        if is_witness:
+            return False
 
     # returns valid as no jacobi witness has been found
     # for the current number that is being verified
     return True
+
 
 def jacobi_witness(x, n):
     """
@@ -251,8 +257,11 @@ def jacobi_witness(x, n):
     j = jacobi(x, n) % n
     f = pow(x, (n - 1) // 2, n)
 
-    if j == f: return False
-    else: return True
+    if j == f:
+        return False
+    else:
+        return True
+
 
 def jacobi(a, b):
     """
@@ -272,19 +281,23 @@ def jacobi(a, b):
     :see: http://en.wikipedia.org/wiki/Jacobi_symbol
     """
 
-    if a % b == 0: return 0
+    if a % b == 0:
+        return 0
 
     result = 1
 
     while a > 1:
         if a & 1:
-            if ((a - 1) * (b - 1) >> 2) & 1: result = -result
+            if ((a - 1) * (b - 1) >> 2) & 1:
+                result = -result
             b, a = a, b % a
         else:
-            if ((b ** 2 - 1) >> 3) & 1: result = -result
+            if ((b**2 - 1) >> 3) & 1:
+                result = -result
             a >>= 1
 
     return result
+
 
 def ceil_integer(value):
     """

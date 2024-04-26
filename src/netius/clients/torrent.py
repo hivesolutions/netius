@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -66,9 +57,10 @@ BLOCK_SIZE = 16384
 using the current torrent infra-structure, this value conditions
 most of the torrent operations and should be defined carefully """
 
+
 class TorrentConnection(netius.Connection):
 
-    def __init__(self, max_requests = 50, *args, **kwargs):
+    def __init__(self, max_requests=50, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
         self.parser = None
         self.max_requests = max_requests
@@ -85,17 +77,20 @@ class TorrentConnection(netius.Connection):
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
-        if not self.is_open(): return
+        if not self.is_open():
+            return
         self.parser = netius.common.TorrentParser(self)
         self.bind("close", self.on_close)
         self.parser.bind("on_handshake", self.on_handshake)
         self.parser.bind("on_message", self.on_message)
-        self.is_alive(timeout = ALIVE_TIMEOUT, schedule = True)
+        self.is_alive(timeout=ALIVE_TIMEOUT, schedule=True)
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
-        if not self.is_closed(): return
-        if self.parser: self.parser.destroy()
+        if not self.is_closed():
+            return
+        if self.parser:
+            self.parser.destroy()
 
     def on_close(self, connection):
         self.release()
@@ -118,7 +113,8 @@ class TorrentConnection(netius.Connection):
         # for the handle of the message from the provided type and verifies
         # if the method exists under the current instance
         method_name = "%s_t" % type
-        if not hasattr(self, method_name): return
+        if not hasattr(self, method_name):
+            return
 
         # tries to retrieve the method for the current state in iteration
         # and then calls the retrieve method with (handler method)
@@ -130,13 +126,15 @@ class TorrentConnection(netius.Connection):
         self.bitfield = [True if value == "1" else False for value in bitfield]
 
     def choke_t(self, data):
-        if self.choked == CHOKED: return
+        if self.choked == CHOKED:
+            return
         self.choked = CHOKED
         self.release()
         self.trigger("choked", self)
 
     def unchoke_t(self, data):
-        if self.choked == UNCHOKED: return
+        if self.choked == UNCHOKED:
+            return
         self.choked = UNCHOKED
         self.reset()
         self.next()
@@ -153,17 +151,20 @@ class TorrentConnection(netius.Connection):
         self.trigger("piece", self, data, index, begin)
 
     def port_t(self, data):
-        port, = struct.unpack("!H", data[:8])
+        (port,) = struct.unpack("!H", data[:8])
         self.task.set_dht(self.address, port)
 
-    def next(self, count = None):
-        if not self.choked == UNCHOKED: return
-        if count == None: count = self.max_requests - self.pend_requests
+    def next(self, count=None):
+        if not self.choked == UNCHOKED:
+            return
+        if count == None:
+            count = self.max_requests - self.pend_requests
         for _index in range(count):
             block = self.task.pop_block(self.bitfield)
-            if not block: return
+            if not block:
+                return
             index, begin, length = block
-            self.request(index, begin = begin, length = length)
+            self.request(index, begin=begin, length=length)
             block_t = (index, begin)
             self.add_request(block_t)
 
@@ -172,7 +173,8 @@ class TorrentConnection(netius.Connection):
         self.pend_requests += 1
 
     def remove_request(self, block):
-        if not block in self.requests: return
+        if not block in self.requests:
+            return
         self.requests.remove(block)
         self.pend_requests -= 1
 
@@ -192,7 +194,7 @@ class TorrentConnection(netius.Connection):
             b"BitTorrent protocol",
             1,
             self.task.info_hash,
-            netius.legacy.bytes(self.task.owner.peer_id)
+            netius.legacy.bytes(self.task.owner.peer_id),
         )
         data and self.send(data)
 
@@ -220,25 +222,32 @@ class TorrentConnection(netius.Connection):
         data = struct.pack("!LBL", 5, 4, index)
         data and self.send(data)
 
-    def request(self, index, begin = 0, length = BLOCK_SIZE):
+    def request(self, index, begin=0, length=BLOCK_SIZE):
         data = struct.pack("!LBLLL", 13, 6, index, begin, length)
         data and self.send(data)
 
-    def is_alive(self, timeout = ALIVE_TIMEOUT, schedule = False):
+    def is_alive(self, timeout=ALIVE_TIMEOUT, schedule=False):
         messages = self.messages
         downloaded = self.downloaded
 
         def clojure():
-            if not self.is_open(): return
+            if not self.is_open():
+                return
             delta = self.downloaded - downloaded
             rate = float(delta) / float(timeout)
-            if self.messages == messages: self.close(flush = True); return
-            if rate < SPEED_LIMIT: self.close(flush = True); return
+            if self.messages == messages:
+                self.close(flush=True)
+                return
+            if rate < SPEED_LIMIT:
+                self.close(flush=True)
+                return
             callable = self.is_alive()
             self.owner.delay(callable, timeout)
 
-        if schedule: self.owner.delay(clojure, timeout)
+        if schedule:
+            self.owner.delay(clojure, timeout)
         return clojure
+
 
 class TorrentClient(netius.StreamClient):
     """
@@ -255,8 +264,8 @@ class TorrentClient(netius.StreamClient):
     :see: http://www.bittorrent.org/beps/bep_0003.html
     """
 
-    def peer(self, task, host, port, ssl = False, connection = None):
-        connection = connection or self.acquire_c(host, port, ssl = ssl)
+    def peer(self, task, host, port, ssl=False, connection=None):
+        connection = connection or self.acquire_c(host, port, ssl=ssl)
         connection.task = task
         return connection
 
@@ -273,10 +282,5 @@ class TorrentClient(netius.StreamClient):
         netius.StreamClient.on_data(self, connection, data)
         connection.parse(data)
 
-    def build_connection(self, socket, address, ssl = False):
-        return TorrentConnection(
-            owner = self,
-            socket = socket,
-            address = address,
-            ssl = ssl
-        )
+    def build_connection(self, socket, address, ssl=False):
+        return TorrentConnection(owner=self, socket=socket, address=address, ssl=ssl)

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -60,16 +51,17 @@ FYUKcisv38Wi7qaIcuFAzsRyVCM+480egfJfdyl1qsRuVGStgnbi+kyiRkGfoxpE\
 5NGFN3d6+ZMDzTl9aPqoSAiRfLXFmXMNTFFfNerMSd4YukU8+32kbybY/SdkjNnG\
 N3qtMUEjP3bw9X6lAgMBAAE="
 
-DNS_LABEL = b"20160523113052._domainkey.netius.hive.pt. IN TXT\
-\"k=rsa; p=MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgIEVkl9OywdFc6Q8teLWmjtW/o7kFYU\
+DNS_LABEL = b'20160523113052._domainkey.netius.hive.pt. IN TXT\
+"k=rsa; p=MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgIEVkl9OywdFc6Q8teLWmjtW/o7kFYU\
 Kcisv38Wi7qaIcuFAzsRyVCM+480egfJfdyl1qsRuVGStgnbi+kyiRkGfoxpE5NGFN3d6+ZMDzTl9a\
-PqoSAiRfLXFmXMNTFFfNerMSd4YukU8+32kbybY/SdkjNnGN3qtMUEjP3bw9X6lAgMBAAE=\""
+PqoSAiRfLXFmXMNTFFfNerMSd4YukU8+32kbybY/SdkjNnGN3qtMUEjP3bw9X6lAgMBAAE="'
 
 MESSAGE = b"Header: Value\r\n\r\nHello World"
 
 RESULT = b"DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=netius.hive.pt;\r\n\
  i=@netius.hive.pt; l=13; q=dns/txt; s=20160523113052; t=1464003802;\r\n\
  h=Header; bh=sIAi0xXPHrEtJmW97Q5q9AZTwKC+l1Iy+0m8vQIc/DY=; b=TTDenBUdjKRjBAORnX2mhIZLVdeK2R4xfLPYERKthDvKsDvfdFgv4znf0BpyV/7gjSc7v2VAoeDxZSeYueZ8xtI2XEU2VoJFRy9Ccm0aFnFLy5H3yldK3xye4pKQ+8goRfjrlL/AMfaoDNJsEXXw1+ZPaRYeKnB1OwNTOC2a194=\r\n"
+
 
 class DKIMTest(unittest.TestCase):
 
@@ -80,6 +72,6 @@ class DKIMTest(unittest.TestCase):
             "20160523113052",
             "netius.hive.pt",
             private_key,
-            creation = 1464003802
+            creation=1464003802,
         )
         self.assertEqual(result, RESULT)

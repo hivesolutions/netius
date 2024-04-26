@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -63,6 +54,7 @@ may be used for logging purposes """
 TIMEOUT_LOGSTASH = 30.0
 """ The maximum amount of time in between flush
 operations in the logstash handler """
+
 
 class LogstashHandler(logging.Handler):
 
@@ -143,7 +135,7 @@ class LogstashHandler(logging.Handler):
             "version": common.VERSION,
             "identifier": common.IDENTIFIER_SHORT,
             "identifier_long": common.IDENTIFIER_LONG,
-            "netius": True
+            "netius": True,
         }
         if not meta == None:
             log["meta"] = meta
@@ -155,7 +147,8 @@ class LogstashHandler(logging.Handler):
             try:
                 self.flush(raise_e=raise_e)
             except Exception:
-                if raise_e: raise
+                if raise_e:
+                    raise
 
     def flush(self, force=False, raise_e=False):
         logging.Handler.flush(self)
@@ -188,49 +181,45 @@ class LogstashHandler(logging.Handler):
 
         return logstash.API()
 
+
 def rotating_handler(
-    path = "netius.log",
-    max_bytes = 1048576,
-    max_log = 5,
-    encoding = None,
-    delay = False
+    path="netius.log", max_bytes=1048576, max_log=5, encoding=None, delay=False
 ):
     return logging.handlers.RotatingFileHandler(
-        path,
-        maxBytes = max_bytes,
-        backupCount = max_log,
-        encoding = encoding,
-        delay = delay
+        path, maxBytes=max_bytes, backupCount=max_log, encoding=encoding, delay=delay
     )
 
+
 def smtp_handler(
-    host = "localhost",
-    port = 25,
-    sender = "no-reply@netius.com",
-    receivers = [],
-    subject = "Netius logging",
-    username = None,
-    password = None,
-    stls = False
+    host="localhost",
+    port=25,
+    sender="no-reply@netius.com",
+    receivers=[],
+    subject="Netius logging",
+    username=None,
+    password=None,
+    stls=False,
 ):
     address = (host, port)
-    if username and password: credentials = (username, password)
-    else: credentials = None
+    if username and password:
+        credentials = (username, password)
+    else:
+        credentials = None
     has_secure = in_signature(logging.handlers.SMTPHandler.__init__, "secure")
-    if has_secure: kwargs = dict(secure = () if stls else None)
-    else: kwargs = dict()
+    if has_secure:
+        kwargs = dict(secure=() if stls else None)
+    else:
+        kwargs = dict()
     return logging.handlers.SMTPHandler(
-        address,
-        sender,
-        receivers,
-        subject,
-        credentials = credentials,
-        **kwargs
+        address, sender, receivers, subject, credentials=credentials, **kwargs
     )
+
 
 def in_signature(callable, name):
     has_full = hasattr(inspect, "getfullargspec")
-    if has_full: spec = inspect.getfullargspec(callable)
-    else: spec = inspect.getargspec(callable)
+    if has_full:
+        spec = inspect.getfullargspec(callable)
+    else:
+        spec = inspect.getargspec(callable)
     args, _varargs, kwargs = spec[:3]
     return (args and name in args) or (kwargs and "secure" in kwargs)

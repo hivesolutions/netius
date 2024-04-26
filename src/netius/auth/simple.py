@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -19,16 +19,7 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -36,26 +27,26 @@ __license__ = "Apache License, Version 2.0"
 
 from . import base
 
+
 class SimpleAuth(base.Auth):
 
-    def __init__(self, username = None, password = None, *args, **kwargs):
+    def __init__(self, username=None, password=None, *args, **kwargs):
         base.Auth.__init__(self, *args, **kwargs)
         self.username = username
         self.password = password
 
     @classmethod
-    def auth(cls, username, password, target = None, *args, **kwargs):
-        if not target: return False
+    def auth(cls, username, password, target=None, *args, **kwargs):
+        if not target:
+            return False
         _username, _password = target
-        if _username and not username == _username: return False
-        if not password == _password: return False
+        if _username and not username == _username:
+            return False
+        if not password == _password:
+            return False
         return True
 
     def auth_i(self, username, password, *args, **kwargs):
         return self.__class__.auth(
-            username,
-            password,
-            target = (self.username, self.password),
-            *args,
-            **kwargs
+            username, password, target=(self.username, self.password), *args, **kwargs
         )

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -42,9 +33,10 @@ import struct
 
 import netius.common
 
+
 class TFTPSession(object):
 
-    def __init__(self, owner, name = None, mode = None):
+    def __init__(self, owner, name=None, mode=None):
         self.owner = owner
         self.name = name
         self.mode = mode
@@ -56,25 +48,29 @@ class TFTPSession(object):
         self.reset()
 
     def reset(self):
-        if self.file: self.file.close()
+        if self.file:
+            self.file.close()
         self.name = None
         self.mode = None
         self.file = None
         self.completed = False
         self.sequence = 0
 
-    def next(self, size = 512, increment = True):
-        if self.completed: return None
+    def next(self, size=512, increment=True):
+        if self.completed:
+            return None
         file = self._get_file()
         data = file.read(size)
         self.completed = len(data) < size
-        if increment: self.increment()
+        if increment:
+            self.increment()
         header = struct.pack("!HH", netius.common.DATA_TFTP, self.sequence)
         return header + data
 
-    def ack(self, size = 512, increment = True):
-        if self.sequence == 0: return None
-        return self.next(size = size, increment = increment)
+    def ack(self, size=512, increment=True):
+        if self.sequence == 0:
+            return None
+        return self.next(size=size, increment=increment)
 
     def increment(self):
         self.sequence += 1
@@ -93,12 +89,15 @@ class TFTPSession(object):
         info = self.get_info()
         print(info)
 
-    def _get_file(self, allow_absolute = False):
-        if self.file: return self.file
-        if not allow_absolute: name = self.name.lstrip("/")
+    def _get_file(self, allow_absolute=False):
+        if self.file:
+            return self.file
+        if not allow_absolute:
+            name = self.name.lstrip("/")
         path = os.path.join(self.owner.base_path, name)
         self.file = open(path, "rb")
         return self.file
+
 
 class TFTPRequest(object):
 
@@ -114,13 +113,14 @@ class TFTPRequest(object):
 
     @classmethod
     def generate(cls):
-        if cls.parsers_m: return
+        if cls.parsers_m:
+            return
         cls.parsers_m = (
             cls._parse_rrq,
             cls._parse_wrq,
             cls._parse_data,
             cls._parse_ack,
-            cls._parse_error
+            cls._parse_error,
         )
         cls.parsers_l = len(cls.parsers_m)
 
@@ -129,7 +129,8 @@ class TFTPRequest(object):
         buffer = netius.legacy.StringIO()
         buffer.write("op        := %d\n" % self.op)
         buffer.write("payload   := %s" % repr(self.payload))
-        if session_info: buffer.write("\n" + session_info)
+        if session_info:
+            buffer.write("\n" + session_info)
         buffer.seek(0)
         info = buffer.read()
         return info
@@ -159,8 +160,9 @@ class TFTPRequest(object):
         type_s = netius.common.TYPES_TFTP.get(type, None)
         return type_s
 
-    def response(self, options = {}):
-        if self.op == netius.common.ACK_TFTP: return self.session.ack()
+    def response(self, options={}):
+        if self.op == netius.common.ACK_TFTP:
+            return self.session.ack()
         return self.session.next()
 
     @classmethod
@@ -189,9 +191,10 @@ class TFTPRequest(object):
     @classmethod
     def _str(cls, data):
         index = data.index(b"\x00")
-        value, remaining = data[:index], data[index + 1:]
+        value, remaining = data[:index], data[index + 1 :]
         value = netius.legacy.str(value)
         return value, remaining
+
 
 class TFTPServer(netius.DatagramServer):
     """
@@ -201,25 +204,23 @@ class TFTPServer(netius.DatagramServer):
     :see: http://tools.ietf.org/html/rfc1350
     """
 
-    ALLOWED_OPERATIONS = (
-        netius.common.RRQ_TFTP,
-        netius.common.ACK_TFTP
-    )
+    ALLOWED_OPERATIONS = (netius.common.RRQ_TFTP, netius.common.ACK_TFTP)
 
-    def __init__(self, base_path = "", *args, **kwargs):
+    def __init__(self, base_path="", *args, **kwargs):
         netius.DatagramServer.__init__(self, *args, **kwargs)
         self.base_path = base_path
         self.sessions = dict()
 
-    def serve(self, port = 69, *args, **kwargs):
-        netius.DatagramServer.serve(self, port = port, *args, **kwargs)
+    def serve(self, port=69, *args, **kwargs):
+        netius.DatagramServer.serve(self, port=port, *args, **kwargs)
 
     def on_data(self, address, data):
         netius.DatagramServer.on_data(self, address, data)
 
         try:
             session = self.sessions.get(address, None)
-            if not session: session = TFTPSession(self)
+            if not session:
+                session = TFTPSession(self)
             self.sessions[address] = session
 
             request = TFTPRequest(data, session)
@@ -231,9 +232,12 @@ class TFTPServer(netius.DatagramServer):
 
     def on_serve(self):
         netius.DatagramServer.on_serve(self)
-        if self.env: self.base_path = self.get_env("BASE_PATH", self.base_path)
+        if self.env:
+            self.base_path = self.get_env("BASE_PATH", self.base_path)
         self.info("Starting TFTP server ...")
-        self.info("Defining '%s' as the root of the file server ..." % (self.base_path or "."))
+        self.info(
+            "Defining '%s' as the root of the file server ..." % (self.base_path or ".")
+        )
 
     def on_data_tftp(self, address, request):
         cls = self.__class__
@@ -244,12 +248,11 @@ class TFTPServer(netius.DatagramServer):
         self.debug("Received %s message from '%s'" % (type_s, address))
 
         if not type in cls.ALLOWED_OPERATIONS:
-            raise netius.NetiusError(
-                "Invalid operation type '%d'", type
-            )
+            raise netius.NetiusError("Invalid operation type '%d'", type)
 
         response = request.response()
-        if not response: return
+        if not response:
+            return
 
         self.send(response, address)
 
@@ -261,9 +264,11 @@ class TFTPServer(netius.DatagramServer):
         self.send(response, address)
         self.info("Sent error message '%s' to '%s'" % (message, address))
 
+
 if __name__ == "__main__":
     import logging
-    server = TFTPServer(level = logging.DEBUG)
-    server.serve(env = True)
+
+    server = TFTPServer(level=logging.DEBUG)
+    server.serve(env=True)
 else:
     __path__ = []

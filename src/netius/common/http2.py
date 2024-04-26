@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -70,10 +61,10 @@ FRAME_SIZE_ERROR = 0x06
 REFUSED_STREAM = 0x07
 CANCEL = 0x08
 COMPRESSION_ERROR = 0x09
-CONNECT_ERROR = 0x0a
-ENHANCE_YOUR_CALM = 0x0b
-INADEQUATE_SECURITY = 0x0c
-HTTP_1_1_REQUIRED = 0x0d
+CONNECT_ERROR = 0x0A
+ENHANCE_YOUR_CALM = 0x0B
+INADEQUATE_SECURITY = 0x0C
+HTTP_1_1_REQUIRED = 0x0D
 
 SETTINGS_HEADER_TABLE_SIZE = 0x01
 SETTINGS_ENABLE_PUSH = 0x02
@@ -121,43 +112,43 @@ HTTP2_TUPLES = (
     (SETTINGS_MAX_CONCURRENT_STREAMS, "SETTINGS_MAX_CONCURRENT_STREAMS"),
     (SETTINGS_INITIAL_WINDOW_SIZE, "SETTINGS_INITIAL_WINDOW_SIZE"),
     (SETTINGS_MAX_FRAME_SIZE, "SETTINGS_MAX_FRAME_SIZE"),
-    (SETTINGS_MAX_HEADER_LIST_SIZE, "SETTINGS_MAX_HEADER_LIST_SIZE")
+    (SETTINGS_MAX_HEADER_LIST_SIZE, "SETTINGS_MAX_HEADER_LIST_SIZE"),
 )
 """ The sequence of tuple that associate the constant value of the
 setting with the proper string representation for it """
 
 HTTP2_NAMES = {
-    DATA : "DATA",
-    HEADERS : "HEADERS",
-    PRIORITY : "PRIORITY",
-    RST_STREAM : "RST_STREAM",
-    SETTINGS : "SETTINGS",
-    PUSH_PROMISE : "PUSH_PROMISE",
-    PING : "PING",
-    GOAWAY : "GOAWAY",
-    WINDOW_UPDATE : "WINDOW_UPDATE",
-    CONTINUATION : "CONTINUATION"
+    DATA: "DATA",
+    HEADERS: "HEADERS",
+    PRIORITY: "PRIORITY",
+    RST_STREAM: "RST_STREAM",
+    SETTINGS: "SETTINGS",
+    PUSH_PROMISE: "PUSH_PROMISE",
+    PING: "PING",
+    GOAWAY: "GOAWAY",
+    WINDOW_UPDATE: "WINDOW_UPDATE",
+    CONTINUATION: "CONTINUATION",
 }
 """ The association between the various types of frames
 described as integers and their representation as strings """
 
 HTTP2_SETTINGS = {
-    SETTINGS_HEADER_TABLE_SIZE : 4096,
-    SETTINGS_ENABLE_PUSH : 1,
-    SETTINGS_MAX_CONCURRENT_STREAMS : 128,
-    SETTINGS_INITIAL_WINDOW_SIZE : 65535,
-    SETTINGS_MAX_FRAME_SIZE : 16384,
-    SETTINGS_MAX_HEADER_LIST_SIZE : 16384
+    SETTINGS_HEADER_TABLE_SIZE: 4096,
+    SETTINGS_ENABLE_PUSH: 1,
+    SETTINGS_MAX_CONCURRENT_STREAMS: 128,
+    SETTINGS_INITIAL_WINDOW_SIZE: 65535,
+    SETTINGS_MAX_FRAME_SIZE: 16384,
+    SETTINGS_MAX_HEADER_LIST_SIZE: 16384,
 }
 """ The default values to be used for settings of a newly
 created connection, this should be defined according to specification """
 
 HTTP2_SETTINGS_OPTIMAL = {
-    SETTINGS_HEADER_TABLE_SIZE : 4096,
-    SETTINGS_MAX_CONCURRENT_STREAMS : 512,
-    SETTINGS_INITIAL_WINDOW_SIZE : 1048576,
-    SETTINGS_MAX_FRAME_SIZE : 131072,
-    SETTINGS_MAX_HEADER_LIST_SIZE : 16384
+    SETTINGS_HEADER_TABLE_SIZE: 4096,
+    SETTINGS_MAX_CONCURRENT_STREAMS: 512,
+    SETTINGS_INITIAL_WINDOW_SIZE: 1048576,
+    SETTINGS_MAX_FRAME_SIZE: 131072,
+    SETTINGS_MAX_HEADER_LIST_SIZE: 16384,
 }
 """ The optimal settings meant to be used by an infra-structure
 deployed in a production environment """
@@ -167,6 +158,7 @@ HTTP2_SETTINGS_T = netius.legacy.items(HTTP2_SETTINGS)
 
 HTTP2_SETTINGS_OPTIMAL_T = netius.legacy.items(HTTP2_SETTINGS_OPTIMAL)
 """ The tuple sequence version of the settings optimal """
+
 
 class HTTP2Parser(parser.Parser):
 
@@ -183,22 +175,14 @@ class HTTP2Parser(parser.Parser):
         "end_headers",
         "last_type",
         "last_stream",
-        "last_end_headers"
+        "last_end_headers",
     )
 
-    def __init__(
-        self,
-        owner,
-        store = False,
-        file_limit = http.FILE_LIMIT
-    ):
+    def __init__(self, owner, store=False, file_limit=http.FILE_LIMIT):
         parser.Parser.__init__(self, owner)
 
         self.build()
-        self.reset(
-            store = store,
-            file_limit = file_limit
-        )
+        self.reset(store=store, file_limit=file_limit)
 
     def build(self):
         """
@@ -211,10 +195,7 @@ class HTTP2Parser(parser.Parser):
 
         self.connection = self.owner
 
-        self.states = (
-            self._parse_header,
-            self._parse_payload
-        )
+        self.states = (self._parse_header, self._parse_payload)
         self.state_l = len(self.states)
 
         self.parsers = (
@@ -227,7 +208,7 @@ class HTTP2Parser(parser.Parser):
             self._parse_ping,
             self._parse_goaway,
             self._parse_window_update,
-            self._parse_continuation
+            self._parse_continuation,
         )
 
         self.streams = {}
@@ -248,7 +229,8 @@ class HTTP2Parser(parser.Parser):
         # them as the parser is now going to be destroyed and they cannot
         # be reached any longer (invalidated state)
         streams = netius.legacy.values(self.streams)
-        for stream in streams: stream.close()
+        for stream in streams:
+            stream.close()
 
         self.connection = None
         self.states = ()
@@ -261,9 +243,7 @@ class HTTP2Parser(parser.Parser):
 
     def info_dict(self):
         info = parser.Parser.info_dict(self)
-        info.update(
-            streams = self.info_streams()
-        )
+        info.update(streams=self.info_streams())
         return info
 
     def info_streams(self):
@@ -276,11 +256,7 @@ class HTTP2Parser(parser.Parser):
             info.append(item)
         return info
 
-    def reset(
-        self,
-        store = False,
-        file_limit = http.FILE_LIMIT
-    ):
+    def reset(self, store=False, file_limit=http.FILE_LIMIT):
         self.store = store
         self.file_limit = file_limit
         self.state = HEADER_STATE
@@ -297,16 +273,15 @@ class HTTP2Parser(parser.Parser):
         self.last_stream = 0
         self.last_end_headers = False
 
-    def clear(self, force = False, save = True):
-        if not force and self.state == HEADER_STATE: return
+    def clear(self, force=False, save=True):
+        if not force and self.state == HEADER_STATE:
+            return
         type = self.type
         stream = self.stream
         end_headers = self.end_headers
-        self.reset(
-            store = self.store,
-            file_limit = self.file_limit
-        )
-        if not save: return
+        self.reset(store=self.store, file_limit=self.file_limit)
+        if not save:
+            return
         self.last_type = type
         self.last_stream = stream
         self.last_end_headers = end_headers
@@ -333,7 +308,8 @@ class HTTP2Parser(parser.Parser):
         # in case the current state of the parser is finished, must
         # reset the state to the start position as the parser is
         # re-starting (probably a new data sequence)
-        if self.state == FINISH_STATE: self.clear()
+        if self.state == FINISH_STATE:
+            self.clear()
 
         # retrieves the size of the data that has been sent for parsing
         # and saves it under the size original variable
@@ -347,8 +323,10 @@ class HTTP2Parser(parser.Parser):
             if self.state <= self.state_l:
                 method = self.states[self.state - 1]
                 count = method(data)
-                if count == -1: break
-                if count == 0: continue
+                if count == -1:
+                    break
+                if count == 0:
+                    continue
 
                 size -= count
                 data = data[count:]
@@ -366,7 +344,8 @@ class HTTP2Parser(parser.Parser):
         # in case not all of the data has been processed
         # must add it to the buffer so that it may be used
         # latter in the next parsing of the message
-        if size > 0: self.buffer.append(data)
+        if size > 0:
+            self.buffer.append(data)
 
         # returns the number of read (processed) bytes of the
         # data that has been sent to the parser
@@ -396,188 +375,174 @@ class HTTP2Parser(parser.Parser):
         if self.length > self.owner.settings[SETTINGS_MAX_FRAME_SIZE]:
             raise netius.ParserError(
                 "Headers are greater than SETTINGS_MAX_FRAME_SIZE",
-                stream = self.stream,
-                error_code = FRAME_SIZE_ERROR
+                stream=self.stream,
+                error_code=FRAME_SIZE_ERROR,
             )
-        if self.last_type in (HEADERS, CONTINUATION) and not\
-            self.last_end_headers and not self.last_stream == self.stream:
+        if (
+            self.last_type in (HEADERS, CONTINUATION)
+            and not self.last_end_headers
+            and not self.last_stream == self.stream
+        ):
             raise netius.ParserError(
                 "Cannot send frame from a different stream in middle of headers",
-                error_code = PROTOCOL_ERROR
+                error_code=PROTOCOL_ERROR,
             )
 
     def assert_stream(self, stream):
         if not stream.identifier % 2 == 1:
             raise netius.ParserError(
-                "Stream identifiers must be odd",
-                error_code = PROTOCOL_ERROR
+                "Stream identifiers must be odd", error_code=PROTOCOL_ERROR
             )
         if stream.dependency == stream.identifier:
             raise netius.ParserError(
-                "Stream cannot depend on itself",
-                error_code = PROTOCOL_ERROR
+                "Stream cannot depend on itself", error_code=PROTOCOL_ERROR
             )
         if len(self.streams) >= self.owner.settings[SETTINGS_MAX_CONCURRENT_STREAMS]:
             raise netius.ParserError(
                 "Too many streams (greater than SETTINGS_MAX_CONCURRENT_STREAMS)",
-                stream = self.stream,
-                error_code = PROTOCOL_ERROR
+                stream=self.stream,
+                error_code=PROTOCOL_ERROR,
             )
 
     def assert_data(self, stream, end_stream):
         if self.stream == 0x00:
             raise netius.ParserError(
-                "Stream cannot be set to 0x00 for DATA",
-                error_code = PROTOCOL_ERROR
+                "Stream cannot be set to 0x00 for DATA", error_code=PROTOCOL_ERROR
             )
         if not stream.end_headers:
             raise netius.ParserError(
                 "Not ready to receive DATA open",
-                stream = self.stream,
-                error_code = PROTOCOL_ERROR
+                stream=self.stream,
+                error_code=PROTOCOL_ERROR,
             )
         if stream.end_stream and stream.end_headers:
             raise netius.ParserError(
                 "Not ready to receive DATA half closed (remote)",
-                stream = self.stream,
-                error_code = STREAM_CLOSED
+                stream=self.stream,
+                error_code=STREAM_CLOSED,
             )
 
     def assert_headers(self, stream, end_stream):
         if stream.end_stream and stream.end_headers:
             raise netius.ParserError(
                 "Not ready to receive HEADERS half closed (remote)",
-                stream = self.stream,
-                error_code = STREAM_CLOSED
+                stream=self.stream,
+                error_code=STREAM_CLOSED,
             )
         if not end_stream:
             raise netius.ParserError(
                 "Second HEADERS without END_STREAM flag",
-                stream = self.stream,
-                error_code = PROTOCOL_ERROR
+                stream=self.stream,
+                error_code=PROTOCOL_ERROR,
             )
 
     def assert_priority(self, stream, dependency):
         if self.stream == 0x00:
             raise netius.ParserError(
-                "Stream cannot be set to 0x00 for PRIORITY",
-                error_code = PROTOCOL_ERROR
+                "Stream cannot be set to 0x00 for PRIORITY", error_code=PROTOCOL_ERROR
             )
         if dependency == self.stream:
             raise netius.ParserError(
-                "Stream cannot depend on current stream",
-                error_code = PROTOCOL_ERROR
+                "Stream cannot depend on current stream", error_code=PROTOCOL_ERROR
             )
         if stream and dependency == stream.identifier:
             raise netius.ParserError(
-                "Stream cannot depend on itself",
-                error_code = PROTOCOL_ERROR
+                "Stream cannot depend on itself", error_code=PROTOCOL_ERROR
             )
 
     def assert_rst_stream(self, stream):
         if self.stream == 0x00:
             raise netius.ParserError(
-                "Stream cannot be set to 0x00 for RST_STREAM",
-                error_code = PROTOCOL_ERROR
+                "Stream cannot be set to 0x00 for RST_STREAM", error_code=PROTOCOL_ERROR
             )
         if self.stream > self._max_stream:
             raise netius.ParserError(
-                "Stream has not been created for RST_STREAM",
-                error_code = PROTOCOL_ERROR
+                "Stream has not been created for RST_STREAM", error_code=PROTOCOL_ERROR
             )
 
-    def assert_settings(self, settings, ack, extended = True):
+    def assert_settings(self, settings, ack, extended=True):
         if not self.stream == 0x00:
             raise netius.ParserError(
-                "Stream must be set to 0x00 for SETTINGS",
-                error_code = PROTOCOL_ERROR
+                "Stream must be set to 0x00 for SETTINGS", error_code=PROTOCOL_ERROR
             )
         if ack and not self.length == 0:
             raise netius.ParserError(
-                "SETTINGS with ACK must be zero length",
-                error_code = FRAME_SIZE_ERROR
+                "SETTINGS with ACK must be zero length", error_code=FRAME_SIZE_ERROR
             )
         if not self.length % 6 == 0:
             raise netius.ParserError(
                 "Size of SETTINGS frame must be a multiple of 6",
-                error_code = FRAME_SIZE_ERROR
+                error_code=FRAME_SIZE_ERROR,
             )
-        if not extended: return
+        if not extended:
+            return
         settings = dict(settings)
         if not settings.get(SETTINGS_ENABLE_PUSH, 0) in (0, 1):
             raise netius.ParserError(
                 "Value of SETTINGS_ENABLE_PUSH different from 0 or 1",
-                error_code = PROTOCOL_ERROR
+                error_code=PROTOCOL_ERROR,
             )
         if settings.get(SETTINGS_INITIAL_WINDOW_SIZE, 0) > 2147483647:
             raise netius.ParserError(
                 "Value of SETTINGS_INITIAL_WINDOW_SIZE too large",
-                error_code = FLOW_CONTROL_ERROR
+                error_code=FLOW_CONTROL_ERROR,
             )
         if settings.get(SETTINGS_MAX_FRAME_SIZE, 16384) < 16384:
             raise netius.ParserError(
-                "Value of SETTINGS_MAX_FRAME_SIZE too small",
-                error_code = PROTOCOL_ERROR
+                "Value of SETTINGS_MAX_FRAME_SIZE too small", error_code=PROTOCOL_ERROR
             )
         if settings.get(SETTINGS_MAX_FRAME_SIZE, 16384) > 16777215:
             raise netius.ParserError(
-                "Value of SETTINGS_MAX_FRAME_SIZE too large",
-                error_code = PROTOCOL_ERROR
+                "Value of SETTINGS_MAX_FRAME_SIZE too large", error_code=PROTOCOL_ERROR
             )
 
     def assert_push_promise(self, promised_stream):
         raise netius.ParserError(
-            "PUSH_PROMISE not allowed for server",
-            error_code = PROTOCOL_ERROR
+            "PUSH_PROMISE not allowed for server", error_code=PROTOCOL_ERROR
         )
 
     def assert_ping(self):
         if not self.stream == 0x00:
             raise netius.ParserError(
-                "Stream must be set to 0x00 for PING",
-                error_code = PROTOCOL_ERROR
+                "Stream must be set to 0x00 for PING", error_code=PROTOCOL_ERROR
             )
         if not self.length == 8:
             raise netius.ParserError(
-                "Size of PING frame must be 8",
-                error_code = FRAME_SIZE_ERROR
+                "Size of PING frame must be 8", error_code=FRAME_SIZE_ERROR
             )
 
     def assert_goaway(self):
         if not self.stream == 0x00:
             raise netius.ParserError(
-                "Stream must be set to 0x00 for GOAWAY",
-                error_code = PROTOCOL_ERROR
+                "Stream must be set to 0x00 for GOAWAY", error_code=PROTOCOL_ERROR
             )
 
     def assert_window_update(self, stream, increment):
         if increment == 0:
             raise netius.ParserError(
-                "WINDOW_UPDATE increment must not be zero",
-                error_code = PROTOCOL_ERROR
+                "WINDOW_UPDATE increment must not be zero", error_code=PROTOCOL_ERROR
             )
         if self.owner.window + increment > 2147483647:
             raise netius.ParserError(
                 "Window value for the connection too large",
-                error_code = FLOW_CONTROL_ERROR
+                error_code=FLOW_CONTROL_ERROR,
             )
         if stream and stream.window + increment > 2147483647:
             raise netius.ParserError(
-                "Window value for the stream too large",
-                error_code = FLOW_CONTROL_ERROR
+                "Window value for the stream too large", error_code=FLOW_CONTROL_ERROR
             )
 
     def assert_continuation(self, stream):
         if stream.end_stream and stream.end_headers:
             raise netius.ParserError(
                 "Not ready to receive CONTINUATION half closed (remote)",
-                stream = self.stream,
-                error_code = PROTOCOL_ERROR
+                stream=self.stream,
+                error_code=PROTOCOL_ERROR,
             )
         if not self.last_type in (HEADERS, PUSH_PROMISE, CONTINUATION):
             raise netius.ParserError(
                 "CONTINUATION without HEADERS, PUSH_PROMISE or CONTINUATION before",
-                error_code = PROTOCOL_ERROR
+                error_code=PROTOCOL_ERROR,
             )
 
     @property
@@ -585,7 +550,8 @@ class HTTP2Parser(parser.Parser):
         return self.get_type_s(self.type)
 
     def _parse_header(self, data):
-        if len(data) + self.buffer_size < HEADER_SIZE: return -1
+        if len(data) + self.buffer_size < HEADER_SIZE:
+            return -1
 
         size = HEADER_SIZE - self.buffer_size
         data = self.buffer_data + data[:size]
@@ -602,13 +568,15 @@ class HTTP2Parser(parser.Parser):
         return size
 
     def _parse_payload(self, data):
-        if len(data) + self.buffer_size < self.length: return -1
+        if len(data) + self.buffer_size < self.length:
+            return -1
 
         size = self.length - self.buffer_size
         data = self.buffer_data + data[:size]
 
         valid_type = self.type < len(self.parsers)
-        if not valid_type: self._invalid_type()
+        if not valid_type:
+            self._invalid_type()
 
         self.payload = data
         self.trigger("on_payload")
@@ -631,10 +599,10 @@ class HTTP2Parser(parser.Parser):
         padded_l = 0
 
         if padded:
-            padded_l, = struct.unpack("!B", data[index:index + 1])
+            (padded_l,) = struct.unpack("!B", data[index : index + 1])
             index += 1
 
-        contents = data[index:data_l - padded_l]
+        contents = data[index : data_l - padded_l]
 
         stream = self._get_stream(self.stream)
         self.assert_data(stream, end_stream)
@@ -645,7 +613,8 @@ class HTTP2Parser(parser.Parser):
         self.trigger("on_data_h2", stream, contents)
 
         self.trigger("on_partial", contents)
-        if stream.is_ready: self.trigger("on_data")
+        if stream.is_ready:
+            self.trigger("on_data")
 
     def _parse_headers(self, data):
         data_l = len(data)
@@ -662,18 +631,18 @@ class HTTP2Parser(parser.Parser):
         exclusive = 0
 
         if padded:
-            padded_l, = struct.unpack("!B", data[index:index + 1])
+            (padded_l,) = struct.unpack("!B", data[index : index + 1])
             index += 1
 
         if priority:
-            dependency, weight = struct.unpack("!IB", data[index:index + 5])
+            dependency, weight = struct.unpack("!IB", data[index : index + 5])
             exclusive = True if dependency & 0x80000000 else False
-            dependency = dependency & 0x7fffffff
+            dependency = dependency & 0x7FFFFFFF
             index += 5
 
         # retrieves the (headers) fragment part of the payload, this is
         # going to be used as the basis for the header decoding
-        fragment = data[index:data_l - padded_l]
+        fragment = data[index : data_l - padded_l]
 
         # retrieves the value of the window initial size from the owner
         # connection this is the value to be set in the new stream and
@@ -685,35 +654,40 @@ class HTTP2Parser(parser.Parser):
 
         # tries to retrieve a previously opened stream and, this may be
         # the case it has been opened by a previous frame operation
-        stream = self._get_stream(self.stream, strict = False, closed_s = True)
+        stream = self._get_stream(self.stream, strict=False, closed_s=True)
 
         if stream:
             # runs the headers assertion operation and then updated the
             # various elements in the currently opened stream accordingly
             self.assert_headers(stream, end_stream)
             stream.extend_headers(fragment)
-            if dependency: stream.dependency = dependency
-            if weight: stream.weight = weight
-            if exclusive: stream.exclusive = exclusive
-            if end_headers: stream.end_headers = end_headers
-            if end_stream: stream.end_stream = end_stream
+            if dependency:
+                stream.dependency = dependency
+            if weight:
+                stream.weight = weight
+            if exclusive:
+                stream.exclusive = exclusive
+            if end_headers:
+                stream.end_headers = end_headers
+            if end_stream:
+                stream.end_stream = end_stream
         else:
             # constructs the stream structure for the current stream that
             # is being open/created using the current owner, headers and
             # other information as the basis for such construction
             stream = HTTP2Stream(
-                owner = self,
-                identifier = self.stream,
-                header_b = fragment,
-                dependency = dependency,
-                weight = weight,
-                exclusive = exclusive,
-                end_headers = end_headers,
-                end_stream = end_stream,
-                store = self.store,
-                file_limit = self.file_limit,
-                window = window,
-                frame_size = frame_size
+                owner=self,
+                identifier=self.stream,
+                header_b=fragment,
+                dependency=dependency,
+                weight=weight,
+                exclusive=exclusive,
+                end_headers=end_headers,
+                end_stream=end_stream,
+                store=self.store,
+                file_limit=self.file_limit,
+                window=window,
+                frame_size=frame_size,
             )
 
             # ensures that the stream object is properly open, this should
@@ -735,13 +709,16 @@ class HTTP2Parser(parser.Parser):
 
         self.trigger("on_headers_h2", stream)
 
-        if stream.end_headers: stream._calculate()
-        if stream.end_headers: self.trigger("on_headers")
-        if stream.is_ready: self.trigger("on_data")
+        if stream.end_headers:
+            stream._calculate()
+        if stream.end_headers:
+            self.trigger("on_headers")
+        if stream.is_ready:
+            self.trigger("on_data")
 
     def _parse_priority(self, data):
         dependency, weight = struct.unpack("!IB", data)
-        stream = self._get_stream(self.stream, strict = False)
+        stream = self._get_stream(self.stream, strict=False)
         if stream:
             stream.dependency = dependency
             stream.weight = weight
@@ -749,8 +726,8 @@ class HTTP2Parser(parser.Parser):
         self.trigger("on_priority", stream, dependency, weight)
 
     def _parse_rst_stream(self, data):
-        error_code, = struct.unpack("!I", data)
-        stream = self._get_stream(self.stream, strict = False)
+        (error_code,) = struct.unpack("!I", data)
+        stream = self._get_stream(self.stream, strict=False)
         self.assert_rst_stream(stream)
         self.trigger("on_rst_stream", stream, error_code)
 
@@ -762,7 +739,7 @@ class HTTP2Parser(parser.Parser):
 
         for index in netius.legacy.xrange(count):
             base = index * SETTING_SIZE
-            part = data[base:base + SETTING_SIZE]
+            part = data[base : base + SETTING_SIZE]
             setting = struct.unpack("!HI", part)
             settings.append(setting)
 
@@ -780,12 +757,12 @@ class HTTP2Parser(parser.Parser):
         padded_l = 0
 
         if padded:
-            padded_l, = struct.unpack("!B", data[index:index + 1])
+            (padded_l,) = struct.unpack("!B", data[index : index + 1])
             index += 1
 
-        promised_stream, = struct.unpack("!I", data[index:index + 4])
+        (promised_stream,) = struct.unpack("!I", data[index : index + 4])
 
-        fragment = data[index:data_l - padded_l]
+        fragment = data[index : data_l - padded_l]
 
         self.assert_push_promise(promised_stream)
 
@@ -803,14 +780,11 @@ class HTTP2Parser(parser.Parser):
         self.trigger("on_goaway", last_stream, error_code, extra)
 
     def _parse_window_update(self, data):
-        increment, = struct.unpack("!I", data)
-        stream = self._get_stream(
-            self.stream,
-            strict = False,
-            unopened_s = True
-        )
+        (increment,) = struct.unpack("!I", data)
+        stream = self._get_stream(self.stream, strict=False, unopened_s=True)
         self.assert_window_update(stream, increment)
-        if self.stream and not stream: return
+        if self.stream and not stream:
+            return
         self.trigger("on_window_update", stream, increment)
 
     def _parse_continuation(self, data):
@@ -827,8 +801,10 @@ class HTTP2Parser(parser.Parser):
 
         self.trigger("on_continuation", stream)
 
-        if stream.end_headers: stream._calculate()
-        if stream.end_headers: self.trigger("on_headers")
+        if stream.end_headers:
+            stream._calculate()
+        if stream.end_headers:
+            self.trigger("on_headers")
         if stream.end_headers and stream.end_stream:
             self.trigger("on_data")
 
@@ -837,34 +813,39 @@ class HTTP2Parser(parser.Parser):
 
     def _get_stream(
         self,
-        stream = None,
-        default = None,
-        strict = True,
-        closed_s = False,
-        unopened_s = False,
-        exists_s = False
+        stream=None,
+        default=None,
+        strict=True,
+        closed_s=False,
+        unopened_s=False,
+        exists_s=False,
     ):
-        if stream == None: stream = self.stream
-        if stream == 0: return default
-        if strict: closed_s = True; unopened_s = True; exists_s = True
+        if stream == None:
+            stream = self.stream
+        if stream == 0:
+            return default
+        if strict:
+            closed_s = True
+            unopened_s = True
+            exists_s = True
         exists = stream in self.streams
         if closed_s and not exists and stream <= self._max_stream:
             raise netius.ParserError(
                 "Invalid or closed stream '%d'" % stream,
-                stream = self.stream,
-                error_code = STREAM_CLOSED
+                stream=self.stream,
+                error_code=STREAM_CLOSED,
             )
         if unopened_s and not exists and stream > self._max_stream:
             raise netius.ParserError(
                 "Invalid or unopened stream '%d'" % stream,
-                stream = self.stream,
-                error_code = PROTOCOL_ERROR
+                stream=self.stream,
+                error_code=PROTOCOL_ERROR,
             )
         if exists_s and not exists:
             raise netius.ParserError(
                 "Invalid stream '%d'" % stream,
-                stream = self.stream,
-                error_code = PROTOCOL_ERROR
+                stream=self.stream,
+                error_code=PROTOCOL_ERROR,
             )
         self.stream_o = self.streams.get(stream, default)
         return self.stream_o
@@ -875,38 +856,46 @@ class HTTP2Parser(parser.Parser):
         self._max_stream = max(self._max_stream, stream.identifier)
 
     def _del_stream(self, stream):
-        if not stream in self.streams: return
+        if not stream in self.streams:
+            return
         del self.streams[stream]
         self.stream_o = None
 
     def _invalid_type(self):
         ignore = False if self.last_type == HEADERS else True
-        if ignore: raise netius.ParserError("Invalid frame type", ignore = True)
-        raise netius.ParserError("Invalid frame type", error_code = PROTOCOL_ERROR)
+        if ignore:
+            raise netius.ParserError("Invalid frame type", ignore=True)
+        raise netius.ParserError("Invalid frame type", error_code=PROTOCOL_ERROR)
 
     @property
     def buffer_size(self):
         return sum(len(data) for data in self.buffer)
 
     @property
-    def buffer_data(self, empty = True):
+    def buffer_data(self, empty=True):
         data = b"".join(self.buffer)
-        if empty: del self.buffer[:]
+        if empty:
+            del self.buffer[:]
         return data
 
     @property
     def encoder(self):
-        if self._encoder: return self._encoder
+        if self._encoder:
+            return self._encoder
         import hpack
+
         self._encoder = hpack.hpack.Encoder()
         return self._encoder
 
     @property
     def decoder(self):
-        if self._decoder: return self._decoder
+        if self._decoder:
+            return self._decoder
         import hpack
+
         self._decoder = hpack.hpack.Decoder()
         return self._decoder
+
 
 class HTTP2Stream(netius.Stream):
     """
@@ -924,18 +913,18 @@ class HTTP2Stream(netius.Stream):
 
     def __init__(
         self,
-        identifier = None,
-        header_b = None,
-        dependency = 0x00,
-        weight = 1,
-        exclusive = False,
-        end_headers = False,
-        end_stream = False,
-        end_stream_l = False,
-        store = False,
-        file_limit = http.FILE_LIMIT,
-        window = HTTP2_WINDOW,
-        frame_size = HTTP2_FRAME_SIZE,
+        identifier=None,
+        header_b=None,
+        dependency=0x00,
+        weight=1,
+        exclusive=False,
+        end_headers=False,
+        end_stream=False,
+        end_stream_l=False,
+        store=False,
+        file_limit=http.FILE_LIMIT,
+        window=HTTP2_WINDOW,
+        frame_size=HTTP2_FRAME_SIZE,
         *args,
         **kwargs
     ):
@@ -949,10 +938,7 @@ class HTTP2Stream(netius.Stream):
         self.end_stream = end_stream
         self.end_stream_l = end_stream_l
         self.reset(
-            store = store,
-            file_limit = file_limit,
-            window = window,
-            frame_size = frame_size
+            store=store, file_limit=file_limit, window=window, frame_size=frame_size
         )
 
     def __getattr__(self, name):
@@ -962,10 +948,10 @@ class HTTP2Stream(netius.Stream):
 
     def reset(
         self,
-        store = False,
-        file_limit = http.FILE_LIMIT,
-        window = HTTP2_WINDOW,
-        frame_size = HTTP2_FRAME_SIZE
+        store=False,
+        file_limit=http.FILE_LIMIT,
+        window=HTTP2_WINDOW,
+        frame_size=HTTP2_FRAME_SIZE,
     ):
         netius.Stream.reset(self)
         self.store = store
@@ -994,7 +980,8 @@ class HTTP2Stream(netius.Stream):
     def open(self):
         # check if the current stream is currently in (already) in
         # the open state and if that's the case returns immediately
-        if self.status == netius.OPEN: return
+        if self.status == netius.OPEN:
+            return
 
         # calls the parent open operation for upper operations, this
         # should take care of some callback calling
@@ -1005,10 +992,11 @@ class HTTP2Stream(netius.Stream):
         # data is not currently available (continuation frames pending)
         self.decode_headers()
 
-    def close(self, flush = False, destroy = True, reset = True):
+    def close(self, flush=False, destroy=True, reset=True):
         # verifies if the current stream is already closed and
         # if that's the case returns immediately, avoiding duplicate
-        if self.status == netius.CLOSED: return
+        if self.status == netius.CLOSED:
+            return
 
         # in case the reset flag is set sends the final, tries to determine
         # the way of resetting the stream, in case the flush flag is set
@@ -1018,8 +1006,10 @@ class HTTP2Stream(netius.Stream):
         # graceful approach is requested) the reset operation is performed
         if reset:
             graceful = flush and self.is_ready
-            if graceful: self.send_part(b"")
-            else: self.send_reset()
+            if graceful:
+                self.send_part(b"")
+            else:
+                self.send_reset()
 
         # calls the parent close method so that the upper layer
         # instructions are correctly processed/handled
@@ -1028,45 +1018,46 @@ class HTTP2Stream(netius.Stream):
         # verifies if a stream structure exists in the parser for
         # the provided identifier and if that's not the case returns
         # immediately otherwise removes it from the parent
-        if not self.owner._has_stream(self.identifier): return
+        if not self.owner._has_stream(self.identifier):
+            return
         self.owner._del_stream(self.identifier)
 
         # runs the reset operation in the stream clearing all of its
         # internal structures may avoid some memory leaks
         self.reset()
 
-    def info_dict(self, full = False):
-        info = netius.Stream.info_dict(self, full = full)
+    def info_dict(self, full=False):
+        info = netius.Stream.info_dict(self, full=full)
         info.update(
-            identifier = self.identifier,
-            dependency = self.dependency,
-            weight = self.weight,
-            exclusive = self.exclusive,
-            end_headers = self.end_headers,
-            end_stream = self.end_stream,
-            end_stream_l = self.end_stream_l,
-            store = self.store,
-            file_limit = self.file_limit,
-            window = self.window,
-            window_m = self.window_m,
-            window_o = self.window_o,
-            window_l = self.window_l,
-            window_t = self.window_t,
-            pending_s = self.pending_s,
-            headers = self.headers,
-            method = self.method,
-            path_s = self.path_s,
-            version = self.version,
-            version_s = self.version_s,
-            encodings = self.encodings,
-            chunked = self.chunked,
-            keep_alive = self.keep_alive,
-            content_l = self.content_l,
-            frames = self.frames,
-            available = self.connection.available_stream(self.identifier, 1),
-            exhausted = self.is_exhausted(),
-            restored = self.is_restored(),
-            _available = self._available
+            identifier=self.identifier,
+            dependency=self.dependency,
+            weight=self.weight,
+            exclusive=self.exclusive,
+            end_headers=self.end_headers,
+            end_stream=self.end_stream,
+            end_stream_l=self.end_stream_l,
+            store=self.store,
+            file_limit=self.file_limit,
+            window=self.window,
+            window_m=self.window_m,
+            window_o=self.window_o,
+            window_l=self.window_l,
+            window_t=self.window_t,
+            pending_s=self.pending_s,
+            headers=self.headers,
+            method=self.method,
+            path_s=self.path_s,
+            version=self.version,
+            version_s=self.version_s,
+            encodings=self.encodings,
+            chunked=self.chunked,
+            keep_alive=self.keep_alive,
+            content_l=self.content_l,
+            frames=self.frames,
+            available=self.connection.available_stream(self.identifier, 1),
+            exhausted=self.is_exhausted(),
+            restored=self.is_restored(),
+            _available=self._available,
         )
         return info
 
@@ -1096,7 +1087,8 @@ class HTTP2Stream(netius.Stream):
     def set_uncompressed(self):
         if self.current >= http.CHUNKED_ENCODING:
             self.current = http.CHUNKED_ENCODING
-        else: self.current = http.PLAIN_ENCODING
+        else:
+            self.current = http.PLAIN_ENCODING
 
     def set_plain(self):
         self.set_encoding(http.PLAIN_ENCODING)
@@ -1131,29 +1123,38 @@ class HTTP2Stream(netius.Stream):
     def is_flushed(self):
         return self.current > http.PLAIN_ENCODING
 
-    def is_measurable(self, strict = True):
-        if self.is_compressed(): return False
+    def is_measurable(self, strict=True):
+        if self.is_compressed():
+            return False
         return True
 
     def is_exhausted(self):
-        if self.pending_s > self.connection.max_pending: return True
-        if not self._available: return True
+        if self.pending_s > self.connection.max_pending:
+            return True
+        if not self._available:
+            return True
         return False
 
     def is_restored(self):
-        if self.pending_s > self.connection.min_pending: return False
-        if not self._available: return False
+        if self.pending_s > self.connection.min_pending:
+            return False
+        if not self._available:
+            return False
         return True
 
-    def decode_headers(self, force = False, assert_h = True):
-        if not self.end_headers and not force: return
-        if self.headers_l and not force: return
-        if not self.header_b: return
+    def decode_headers(self, force=False, assert_h=True):
+        if not self.end_headers and not force:
+            return
+        if self.headers_l and not force:
+            return
+        if not self.header_b:
+            return
         is_joinable = len(self.header_b) > 1
         block = b"".join(self.header_b) if is_joinable else self.header_b[0]
         self.headers_l = self.owner.decoder.decode(block)
         self.header_b = []
-        if assert_h: self.assert_headers()
+        if assert_h:
+            self.assert_headers()
 
     def extend_headers(self, fragment):
         """
@@ -1183,7 +1184,8 @@ class HTTP2Stream(netius.Stream):
         """
 
         self._data_l += len(data)
-        if not self.store: return
+        if not self.store:
+            return
         self._data_b.write(data)
 
     def remote_update(self, increment):
@@ -1218,14 +1220,14 @@ class HTTP2Stream(netius.Stream):
         """
 
         self.window_l += increment
-        if self.window_l >= self.window_t: return
+        if self.window_l >= self.window_t:
+            return
         self.connection.send_window_update(
-            increment = self.window_o - self.window_l,
-            stream = self.identifier
+            increment=self.window_o - self.window_l, stream=self.identifier
         )
         self.window_l = self.window_o
 
-    def get_path(self, normalize = False):
+    def get_path(self, normalize=False):
         """
         Retrieves the path associated with the request, this
         value should be interpreted from the HTTP status line.
@@ -1243,8 +1245,10 @@ class HTTP2Stream(netius.Stream):
 
         split = self.path_s.split("?", 1)
         path = split[0]
-        if not normalize: return path
-        if not path.startswith(("http://", "https://")): return path
+        if not normalize:
+            return path
+        if not path.startswith(("http://", "https://")):
+            return path
         return netius.legacy.urlparse(path).path
 
     def get_query(self):
@@ -1261,10 +1265,12 @@ class HTTP2Stream(netius.Stream):
         """
 
         split = self.path_s.split("?", 1)
-        if len(split) == 1: return ""
-        else: return split[1]
+        if len(split) == 1:
+            return ""
+        else:
+            return split[1]
 
-    def get_message_b(self, copy = False, size = 40960):
+    def get_message_b(self, copy=False, size=40960):
         """
         Retrieves a new buffer associated with the currently
         loaded message.
@@ -1295,21 +1301,25 @@ class HTTP2Stream(netius.Stream):
         # restores the message file to the original/initial position and
         # then in case there's no copy required returns it immediately
         self._data_b.seek(0)
-        if not copy: return self._data_b
+        if not copy:
+            return self._data_b
 
         # determines if the file limit for a temporary file has been
         # surpassed and if that's the case creates a named temporary
         # file, otherwise created a memory based buffer
         use_file = self.store and self.content_l >= self.file_limit
-        if use_file: message_f = tempfile.NamedTemporaryFile(mode = "w+b")
-        else: message_f = netius.legacy.BytesIO()
+        if use_file:
+            message_f = tempfile.NamedTemporaryFile(mode="w+b")
+        else:
+            message_f = netius.legacy.BytesIO()
 
         try:
             # iterates continuously reading the contents from the message
             # file and writing them back to the output (copy) file
             while True:
                 data = self._data_b.read(size)
-                if not data: break
+                if not data:
+                    break
                 message_f.write(data)
         finally:
             # resets both of the message file (output and input) to the
@@ -1322,57 +1332,62 @@ class HTTP2Stream(netius.Stream):
         return message_f
 
     def get_encodings(self):
-        if not self.encodings == None: return self.encodings
+        if not self.encodings == None:
+            return self.encodings
         accept_encoding_s = self.headers.get("accept-encoding", "")
         self.encodings = [value.strip() for value in accept_encoding_s.split(",")]
         return self.encodings
 
     def fragment(self, data):
-        reference = min(
-            self.connection.window,
-            self.window,
-            self.window_m
-        )
+        reference = min(self.connection.window, self.window, self.window_m)
         yield data[:reference]
         data = data[reference:]
         while data:
-            yield data[:self.window_m]
-            data = data[self.window_m:]
+            yield data[: self.window_m]
+            data = data[self.window_m :]
 
     def fragmentable(self, data):
-        if not data: return False
-        if self.window_m == 0: return False
-        if len(data) <= self.window_m and\
-            len(data) <= self.window: return False
+        if not data:
+            return False
+        if self.window_m == 0:
+            return False
+        if len(data) <= self.window_m and len(data) <= self.window:
+            return False
         return True
 
     def flush(self, *args, **kwargs):
-        if not self.is_open(): return 0
+        if not self.is_open():
+            return 0
         with self.ctx_request(args, kwargs):
             return self.connection.flush(*args, **kwargs)
 
     def flush_s(self, *args, **kwargs):
-        if not self.is_open(): return 0
+        if not self.is_open():
+            return 0
         with self.ctx_request(args, kwargs):
             return self.connection.flush_s(*args, **kwargs)
 
     def send_response(self, *args, **kwargs):
-        if not self.is_open(): return 0
+        if not self.is_open():
+            return 0
         with self.ctx_request(args, kwargs):
             return self.connection.send_response(*args, **kwargs)
 
     def send_header(self, *args, **kwargs):
-        if not self.is_open(): return 0
+        if not self.is_open():
+            return 0
         with self.ctx_request(args, kwargs):
             return self.connection.send_header(*args, **kwargs)
 
     def send_part(self, *args, **kwargs):
-        if not self.is_open(): return 0
+        if not self.is_open():
+            return 0
         with self.ctx_request(args, kwargs):
             return self.connection.send_part(*args, **kwargs)
 
     def send_reset(self, *args, **kwargs):
-        if not self.is_open(): return 0
+        if not self.is_open():
+            return 0
         with self.ctx_request(args, kwargs):
             return self.connection.send_rst_stream(*args, **kwargs)
 
@@ -1381,73 +1396,79 @@ class HTTP2Stream(netius.Stream):
         pseudos = dict()
         for name, value in self.headers_l:
             is_pseudo = name.startswith(":")
-            if not is_pseudo: pseudo = False
+            if not is_pseudo:
+                pseudo = False
             if not name.lower() == name:
                 raise netius.ParserError(
                     "Headers must be lower cased",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
+                    stream=self.identifier,
+                    error_code=PROTOCOL_ERROR,
                 )
             if name in (":status",):
                 raise netius.ParserError(
                     "Response pseudo-header present",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
+                    stream=self.identifier,
+                    error_code=PROTOCOL_ERROR,
                 )
             if name in ("connection",):
                 raise netius.ParserError(
                     "Invalid header present",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
+                    stream=self.identifier,
+                    error_code=PROTOCOL_ERROR,
                 )
             if name == "te" and not value == "trailers":
                 raise netius.ParserError(
                     "Invalid value for TE header",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
+                    stream=self.identifier,
+                    error_code=PROTOCOL_ERROR,
                 )
             if is_pseudo and name in pseudos:
                 raise netius.ParserError(
                     "Duplicated pseudo-header value",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
+                    stream=self.identifier,
+                    error_code=PROTOCOL_ERROR,
                 )
             if pseudo and not name in HTTP2_PSEUDO:
                 raise netius.ParserError(
                     "Invalid pseudo-header",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
+                    stream=self.identifier,
+                    error_code=PROTOCOL_ERROR,
                 )
             if not pseudo and is_pseudo:
                 raise netius.ParserError(
                     "Pseudo-header positioned after normal header",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
+                    stream=self.identifier,
+                    error_code=PROTOCOL_ERROR,
                 )
-            if is_pseudo: pseudos[name] = True
+            if is_pseudo:
+                pseudos[name] = True
 
         for name in (":method", ":scheme", ":path"):
             if not name in pseudos:
                 raise netius.ParserError(
                     "Missing pseudo-header in request",
-                    stream = self.identifier,
-                    error_code = PROTOCOL_ERROR
+                    stream=self.identifier,
+                    error_code=PROTOCOL_ERROR,
                 )
 
     def assert_ready(self):
-        if not self.content_l == -1 and not self._data_l == 0 and\
-            not self._data_l == self.content_l:
+        if (
+            not self.content_l == -1
+            and not self._data_l == 0
+            and not self._data_l == self.content_l
+        ):
             raise netius.ParserError(
                 "Invalid content-length header value (missmatch)",
-                stream = self.identifier,
-                error_code = PROTOCOL_ERROR
+                stream=self.identifier,
+                error_code=PROTOCOL_ERROR,
             )
 
     @contextlib.contextmanager
-    def ctx_request(self, args = None, kwargs = None):
+    def ctx_request(self, args=None, kwargs=None):
         # in case there's no valid set of keyword arguments
         # a valid and empty one must be created (avoids error)
-        if kwargs == None: kwargs = dict()
+        if kwargs == None:
+            kwargs = dict()
 
         # sets the stream keyword argument with the current
         # stream's identifier (provides identification support)
@@ -1457,7 +1478,8 @@ class HTTP2Stream(netius.Stream):
         # and in case it exits uses it to create a new one that
         # calls this one at the end (connection to stream clojure)
         callback = kwargs.get("callback", None)
-        if callback: kwargs["callback"] = self._build_c(callback)
+        if callback:
+            kwargs["callback"] = self._build_c(callback)
 
         # retrieves the references to the "original"
         # values of the current and stream objects
@@ -1485,7 +1507,7 @@ class HTTP2Stream(netius.Stream):
         return self
 
     @property
-    def is_ready(self, calculate = True, assert_r = True):
+    def is_ready(self, calculate=True, assert_r=True):
         """
         Determines if the stream is ready, meaning that the complete
         set of headers and data have been passed to peer and the request
@@ -1502,11 +1524,16 @@ class HTTP2Stream(netius.Stream):
         :return: The final value on the is ready (for processing).
         """
 
-        if not self.is_open(): return False
-        if calculate: self._calculate()
-        if not self.end_headers: return False
-        if not self.end_stream: return False
-        if assert_r: self.assert_ready()
+        if not self.is_open():
+            return False
+        if calculate:
+            self._calculate()
+        if not self.end_headers:
+            return False
+        if not self.end_stream:
+            return False
+        if assert_r:
+            self.assert_ready()
         return True
 
     @property
@@ -1514,9 +1541,12 @@ class HTTP2Stream(netius.Stream):
         return self.end_headers
 
     def _calculate(self):
-        if not self._data_b == None: return
-        if not self._data_l == -1: return
-        if not self.is_headers: return
+        if not self._data_b == None:
+            return
+        if not self._data_l == -1:
+            return
+        if not self.is_headers:
+            return
         self._calculate_headers()
         self.content_l = self.headers.get("content-length", -1)
         self.content_l = self.content_l and int(self.content_l)
@@ -1532,27 +1562,35 @@ class HTTP2Stream(netius.Stream):
 
         for header in self.headers_l:
             key, value = header
-            if not type(key) == str: key = str(key)
-            if not type(value) == str: value = str(value)
+            if not type(key) == str:
+                key = str(key)
+            if not type(value) == str:
+                value = str(value)
             is_special = key.startswith(":")
             exists = key in headers_m
             if exists:
                 sequence = headers_m[key]
                 is_list = type(sequence) == list
-                if not is_list: sequence = [sequence]
+                if not is_list:
+                    sequence = [sequence]
                 sequence.append(value)
                 value = sequence
-            if is_special: headers_s[key] = value
-            else: headers_m[key] = value
+            if is_special:
+                headers_s[key] = value
+            else:
+                headers_m[key] = value
 
         host = headers_s.get(":authority", None)
-        if host: headers_m["host"] = host
+        if host:
+            headers_m["host"] = host
 
         self.headers = headers_m
         self.method = headers_s.get(":method", None)
         self.path_s = headers_s.get(":path", None)
-        if self.method: self.method = str(self.method)
-        if self.path_s: self.path_s = str(self.path_s)
+        if self.method:
+            self.method = str(self.method)
+        if self.path_s:
+            self.path_s = str(self.path_s)
 
     def _build_b(self):
         """
@@ -1569,10 +1607,12 @@ class HTTP2Stream(netius.Stream):
         """
 
         use_file = self.store and self.content_l >= self.file_limit
-        if use_file: return tempfile.NamedTemporaryFile(mode = "w+b")
-        else: return netius.legacy.BytesIO()
+        if use_file:
+            return tempfile.NamedTemporaryFile(mode="w+b")
+        else:
+            return netius.legacy.BytesIO()
 
-    def _build_c(self, callback, validate = True):
+    def _build_c(self, callback, validate=True):
         """
         Builds the final callback function to be used with a clojure
         around the current stream for proper validation and passing
@@ -1591,7 +1631,8 @@ class HTTP2Stream(netius.Stream):
         """
 
         def inner(connection):
-            if validate and not self.is_open(): return
+            if validate and not self.is_open():
+                return
             callback(self)
 
         return inner
@@ -1599,7 +1640,7 @@ class HTTP2Stream(netius.Stream):
     def _parse_query(self, query):
         # runs the "default" parsing of the query string from the system
         # and then decodes the complete set of parameters properly
-        params = netius.legacy.parse_qs(query, keep_blank_values = True)
+        params = netius.legacy.parse_qs(query, keep_blank_values=True)
         return self._decode_params(params)
 
     def _decode_params(self, params):
@@ -1609,10 +1650,12 @@ class HTTP2Stream(netius.Stream):
             items = []
             for item in value:
                 is_bytes = netius.legacy.is_bytes(item)
-                if is_bytes: item = item.decode("utf-8")
+                if is_bytes:
+                    item = item.decode("utf-8")
                 items.append(item)
             is_bytes = netius.legacy.is_bytes(key)
-            if is_bytes: key = key.decode("utf-8")
+            if is_bytes:
+                key = key.decode("utf-8")
             _params[key] = items
 
         return _params

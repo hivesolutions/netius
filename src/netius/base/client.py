@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -39,8 +30,8 @@ __license__ = "Apache License, Version 2.0"
 
 from . import request
 
-from .conn import * #@UnusedWildImport
-from .common import * #@UnusedWildImport
+from .conn import *  # @UnusedWildImport
+from .common import *  # @UnusedWildImport
 
 BUFFER_SIZE = None
 """ The size of the buffer that is going to be used in the
@@ -51,6 +42,7 @@ GC_TIMEOUT = 30.0
 """ The timeout to be used for the running of the garbage
 collector of pending request in a datagram client, this
 value will be used n the delay operation of the action """
+
 
 class Client(Base):
     """
@@ -67,7 +59,7 @@ class Client(Base):
     system from exiting correctly, in order to prevent that
     the cleanup method should be called """
 
-    def __init__(self, thread = True, daemon = False, *args, **kwargs):
+    def __init__(self, thread=True, daemon=False, *args, **kwargs):
         Base.__init__(self, *args, **kwargs)
         self.receive_buffer = kwargs.get("receive_buffer", BUFFER_SIZE)
         self.send_buffer = kwargs.get("send_buffer", BUFFER_SIZE)
@@ -77,16 +69,18 @@ class Client(Base):
 
     @classmethod
     def get_client_s(cls, *args, **kwargs):
-        if cls._client: return cls._client
+        if cls._client:
+            return cls._client
         cls._client = cls(*args, **kwargs)
         return cls._client
 
     @classmethod
     def cleanup_s(cls):
-        if not cls._client: return
+        if not cls._client:
+            return
         cls._client.close()
 
-    def ensure_loop(self, env = True):
+    def ensure_loop(self, env=True):
         """
         Ensures that the proper main loop thread requested in the building
         of the entity is started if that was requested.
@@ -106,21 +100,26 @@ class Client(Base):
         # verifies if the (run in) thread flag is set and that the there's
         # not thread currently created for the client in case any of these
         # conditions fails the control flow is returned immediately to caller
-        if not self.thread: return
-        if self._thread: return
+        if not self.thread:
+            return
+        if self._thread:
+            return
 
         # runs the various extra variable initialization taking into
         # account if the environment variable is currently set or not
         # please note that some side effects may arise from this set
-        if env: self.level = self.get_env("LEVEL", self.level)
-        if env: self.diag = self.get_env("CLIENT_DIAG", self.diag, cast = bool)
-        if env: self.logging = self.get_env("LOGGING", self.logging)
-        if env: self.poll_name = self.get_env("POLL", self.poll_name)
-        if env: self.poll_timeout = self.get_env(
-            "POLL_TIMEOUT",
-            self.poll_timeout,
-            cast = float
-        )
+        if env:
+            self.level = self.get_env("LEVEL", self.level)
+        if env:
+            self.diag = self.get_env("CLIENT_DIAG", self.diag, cast=bool)
+        if env:
+            self.logging = self.get_env("LOGGING", self.logging)
+        if env:
+            self.poll_name = self.get_env("POLL", self.poll_name)
+        if env:
+            self.poll_timeout = self.get_env(
+                "POLL_TIMEOUT", self.poll_timeout, cast=float
+            )
 
         # prints a debug message about the new thread to be created for
         # the client infra-structure (required for execution)
@@ -129,17 +128,14 @@ class Client(Base):
         # in case the thread flag is set a new thread must be constructed
         # for the running of the client's main loop then, these thread
         # may or may not be constructed using a daemon approach
-        self._thread = BaseThread(
-            owner = self,
-            daemon = self.daemon,
-            name = "Loop"
-        )
+        self._thread = BaseThread(owner=self, daemon=self.daemon, name="Loop")
         self._thread.start()
 
-    def join(self, timeout = None):
+    def join(self, timeout=None):
         # runs the join operation in the thread associated with the client
         # so that the current thread blocks until the other ends execution
-        self._thread.join(timeout = timeout)
+        self._thread.join(timeout=timeout)
+
 
 class DatagramClient(Client):
 
@@ -156,7 +152,7 @@ class DatagramClient(Client):
 
     def boot(self):
         Client.boot(self)
-        self.keep_gc(timeout = GC_TIMEOUT, run = False)
+        self.keep_gc(timeout=GC_TIMEOUT, run=False)
 
     def cleanup(self):
         Client.cleanup(self)
@@ -166,12 +162,14 @@ class DatagramClient(Client):
     def on_read(self, _socket):
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
-            for callback in callbacks: callback("read", _socket)
+            for callback in callbacks:
+                callback("read", _socket)
 
         # verifies if the provided socket for reading is the same
         # as the one registered in the client if that's not the case
         # return immediately to avoid unwanted operations
-        if not _socket == self.socket: return
+        if not _socket == self.socket:
+            return
 
         try:
             # iterates continuously trying to read as much data as possible
@@ -185,8 +183,7 @@ class DatagramClient(Client):
             error_m = error.reason if hasattr(error, "reason") else None
             if error_v in SSL_SILENT_ERRORS:
                 self.on_expected(error)
-            elif not error_v in SSL_VALID_ERRORS and\
-                not error_m in SSL_VALID_REASONS:
+            elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error)
         except socket.error as error:
             error_v = error.args[0] if error.args else None
@@ -202,12 +199,14 @@ class DatagramClient(Client):
     def on_write(self, _socket):
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
-            for callback in callbacks: callback("write", _socket)
+            for callback in callbacks:
+                callback("write", _socket)
 
         # verifies if the provided socket for writing is the same
         # as the one registered in the client if that's not the case
         # return immediately to avoid unwanted operations
-        if not _socket == self.socket: return
+        if not _socket == self.socket:
+            return
 
         try:
             self._send(_socket)
@@ -216,8 +215,7 @@ class DatagramClient(Client):
             error_m = error.reason if hasattr(error, "reason") else None
             if error_v in SSL_SILENT_ERRORS:
                 self.on_expected(error)
-            elif not error_v in SSL_VALID_ERRORS and\
-                not error_m in SSL_VALID_REASONS:
+            elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error)
         except socket.error as error:
             error_v = error.args[0] if error.args else None
@@ -233,15 +231,17 @@ class DatagramClient(Client):
     def on_error(self, _socket):
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
-            for callback in callbacks: callback("error", _socket)
+            for callback in callbacks:
+                callback("error", _socket)
 
         # verifies if the provided socket for error is the same
         # as the one registered in the client if that's not the case
         # return immediately to avoid unwanted operations
-        if not _socket == self.socket: return
+        if not _socket == self.socket:
+            return
 
     def on_exception(self, exception):
-        self.warning(exception, stack = True)
+        self.warning(exception, stack=True)
         self.log_stack()
 
     def on_expected(self, exception):
@@ -250,15 +250,17 @@ class DatagramClient(Client):
     def on_data(self, connection, data):
         pass
 
-    def keep_gc(self, timeout = GC_TIMEOUT, run = True):
-        if run: self.gc()
+    def keep_gc(self, timeout=GC_TIMEOUT, run=True):
+        if run:
+            self.gc()
         self.delay(self.keep_gc, timeout)
 
-    def gc(self, callbacks = True):
+    def gc(self, callbacks=True):
         # in case there're no requests pending in the current client
         # there's no need to start the garbage collection logic, as
         # this would required some (minimal) resources
-        if not self.requests: return
+        if not self.requests:
+            return
 
         # prints a message (for debug) about the garbage collection
         # operation that is going to be run
@@ -272,20 +274,23 @@ class DatagramClient(Client):
             # verifies if the requests structure (list) is empty and
             # if that's the case break the loop, nothing more remains
             # to be processed for the current garbage collection operation
-            if not self.requests: break
+            if not self.requests:
+                break
 
             # retrieves the top level request (peek operation) and
             # verifies if the timeout value of it has exceed the
             # current time if that's the case removes it as it
             # should no longer be handled (time out)
             request = self.requests[0]
-            if request.timeout > current: break
+            if request.timeout > current:
+                break
             self.remove_request(request)
 
             # in case the (call) callbacks flag is not set continues
             # the current loop, meaning that the associated callbacks
             # are not going to be called (as expected)
-            if not callbacks: continue
+            if not callbacks:
+                continue
 
             # extracts the callback method from the request and in
             # case it is defined and valid calls it with an invalid
@@ -293,7 +298,7 @@ class DatagramClient(Client):
             # the call is encapsulated in a safe manner meaning that
             # any exception raised will be gracefully caught
             callback = request.callback
-            callback and self.call_safe(callback, args = [None])
+            callback and self.call_safe(callback, args=[None])
 
     def add_request(self, request):
         # adds the current request object to the list of requests
@@ -309,13 +314,15 @@ class DatagramClient(Client):
 
     def get_request(self, id):
         is_response = isinstance(id, request.Response)
-        if is_response: id = id.get_id()
+        if is_response:
+            id = id.get_id()
         return self.requests_m.get(id, None)
 
     def ensure_socket(self):
         # in case the socket is already created and valid returns immediately
         # as nothing else remain to be done in the current method
-        if self.socket: return
+        if self.socket:
+            return
 
         # prints a small debug message about the UDP socket that is going
         # to be created for the client's connection
@@ -350,7 +357,8 @@ class DatagramClient(Client):
         # safe and so it must be delayed to be executed in the
         # next loop of the thread cycle, must return immediately
         # to avoid extra subscription operations
-        if not is_safe: return self.delay(self.ensure_write, safe = True)
+        if not is_safe:
+            return self.delay(self.ensure_write, safe=True)
 
         # adds the current socket to the list of write operations
         # so that it's going to be available for writing as soon
@@ -361,29 +369,26 @@ class DatagramClient(Client):
         self.unsub_write(self.socket)
 
     def enable_read(self):
-        if not self.renable == False: return
+        if not self.renable == False:
+            return
         self.renable = True
         self.sub_read(self.socket)
 
     def disable_read(self):
-        if not self.renable == True: return
+        if not self.renable == True:
+            return
         self.renable = False
         self.unsub_read(self.socket)
 
-    def send(
-        self,
-        data,
-        address,
-        delay = True,
-        ensure_loop = True,
-        callback = None
-    ):
-        if ensure_loop: self.ensure_loop()
+    def send(self, data, address, delay=True, ensure_loop=True, callback=None):
+        if ensure_loop:
+            self.ensure_loop()
 
         data = legacy.bytes(data)
         data_l = len(data)
 
-        if callback: data = (data, callback)
+        if callback:
+            data = (data, callback)
         data = (data, address)
 
         cthread = threading.current_thread()
@@ -391,19 +396,18 @@ class DatagramClient(Client):
         is_safe = tid == self.tid
 
         self.pending_lock.acquire()
-        try: self.pending.appendleft(data)
-        finally: self.pending_lock.release()
+        try:
+            self.pending.appendleft(data)
+        finally:
+            self.pending_lock.release()
 
         self.pending_s += data_l
 
         if self.wready:
-            if is_safe and not delay: self._flush_write()
-            else: self.delay(
-                self._flush_write,
-                immediately = True,
-                verify = True,
-                safe = True
-            )
+            if is_safe and not delay:
+                self._flush_write()
+            else:
+                self.delay(self._flush_write, immediately=True, verify=True, safe=True)
         else:
             self.ensure_write()
 
@@ -414,7 +418,8 @@ class DatagramClient(Client):
             while True:
                 # in case there's no pending data to be sent to the
                 # server side breaks the current loop (queue empty)
-                if not self.pending: break
+                if not self.pending:
+                    break
 
                 # retrieves the current data from the pending list
                 # of data to be sent and then saves the original data
@@ -428,7 +433,8 @@ class DatagramClient(Client):
                 # verifies if the data type of the data is a tuple and
                 # if that's the case unpacks it as data and callback
                 is_tuple = type(data) == tuple
-                if is_tuple: data, callback = data
+                if is_tuple:
+                    data, callback = data
 
                 # retrieves the length (in bytes) of the data that is
                 # going to be sent to the server
@@ -440,8 +446,10 @@ class DatagramClient(Client):
                     # sent through the socket, this number may not be
                     # the same as the size of the data in case only
                     # part of the data has been sent
-                    if data: count = _socket.sendto(data, address)
-                    else: count = 0
+                    if data:
+                        count = _socket.sendto(data, address)
+                    else:
+                        count = 0
 
                     # verifies if the current situation is that of a non
                     # closed socket and valid data, and if that's the case
@@ -449,7 +457,8 @@ class DatagramClient(Client):
                     # be in a would block situation and and such an error
                     # is raised indicating the issue (is going to be caught
                     # as a normal would block exception)
-                    if data and count == 0: raise socket.error(errno.EWOULDBLOCK)
+                    if data and count == 0:
+                        raise socket.error(errno.EWOULDBLOCK)
                 except:
                     # sets the current connection write ready flag to false
                     # so that a new level notification must be received
@@ -478,7 +487,8 @@ class DatagramClient(Client):
                     # sent latter (only then the callback is called)
                     is_valid = count == data_l
                     if is_valid:
-                        if callback: callback(self)
+                        if callback:
+                            callback(self)
                     else:
                         data_o = ((data[count:], callback), address)
                         self.pending.append(data_o)
@@ -495,7 +505,8 @@ class DatagramClient(Client):
         """
 
         self.ensure_socket()
-        self.writes((self.socket,), state = False)
+        self.writes((self.socket,), state=False)
+
 
 class StreamClient(Client):
 
@@ -514,26 +525,28 @@ class StreamClient(Client):
     def ticks(self):
         self.set_state(STATE_TICK)
         self._lid = (self._lid + 1) % 2147483647
-        if self.pendings: self._connects()
+        if self.pendings:
+            self._connects()
         self._delays()
 
-    def info_dict(self, full = False):
-        info = Client.info_dict(self, full = full)
-        if full: info.update(
-            pendings = len(self.pendings),
-            free_conn = sum([len(value) for value in legacy.values(self.free_map)])
-        )
+    def info_dict(self, full=False):
+        info = Client.info_dict(self, full=full)
+        if full:
+            info.update(
+                pendings=len(self.pendings),
+                free_conn=sum([len(value) for value in legacy.values(self.free_map)]),
+            )
         return info
 
     def acquire_c(
         self,
         host,
         port,
-        ssl = False,
-        key_file = None,
-        cer_file = None,
-        validate = False,
-        callback = None
+        ssl=False,
+        key_file=None,
+        cer_file=None,
+        validate=False,
+        callback=None,
     ):
         # sets the initial value of the connection instance variable
         # to invalid, this is going to be populated with a valid
@@ -555,13 +568,15 @@ class StreamClient(Client):
             # is still valid (open and ready), if that's not the case
             # unsets the connection variable
             connection = connection_l.pop()
-            if validate and not self.validate_c(connection): connection = None
+            if validate and not self.validate_c(connection):
+                connection = None
 
             # in case the connection has been invalidated (possible
             # disconnect) the current loop iteration is skipped and
             # a new connection from the list of connections in pool
             # is going to be searched and validated
-            if not connection: continue
+            if not connection:
+                continue
 
             # runs the connection acquire operation that should take
             # care of the proper acquisition notification process and
@@ -575,11 +590,7 @@ class StreamClient(Client):
         # the next execution cycle (delayed execution)
         if not connection:
             connection = self.connect(
-                host,
-                port,
-                ssl = ssl,
-                key_file = key_file,
-                cer_file = cer_file
+                host, port, ssl=ssl, key_file=key_file, cer_file=cer_file
             )
             connection.tuple = connection_t
 
@@ -588,7 +599,8 @@ class StreamClient(Client):
         return connection
 
     def release_c(self, connection):
-        if not hasattr(connection, "tuple"): return
+        if not hasattr(connection, "tuple"):
+            return
         connection_t = connection.tuple
         connection_l = self.free_map.get(connection_t, [])
         connection_l.append(connection)
@@ -596,12 +608,14 @@ class StreamClient(Client):
         self.on_release(connection)
 
     def remove_c(self, connection):
-        if not hasattr(connection, "tuple"): return
+        if not hasattr(connection, "tuple"):
+            return
         connection_t = connection.tuple
         connection_l = self.free_map.get(connection_t, [])
-        if connection in connection_l: connection_l.remove(connection)
+        if connection in connection_l:
+            connection_l.remove(connection)
 
-    def validate_c(self, connection, close = True):
+    def validate_c(self, connection, close=True):
         # sets the original valid flag value as true so that the
         # basic/default assumption on the connection is that it's
         # valid (per basis a connection is valid)
@@ -610,7 +624,8 @@ class StreamClient(Client):
         # tries to retrieve the value of the error options value of
         # the socket in case it's currently set unsets the valid flag
         error = connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
-        if error: valid = False
+        if error:
+            valid = False
 
         # iterates continuously trying to read any pending data from
         # the connection, some of this data may indicate that the
@@ -618,7 +633,8 @@ class StreamClient(Client):
         while True:
             # verifies if the value of the valid flag is false and
             # if that's the case breaks the current loop immediately
-            if not valid: break
+            if not valid:
+                break
 
             # tries to read/receive any set of pending data from
             # the connection in case there's an exception and it's
@@ -627,22 +643,28 @@ class StreamClient(Client):
             # connection and sets it as invalid
             try:
                 data = connection.recv()
-                if not data: raise errors.NetiusError("EOF received")
+                if not data:
+                    raise errors.NetiusError("EOF received")
                 connection.send(b"")
             except ssl.SSLError as error:
                 error_v = error.args[0] if error.args else None
-                if error_v in SSL_VALID_ERRORS: break
-                if close: connection.close()
+                if error_v in SSL_VALID_ERRORS:
+                    break
+                if close:
+                    connection.close()
                 valid = False
             except socket.error as error:
                 error_v = error.args[0] if error.args else None
-                if error_v in VALID_ERRORS: break
-                if close: connection.close()
+                if error_v in VALID_ERRORS:
+                    break
+                if close:
+                    connection.close()
                 valid = False
             except (KeyboardInterrupt, SystemExit):
                 raise
             except:
-                if close: connection.close()
+                if close:
+                    connection.close()
                 valid = False
 
         # returns the final value on the connection validity test
@@ -653,21 +675,23 @@ class StreamClient(Client):
         self,
         host,
         port,
-        ssl = False,
-        key_file = None,
-        cer_file = None,
-        ca_file = None,
-        ca_root = True,
-        ssl_verify = False,
-        family = socket.AF_INET,
-        type = socket.SOCK_STREAM,
-        ensure_loop = True,
-        env = True
+        ssl=False,
+        key_file=None,
+        cer_file=None,
+        ca_file=None,
+        ca_root=True,
+        ssl_verify=False,
+        family=socket.AF_INET,
+        type=socket.SOCK_STREAM,
+        ensure_loop=True,
+        env=True,
     ):
         # runs a series of pre-validations on the provided parameters, raising
         # exceptions in case they do not comply with expected values
-        if not host: raise errors.NetiusError("Invalid host for connect operation")
-        if not port: raise errors.NetiusError("Invalid port for connect operation")
+        if not host:
+            raise errors.NetiusError("Invalid host for connect operation")
+        if not port:
+            raise errors.NetiusError("Invalid port for connect operation")
 
         # tries to retrieve some of the environment variable related values
         # so that some of these values are accessible via an external environment
@@ -675,27 +699,34 @@ class StreamClient(Client):
         key_file = self.get_env("KEY_FILE", key_file) if env else key_file
         cer_file = self.get_env("CER_FILE", cer_file) if env else cer_file
         ca_file = self.get_env("CA_FILE", ca_file) if env else ca_file
-        ca_root = self.get_env("CA_ROOT", ca_root, cast = bool) if env else ca_root
-        ssl_verify = self.get_env("SSL_VERIFY", ssl_verify, cast = bool) if env else ssl_verify
-        key_file = self.get_env("KEY_DATA", key_file, expand = True) if env else key_file
-        cer_file = self.get_env("CER_DATA", cer_file, expand = True) if env else cer_file
-        ca_file = self.get_env("CA_DATA", ca_file, expand = True) if env else ca_file
+        ca_root = self.get_env("CA_ROOT", ca_root, cast=bool) if env else ca_root
+        ssl_verify = (
+            self.get_env("SSL_VERIFY", ssl_verify, cast=bool) if env else ssl_verify
+        )
+        key_file = self.get_env("KEY_DATA", key_file, expand=True) if env else key_file
+        cer_file = self.get_env("CER_DATA", cer_file, expand=True) if env else cer_file
+        ca_file = self.get_env("CA_DATA", ca_file, expand=True) if env else ca_file
 
         # ensures that a proper loop cycle is available for the current
         # client, otherwise the connection operation would become stalled
         # because there's no listening of events for it
-        if ensure_loop: self.ensure_loop()
+        if ensure_loop:
+            self.ensure_loop()
 
         # ensures that the proper socket family is defined in case the
         # requested host value is unix socket oriented, this step greatly
         # simplifies the process of created unix socket based clients
-        family = socket.AF_UNIX if host == "unix" else family #@UndefinedVariable pylint: disable=E1101
+        family = (
+            socket.AF_UNIX if host == "unix" else family
+        )  # @UndefinedVariable pylint: disable=E1101
 
         # verifies the kind of socket that is going to be used for the
         # connect operation that is going to be performed, note that the
         # unix type should be used with case as it does not exist in every
         # operative system and may raised an undefined exceptions
-        is_unix = hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX #@UndefinedVariable pylint: disable=E1101
+        is_unix = (
+            hasattr(socket, "AF_UNIX") and family == socket.AF_UNIX
+        )  # @UndefinedVariable pylint: disable=E1101
         is_inet = family in (socket.AF_INET, socket.AF_INET6)
 
         # runs a series of default operation for the SSL related attributes
@@ -715,36 +746,28 @@ class StreamClient(Client):
 
         # in case the SSL flag is set re-creates the socket by wrapping it into
         # an SSL based one with the provided set of keys and certificates
-        if ssl: _socket = self._ssl_wrap(
-            _socket,
-            key_file = key_file,
-            cer_file = cer_file,
-            ca_file = ca_file,
-            ca_root = ca_root,
-            server = False,
-            ssl_verify = ssl_verify,
-            server_hostname = host
-        )
+        if ssl:
+            _socket = self._ssl_wrap(
+                _socket,
+                key_file=key_file,
+                cer_file=cer_file,
+                ca_file=ca_file,
+                ca_root=ca_root,
+                server=False,
+                ssl_verify=ssl_verify,
+                server_hostname=host,
+            )
 
         # sets the appropriate socket options enable it for port re-usage and
         # for proper keep alive notification, among others
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         _socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        if is_inet: _socket.setsockopt(
-            socket.IPPROTO_TCP,
-            socket.TCP_NODELAY,
-            1
-        )
-        if self.receive_buffer: _socket.setsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_RCVBUF,
-            self.receive_buffer
-        )
-        if self.send_buffer: _socket.setsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_SNDBUF,
-            self.send_buffer
-        )
+        if is_inet:
+            _socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        if self.receive_buffer:
+            _socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.receive_buffer)
+        if self.send_buffer:
+            _socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, self.send_buffer)
         self._socket_keepalive(_socket)
 
         # constructs the address tuple taking into account if the
@@ -755,15 +778,18 @@ class StreamClient(Client):
         # creates the connection object using the typical constructor
         # and then sets the SSL host (for verification) if the verify
         # SSL option is defined (secured and verified connection)
-        connection = self.build_connection(_socket, address, ssl = ssl)
-        if ssl_verify: connection.ssl_host = host
+        connection = self.build_connection(_socket, address, ssl=ssl)
+        if ssl_verify:
+            connection.ssl_host = host
 
         # acquires the pending lock so that it's safe to add an element
         # to the list of pending connection for connect, this lock is
         # then released in the final part of the operation
         self._pending_lock.acquire()
-        try: self.pendings.append(connection)
-        finally: self._pending_lock.release()
+        try:
+            self.pendings.append(connection)
+        finally:
+            self._pending_lock.release()
 
         # returns the "final" connection, that is now scheduled for connect
         # to the caller method, it may now be used for operations
@@ -779,47 +805,58 @@ class StreamClient(Client):
         # to the execution of the read operation in the socket
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
-            for callback in callbacks: callback("read", _socket)
+            for callback in callbacks:
+                callback("read", _socket)
 
         # retrieves the connection object associated with the
         # current socket that is going to be read in case there's
         # no connection available or the status is not open
         # must return the control flow immediately to the caller
         connection = self.connections_m.get(_socket, None)
-        if not connection: return
-        if not connection.status == OPEN: return
-        if not connection.renable == True: return
+        if not connection:
+            return
+        if not connection.status == OPEN:
+            return
+        if not connection.renable == True:
+            return
 
         try:
             # in case the connection is under the connecting state
             # the socket must be verified for errors and in case
             # there's none the connection must proceed, for example
             # the SSL connection handshake must be performed/retried
-            if connection.connecting: self._connectf(connection)
+            if connection.connecting:
+                self._connectf(connection)
 
             # verifies if there's any pending operations in the
             # connection (eg: SSL handshaking) and performs it trying
             # to finish them, if they are still pending at the current
             # state returns immediately (waits for next loop)
-            if self._pending(connection): return
+            if self._pending(connection):
+                return
 
             # iterates continuously trying to read as much data as possible
             # when there's a failure to read more data it should raise an
             # exception that should be handled properly
             while True:
                 data = connection.recv(CHUNK_SIZE)
-                if data: self.on_data(connection, data)
-                else: connection.close(); break
-                if not connection.status == OPEN: break
-                if not connection.renable == True: break
-                if not connection.socket == _socket: break
+                if data:
+                    self.on_data(connection, data)
+                else:
+                    connection.close()
+                    break
+                if not connection.status == OPEN:
+                    break
+                if not connection.renable == True:
+                    break
+                if not connection.socket == _socket:
+                    break
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
             if error_v in SSL_SILENT_ERRORS:
                 self.on_expected(error, connection)
-            elif not error_v in SSL_VALID_ERRORS and\
-                not error_m in SSL_VALID_REASONS:
+            elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error, connection)
         except socket.error as error:
             error_v = error.args[0] if error.args else None
@@ -838,20 +875,24 @@ class StreamClient(Client):
         # to the execution of the read operation in the socket
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
-            for callback in callbacks: callback("write", _socket)
+            for callback in callbacks:
+                callback("write", _socket)
 
         # retrieves the connection associated with the socket that
         # is ready for the write operation and verifies that it
         # exists and the current status of it is open (required)
         connection = self.connections_m.get(_socket, None)
-        if not connection: return
-        if not connection.status == OPEN: return
+        if not connection:
+            return
+        if not connection.status == OPEN:
+            return
 
         # in case the connection is under the connecting state
         # the socket must be verified for errors and in case
         # there's none the connection must proceed, for example
         # the SSL connection handshake must be performed/retried
-        if connection.connecting: self._connectf(connection)
+        if connection.connecting:
+            self._connectf(connection)
 
         try:
             connection._send()
@@ -860,8 +901,7 @@ class StreamClient(Client):
             error_m = error.reason if hasattr(error, "reason") else None
             if error_v in SSL_SILENT_ERRORS:
                 self.on_expected(error, connection)
-            elif not error_v in SSL_VALID_ERRORS and\
-                not error_m in SSL_VALID_REASONS:
+            elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error, connection)
         except socket.error as error:
             error_v = error.args[0] if error.args else None
@@ -877,16 +917,19 @@ class StreamClient(Client):
     def on_error(self, _socket):
         callbacks = self.callbacks_m.get(_socket, None)
         if callbacks:
-            for callback in callbacks: callback("error", _socket)
+            for callback in callbacks:
+                callback("error", _socket)
 
         connection = self.connections_m.get(_socket, None)
-        if not connection: return
-        if not connection.status == OPEN: return
+        if not connection:
+            return
+        if not connection.status == OPEN:
+            return
 
         connection.close()
 
     def on_exception(self, exception, connection):
-        self.warning(exception, stack = True)
+        self.warning(exception, stack=True)
         self.log_stack()
         connection.set_exception(exception)
         connection.close()
@@ -897,8 +940,8 @@ class StreamClient(Client):
 
     def on_connect(self, connection):
         self.debug(
-            "Connection '%s' %s from '%s' connected" %
-            (connection.id, connection.address, connection.owner.name)
+            "Connection '%s' %s from '%s' connected"
+            % (connection.id, connection.address, connection.owner.name)
         )
         connection.set_connected()
         if hasattr(connection, "tuple"):
@@ -906,8 +949,8 @@ class StreamClient(Client):
 
     def on_upgrade(self, connection):
         self.debug(
-            "Connection '%s' %s from '%s' upgraded" %
-            (connection.id, connection.address, connection.owner.name)
+            "Connection '%s' %s from '%s' upgraded"
+            % (connection.id, connection.address, connection.owner.name)
         )
         connection.set_upgraded()
 
@@ -926,8 +969,10 @@ class StreamClient(Client):
         # and calls the proper event handler for each event, this is
         # required because the connection workflow is probably dependent
         # on the calling of these event handlers to proceed
-        if connection.connecting: self.on_connect(connection)
-        elif connection.upgrading: self.on_upgrade(connection)
+        if connection.connecting:
+            self.on_connect(connection)
+        elif connection.upgrading:
+            self.on_upgrade(connection)
 
     def on_acquire(self, connection):
         pass
@@ -954,19 +999,24 @@ class StreamClient(Client):
         # in case the SSL connection is still undergoing the handshaking
         # procedures (marked as connecting) ignores the call as this must
         # be a duplicated call to this method (to be ignored)
-        if connection.ssl_connecting: return
+        if connection.ssl_connecting:
+            return
 
         # verifies if there was an error in the middle of the connection
         # operation and if that's the case calls the proper callback and
         # returns the control flow to the caller method
         error = connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
-        if error: self.on_error(connection.socket); return
+        if error:
+            self.on_error(connection.socket)
+            return
 
         # checks if the current connection is SSL based and if that's the
         # case starts the handshaking process (async non blocking) otherwise
         # calls the on connect callback with the newly created connection
-        if connection.ssl: connection.add_starter(self._ssl_handshake)
-        else: self.on_connect(connection)
+        if connection.ssl:
+            connection.add_starter(self._ssl_handshake)
+        else:
+            self.on_connect(connection)
 
         # runs the starter process (initial kick-off) so that all the starters
         # registered for the connection may start to be executed, note that if
@@ -987,22 +1037,24 @@ class StreamClient(Client):
         # in case the current connection has been closed meanwhile
         # the current connection is meant to be avoided and so the
         # method must return immediately to the caller method
-        if connection.status == CLOSED: return
+        if connection.status == CLOSED:
+            return
 
         # retrieves the socket associated with the connection
         # and calls the open method of the connection to proceed
         # with the correct operations for the connection
         _socket = connection.socket
-        connection.open(connect = True)
+        connection.open(connect=True)
 
         # tries to run the non blocking connection it should
         # fail and the connection should only be considered as
         # open when a write event is raised for the connection
-        try: _socket.connect(connection.address)
+        try:
+            _socket.connect(connection.address)
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             if not error_v in SSL_VALID_ERRORS:
-                self.warning(error, stack = True)
+                self.warning(error, stack=True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
                 connection.close()
@@ -1010,7 +1062,7 @@ class StreamClient(Client):
         except socket.error as error:
             error_v = error.args[0] if error.args else None
             if not error_v in VALID_ERRORS:
-                self.warning(error, stack = True)
+                self.warning(error, stack=True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
                 connection.close()
@@ -1018,7 +1070,7 @@ class StreamClient(Client):
         except (KeyboardInterrupt, SystemExit):
             raise
         except BaseException as exception:
-            self.warning(exception, stack = True)
+            self.warning(exception, stack=True)
             self.log_stack()
             self.trigger("error", self, connection, exception)
             connection.close()
@@ -1033,7 +1085,8 @@ class StreamClient(Client):
         # in case the connection is not of type SSL the method
         # may return as there's nothing left to be done, as the
         # rest of the method is dedicated to SSL tricks
-        if not connection.ssl: return
+        if not connection.ssl:
+            return
 
         # verifies if the current SSL object is a context oriented one
         # (newest versions) or a legacy oriented one, that does not uses
@@ -1046,12 +1099,11 @@ class StreamClient(Client):
         # destroyed by the underlying SSL library (as an error) because
         # the socket is of type non blocking and raises an error, note
         # that the creation of the socket varies between SSL versions
-        if _socket._sslobj: return
+        if _socket._sslobj:
+            return
         if has_context:
             _socket._sslobj = _socket.context._wrap_socket(
-                _socket,
-                _socket.server_side,
-                _socket.server_hostname
+                _socket, _socket.server_side, _socket.server_hostname
             )
         else:
             _socket._sslobj = ssl._ssl.sslwrap(
@@ -1061,7 +1113,7 @@ class StreamClient(Client):
                 _socket.certfile,
                 _socket.cert_reqs,
                 _socket.ssl_version,
-                _socket.ca_certs
+                _socket.ca_certs,
             )
 
         # verifies if the SSL object class is defined in the SSL module
@@ -1069,9 +1121,12 @@ class StreamClient(Client):
         # in order to comply with new indirection/abstraction method, under
         # some circumstances this operations fails with an exception because
         # the wrapping operation is not allowed for every Python environment
-        if not hasattr(ssl, "SSLObject"): return
-        try: _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner = _socket)
-        except TypeError: pass
+        if not hasattr(ssl, "SSLObject"):
+            return
+        try:
+            _socket._sslobj = ssl.SSLObject(_socket._sslobj, owner=_socket)
+        except TypeError:
+            pass
 
     def _ssl_handshake(self, connection):
         Client._ssl_handshake(self, connection)
@@ -1079,7 +1134,8 @@ class StreamClient(Client):
         # verifies if the socket still has finished the SSL handshaking
         # process (by verifying the appropriate flag) and then if that's
         # not the case returns immediately (nothing done)
-        if not connection.ssl_handshake: return
+        if not connection.ssl_handshake:
+            return
 
         # prints a debug information notifying the developer about
         # the finishing of the handshaking process for the connection

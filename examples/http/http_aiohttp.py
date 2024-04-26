@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -44,8 +35,9 @@ import netius
 
 netius.verify(
     int(aiohttp.__version__[0]) < 3,
-    message = "Requires legacy (2.x.x or older) version of aiohttp"
+    message="Requires legacy (2.x.x or older) version of aiohttp",
 )
+
 
 @asyncio.coroutine
 def print_http(url):
@@ -54,6 +46,7 @@ def print_http(url):
     data = yield from response.read()
     print(data)
 
-loop = netius.get_loop(_compat = True)
+
+loop = netius.get_loop(_compat=True)
 loop.run_until_complete(print_http("https://www.flickr.com/"))
 loop.close()

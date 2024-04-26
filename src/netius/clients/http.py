@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -44,13 +35,18 @@ import tempfile
 
 import netius.common
 
-from netius.common import PLAIN_ENCODING, CHUNKED_ENCODING,\
-    GZIP_ENCODING, DEFLATE_ENCODING
+from netius.common import (
+    PLAIN_ENCODING,
+    CHUNKED_ENCODING,
+    GZIP_ENCODING,
+    DEFLATE_ENCODING,
+)
 
 Z_PARTIAL_FLUSH = 1
 """ The zlib constant value representing the partial flush
 of the current zlib stream, this value has to be defined
 locally as it is not defines under the zlib module """
+
 
 class HTTPProtocol(netius.StreamProtocol):
     """
@@ -59,9 +55,7 @@ class HTTPProtocol(netius.StreamProtocol):
     responses.
     """
 
-    BASE_HEADERS = {
-        "user-agent" : netius.IDENTIFIER
-    }
+    BASE_HEADERS = {"user-agent": netius.IDENTIFIER}
     """ The map containing the complete set of headers
     that are meant to be applied to all the requests """
 
@@ -69,24 +63,24 @@ class HTTPProtocol(netius.StreamProtocol):
         self,
         method,
         url,
-        params = None,
-        headers = None,
-        data = None,
-        version = "HTTP/1.1",
-        encoding = PLAIN_ENCODING,
-        encodings = "gzip, deflate",
-        safe = False,
-        request = False,
-        asynchronous = True,
-        timeout = None,
-        use_file = False,
-        callback = None,
-        on_init = None,
-        on_open = None,
-        on_close = None,
-        on_headers = None,
-        on_data = None,
-        on_result = None,
+        params=None,
+        headers=None,
+        data=None,
+        version="HTTP/1.1",
+        encoding=PLAIN_ENCODING,
+        encodings="gzip, deflate",
+        safe=False,
+        request=False,
+        asynchronous=True,
+        timeout=None,
+        use_file=False,
+        callback=None,
+        on_init=None,
+        on_open=None,
+        on_close=None,
+        on_headers=None,
+        on_data=None,
+        on_result=None,
         *args,
         **kwargs
     ):
@@ -95,24 +89,24 @@ class HTTPProtocol(netius.StreamProtocol):
         self.set(
             method,
             url,
-            params = params,
-            headers = headers,
-            data = data,
-            version = version,
-            encoding = encoding,
-            encodings = encodings,
-            safe = safe,
-            request = request,
-            asynchronous = asynchronous,
-            timeout = timeout,
-            use_file = use_file,
-            callback = callback,
-            on_init = on_init,
-            on_open = on_open,
-            on_close = on_close,
-            on_headers = on_headers,
-            on_data = on_data,
-            on_result = on_result
+            params=params,
+            headers=headers,
+            data=data,
+            version=version,
+            encoding=encoding,
+            encodings=encodings,
+            safe=safe,
+            request=request,
+            asynchronous=asynchronous,
+            timeout=timeout,
+            use_file=use_file,
+            callback=callback,
+            on_init=on_init,
+            on_open=on_open,
+            on_close=on_close,
+            on_headers=on_headers,
+            on_data=on_data,
+            on_result=on_result,
         )
 
     @classmethod
@@ -125,27 +119,28 @@ class HTTPProtocol(netius.StreamProtocol):
 
     @classmethod
     def decode_gzip(cls, data):
-        if not data: return data
+        if not data:
+            return data
         return zlib.decompress(data, zlib.MAX_WBITS | 16)
 
     @classmethod
     def decode_deflate(cls, data):
-        if not data: return data
-        try: return zlib.decompress(data)
-        except Exception: return zlib.decompress(data, -zlib.MAX_WBITS)
+        if not data:
+            return data
+        try:
+            return zlib.decompress(data)
+        except Exception:
+            return zlib.decompress(data, -zlib.MAX_WBITS)
 
     @classmethod
     def decode_zlib_file(
-        cls,
-        input,
-        output,
-        buffer_size = 16384,
-        wbits = zlib.MAX_WBITS | 16
+        cls, input, output, buffer_size=16384, wbits=zlib.MAX_WBITS | 16
     ):
         decompressor = zlib.decompressobj(wbits)
         while True:
             data = input.read(buffer_size)
-            if not data: break
+            if not data:
+                break
             raw_data = decompressor.decompress(data)
             output.write(raw_data)
         raw_data = decompressor.flush()
@@ -154,42 +149,26 @@ class HTTPProtocol(netius.StreamProtocol):
 
     @classmethod
     def decode_gzip_file(
-        cls,
-        input,
-        output,
-        buffer_size = 16384,
-        wbits = zlib.MAX_WBITS | 16
+        cls, input, output, buffer_size=16384, wbits=zlib.MAX_WBITS | 16
     ):
-        return cls.decode_zlib_file(
-            input,
-            output,
-            buffer_size = buffer_size,
-            wbits = wbits
-        )
+        return cls.decode_zlib_file(input, output, buffer_size=buffer_size, wbits=wbits)
 
     @classmethod
     def decode_deflate_file(
-        cls,
-        input,
-        output,
-        buffer_size = 16384,
-        wbits = -zlib.MAX_WBITS
+        cls, input, output, buffer_size=16384, wbits=-zlib.MAX_WBITS
     ):
-        return cls.decode_zlib_file(
-            input,
-            output,
-            buffer_size = buffer_size,
-            wbits = wbits
-        )
+        return cls.decode_zlib_file(input, output, buffer_size=buffer_size, wbits=wbits)
 
     @classmethod
-    def set_request(cls, parser, buffer, request = None):
-        if request == None: request = dict()
+    def set_request(cls, parser, buffer, request=None):
+        if request == None:
+            request = dict()
         headers = parser.get_headers()
         data = b"".join(buffer)
         encoding = headers.get("Content-Encoding", None)
         decoder = getattr(cls, "decode_%s" % encoding) if encoding else None
-        if decoder and data: data = decoder(data)
+        if decoder and data:
+            data = decoder(data)
         request["code"] = parser.code
         request["status"] = parser.status
         request["headers"] = headers
@@ -198,16 +177,12 @@ class HTTPProtocol(netius.StreamProtocol):
 
     @classmethod
     def set_request_file(
-        cls,
-        parser,
-        input,
-        request = None,
-        output = None,
-        buffer_size = 16384
+        cls, parser, input, request=None, output=None, buffer_size=16384
     ):
         # verifies if a request object has been passes to the current
         # method and if that's not the case creates a new one (as a map)
-        if request == None: request = dict()
+        if request == None:
+            request = dict()
 
         # retrieves the complete set of headers and tries discover the
         # encoding of it and the associated decoder (if any)
@@ -218,14 +193,11 @@ class HTTPProtocol(netius.StreamProtocol):
         # in case there's a decoder and an input (file) then runs the decoding
         # process setting the data as the resulting (decoded object)
         if decoder and input:
-            if output == None: output = tempfile.NamedTemporaryFile(mode = "w+b")
+            if output == None:
+                output = tempfile.NamedTemporaryFile(mode="w+b")
             input.seek(0)
             try:
-                data = decoder(
-                    input,
-                    output,
-                    buffer_size = buffer_size
-                )
+                data = decoder(input, output, buffer_size=buffer_size)
             finally:
                 input.close()
 
@@ -251,9 +223,11 @@ class HTTPProtocol(netius.StreamProtocol):
         return request
 
     @classmethod
-    def set_error(cls, error, message = None, request = None, force = False):
-        if request == None: request = dict()
-        if "error" in request and not force: return
+    def set_error(cls, error, message=None, request=None, force=False):
+        if request == None:
+            request = dict()
+        if "error" in request and not force:
+            return
         request["error"] = error
         request["message"] = message
         return request
@@ -263,7 +237,7 @@ class HTTPProtocol(netius.StreamProtocol):
 
         # creates a new HTTP parser instance and set the correct event
         # handlers so that the data parsing is properly handled
-        self.parser = netius.common.HTTPParser(self, type = netius.common.RESPONSE)
+        self.parser = netius.common.HTTPParser(self, type=netius.common.RESPONSE)
         self.parser.bind("on_data", self._on_data)
         self.parser.bind("on_partial", self.on_partial)
         self.parser.bind("on_headers", self.on_headers)
@@ -272,27 +246,30 @@ class HTTPProtocol(netius.StreamProtocol):
     def close_c(self, *args, **kwargs):
         netius.StreamProtocol.close_c(self, *args, **kwargs)
 
-        if self.parser: self.parser.destroy()
-        if self.parsed: self.parsed = None
-        if self.gzip: self._close_gzip(safe = True)
-        if self.gzip_c: self.gzip_c = None
+        if self.parser:
+            self.parser.destroy()
+        if self.parsed:
+            self.parsed = None
+        if self.gzip:
+            self._close_gzip(safe=True)
+        if self.gzip_c:
+            self.gzip_c = None
 
-    def info_dict(self, full = False):
-        info = netius.StreamProtocol.info_dict(self, full = full)
+    def info_dict(self, full=False):
+        info = netius.StreamProtocol.info_dict(self, full=full)
         info.update(
-            version = self.version,
-            method = self.method,
-            encoding = self.encodings,
-            url = self.url,
-            parsed = self.parsed,
-            host = self.host,
-            port = self.port,
-            path = self.path,
-            headers = self.headers
+            version=self.version,
+            method=self.method,
+            encoding=self.encodings,
+            url=self.url,
+            parsed=self.parsed,
+            host=self.host,
+            port=self.port,
+            path=self.path,
+            headers=self.headers,
         )
-        if full: info.update(
-            parser = self.parser.info_dict()
-        )
+        if full:
+            info.update(parser=self.parser.info_dict())
         return info
 
     def connection_made(self, transport):
@@ -306,101 +283,79 @@ class HTTPProtocol(netius.StreamProtocol):
         netius.StreamProtocol.loop_set(self, loop)
         self.set_dynamic()
 
-    def flush(self, force = False, callback = None):
+    def flush(self, force=False, callback=None):
         if self.current == DEFLATE_ENCODING:
-            self._flush_gzip(force = force, callback = callback)
+            self._flush_gzip(force=force, callback=callback)
         elif self.current == GZIP_ENCODING:
-            self._flush_gzip(force = force, callback = callback)
+            self._flush_gzip(force=force, callback=callback)
         elif self.current == CHUNKED_ENCODING:
-            self._flush_chunked(force = force, callback = callback)
+            self._flush_chunked(force=force, callback=callback)
         elif self.current == PLAIN_ENCODING:
-            self._flush_plain(force = force, callback = callback)
+            self._flush_plain(force=force, callback=callback)
 
         self.current = self.encoding
 
     def send_base(
-        self,
-        data,
-        stream = None,
-        final = True,
-        delay = True,
-        force = False,
-        callback = None
+        self, data, stream=None, final=True, delay=True, force=False, callback=None
     ):
         data = netius.legacy.bytes(data) if data else data
         if self.current == PLAIN_ENCODING:
             return self.send_plain(
                 data,
-                stream = stream,
-                final = final,
-                delay = delay,
-                force = force,
-                callback = callback
+                stream=stream,
+                final=final,
+                delay=delay,
+                force=force,
+                callback=callback,
             )
         elif self.current == CHUNKED_ENCODING:
             return self.send_chunked(
                 data,
-                stream = stream,
-                final = final,
-                delay = delay,
-                force = force,
-                callback = callback
+                stream=stream,
+                final=final,
+                delay=delay,
+                force=force,
+                callback=callback,
             )
         elif self.current == GZIP_ENCODING:
             return self.send_gzip(
                 data,
-                stream = stream,
-                final = final,
-                delay = delay,
-                force = force,
-                callback = callback
+                stream=stream,
+                final=final,
+                delay=delay,
+                force=force,
+                callback=callback,
             )
         elif self.current == DEFLATE_ENCODING:
             return self.send_gzip(
                 data,
-                stream = stream,
-                final = final,
-                delay = delay,
-                force = force,
-                callback = callback
+                stream=stream,
+                final=final,
+                delay=delay,
+                force=force,
+                callback=callback,
             )
 
     def send_plain(
-        self,
-        data,
-        stream = None,
-        final = True,
-        delay = True,
-        force = False,
-        callback = None
+        self, data, stream=None, final=True, delay=True, force=False, callback=None
     ):
-        return self.send(
-            data,
-            delay = delay,
-            force = force,
-            callback = callback
-        )
+        return self.send(data, delay=delay, force=force, callback=callback)
 
     def send_chunked(
-        self,
-        data,
-        stream = None,
-        final = True,
-        delay = True,
-        force = False,
-        callback = None
+        self, data, stream=None, final=True, delay=True, force=False, callback=None
     ):
         # in case there's no valid data to be sent uses the plain
         # send method to send the empty string and returns immediately
         # to the caller method, to avoid any problems
-        if not data: return self.send_plain(
-            data,
-            stream = stream,
-            final = final,
-            delay = delay,
-            force = force,
-            callback = callback
-        )
+        if not data:
+            return self.send_plain(
+                data,
+                stream=stream,
+                final=final,
+                delay=delay,
+                force=force,
+                callback=callback,
+            )
 
         # creates the new list that is going to be used to store
         # the various parts of the chunk and then calculates the
@@ -420,34 +375,35 @@ class HTTPProtocol(netius.StreamProtocol):
         buffer_s = b"".join(buffer)
         return self.send_plain(
             buffer_s,
-            stream = stream,
-            final = final,
-            delay = delay,
-            force = force,
-            callback = callback
+            stream=stream,
+            final=final,
+            delay=delay,
+            force=force,
+            callback=callback,
         )
 
     def send_gzip(
         self,
         data,
-        stream = None,
-        final = True,
-        delay = True,
-        force = False,
-        callback = None,
-        level = 6
+        stream=None,
+        final=True,
+        delay=True,
+        force=False,
+        callback=None,
+        level=6,
     ):
         # verifies if the provided data buffer is valid and in
         # in case it's not propagates the sending to the upper
         # layer (chunked sending) for proper processing
-        if not data: return self.send_chunked(
-            data,
-            stream = stream,
-            final = final,
-            delay = delay,
-            force = force,
-            callback = callback
-        )
+        if not data:
+            return self.send_chunked(
+                data,
+                stream=stream,
+                final=final,
+                delay=delay,
+                force=force,
+                callback=callback,
+            )
 
         # "calculates" if the current sending of gzip data is
         # the first one by verifying if the gzip object is set
@@ -467,41 +423,42 @@ class HTTPProtocol(netius.StreamProtocol):
         # that in case the resulting of the compress operation
         # is not valid a sync flush operation is performed
         data_c = self.gzip.compress(data)
-        if not data_c: data_c = self.gzip.flush(Z_PARTIAL_FLUSH)
+        if not data_c:
+            data_c = self.gzip.flush(Z_PARTIAL_FLUSH)
 
         # sends the compressed data to the client endpoint setting
         # the correct callback values as requested
         return self.send_chunked(
             data_c,
-            stream = stream,
-            final = final,
-            delay = delay,
-            force = force,
-            callback = callback
+            stream=stream,
+            final=final,
+            delay=delay,
+            force=force,
+            callback=callback,
         )
 
     def set(
         self,
         method,
         url,
-        params = None,
-        headers = None,
-        data = None,
-        version = "HTTP/1.1",
-        encoding = PLAIN_ENCODING,
-        encodings = "gzip, deflate",
-        safe = False,
-        request = False,
-        asynchronous = True,
-        timeout = None,
-        use_file = False,
-        callback = None,
-        on_init = None,
-        on_open = None,
-        on_close = None,
-        on_headers = None,
-        on_data = None,
-        on_result = None,
+        params=None,
+        headers=None,
+        data=None,
+        version="HTTP/1.1",
+        encoding=PLAIN_ENCODING,
+        encodings="gzip, deflate",
+        safe=False,
+        request=False,
+        asynchronous=True,
+        timeout=None,
+        use_file=False,
+        callback=None,
+        on_init=None,
+        on_open=None,
+        on_close=None,
+        on_headers=None,
+        on_data=None,
+        on_result=None,
     ):
         cls = self.__class__
 
@@ -553,7 +510,8 @@ class HTTPProtocol(netius.StreamProtocol):
 
         # in case there's an HTTP parser already set for the protocol runs
         # the reset operation so that its state is guaranteed to be clean
-        if self.parser: self.parser.clear()
+        if self.parser:
+            self.parser.clear()
 
         # tries to determine if the protocol response should be request
         # wrapped, meaning that a map based object is going to be populated
@@ -565,22 +523,28 @@ class HTTPProtocol(netius.StreamProtocol):
         # are met) the protocol is called to run the wrapping operation
         if wrap_request:
             _request, on_close, on_data, callback = self.wrap_request(
-                use_file = use_file,
-                callback = callback,
-                on_close = on_close,
-                on_data = on_data,
-                on_result = on_result
+                use_file=use_file,
+                callback=callback,
+                on_close=on_close,
+                on_data=on_data,
+                on_result=on_result,
             )
 
         # registers for the proper event handlers according to the
         # provided parameters, note that these are considered to be
         # the lower level infra-structure of the event handling
-        if on_init: self.bind("loop_set", on_init)
-        if on_open: self.bind("open", on_open)
-        if on_close: self.bind("close", on_close)
-        if on_headers: self.bind("headers", on_headers)
-        if on_data: self.bind("partial", on_data)
-        if callback: self.bind("message", callback)
+        if on_init:
+            self.bind("loop_set", on_init)
+        if on_open:
+            self.bind("open", on_open)
+        if on_close:
+            self.bind("close", on_close)
+        if on_headers:
+            self.bind("headers", on_headers)
+        if on_data:
+            self.bind("partial", on_data)
+        if callback:
+            self.bind("message", callback)
 
         # sets the static part of the protocol internal (no loop is required)
         # so that the required initials fields are properly populated
@@ -610,7 +574,8 @@ class HTTPProtocol(netius.StreamProtocol):
         # adds these parameters to the end of the provided URL, these
         # values are commonly named get parameters
         query = netius.legacy.urlencode(self.params)
-        if query: self.url = self.url + "?" + query
+        if query:
+            self.url = self.url + "?" + query
 
         # parses the provided URL and retrieves the various parts of the
         # URL that are going to be used in the creation of the connection
@@ -646,18 +611,17 @@ class HTTPProtocol(netius.StreamProtocol):
         # the connection operation is exceeded an error is set int
         # the connection and the connection is properly closed
         def connect_timeout():
-            if self.is_open(): return
+            if self.is_open():
+                return
             self.request and cls.set_error(
-                "timeout",
-                message = "Timeout on connect",
-                request = self.request
+                "timeout", message="Timeout on connect", request=self.request
             )
             self.close()
 
         # schedules a delay operation to run the timeout handler for
         # both connect operation (this is considered the initial
         # triggers for the such verifiers)
-        self.delay(connect_timeout, timeout = self.timeout)
+        self.delay(connect_timeout, timeout=self.timeout)
 
     def run_request(self):
         # retrieves the reference to the top level class to be used
@@ -675,10 +639,14 @@ class HTTPProtocol(netius.StreamProtocol):
             # try to validate if the requirements for proper request
             # validations are defined, if any of them is not the control
             # full is returned immediately avoiding re-schedule of handler
-            if not self.request: return
-            if not self.is_open(): return
-            if self.request["code"]: return
-            if not id(request) == id(self.request): return
+            if not self.request:
+                return
+            if not self.is_open():
+                return
+            if self.request["code"]:
+                return
+            if not id(request) == id(self.request):
+                return
 
             # retrieves the current time and the time of the last data
             # receive operation and using that calculates the delta
@@ -696,24 +664,25 @@ class HTTPProtocol(netius.StreamProtocol):
             # receive operations is valid or there's data still pending
             # to be sent to the server side, and if that's the case delays
             # the timeout verification according to the timeout value
-            if not self.is_open() or delta < self.timeout or\
-                not self.transport().get_write_buffer_size() == 0:
-                self.delay(receive_timeout, timeout = self.timeout)
+            if (
+                not self.is_open()
+                or delta < self.timeout
+                or not self.transport().get_write_buffer_size() == 0
+            ):
+                self.delay(receive_timeout, timeout=self.timeout)
                 return
 
             # tries to determine the proper message that is going to be
             # set in the request error, this value should take into account
             # the current development mode flag value
-            if self.is_devel(): message = "Timeout on receive (received %d bytes)" % received
-            else: message = "Timeout on receive"
+            if self.is_devel():
+                message = "Timeout on receive (received %d bytes)" % received
+            else:
+                message = "Timeout on receive"
 
             # sets the error information in the request so that the
             # request handler is properly "notified" about the error
-            cls.set_error(
-                "timeout",
-                message = message,
-                request = self.request
-            )
+            cls.set_error("timeout", message=message, request=self.request)
 
             # closes the protocol (it's no longer considered valid)
             # and then verifies the various auto closing values
@@ -721,11 +690,11 @@ class HTTPProtocol(netius.StreamProtocol):
 
         # sends the request effectively triggering a chain of event
         # that should end with the complete receiving of the response
-        self.send_request(callback = lambda c: self.delay(
-            receive_timeout, timeout = self.timeout
-        ))
+        self.send_request(
+            callback=lambda c: self.delay(receive_timeout, timeout=self.timeout)
+        )
 
-    def send_request(self, callback = None):
+    def send_request(self, callback=None):
         method = self.method
         path = self.path
         version = self.version
@@ -734,51 +703,53 @@ class HTTPProtocol(netius.StreamProtocol):
         parsed = self.parsed
         safe = self.safe
 
-        if parsed.query: path += "?" + parsed.query
+        if parsed.query:
+            path += "?" + parsed.query
 
         headers = dict(headers)
         self._apply_base(headers)
         self._apply_dynamic(headers)
         self._apply_connection(headers)
-        if safe: self._headers_normalize(headers)
+        if safe:
+            self._headers_normalize(headers)
 
         buffer = []
         buffer.append("%s %s %s\r\n" % (method, path, version))
         for key, value in netius.legacy.iteritems(headers):
             key = netius.common.header_up(key)
-            if not isinstance(value, list): value = (value,)
+            if not isinstance(value, list):
+                value = (value,)
             for _value in value:
                 _value = netius.legacy.ascii(_value)
                 buffer.append("%s: %s\r\n" % (key, _value))
         buffer.append("\r\n")
         buffer_data = "".join(buffer)
 
-        if data: count = self.send_plain(buffer_data, force = True)
-        else: count = self.send_plain(buffer_data, force = True, callback = callback)
+        if data:
+            count = self.send_plain(buffer_data, force=True)
+        else:
+            count = self.send_plain(buffer_data, force=True, callback=callback)
 
-        if not data: return count
+        if not data:
+            return count
 
-        def send_part(transport = None):
+        def send_part(transport=None):
             try:
                 _data = next(data)
             except StopIteration:
-                if hasattr(data, "close"): data.close()
+                if hasattr(data, "close"):
+                    data.close()
                 callback and callback(transport)
                 return
 
-            self.send_base(_data, force = True, callback = send_part)
+            self.send_base(_data, force=True, callback=send_part)
 
         send_part()
 
         return count
 
     def wrap_request(
-        self,
-        use_file = False,
-        callback = None,
-        on_close = None,
-        on_data = None,
-        on_result = None
+        self, use_file=False, callback=None, on_close=None, on_data=None, on_result=None
     ):
         """
         Wraps the current set of operations for the protocol so that
@@ -823,40 +794,46 @@ class HTTPProtocol(netius.StreamProtocol):
         # they may be used for the correct construction of the request
         # structure that is going to be send in the callback, then sets
         # the identifier (memory address) of the request in the connection
-        buffer = tempfile.NamedTemporaryFile(mode = "w+b") if use_file else []
-        self.request = dict(code = None, data = None)
+        buffer = tempfile.NamedTemporaryFile(mode="w+b") if use_file else []
+        self.request = dict(code=None, data=None)
 
-        def on_close(protocol): #pylint: disable=E0102
-            if _on_close: _on_close(protocol)
+        def on_close(protocol):  # pylint: disable=E0102
+            if _on_close:
+                _on_close(protocol)
             protocol._request = None
-            if self.request["code"]: return
-            cls.set_error(
-                "closed",
-                message = "Connection closed",
-                request = self.request
-            )
+            if self.request["code"]:
+                return
+            cls.set_error("closed", message="Connection closed", request=self.request)
 
-        def on_data(protocol, parser, data): #pylint: disable=E0102
-            if _on_data: _on_data(protocol, parser, data)
-            if use_file: buffer.write(data)
-            else: buffer.append(data)
+        def on_data(protocol, parser, data):  # pylint: disable=E0102
+            if _on_data:
+                _on_data(protocol, parser, data)
+            if use_file:
+                buffer.write(data)
+            else:
+                buffer.append(data)
             received = self.request.get("received", 0)
             self.request["received"] = received + len(data)
             self.request["last"] = time.time()
 
-        def callback(protocol, parser, message): #pylint: disable=E0102
-            if _callback: _callback(protocol, parser, message)
-            if use_file: cls.set_request_file(parser, buffer, request = self.request)
-            else: cls.set_request(parser, buffer, request = self.request)
-            if on_result: on_result(protocol, parser, self.request)
+        def callback(protocol, parser, message):  # pylint: disable=E0102
+            if _callback:
+                _callback(protocol, parser, message)
+            if use_file:
+                cls.set_request_file(parser, buffer, request=self.request)
+            else:
+                cls.set_request(parser, buffer, request=self.request)
+            if on_result:
+                on_result(protocol, parser, self.request)
 
         # returns the request object that is going to be properly
         # populated over the life-cycle of the protocol
         return self.request, on_close, on_data, callback
 
-    def set_headers(self, headers, normalize = True):
+    def set_headers(self, headers, normalize=True):
         self.headers = headers
-        if normalize: self.normalize_headers()
+        if normalize:
+            self.normalize_headers()
 
     def normalize_headers(self):
         for key, value in netius.legacy.items(self.headers):
@@ -881,7 +858,8 @@ class HTTPProtocol(netius.StreamProtocol):
         """
 
         encoding = self.parser.headers.get("content-encoding", None)
-        if not encoding: return data
+        if not encoding:
+            return data
         if not self.gzip_c:
             is_deflate = encoding == "deflate"
             wbits = zlib.MAX_WBITS if is_deflate else zlib.MAX_WBITS | 16
@@ -909,9 +887,11 @@ class HTTPProtocol(netius.StreamProtocol):
     def is_flushed(self):
         return self.current > PLAIN_ENCODING
 
-    def is_measurable(self, strict = True):
-        if self.is_compressed(): return False
-        if strict and self.is_chunked(): return False
+    def is_measurable(self, strict=True):
+        if self.is_compressed():
+            return False
+        if strict and self.is_chunked():
+            return False
         return True
 
     def on_data(self, data):
@@ -933,26 +913,27 @@ class HTTPProtocol(netius.StreamProtocol):
     def on_chunk(self, range):
         self.trigger("chunk", self, self.parser, range)
 
-    def _flush_plain(self, force = False, callback = None):
-        if not callback: return
-        self.send_plain(b"", force = force, callback = callback)
+    def _flush_plain(self, force=False, callback=None):
+        if not callback:
+            return
+        self.send_plain(b"", force=force, callback=callback)
 
-    def _flush_chunked(self, force = False, callback = None):
-        self.send_plain(b"0\r\n\r\n", force = force, callback = callback)
+    def _flush_chunked(self, force=False, callback=None):
+        self.send_plain(b"0\r\n\r\n", force=force, callback=callback)
 
-    def _flush_gzip(self, force = False, callback = None):
+    def _flush_gzip(self, force=False, callback=None):
         # in case the gzip structure has not been initialized
         # (no data sent) no need to run the flushing of the
         # gzip data, so only the chunked part is flushed
         if not self.gzip:
-            self._flush_chunked(force = force, callback = callback)
+            self._flush_chunked(force=force, callback=callback)
             return
 
         # flushes the internal zlib buffers to be able to retrieve
         # the data pending to be sent to the client and then sends
         # it using the chunked encoding strategy
         data_c = self.gzip.flush(zlib.Z_FINISH)
-        self.send_chunked(data_c, force = force, final = False)
+        self.send_chunked(data_c, force=force, final=False)
 
         # resets the gzip values to the original ones so that new
         # requests will starts the information from the beginning
@@ -961,12 +942,13 @@ class HTTPProtocol(netius.StreamProtocol):
         # runs the flush operation for the underlying chunked encoding
         # layer so that the client is correctly notified about the
         # end of the current request (normal operation)
-        self._flush_chunked(force = force, callback = callback)
+        self._flush_chunked(force=force, callback=callback)
 
-    def _close_gzip(self, safe = True):
+    def _close_gzip(self, safe=True):
         # in case the gzip object is not defined returns the control
         # to the caller method immediately (nothing to be done)
-        if not self.gzip: return
+        if not self.gzip:
+            return
 
         try:
             # runs the flush operation for the the final finish stage
@@ -977,12 +959,14 @@ class HTTPProtocol(netius.StreamProtocol):
         except Exception:
             # in case the safe flag is not set re-raises the exception
             # to the caller stack (as expected by the callers)
-            if not safe: raise
+            if not safe:
+                raise
 
-    def _apply_base(self, headers, replace = False):
+    def _apply_base(self, headers, replace=False):
         cls = self.__class__
         for key, value in netius.legacy.iteritems(cls.BASE_HEADERS):
-            if not replace and key in headers: continue
+            if not replace and key in headers:
+                continue
             headers[key] = value
 
     def _apply_dynamic(self, headers):
@@ -994,20 +978,25 @@ class HTTPProtocol(netius.StreamProtocol):
         # determines the proper strategy for data payload length, taking into
         # account if there's a payload and if it exists if it's a byte stream
         # or instead an iterator/generator
-        if not data: length = 0
-        elif netius.legacy.is_bytes(data): length = len(data)
-        else: length = next(data)
+        if not data:
+            length = 0
+        elif netius.legacy.is_bytes(data):
+            length = len(data)
+        else:
+            length = next(data)
 
         # ensures that if the content encoding is plain the content length
         # for the payload is defined otherwise it would be impossible to the
         # server side to determine when the content sending is finished
         netius.verify(
             not is_plain or not length == -1,
-            message = "The content length must be defined for plain HTTP encoding"
+            message="The content length must be defined for plain HTTP encoding",
         )
 
-        if port in (80, 443): host_s = host
-        else: host_s = "%s:%d" % (host, port)
+        if port in (80, 443):
+            host_s = host
+        else:
+            host_s = "%s:%d" % (host, port)
 
         if not "connection" in headers:
             headers["connection"] = "keep-alive"
@@ -1018,26 +1007,33 @@ class HTTPProtocol(netius.StreamProtocol):
         if not "accept-encoding" in headers and self.encodings:
             headers["accept-encoding"] = self.encodings
 
-    def _apply_connection(self, headers, strict = True):
+    def _apply_connection(self, headers, strict=True):
         is_chunked = self.is_chunked()
         is_gzip = self.is_gzip()
         is_deflate = self.is_deflate()
         is_compressed = self.is_compressed()
-        is_measurable = self.is_measurable(strict = strict)
+        is_measurable = self.is_measurable(strict=strict)
         has_length = "content-length" in headers
         has_ranges = "accept-ranges" in headers
 
-        if is_chunked: headers["transfer-encoding"] = "chunked"
-        if is_gzip: headers["content-encoding"] = "gzip"
-        if is_deflate: headers["content-encoding"] = "deflate"
+        if is_chunked:
+            headers["transfer-encoding"] = "chunked"
+        if is_gzip:
+            headers["content-encoding"] = "gzip"
+        if is_deflate:
+            headers["content-encoding"] = "deflate"
 
-        if not is_measurable and has_length: del headers["content-length"]
-        if is_compressed and has_ranges: del headers["accept-ranges"]
+        if not is_measurable and has_length:
+            del headers["content-length"]
+        if is_compressed and has_ranges:
+            del headers["accept-ranges"]
 
     def _headers_normalize(self, headers):
         for key, value in netius.legacy.items(headers):
-            if not type(value) in (list, tuple): continue
+            if not type(value) in (list, tuple):
+                continue
             headers[key] = ";".join(value)
+
 
 class HTTPClient(netius.ClientAgent):
     """
@@ -1051,118 +1047,62 @@ class HTTPClient(netius.ClientAgent):
 
     protocol = HTTPProtocol
 
-    def __init__(
-        self,
-        auto_release = True,
-        *args,
-        **kwargs
-    ):
+    def __init__(self, auto_release=True, *args, **kwargs):
         netius.ClientAgent.__init__(self, *args, **kwargs)
         self.auto_release = auto_release
         self.available = dict()
         self._loop = None
 
     @classmethod
-    def get_s(
-        cls,
-        url,
-        params = {},
-        headers = {},
-        **kwargs
-    ):
+    def get_s(cls, url, params={}, headers={}, **kwargs):
+        return cls.method_s("GET", url, params=params, headers=headers, **kwargs)
+
+    @classmethod
+    def post_s(cls, url, params={}, headers={}, data=None, **kwargs):
         return cls.method_s(
-            "GET",
-            url,
-            params = params,
-            headers = headers,
-            **kwargs
+            "POST", url, params=params, headers=headers, data=data, **kwargs
         )
 
     @classmethod
-    def post_s(
-        cls,
-        url,
-        params = {},
-        headers = {},
-        data = None,
-        **kwargs
-    ):
+    def put_s(cls, url, params={}, headers={}, data=None, **kwargs):
         return cls.method_s(
-            "POST",
-            url,
-            params = params,
-            headers = headers,
-            data = data,
-            **kwargs
+            "PUT", url, params=params, headers=headers, data=data, **kwargs
         )
 
     @classmethod
-    def put_s(
-        cls,
-        url,
-        params = {},
-        headers = {},
-        data = None,
-        **kwargs
-    ):
-        return cls.method_s(
-            "PUT",
-            url,
-            params = params,
-            headers = headers,
-            data = data,
-            **kwargs
-        )
-
-    @classmethod
-    def delete_s(
-        cls,
-        url,
-        params = {},
-        headers = {},
-        **kwargs
-    ):
-        return cls.method_s(
-            "DELETE",
-            url,
-            params = params,
-            headers = headers,
-            **kwargs
-        )
+    def delete_s(cls, url, params={}, headers={}, **kwargs):
+        return cls.method_s("DELETE", url, params=params, headers=headers, **kwargs)
 
     @classmethod
     def method_s(
         cls,
         method,
         url,
-        params = {},
-        headers = {},
-        data = None,
-        version = "HTTP/1.1",
-        safe = False,
-        asynchronous = True,
-        daemon = True,
-        timeout = None,
-        ssl_verify = False,
-        use_file = False,
-        callback = None,
-        on_init = None,
-        on_open = None,
-        on_close = None,
-        on_headers = None,
-        on_data = None,
-        on_result = None,
-        http_client = None,
+        params={},
+        headers={},
+        data=None,
+        version="HTTP/1.1",
+        safe=False,
+        asynchronous=True,
+        daemon=True,
+        timeout=None,
+        ssl_verify=False,
+        use_file=False,
+        callback=None,
+        on_init=None,
+        on_open=None,
+        on_close=None,
+        on_headers=None,
+        on_data=None,
+        on_result=None,
+        http_client=None,
         **kwargs
     ):
         # in case no HTTP client instance is provided tries to
         # retrieve a static global one (singleton) to be used
         # for the current request operation
         if not http_client:
-            http_client = cls.get_client_s(
-                daemon = daemon,
-                **kwargs
-            )
+            http_client = cls.get_client_s(daemon=daemon, **kwargs)
 
         # calls the underlying method on the current HTTP client
         # propagating most of the arguments, and retrieves the resulting
@@ -1170,22 +1110,22 @@ class HTTPClient(netius.ClientAgent):
         result = http_client.method(
             method,
             url,
-            params = params,
-            headers = headers,
-            data = data,
-            version = version,
-            safe = safe,
-            asynchronous = asynchronous,
-            timeout = timeout,
-            ssl_verify = ssl_verify,
-            use_file = use_file,
-            callback = callback,
-            on_init = on_init,
-            on_open = on_open,
-            on_close = on_close,
-            on_headers = on_headers,
-            on_data = on_data,
-            on_result = on_result,
+            params=params,
+            headers=headers,
+            data=data,
+            version=version,
+            safe=safe,
+            asynchronous=asynchronous,
+            timeout=timeout,
+            ssl_verify=ssl_verify,
+            use_file=use_file,
+            callback=callback,
+            on_init=on_init,
+            on_open=on_open,
+            on_close=on_close,
+            on_headers=on_headers,
+            on_data=on_data,
+            on_result=on_result,
             **kwargs
         )
 
@@ -1194,7 +1134,7 @@ class HTTPClient(netius.ClientAgent):
         return result
 
     @classmethod
-    def to_response(cls, map, raise_e = True):
+    def to_response(cls, map, raise_e=True):
         """
         Simple utility method that takes the classic dictionary
         based request and converts it into a simple HTTP response
@@ -1214,14 +1154,16 @@ class HTTPClient(netius.ClientAgent):
         message = map.get("message", None)
         exception = map.get("exception", None)
         is_error = True if error and raise_e else False
-        if not is_error: return netius.common.HTTPResponse(
-            data = map.get("data", None),
-            code = map.get("code", 500),
-            status = map.get("status", None),
-            headers = map.get("headers", None)
-        )
+        if not is_error:
+            return netius.common.HTTPResponse(
+                data=map.get("data", None),
+                code=map.get("code", 500),
+                status=map.get("status", None),
+                headers=map.get("headers", None),
+            )
         message = message or "Undefined error (%s)" % error
-        if exception: raise exception
+        if exception:
+            raise exception
         raise netius.NetiusError(message)
 
     def cleanup(self):
@@ -1238,95 +1180,47 @@ class HTTPClient(netius.ClientAgent):
         # not allowing any further re-usage of it (as expected)
         self._close_loop()
 
-    def get(
-        self,
-        url,
-        params = {},
-        headers = {},
-        **kwargs
-    ):
+    def get(self, url, params={}, headers={}, **kwargs):
+        return self.method("GET", url, params=params, headers=headers, **kwargs)
+
+    def post(self, url, params={}, headers={}, data=None, **kwargs):
         return self.method(
-            "GET",
-            url,
-            params = params,
-            headers = headers,
-            **kwargs
+            "POST", url, params=params, headers=headers, data=data, **kwargs
         )
 
-    def post(
-        self,
-        url,
-        params = {},
-        headers = {},
-        data = None,
-        **kwargs
-    ):
+    def put(self, url, params={}, headers={}, data=None, **kwargs):
         return self.method(
-            "POST",
-            url,
-            params = params,
-            headers = headers,
-            data = data,
-            **kwargs
+            "PUT", url, params=params, headers=headers, data=data, **kwargs
         )
 
-    def put(
-        self,
-        url,
-        params = {},
-        headers = {},
-        data = None,
-        **kwargs
-    ):
-        return self.method(
-            "PUT",
-            url,
-            params = params,
-            headers = headers,
-            data = data,
-            **kwargs
-        )
-
-    def delete(
-        self,
-        url,
-        params = {},
-        headers = {},
-        **kwargs
-    ):
-        return self.method(
-            "DELETE",
-            url,
-            params = params,
-            headers = headers,
-            **kwargs
-        )
+    def delete(self, url, params={}, headers={}, **kwargs):
+        return self.method("DELETE", url, params=params, headers=headers, **kwargs)
 
     def method(
         self,
         method,
         url,
-        params = None,
-        headers = None,
-        data = None,
-        version = "HTTP/1.1",
-        encoding = PLAIN_ENCODING,
-        encodings = "gzip, deflate",
-        safe = False,
-        request = False,
-        close = True,
-        asynchronous = True,
-        timeout = None,
-        ssl_verify = False,
-        use_file = False,
-        callback = None,
-        on_init = None,
-        on_open = None,
-        on_close = None,
-        on_headers = None,
-        on_data = None,
-        on_result = None,
-        loop = None,
+        params=None,
+        headers=None,
+        data=None,
+        version="HTTP/1.1",
+        encoding=PLAIN_ENCODING,
+        encodings="gzip, deflate",
+        safe=False,
+        request=False,
+        close=True,
+        asynchronous=True,
+        timeout=None,
+        ssl_verify=False,
+        use_file=False,
+        callback=None,
+        on_init=None,
+        on_open=None,
+        on_close=None,
+        on_headers=None,
+        on_data=None,
+        on_result=None,
+        loop=None,
         **kwargs
     ):
         # extracts the reference to the upper class element associated
@@ -1339,9 +1233,10 @@ class HTTPClient(netius.ClientAgent):
         # notice that the event loop is also re-used accordingly
         key = cls.protocol.key_g(url)
         protocol = self.available.pop(key, None)
-        if protocol and (not protocol.is_open() or\
-            protocol.transport().is_closing()): protocol = None
-        if protocol: loop = loop or protocol.loop()
+        if protocol and (not protocol.is_open() or protocol.transport().is_closing()):
+            protocol = None
+        if protocol:
+            loop = loop or protocol.loop()
 
         # determines if the loop instance was provided by the user so
         # that latter on we can determine if it should be closed (garbage
@@ -1351,7 +1246,8 @@ class HTTPClient(netius.ClientAgent):
         # in case the current execution model is not asynchronous a new
         # loop context must exist otherwise it may collide with the global
         # event loop execution creating unwanted behaviour
-        if not asynchronous: loop = loop or self._get_loop(**kwargs)
+        if not asynchronous:
+            loop = loop or self._get_loop(**kwargs)
 
         # creates the new protocol instance that is going to be used to
         # handle this new request, a new protocol represents also a new
@@ -1360,24 +1256,24 @@ class HTTPClient(netius.ClientAgent):
         protocol = callable(
             method,
             url,
-            params = params,
-            headers = headers,
-            data = data,
-            version = version,
-            encoding = encoding,
-            encodings = encodings,
-            safe = safe,
-            request = request,
-            asynchronous = asynchronous,
-            timeout = timeout,
-            use_file = use_file,
-            callback = callback,
-            on_init = on_init,
-            on_open = on_open,
-            on_close = on_close,
-            on_headers = on_headers,
-            on_data = on_data,
-            on_result = on_result
+            params=params,
+            headers=headers,
+            data=data,
+            version=version,
+            encoding=encoding,
+            encodings=encodings,
+            safe=safe,
+            request=request,
+            asynchronous=asynchronous,
+            timeout=timeout,
+            use_file=use_file,
+            callback=callback,
+            on_init=on_init,
+            on_open=on_open,
+            on_close=on_close,
+            on_headers=on_headers,
+            on_data=on_data,
+            on_result=on_result,
         )
 
         # verifies if the current protocol is already open and if that's the
@@ -1393,14 +1289,15 @@ class HTTPClient(netius.ClientAgent):
                 lambda: protocol,
                 protocol.host,
                 protocol.port,
-                ssl = protocol.ssl,
-                ssl_verify = ssl_verify,
-                loop = loop
+                ssl=protocol.ssl,
+                ssl_verify=ssl_verify,
+                loop=loop,
             )
 
         # in case the asynchronous mode is enabled returns the loop and the protocol
         # immediately so that it can be properly used by the caller
-        if asynchronous: return loop, protocol
+        if asynchronous:
+            return loop, protocol
 
         def on_message(protocol, parser, message):
             # in case the auto release (no connection re-usage) mode is
@@ -1421,7 +1318,7 @@ class HTTPClient(netius.ClientAgent):
                 self.available[protocol.key] = protocol
                 netius.compat_loop(loop).stop()
 
-        def on_close(protocol): #pylint: disable=E0102
+        def on_close(protocol):  # pylint: disable=E0102
             # verifies if the protocol being closed is currently in
             # the pool of available protocols, so that decisions on
             # the stopping of the event loop may be made latter on
@@ -1435,7 +1332,8 @@ class HTTPClient(netius.ClientAgent):
             # in case the protocol that is being closed is not the one
             # in usage returns immediately (no need to stop the event
             # loop for a protocol from the available pool)
-            if from_pool: return
+            if from_pool:
+                return
 
             # tries to retrieve the loop compatible value and if it's
             # successful runs the stop operation on the loop
@@ -1451,20 +1349,24 @@ class HTTPClient(netius.ClientAgent):
         # used is not the HTTP client's static loop and also not a user's
         # provided loop it's closed immediately (garbage collection)
         loop.run_forever()
-        if not loop == self._loop and not user_loop: loop.close()
+        if not loop == self._loop and not user_loop:
+            loop.close()
 
         # returns the final request object (that should be populated by this
         # time) to the called method, so that a simple interface is provided
         return protocol.request
 
     def _get_loop(self, **kwargs):
-        if not self._loop: self._loop = netius.new_loop(**kwargs)
+        if not self._loop:
+            self._loop = netius.new_loop(**kwargs)
         return self._loop
 
     def _close_loop(self):
-        if not self._loop: return
+        if not self._loop:
+            return
         self._loop.close()
         self._loop = None
+
 
 if __name__ == "__main__":
     buffer = []

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -41,9 +32,10 @@ import os
 
 import netius
 
+
 class Stream(object):
 
-    def open(self, mode = "r+b"):
+    def open(self, mode="r+b"):
         raise netius.NotImplemented("Missing implementation")
 
     def close(self):
@@ -61,6 +53,7 @@ class Stream(object):
     def flish(self):
         raise netius.NotImplemented("Missing implementation")
 
+
 class FileStream(Stream):
 
     def __init__(self, path, size):
@@ -69,15 +62,17 @@ class FileStream(Stream):
         self.size = size
         self.file = None
 
-    def open(self, mode = "w+b", allocate = True):
+    def open(self, mode="w+b", allocate=True):
         self.file = open(self.path, mode)
-        if not allocate: return
+        if not allocate:
+            return
         self.file.seek(self.size - 1)
         self.file.write(b"\0")
         self.file.flush()
 
     def close(self):
-        if not self.file: return
+        if not self.file:
+            return
         self.file.close()
         self.file = None
 
@@ -93,6 +88,7 @@ class FileStream(Stream):
     def flush(self):
         self.file.flush()
 
+
 class FilesStream(Stream):
 
     def __init__(self, dir_path, size, files_m):
@@ -103,7 +99,7 @@ class FilesStream(Stream):
         self.files = []
         self._offset = 0
 
-    def open(self, mode = "w+b", allocate = True):
+    def open(self, mode="w+b", allocate=True):
         for file_m in self.files_m:
             file_path = file_m["path"]
             file_size = file_m["length"]
@@ -111,13 +107,15 @@ class FilesStream(Stream):
             file = open(file_path, mode)
             file_t = (file, file_m)
             self.files.append(file_t)
-            if not allocate: continue
+            if not allocate:
+                continue
             file.seek(file_size - 1)
             file.write(b"\0")
             file.flush()
 
     def close(self):
-        if not self.files: return
+        if not self.files:
+            return
         for file_t in self.files:
             file, _file_m = file_t
             file.close()
@@ -151,7 +149,8 @@ class FilesStream(Stream):
             # iteration, must go further
             start = offset - file_offset
             file_offset += file_size
-            if start >= file_size: continue
+            if start >= file_size:
+                continue
 
             # calculates the end internal offset value as the
             # minimum value between the file size and the start
@@ -176,7 +175,8 @@ class FilesStream(Stream):
             # verifies if there's no more data pending and if
             # that's the case break the current loop as no more
             # files are going to be affected
-            if pending == 0: break
+            if pending == 0:
+                break
 
         # updates the current offset of the (virtual) file stream
         # with length of the data that has been read, then avoids
@@ -213,7 +213,8 @@ class FilesStream(Stream):
             # iteration, must go further
             start = offset - file_offset
             file_offset += file_size
-            if start >= file_size: continue
+            if start >= file_size:
+                continue
 
             # calculates the end internal offset value as the
             # minimum value between the file size and the start
@@ -240,7 +241,8 @@ class FilesStream(Stream):
             # verifies if there's no more data pending and if
             # that's the case break the current loop as no more
             # files are going to be affected
-            if pending == 0: break
+            if pending == 0:
+                break
 
         # updates the current offset of the (virtual) file stream
         # with length of the data that has just been written, then

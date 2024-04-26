@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,22 +22,14 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import netius.servers
+
 
 def app(environ, start_response):
     status = "200 OK"
@@ -46,13 +38,14 @@ def app(environ, start_response):
     headers = (
         ("Content-Length", content_l),
         ("Content-type", "text/plain"),
-        ("Connection", "keep-alive")
+        ("Connection", "keep-alive"),
     )
     start_response(status, headers)
     yield contents
 
+
 if __name__ == "__main__":
-    server = netius.servers.WSGIServer(app = app)
-    server.serve(env = True)
+    server = netius.servers.WSGIServer(app=app)
+    server.serve(env=True)
 else:
     __path__ = []

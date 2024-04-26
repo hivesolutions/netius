@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -40,6 +31,7 @@ __license__ = "Apache License, Version 2.0"
 from . import legacy
 from . import request
 from . import observer
+
 
 class Protocol(observer.Observable):
     """
@@ -51,7 +43,7 @@ class Protocol(observer.Observable):
     of processed data (send).
     """
 
-    def __init__(self, owner = None):
+    def __init__(self, owner=None):
         observer.Observable.__init__(self)
         self.owner = owner
         self._transport = None
@@ -66,7 +58,8 @@ class Protocol(observer.Observable):
     def open(self):
         # in case the protocol is already open, ignores the current
         # call as it's considered a double opening
-        if self.is_open(): return
+        if self.is_open():
+            return
 
         # calls the concrete implementation of the open operation
         # allowing an extra level of indirection
@@ -77,7 +70,8 @@ class Protocol(observer.Observable):
     def close(self):
         # in case the protocol is already closed, ignores the current
         # call considering it a double closing operation
-        if self.is_closed() or self.is_closing(): return
+        if self.is_closed() or self.is_closing():
+            return
 
         # calls the concrete implementation of the close operation
         # allowing an extra level of indirection
@@ -88,8 +82,10 @@ class Protocol(observer.Observable):
     def finish(self):
         # in case the current protocol is already (completely) closed
         # or is not in the state of closing, nothing should be done
-        if self.is_closed(): return
-        if not self.is_closing(): return
+        if self.is_closed():
+            return
+        if not self.is_closing():
+            return
 
         # calls the concrete implementation of the finish operation
         # allowing an extra level of indirection
@@ -137,9 +133,10 @@ class Protocol(observer.Observable):
         self._closed = True
         self._closing = False
 
-    def info_dict(self, full = False):
-        if not self._transport: return dict()
-        info = self._transport.info_dict(full = full)
+    def info_dict(self, full=False):
+        if not self._transport:
+            return dict()
+        info = self._transport.info_dict(full=full)
         return info
 
     def connection_made(self, transport):
@@ -176,51 +173,60 @@ class Protocol(observer.Observable):
         self._flush_callbacks()
         self._flush_send()
 
-    def delay(self, callable, timeout = None):
+    def delay(self, callable, timeout=None):
         # in case there's no event loop defined for the protocol
         # it's not possible to delay this execution so the
         # callable is called immediately
-        if not self._loop: return callable()
+        if not self._loop:
+            return callable()
 
         # verifies if the assigned loop contains the non-standard
         # delay method and if that's the case calls it instead of
         # the base asyncio API ones (compatibility)
         if hasattr(self._loop, "delay"):
             immediately = timeout == None
-            return self._loop.delay(
-                callable,
-                timeout = timeout,
-                immediately = immediately
-            )
+            return self._loop.delay(callable, timeout=timeout, immediately=immediately)
 
         # calls the proper call method taking into account if a timeout
         # value exists or not (soon against later)
-        if timeout: return self._loop.call_later(timeout, callable)
-        else: return self._loop.call_soon(callable)
+        if timeout:
+            return self._loop.call_later(timeout, callable)
+        else:
+            return self._loop.call_soon(callable)
 
     def debug(self, object):
-        if not self._loop: return
-        if not hasattr(self._loop, "debug"): return
+        if not self._loop:
+            return
+        if not hasattr(self._loop, "debug"):
+            return
         self._loop.debug(object)
 
     def info(self, object):
-        if not self._loop: return
-        if not hasattr(self._loop, "info"): return
+        if not self._loop:
+            return
+        if not hasattr(self._loop, "info"):
+            return
         self._loop.info(object)
 
     def warning(self, object):
-        if not self._loop: return
-        if not hasattr(self._loop, "warning"): return
+        if not self._loop:
+            return
+        if not hasattr(self._loop, "warning"):
+            return
         self._loop.warning(object)
 
     def error(self, object):
-        if not self._loop: return
-        if not hasattr(self._loop, "error"): return
+        if not self._loop:
+            return
+        if not hasattr(self._loop, "error"):
+            return
         self._loop.error(object)
 
     def critical(self, object):
-        if not self._loop: return
-        if not hasattr(self._loop, "critical"): return
+        if not self._loop:
+            return
+        if not hasattr(self._loop, "critical"):
+            return
         self._loop.critical(object)
 
     def is_pending(self):
@@ -239,15 +245,18 @@ class Protocol(observer.Observable):
         return self._closed or self._closing
 
     def is_devel(self):
-        if not self._loop: return False
-        if not hasattr(self._loop, "is_devel"): return False
+        if not self._loop:
+            return False
+        if not hasattr(self._loop, "is_devel"):
+            return False
         return self._loop.is_devel()
 
-    def _close_transport(self, force = False):
-        if not self._transport: return
+    def _close_transport(self, force=False):
+        if not self._transport:
+            return
         self._transport.abort()
 
-    def _delay_send(self, data, address = None, callback = None):
+    def _delay_send(self, data, address=None, callback=None):
         item = (data, address, callback)
         self._delayed.append(item)
         return len(data)
@@ -259,11 +268,16 @@ class Protocol(observer.Observable):
 
     def _flush_send(self):
         while True:
-            if not self._delayed: break
-            if not self._writing: break
+            if not self._delayed:
+                break
+            if not self._writing:
+                break
             data, address, callback = self._delayed.pop(0)
-            if address: self.send(data, address, callback = callback) #pylint: disable=E1101
-            else: self.send(data, callback = callback) #pylint: disable=E1101
+            if address:
+                self.send(data, address, callback=callback)  # pylint: disable=E1101
+            else:
+                self.send(data, callback=callback)  # pylint: disable=E1101
+
 
 class DatagramProtocol(Protocol):
 
@@ -281,30 +295,10 @@ class DatagramProtocol(Protocol):
     def on_data(self, address, data):
         self.trigger("data", self, data)
 
-    def send(
-        self,
-        data,
-        address,
-        delay = True,
-        force = False,
-        callback = None
-    ):
-        return self.send_to(
-            data,
-            address,
-            delay = delay,
-            force = force,
-            callback = callback
-        )
+    def send(self, data, address, delay=True, force=False, callback=None):
+        return self.send_to(data, address, delay=delay, force=force, callback=callback)
 
-    def send_to(
-        self,
-        data,
-        address,
-        delay = True,
-        force = False,
-        callback = None
-    ):
+    def send_to(self, data, address, delay=True, force=False, callback=None):
         # ensures that the provided data value is a bytes sequence
         # so that its format is compliant with what's expected by
         # the underlying transport send to operation
@@ -314,11 +308,7 @@ class DatagramProtocol(Protocol):
         # (paused mode) the writing of the data is delayed until the
         # writing is again enabled (resume writing)
         if not self._writing:
-            return self._delay_send(
-                data,
-                address = address,
-                callback = callback
-            )
+            return self._delay_send(data, address=address, callback=callback)
 
         # pushes the write data down to the transport layer immediately
         # as writing is still allowed for the current protocol
@@ -330,8 +320,10 @@ class DatagramProtocol(Protocol):
         # to be called on the next tick, otherwise adds it to the
         # callbacks to be called upon the next write resume operation
         if callback:
-            if self._writing: self.delay(lambda: callback(self._transport))
-            else: self._callbacks.append(callback)
+            if self._writing:
+                self.delay(lambda: callback(self._transport))
+            else:
+                self._callbacks.append(callback)
 
         # returns the size (in bytes) of the data that has just been
         # explicitly sent through the associated transport
@@ -351,8 +343,10 @@ class DatagramProtocol(Protocol):
 
     def get_request(self, id):
         is_response = isinstance(id, request.Response)
-        if is_response: id = id.get_id()
+        if is_response:
+            id = id.get_id()
         return self.requests_m.get(id, None)
+
 
 class StreamProtocol(Protocol):
 
@@ -365,7 +359,7 @@ class StreamProtocol(Protocol):
     def on_data(self, data):
         self.trigger("data", self, data)
 
-    def send(self, data, delay = True, force = False, callback = None):
+    def send(self, data, delay=True, force=False, callback=None):
         # ensures that the provided data value is a bytes sequence
         # so that its format is compliant with what's expected by
         # the underlying transport write operation
@@ -375,7 +369,7 @@ class StreamProtocol(Protocol):
         # (paused mode) the writing of the data is delayed until the
         # writing is again enabled (resume writing)
         if not self._writing:
-            return self._delay_send(data, callback = callback)
+            return self._delay_send(data, callback=callback)
 
         # pushes the write data down to the transport layer immediately
         # as writing is still allowed for the current protocol
@@ -387,8 +381,10 @@ class StreamProtocol(Protocol):
         # to be called on the next tick otherwise adds it to the
         # callbacks to be called upon the next write resume operation
         if callback:
-            if self._writing: self.delay(lambda: callback(self._transport))
-            else: self._callbacks.append(callback)
+            if self._writing:
+                self.delay(lambda: callback(self._transport))
+            else:
+                self._callbacks.append(callback)
 
         # returns the size (in bytes) of the data that has just been
         # explicitly sent through the associated transport

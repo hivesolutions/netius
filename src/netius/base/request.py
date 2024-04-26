@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -46,6 +37,7 @@ REQUEST_TIMEOUT = 10.0
 expired and is discarded from the request related
 structures, this is crucial to avoid memory leaks """
 
+
 class Request(object):
     """
     Abstract request structure used to represent
@@ -57,15 +49,16 @@ class Request(object):
     """ The global class identifier value that is going to
     be used when assigning new values to the request """
 
-    def __init__(self, timeout = REQUEST_TIMEOUT, callback = None):
+    def __init__(self, timeout=REQUEST_TIMEOUT, callback=None):
         self.id = self.__class__._generate_id()
         self.timeout = time.time() + timeout
         self.callback = callback
 
     @classmethod
     def _generate_id(cls):
-        cls.IDENTIFIER = (cls.IDENTIFIER + 1) & 0xffff
+        cls.IDENTIFIER = (cls.IDENTIFIER + 1) & 0xFFFF
         return cls.IDENTIFIER
+
 
 class Response(object):
     """
@@ -79,7 +72,7 @@ class Response(object):
     generated identifier.
     """
 
-    def __init__(self, data, request = None):
+    def __init__(self, data, request=None):
         self.data = data
         self.request = request
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -55,20 +46,21 @@ DECIMAL_REGEX = re.compile(r"\d")
 character and expression with decimal digits """
 
 TORRENT_TYPES = {
-    -1 : "keep-alive",
-    0 : "choke",
-    1 : "unchoke",
-    2 : "interested",
-    3 : "not interested",
-    4 : "have",
-    5 : "bitfield",
-    6 : "request",
-    7 : "piece",
-    8 : "cancel",
-    9 : "port"
+    -1: "keep-alive",
+    0: "choke",
+    1: "unchoke",
+    2: "interested",
+    3: "not interested",
+    4: "have",
+    5: "bitfield",
+    6: "request",
+    7: "piece",
+    8: "cancel",
+    9: "port",
 }
 """ The map that associates the various message type
 identifiers with their internal string representations """
+
 
 def info_hash(root):
     info = root["info"]
@@ -76,12 +68,14 @@ def info_hash(root):
     info_hash = hashlib.sha1(data)
     return info_hash.digest()
 
+
 def bencode(root):
     # joins the complete set of values created by
     # generator that has been returned from the chunk
     # function using the provided root value
     data = b"".join([value for value in chunk(root)])
     return data
+
 
 def bdecode(data):
     # converts the provide (string) data into a list
@@ -98,6 +92,7 @@ def bdecode(data):
     root = dechunk(chunks)
     return root
 
+
 def chunk(item):
     chunk_t = type(item)
 
@@ -112,14 +107,17 @@ def chunk(item):
         keys.sort()
         for key in keys:
             value = item[key]
-            for part in chunk(key): yield part
-            for part in chunk(value): yield part
+            for part in chunk(key):
+                yield part
+            for part in chunk(value):
+                yield part
         yield b"e"
 
     elif chunk_t == list:
         yield b"l"
         for value in item:
-            for part in chunk(value): yield part
+            for part in chunk(value):
+                yield part
         yield b"e"
 
     elif chunk_t in netius.legacy.INTEGERS:
@@ -130,6 +128,7 @@ def chunk(item):
 
     else:
         raise netius.ParserError("Not possible to encode")
+
 
 def dechunk(chunks):
     item = chunks.pop()
@@ -187,9 +186,10 @@ def dechunk(chunks):
 
     raise netius.ParserError("Invalid input: '%s'" % item)
 
+
 class TorrentParser(parser.Parser):
 
-    def __init__(self, owner, store = False):
+    def __init__(self, owner, store=False):
         parser.Parser.__init__(self, owner)
 
         self.length = None
@@ -207,10 +207,7 @@ class TorrentParser(parser.Parser):
 
         parser.Parser.build(self)
 
-        self.states = (
-            self._parse_handshake,
-            self._parse_message
-        )
+        self.states = (self._parse_handshake, self._parse_message)
         self.state_l = len(self.states)
 
     def destroy(self):
@@ -252,7 +249,8 @@ class TorrentParser(parser.Parser):
             # in case there's no owner associated with the
             # current parser must break the loop because
             # there's no way to continue with parsing
-            if not self.owner: break
+            if not self.owner:
+                break
 
             # retrieves the parsing method for the current
             # state and then runs it retrieving the number
@@ -260,7 +258,8 @@ class TorrentParser(parser.Parser):
             # zero the parsing iteration is broken
             method = self.states[self.owner.state - 1]
             count = method(data)
-            if count == 0: break
+            if count == 0:
+                break
 
             # decrements the size of the data buffer by the
             # size of the parsed bytes and then retrieves the
@@ -271,7 +270,9 @@ class TorrentParser(parser.Parser):
         # in case not all of the data has been processed
         # must add it to the buffer so that it may be used
         # latter in the next parsing of the message
-        if size > 0: self.buffer.append(data); self.buffer_l += size
+        if size > 0:
+            self.buffer.append(data)
+            self.buffer_l += size
 
         # returns the number of read (processed) bytes of the
         # data that has been sent to the parser
@@ -287,12 +288,15 @@ class TorrentParser(parser.Parser):
     def _parse_handshake(self, data):
         total = len(data) + self.buffer_l
 
-        if total < HANDSHAKE_SIZE: return 0
+        if total < HANDSHAKE_SIZE:
+            return 0
 
         diff = HANDSHAKE_SIZE - self.buffer_l if self.buffer_l < HANDSHAKE_SIZE else 0
         result = self._join(data[:diff])
 
-        _length, protocol, reserved, info_hash, peer_id = struct.unpack("!B19sQ20s20s", result)
+        _length, protocol, reserved, info_hash, peer_id = struct.unpack(
+            "!B19sQ20s20s", result
+        )
         self.trigger("on_handshake", protocol, reserved, info_hash, peer_id)
 
         self.length = None
@@ -312,11 +316,12 @@ class TorrentParser(parser.Parser):
         # inside the current message so that it may than be re-used
         # to check if the complete message has been received
         if self.length == None:
-            if total < 4: return 0
+            if total < 4:
+                return 0
             diff = 4 - self.buffer_l if self.buffer_l < 4 else 0
             result = self._join(data[:diff])
             data = data[diff:]
-            self.length, = struct.unpack("!L", result[:4])
+            (self.length,) = struct.unpack("!L", result[:4])
             count += diff
 
         # calculates the "target" total message length and verifies
@@ -324,7 +329,8 @@ class TorrentParser(parser.Parser):
         # have already reached that value otherwise returns count
         # to the caller method (delayed execution)
         message_length = self.length + 4
-        if total < message_length: return count
+        if total < message_length:
+            return count
 
         # calculates the difference between meaning the amount of
         # data from the current chunk that is going to be processed
@@ -336,8 +342,10 @@ class TorrentParser(parser.Parser):
         # greater than zero) for such situations the type must
         # be loaded, otherwise the type is assumed to be the keep
         # alive one (only message with no payload available)
-        if self.length > 0: type, = struct.unpack("!B", result[4:5])
-        else: type = -1
+        if self.length > 0:
+            (type,) = struct.unpack("!B", result[4:5])
+        else:
+            type = -1
 
         # resolves the current type integer based type into the proper
         # string based type values so that it may be used from now on

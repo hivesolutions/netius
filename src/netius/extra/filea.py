@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -43,6 +34,7 @@ BUFFER_SIZE = _file.BUFFER_SIZE * 4
 """ Re-creates the buffer size of the file buffer so that it
 handles more data for each chunk, this is required to avoid
 extreme amounts of overhead in the file pool """
+
 
 class FileAsyncServer(_file.FileServer):
     """
@@ -60,12 +52,16 @@ class FileAsyncServer(_file.FileServer):
 
     def on_connection_d(self, connection):
         file = hasattr(connection, "file") and connection.file
-        if file: self.fclose(file); connection.file = None
+        if file:
+            self.fclose(file)
+            connection.file = None
         _file.FileServer.on_connection_d(self, connection)
 
     def on_stream_d(self, stream):
         file = hasattr(stream, "file") and stream.file
-        if file: self.fclose(file); stream.file = None
+        if file:
+            self.fclose(file)
+            stream.file = None
         _file.FileServer.on_stream_d(self, stream)
 
     def _file_send(self, connection):
@@ -75,24 +71,23 @@ class FileAsyncServer(_file.FileServer):
         buffer_s = connection.bytes_p if is_larger else BUFFER_SIZE
 
         def callback(data, *args, **kwargs):
-            if connection.file == None: return
-            if isinstance(data, BaseException): return
+            if connection.file == None:
+                return
+            if isinstance(data, BaseException):
+                return
             data_l = len(data) if data else 0
             connection.bytes_p -= data_l
             is_final = not data or connection.bytes_p == 0
             callback = self._file_finish if is_final else self._file_send
-            connection.send_part(
-                data,
-                final = False,
-                callback = callback
-            )
+            connection.send_part(data, final=False, callback=callback)
 
-        self.fread(file, buffer_s, data = callback)
+        self.fread(file, buffer_s, data=callback)
+
 
 if __name__ == "__main__":
     import logging
 
-    server = FileAsyncServer(level = logging.INFO)
-    server.serve(env = True)
+    server = FileAsyncServer(level=logging.INFO)
+    server.serve(env=True)
 else:
     __path__ = []

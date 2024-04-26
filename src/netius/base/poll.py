@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -44,6 +35,7 @@ POLL_TIMEOUT = 0.25
 """ The timeout to be used under the all the poll methods
 this should be considered the maximum amount of time a
 thread waits for a poll request """
+
 
 class Poll(object):
     """
@@ -70,8 +62,9 @@ class Poll(object):
     def test(cls):
         return True
 
-    def open(self, timeout = POLL_TIMEOUT):
-        if self._open: return
+    def open(self, timeout=POLL_TIMEOUT):
+        if self._open:
+            return
         self._open = True
         self.timeout = timeout
 
@@ -80,7 +73,8 @@ class Poll(object):
         self.error_o.clear()
 
     def close(self):
-        if not self._open: return
+        if not self._open:
+            return
         self._open = False
 
         self.read_o.clear()
@@ -130,10 +124,10 @@ class Poll(object):
     def is_empty(self):
         return not self.read_o and not self.write_o and not self.error_o
 
-    def sub_all(self, socket, owner = None):
-        self.sub_read(socket, owner = owner)
-        self.sub_write(socket, owner = owner)
-        self.sub_error(socket, owner = owner)
+    def sub_all(self, socket, owner=None):
+        self.sub_read(socket, owner=owner)
+        self.sub_write(socket, owner=owner)
+        self.sub_error(socket, owner=owner)
 
     def unsub_all(self, socket):
         self.unsub_error(socket)
@@ -149,29 +143,36 @@ class Poll(object):
     def is_sub_error(self, socket):
         return socket in self.error_o
 
-    def sub_read(self, socket, owner = None):
-        if socket in self.read_o: return
+    def sub_read(self, socket, owner=None):
+        if socket in self.read_o:
+            return
         self.read_o[socket] = owner
 
-    def sub_write(self, socket, owner = None):
-        if socket in self.write_o: return
+    def sub_write(self, socket, owner=None):
+        if socket in self.write_o:
+            return
         self.write_o[socket] = owner
 
-    def sub_error(self, socket, owner = None):
-        if socket in self.error_o: return
+    def sub_error(self, socket, owner=None):
+        if socket in self.error_o:
+            return
         self.error_o[socket] = owner
 
     def unsub_read(self, socket):
-        if not socket in self.read_o: return
+        if not socket in self.read_o:
+            return
         del self.read_o[socket]
 
     def unsub_write(self, socket):
-        if not socket in self.write_o: return
+        if not socket in self.write_o:
+            return
         del self.write_o[socket]
 
     def unsub_error(self, socket):
-        if not socket in self.error_o: return
+        if not socket in self.error_o:
+            return
         del self.error_o[socket]
+
 
 class EpollPoll(Poll):
 
@@ -183,12 +184,13 @@ class EpollPoll(Poll):
     def test(cls):
         return hasattr(select, "epoll")
 
-    def open(self, timeout = POLL_TIMEOUT):
-        if self._open: return
+    def open(self, timeout=POLL_TIMEOUT):
+        if self._open:
+            return
         self._open = True
         self.timeout = timeout
 
-        self.epoll = select.epoll() #@UndefinedVariable pylint: disable=E1101
+        self.epoll = select.epoll()  # @UndefinedVariable pylint: disable=E1101
 
         self.fd_m = {}
 
@@ -197,10 +199,12 @@ class EpollPoll(Poll):
         self.error_o = {}
 
     def close(self):
-        if not self._open: return
+        if not self._open:
+            return
         self._open = False
 
-        for fd in self.fd_m: self.epoll.unregister(fd)
+        for fd in self.fd_m:
+            self.epoll.unregister(fd)
         self.epoll.close()
         self.epoll = None
 
@@ -215,13 +219,15 @@ class EpollPoll(Poll):
 
         events = self.epoll.poll(self.timeout)
         for fd, event in events:
-            if event & select.EPOLLIN: #@UndefinedVariable pylint: disable=E1101
+            if event & select.EPOLLIN:  # @UndefinedVariable pylint: disable=E1101
                 socket = self.fd_m.get(fd, None)
                 socket and result[0].append(socket)
-            if event & select.EPOLLOUT: #@UndefinedVariable pylint: disable=E1101
+            if event & select.EPOLLOUT:  # @UndefinedVariable pylint: disable=E1101
                 socket = self.fd_m.get(fd, None)
                 socket and result[1].append(socket)
-            if event & select.EPOLLERR or event & select.EPOLLHUP:  #@UndefinedVariable pylint: disable=E1101
+            if (
+                event & select.EPOLLERR or event & select.EPOLLHUP
+            ):  # @UndefinedVariable pylint: disable=E1101
                 socket = self.fd_m.get(fd, None)
                 socket and result[2].append(socket)
 
@@ -230,30 +236,34 @@ class EpollPoll(Poll):
     def is_edge(self):
         return True
 
-    def sub_read(self, socket, owner = None):
-        if socket in self.read_o: return
+    def sub_read(self, socket, owner=None):
+        if socket in self.read_o:
+            return
         socket_fd = socket.fileno()
         self.fd_m[socket_fd] = socket
         self.read_o[socket] = owner
         self.write_o[socket] = owner
         self.error_o[socket] = owner
-        self.epoll.register( #@UndefinedVariable pylint: disable=E1101
+        self.epoll.register(  # @UndefinedVariable pylint: disable=E1101
             socket_fd,
-            select.EPOLLIN | select.EPOLLOUT | select.EPOLLERR | select.EPOLLHUP | select.EPOLLET #@UndefinedVariable pylint: disable=E1101
+            select.EPOLLIN
+            | select.EPOLLOUT
+            | select.EPOLLERR
+            | select.EPOLLHUP
+            | select.EPOLLET,  # @UndefinedVariable pylint: disable=E1101
         )
 
-    def sub_write(self, socket, owner = None):
+    def sub_write(self, socket, owner=None):
         pass
 
-    def sub_error(self, socket, owner = None):
+    def sub_error(self, socket, owner=None):
         pass
 
     def unsub_read(self, socket):
-        if not socket in self.read_o: return
+        if not socket in self.read_o:
+            return
         socket_fd = socket.fileno()
-        self.epoll.unregister( #@UndefinedVariable pylint: disable=E1101
-            socket_fd
-        )
+        self.epoll.unregister(socket_fd)  # @UndefinedVariable pylint: disable=E1101
         del self.fd_m[socket_fd]
         del self.read_o[socket]
         del self.write_o[socket]
@@ -265,6 +275,7 @@ class EpollPoll(Poll):
     def unsub_error(self, socket):
         pass
 
+
 class KqueuePoll(Poll):
 
     def __init__(self, *args, **kwargs):
@@ -275,13 +286,15 @@ class KqueuePoll(Poll):
     def test(cls):
         return hasattr(select, "kqueue")
 
-    def open(self, timeout = POLL_TIMEOUT):
-        if self._open: return
+    def open(self, timeout=POLL_TIMEOUT):
+        if self._open:
+            return
         self._open = True
         self.timeout = timeout
-        if self.timeout < 0: self.timeout = None
+        if self.timeout < 0:
+            self.timeout = None
 
-        self.kqueue = select.kqueue() #@UndefinedVariable pylint: disable=E1101
+        self.kqueue = select.kqueue()  # @UndefinedVariable pylint: disable=E1101
 
         self.fd_m = {}
 
@@ -290,7 +303,8 @@ class KqueuePoll(Poll):
         self.error_o = {}
 
     def close(self):
-        if not self._open: return
+        if not self._open:
+            return
         self._open = False
 
         self.kqueue.close()
@@ -307,16 +321,26 @@ class KqueuePoll(Poll):
 
         events = self.kqueue.control(None, 32, self.timeout)
         for event in events:
-            if event.flags & select.KQ_EV_ERROR: #@UndefinedVariable pylint: disable=E1101
+            if (
+                event.flags & select.KQ_EV_ERROR
+            ):  # @UndefinedVariable pylint: disable=E1101
                 socket = self.fd_m.get(event.udata, None)
                 socket and result[2].append(socket)
-            elif event.filter == select.KQ_FILTER_READ: #@UndefinedVariable pylint: disable=E1101
+            elif (
+                event.filter == select.KQ_FILTER_READ
+            ):  # @UndefinedVariable pylint: disable=E1101
                 socket = self.fd_m.get(event.udata, None)
-                index = 2 if event.flags & select.KQ_EV_EOF else 0 #@UndefinedVariable pylint: disable=E1101
+                index = (
+                    2 if event.flags & select.KQ_EV_EOF else 0
+                )  # @UndefinedVariable pylint: disable=E1101
                 socket and result[index].append(socket)
-            elif event.filter == select.KQ_FILTER_WRITE: #@UndefinedVariable pylint: disable=E1101
+            elif (
+                event.filter == select.KQ_FILTER_WRITE
+            ):  # @UndefinedVariable pylint: disable=E1101
                 socket = self.fd_m.get(event.udata, None)
-                index = 2 if event.flags & select.KQ_EV_EOF else 1 #@UndefinedVariable pylint: disable=E1101
+                index = (
+                    2 if event.flags & select.KQ_EV_EOF else 1
+                )  # @UndefinedVariable pylint: disable=E1101
                 socket and result[index].append(socket)
 
         return result
@@ -324,47 +348,51 @@ class KqueuePoll(Poll):
     def is_edge(self):
         return True
 
-    def sub_read(self, socket, owner = None):
-        if socket in self.read_o: return
+    def sub_read(self, socket, owner=None):
+        if socket in self.read_o:
+            return
         socket_fd = socket.fileno()
         self.fd_m[socket_fd] = socket
         self.read_o[socket] = owner
         self.write_o[socket] = owner
         self.error_o[socket] = owner
-        event = select.kevent( #@UndefinedVariable pylint: disable=E1101
+        event = select.kevent(  # @UndefinedVariable pylint: disable=E1101
             socket_fd,
-            filter = select.KQ_FILTER_READ, #@UndefinedVariable pylint: disable=E1101
-            flags = select.KQ_EV_ADD | select.KQ_EV_CLEAR, #@UndefinedVariable pylint: disable=E1101
-            udata = socket_fd
+            filter=select.KQ_FILTER_READ,  # @UndefinedVariable pylint: disable=E1101
+            flags=select.KQ_EV_ADD
+            | select.KQ_EV_CLEAR,  # @UndefinedVariable pylint: disable=E1101
+            udata=socket_fd,
         )
         self.kqueue.control([event], 0)
-        event = select.kevent( #@UndefinedVariable pylint: disable=E1101
+        event = select.kevent(  # @UndefinedVariable pylint: disable=E1101
             socket_fd,
-            filter = select.KQ_FILTER_WRITE, #@UndefinedVariable pylint: disable=E1101
-            flags = select.KQ_EV_ADD | select.KQ_EV_CLEAR, #@UndefinedVariable pylint: disable=E1101
-            udata = socket_fd
+            filter=select.KQ_FILTER_WRITE,  # @UndefinedVariable pylint: disable=E1101
+            flags=select.KQ_EV_ADD
+            | select.KQ_EV_CLEAR,  # @UndefinedVariable pylint: disable=E1101
+            udata=socket_fd,
         )
         self.kqueue.control([event], 0)
 
-    def sub_write(self, socket, owner = None):
+    def sub_write(self, socket, owner=None):
         pass
 
-    def sub_error(self, socket, owner = None):
+    def sub_error(self, socket, owner=None):
         pass
 
     def unsub_read(self, socket):
-        if not socket in self.read_o: return
+        if not socket in self.read_o:
+            return
         socket_fd = socket.fileno()
-        event = select.kevent( #@UndefinedVariable pylint: disable=E1101
+        event = select.kevent(  # @UndefinedVariable pylint: disable=E1101
             socket_fd,
-            filter = select.KQ_FILTER_READ, #@UndefinedVariable pylint: disable=E1101
-            flags = select.KQ_EV_DELETE #@UndefinedVariable pylint: disable=E1101
+            filter=select.KQ_FILTER_READ,  # @UndefinedVariable pylint: disable=E1101
+            flags=select.KQ_EV_DELETE,  # @UndefinedVariable pylint: disable=E1101
         )
         self.kqueue.control([event], 0)
-        event = select.kevent( #@UndefinedVariable pylint: disable=E1101
+        event = select.kevent(  # @UndefinedVariable pylint: disable=E1101
             socket_fd,
-            filter = select.KQ_FILTER_WRITE, #@UndefinedVariable pylint: disable=E1101
-            flags = select.KQ_EV_DELETE #@UndefinedVariable pylint: disable=E1101
+            filter=select.KQ_FILTER_WRITE,  # @UndefinedVariable pylint: disable=E1101
+            flags=select.KQ_EV_DELETE,  # @UndefinedVariable pylint: disable=E1101
         )
         self.kqueue.control([event], 0)
         del self.fd_m[socket_fd]
@@ -378,6 +406,7 @@ class KqueuePoll(Poll):
     def unsub_error(self, socket):
         pass
 
+
 class PollPoll(Poll):
 
     def __init__(self, *args, **kwargs):
@@ -388,12 +417,13 @@ class PollPoll(Poll):
     def test(cls):
         return hasattr(select, "poll")
 
-    def open(self, timeout = POLL_TIMEOUT):
-        if self._open: return
+    def open(self, timeout=POLL_TIMEOUT):
+        if self._open:
+            return
         self._open = True
         self.timeout = timeout
 
-        self._poll = select.poll() #@UndefinedVariable pylint: disable=E1101
+        self._poll = select.poll()  # @UndefinedVariable pylint: disable=E1101
 
         self.read_fd = {}
         self.write_fd = {}
@@ -403,10 +433,12 @@ class PollPoll(Poll):
         self.error_o = {}
 
     def close(self):
-        if not self._open: return
+        if not self._open:
+            return
         self._open = False
 
-        for fd in self.read_fd: self._poll.unregister(fd)
+        for fd in self.read_fd:
+            self._poll.unregister(fd)
         self._poll = None
 
         self.read_fd.clear()
@@ -421,13 +453,15 @@ class PollPoll(Poll):
 
         events = self._poll.poll(self.timeout * 1000)
         for fd, event in events:
-            if event & select.POLLIN: #@UndefinedVariable pylint: disable=E1101
+            if event & select.POLLIN:  # @UndefinedVariable pylint: disable=E1101
                 socket = self.read_fd.get(fd, None)
                 socket and result[0].append(socket)
-            if event & select.POLLOUT: #@UndefinedVariable pylint: disable=E1101
+            if event & select.POLLOUT:  # @UndefinedVariable pylint: disable=E1101
                 socket = self.write_fd.get(fd, None)
                 socket and result[1].append(socket)
-            if event & select.POLLERR or event & select.POLLHUP: #@UndefinedVariable pylint: disable=E1101
+            if (
+                event & select.POLLERR or event & select.POLLHUP
+            ):  # @UndefinedVariable pylint: disable=E1101
                 socket = self.read_fd.get(fd, None)
                 socket and result[2].append(socket)
 
@@ -436,52 +470,55 @@ class PollPoll(Poll):
     def is_edge(self):
         return False
 
-    def sub_read(self, socket, owner = None):
-        if socket in self.read_o: return
+    def sub_read(self, socket, owner=None):
+        if socket in self.read_o:
+            return
         socket_fd = socket.fileno()
         self.read_fd[socket_fd] = socket
         self.read_o[socket] = owner
-        self._poll.register( #@UndefinedVariable pylint: disable=E1101
-            socket_fd,
-            select.POLLIN #@UndefinedVariable pylint: disable=E1101
+        self._poll.register(  # @UndefinedVariable pylint: disable=E1101
+            socket_fd, select.POLLIN  # @UndefinedVariable pylint: disable=E1101
         )
 
-    def sub_write(self, socket, owner = None):
-        if socket in self.write_o: return
+    def sub_write(self, socket, owner=None):
+        if socket in self.write_o:
+            return
         socket_fd = socket.fileno()
         self.write_fd[socket_fd] = socket
         self.write_o[socket] = owner
-        self._poll.modify( #@UndefinedVariable pylint: disable=E1101
+        self._poll.modify(  # @UndefinedVariable pylint: disable=E1101
             socket_fd,
-            select.POLLIN | select.POLLOUT #@UndefinedVariable pylint: disable=E1101
+            select.POLLIN | select.POLLOUT,  # @UndefinedVariable pylint: disable=E1101
         )
 
-    def sub_error(self, socket, owner = None):
-        if socket in self.error_o: return
+    def sub_error(self, socket, owner=None):
+        if socket in self.error_o:
+            return
         self.error_o[socket] = owner
 
     def unsub_read(self, socket):
-        if not socket in self.read_o: return
+        if not socket in self.read_o:
+            return
         socket_fd = socket.fileno()
-        self._poll.unregister( #@UndefinedVariable pylint: disable=E1101
-            socket_fd
-        )
+        self._poll.unregister(socket_fd)  # @UndefinedVariable pylint: disable=E1101
         del self.read_fd[socket_fd]
         del self.read_o[socket]
 
     def unsub_write(self, socket):
-        if not socket in self.write_o: return
+        if not socket in self.write_o:
+            return
         socket_fd = socket.fileno()
-        self._poll.modify( #@UndefinedVariable pylint: disable=E1101
-            socket_fd,
-            select.POLLIN #@UndefinedVariable pylint: disable=E1101
+        self._poll.modify(  # @UndefinedVariable pylint: disable=E1101
+            socket_fd, select.POLLIN  # @UndefinedVariable pylint: disable=E1101
         )
         del self.write_fd[socket_fd]
         del self.write_o[socket]
 
     def unsub_error(self, socket):
-        if not socket in self.error_o: return
+        if not socket in self.error_o:
+            return
         del self.error_o[socket]
+
 
 class SelectPoll(Poll):
 
@@ -489,11 +526,13 @@ class SelectPoll(Poll):
         Poll.__init__(self, *args, **kwargs)
         self._open = False
 
-    def open(self, timeout = POLL_TIMEOUT):
-        if self._open: return
+    def open(self, timeout=POLL_TIMEOUT):
+        if self._open:
+            return
         self._open = True
         self.timeout = timeout
-        if self.timeout < 0: self.timeout = None
+        if self.timeout < 0:
+            self.timeout = None
 
         self.read_l = []
         self.write_l = []
@@ -504,7 +543,8 @@ class SelectPoll(Poll):
         self.error_o = {}
 
     def close(self):
-        if not self._open: return
+        if not self._open:
+            return
         self._open = False
 
         # removes the contents of all of the loop related structures
@@ -529,47 +569,50 @@ class SelectPoll(Poll):
         # in case it's sleeps for a while and then continues
         # the loop (this avoids error in empty selection)
         is_empty = self.is_empty()
-        if is_empty: time.sleep(sleep_timeout); return ([], [], [])
+        if is_empty:
+            time.sleep(sleep_timeout)
+            return ([], [], [])
 
         # runs the proper select statement waiting for the desired
         # amount of time as timeout at the end a tuple with three
         # list for the different operations should be returned
-        return select.select(
-            self.read_l,
-            self.write_l,
-            self.error_l,
-            self.timeout
-        )
+        return select.select(self.read_l, self.write_l, self.error_l, self.timeout)
 
     def is_edge(self):
         return False
 
-    def sub_read(self, socket, owner = None):
-        if socket in self.read_o: return
+    def sub_read(self, socket, owner=None):
+        if socket in self.read_o:
+            return
         self.read_o[socket] = owner
         self.read_l.append(socket)
 
-    def sub_write(self, socket, owner = None):
-        if socket in self.write_o: return
+    def sub_write(self, socket, owner=None):
+        if socket in self.write_o:
+            return
         self.write_o[socket] = owner
         self.write_l.append(socket)
 
-    def sub_error(self, socket, owner = None):
-        if socket in self.error_o: return
+    def sub_error(self, socket, owner=None):
+        if socket in self.error_o:
+            return
         self.error_o[socket] = owner
         self.error_l.append(socket)
 
     def unsub_read(self, socket):
-        if not socket in self.read_o: return
+        if not socket in self.read_o:
+            return
         self.read_l.remove(socket)
         del self.read_o[socket]
 
     def unsub_write(self, socket):
-        if not socket in self.write_o: return
+        if not socket in self.write_o:
+            return
         self.write_l.remove(socket)
         del self.write_o[socket]
 
     def unsub_error(self, socket):
-        if not socket in self.error_o: return
+        if not socket in self.error_o:
+            return
         self.error_l.remove(socket)
         del self.error_o[socket]

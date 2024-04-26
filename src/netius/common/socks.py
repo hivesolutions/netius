@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -72,6 +63,7 @@ PORT_STATE = 10
 
 FINISH_STATE = 11
 
+
 class SOCKSParser(parser.Parser):
 
     def __init__(self, owner):
@@ -99,7 +91,7 @@ class SOCKSParser(parser.Parser):
             self._parse_header_extra,
             self._parse_size,
             self._parse_address,
-            self._parse_port
+            self._parse_port,
         )
         self.state_l = len(self.states)
 
@@ -131,8 +123,9 @@ class SOCKSParser(parser.Parser):
         self.auth_count = 0
         self.auth_methods = None
 
-    def clear(self, force = False):
-        if not force and self.state == VERSION_STATE: return
+    def clear(self, force=False):
+        if not force and self.state == VERSION_STATE:
+            return
         self.reset()
 
     def parse(self, data):
@@ -154,7 +147,8 @@ class SOCKSParser(parser.Parser):
         # in case the current state of the parser is finished, must
         # reset the state to the start position as the parser is
         # re-starting (probably a new data sequence)
-        if self.state == FINISH_STATE: self.clear()
+        if self.state == FINISH_STATE:
+            self.clear()
 
         # retrieves the size of the data that has been sent for parsing
         # and saves it under the size original variable
@@ -168,7 +162,8 @@ class SOCKSParser(parser.Parser):
             if self.state <= self.state_l:
                 method = self.states[self.state - 1]
                 count = method(data)
-                if count == 0: break
+                if count == 0:
+                    break
 
                 size -= count
                 data = data[count:]
@@ -184,7 +179,8 @@ class SOCKSParser(parser.Parser):
         # in case not all of the data has been processed
         # must add it to the buffer so that it may be used
         # latter in the next parsing of the message
-        if size > 0: self.buffer.append(data)
+        if size > 0:
+            self.buffer.append(data)
 
         # returns the number of read (processed) bytes of the
         # data that has been sent to the parser
@@ -194,11 +190,15 @@ class SOCKSParser(parser.Parser):
         return self.domain or self.address_s
 
     def get_address(self):
-        if self.type == None: return None
+        if self.type == None:
+            return None
 
-        if self.type == IPV4: address = struct.pack("!I", self.address)
-        elif self.type == IPV6: address = struct.pack("!QQ", self.address)
-        else: address = struct.pack("!B", self.size) + self.address
+        if self.type == IPV4:
+            address = struct.pack("!I", self.address)
+        elif self.type == IPV6:
+            address = struct.pack("!QQ", self.address)
+        else:
+            address = struct.pack("!B", self.size) + self.address
 
         return address
 
@@ -207,11 +207,14 @@ class SOCKSParser(parser.Parser):
             raise netius.ParserError("Invalid request (too short)")
 
         request = data[:1]
-        self.version, = struct.unpack("!B", request)
+        (self.version,) = struct.unpack("!B", request)
 
-        if self.version == 4: self.state = HEADER_STATE
-        elif self.version == 5: self.state = AUTH_COUNT_STATE
-        else: raise netius.ParserError("Invalid version '%d'" % self.version)
+        if self.version == 4:
+            self.state = HEADER_STATE
+        elif self.version == 5:
+            self.state = AUTH_COUNT_STATE
+        else:
+            raise netius.ParserError("Invalid version '%d'" % self.version)
 
         return 1
 
@@ -231,22 +234,27 @@ class SOCKSParser(parser.Parser):
 
     def _parse_user_id(self, data):
         index = data.find(b"\0")
-        if index == -1: return 0
+        if index == -1:
+            return 0
 
         self.buffer.append(data[:index])
         self.user_id = b"".join(self.buffer)
         self.user_id = netius.legacy.str(self.user_id)
         del self.buffer[:]
 
-        if self.is_extended: self.state = DOMAIN_STATE
-        else: self.state = FINISH_STATE
+        if self.is_extended:
+            self.state = DOMAIN_STATE
+        else:
+            self.state = FINISH_STATE
 
-        if not self.is_extended: self.trigger("on_data")
+        if not self.is_extended:
+            self.trigger("on_data")
         return index + 1
 
     def _parse_domain(self, data):
         index = data.find(b"\0")
-        if index == -1: return 0
+        if index == -1:
+            return 0
 
         self.buffer.append(data[:index])
         self.domain = b"".join(self.buffer)
@@ -263,7 +271,7 @@ class SOCKSParser(parser.Parser):
             raise netius.ParserError("Invalid request (too short)")
 
         request = data[:1]
-        self.auth_count, = struct.unpack("!B", request)
+        (self.auth_count,) = struct.unpack("!B", request)
 
         self.state = AUTH_METHODS_STATE
 
@@ -271,7 +279,8 @@ class SOCKSParser(parser.Parser):
 
     def _parse_auth_methods(self, data):
         is_ready = len(data) + len(self.buffer) >= self.auth_count
-        if not is_ready: return 0
+        if not is_ready:
+            return 0
 
         remaining = self.auth_count - len(self.buffer)
         self.buffer.append(data[:remaining])
@@ -291,14 +300,19 @@ class SOCKSParser(parser.Parser):
             raise netius.ParserError("Invalid request (too short)")
 
         request = data[:4]
-        self.version, self.command, _reserved, self.type =\
-            struct.unpack("!BBBB", request)
+        self.version, self.command, _reserved, self.type = struct.unpack(
+            "!BBBB", request
+        )
 
-        if self.type == IPV4: self.size = 4
-        elif self.type == IPV6: self.size = 16
+        if self.type == IPV4:
+            self.size = 4
+        elif self.type == IPV6:
+            self.size = 16
 
-        if self.type == DOMAIN: self.state = SIZE_STATE
-        else: self.state = ADDRESS_STATE
+        if self.type == DOMAIN:
+            self.state = SIZE_STATE
+        else:
+            self.state = ADDRESS_STATE
 
         return 4
 
@@ -307,7 +321,7 @@ class SOCKSParser(parser.Parser):
             raise netius.ParserError("Invalid request (too short)")
 
         request = data[:1]
-        self.size, = struct.unpack("!B", request)
+        (self.size,) = struct.unpack("!B", request)
 
         self.state = ADDRESS_STATE
 
@@ -315,14 +329,15 @@ class SOCKSParser(parser.Parser):
 
     def _parse_address(self, data):
         is_ready = len(data) + len(self.buffer) >= self.size
-        if not is_ready: return 0
+        if not is_ready:
+            return 0
 
         remaining = self.size - len(self.buffer)
         self.buffer.append(data[:remaining])
         data = b"".join(self.buffer)
 
         if self.type == IPV4:
-            self.address, = struct.unpack("!I", data)
+            (self.address,) = struct.unpack("!I", data)
             self.address_s = util.addr_to_ip4(self.address)
         elif self.type == IPV6:
             address_t = struct.unpack("!QQ", data)
@@ -341,7 +356,7 @@ class SOCKSParser(parser.Parser):
             raise netius.ParserError("Invalid request (too short)")
 
         request = data[:2]
-        self.port, = struct.unpack("!H", request)
+        (self.port,) = struct.unpack("!H", request)
 
         self.state = FINISH_STATE
 

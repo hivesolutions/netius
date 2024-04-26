@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -114,56 +105,52 @@ HTTP_11 = 3
 most commonly used nowadays, connection running under this
 version of the protocol should keep connections open """
 
-VERSIONS_MAP = {
-    "HTTP/0.9" : HTTP_09,
-    "HTTP/1.0" : HTTP_10,
-    "HTTP/1.1" : HTTP_11
-}
+VERSIONS_MAP = {"HTTP/0.9": HTTP_09, "HTTP/1.0": HTTP_10, "HTTP/1.1": HTTP_11}
 """ Maps associating the standard HTTP version string with the
 corresponding enumeration based values for each of them """
 
 CODE_STRINGS = {
-    100 : "Continue",
-    101 : "Switching Protocols",
-    200 : "OK",
-    201 : "Created",
-    202 : "Accepted",
-    203 : "Non-Authoritative Information",
-    204 : "No Content",
-    205 : "Reset Content",
-    206 : "Partial Content",
-    207 : "Multi-Status",
-    301 : "Moved permanently",
-    302 : "Found",
-    303 : "See Other",
-    304 : "Not Modified",
-    305 : "Use Proxy",
-    306 : "(Unused)",
-    307 : "Temporary Redirect",
-    400 : "Bad Request",
-    401 : "Unauthorized",
-    402 : "Payment Required",
-    403 : "Forbidden",
-    404 : "Not Found",
-    405 : "Method Not Allowed",
-    406 : "Not Acceptable",
-    407 : "Proxy Authentication Required",
-    408 : "Request Timeout",
-    409 : "Conflict",
-    410 : "Gone",
-    411 : "Length Required",
-    412 : "Precondition Failed",
-    413 : "Request Entity Too Large",
-    414 : "Request-URI Too Long",
-    415 : "Unsupported Media Type",
-    416 : "Requested Range Not Satisfiable",
-    417 : "Expectation Failed",
-    500 : "Internal Server Error",
-    501 : "Not Implemented",
-    502 : "Bad Gateway",
-    503 : "Service Unavailable",
-    504 : "Gateway Timeout",
-    505 : "HTTP Version Not Supported"
+    100: "Continue",
+    101: "Switching Protocols",
+    200: "OK",
+    201: "Created",
+    202: "Accepted",
+    203: "Non-Authoritative Information",
+    204: "No Content",
+    205: "Reset Content",
+    206: "Partial Content",
+    207: "Multi-Status",
+    301: "Moved permanently",
+    302: "Found",
+    303: "See Other",
+    304: "Not Modified",
+    305: "Use Proxy",
+    306: "(Unused)",
+    307: "Temporary Redirect",
+    400: "Bad Request",
+    401: "Unauthorized",
+    402: "Payment Required",
+    403: "Forbidden",
+    404: "Not Found",
+    405: "Method Not Allowed",
+    406: "Not Acceptable",
+    407: "Proxy Authentication Required",
+    408: "Request Timeout",
+    409: "Conflict",
+    410: "Gone",
+    411: "Length Required",
+    412: "Precondition Failed",
+    413: "Request Entity Too Large",
+    414: "Request-URI Too Long",
+    415: "Unsupported Media Type",
+    416: "Requested Range Not Satisfiable",
+    417: "Expectation Failed",
+    500: "Internal Server Error",
+    501: "Not Implemented",
+    502: "Bad Gateway",
+    503: "Service Unavailable",
+    504: "Gateway Timeout",
+    505: "HTTP Version Not Supported",
 }
 """ Dictionary associating the error code as integers
 with the official descriptive message for it """
@@ -172,6 +159,7 @@ HEADER_NAME_REGEX = re.compile(r"^[\!\#\$\%\&'\*\+\-\.\^\_\`\~0-9a-zA-Z]+$")
 """ Regular expression to be used in the validation of the
 header naming tokens, so that only the valid names are captured
 avoiding possible security issues, should be compliant with RFC 7230 """
+
 
 class HTTPParser(parser.Parser):
     """
@@ -214,20 +202,14 @@ class HTTPParser(parser.Parser):
         "chunk_d",
         "chunk_l",
         "chunk_s",
-        "chunk_e"
+        "chunk_e",
     )
 
-    def __init__(
-        self,
-        owner,
-        type = REQUEST,
-        store = False,
-        file_limit = FILE_LIMIT
-    ):
+    def __init__(self, owner, type=REQUEST, store=False, file_limit=FILE_LIMIT):
         parser.Parser.__init__(self, owner)
 
         self.build()
-        self.reset(type = type, store = store, file_limit = file_limit)
+        self.reset(type=type, store=store, file_limit=file_limit)
 
     def build(self):
         """
@@ -240,11 +222,7 @@ class HTTPParser(parser.Parser):
 
         self.connection = self.owner
 
-        self.states = (
-            self._parse_line,
-            self._parse_headers,
-            self._parse_message
-        )
+        self.states = (self._parse_line, self._parse_headers, self._parse_message)
         self.state_l = len(self.states)
 
     def destroy(self):
@@ -263,7 +241,7 @@ class HTTPParser(parser.Parser):
         self.states = ()
         self.state_l = 0
 
-    def reset(self, type = REQUEST, store = False, file_limit = FILE_LIMIT):
+    def reset(self, type=REQUEST, store=False, file_limit=FILE_LIMIT):
         """
         Initializes the state of the parser setting the values
         for the various internal structures to the original value.
@@ -314,19 +292,18 @@ class HTTPParser(parser.Parser):
         self.chunk_s = 0
         self.chunk_e = 0
 
-    def clear(self, force = False):
-        if not force and self.state == LINE_STATE: return
-        self.reset(
-            type = self.type,
-            store = self.store,
-            file_limit = self.file_limit
-        )
+    def clear(self, force=False):
+        if not force and self.state == LINE_STATE:
+            return
+        self.reset(type=self.type, store=self.store, file_limit=self.file_limit)
 
     def close(self):
-        if hasattr(self, "message") and self.message: self.message = []
-        if hasattr(self, "message_f") and self.message_f: self.message_f.close()
+        if hasattr(self, "message") and self.message:
+            self.message = []
+        if hasattr(self, "message_f") and self.message_f:
+            self.message_f.close()
 
-    def get_path(self, normalize = False):
+    def get_path(self, normalize=False):
         """
         Retrieves the path associated with the request, this
         value should be interpreted from the HTTP status line.
@@ -344,8 +321,10 @@ class HTTPParser(parser.Parser):
 
         split = self.path_s.split("?", 1)
         path = split[0]
-        if not normalize: return path
-        if not path.startswith(("http://", "https://")): return path
+        if not normalize:
+            return path
+        if not path.startswith(("http://", "https://")):
+            return path
         return netius.legacy.urlparse(path).path
 
     def get_query(self):
@@ -362,8 +341,10 @@ class HTTPParser(parser.Parser):
         """
 
         split = self.path_s.split("?", 1)
-        if len(split) == 1: return ""
-        else: return split[1]
+        if len(split) == 1:
+            return ""
+        else:
+            return split[1]
 
     def get_message(self):
         """
@@ -382,16 +363,19 @@ class HTTPParser(parser.Parser):
         string value that may be used as a simple buffer.
         """
 
-        if self.message_s: return self.message_s
-        if self.message_f: self.message_s = self.get_message_f()
-        else: self.message_s = b"".join(self.message)
+        if self.message_s:
+            return self.message_s
+        if self.message_f:
+            self.message_s = self.get_message_f()
+        else:
+            self.message_s = b"".join(self.message)
         return self.message_s
 
     def get_message_f(self):
         self.message_f.seek(0)
         return self.message_f.read()
 
-    def get_message_b(self, copy = False, size = 40960):
+    def get_message_b(self, copy=False, size=40960):
         """
         Retrieves a new buffer associated with the currently
         loaded message, the first time this method is called a
@@ -424,26 +408,31 @@ class HTTPParser(parser.Parser):
         # and writes the value of the message into it
         if not self.message_f:
             self.message_f = netius.legacy.BytesIO()
-            for value in self.message: self.message_f.write(value)
+            for value in self.message:
+                self.message_f.write(value)
 
         # restores the message file to the original/initial position and
         # then in case there's no copy required returns it immediately
         self.message_f.seek(0)
-        if not copy: return self.message_f
+        if not copy:
+            return self.message_f
 
         # determines if the file limit for a temporary file has been
         # surpassed and if that's the case creates a named temporary
         # file, otherwise created a memory based buffer
         use_file = self.store and self.content_l >= self.file_limit
-        if use_file: message_f = tempfile.NamedTemporaryFile(mode = "w+b")
-        else: message_f = netius.legacy.BytesIO()
+        if use_file:
+            message_f = tempfile.NamedTemporaryFile(mode="w+b")
+        else:
+            message_f = netius.legacy.BytesIO()
 
         try:
             # iterates continuously reading the contents from the message
             # file and writing them back to the output (copy) file
             while True:
                 data = self.message_f.read(size)
-                if not data: break
+                if not data:
+                    break
                 message_f.write(data)
         finally:
             # resets both of the message file (output and input) to the
@@ -464,7 +453,8 @@ class HTTPParser(parser.Parser):
         return headers
 
     def get_encodings(self):
-        if not self.encodings == None: return self.encodings
+        if not self.encodings == None:
+            return self.encodings
         accept_encoding_s = self.headers.get("accept-encoding", "")
         self.encodings = [value.strip() for value in accept_encoding_s.split(",")]
         return self.encodings
@@ -488,7 +478,8 @@ class HTTPParser(parser.Parser):
         # in case the current state of the parser is finished, must
         # reset the state to the start position as the parser is
         # re-starting (probably a new data sequence)
-        if self.state == FINISH_STATE: self.clear()
+        if self.state == FINISH_STATE:
+            self.clear()
 
         # retrieves the size of the data that has been sent for parsing
         # and saves it under the size original variable
@@ -510,7 +501,8 @@ class HTTPParser(parser.Parser):
                 # zero the parsing iteration is broken
                 method = self.states[self.state - 1]
                 count = method(data)
-                if count == 0: break
+                if count == 0:
+                    break
 
                 # decrements the size of the data buffer by the
                 # size of the parsed bytes and then retrieves the
@@ -537,7 +529,8 @@ class HTTPParser(parser.Parser):
         # in case not all of the data has been processed
         # must add it to the buffer so that it may be used
         # latter in the next parsing of the message
-        if size > 0: self.buffer.append(data)
+        if size > 0:
+            self.buffer.append(data)
 
         # returns the number of read (processed) bytes of the
         # data that has been sent to the parser
@@ -548,7 +541,8 @@ class HTTPParser(parser.Parser):
         # data in case there's one it's considered that the the
         # initial line must have been found
         index = data.find(b"\n")
-        if index == -1: return 0
+        if index == -1:
+            return 0
 
         # adds the partial data (until line ending) to the buffer
         # and then joins the buffer as the initial line, this value
@@ -570,10 +564,10 @@ class HTTPParser(parser.Parser):
         # that for responses the parsing is relaxed as the status string
         # can be an empty string (no message to be presented)
         values = self.line_s.split(" ", 2)
-        if self.type == RESPONSE and len(values) == 2: values.append("")
-        if not len(values) == 3: raise netius.ParserError(
-            "Invalid status line '%s'" % self.line_s
-        )
+        if self.type == RESPONSE and len(values) == 2:
+            values.append("")
+        if not len(values) == 3:
+            raise netius.ParserError("Invalid status line '%s'" % self.line_s)
 
         # determines if the current type of parsing is request based
         # and if that's the case unpacks the status line as a request
@@ -613,7 +607,8 @@ class HTTPParser(parser.Parser):
         # it's not found returns the zero value meaning that
         # the no bytes have been processed (delays parsing)
         index = buffer_s.find(b"\r\n\r\n")
-        if index == -1: return 0
+        if index == -1:
+            return 0
 
         # retrieves the partial headers string from the buffer
         # string and then deletes the current buffer so that
@@ -636,7 +631,8 @@ class HTTPParser(parser.Parser):
             # verifies if the line contains any information if
             # that's not the case the current cycle must be
             # skipped as this may be an extra empty line
-            if not line: continue
+            if not line:
+                continue
 
             # tries to split the line around the key to value
             # separator in case there's no valid split (two
@@ -661,7 +657,7 @@ class HTTPParser(parser.Parser):
             # both the beginning and the end of it, then makes sure that
             # no extra "space like" character exist in it
             value = value.strip(b" ")
-            value = netius.legacy.str(value, errors = "replace")
+            value = netius.legacy.str(value, errors="replace")
             if not value == value.strip():
                 raise netius.ParserError("Invalid header value")
 
@@ -672,7 +668,8 @@ class HTTPParser(parser.Parser):
             if exists:
                 sequence = self.headers[key]
                 is_list = type(sequence) == list
-                if not is_list: sequence = [sequence]
+                if not is_list:
+                    sequence = [sequence]
                 sequence.append(value)
                 value = sequence
 
@@ -690,7 +687,8 @@ class HTTPParser(parser.Parser):
         # the file contents, this is done by checking the store flag
         # and verifying that the file limit value has been reached
         use_file = self.store and self.content_l >= self.file_limit
-        if use_file: self.message_f = tempfile.NamedTemporaryFile(mode = "w+b")
+        if use_file:
+            self.message_f = tempfile.NamedTemporaryFile(mode="w+b")
 
         # retrieves the type of transfer encoding that is going to be
         # used in the processing of this request in case it's of type
@@ -712,22 +710,23 @@ class HTTPParser(parser.Parser):
         # in case the current response in parsing has the no content
         # code (no payload present) the content length is set to the
         # zero value in case it has not already been populated
-        if self.type == RESPONSE and self.code in (204, 304) and\
-            self.content_l == -1: self.content_l = 0
+        if self.type == RESPONSE and self.code in (204, 304) and self.content_l == -1:
+            self.content_l = 0
 
         # in case the current request is not chunked and the content length
         # header is not defined the content length is set to zero because
         # for normal requests with payload the content length is required
         # and if it's omitted it means there's no payload present
-        if self.type == REQUEST and not self.chunked and\
-            self.content_l == -1: self.content_l = 0
+        if self.type == REQUEST and not self.chunked and self.content_l == -1:
+            self.content_l = 0
 
         # verifies if the connection is meant to be kept alive by
         # verifying the current value of the connection header against
         # the expected keep alive string value, note that the verification
         # takes into account a possible list value in connection
         self.connection_s = self.headers.get("connection", None)
-        if type(self.connection_s) == list: self.connection_s = self.connection_s[0]
+        if type(self.connection_s) == list:
+            self.connection_s = self.connection_s[0]
         self.connection_s = self.connection_s and self.connection_s.lower()
         self.keep_alive = self.connection_s == "keep-alive"
         self.keep_alive |= self.connection_s == None and self.version >= HTTP_11
@@ -738,19 +737,24 @@ class HTTPParser(parser.Parser):
 
         # updates the current state of parsing to the message state
         # as that the headers are followed by the message
-        if has_finished: self.state = FINISH_STATE
-        else: self.state = MESSAGE_STATE
+        if has_finished:
+            self.state = FINISH_STATE
+        else:
+            self.state = MESSAGE_STATE
 
         # triggers the on headers event so that the listener object
         # is notified about the parsing of the headers and than returns
         # the parsed amount of information (bytes) to the caller
         self.trigger("on_headers")
-        if has_finished: self.trigger("on_data")
+        if has_finished:
+            self.trigger("on_data")
         return base_index + 4
 
     def _parse_message(self, data):
-        if self.chunked: return self._parse_chunked(data)
-        else: return self._parse_normal(data)
+        if self.chunked:
+            return self._parse_chunked(data)
+        else:
+            return self._parse_normal(data)
 
     def _parse_normal(self, data):
         # retrieves the size of the data that has just been
@@ -758,21 +762,22 @@ class HTTPParser(parser.Parser):
         # stores the data in the proper buffer and increments
         # the message length counter with the size of the data
         data_l = len(data)
-        if self.store: self._store_data(data)
+        if self.store:
+            self._store_data(data)
         self.message_l += data_l
 
         # verifies if the complete message has already been
         # received, that occurs if the content length is
         # defined and the value is the is the same as the
         # currently defined message length
-        has_finished = not self.content_l == -1 and\
-            self.message_l == self.content_l
+        has_finished = not self.content_l == -1 and self.message_l == self.content_l
 
         # triggers the partial data received event and then
         # in case the complete message has not been received
         # returns immediately the length of processed data
         self.trigger("on_partial", data)
-        if not has_finished: return data_l
+        if not has_finished:
+            return data_l
 
         # updates the current state to the finish state and then
         # triggers the on data event (indicating the end of the
@@ -832,7 +837,8 @@ class HTTPParser(parser.Parser):
             # case the file storage mode is active (spares memory),
             # deletes the contents of the message buffer as they're
             # not going to be used to access request's data as a whole
-            if not self.store or self.message_f: del self.message[:]
+            if not self.store or self.message_f:
+                del self.message[:]
 
             # returns the number of bytes that have been parsed by
             # the current end of chunk operation to the caller method
@@ -846,7 +852,8 @@ class HTTPParser(parser.Parser):
             # tries to find the separator of the initial value for
             # the chunk in case it's not found returns immediately
             index = data.find(b"\n")
-            if index == -1: return 0
+            if index == -1:
+                return 0
 
             # some of the current data to the buffer and then re-joins
             # it as the header value, then removes the complete set of
@@ -857,14 +864,14 @@ class HTTPParser(parser.Parser):
 
             # sets the new data buffer as the partial buffer of the data
             # except the extra newline character (not required)
-            data = data[index + 1:]
+            data = data[index + 1 :]
 
             # splits the header value so that additional chunk information
             # is removed and then parsed the value as the original chunk
             # size (dimension) adding the two extra bytes to the length
             header_s = header.split(b";", 1)
             size = header_s[0]
-            self.chunk_d = int(size.strip(), base = 16)
+            self.chunk_d = int(size.strip(), base=16)
             self.chunk_l = self.chunk_d + 2
             self.chunk_s = len(self.message)
 
@@ -876,7 +883,7 @@ class HTTPParser(parser.Parser):
         # retrieves the partial data that is valid according to the
         # calculated chunk length and then calculates the size of
         # "that" partial data string value
-        data = data[:self.chunk_l - 2]
+        data = data[: self.chunk_l - 2]
         data_s = len(data)
 
         # adds the partial data to the message list and runs the store operation
@@ -885,28 +892,34 @@ class HTTPParser(parser.Parser):
         # the message buffer is used even if the store flag is not set, so that
         # it's possible to refer the chunk as a tuple of start and end indexes when
         # triggering the chunk parsed (on chunk) event (performance gains)
-        if data: self.message.append(data)
-        if data and self.store: self._store_data(data, memory = False)
+        if data:
+            self.message.append(data)
+        if data and self.store:
+            self._store_data(data, memory=False)
         self.chunk_l -= data_s
 
         # in case there's data parsed the partial data event
         # is triggered to notify handlers about the new data
-        if data: self.trigger("on_partial", data)
+        if data:
+            self.trigger("on_partial", data)
 
         # increments the byte counter value by the size of the data
         # and then returns the same counter to the caller method
         count += data_s
         return count
 
-    def _store_data(self, data, memory = True):
-        if not self.store: raise netius.ParserError("Store is not possible")
-        if self.message_f: self.message_f.write(data)
-        elif memory: self.message.append(data)
+    def _store_data(self, data, memory=True):
+        if not self.store:
+            raise netius.ParserError("Store is not possible")
+        if self.message_f:
+            self.message_f.write(data)
+        elif memory:
+            self.message.append(data)
 
     def _parse_query(self, query):
         # runs the "default" parsing of the query string from the system
         # and then decodes the complete set of parameters properly
-        params = netius.legacy.parse_qs(query, keep_blank_values = True)
+        params = netius.legacy.parse_qs(query, keep_blank_values=True)
         return self._decode_params(params)
 
     def _decode_params(self, params):
@@ -916,17 +929,20 @@ class HTTPParser(parser.Parser):
             items = []
             for item in value:
                 is_bytes = netius.legacy.is_bytes(item)
-                if is_bytes: item = item.decode("utf-8")
+                if is_bytes:
+                    item = item.decode("utf-8")
                 items.append(item)
             is_bytes = netius.legacy.is_bytes(key)
-            if is_bytes: key = key.decode("utf-8")
+            if is_bytes:
+                key = key.decode("utf-8")
             _params[key] = items
 
         return _params
 
+
 class HTTPResponse(object):
 
-    def __init__(self, data = None, code = 200, status = None, headers = None):
+    def __init__(self, data=None, code=200, status=None, headers=None):
         self.data = data
         self.code = code
         self.status = status

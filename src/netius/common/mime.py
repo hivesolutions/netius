@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -64,7 +55,7 @@ MIME_TYPES = (
     (".log", "text/plain"),
     (".mka", "audio/x-matroska"),
     (".mkv", "video/x-matroska"),
-    (".woff", "application/font-woff")
+    (".woff", "application/font-woff"),
 )
 """ The sequence containing tuple associating the extension with
 the mime type or content type string """
@@ -73,6 +64,7 @@ MIME_REGISTERED = False
 """ Flag that controls if the mime registration process has already
 been performed, avoiding possible duplicated registration that would
 spend unnecessary resources """
+
 
 class Headers(list):
     """
@@ -86,9 +78,11 @@ class Headers(list):
 
     def __getitem__(self, key):
         is_integer = isinstance(key, int)
-        if is_integer: return list.__getitem__(self, key)
+        if is_integer:
+            return list.__getitem__(self, key)
         for _key, value in self:
-            if not _key == key: continue
+            if not _key == key:
+                continue
             return value
         raise KeyError("not found")
 
@@ -96,56 +90,68 @@ class Headers(list):
         key = self._normalize(key)
         value = self._normalize(value)
         is_integer = isinstance(key, int)
-        if is_integer: return list.__setitem__(self, key, value)
+        if is_integer:
+            return list.__setitem__(self, key, value)
         self.append([key, value])
 
     def __delitem__(self, key):
         is_integer = isinstance(key, int)
-        if is_integer: return list.__delitem__(self, key)
+        if is_integer:
+            return list.__delitem__(self, key)
         value = self.__getitem__(key)
         self.remove([key, value])
 
     def __contains__(self, item):
         is_string = isinstance(item, netius.legacy.ALL_STRINGS)
-        if not is_string: return list.__contains__(self, item)
+        if not is_string:
+            return list.__contains__(self, item)
         for key, _value in self:
-            if not key == item: continue
+            if not key == item:
+                continue
             return True
         return False
 
     def item(self, key):
         for item in self:
-            if not item[0] == key: continue
+            if not item[0] == key:
+                continue
             return item
         raise KeyError("not found")
 
-    def get(self, key, default = None):
-        if not key in self: return default
+    def get(self, key, default=None):
+        if not key in self:
+            return default
         return self[key]
 
-    def set(self, key, value, append = False):
+    def set(self, key, value, append=False):
         key = self._normalize(key)
         value = self._normalize(value)
-        if key in self and not append: self.item(key)[1] = value
-        else: self[key] = value
+        if key in self and not append:
+            self.item(key)[1] = value
+        else:
+            self[key] = value
 
-    def pop(self, key, default = None):
-        if not key in self: return default
+    def pop(self, key, default=None):
+        if not key in self:
+            return default
         value = self[key]
         del self[key]
         return value
 
-    def join(self, separator = "\r\n"):
+    def join(self, separator="\r\n"):
         separator = netius.legacy.bytes(separator)
         return separator.join([key + b": " + value for key, value in self])
 
     def _normalize(self, value):
         value_t = type(value)
-        if value_t == netius.legacy.BYTES: return value
-        if value_t == netius.legacy.UNICODE: return value.encode("utf-8")
+        if value_t == netius.legacy.BYTES:
+            return value
+        if value_t == netius.legacy.UNICODE:
+            return value.encode("utf-8")
         return netius.legacy.bytes(str(value))
 
-def rfc822_parse(message, strip = True):
+
+def rfc822_parse(message, strip=True):
     """
     Parse a message in rfc822 format. This format is similar to
     the mime one with only some small changes. The returning value
@@ -185,7 +191,8 @@ def rfc822_parse(message, strip = True):
     for line in lines:
         # in case an empty/invalid line has been reached the
         # end of headers have been found (must break the loop)
-        if not line: break
+        if not line:
+            break
 
         # retrieves the value for the current byte so that it's
         # possible to try to match it against the various regular
@@ -211,17 +218,20 @@ def rfc822_parse(message, strip = True):
             # creating the proper header tuple adding it to the list of headers
             if match:
                 name = match.group(1)
-                value = line[match.end(0):]
-                if strip: value = value.lstrip()
+                value = line[match.end(0) :]
+                if strip:
+                    value = value.lstrip()
                 headers.append([name, value])
 
             # otherwise in case the line is a from line formatted
             # using an old fashion strategy tolerates it (compatibility)
-            elif line.startswith(b"From "): pass
+            elif line.startswith(b"From "):
+                pass
 
             # as a fallback raises a parser error as no parsing of header
             # was possible for the message (major problem)
-            else: raise netius.ParserError("Unexpected header value")
+            else:
+                raise netius.ParserError("Unexpected header value")
 
         # increments the current line index counter, as one more
         # line has been processed by the parser
@@ -230,19 +240,23 @@ def rfc822_parse(message, strip = True):
     # joins the complete set of "remaining" body lines creating the string
     # representing the body, and uses it to create the headers and body
     # tuple that is going to be returned to the caller method
-    body_lines = lines[index + 1:]
+    body_lines = lines[index + 1 :]
     body = b"\r\n".join(body_lines)
     return (headers, body)
+
 
 def rfc822_join(headers, body):
     headers_s = headers.join()
     return headers_s + b"\r\n\r\n" + body
 
+
 def mime_register():
     global MIME_REGISTERED
-    if MIME_REGISTERED: return
+    if MIME_REGISTERED:
+        return
     for extension, mime_type in MIME_TYPES:
         mimetypes.add_type(mime_type, extension)
     MIME_REGISTERED = True
+
 
 mime_register()

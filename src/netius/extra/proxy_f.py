@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -42,11 +33,12 @@ import re
 import netius.common
 import netius.servers
 
+
 class ForwardProxyServer(netius.servers.ProxyServer):
 
-    def __init__(self, config = "proxy.json", rules = {}, *args, **kwargs):
+    def __init__(self, config="proxy.json", rules={}, *args, **kwargs):
         netius.servers.ProxyServer.__init__(self, *args, **kwargs)
-        self.load_config(path = config, rules = rules)
+        self.load_config(path=config, rules=rules)
         self.compile()
 
     def on_headers(self, connection, parser):
@@ -62,20 +54,19 @@ class ForwardProxyServer(netius.servers.ProxyServer):
         rejected = False
         for rule in self.rules.values():
             rejected = rule.match(path)
-            if rejected: break
+            if rejected:
+                break
 
         if rejected:
             self.debug("This connection is not allowed")
             connection.send_response(
-                data = cls.build_text("This connection is not allowed"),
-                headers = dict(
-                    connection = "close"
-                ),
-                version = version_s,
-                code = 403,
-                code_s = "Forbidden",
-                apply = True,
-                callback = self._prx_close
+                data=cls.build_text("This connection is not allowed"),
+                headers=dict(connection="close"),
+                version=version_s,
+                code=403,
+                code_s="Forbidden",
+                apply=True,
+                callback=self._prx_close,
             )
             return
 
@@ -91,21 +82,25 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
             proxy_c = proxy_c or None
             connection.proxy_c = None
-            if proxy_c in self.conn_map: del self.conn_map[proxy_c]
+            if proxy_c in self.conn_map:
+                del self.conn_map[proxy_c]
 
             encoding = headers.get("transfer-encoding", None)
             is_chunked = encoding == "chunked"
-            encoding = netius.common.CHUNKED_ENCODING if is_chunked else\
-                netius.common.PLAIN_ENCODING
+            encoding = (
+                netius.common.CHUNKED_ENCODING
+                if is_chunked
+                else netius.common.PLAIN_ENCODING
+            )
 
             _connection = self.http_client.method(
                 method,
                 path,
-                headers = headers,
-                encoding = encoding,
-                encodings = None,
-                safe = True,
-                connection = proxy_c
+                headers=headers,
+                encoding=encoding,
+                encodings=None,
+                safe=True,
+                connection=proxy_c,
             )
 
             self.debug("Setting connection as waiting, proxy connection loading ...")
@@ -120,15 +115,12 @@ class ForwardProxyServer(netius.servers.ProxyServer):
         for key, rule in netius.legacy.items(self.rules):
             self.rules[key] = re.compile(rule)
 
+
 if __name__ == "__main__":
     import logging
-    rules = dict(
-        facebook = ".*facebook.com.*"
-    )
-    server = ForwardProxyServer(
-        rules = rules,
-        level = logging.INFO
-    )
-    server.serve(env = True)
+
+    rules = dict(facebook=".*facebook.com.*")
+    server = ForwardProxyServer(rules=rules, level=logging.INFO)
+    server.serve(env=True)
 else:
     __path__ = []

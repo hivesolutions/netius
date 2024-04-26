@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -51,6 +42,7 @@ from . import asynchronous
 
 asyncio = asynchronous.get_asyncio() if asynchronous.is_neo() else None
 BaseLoop = asyncio.AbstractEventLoop if asyncio else object
+
 
 class CompatLoop(BaseLoop):
     """
@@ -79,14 +71,14 @@ class CompatLoop(BaseLoop):
         return time.time()
 
     def call_soon(self, callback, *args):
-        return self._call_delay(callback, args, immediately = True)
+        return self._call_delay(callback, args, immediately=True)
 
     def call_soon_threadsafe(self, callback, *args):
-        return self._call_delay(callback, args, immediately = True, safe = True)
+        return self._call_delay(callback, args, immediately=True, safe=True)
 
     def call_at(self, when, callback, *args):
         delay = when - self.time()
-        return self._call_delay(callback, args, timeout = delay)
+        return self._call_delay(callback, args, timeout=delay)
 
     def call_later(self, delay, callback, *args):
         """
@@ -102,7 +94,7 @@ class CompatLoop(BaseLoop):
         :return: The handle object to the operation, that may be used to cancel it.
         """
 
-        return self._call_delay(callback, args, timeout = delay)
+        return self._call_delay(callback, args, timeout=delay)
 
     def create_future(self):
         return self._loop.build_future()
@@ -134,8 +126,10 @@ class CompatLoop(BaseLoop):
 
     def run_until_complete(self, future):
         self._set_current_task(future)
-        try: return self._loop.run_coroutine(future)
-        finally: self._unset_current_task()
+        try:
+            return self._loop.run_coroutine(future)
+        finally:
+            self._unset_current_task()
 
     def run_forever(self):
         return self._loop.run_forever()
@@ -160,7 +154,8 @@ class CompatLoop(BaseLoop):
         return self._default_handler(context)
 
     def call_exception_handler(self, context):
-        if not self._handler: return
+        if not self._handler:
+            return
         return self._handler(context)
 
     def get_debug(self):
@@ -184,28 +179,13 @@ class CompatLoop(BaseLoop):
     def is_closed(self):
         return self._loop.is_stopped()
 
-    def _getaddrinfo(
-        self,
-        host,
-        port,
-        family = 0,
-        type = 0,
-        proto = 0,
-        flags = 0
-    ):
+    def _getaddrinfo(self, host, port, family=0, type=0, proto=0, flags=0):
         future = self.create_future()
-        result = socket.getaddrinfo(
-            host,
-            port,
-            family,
-            type,
-            proto,
-            flags = flags
-        )
-        self._loop.delay(lambda: future.set_result(result), immediately = True)
+        result = socket.getaddrinfo(host, port, family, type, proto, flags=flags)
+        self._loop.delay(lambda: future.set_result(result), immediately=True)
         yield future
 
-    def _getnameinfo(self, sockaddr, flags = 0):
+    def _getnameinfo(self, sockaddr, flags=0):
         raise errors.NotImplemented("Missing implementation")
 
     def _run_in_executor(self, executor, func, *args):
@@ -216,16 +196,16 @@ class CompatLoop(BaseLoop):
     def _create_server(
         self,
         protocol_factory,
-        host = None,
-        port = None,
-        family = 0,
-        flags = 0,
-        sock = None,
-        backlog = 100,
-        ssl = None,
-        reuse_address = None,
-        reuse_port = None,
-        start_serving = True,
+        host=None,
+        port=None,
+        family=0,
+        flags=0,
+        sock=None,
+        backlog=100,
+        ssl=None,
+        reuse_address=None,
+        reuse_port=None,
+        start_serving=True,
         *args,
         **kwargs
     ):
@@ -234,44 +214,38 @@ class CompatLoop(BaseLoop):
         future = self.create_future()
 
         def on_complete(service, serve, success):
-            if success: on_success(service, serve = serve)
-            else: on_error(service)
+            if success:
+                on_success(service, serve=serve)
+            else:
+                on_error(service)
 
-        def on_success(service, serve = None):
+        def on_success(service, serve=None):
             server = transport.ServerTransport(self, service)
-            server._set_compat(protocol_factory, serve = serve)
+            server._set_compat(protocol_factory, serve=serve)
             if start_serving:
                 server._serve()
                 server._serving = True
             future.set_result(server)
 
         def on_error(connection):
-            future.set_exception(
-                errors.RuntimeError("Server creation issue")
-            )
+            future.set_exception(errors.RuntimeError("Server creation issue"))
 
-        self._loop.serve(
-            host,
-            port,
-            ssl = ssl,
-            family = family,
-            callback = on_complete
-        )
+        self._loop.serve(host, port, ssl=ssl, family=family, callback=on_complete)
 
         yield future
 
     def _create_connection(
         self,
         protocol_factory,
-        host = None,
-        port = None,
-        ssl = None,
-        family = 0,
-        proto = 0,
-        flags = 0,
-        sock = None,
-        local_addr = None,
-        server_hostname = None,
+        host=None,
+        port=None,
+        ssl=None,
+        family=0,
+        proto=0,
+        flags=0,
+        sock=None,
+        local_addr=None,
+        server_hostname=None,
         *args,
         **kwargs
     ):
@@ -281,8 +255,10 @@ class CompatLoop(BaseLoop):
         future = self.create_future()
 
         def on_complete(connection, success):
-            if success: on_connect(connection)
-            else: on_error(connection)
+            if success:
+                on_connect(connection)
+            else:
+                on_error(connection)
 
         def on_connect(connection):
             protocol = protocol_factory()
@@ -291,32 +267,24 @@ class CompatLoop(BaseLoop):
             future.set_result((_transport, protocol))
 
         def on_error(connection):
-            future.set_exception(
-                errors.RuntimeError("Connection issue")
-            )
+            future.set_exception(errors.RuntimeError("Connection issue"))
 
-        self._loop.connect(
-            host,
-            port,
-            ssl = ssl,
-            family = family,
-            callback = on_complete
-        )
+        self._loop.connect(host, port, ssl=ssl, family=family, callback=on_complete)
 
         yield future
 
     def _create_datagram_endpoint(
         self,
         protocol_factory,
-        local_addr = None,
-        remote_addr = None,
-        family = 0,
-        proto = 0,
-        flags = 0,
-        reuse_address = None,
-        reuse_port = None,
-        allow_broadcast = None,
-        sock = None,
+        local_addr=None,
+        remote_addr=None,
+        family=0,
+        proto=0,
+        flags=0,
+        reuse_address=None,
+        reuse_port=None,
+        allow_broadcast=None,
+        sock=None,
         *args,
         **kwargs
     ):
@@ -326,8 +294,10 @@ class CompatLoop(BaseLoop):
         future = self.create_future()
 
         def on_complete(connection, success):
-            if success: on_connect(connection)
-            else: on_error(connection)
+            if success:
+                on_connect(connection)
+            else:
+                on_error(connection)
 
         def on_connect(connection):
             protocol = protocol_factory()
@@ -336,17 +306,15 @@ class CompatLoop(BaseLoop):
             future.set_result((_transport, protocol))
 
         def on_error(connection):
-            future.set_exception(
-                errors.RuntimeError("Connection issue")
-            )
+            future.set_exception(errors.RuntimeError("Connection issue"))
 
         connection = self._loop.datagram(
-            family = family,
-            type = proto,
-            local_host = local_addr[0] if local_addr else None,
-            local_port = local_addr[1] if local_addr else None,
-            remote_host = remote_addr[0] if remote_addr else None,
-            remote_port = remote_addr[1] if remote_addr else None
+            family=family,
+            type=proto,
+            local_host=local_addr[0] if local_addr else None,
+            local_port=local_addr[1] if local_addr else None,
+            remote_host=remote_addr[0] if remote_addr else None,
+            remote_port=remote_addr[1] if remote_addr else None,
         )
 
         self._loop.delay(lambda: on_complete(connection, True))
@@ -356,10 +324,10 @@ class CompatLoop(BaseLoop):
         self,
         protocol_factory,
         sock,
-        sslcontext = None,
-        server = None,
-        backlog = 100,
-        ssl_handshake_timeout = None
+        sslcontext=None,
+        server=None,
+        backlog=100,
+        ssl_handshake_timeout=None,
     ):
         # @TODO: this is pending proper Netius implementation
         self._add_reader(
@@ -370,7 +338,7 @@ class CompatLoop(BaseLoop):
             sslcontext,
             server,
             backlog,
-            ssl_handshake_timeout
+            ssl_handshake_timeout,
         )
 
     def _set_current_task(self, task):
@@ -385,7 +353,8 @@ class CompatLoop(BaseLoop):
         """
 
         asyncio = asynchronous.get_asyncio()
-        if not asyncio: return
+        if not asyncio:
+            return
         self._current_tasks[self] = task
 
     def _unset_current_task(self):
@@ -395,17 +364,12 @@ class CompatLoop(BaseLoop):
         """
 
         asyncio = asynchronous.get_asyncio()
-        if not asyncio: return
+        if not asyncio:
+            return
         self._current_tasks.pop(self, None)
 
     def _call_delay(
-        self,
-        callback,
-        args,
-        timeout = None,
-        immediately = False,
-        verify = False,
-        safe = False
+        self, callback, args, timeout=None, immediately=False, verify=False, safe=False
     ):
         # creates the callable to be called after the timeout, note the
         # clojure around the "normal" arguments (allows proper propagation)
@@ -415,19 +379,15 @@ class CompatLoop(BaseLoop):
         # the provided set of options expected by the delay operation the
         # callback tuple is returned so that a proper handle may be created
         callable_t = self._loop.delay(
-            callable,
-            timeout = timeout,
-            immediately = immediately,
-            verify = verify,
-            safe = safe
+            callable, timeout=timeout, immediately=immediately, verify=verify, safe=safe
         )
 
         # creates the handle to control the operation and then returns the
         # object to the caller method, allowing operation cancellation
-        handle = asynchronous.Handle(callable_t = callable_t)
+        handle = asynchronous.Handle(callable_t=callable_t)
         return handle
 
-    def _sleep(self, timeout, future = None):
+    def _sleep(self, timeout, future=None):
         # verifies if a future variable is meant to be re-used
         # or if instead a new one should be created for the new
         # sleep operation to be executed
@@ -459,6 +419,7 @@ class CompatLoop(BaseLoop):
             return asyncio.tasks._current_tasks
         return asyncio.Task._current_tasks
 
+
 def is_compat():
     """
     Determines if the compatibility mode for the netius
@@ -474,9 +435,10 @@ def is_compat():
     the compatibility mode.
     """
 
-    compat = config.conf("COMPAT", False, cast = bool)
+    compat = config.conf("COMPAT", False, cast=bool)
     compat |= is_asyncio()
     return compat and asynchronous.is_neo()
+
 
 def is_asyncio():
     """
@@ -491,34 +453,46 @@ def is_asyncio():
     proper library support available.
     """
 
-    asyncio = config.conf("ASYNCIO", False, cast = bool)
+    asyncio = config.conf("ASYNCIO", False, cast=bool)
     return asyncio and asynchronous.is_asynclib()
+
 
 def run(coro):
     from . import common
-    loop = common.get_loop(_compat = True)
+
+    loop = common.get_loop(_compat=True)
     loop.run_until_complete(coro)
 
+
 def build_datagram(*args, **kwargs):
-    if is_compat(): return _build_datagram_compat(*args, **kwargs)
-    else: return _build_datagram_native(*args, **kwargs)
+    if is_compat():
+        return _build_datagram_compat(*args, **kwargs)
+    else:
+        return _build_datagram_native(*args, **kwargs)
+
 
 def connect_stream(*args, **kwargs):
-    if is_compat(): return _connect_stream_compat(*args, **kwargs)
-    else: return _connect_stream_native(*args, **kwargs)
+    if is_compat():
+        return _connect_stream_compat(*args, **kwargs)
+    else:
+        return _connect_stream_native(*args, **kwargs)
+
 
 def serve_stream(*args, **kwargs):
-    if is_compat(): return _serve_stream_compat(*args, **kwargs)
-    else: return _serve_stream_native(*args, **kwargs)
+    if is_compat():
+        return _serve_stream_compat(*args, **kwargs)
+    else:
+        return _serve_stream_native(*args, **kwargs)
+
 
 def _build_datagram_native(
     protocol_factory,
-    family = socket.AF_INET,
-    type = socket.SOCK_DGRAM,
-    remote_host = None,
-    remote_port = None,
-    callback = None,
-    loop = None,
+    family=socket.AF_INET,
+    type=socket.SOCK_DGRAM,
+    remote_host=None,
+    remote_port=None,
+    callback=None,
+    loop=None,
     *args,
     **kwargs
 ):
@@ -541,26 +515,31 @@ def _build_datagram_native(
 
     protocol = protocol_factory()
     has_loop_set = hasattr(protocol, "loop_set")
-    if has_loop_set: protocol.loop_set(loop)
+    if has_loop_set:
+        protocol.loop_set(loop)
 
     def on_ready():
         loop.datagram(
-            family = family,
-            type = type,
-            remote_host = remote_host,
-            remote_port = remote_port,
-            callback = on_complete
+            family=family,
+            type=type,
+            remote_host=remote_host,
+            remote_port=remote_port,
+            callback=on_complete,
         )
 
     def on_complete(connection, success):
-        if success: on_connect(connection)
-        else: on_error(connection)
+        if success:
+            on_connect(connection)
+        else:
+            on_error(connection)
 
     def on_connect(connection):
         _transport = transport.TransportDatagram(loop, connection)
         _transport._set_compat(protocol)
-        if not callback: return
-        if callback: callback((_transport, protocol))
+        if not callback:
+            return
+        if callback:
+            callback((_transport, protocol))
 
     def on_error(connection):
         protocol.close()
@@ -569,14 +548,15 @@ def _build_datagram_native(
 
     return loop
 
+
 def _build_datagram_compat(
     protocol_factory,
-    family = socket.AF_INET,
-    type = socket.SOCK_DGRAM,
-    remote_host = None,
-    remote_port = None,
-    callback = None,
-    loop = None,
+    family=socket.AF_INET,
+    type=socket.SOCK_DGRAM,
+    remote_host=None,
+    remote_port=None,
+    callback=None,
+    loop=None,
     *args,
     **kwargs
 ):
@@ -586,7 +566,8 @@ def _build_datagram_compat(
 
     protocol = protocol_factory()
     has_loop_set = hasattr(protocol, "loop_set")
-    if has_loop_set: protocol.loop_set(loop)
+    if has_loop_set:
+        protocol.loop_set(loop)
 
     def build_protocol():
         return protocol
@@ -596,17 +577,17 @@ def _build_datagram_compat(
             protocol.close()
         else:
             result = future.result()
-            if callback: callback(result)
+            if callback:
+                callback(result)
 
-    remote_addr = (remote_host, remote_port) if\
-        remote_host and remote_port else kwargs.pop("remote_addr", None)
+    remote_addr = (
+        (remote_host, remote_port)
+        if remote_host and remote_port
+        else kwargs.pop("remote_addr", None)
+    )
 
     connect = loop.create_datagram_endpoint(
-        build_protocol,
-        family = family,
-        remote_addr = remote_addr,
-        *args,
-        **kwargs
+        build_protocol, family=family, remote_addr=remote_addr, *args, **kwargs
     )
 
     future = loop.create_task(connect)
@@ -614,20 +595,21 @@ def _build_datagram_compat(
 
     return loop
 
+
 def _connect_stream_native(
     protocol_factory,
     host,
     port,
-    ssl = False,
-    key_file = None,
-    cer_file = None,
-    ca_file = None,
-    ca_root = True,
-    ssl_verify = False,
-    family = socket.AF_INET,
-    type = socket.SOCK_STREAM,
-    callback = None,
-    loop = None,
+    ssl=False,
+    key_file=None,
+    cer_file=None,
+    ca_file=None,
+    ca_root=True,
+    ssl_verify=False,
+    family=socket.AF_INET,
+    type=socket.SOCK_STREAM,
+    callback=None,
+    loop=None,
     *args,
     **kwargs
 ):
@@ -650,32 +632,37 @@ def _connect_stream_native(
 
     protocol = protocol_factory()
     has_loop_set = hasattr(protocol, "loop_set")
-    if has_loop_set: protocol.loop_set(loop)
+    if has_loop_set:
+        protocol.loop_set(loop)
 
     def on_ready():
         loop.connect(
             host,
             port,
-            ssl = ssl,
-            key_file = key_file,
-            cer_file = cer_file,
-            ca_file = ca_file,
-            ca_root = ca_root,
-            ssl_verify = ssl_verify,
-            family = family,
-            type = type,
-            callback = on_complete
+            ssl=ssl,
+            key_file=key_file,
+            cer_file=cer_file,
+            ca_file=ca_file,
+            ca_root=ca_root,
+            ssl_verify=ssl_verify,
+            family=family,
+            type=type,
+            callback=on_complete,
         )
 
     def on_complete(connection, success):
-        if success: on_connect(connection)
-        else: on_error(connection)
+        if success:
+            on_connect(connection)
+        else:
+            on_error(connection)
 
     def on_connect(connection):
         _transport = transport.TransportStream(loop, connection)
         _transport._set_compat(protocol)
-        if not callback: return
-        if callback: callback((_transport, protocol))
+        if not callback:
+            return
+        if callback:
+            callback((_transport, protocol))
 
     def on_error(connection):
         protocol.close()
@@ -684,20 +671,21 @@ def _connect_stream_native(
 
     return loop
 
+
 def _connect_stream_compat(
     protocol_factory,
     host,
     port,
-    ssl = False,
-    key_file = None,
-    cer_file = None,
-    ca_file = None,
-    ca_root = True,
-    ssl_verify = False,
-    family = socket.AF_INET,
-    type = socket.SOCK_STREAM,
-    callback = None,
-    loop = None,
+    ssl=False,
+    key_file=None,
+    cer_file=None,
+    ca_file=None,
+    ca_root=True,
+    ssl_verify=False,
+    family=socket.AF_INET,
+    type=socket.SOCK_STREAM,
+    callback=None,
+    loop=None,
     *args,
     **kwargs
 ):
@@ -707,7 +695,8 @@ def _connect_stream_compat(
 
     protocol = protocol_factory()
     has_loop_set = hasattr(protocol, "loop_set")
-    if has_loop_set: protocol.loop_set(loop)
+    if has_loop_set:
+        protocol.loop_set(loop)
 
     def build_protocol():
         return protocol
@@ -717,22 +706,18 @@ def _connect_stream_compat(
             protocol.close()
         else:
             result = future.result()
-            if callback: callback(result)
+            if callback:
+                callback(result)
 
     if ssl and cer_file and key_file:
         import ssl as _ssl
+
         ssl_context = _ssl.SSLContext()
-        ssl_context.load_cert_chain(cer_file, keyfile = key_file)
+        ssl_context.load_cert_chain(cer_file, keyfile=key_file)
         ssl = ssl_context
 
     connect = loop.create_connection(
-        build_protocol,
-        host = host,
-        port = port,
-        ssl = ssl,
-        family = family,
-        *args,
-        **kwargs
+        build_protocol, host=host, port=port, ssl=ssl, family=family, *args, **kwargs
     )
 
     future = loop.create_task(connect)
@@ -740,23 +725,24 @@ def _connect_stream_compat(
 
     return loop
 
+
 def _serve_stream_native(
     protocol_factory,
     host,
     port,
-    ssl = False,
-    key_file = None,
-    cer_file = None,
-    ca_file = None,
-    ca_root = True,
-    ssl_verify = False,
-    family = socket.AF_INET,
-    type = socket.SOCK_STREAM,
-    backlog = None,
-    reuse_address = None,
-    reuse_port = None,
-    callback = None,
-    loop = None,
+    ssl=False,
+    key_file=None,
+    cer_file=None,
+    ca_file=None,
+    ca_root=True,
+    ssl_verify=False,
+    family=socket.AF_INET,
+    type=socket.SOCK_STREAM,
+    backlog=None,
+    reuse_address=None,
+    reuse_port=None,
+    callback=None,
+    loop=None,
     *args,
     **kwargs
 ):
@@ -766,23 +752,23 @@ def _serve_stream_native(
 
     protocol = protocol_factory()
     has_loop_set = hasattr(protocol, "loop_set")
-    if has_loop_set: protocol.loop_set(loop)
+    if has_loop_set:
+        protocol.loop_set(loop)
 
     def on_ready():
-        loop.serve(
-            host = host,
-            port = port,
-            callback = on_complete
-        )
+        loop.serve(host=host, port=port, callback=on_complete)
 
     def on_complete(service, success):
-        if success: on_success(service)
-        else: on_error(service)
+        if success:
+            on_success(service)
+        else:
+            on_error(service)
 
     def on_success(service):
         server = transport.ServerTransport(loop, service)
         server._set_compat(protocol)
-        if not callback: return
+        if not callback:
+            return
         callback(server)
 
     def on_error(connection):
@@ -792,23 +778,24 @@ def _serve_stream_native(
 
     return loop
 
+
 def _serve_stream_compat(
     protocol_factory,
     host,
     port,
-    ssl = False,
-    key_file = None,
-    cer_file = None,
-    ca_file = None,
-    ca_root = True,
-    ssl_verify = False,
-    family = socket.AF_INET,
-    type = socket.SOCK_STREAM,
-    backlog = None,
-    reuse_address = None,
-    reuse_port = None,
-    callback = None,
-    loop = None,
+    ssl=False,
+    key_file=None,
+    cer_file=None,
+    ca_file=None,
+    ca_root=True,
+    ssl_verify=False,
+    family=socket.AF_INET,
+    type=socket.SOCK_STREAM,
+    backlog=None,
+    reuse_address=None,
+    reuse_port=None,
+    callback=None,
+    loop=None,
     *args,
     **kwargs
 ):

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -41,17 +32,20 @@ import asyncio
 
 import netius
 
+
 @asyncio.coroutine
 def compute(x, y):
     print("Compute %s + %s ..." % (x, y))
     yield from asyncio.sleep(1.0)
     return x + y
 
+
 @asyncio.coroutine
 def print_sum(x, y):
     result = yield from compute(x, y)
     print("%s + %s = %s" % (x, y, result))
 
-loop = netius.get_loop(_compat = True)
+
+loop = netius.get_loop(_compat=True)
 loop.run_until_complete(print_sum(1, 2))
 loop.close()

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -74,16 +65,14 @@ QUIT_STATE = 13
 
 FINAL_STATE = 14
 
+
 class SMTPConnection(netius.Connection):
 
-    AUTH_METHODS = (
-        "plain",
-        "login"
-    )
+    AUTH_METHODS = ("plain", "login")
     """ The sequence that defined the multiple allowed
     methods for this SMTP protocol implementation """
 
-    def __init__(self, host = "smtp.localhost", *args, **kwargs):
+    def __init__(self, host="smtp.localhost", *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
         self.parser = None
         self.host = host
@@ -103,15 +92,18 @@ class SMTPConnection(netius.Connection):
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
-        if not self.is_open(): return
+        if not self.is_open():
+            return
         self.parser = netius.common.SMTPParser(self)
         self.parser.bind("on_line", self.on_line)
         self.build()
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
-        if not self.is_closed(): return
-        if self.parser: self.parser.destroy()
+        if not self.is_closed():
+            return
+        if self.parser:
+            self.parser.destroy()
         self.destroy()
 
     def build(self):
@@ -136,7 +128,7 @@ class SMTPConnection(netius.Connection):
             self.data_t,
             self.contents_t,
             self.quit_t,
-            self.close_t
+            self.close_t,
         )
         self.state_l = len(self.states)
 
@@ -151,20 +143,21 @@ class SMTPConnection(netius.Connection):
         self.states = ()
         self.state_l = 0
 
-    def set_smtp(self, froms, tos, contents, username = None, password = None):
+    def set_smtp(self, froms, tos, contents, username=None, password=None):
         self.froms = froms
         self.tos = tos
         self.contents = contents
         self.username = username
         self.password = password
 
-    def set_sequence(self, sequence, safe = True):
-        if safe and self.sequence == sequence: return
+    def set_sequence(self, sequence, safe=True):
+        if safe and self.sequence == sequence:
+            return
         self.sindex = 0
         self.sequence = sequence
         self.state = sequence[0]
 
-    def set_message_seq(self, ehlo = True):
+    def set_message_seq(self, ehlo=True):
         sequence = (
             EHLO_STATE if ehlo else HELO_STATE,
             CAPA_STATE,
@@ -176,11 +169,11 @@ class SMTPConnection(netius.Connection):
             DATA_STATE,
             CONTENTS_STATE,
             QUIT_STATE,
-            FINAL_STATE
+            FINAL_STATE,
         )
         self.set_sequence(sequence)
 
-    def set_message_stls_seq(self, ehlo = True):
+    def set_message_stls_seq(self, ehlo=True):
         sequence = (
             EHLO_STATE if ehlo else HELO_STATE,
             CAPA_STATE,
@@ -196,12 +189,13 @@ class SMTPConnection(netius.Connection):
             DATA_STATE,
             CONTENTS_STATE,
             QUIT_STATE,
-            FINAL_STATE
+            FINAL_STATE,
         )
         self.set_sequence(sequence)
 
-    def set_capabilities(self, capabilities, force = True):
-        if not force and self.capabilities: return
+    def set_capabilities(self, capabilities, force=True):
+        if not force and self.capabilities:
+            return
         capabilities = [value.strip().lower() for value in capabilities]
         self.capabilities = capabilities
 
@@ -214,14 +208,14 @@ class SMTPConnection(netius.Connection):
     def parse(self, data):
         return self.parser.parse(data)
 
-    def send_smtp(self, code, message = "", delay = True, callback = None):
+    def send_smtp(self, code, message="", delay=True, callback=None):
         base = "%s %s" % (code, message)
         data = base + "\r\n"
-        count = self.send(data, delay = delay, callback = callback)
+        count = self.send(data, delay=delay, callback=callback)
         self.debug(base)
         return count
 
-    def on_line(self, code, message, is_final = True):
+    def on_line(self, code, message, is_final=True):
         # creates the base string from the provided code value and the
         # message associated with it, then logs the values into the
         # current debug logger support (for traceability)
@@ -237,7 +231,8 @@ class SMTPConnection(netius.Connection):
         # immediately to continue the processing of information for the
         # current response, the various message should be accumulated under
         # the message buffer to avoid any problem
-        if not is_final: return
+        if not is_final:
+            return
 
         # runs the code based assertion so that if there's an expected
         # value set for the current connection it's correctly validated
@@ -247,7 +242,7 @@ class SMTPConnection(netius.Connection):
         # according to the ones that have "generate" handling methods, otherwise
         # raises a parser error indicating the problem
         if self.state > self.state_l:
-            raise netius.ParserError("Invalid state", details = self.messages)
+            raise netius.ParserError("Invalid state", details=self.messages)
 
         # runs the calling of the next state based method according to the
         # currently defined state, this is the increments in calling
@@ -289,7 +284,8 @@ class SMTPConnection(netius.Connection):
 
     def upgrade_t(self):
         def callback(connection):
-            connection.upgrade(server = False)
+            connection.upgrade(server=False)
+
         self.next_sequence()
         callback(self)
 
@@ -301,7 +297,7 @@ class SMTPConnection(netius.Connection):
             return
 
         method = self.best_auth()
-        self.auth(self.username, self.password, method = method)
+        self.auth(self.username, self.password, method=method)
         self.next_sequence()
 
     def username_t(self):
@@ -320,7 +316,8 @@ class SMTPConnection(netius.Connection):
         is_final = self.to_index == len(self.tos) - 1
         self.rcpt(self.tos[self.to_index])
         self.to_index += 1
-        if is_final: self.next_sequence()
+        if is_final:
+            self.next_sequence()
 
     def data_t(self):
         self.data()
@@ -338,7 +335,7 @@ class SMTPConnection(netius.Connection):
         self.next_sequence()
 
     def close_t(self):
-        self.close(flush = True)
+        self.close(flush=True)
 
     def pass_t(self):
         pass
@@ -360,11 +357,12 @@ class SMTPConnection(netius.Connection):
         self.send_smtp("starttls")
         self.set_expected(220)
 
-    def auth(self, username, password, method = "plain"):
+    def auth(self, username, password, method="plain"):
         self.assert_s(AUTH_STATE)
         method_name = "auth_%s" % method
         has_method = hasattr(self, method_name)
-        if not has_method: raise netius.NotImplemented("Method not implemented")
+        if not has_method:
+            raise netius.NotImplemented("Method not implemented")
         method = getattr(self, method_name)
         method(username, password)
 
@@ -423,141 +421,129 @@ class SMTPConnection(netius.Connection):
         self.expected = expected
 
     def assert_c(self, code):
-        if not self.expected: return
+        if not self.expected:
+            return
         expected = self.expected
         code_i = int(code)
         self.expected = None
         valid = expected == code_i
-        if valid: return
+        if valid:
+            return
         raise netius.ParserError(
-            "Invalid response code expected '%d' received '%d'" %
-            (expected, code_i),
-            details = self.messages
+            "Invalid response code expected '%d' received '%d'" % (expected, code_i),
+            details=self.messages,
         )
 
     def assert_s(self, expected):
-        if self.state == expected: return
-        raise netius.ParserError("Invalid state", details = self.messages)
+        if self.state == expected:
+            return
+        raise netius.ParserError("Invalid state", details=self.messages)
 
     def best_auth(self):
         cls = self.__class__
         methods = []
         for capability in self.capabilities:
             is_auth = capability.startswith("auth ")
-            if not is_auth: continue
+            if not is_auth:
+                continue
             parts = capability.split(" ")
             parts = [part.strip() for part in parts]
             methods.extend(parts[1:])
         usable = [method for method in methods if method in cls.AUTH_METHODS]
         return usable[0] if usable else "plain"
 
+
 class SMTPClient(netius.StreamClient):
 
-    def __init__(
-        self,
-        host = None,
-        auto_close = False,
-        *args,
-        **kwargs
-    ):
+    def __init__(self, host=None, auto_close=False, *args, **kwargs):
         netius.StreamClient.__init__(self, *args, **kwargs)
         self.host = host if host else "[" + netius.common.host() + "]"
         self.auto_close = auto_close
 
     @classmethod
     def message_s(
-        cls,
-        froms,
-        tos,
-        contents,
-        daemon = True,
-        host = None,
-        mark = True,
-        callback = None
+        cls, froms, tos, contents, daemon=True, host=None, mark=True, callback=None
     ):
-        smtp_client = cls.get_client_s(thread = True, daemon = daemon, host = host)
-        smtp_client.message(
-            froms,
-            tos,
-            contents,
-            mark = mark,
-            callback = callback
-        )
+        smtp_client = cls.get_client_s(thread=True, daemon=daemon, host=host)
+        smtp_client.message(froms, tos, contents, mark=mark, callback=callback)
 
     def message(
         self,
         froms,
         tos,
         contents,
-        message_id = None,
-        host = None,
-        port = 25,
-        username = None,
-        password = None,
-        ehlo = True,
-        stls = False,
-        mark = True,
-        comply = False,
-        ensure_loop = True,
-        callback = None,
-        callback_error = None
+        message_id=None,
+        host=None,
+        port=25,
+        username=None,
+        password=None,
+        ehlo=True,
+        stls=False,
+        mark=True,
+        comply=False,
+        ensure_loop=True,
+        callback=None,
+        callback_error=None,
     ):
         # in case the comply flag is set then ensure that a series
         # of mandatory fields are present in the contents
         if comply:
             contents = self.comply(
-                contents,
-                froms = froms,
-                tos = tos,
-                message_id = message_id
+                contents, froms=froms, tos=tos, message_id=message_id
             )
 
         # in case the mark flag is set the contents data is modified
         # and "marked" with the pre-defined header values of the client
         # this should provide some extra information on the agent
-        if mark: contents = self.mark(contents)
+        if mark:
+            contents = self.mark(contents)
 
         # creates the method that is able to generate handler for a
         # certain sequence of to based (email) addresses
-        def build_handler(tos, domain = None, tos_map = None):
+        def build_handler(tos, domain=None, tos_map=None):
 
             # creates the context object that will be used to pass
             # contextual information to the callbacks
             context = dict(
-                froms = froms,
-                tos = tos,
-                contents = contents,
-                mark = mark,
-                comply = comply,
-                ensure_loop = ensure_loop,
-                domain = domain,
-                tos_map = tos_map
+                froms=froms,
+                tos=tos,
+                contents=contents,
+                mark=mark,
+                comply=comply,
+                ensure_loop=ensure_loop,
+                domain=domain,
+                tos_map=tos_map,
             )
 
-            def on_close(connection = None):
+            def on_close(connection=None):
                 # verifies if the current handler has been build with a
                 # domain based clojure and if that's the case removes the
                 # reference of it from the map of tos, then verifies if the
                 # map is still valid and if that's the case returns and this
                 # is not considered the last remaining SMTP session for the
                 # current send operation (still some open)
-                if domain: del tos_map[domain]
-                if tos_map: return
+                if domain:
+                    del tos_map[domain]
+                if tos_map:
+                    return
 
                 # verifies if the callback method is defined and if that's
                 # the case calls the callback indicating the end of the send
                 # operation (note that this may represent multiple SMTP sessions)
-                if callback: callback(self)
+                if callback:
+                    callback(self)
 
-            def on_exception(connection = None, exception = None):
-                if callback_error: callback_error(self, context, exception)
+            def on_exception(connection=None, exception=None):
+                if callback_error:
+                    callback_error(self, context, exception)
 
-            def handler(response = None):
+            def handler(response=None):
                 # in case the provided response value is invalid returns
                 # immediately, as this should represent a resolution error,
                 # this is only done in case the host is also not defined
                 # as for such situations an address is not retrievable
-                if response == None and host == None: return
+                if response == None and host == None:
+                    return
 
                 # in case there's a valid response provided must parse it
                 # to try to "recover" the final address that is going to be
@@ -569,11 +555,13 @@ class SMTPClient(netius.StreamClient):
                     # fallback for this connections is handled
                     if not response.answers:
                         on_close()
-                        if self.auto_close: self.close()
+                        if self.auto_close:
+                            self.close()
                         exception = netius.NetiusError(
                             "Not possible to resolve MX for '%s'" % domain
                         )
-                        if callback_error: callback_error(self, context, exception)
+                        if callback_error:
+                            callback_error(self, context, exception)
                         raise exception
 
                     # retrieves the first answer (probably the most accurate)
@@ -584,7 +572,8 @@ class SMTPClient(netius.StreamClient):
 
                 # otherwise the host should have been provided and as such the
                 # address value is set with the provided host
-                else: address = host
+                else:
+                    address = host
 
                 # sets the proper address (host) and port values that are
                 # going to be used to establish the connection, notice that
@@ -602,14 +591,12 @@ class SMTPClient(netius.StreamClient):
                 # sets the SMTP information in the current connection, after
                 # the connections is completed the SMTP session should start
                 connection = self.connect(_host, _port)
-                if stls: connection.set_message_stls_seq(ehlo = ehlo)
-                else: connection.set_message_seq(ehlo = ehlo)
+                if stls:
+                    connection.set_message_stls_seq(ehlo=ehlo)
+                else:
+                    connection.set_message_seq(ehlo=ehlo)
                 connection.set_smtp(
-                    froms,
-                    tos,
-                    contents,
-                    username = username,
-                    password = password
+                    froms, tos, contents, username=username, password=password
                 )
                 connection.bind("close", on_close)
                 connection.bind("exception", on_exception)
@@ -631,7 +618,8 @@ class SMTPClient(netius.StreamClient):
         # SMTP client does not become orphan as no connection has been
         # established as of this moment (as expected) and the dns client
         # is going to be run as a daemon (avoids process exit)
-        if ensure_loop: self.ensure_loop()
+        if ensure_loop:
+            self.ensure_loop()
 
         # creates the map that is going to be used to associate each of
         # the domains with the proper to (email) addresses, this is going
@@ -649,7 +637,7 @@ class SMTPClient(netius.StreamClient):
         for domain, tos in netius.legacy.items(tos_map):
             # creates a new handler method bound to the to addresses
             # associated with the current domain in iteration
-            handler = build_handler(tos, domain = domain, tos_map = tos_map)
+            handler = build_handler(tos, domain=domain, tos_map=tos_map)
 
             # prints a small debug message about the resolution of the
             # domain for the current message (debugging purposes)
@@ -658,7 +646,7 @@ class SMTPClient(netius.StreamClient):
             # runs the dns query to be able to retrieve the proper
             # mail exchange host for the target email address and then
             # sets the proper callback for sending
-            dns.DNSClient.query_s(domain, type = "mx", callback = handler)
+            dns.DNSClient.query_s(domain, type="mx", callback=handler)
 
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
@@ -673,25 +661,26 @@ class SMTPClient(netius.StreamClient):
 
     def on_connection_d(self, connection):
         netius.StreamClient.on_connection_d(self, connection)
-        if not self.auto_close: return
-        if self.connections: return
+        if not self.auto_close:
+            return
+        if self.connections:
+            return
         self.close()
 
-    def build_connection(self, socket, address, ssl = False):
+    def build_connection(self, socket, address, ssl=False):
         return SMTPConnection(
-            owner = self,
-            socket = socket,
-            address = address,
-            ssl = ssl,
-            host = self.host
+            owner=self, socket=socket, address=address, ssl=ssl, host=self.host
         )
 
-    def comply(self, contents, froms = None, tos = None, message_id = None):
+    def comply(self, contents, froms=None, tos=None, message_id=None):
         parser = email.parser.Parser()
         message = parser.parsestr(contents)
-        if froms: self.from_(message, froms[0])
-        if tos: self.to(message, ",".join(tos))
-        if message_id: self.message_id(message, message_id)
+        if froms:
+            self.from_(message, froms[0])
+        if tos:
+            self.to(message, ",".join(tos))
+        if message_id:
+            self.message_id(message, message_id)
         return message.as_string()
 
     def mark(self, contents):
@@ -703,30 +692,36 @@ class SMTPClient(netius.StreamClient):
 
     def from_(self, message, value):
         from_ = message.get("From", None)
-        if from_: return
+        if from_:
+            return
         message["From"] = value
 
     def to(self, message, value):
         to = message.get("To", None)
-        if to: return
+        if to:
+            return
         message["To"] = value
 
     def message_id(self, message, value):
         message_id = message.get("Message-Id", None)
         message_id = message.get("Message-ID", message_id)
-        if message_id: return
+        if message_id:
+            return
         message["Message-ID"] = value
 
     def date(self, message):
         date = message.get("Date", None)
-        if date: return
+        if date:
+            return
         date_time = datetime.datetime.utcnow()
         message["Date"] = date_time.strftime("%a, %d %b %Y %H:%M:%S +0000")
 
     def user_agent(self, message):
         user_agent = message.get("User-Agent", None)
-        if user_agent: return
+        if user_agent:
+            return
         message["User-Agent"] = netius.IDENTIFIER
+
 
 if __name__ == "__main__":
     import email.mime.text
@@ -734,10 +729,10 @@ if __name__ == "__main__":
     sender = netius.conf("SMTP_SENDER", "hello@bemisc.com")
     receiver = netius.conf("SMTP_RECEIVER", "hello@bemisc.com")
     host = netius.conf("SMTP_HOST", None)
-    port = netius.conf("SMTP_PORT", 25, cast = int)
+    port = netius.conf("SMTP_PORT", 25, cast=int)
     username = netius.conf("SMTP_USER", None)
     password = netius.conf("SMTP_PASSWORD", None)
-    stls = netius.conf("SMTP_STARTTLS", False, cast = bool)
+    stls = netius.conf("SMTP_STARTTLS", False, cast=bool)
 
     mime = email.mime.text.MIMEText("Hello World")
     mime["Subject"] = "Hello World"
@@ -745,16 +740,16 @@ if __name__ == "__main__":
     mime["To"] = receiver
     contents = mime.as_string()
 
-    client = SMTPClient(auto_close = True)
+    client = SMTPClient(auto_close=True)
     client.message(
         [sender],
         [receiver],
         contents,
-        host = host,
-        port = port,
-        username = username,
-        password = password,
-        stls = stls
+        host=host,
+        port=port,
+        username=username,
+        password=password,
+        stls=stls,
     )
 else:
     __path__ = []

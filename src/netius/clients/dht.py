@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -41,24 +32,25 @@ import struct
 
 import netius.common
 
+
 class DHTRequest(netius.Request):
 
     def __init__(
         self,
         peer_id,
-        host = "127.0.0.1",
-        port = 9090,
-        type = "ping",
-        callback = None,
+        host="127.0.0.1",
+        port=9090,
+        type="ping",
+        callback=None,
         *args,
         **kwargs
     ):
-        netius.Request.__init__(self, callback = callback)
+        netius.Request.__init__(self, callback=callback)
         self.peer_id = peer_id
         self.host = host
         self.port = port
         self.type = type
-        self.args = args,
+        self.args = (args,)
         self.kwargs = kwargs
         self._peer_id = self._get_peer_id()
 
@@ -72,42 +64,32 @@ class DHTRequest(netius.Request):
             raise netius.ParserError("Invalid type '%s'" % self.type)
         method = getattr(self, self.type)
         query = method()
-        request = dict(
-            t = str(self.id),
-            y = "q",
-            q = self.type,
-            a = query
-        )
+        request = dict(t=str(self.id), y="q", q=self.type, a=query)
         return netius.common.bencode(request)
 
     def ping(self):
-        return dict(id = self._peer_id)
+        return dict(id=self._peer_id)
 
     def find_node(self):
-        return dict(
-            id = self._peer_id,
-            target = self.kwargs["target"]
-        )
+        return dict(id=self._peer_id, target=self.kwargs["target"])
 
     def get_peers(self):
-        return dict(
-            id = self._peer_id,
-            info_hash = self.kwargs["info_hash"]
-        )
+        return dict(id=self._peer_id, info_hash=self.kwargs["info_hash"])
 
     def announce_peer(self):
         return dict(
-            id = self._peer_id,
-            implied_port = self.kwargs["implied_port"],
-            info_hash = self.kwargs["info_hash"],
-            port = self.kwargs["port"],
-            token = self.kwargs["token"]
+            id=self._peer_id,
+            implied_port=self.kwargs["implied_port"],
+            info_hash=self.kwargs["info_hash"],
+            port=self.kwargs["port"],
+            token=self.kwargs["token"],
         )
 
     def _get_peer_id(self):
         contact = DHTRequest.contact(self.host, self.port)
         peer_id = netius.legacy.bytes(self.peer_id)
         return peer_id + contact
+
 
 class DHTResponse(netius.Response):
 
@@ -131,6 +113,7 @@ class DHTResponse(netius.Response):
     def is_response(self):
         return self.info("r", True)
 
+
 class DHTClient(netius.DatagramClient):
     """
     Implementation of the DHT (Distributed hash table) for the torrent
@@ -143,32 +126,26 @@ class DHTClient(netius.DatagramClient):
     """
 
     def ping(self, host, port, peer_id, *args, **kwargs):
-        return self.query(type = "ping", *args, **kwargs)
+        return self.query(type="ping", *args, **kwargs)
 
     def find_node(self, *args, **kwargs):
-        return self.query(type = "find_node", *args, **kwargs)
+        return self.query(type="find_node", *args, **kwargs)
 
     def get_peers(self, *args, **kwargs):
-        return self.query(type = "get_peers", *args, **kwargs)
+        return self.query(type="get_peers", *args, **kwargs)
 
     def query(
         self,
-        host = "127.0.0.1",
-        port = 9090,
-        peer_id = None,
-        type = "ping",
-        callback = None,
+        host="127.0.0.1",
+        port=9090,
+        peer_id=None,
+        type="ping",
+        callback=None,
         *args,
         **kwargs
     ):
         request = DHTRequest(
-            peer_id,
-            host = host,
-            port = port,
-            type = type,
-            callback = callback,
-            *args,
-            **kwargs
+            peer_id, host=host, port=port, type=type, callback=callback, *args, **kwargs
         )
         data = request.request()
 
@@ -190,5 +167,6 @@ class DHTClient(netius.DatagramClient):
         response.request = request
         self.remove_request(request)
 
-        if not request.callback: return
+        if not request.callback:
+            return
         request.callback(response)

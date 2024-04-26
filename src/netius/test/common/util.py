@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -40,6 +31,7 @@ __license__ = "Apache License, Version 2.0"
 import unittest
 
 import netius.common
+
 
 class UtilTest(unittest.TestCase):
 
@@ -123,34 +115,34 @@ class UtilTest(unittest.TestCase):
         self.assertEqual(result, b"Hello World")
 
     def test_size_round_unit(self):
-        result = netius.common.size_round_unit(209715200, space = True)
+        result = netius.common.size_round_unit(209715200, space=True)
         self.assertEqual(result, "200 MB")
 
-        result = netius.common.size_round_unit(20480, space = True)
+        result = netius.common.size_round_unit(20480, space=True)
         self.assertEqual(result, "20 KB")
 
-        result = netius.common.size_round_unit(2048, reduce = False, space = True)
+        result = netius.common.size_round_unit(2048, reduce=False, space=True)
         self.assertEqual(result, "2.00 KB")
 
-        result = netius.common.size_round_unit(2500, space = True)
+        result = netius.common.size_round_unit(2500, space=True)
         self.assertEqual(result, "2.44 KB")
 
-        result = netius.common.size_round_unit(2500, reduce = False, space = True)
+        result = netius.common.size_round_unit(2500, reduce=False, space=True)
         self.assertEqual(result, "2.44 KB")
 
         result = netius.common.size_round_unit(1)
         self.assertEqual(result, "1B")
 
-        result = netius.common.size_round_unit(2048, minimum = 2049, reduce = False)
+        result = netius.common.size_round_unit(2048, minimum=2049, reduce=False)
         self.assertEqual(result, "2048B")
 
-        result = netius.common.size_round_unit(2049, places = 4, reduce = False)
+        result = netius.common.size_round_unit(2049, places=4, reduce=False)
         self.assertEqual(result, "2.001KB")
 
-        result = netius.common.size_round_unit(2048, places = 0, reduce = False)
+        result = netius.common.size_round_unit(2048, places=0, reduce=False)
         self.assertEqual(result, "2KB")
 
-        result = netius.common.size_round_unit(2049, places = 0, reduce = False)
+        result = netius.common.size_round_unit(2049, places=0, reduce=False)
         self.assertEqual(result, "2KB")
 
     def test_verify(self):
@@ -164,7 +156,7 @@ class UtilTest(unittest.TestCase):
 
         self.assertRaises(
             netius.NetiusError,
-            lambda: netius.common.verify(1 == 2, exception = netius.NetiusError)
+            lambda: netius.common.verify(1 == 2, exception=netius.NetiusError),
         )
 
     def test_verify_equal(self):
@@ -174,11 +166,13 @@ class UtilTest(unittest.TestCase):
         result = netius.common.verify_equal("hello", "hello")
         self.assertEqual(result, None)
 
-        self.assertRaises(netius.AssertionError, lambda: netius.common.verify_equal(1, 2))
+        self.assertRaises(
+            netius.AssertionError, lambda: netius.common.verify_equal(1, 2)
+        )
 
         self.assertRaises(
             netius.NetiusError,
-            lambda: netius.common.verify_equal(1, 2, exception = netius.NetiusError)
+            lambda: netius.common.verify_equal(1, 2, exception=netius.NetiusError),
         )
 
     def test_verify_not_equal(self):
@@ -188,11 +182,13 @@ class UtilTest(unittest.TestCase):
         result = netius.common.verify_not_equal("hello", "world")
         self.assertEqual(result, None)
 
-        self.assertRaises(netius.AssertionError, lambda: netius.common.verify_not_equal(1, 1))
+        self.assertRaises(
+            netius.AssertionError, lambda: netius.common.verify_not_equal(1, 1)
+        )
 
         self.assertRaises(
             netius.NetiusError,
-            lambda: netius.common.verify_not_equal(1, 1, exception = netius.NetiusError)
+            lambda: netius.common.verify_not_equal(1, 1, exception=netius.NetiusError),
         )
 
     def test_verify_type(self):
@@ -205,18 +201,25 @@ class UtilTest(unittest.TestCase):
         result = netius.common.verify_type(None, int)
         self.assertEqual(result, None)
 
-        self.assertRaises(netius.AssertionError, lambda: netius.common.verify_type(1, str))
-
         self.assertRaises(
-            netius.NetiusError,
-            lambda: netius.common.verify_type(1, str, exception = netius.NetiusError)
+            netius.AssertionError, lambda: netius.common.verify_type(1, str)
         )
 
-        self.assertRaises(netius.AssertionError, lambda: netius.common.verify_type(None, str, null = False))
+        self.assertRaises(
+            netius.NetiusError,
+            lambda: netius.common.verify_type(1, str, exception=netius.NetiusError),
+        )
+
+        self.assertRaises(
+            netius.AssertionError,
+            lambda: netius.common.verify_type(None, str, null=False),
+        )
 
         self.assertRaises(
             netius.NetiusError,
-            lambda: netius.common.verify_type(None, str, null = False, exception = netius.NetiusError)
+            lambda: netius.common.verify_type(
+                None, str, null=False, exception=netius.NetiusError
+            ),
         )
 
     def test_verify_many(self):
@@ -226,14 +229,17 @@ class UtilTest(unittest.TestCase):
         result = netius.common.verify_many(("hello" == "hello",))
         self.assertEqual(result, None)
 
-        self.assertRaises(netius.AssertionError, lambda: netius.common.verify_many((1 == 2,)))
+        self.assertRaises(
+            netius.AssertionError, lambda: netius.common.verify_many((1 == 2,))
+        )
 
-        self.assertRaises(netius.AssertionError, lambda: netius.common.verify_many((1 == 1, 1 == 2)))
+        self.assertRaises(
+            netius.AssertionError, lambda: netius.common.verify_many((1 == 1, 1 == 2))
+        )
 
         self.assertRaises(
             netius.NetiusError,
             lambda: netius.common.verify_many(
-                (1 == 1, 1 == 2),
-                exception = netius.NetiusError
-            )
+                (1 == 1, 1 == 2), exception=netius.NetiusError
+            ),
         )

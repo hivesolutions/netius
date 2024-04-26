@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -41,21 +32,22 @@ import netius
 
 from .base import Middleware
 
+
 class BlacklistMiddleware(Middleware):
     """
     Simple middleware implementation for blacklisting of IP
     addresses using a very minimalistic approach.
     """
 
-    def __init__(self, owner, blacklist = None, whitelist = None):
+    def __init__(self, owner, blacklist=None, whitelist=None):
         Middleware.__init__(self, owner)
         self.blacklist = blacklist or []
         self.whitelist = whitelist or []
 
     def start(self):
         Middleware.start(self)
-        self.blacklist = netius.conf("BLACKLIST", self.blacklist, cast = list)
-        self.whitelist = netius.conf("WHITELIST", self.whitelist, cast = list)
+        self.blacklist = netius.conf("BLACKLIST", self.blacklist, cast=list)
+        self.whitelist = netius.conf("WHITELIST", self.whitelist, cast=list)
         self.owner.bind("connection_c", self.on_connection_c)
 
     def stop(self):
@@ -64,7 +56,9 @@ class BlacklistMiddleware(Middleware):
 
     def on_connection_c(self, owner, connection):
         host = connection.address[0]
-        if not host in self.blacklist and not "*" in self.blacklist: return
-        if host in self.whitelist: return
+        if not host in self.blacklist and not "*" in self.blacklist:
+            return
+        if host in self.whitelist:
+            return
         self.owner.warning("Connection from '%s' dropped (blacklisted)" % host)
         connection.close()

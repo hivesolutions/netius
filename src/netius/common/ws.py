@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -42,7 +33,8 @@ import random
 
 import netius
 
-def encode_ws(data, final = True, opcode = 0x01, mask = True):
+
+def encode_ws(data, final=True, opcode=0x01, mask=True):
     # converts the boolean based values of the frame into the
     # bit based partials that are going to be used in the build
     # of the final frame container element (as expected)
@@ -81,12 +73,15 @@ def encode_ws(data, final = True, opcode = 0x01, mask = True):
         encoded_l.append(mask_bytes)
         encoded_a = bytearray(data_l)
         for i in range(data_l):
-            encoded_a[i] = netius.legacy.chri(netius.legacy.ord(data[i]) ^ netius.legacy.ord(mask_bytes[i % 4]))
+            encoded_a[i] = netius.legacy.chri(
+                netius.legacy.ord(data[i]) ^ netius.legacy.ord(mask_bytes[i % 4])
+            )
         data = bytes(encoded_a)
 
     encoded_l.append(data)
     encoded = b"".join(encoded_l)
     return encoded
+
 
 def decode_ws(data):
     # calculates the length of the data and runs the initial
@@ -141,16 +136,18 @@ def decode_ws(data):
     # immediately indicating that there's not enough data to complete
     # the decoding of the data (should be re-trying again latter)
     raw_size = data_l - index_mask_f - mask_bytes
-    if raw_size < length: raise netius.DataError("Not enough data")
+    if raw_size < length:
+        raise netius.DataError("Not enough data")
 
     # in case the frame data is not masked the complete set of contents
     # may be returned immediately to the caller as there's no issue with
     # avoiding the unmasking operation (as the data is not masked)
-    if not has_mask: return data[index_mask_f:], b""
+    if not has_mask:
+        return data[index_mask_f:], b""
 
     # retrieves the mask part of the data that are going to be
     # used in the decoding part of the process
-    mask = data[index_mask_f:index_mask_f + mask_bytes]
+    mask = data[index_mask_f : index_mask_f + mask_bytes]
 
     # allocates the array that is going to be used
     # for the decoding of the data with the length
@@ -162,7 +159,9 @@ def decode_ws(data):
     # (decoding it consequently) to the created decoded array
     i = index_mask_f + 4
     for j in range(length):
-        decoded_a[j] = netius.legacy.chri(netius.legacy.ord(data[i]) ^ netius.legacy.ord(mask[j % 4]))
+        decoded_a[j] = netius.legacy.chri(
+            netius.legacy.ord(data[i]) ^ netius.legacy.ord(mask[j % 4])
+        )
         i += 1
 
     # converts the decoded array of data into a string and
@@ -171,5 +170,7 @@ def decode_ws(data):
     decoded = bytes(decoded_a)
     return decoded, data[i:]
 
+
 def assert_ws(data_l, size):
-    if data_l < size: raise netius.DataError("Not enough data")
+    if data_l < size:
+        raise netius.DataError("Not enough data")

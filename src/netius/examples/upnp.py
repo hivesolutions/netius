@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -41,7 +32,8 @@ import xml.dom.minidom
 
 import netius.clients
 
-def upnp_map(ext_port, int_port, host, protocol = "TCP", description = "netius"):
+
+def upnp_map(ext_port, int_port, host, protocol="TCP", description="netius"):
     """
     Defines a router port forwarding rule using an UPnP based
     request that tries to find the first available router.
@@ -67,7 +59,13 @@ def upnp_map(ext_port, int_port, host, protocol = "TCP", description = "netius")
                     <NewLeaseDuration>0</NewLeaseDuration>
                 </u:AddPortMapping>
             </s:Body>
-    </s:Envelope>""" % (ext_port, protocol, int_port, host, description)
+    </s:Envelope>""" % (
+        ext_port,
+        protocol,
+        int_port,
+        host,
+        description,
+    )
 
     def on_location(connection, parser, request):
         data = request["data"]
@@ -78,20 +76,21 @@ def upnp_map(ext_port, int_port, host, protocol = "TCP", description = "netius")
         url = base_url + path
         netius.clients.HTTPClient.post_s(
             url,
-            headers = dict(
-                SOAPACTION = "\"urn:schemas-upnp-org:service:WANIPConnection:1#AddPortMapping\""
+            headers=dict(
+                SOAPACTION='"urn:schemas-upnp-org:service:WANIPConnection:1#AddPortMapping"'
             ),
-            data = message,
-            asynchronous = False
+            data=message,
+            asynchronous=False,
         )
         client = connection.owner
         client.close()
 
     def on_headers(client, parser, headers):
         location = headers.get("Location", None)
-        if not location: raise netius.DataError("No location found")
+        if not location:
+            raise netius.DataError("No location found")
         http_client = netius.clients.HTTPClient()
-        http_client.get(location, on_result = on_location)
+        http_client.get(location, on_result=on_location)
         client.close()
 
     client = netius.clients.SSDPClient()

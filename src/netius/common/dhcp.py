@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -62,45 +53,46 @@ PROXY_DHCP = 17
 END_DHCP = 18
 
 OPTIONS_DHCP = dict(
-    subnet = SUBNET_DHCP,
-    router = ROUTER_DHCP,
-    dns = DNS_DHCP,
-    name = NAME_DHCP,
-    broadcast = BROADCAST_DHCP,
-    lease = LEASE_DHCP,
-    discover = DISCOVER_DHCP,
-    offer = OFFER_DHCP,
-    request = REQUEST_DHCP,
-    decline = DECLINE_DHCP,
-    ack = ACK_DHCP,
-    nak = NAK_DHCP,
-    identifier = IDENTIFIER_DHCP,
-    renewal = RENEWAL_DHCP,
-    rebind = REBIND_DHCP,
-    proxy = PROXY_DHCP,
-    end = END_DHCP
+    subnet=SUBNET_DHCP,
+    router=ROUTER_DHCP,
+    dns=DNS_DHCP,
+    name=NAME_DHCP,
+    broadcast=BROADCAST_DHCP,
+    lease=LEASE_DHCP,
+    discover=DISCOVER_DHCP,
+    offer=OFFER_DHCP,
+    request=REQUEST_DHCP,
+    decline=DECLINE_DHCP,
+    ack=ACK_DHCP,
+    nak=NAK_DHCP,
+    identifier=IDENTIFIER_DHCP,
+    renewal=RENEWAL_DHCP,
+    rebind=REBIND_DHCP,
+    proxy=PROXY_DHCP,
+    end=END_DHCP,
 )
 """ The map of option names that associates
 a string based name with the integer based
 counter-part for resolution """
 
 TYPES_DHCP = {
-    0x01 : "discover",
-    0x02 : "offer",
-    0x03 : "request",
-    0x04 : "decline",
-    0x05 : "ack",
-    0x06 : "nak"
+    0x01: "discover",
+    0x02: "offer",
+    0x03: "request",
+    0x04: "decline",
+    0x05: "ack",
+    0x06: "nak",
 }
 
 VERBS_DHCP = {
-    0x01 : "discovering",
-    0x02 : "offering",
-    0x03 : "requesting",
-    0x04 : "declining",
-    0x05 : "acknowledging",
-    0x06 : "not acknowledging"
+    0x01: "discovering",
+    0x02: "offering",
+    0x03: "requesting",
+    0x04: "declining",
+    0x05: "acknowledging",
+    0x06: "not acknowledging",
 }
+
 
 class AddressPool(object):
 
@@ -121,8 +113,11 @@ class AddressPool(object):
         current_l = [int(value) for value in current_l]
 
         for index, value in enumerate(current_l):
-            if value == 255: current_l[index] = 0
-            else: current_l[index] = value + 1; break
+            if value == 255:
+                current_l[index] = 0
+            else:
+                current_l[index] = value + 1
+                break
 
         current_l.reverse()
 
@@ -137,7 +132,8 @@ class AddressPool(object):
             target, addr = heapq.heappop(self.addrs)
 
             _target = self.map.get(addr, 0)
-            if not target == _target: continue
+            if not target == _target:
+                continue
 
             if target > current:
                 heapq.heappush(self.addrs, (target, addr))
@@ -147,7 +143,7 @@ class AddressPool(object):
 
         return addr
 
-    def reserve(self, owner = None, lease = 3600):
+    def reserve(self, owner=None, lease=3600):
         current = time.time()
         target = int(current + lease)
         addr = self.peek()
@@ -157,11 +153,10 @@ class AddressPool(object):
         heapq.heappush(self.addrs, (target, addr))
         return addr
 
-    def touch(self, addr, lease = 3600):
+    def touch(self, addr, lease=3600):
         is_valid = self.is_valid(addr)
-        if not is_valid: raise netius.NetiusError(
-            "Not possible to touch address"
-        )
+        if not is_valid:
+            raise netius.NetiusError("Not possible to touch address")
 
         current = time.time()
         target = int(current + lease)
@@ -181,7 +176,8 @@ class AddressPool(object):
 
     def is_owner(self, owner, addr):
         is_valid = self.is_valid(addr)
-        if not is_valid: return False
+        if not is_valid:
+            return False
         _owner = self.owners.get(addr, None)
         return owner == _owner
 
@@ -192,5 +188,6 @@ class AddressPool(object):
             self.map[addr] = 0
             self.owners[addr] = None
             heapq.heappush(self.addrs, (0, addr))
-            if addr == self.end_addr: break
+            if addr == self.end_addr:
+                break
             addr = AddressPool.get_next(addr)

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -44,9 +35,10 @@ import netius
 
 from . import base
 
+
 class FsAdapter(base.BaseAdapter):
 
-    def __init__(self, base_path = None):
+    def __init__(self, base_path=None):
         base.BaseAdapter.__init__(self)
         self.base_path = base_path or "fs.data"
         self.base_path = os.path.abspath(self.base_path)
@@ -54,24 +46,26 @@ class FsAdapter(base.BaseAdapter):
         if not os.path.exists(self.base_path):
             os.makedirs(self.base_path)
 
-    def set(self, value, owner = "nobody"):
+    def set(self, value, owner="nobody"):
         key = self.generate()
         owner_path = self._ensure(owner)
         file_path = os.path.join(self.base_path, key)
         link_path = os.path.join(owner_path, key)
         value = netius.legacy.bytes(value)
         file = open(file_path, "wb")
-        try: file.write(value)
-        finally: file.close()
+        try:
+            file.write(value)
+        finally:
+            file.close()
         self._symlink(file_path, link_path)
         return key
 
-    def get_file(self, key, mode = "rb"):
+    def get_file(self, key, mode="rb"):
         file_path = os.path.join(self.base_path, key)
         file = open(file_path, mode)
         return file
 
-    def delete(self, key, owner = "nobody"):
+    def delete(self, key, owner="nobody"):
         owner_path = self._ensure(owner)
         file_path = os.path.join(self.base_path, key)
         link_path = os.path.join(owner_path, key)
@@ -82,37 +76,36 @@ class FsAdapter(base.BaseAdapter):
         file_path = os.path.join(self.base_path, key)
         return os.path.getsize(file_path)
 
-    def count(self, owner = None):
-        list = self.list(owner = owner)
+    def count(self, owner=None):
+        list = self.list(owner=owner)
         return len(list)
 
-    def list(self, owner = None):
-        path = self._path(owner = owner)
+    def list(self, owner=None):
+        path = self._path(owner=owner)
         exists = os.path.exists(path)
         files = os.listdir(path) if exists else []
         return files
 
-    def _path(self, owner = None):
-        if not owner: return self.base_path
+    def _path(self, owner=None):
+        if not owner:
+            return self.base_path
         return os.path.join(self.base_path, owner)
 
     def _ensure(self, owner):
         owner_path = os.path.join(self.base_path, owner)
-        if os.path.exists(owner_path): return owner_path
+        if os.path.exists(owner_path):
+            return owner_path
         os.makedirs(owner_path)
         return owner_path
 
     def _symlink(self, source, target):
         if os.name == "nt":
-            symlink = ctypes.windll.kernel32.CreateSymbolicLinkW #@UndefinedVariable
-            symlink.argtypes = (
-                ctypes.c_wchar_p,
-                ctypes.c_wchar_p,
-                ctypes.c_uint32
-            )
+            symlink = ctypes.windll.kernel32.CreateSymbolicLinkW  # @UndefinedVariable
+            symlink.argtypes = (ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32)
             symlink.restype = ctypes.c_ubyte
             flags = 1 if os.path.isdir(source) else 0
             result = symlink(target, source, flags)
-            if result == 0: raise ctypes.WinError()
+            if result == 0:
+                raise ctypes.WinError()
         else:
-            os.symlink(source, target) #@UndefinedVariable
+            os.symlink(source, target)  # @UndefinedVariable

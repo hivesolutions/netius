@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -51,6 +42,7 @@ PENDING = 3
 """ The pending status used for transient states (eg: created)
 connections under this state must be used carefully """
 
+
 class Stream(observer.Observable):
     """
     Abstract stream class responsible for the representation of
@@ -65,7 +57,7 @@ class Stream(observer.Observable):
     allowing huge performance improvements.
     """
 
-    def __init__(self, owner = None):
+    def __init__(self, owner=None):
         observer.Observable.__init__(self)
         self.status = PENDING
         self.owner = owner
@@ -75,19 +67,19 @@ class Stream(observer.Observable):
         pass
 
     def open(self):
-        if self.status == OPEN: return
+        if self.status == OPEN:
+            return
         self.status = OPEN
         self.connection.owner.on_stream_c(self)
 
     def close(self):
-        if self.status == CLOSED: return
+        if self.status == CLOSED:
+            return
         self.status = CLOSED
         self.connection.owner.on_stream_d(self)
 
-    def info_dict(self, full = False):
-        info = dict(
-            status = self.status
-        )
+    def info_dict(self, full=False):
+        info = dict(status=self.status)
         return info
 
     def is_open(self):

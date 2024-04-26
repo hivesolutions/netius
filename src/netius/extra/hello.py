@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,22 +22,14 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import netius.servers
+
 
 class HelloServer(netius.servers.HTTP2Server):
     """
@@ -51,36 +43,33 @@ class HelloServer(netius.servers.HTTP2Server):
     or adding new features to this server implementation.
     """
 
-    def __init__(self, message = "Hello World", *args, **kwargs):
+    def __init__(self, message="Hello World", *args, **kwargs):
         netius.servers.HTTP2Server.__init__(self, *args, **kwargs)
         self.message = message
 
     def on_serve(self):
         netius.servers.HTTP2Server.on_serve(self)
-        if self.env: self.message = self.get_env("MESSAGE", self.message, cast = str)
-        if self.env: self.keep_alive = self.get_env("KEEP_ALIVE", True, cast = bool)
+        if self.env:
+            self.message = self.get_env("MESSAGE", self.message, cast=str)
+        if self.env:
+            self.keep_alive = self.get_env("KEEP_ALIVE", True, cast=bool)
         self.info("Serving '%s' as welcome message ..." % self.message)
 
     def on_data_http(self, connection, parser):
-        netius.servers.HTTP2Server.on_data_http(
-            self, connection, parser
-        )
+        netius.servers.HTTP2Server.on_data_http(self, connection, parser)
 
         keep_alive = self.keep_alive and parser.keep_alive
         callback = self._hello_keep if keep_alive else self._hello_close
         connection_s = "keep-alive" if keep_alive else "close"
-        headers = {
-            "Connection" : connection_s,
-            "Content-Type" : "text/plain"
-        }
+        headers = {"Connection": connection_s, "Content-Type": "text/plain"}
 
         connection.send_response(
-            data = self.message,
-            headers = headers,
-            code = 200,
-            code_s = "OK",
-            apply = True,
-            callback = callback
+            data=self.message,
+            headers=headers,
+            code=200,
+            code_s="OK",
+            apply=True,
+            callback=callback,
         )
 
     def _hello_close(self, connection):
@@ -89,9 +78,11 @@ class HelloServer(netius.servers.HTTP2Server):
     def _hello_keep(self, connection):
         pass
 
+
 if __name__ == "__main__":
     import logging
-    server = HelloServer(level = logging.INFO)
-    server.serve(env = True)
+
+    server = HelloServer(level=logging.INFO)
+    server.serve(env=True)
 else:
     __path__ = []

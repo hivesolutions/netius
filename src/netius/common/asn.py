@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -48,40 +39,31 @@ NULL = 0x05
 OBJECT_IDENTIFIER = 0x06
 SEQUENCE = 0x30
 
-ASN1_OBJECT = [
-    (SEQUENCE, [
-        (SEQUENCE, [
-            OBJECT_IDENTIFIER,
-            NULL
-        ]),
-        BIT_STRING
-    ])
-]
+ASN1_OBJECT = [(SEQUENCE, [(SEQUENCE, [OBJECT_IDENTIFIER, NULL]), BIT_STRING])]
 
-ASN1_RSA_PUBLIC_KEY = [
-    (SEQUENCE, [
-        INTEGER,
-        INTEGER
-    ])
-]
+ASN1_RSA_PUBLIC_KEY = [(SEQUENCE, [INTEGER, INTEGER])]
 
 ASN1_RSA_PRIVATE_KEY = [
-    (SEQUENCE, [
-        INTEGER,
-        INTEGER,
-        INTEGER,
-        INTEGER,
-        INTEGER,
-        INTEGER,
-        INTEGER,
-        INTEGER,
-        INTEGER
-    ])
+    (
+        SEQUENCE,
+        [
+            INTEGER,
+            INTEGER,
+            INTEGER,
+            INTEGER,
+            INTEGER,
+            INTEGER,
+            INTEGER,
+            INTEGER,
+            INTEGER,
+        ],
+    )
 ]
 
 RSAID_PKCS1 = b"\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01"
 HASHID_SHA1 = b"\x2b\x0e\x03\x02\x1a"
 HASHID_SHA256 = b"\x60\x86\x48\x01\x65\x03\x04\x02\x01"
+
 
 def asn1_parse(template, data):
     """
@@ -111,8 +93,11 @@ def asn1_parse(template, data):
         # item to be parser is tuple and based on that defined
         # the current expected data type and children values
         is_tuple = type(item) == tuple
-        if is_tuple: dtype, children = item
-        else: dtype = item; children = None
+        if is_tuple:
+            dtype, children = item
+        else:
+            dtype = item
+            children = None
 
         # retrieves the value (as an ordinal) for the current
         # byte and increments the index for the parser
@@ -123,7 +108,9 @@ def asn1_parse(template, data):
         # must raise an exception indicating the problem to
         # the top level layers (should be properly handled)
         if not tag == dtype:
-            raise netius.ParserError("Unexpected tag (got 0x%02x, expecting 0x%02x)" % (tag, dtype))
+            raise netius.ParserError(
+                "Unexpected tag (got 0x%02x, expecting 0x%02x)" % (tag, dtype)
+            )
 
         # retrieves the ordinal value of the current byte as
         # the length of the value to be parsed and then increments
@@ -135,20 +122,20 @@ def asn1_parse(template, data):
         # the byte designates the length of the byte sequence that
         # defines the length of the current value to be read instead
         if length & 0x80:
-            number = length & 0x7f
-            length = util.bytes_to_integer(data[index:index + number])
+            number = length & 0x7F
+            length = util.bytes_to_integer(data[index : index + number])
             index += number
 
         if tag == BIT_STRING:
-            result.append(data[index:index + length])
+            result.append(data[index : index + length])
             index += length
 
         elif tag == OCTET_STRING:
-            result.append(data[index:index + length])
+            result.append(data[index : index + length])
             index += length
 
         elif tag == INTEGER:
-            number = util.bytes_to_integer(data[index:index + length])
+            number = util.bytes_to_integer(data[index : index + length])
             index += length
             result.append(number)
 
@@ -157,11 +144,11 @@ def asn1_parse(template, data):
             result.append(None)
 
         elif tag == OBJECT_IDENTIFIER:
-            result.append(data[index:index + length])
+            result.append(data[index : index + length])
             index += length
 
         elif tag == SEQUENCE:
-            part = asn1_parse(children, data[index:index + length])
+            part = asn1_parse(children, data[index : index + length])
             result.append(part)
             index += length
 
@@ -169,6 +156,7 @@ def asn1_parse(template, data):
             raise netius.ParserError("Unexpected tag in template 0x%02x" % tag)
 
     return result
+
 
 def asn1_length(length):
     """
@@ -185,16 +173,19 @@ def asn1_length(length):
     """
 
     netius.verify(length >= 0)
-    if length < 0x7f: return netius.legacy.chr(length)
+    if length < 0x7F:
+        return netius.legacy.chr(length)
 
     result = util.integer_to_bytes(length)
     number = len(result)
     result = netius.legacy.chr(number | 0x80) + result
     return result
 
+
 def asn1_gen(node):
     generator = asn1_build(node)
     return b"".join(generator)
+
 
 def asn1_build(node):
     """

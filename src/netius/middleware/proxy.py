@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -42,6 +33,7 @@ import struct
 import netius
 
 from .base import Middleware
+
 
 class ProxyMiddleware(Middleware):
     """
@@ -78,13 +70,13 @@ class ProxyMiddleware(Middleware):
     PROTO_STREAM_v2 = 0x1
     PROTO_DGRAM_v2 = 0x2
 
-    def __init__(self, owner, version = 1):
+    def __init__(self, owner, version=1):
         Middleware.__init__(self, owner)
         self.version = version
 
     def start(self):
         Middleware.start(self)
-        self.version = netius.conf("PROXY_VERSION", self.version, cast = int)
+        self.version = netius.conf("PROXY_VERSION", self.version, cast=int)
         self.owner.bind("connection_c", self.on_connection_c)
 
     def stop(self):
@@ -92,9 +84,12 @@ class ProxyMiddleware(Middleware):
         self.owner.unbind("connection_c", self.on_connection_c)
 
     def on_connection_c(self, owner, connection):
-        if self.version == 1: connection.add_starter(self._proxy_handshake_v1)
-        elif self.version == 2: connection.add_starter(self._proxy_handshake_v2)
-        else: raise netius.RuntimeError("Invalid PROXY version")
+        if self.version == 1:
+            connection.add_starter(self._proxy_handshake_v1)
+        elif self.version == 2:
+            connection.add_starter(self._proxy_handshake_v2)
+        else:
+            raise netius.RuntimeError("Invalid PROXY version")
 
     def _proxy_handshake_v1(self, connection):
         cls = self.__class__
@@ -118,8 +113,10 @@ class ProxyMiddleware(Middleware):
         # for the connection and if that's the case uses it otherwise
         # starts a new empty buffer from scratch
         has_buffer = hasattr(connection, "_proxy_buffer")
-        if has_buffer: buffer = connection._proxy_buffer
-        else: buffer = bytearray()
+        if has_buffer:
+            buffer = connection._proxy_buffer
+        else:
+            buffer = bytearray()
 
         # saves the "newly" created buffer as the PROXY buffer for the
         # current connection (may be used latter)
@@ -134,11 +131,14 @@ class ProxyMiddleware(Middleware):
 
             # in case the received data represents that of a closed connection
             # the connection is closed and the control flow returned
-            if data == b"": connection.close(); return
+            if data == b"":
+                connection.close()
+                return
 
             # in case the received value is false, that indicates that the
             # execution has failed due to an exception (expected or unexpected)
-            if data == False: return
+            if data == False:
+                return
 
             # updates the "initial" buffer length taking into account
             # the current buffer and then appends the new data to it
@@ -151,7 +151,8 @@ class ProxyMiddleware(Middleware):
 
             # in case the ready state has been reached, the complete set of
             # data is ready to be parsed and the loop is stopped
-            if is_ready: break
+            if is_ready:
+                break
 
         # removes the PROXY buffer reference from the connection as
         # its no longer going to be used
@@ -171,7 +172,8 @@ class ProxyMiddleware(Middleware):
         # in case there's valid extra data to be restored to the connection
         # performs the operation, effectively restoring it for latter
         # receiving operations (just like adding it back to the socket)
-        if extra: connection.restore(extra)
+        if extra:
+            connection.restore(extra)
 
         # forces the "conversion" of the line into a string so that it may
         # be properly split into its components, note that first the value
@@ -186,8 +188,8 @@ class ProxyMiddleware(Middleware):
         # prints a debug message about the PROXY header received, so that runtime
         # debugging is possible (and expected for this is a sensible part)
         self.owner.debug(
-            "Received header %s %s %s:%s => %s:%s" %
-            (header, protocol, source, source_p, destination, destination_p)
+            "Received header %s %s %s:%s => %s:%s"
+            % (header, protocol, source, source_p, destination, destination_p)
         )
 
         # re-constructs the source address from the provided information, this is
@@ -207,8 +209,10 @@ class ProxyMiddleware(Middleware):
         # for the connection and if that's the case uses it otherwise
         # starts a new empty buffer from scratch
         has_buffer = hasattr(connection, "_proxy_buffer")
-        if has_buffer: buffer = connection._proxy_buffer
-        else: buffer = bytearray()
+        if has_buffer:
+            buffer = connection._proxy_buffer
+        else:
+            buffer = bytearray()
 
         # saves the "newly" created buffer as the PROXY buffer for the
         # current connection (may be used latter)
@@ -216,12 +220,15 @@ class ProxyMiddleware(Middleware):
 
         # verifies if a PROXY header was already parsed from the current connection
         # and if that was not the case runs its parsing
-        header = connection._proxy_header if hasattr(connection, "_proxy_header") else None
+        header = (
+            connection._proxy_header if hasattr(connection, "_proxy_header") else None
+        )
         if not header:
             # tries to read the PROXY v2 header bytes to be able to parse
             # the body parts taking that into account
             header = self._read_safe(connection, buffer, cls.HEADER_LENGTH_V2)
-            if not header: return
+            if not header:
+                return
 
             # updates the reference to the proxy header in the connection
             # and clears the buffer as it's now going to be used to load
@@ -231,16 +238,18 @@ class ProxyMiddleware(Middleware):
 
         # unpacks the PROXY v2 header into its components, notice that some of them
         # contain multiple values on higher and lower bits
-        magic, version_type, address_protocol, body_size = struct.unpack("!12sBBH", header)
+        magic, version_type, address_protocol, body_size = struct.unpack(
+            "!12sBBH", header
+        )
 
         # unpacks both the version (of the protocol) and the type (of message) by
         # unpacking the higher and the lower bits
         version = version_type >> 4
-        type = version_type & 0x0f
+        type = version_type & 0x0F
 
         # unpacks the type of address to be communicated and the protocol family
         address = address_protocol >> 4
-        protocol = address_protocol & 0x0f
+        protocol = address_protocol & 0x0F
 
         # runs a series of assertions on some of the basic promises of the protocol
         # (if they failed connection will be dropped)
@@ -250,19 +259,22 @@ class ProxyMiddleware(Middleware):
         # reads the body part of the PROXY message taking into account the advertised
         # size of the body (from header component)
         body = self._read_safe(connection, buffer, body_size)
-        if not body: return
+        if not body:
+            return
 
         if address == cls.AF_INET_v2:
             source, destination, source_p, destination_p = struct.unpack("!IIHH", body)
             source = netius.common.addr_to_ip4(source)
             destination = netius.common.addr_to_ip4(destination)
         elif address == cls.AF_INET6_v2:
-            source_high,\
-            source_low,\
-            destination_high,\
-            destination_low,\
-            source_p,\
-            destination_p = struct.unpack("!QQQQHH", body)
+            (
+                source_high,
+                source_low,
+                destination_high,
+                destination_low,
+                source_p,
+                destination_p,
+            ) = struct.unpack("!QQQQHH", body)
             source = (source_high << 64) + source_low
             destination = (destination_high << 64) + destination_low
             source = netius.common.addr_to_ip6(source)
@@ -278,8 +290,8 @@ class ProxyMiddleware(Middleware):
         # prints a debug message about the PROXY header received, so that runtime
         # debugging is possible (and expected for this is a sensible part)
         self.owner.debug(
-            "Received header v2 %d %s:%s => %s:%s" %
-            (protocol, source, source_p, destination, destination_p)
+            "Received header v2 %d %s:%s => %s:%s"
+            % (protocol, source, source_p, destination, destination_p)
         )
 
         # re-constructs the source address from the provided information, this is
@@ -328,7 +340,8 @@ class ProxyMiddleware(Middleware):
             # in the buffer and if that's less or equal to zero breaks the
             # current loop (nothing pending to be read)
             pending = count - len(buffer)
-            if pending <= 0: break
+            if pending <= 0:
+                break
 
             # tries to receive the maximum size of data that is required
             # for the handling of the PROXY information
@@ -336,11 +349,14 @@ class ProxyMiddleware(Middleware):
 
             # in case the received data represents that of a closed connection
             # the connection is closed and the control flow returned
-            if data == b"": connection.close(); return None
+            if data == b"":
+                connection.close()
+                return None
 
             # in case the received value is false, that indicates that the
             # execution has failed due to an exception (expected or unexpected)
-            if data == False: return None
+            if data == False:
+                return None
 
             # adds the newly read data to the current buffer
             buffer += data

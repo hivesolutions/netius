@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -45,6 +36,7 @@ import netius.common
 import netius.clients
 import netius.servers
 
+
 class RelaySMTPServer(netius.servers.SMTPServer):
     """
     Relay version of the SMTP server that relays messages
@@ -54,7 +46,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
     to relay the messages.
     """
 
-    def __init__(self, postmaster = None, *args, **kwargs):
+    def __init__(self, postmaster=None, *args, **kwargs):
         netius.servers.SMTPServer.__init__(self, *args, **kwargs)
         self.postmaster = postmaster
         self.dkim = {}
@@ -65,7 +57,8 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         self.dkim = self.get_env("DKIM", self.dkim)
         dkim_l = len(self.dkim)
         self.info("Starting Relay SMTP server with %d DKIM registers  ..." % dkim_l)
-        if self.postmaster: self.info("Using '%s' as the Postmaster email sender ..." % self.postmaster)
+        if self.postmaster:
+            self.info("Using '%s' as the Postmaster email sender ..." % self.postmaster)
 
     def on_header_smtp(self, connection, from_l, to_l):
         netius.servers.SMTPServer.on_header_smtp(self, connection, from_l, to_l)
@@ -87,7 +80,8 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # verifies if there're remote addresses in the current
         # connection's message and if there is adds the received
         # data to the current relay buffer that is used
-        if not connection.remotes: return
+        if not connection.remotes:
+            return
         connection.relay.append(data)
 
     def on_message_smtp(self, connection):
@@ -95,17 +89,18 @@ class RelaySMTPServer(netius.servers.SMTPServer):
 
         # in case there's no remotes list in the current connection
         # there's no need to proceed as no relay is required
-        if not connection.remotes: return
+        if not connection.remotes:
+            return
 
         # joins the current relay buffer to create the full message
         # data and then removes the (non required) termination value
         # from it to avoid any possible problems with extra size
         data_s = b"".join(connection.relay)
-        data_s = data_s[:netius.servers.TERMINATION_SIZE * -1]
+        data_s = data_s[: netius.servers.TERMINATION_SIZE * -1]
 
         # retrieves the list of "froms" for the connection and then
         # sends the message for relay to all of the current remotes
-        froms = self._emails(connection.from_l, prefix = "from")
+        froms = self._emails(connection.from_l, prefix="from")
         self.relay(connection, froms, connection.remotes, data_s)
 
     def relay(self, connection, froms, tos, contents):
@@ -134,7 +129,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # the one that is going to be used for message id generation
         # and then generates a new "temporary" message id
         first = froms[0]
-        message_id = self.message_id(connection = connection, email = first)
+        message_id = self.message_id(connection=connection, email=first)
 
         # the default reply to value is the first from value and it
         # should serve as a way to reply with errors in case they
@@ -157,7 +152,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # search the current registry, trying to find a registry for the
         # domain of the sender and if it finds one signs the message using
         # the information provided by the registry
-        contents = self.dkim_contents(contents, email = first)
+        contents = self.dkim_contents(contents, email=first)
 
         # creates the callback that will close the client once the message
         # is sent to all the recipients (better auto close support), note
@@ -169,20 +164,21 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # postmaster email to the reply to address found in the message,
         # note that this is only performed in case there's a valid email
         # address defined as postmaster for this SMTP server
-        callback_error = lambda smtp_client, context, exception:\
-            self.relay_postmaster(reply_to, context, exception)
+        callback_error = lambda smtp_client, context, exception: self.relay_postmaster(
+            reply_to, context, exception
+        )
 
         # generates a new SMTP client for the sending of the message,
         # uses the current host for identification and then triggers
         # the message event to send the message to the target host
-        smtp_client = netius.clients.SMTPClient(host = self.host)
+        smtp_client = netius.clients.SMTPClient(host=self.host)
         smtp_client.message(
             froms,
             tos,
             contents,
-            mark = False,
-            callback = callback,
-            callback_error = callback_error
+            mark=False,
+            callback=callback,
+            callback_error=callback_error,
         )
 
     def relay_postmaster(self, reply_to, context, exception):
@@ -190,14 +186,22 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # postmaster processing is available, meaning that
         # a reply to address is present and the postmaster
         # email was defined for the server
-        if not reply_to: return
-        if not self.postmaster: return
+        if not reply_to:
+            return
+        if not self.postmaster:
+            return
 
         # tries to extract both the main message and the details
         # from the information available from the exception
         message = exception.message if hasattr(exception, "message") else str(exception)
-        details = exception.details if (hasattr(exception, "details") and\
-            isinstance(exception.details, (list, tuple))) else []
+        details = (
+            exception.details
+            if (
+                hasattr(exception, "details")
+                and isinstance(exception.details, (list, tuple))
+            )
+            else []
+        )
 
         # builds the base sender and receiver information for
         # the postmaster email to be sent
@@ -215,34 +219,28 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         contents_l.append("%s\r\n" % subject)
         contents_l.append("Message: %s\r\n" % message)
         contents_l.append("Details: %s\r\n\r\n" % ("\n".join(details) or "-"))
-        contents_l.append("----- Original message -----\r\n\r\n%s" % netius.legacy.str(contents_o))
+        contents_l.append(
+            "----- Original message -----\r\n\r\n%s" % netius.legacy.str(contents_o)
+        )
         contents = "".join(contents_l)
 
         # builds a new SMTP client that is going to be used
         # for the postmaster operation, ensures that the
         # correct contents are set in the message (including DKIM)
-        smtp_client = netius.clients.SMTPClient(host = self.host)
+        smtp_client = netius.clients.SMTPClient(host=self.host)
         contents = smtp_client.comply(
-            contents,
-            froms = froms,
-            tos = tos,
-            message_id = self.message_id(email = first)
+            contents, froms=froms, tos=tos, message_id=self.message_id(email=first)
         )
         contents = smtp_client.mark(contents)
         contents = netius.legacy.bytes(contents)
-        contents = self.dkim_contents(contents, email = first)
-        smtp_client.message(
-            froms,
-            tos,
-            contents,
-            mark = False
-        )
+        contents = self.dkim_contents(contents, email=first)
+        smtp_client.message(froms, tos, contents, mark=False)
 
     def date(self):
         date_time = datetime.datetime.utcnow()
         return date_time.strftime("%a, %d %b %Y %H:%M:%S +0000")
 
-    def message_id(self, connection = None, email = "user@localhost"):
+    def message_id(self, connection=None, email="user@localhost"):
         _user, domain = email.split("@", 1)
         domain = self.host or domain
         identifier = str(uuid.uuid4())
@@ -253,10 +251,11 @@ class RelaySMTPServer(netius.servers.SMTPServer):
             identifier = connection.identifier
         return "<%s@%s>" % (identifier, domain)
 
-    def dkim_contents(self, contents, email = "user@localhost", creation = None):
+    def dkim_contents(self, contents, email="user@localhost", creation=None):
         _user, domain = email.split("@", 1)
         register = self.dkim.get(domain, None)
-        if not register: return contents
+        if not register:
+            return contents
 
         key_path = register.get("key", None)
         key_b64 = register.get("key_b64", None)
@@ -265,24 +264,24 @@ class RelaySMTPServer(netius.servers.SMTPServer):
 
         contents = contents.lstrip()
 
-        if key_path: private_key = netius.common.open_private_key(key_path)
-        elif key_b64: private_key = netius.common.open_private_key_b64(key_b64)
-        else: raise netius.SecurityError("No private key provided")
+        if key_path:
+            private_key = netius.common.open_private_key(key_path)
+        elif key_b64:
+            private_key = netius.common.open_private_key_b64(key_b64)
+        else:
+            raise netius.SecurityError("No private key provided")
 
         signature = netius.common.dkim_sign(
-            contents,
-            selector,
-            domain,
-            private_key,
-            identity = email,
-            creation = creation
+            contents, selector, domain, private_key, identity=email, creation=creation
         )
 
         return signature + contents
 
+
 if __name__ == "__main__":
     import logging
-    server = RelaySMTPServer(level = logging.DEBUG)
-    server.serve(env = True)
+
+    server = RelaySMTPServer(level=logging.DEBUG)
+    server.serve(env=True)
 else:
     __path__ = []

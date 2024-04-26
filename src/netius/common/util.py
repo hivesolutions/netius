@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Hive Netius System
-# Copyright (c) 2008-2020 Hive Solutions Lda.
+# Copyright (c) 2008-2024 Hive Solutions Lda.
 #
 # This file is part of Hive Netius System.
 #
@@ -22,16 +22,7 @@
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
-__version__ = "1.0.0"
-""" The version of the module """
-
-__revision__ = "$LastChangedRevision$"
-""" The revision number of the module """
-
-__date__ = "$LastChangedDate$"
-""" The last change date of the module """
-
-__copyright__ = "Copyright (c) 2008-2020 Hive Solutions Lda."
+__copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 
 __license__ = "Apache License, Version 2.0"
@@ -44,15 +35,11 @@ import collections
 
 import netius
 
-SIZE_UNITS_LIST = (
-    "B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"
-)
+SIZE_UNITS_LIST = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
 """ The size units list that contains the complete set of
 units indexed by the depth they represent """
 
-SIZE_UNITS_LIST_S = (
-    "B", "K", "M", "G", "T", "P", "E", "Z", "Y"
-)
+SIZE_UNITS_LIST_S = ("B", "K", "M", "G", "T", "P", "E", "Z", "Y")
 """ The simplified size units list that contains the complete set of
 units indexed by the depth they represent """
 
@@ -75,48 +62,67 @@ _HOST = None
 this value is used to avoid an excessive blocking in the
 get host by name call, as it is a blocking call """
 
+
 def cstring(value):
     index = value.index("\0")
-    if index == -1: return value
+    if index == -1:
+        return value
     return value[:index]
+
 
 def chunks(sequence, count):
     for index in range(0, len(sequence), count):
-        yield sequence[index:index + count]
+        yield sequence[index : index + count]
+
 
 def header_down(name):
     values = name.split("-")
     values = [value.lower() for value in values]
     return "-".join(values)
 
+
 def header_up(name):
     values = name.split("-")
     values = [value.title() for value in values]
     return "-".join(values)
 
+
 def is_ip4(address):
     address_p = address.split(".", 4)
-    if not len(address_p) == 4: return False
+    if not len(address_p) == 4:
+        return False
     for part in address_p:
-        try: part_i = int(part)
-        except ValueError: return False
-        if part_i < 0: return False
-        if part_i > 255: return False
+        try:
+            part_i = int(part)
+        except ValueError:
+            return False
+        if part_i < 0:
+            return False
+        if part_i > 255:
+            return False
     return True
+
 
 def is_ip6(address):
-    if is_ip4(address): return False
+    if is_ip4(address):
+        return False
     return True
 
-def assert_ip4(address, allowed, default = True):
-    if not allowed: return default
+
+def assert_ip4(address, allowed, default=True):
+    if not allowed:
+        return default
     for item in allowed:
         is_subnet = "/" in item
-        if is_subnet: valid = in_subnet_ip4(address, item)
-        else: valid = address == item
-        if not valid: continue
+        if is_subnet:
+            valid = in_subnet_ip4(address, item)
+        else:
+            valid = address == item
+        if not valid:
+            continue
         return True
     return False
+
 
 def in_subnet_ip4(address, subnet):
     subnet, length = subnet.split("/", 1)
@@ -128,6 +134,7 @@ def in_subnet_ip4(address, subnet):
     in_subnet &= address_a < limit_a
     return in_subnet
 
+
 def addr_to_ip4(number):
     first = int(number / 16777216) % 256
     second = int(number / 65536) % 256
@@ -135,14 +142,16 @@ def addr_to_ip4(number):
     fourth = int(number) % 256
     return "%s.%s.%s.%s" % (first, second, third, fourth)
 
+
 def addr_to_ip6(number):
     buffer = collections.deque()
     for index in range(8):
         offset = index * 2
-        first = number >> (8 * offset) & 0xff
-        second = number >> (8 * (offset + 1)) & 0xff
+        first = number >> (8 * offset) & 0xFF
+        second = number >> (8 * (offset + 1)) & 0xFF
         buffer.appendleft("%02x%02x" % (second, first))
     return ":".join(buffer)
+
 
 def ip4_to_addr(value):
     first, second, third, fourth = value.split(".", 3)
@@ -152,10 +161,16 @@ def ip4_to_addr(value):
     fourth_a = int(fourth)
     return first_a + second_a + third_a + fourth_a
 
-def string_to_bits(value):
-    return bin(netius.legacy.reduce(lambda x, y : (x << 8) + y, (netius.legacy.ord(c) for c in value), 1))[3:]
 
-def integer_to_bytes(number, length = 0):
+def string_to_bits(value):
+    return bin(
+        netius.legacy.reduce(
+            lambda x, y: (x << 8) + y, (netius.legacy.ord(c) for c in value), 1
+        )
+    )[3:]
+
+
+def integer_to_bytes(number, length=0):
     if not isinstance(number, netius.legacy.INTEGERS):
         raise netius.DataError("Invalid data type")
 
@@ -163,12 +178,13 @@ def integer_to_bytes(number, length = 0):
     number = abs(number)
 
     while number > 0:
-        bytes.append(chr(number & 0xff))
+        bytes.append(chr(number & 0xFF))
         number >>= 8
 
     remaining = length - len(bytes)
     remaining = 0 if remaining < 0 else remaining
-    for _index in range(remaining): bytes.append("\x00")
+    for _index in range(remaining):
+        bytes.append("\x00")
 
     bytes = reversed(bytes)
     bytes_s = "".join(bytes)
@@ -176,13 +192,16 @@ def integer_to_bytes(number, length = 0):
 
     return bytes_s
 
+
 def bytes_to_integer(bytes):
     if not type(bytes) == netius.legacy.BYTES:
         raise netius.DataError("Invalid data type")
 
     number = 0
-    for byte in bytes: number = (number << 8) | netius.legacy.ord(byte)
+    for byte in bytes:
+        number = (number << 8) | netius.legacy.ord(byte)
     return number
+
 
 def random_integer(number_bits):
     """
@@ -216,7 +235,8 @@ def random_integer(number_bits):
     random_integer |= 1 << (number_bits - 1)
     return random_integer
 
-def host(default = "127.0.0.1"):
+
+def host(default="127.0.0.1"):
     """
     Retrieves the host for the current machine,
     typically this would be the IPv4 address of
@@ -238,13 +258,18 @@ def host(default = "127.0.0.1"):
     """
 
     global _HOST
-    if _HOST: return _HOST
+    if _HOST:
+        return _HOST
     hostname = socket.gethostname()
-    try: _HOST = socket.gethostbyname(hostname)
-    except socket.gaierror: _HOST = default
+    try:
+        _HOST = socket.gethostbyname(hostname)
+    except socket.gaierror:
+        _HOST = default
     is_unicode = type(_HOST) == netius.legacy.OLD_UNICODE
-    if is_unicode: _HOST = _HOST.encode("utf-8")
+    if is_unicode:
+        _HOST = _HOST.encode("utf-8")
     return _HOST
+
 
 def hostname():
     """
@@ -262,15 +287,16 @@ def hostname():
 
     return socket.gethostname()
 
+
 def size_round_unit(
     size_value,
-    minimum = DEFAULT_MINIMUM,
-    places = DEFAULT_PLACES,
-    reduce = True,
-    space = False,
-    justify = False,
-    simplified = False,
-    depth = 0
+    minimum=DEFAULT_MINIMUM,
+    places=DEFAULT_PLACES,
+    reduce=True,
+    space=False,
+    justify=False,
+    simplified=False,
+    depth=0,
 ):
     """
     Rounds the size unit, returning a string representation
@@ -344,24 +370,30 @@ def size_round_unit(
         # in case the dot value is not present in the size value
         # string adds it to the end otherwise an issue may occur
         # while removing extra padding characters for reduce
-        if reduce and not "." in size_value_s: size_value_s += "."
+        if reduce and not "." in size_value_s:
+            size_value_s += "."
 
         # strips the value from zero appended to the right and
         # then strips the value also from a possible decimal
         # point value that may be included in it, this is only
         # performed in case the reduce flag is enabled
-        if reduce: size_value_s = size_value_s.rstrip("0")
-        if reduce: size_value_s = size_value_s.rstrip(".")
+        if reduce:
+            size_value_s = size_value_s.rstrip("0")
+        if reduce:
+            size_value_s = size_value_s.rstrip(".")
 
         # in case the justify flag is set runs the justification
         # process on the size value taking into account the maximum
         # size of the associated size string
-        if justify: size_value_s = size_value_s.rjust(size_s)
+        if justify:
+            size_value_s = size_value_s.rjust(size_s)
 
         # retrieves the size unit (string mode) for the current
         # depth according to the provided map
-        if simplified: size_unit = SIZE_UNITS_LIST_S[depth]
-        else: size_unit = SIZE_UNITS_LIST[depth]
+        if simplified:
+            size_unit = SIZE_UNITS_LIST_S[depth]
+        else:
+            size_unit = SIZE_UNITS_LIST[depth]
 
         # retrieves the appropriate separator based
         # on the value of the space flag
@@ -382,16 +414,17 @@ def size_round_unit(
         new_depth = depth + 1
         return size_round_unit(
             new_size_value,
-            minimum = minimum,
-            places = places,
-            reduce = reduce,
-            space = space,
-            justify = justify,
-            simplified = simplified,
-            depth = new_depth
+            minimum=minimum,
+            places=places,
+            reduce=reduce,
+            space=space,
+            justify=justify,
+            simplified=simplified,
+            depth=new_depth,
         )
 
-def verify(condition, message = None, exception = None):
+
+def verify(condition, message=None, exception=None):
     """
     Ensures that the requested condition returns a valid value
     and if that's no the case an exception raised breaking the
@@ -409,39 +442,32 @@ def verify(condition, message = None, exception = None):
     verification operation fails.
     """
 
-    if condition: return
+    if condition:
+        return
     exception = exception or netius.AssertionError
     raise exception(message or "Assertion Error")
 
-def verify_equal(first, second, message = None, exception = None):
+
+def verify_equal(first, second, message=None, exception=None):
     message = message or "Expected %s got %s" % (repr(second), repr(first))
-    return verify(
-        first == second,
-        message = message,
-        exception = exception
-    )
+    return verify(first == second, message=message, exception=exception)
 
-def verify_not_equal(first, second, message = None, exception = None):
+
+def verify_not_equal(first, second, message=None, exception=None):
     message = message or "Expected %s not equal to %s" % (repr(first), repr(second))
-    return verify(
-        not first == second,
-        message = message,
-        exception = exception
-    )
+    return verify(not first == second, message=message, exception=exception)
 
-def verify_type(value, types, null = True, message = None, exception = None, **kwargs):
+
+def verify_type(value, types, null=True, message=None, exception=None, **kwargs):
     message = message or "Expected %s to have type %s" % (repr(value), repr(types))
     return verify(
         (null and value == None) or isinstance(value, types),
-        message = message,
-        exception = exception,
+        message=message,
+        exception=exception,
         **kwargs
     )
 
-def verify_many(sequence, message = None, exception = None):
+
+def verify_many(sequence, message=None, exception=None):
     for condition in sequence:
-        verify(
-            condition,
-            message = message,
-            exception = exception
-        )
+        verify(condition, message=message, exception=exception)
