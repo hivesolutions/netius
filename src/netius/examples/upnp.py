@@ -85,14 +85,17 @@ def upnp_map(ext_port, int_port, host, protocol="TCP", description="netius"):
         client = connection.owner
         client.close()
 
-    def on_headers(client, parser, headers):
+    def on_headers(protocol, parser, headers):
         location = headers.get("Location", None)
         if not location:
             raise netius.DataError("No location found")
         http_client = netius.clients.HTTPClient()
         http_client.get(location, on_result=on_location)
-        client.close()
+        protocol.close()
 
-    client = netius.clients.SSDPClient()
-    client.bind("headers", on_headers)
-    client.discover("urn:schemas-upnp-org:device:InternetGatewayDevice:1")
+    loop, protocol = netius.clients.SSDPClient.discover_s(
+        "urn:schemas-upnp-org:device:InternetGatewayDevice:1"
+    )
+    protocol.bind("headers", on_headers)
+    loop.run_forever()
+    loop.close()

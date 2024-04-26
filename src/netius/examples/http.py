@@ -39,10 +39,16 @@ def http_static():
 
 
 def http_callback():
-    def callback(connection, parser, request):
+    def callback(protocol, parser, request):
         print(request["data"])
-        client = connection.owner
-        client.close()
+        protocol.close()
+
+    def on_close(protocol):
+        netius.compat_loop(loop).stop()
 
     client = netius.clients.HTTPClient()
-    client.get("https://www.flickr.com/", on_result=callback)
+    loop, _ = client.get(
+        "https://www.flickr.com/", on_result=callback, on_close=on_close
+    )
+    loop.run_forever()
+    loop.close()
