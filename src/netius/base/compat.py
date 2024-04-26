@@ -823,9 +823,6 @@ def _serve_stream_compat(
     :see: https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.create_server
     """
 
-    # @TODO: implement this stuff meaning that the compat
-    # mode is the mode in which Netius runs compatible
-    # with the asyncio module
     from . import common
 
     loop = loop or common.get_loop()
