@@ -330,6 +330,8 @@ class CompatLoop(BaseLoop):
         ssl_handshake_timeout=None,
     ):
         # @TODO: this is pending proper Netius implementation
+        # to make it compatible with
+        # https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.Server.start_serving
         self._add_reader(
             sock.fileno(),
             self._accept_connection,
