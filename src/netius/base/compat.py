@@ -361,7 +361,7 @@ class CompatLoop(BaseLoop):
         backlog = 100,
         ssl_handshake_timeout = None
     ):
-        # @todo this is pending proper Netius implementation
+        # @TODO: this is pending proper Netius implementation
         self._add_reader(
             sock.fileno(),
             self._accept_connection,
@@ -812,5 +812,5 @@ def _serve_stream_compat(
     *args,
     **kwargs
 ):
-    #@todo: implement this stuff
+    # @TODO: implement this stuff
     pass
