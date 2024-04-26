@@ -613,9 +613,10 @@ class HTTPProtocol(netius.StreamProtocol):
         def connect_timeout():
             if self.is_open():
                 return
-            self.request and cls.set_error(
-                "timeout", message="Timeout on connect", request=self.request
-            )
+            if self.request:
+                cls.set_error(
+                    "timeout", message="Timeout on connect", request=self.request
+                )
             self.close()
 
         # schedules a delay operation to run the timeout handler for
@@ -1318,10 +1319,10 @@ class HTTPClient(netius.ClientAgent):
                 self.available[protocol.key] = protocol
                 netius.compat_loop(loop).stop()
 
-        def on_close(protocol):  # pylint: disable=E0102
+        def on_close_(protocol):  # pylint: disable=E0102
             # verifies if the protocol being closed is currently in
             # the pool of available protocols, so that decisions on
-            # the stopping of the event loop may be made latter on
+            # the stopping of the event loop may be made later on
             from_pool = protocol.key in self.available
 
             # because the protocol was closed we must release it from
@@ -1342,7 +1343,7 @@ class HTTPClient(netius.ClientAgent):
         # binds the protocol message and finish events to the associated
         # function for proper handling of the synchronous request details
         protocol.bind("message", on_message)
-        protocol.bind("close", on_close)
+        protocol.bind("close", on_close_)
 
         # runs the loop until complete, this should be the main blocking
         # call into the event loop, notice that in case the loop that was
@@ -1376,7 +1377,8 @@ if __name__ == "__main__":
 
     def on_partial(protocol, parser, data):
         data = data
-        data and buffer.append(data)
+        if data:
+            buffer.append(data)
 
     def on_message(protocol, parser, message):
         request = HTTPProtocol.set_request(parser, buffer)

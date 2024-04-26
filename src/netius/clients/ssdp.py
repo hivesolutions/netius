@@ -92,7 +92,8 @@ class SSDPProtocol(netius.DatagramProtocol):
         buffer_data = "".join(buffer)
 
         self.send(buffer_data, address)
-        data and self.send(data, address, callback=callback)
+        if data:
+            self.send(data, address, callback=callback)
 
 
 class SSDPClient(netius.ClientAgent):
@@ -149,7 +150,7 @@ class SSDPClient(netius.ClientAgent):
 
 if __name__ == "__main__":
 
-    def on_headers(client, parser, headers):
+    def on_headers(protocol, parser, headers):
         print(headers)
 
         # retrieves the currently associated loop using
