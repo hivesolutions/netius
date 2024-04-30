@@ -82,7 +82,9 @@ setuptools.setup(
     ],
     test_suite="netius.test",
     package_dir={"": os.path.normpath("src")},
-    package_data={"netius": ["base/extras/*", "extra/extras/*", "servers/extras/*"]},
+    package_data={
+        "netius": ["*.pyi", "base/extras/*", "extra/extras/*", "servers/extras/*"]
+    },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Topic :: Utilities",
