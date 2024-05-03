@@ -383,6 +383,10 @@ class ServerTransport(observer.Observable):
         coroutine = self._serve_forever()
         return asynchronous.coroutine_return(coroutine)
 
+    def wait_closed(self):
+        coroutine = self._wait_closed()
+        return asynchronous.coroutine_return(coroutine)
+
     def is_serving(self):
         return True
 
@@ -437,6 +441,11 @@ class ServerTransport(observer.Observable):
 
     def _serve_forever(self):
         future = self._loop.create_future()
+        yield future
+
+    def _wait_closed(self):
+        future = self._loop.create_future()
+        future.set_result(None)
         yield future
 
     def _aenter(self):
