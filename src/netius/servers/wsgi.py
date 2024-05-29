@@ -243,7 +243,7 @@ class WSGIServer(http2.HTTP2Server):
 
         # tries to determine if the accept ranges value is set and if
         # that's the case forces the uncompressed encoding to avoid possible
-        # range missmatch due to re-encoding of the content
+        # range mismatch due to re-encoding of the content
         ranges = headers.get("Accept-Ranges", None)
         if ranges == "bytes":
             connection.set_uncompressed()

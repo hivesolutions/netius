@@ -247,6 +247,7 @@ class HTTPProtocol(netius.StreamProtocol):
         netius.StreamProtocol.close_c(self, *args, **kwargs)
 
         if self.parser:
+            self.parser.parse_closed()
             self.parser.destroy()
         if self.parsed:
             self.parsed = None

@@ -459,6 +459,20 @@ class HTTPParser(parser.Parser):
         self.encodings = [value.strip() for value in accept_encoding_s.split(",")]
         return self.encodings
 
+    def parse_closed(self):
+        """
+        "Parses" the closed event, which may trigger a changed in state
+        for very specific conditions, which is the case of a plain encoded
+        connection with no explicit content length defined.
+
+        In these situations the closing of a connection should be seen as
+        the sending of a EOF character (with semantic value).
+        """
+
+        if not self.chunked and self.content_l == -1 and self.state == MESSAGE_STATE:
+            self.state = FINISH_STATE
+            self.trigger("on_data")
+
     def parse(self, data):
         """
         Parses the provided data chunk, changing the current
