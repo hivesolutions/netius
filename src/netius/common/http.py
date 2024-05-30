@@ -469,7 +469,13 @@ class HTTPParser(parser.Parser):
         the sending of a EOF character (with semantic value).
         """
 
-        if not self.chunked and self.content_l == -1 and self.state == MESSAGE_STATE:
+        if (
+            not self.chunked
+            and self.content_l == -1
+            and self.state == MESSAGE_STATE
+            and self.version
+            and self.version <= HTTP_11
+        ):
             self.state = FINISH_STATE
             self.trigger("on_data")
 

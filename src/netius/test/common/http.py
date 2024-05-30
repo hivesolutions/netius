@@ -94,6 +94,12 @@ Content-Length: 11\r\n\
 \r\n\
 Hello World"
 
+NO_LENGTH_RESPONSE = b"HTTP/1.1 200 OK\r\n\
+Date: Wed, 1 Jan 2014 00:00:00 GMT\r\n\
+Server: Test Service/1.0.0\r\n\
+\r\n\
+Hello World"
+
 
 class HTTPParserTest(unittest.TestCase):
 
@@ -103,6 +109,7 @@ class HTTPParserTest(unittest.TestCase):
             parser.parse(SIMPLE_REQUEST)
             message = parser.get_message()
             headers = parser.get_headers()
+            self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
             self.assertEqual(parser.method, "get")
             self.assertEqual(parser.version, netius.common.HTTP_11)
             self.assertEqual(parser.path_s, "http://localhost")
@@ -120,6 +127,7 @@ class HTTPParserTest(unittest.TestCase):
             parser.parse(CHUNKED_REQUEST)
             message = parser.get_message()
             headers = parser.get_headers()
+            self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
             self.assertEqual(parser.method, "get")
             self.assertEqual(parser.version, netius.common.HTTP_11)
             self.assertEqual(parser.path_s, "http://localhost")
@@ -137,6 +145,7 @@ class HTTPParserTest(unittest.TestCase):
             parser.parse(EXTRA_SPACES_REQUEST)
             message = parser.get_message()
             headers = parser.get_headers()
+            self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
             self.assertEqual(parser.method, "get")
             self.assertEqual(parser.version, netius.common.HTTP_11)
             self.assertEqual(parser.path_s, "/")
@@ -153,6 +162,7 @@ class HTTPParserTest(unittest.TestCase):
             parser.parse(INVALID_HEADERS_REQUEST)
             message = parser.get_message()
             headers = parser.get_headers()
+            self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
             self.assertEqual(parser.method, "get")
             self.assertEqual(parser.version, netius.common.HTTP_11)
             self.assertEqual(parser.path_s, "/")
@@ -251,6 +261,7 @@ class HTTPParserTest(unittest.TestCase):
             parser.parse(CHUNKED_REQUEST)
             message = parser.get_message()
             message_b = parser.get_message_b()
+            self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
             self.assertEqual(message, b"Hello World")
             self.assertNotEqual(parser.message_f, None)
             self.assertNotEqual(parser.message_f.read, None)
@@ -305,3 +316,23 @@ class HTTPParserTest(unittest.TestCase):
         self.assertEqual(parser.chunk_l, 0)
         self.assertEqual(parser.chunk_s, 0)
         self.assertEqual(parser.chunk_e, 0)
+
+    def test_no_length_response(self):
+        parser = netius.common.HTTPParser(self, type=netius.common.RESPONSE, store=True)
+        try:
+            parser.parse(NO_LENGTH_RESPONSE)
+            message = parser.get_message()
+            headers = parser.get_headers()
+            self.assertEqual(parser.state, netius.common.http.MESSAGE_STATE)
+            self.assertEqual(parser.code, 200)
+            self.assertEqual(parser.status, "OK")
+            self.assertEqual(parser.version, netius.common.HTTP_11)
+            self.assertEqual(parser.content_l, -1)
+            self.assertEqual(message, b"Hello World")
+            self.assertEqual(headers["Date"], "Wed, 1 Jan 2014 00:00:00 GMT")
+            self.assertEqual(headers["Server"], "Test Service/1.0.0")
+
+            parser.parse_closed()
+            self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
+        finally:
+            parser.clear()
