@@ -463,7 +463,7 @@ class HTTPParser(parser.Parser):
         """
         "Parses" the closed event, which may trigger a changed in state
         for very specific conditions, which is the case of a plain encoded
-        connection with no explicit content length defined.
+        connection with no explicit content length defined in HTTP/1.1 or older.
 
         In these situations the closing of a connection should be seen as
         the sending of a EOF character (with semantic value).
