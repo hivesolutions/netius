@@ -461,16 +461,17 @@ class HTTPParser(parser.Parser):
 
     def parse_closed(self):
         """
-        "Parses" the closed event, which may trigger a changed in state
+        "Parses" the closed event, which may trigger a changed in parse state
         for very specific conditions, which is the case of a plain encoded
-        connection with no explicit content length defined in HTTP/1.1 or older.
+        response with no explicit content length defined in HTTP/1.1 or older.
 
         In these situations the closing of a connection should be seen as
-        the sending of a EOF character (with semantic value).
+        the sending of an EOF character (with semantic value).
         """
 
         if (
-            not self.chunked
+            self.type == RESPONSE
+            and not self.chunked
             and self.content_l == -1
             and self.state == MESSAGE_STATE
             and self.version
