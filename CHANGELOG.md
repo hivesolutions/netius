@@ -9,15 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.20.0] - 2024-05-30
+
+### Added
+
 * Support for HTTP client handling of plain HTTP message with no content length defined - finished at connection closed
 
 ### Changed
 
 * Code structure to make it compliant with `black`
-
-### Fixed
-
-*
 
 ## [1.19.14] - 2024-04-25
 
