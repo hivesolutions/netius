@@ -29,7 +29,11 @@ jobs:
           pip install black
           black . --check
         if: matrix.python-version == '3.12'
+      - run: |
+          pip install pytest
+          HTTPBIN=httpbin.bemisc.com pytest
       - run: HTTPBIN=httpbin.bemisc.com python setup.py test
+        if: matrix.python-version != '3.12' && matrix.python-version != 'latest'
   build-pypy:
     name: Build PyPy
     timeout-minutes: 10
@@ -46,4 +50,8 @@ jobs:
           pip install black
           black . --check
         if: matrix.python-version == '3.12'
+      - run: |
+          pip install pytest
+          HTTPBIN=httpbin.bemisc.com pytest
       - run: HTTPBIN=httpbin.bemisc.com pypy setup.py test
+        if: matrix.python-version != '3.12' && matrix.python-version != 'latest'
