@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Issue with Logstash handler on flush detection
 
 ## [1.20.2] - 2025-02-17
 
