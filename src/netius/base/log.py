@@ -147,8 +147,9 @@ class LogstashHandler(logging.Handler):
             log["meta"] = meta
 
         self.messages.append(log)
-        should_flush = len(self.messages) >= self.max_length
-        should_flush = should_flush or time.time() - self._last_flush > self.timeout
+        message_overflow = len(self.messages) >= self.max_length
+        time_overflow = time.time() - self._last_flush > self.timeout
+        should_flush = message_overflow or time_overflow
         if should_flush:
             try:
                 self.flush(raise_e=raise_e)
@@ -174,7 +175,7 @@ class LogstashHandler(logging.Handler):
         # and updates the last flush time
         self.api.log_bulk(messages, tag="default", raise_e=raise_e)
         self.messages = []
-        self.last_flush = time.time()
+        self._last_flush = time.time()
 
     def _build_api(self):
         try:
