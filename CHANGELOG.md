@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+*
+
+## [1.20.4] - 2025-02-17
+
+### Fixed
+
 * Reduces race conditions on message flushing for Logstash handler
 
 ## [1.20.3] - 2025-02-17
