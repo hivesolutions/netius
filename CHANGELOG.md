@@ -17,9 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+*
+
+## [1.20.2] - 2025-02-17
+
+### Fixed
+
 * Prevents multi level logging, effectively avoiding infinite recursion
 
-## [1.20.1] - 2024-05-30
+## [1.20.1] - 2025-02-17
 
 ### Fixed
 
