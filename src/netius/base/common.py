@@ -3491,7 +3491,7 @@ class AbstractBase(observer.Observable):
     def add_log_ctx(self, kwargs, callable):
         extra = kwargs.get("extra", dict())
         meta_c = extra.get("meta_c", set())
-        meta_c.append(callable)
+        meta_c.add(callable)
         extra["meta_c"] = meta_c
         kwargs["extra"] = extra
 
