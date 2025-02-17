@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
+## [1.20.1] - 2024-05-30
+
+### Fixed
+
+* Issue with the `LogstashHandler` when context calling raises issues
+
 ## [1.20.0] - 2024-05-30
 
 ### Added
