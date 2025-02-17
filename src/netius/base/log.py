@@ -172,10 +172,12 @@ class LogstashHandler(logging.Handler):
             return
 
         # clears the current set of messages and updates the last flush timestamp
-        # (does this before the actual flush operation to avoid duplicated messages)
-        # and then posts the complete set of messages to logstash
+        # does this before the actual flush operation to avoid duplicated messages
         self.messages = []
         self._last_flush = time.time()
+
+        # posts the complete set of messages to logstash, notice that this is a blocking
+        # call and may take some time to be completed
         self.api.log_bulk(messages, tag="default", raise_e=raise_e)
 
     def _build_api(self):
