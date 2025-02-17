@@ -355,6 +355,7 @@ class AbstractBase(observer.Observable):
         self._forked = False
         self._child = False
         self._concrete = False
+        self._logging = False
         self._services = {}
         self._childs = []
         self._events = {}
@@ -3450,12 +3451,18 @@ class AbstractBase(observer.Observable):
             method(line, extra=dict(stack=True))
 
     def log(self, *args, **kwargs):
-        self.add_log_ctx(kwargs, self.log_ctx)
-        self.add_log_stack(kwargs)
-        if legacy.PYTHON_3:
-            return self.log_python_3(*args, **kwargs)
-        else:
-            return self.log_python_2(*args, **kwargs)
+        if self._logging:
+            return
+        self._logging = True
+        try:
+            self.add_log_ctx(kwargs, self.log_ctx)
+            self.add_log_stack(kwargs)
+            if legacy.PYTHON_3:
+                return self.log_python_3(*args, **kwargs)
+            else:
+                return self.log_python_2(*args, **kwargs)
+        finally:
+            self._logging = False
 
     def log_python_3(self, object, level=logging.INFO, **kwargs):
         is_str = isinstance(object, legacy.STRINGS)
