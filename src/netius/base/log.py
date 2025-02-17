@@ -171,11 +171,12 @@ class LogstashHandler(logging.Handler):
         if not messages and not force:
             return
 
-        # posts the complete set of messages to logstash and then clears the messages
-        # and updates the last flush time
-        self.api.log_bulk(messages, tag="default", raise_e=raise_e)
+        # clears the current set of messages and updates the last flush timestamp
+        # (does this before the actual flush operation to avoid duplicated messages)
+        # and then posts the complete set of messages to logstash
         self.messages = []
         self._last_flush = time.time()
+        self.api.log_bulk(messages, tag="default", raise_e=raise_e)
 
     def _build_api(self):
         try:
