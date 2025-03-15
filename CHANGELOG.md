@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+*
+
+## [1.20.5] - 2025-03-15
+
+### Fixed
+
 * CONTENT_LENGTH issue in HTTP client where it was being passed as integer and not string
 
 ## [1.20.4] - 2025-02-17
