@@ -126,7 +126,7 @@ class WSGIServer(http2.HTTP2Server):
             PATH_INFO=path_info,
             QUERY_STRING=query,
             CONTENT_TYPE=parser.headers.get("content-type", ""),
-            CONTENT_LENGTH="" if parser.content_l == -1 else parser.content_l,
+            CONTENT_LENGTH="" if parser.content_l == -1 else str(parser.content_l),
             SERVER_NAME=self.host,
             SERVER_PORT=str(self.port),
             SERVER_PROTOCOL=parser.version_s,
