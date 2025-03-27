@@ -28,6 +28,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+from . import util
 from . import legacy
 from . import request
 from . import observer
@@ -389,3 +390,14 @@ class StreamProtocol(Protocol):
         # returns the size (in bytes) of the data that has just been
         # explicitly sent through the associated transport
         return len(data)
+
+    def upgrade_ssl(self, callback = None):
+        # ensures that there's a transport defined for the current
+        # protocol, as that's required for the upgrade operation
+        util.verify(
+            not self._transport == None,
+            message = "To upgrade a connection the transport must be defined"
+        )
+
+        #@todo upgrade this socket to SSL
+        socket = self._transport.get_extra_info("socket")
