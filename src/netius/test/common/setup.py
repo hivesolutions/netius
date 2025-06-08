@@ -31,8 +31,6 @@ __license__ = "Apache License, Version 2.0"
 import os
 import unittest
 
-import netius
-
 import netius.common
 
 
