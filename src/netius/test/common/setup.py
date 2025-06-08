@@ -51,6 +51,7 @@ class CommonTest(unittest.TestCase):
     def test__download_ca(self):
         if appier.conf("NO_NETWORK", False, cast=bool):
             self.skipTest("Network access is disabled")
+
         netius.common.ensure_ca(path="test.ca")
         file = open("test.ca", "rb")
         try:
