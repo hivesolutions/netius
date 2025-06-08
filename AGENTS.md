@@ -98,8 +98,7 @@ agent.bind("data", lambda *args: print("Received data!"))
 
 ## Formatting
 
-Always format the code before commiting using, making sure that the Python code
-is properly formatted using:
+Always format the code before commiting using, making sure that the Python code is properly formatted using:
 
 ```bash
 black .
