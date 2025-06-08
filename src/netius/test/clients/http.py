@@ -38,6 +38,9 @@ class HTTPClientTest(unittest.TestCase):
 
     def setUp(self):
         unittest.TestCase.setUp(self)
+        if netius.conf("NO_NETWORK", False, cast=bool):
+            self.skipTest("Network access is disabled")
+
         self.httpbin = netius.conf("HTTPBIN", "httpbin.org")
 
     def test_simple(self):
