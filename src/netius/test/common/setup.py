@@ -31,12 +31,26 @@ __license__ = "Apache License, Version 2.0"
 import os
 import unittest
 
+try:
+    import appier
+except ImportError:  # pragma: no cover
+    import netius.mock
+
+    appier = netius.mock.appier
+
+if not hasattr(appier, "conf"):
+    import netius
+
+    appier.conf = netius.conf
+
 import netius.common
 
 
 class CommonTest(unittest.TestCase):
 
     def test__download_ca(self):
+        if appier.conf("NO_NETWORK", False, cast=bool):
+            self.skipTest("Network access is disabled")
         netius.common.ensure_ca(path="test.ca")
         file = open("test.ca", "rb")
         try:

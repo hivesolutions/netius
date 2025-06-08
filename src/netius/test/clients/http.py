@@ -31,6 +31,18 @@ __license__ = "Apache License, Version 2.0"
 import json
 import unittest
 
+try:
+    import appier
+except ImportError:  # pragma: no cover
+    import netius.mock
+
+    appier = netius.mock.appier
+
+if not hasattr(appier, "conf"):
+    import netius
+
+    appier.conf = netius.conf
+
 import netius.clients
 
 
@@ -38,6 +50,8 @@ class HTTPClientTest(unittest.TestCase):
 
     def setUp(self):
         unittest.TestCase.setUp(self)
+        if appier.conf("NO_NETWORK", False, cast=bool):
+            self.skipTest("Network access is disabled")
         self.httpbin = netius.conf("HTTPBIN", "httpbin.org")
 
     def test_simple(self):
