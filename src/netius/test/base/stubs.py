@@ -30,6 +30,7 @@ __license__ = "Apache License, Version 2.0"
 
 import subprocess
 import sys
+import importlib.util
 import unittest
 
 
@@ -67,5 +68,7 @@ class StubsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout)
 
     def test_stubtest(self):
+        if importlib.util.find_spec("mypy.stubtest") is None:
+            self.skipTest("mypy is not installed")
         for module in self.MODULES:
             self._run_stubtest(module)
