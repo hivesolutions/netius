@@ -99,7 +99,7 @@
 | **RESOLVE_TIMEOUT**   | `float` | The amount of seconds between DNS resolution queries (defaults to `120`).                                                                                                        |
 | **HOST_FORWARD**      | `bool`  | If the `Host` header for HTTP back-end connections should be resolved from rules, avoiding `Host` header populated with the IP address (defaults to `False`).                    |
 | **REUSE**             | `bool`  | If HTTP connections/rules should be re-used from a proxy point of view, this options may pose a problem when different suffixes are used for the same host (defaults to `True`). |
-| **STRATEGY**          | `str`   | The load balancing strategy that is going to be used for multiple back-end connections (defaults to `smart`).                                                                    |
+| **STRATEGY**          | `str`   | The load balancing strategy that is going to be used for multiple back-end connections (defaults to `robin`).                                                                    |
 | **X_FORWARDED_PORT**  | `str`   | If defined allow "forcing" the `X-Forwarded-Port` HTTP header (defaults to `None`).                                                                                              |
 | **X_FORWARDED_PROTO** | `str`   | If defined allow "forcing" the `X-Forwarded-Proto` HTTP header (defaults to `None`).                                                                                             |
 
