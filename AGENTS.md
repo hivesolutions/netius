@@ -101,7 +101,19 @@ agent.bind("data", lambda *args: print("Received data!"))
 Always format the code before commiting using, making sure that the Python code is properly formatted using:
 
 ```bash
+pip install black
 black .
+```
+
+## Testing
+
+Run the full test suite:
+
+```bash
+pip install -r requirements.txt
+pip install -r extra.txt
+pip install pytest
+HTTPBIN=httpbin.bemisc.com pytest
 ```
 
 ## Style Guide
