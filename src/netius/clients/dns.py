@@ -361,7 +361,7 @@ class DNSProtocol(netius.DatagramProtocol):
             line = line.strip()
             if not line.startswith(b"nameserver"):
                 continue
-            if not " " in line:
+            if not b" " in line:
                 continue
             _header, ns = line.split(b" ", 1)
             ns = ns.strip()

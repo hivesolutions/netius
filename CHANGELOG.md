@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Binary check for empty string
 
 ## [1.20.6] - 2025-09-30
 
