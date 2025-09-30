@@ -13,11 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Added additional validation to the nameserver file
+*
 
 ### Fixed
 
 *
+
+## [1.20.6] - 2025-09-30
+
+### Changed
+
+* Added additional validation to the nameserver file
 
 ## [1.20.5] - 2025-03-15
 
