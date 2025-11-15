@@ -733,7 +733,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         _connection = parser.owner
         busy = _connection.busy if hasattr(_connection, "busy") else 0
         state = _connection.state if hasattr(_connection, "state") else None
-        error_url = _connection.state if hasattr(_connection, "error_url") else None
+        error_url = _connection.error_url if hasattr(_connection, "error_url") else None
         if busy:
             self.busy_conn -= 1
             _connection.busy -= 1
@@ -747,7 +747,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     def _on_prx_close(self, client, _connection):
         busy = _connection.busy if hasattr(_connection, "busy") else 0
         state = _connection.state if hasattr(_connection, "state") else None
-        error_url = _connection.state if hasattr(_connection, "error_url") else None
+        error_url = _connection.error_url if hasattr(_connection, "error_url") else None
         if busy:
             self.busy_conn -= busy
             _connection.busy -= busy
