@@ -658,7 +658,7 @@ class ProxyServer(http2.HTTP2Server):
         version_s = parser_prx.version_s
         version_s = version_s.split("/", 1)[1]
 
-        # unpacks the current connectiont's address so that the host
+        # unpacks the current connection's address so that the host
         # value is possible to be retrieved (as expected)
         host, _port = connection.address
 
