@@ -5,6 +5,7 @@ session.shelve*
 
 .DS_Store
 
+/.env
 /.venv
 /.vscode/settings.json
 
