@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* SSLError propagation in `on_write` breaking the main loop during SSL handshake failures
 
 ## [1.20.7] - 2025-09-30
 

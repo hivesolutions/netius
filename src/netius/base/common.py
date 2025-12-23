@@ -3014,14 +3014,14 @@ class AbstractBase(observer.Observable):
         if not connection.status == OPEN:
             return
 
-        # in case the connection is under the connecting state
-        # the socket must be verified for errors and in case
-        # there's none the connection must proceed, for example
-        # the SSL connection handshake must be performed/retried
-        if connection.connecting:
-            self._connectf(connection)
-
         try:
+            # in case the connection is under the connecting state
+            # the socket must be verified for errors and in case
+            # there's none the connection must proceed, for example
+            # the SSL connection handshake must be performed/retried
+            if connection.connecting:
+                self._connectf(connection)
+
             connection._send()
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
