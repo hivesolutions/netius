@@ -2489,7 +2489,8 @@ class AbstractBase(observer.Observable):
 
         # calls the run (tick) starter operation that should start
         # and run all the starters registered for the connection or
-        # continue any starter operation that is pending for it
+        # continue any starter operation that is pending for it, meaning
+        # that SSL errors or other connection related errors may be raised
         return connection.run_starter()
 
     def _notifies(self):

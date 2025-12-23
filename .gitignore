@@ -5,6 +5,7 @@ session.shelve*
 
 .DS_Store
 
+/.venv
 /.vscode/settings.json
 
 net.ca
