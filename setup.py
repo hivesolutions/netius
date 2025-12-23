@@ -59,7 +59,7 @@ def read_file(path):
 netius.common.ensure_setup()
 setuptools.setup(
     name = "netius",
-    version = "1.16.63",
+    version = "1.16.64",
     author = "Hive Solutions Lda.",
     author_email = "development@hive.pt",
     description = "Netius System",
