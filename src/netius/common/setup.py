@@ -64,7 +64,7 @@ def _download_ca(path=SSL_CA_PATH, raise_e=True):
     if not result["code"] == 200:
         if not raise_e:
             return
-        raise Exception("Error while downloading CA file from '%s'" % CA_URL)
+        raise Exception("Error while downloading CA file from '%s' (code: %d)" % (CA_URL, result["code"]))
     response = netius.clients.HTTPClient.to_response(result)
     contents = response.read()
     _store_contents(contents, path)
