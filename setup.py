@@ -56,7 +56,9 @@ def read_file(path):
     try: return file.read()
     finally: file.close()
 
-netius.common.ensure_setup()
+if not os.environ.get("SKIP_SETUP", "0") == "1":
+    netius.common.ensure_setup()
+
 setuptools.setup(
     name = "netius",
     version = "1.16.64",
