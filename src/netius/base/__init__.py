@@ -113,7 +113,16 @@ from .compat import (
     connect_stream,
     serve_stream,
 )
-from .config import conf, conf_prefix, conf_suffix, conf_s, conf_r, conf_d, conf_ctx
+from .config import (
+    conf,
+    conf_prefix,
+    conf_suffix,
+    conf_s,
+    conf_r,
+    conf_d,
+    conf_ctx,
+    conf_override,
+)
 from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
 from .container import Container, ContainerServer
 from .errors import (
