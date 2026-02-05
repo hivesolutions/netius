@@ -31,6 +31,7 @@ from . import file
 from . import filea
 from . import hello_w
 from . import hello
+from . import proxy_c
 from . import proxy_d
 from . import proxy_f
 from . import proxy_r
@@ -41,6 +42,7 @@ from .dhcp_s import DHCPServerS
 from .file import FileServer
 from .filea import FileAsyncServer
 from .hello import HelloServer
+from .proxy_c import ConsulProxyServer
 from .proxy_d import DockerProxyServer
 from .proxy_f import ForwardProxyServer
 from .proxy_r import ReverseProxyServer
