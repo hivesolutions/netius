@@ -433,7 +433,11 @@ class ConsulProxyServerTest(unittest.TestCase):
             self.skipTest("Skipping test: mock unavailable")
 
         services = {
-            "myapp": ["proxy.enable=true", "proxy.name=webapp", "proxy.redirect-ssl=true"]
+            "myapp": [
+                "proxy.enable=true",
+                "proxy.name=webapp",
+                "proxy.redirect-ssl=true",
+            ]
         }
         health = [
             {
