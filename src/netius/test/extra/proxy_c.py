@@ -83,6 +83,242 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.assertEqual(server.host_suffixes, ["example.com"])
         server.cleanup()
 
+    def test_build_hosts(self):
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.hosts.get("myapp"), "http://10.0.0.1:8080")
+
+    def test_build_hosts_multiple(self):
+        entries = [
+            (
+                "myapp",
+                "myapp",
+                ["http://10.0.0.1:8080", "http://10.0.0.2:8080"],
+                ["proxy.enable=true"],
+            )
+        ]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(
+            self.server.hosts.get("myapp"),
+            ("http://10.0.0.1:8080", "http://10.0.0.2:8080"),
+        )
+
+    def test_build_hosts_custom_domain(self):
+        entries = [
+            (
+                "myapp",
+                "app.local",
+                ["http://10.0.0.1:8080"],
+                ["proxy.enable=true", "proxy.domain=app.local"],
+            )
+        ]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.hosts.get("app.local"), "http://10.0.0.1:8080")
+        self.assertTrue("myapp" not in self.server.hosts)
+
+    def test_build_hosts_custom_name(self):
+        entries = [
+            (
+                "myapp",
+                "webapp",
+                ["http://10.0.0.1:8080"],
+                ["proxy.enable=true", "proxy.name=webapp"],
+            )
+        ]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.hosts.get("webapp"), "http://10.0.0.1:8080")
+        self.assertTrue("myapp" not in self.server.hosts)
+
+    def test_build_hosts_cleanup(self):
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.hosts.get("myapp"), "http://10.0.0.1:8080")
+
+        # simulates second rebuild with the service removed from
+        # consul, the host entry should be properly cleaned up
+        self.server._build_hosts([])
+
+        self.assertTrue("myapp" not in self.server.hosts)
+
+    def test_build_hosts_empty(self):
+        self.server._build_hosts([])
+
+        self.assertEqual(len(self.server._consul_hosts), 0)
+
+    def test_build_hosts_no_healthy(self):
+        self.server._build_hosts([])
+
+        self.assertTrue("myapp" not in self.server.hosts)
+
+    def test_build_suffixes(self):
+        server = netius.extra.ConsulProxyServer(
+            host_suffixes=["example.com"],
+            hosts=dict(),
+            auth=dict(),
+            redirect=dict(),
+            error_urls=dict(),
+        )
+
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
+        server._build_consul(entries)
+
+        self.assertEqual(server.hosts.get("myapp"), "http://10.0.0.1:8080")
+        self.assertEqual(server.alias.get("myapp.example.com"), "myapp")
+        server.cleanup()
+
+    def test_build_suffixes_multiple(self):
+        server = netius.extra.ConsulProxyServer(
+            host_suffixes=["example.com", "test.io"],
+            hosts=dict(),
+            auth=dict(),
+            redirect=dict(),
+            error_urls=dict(),
+        )
+
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
+        server._build_consul(entries)
+
+        self.assertEqual(server.alias.get("myapp.example.com"), "myapp")
+        self.assertEqual(server.alias.get("myapp.test.io"), "myapp")
+        server.cleanup()
+
+    def test_build_suffixes_no_suffixes(self):
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
+        self.server._build_consul(entries)
+
+        self.assertEqual(self.server.hosts.get("myapp"), "http://10.0.0.1:8080")
+        self.assertEqual(len(self.server._consul_aliases), 0)
+
+    def test_build_suffixes_cleanup(self):
+        server = netius.extra.ConsulProxyServer(
+            host_suffixes=["example.com"],
+            hosts=dict(),
+            auth=dict(),
+            redirect=dict(),
+            error_urls=dict(),
+        )
+
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
+        server._build_consul(entries)
+
+        self.assertEqual(server.hosts.get("myapp"), "http://10.0.0.1:8080")
+        self.assertTrue("myapp.example.com" in server.alias)
+
+        # simulates second rebuild with the service removed,
+        # the suffix alias should be properly cleaned up
+        server._build_consul([])
+
+        self.assertTrue("myapp" not in server.hosts)
+        self.assertTrue("myapp.example.com" not in server.alias)
+        server.cleanup()
+
+    def test_consul_fetch(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        services = {
+            "myapp": ["proxy.enable=true"],
+            "redis": ["database"],
+        }
+        health = [
+            {
+                "Service": {"Address": "10.0.0.1", "Port": 8080},
+                "Node": {"Address": "10.0.0.100"},
+            }
+        ]
+
+        with mock.patch.object(
+            self.server, "_consul_services", return_value=services
+        ), mock.patch.object(self.server, "_consul_health", return_value=health):
+            entries = self.server._consul_fetch()
+
+        self.assertEqual(len(entries), 1)
+        service, domain, urls, _tags = entries[0]
+        self.assertEqual(service, "myapp")
+        self.assertEqual(domain, "myapp")
+        self.assertEqual(urls, ["http://10.0.0.1:8080"])
+
+    def test_consul_fetch_no_healthy(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        services = {"myapp": ["proxy.enable=true"]}
+
+        with mock.patch.object(
+            self.server, "_consul_services", return_value=services
+        ), mock.patch.object(self.server, "_consul_health", return_value=[]):
+            entries = self.server._consul_fetch()
+
+        self.assertEqual(len(entries), 0)
+
+    def test_consul_fetch_empty(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        with mock.patch.object(self.server, "_consul_services", return_value=dict()):
+            entries = self.server._consul_fetch()
+
+        self.assertEqual(len(entries), 0)
+
+    def test_consul_fetch_port_filter(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        services = {"myapp": ["proxy.enable=true", "proxy.port=8080"]}
+        health = [
+            {
+                "Service": {"Address": "10.0.0.1", "Port": 8080},
+                "Node": {"Address": "10.0.0.100"},
+            },
+            {
+                "Service": {"Address": "10.0.0.2", "Port": 9090},
+                "Node": {"Address": "10.0.0.101"},
+            },
+        ]
+
+        with mock.patch.object(
+            self.server, "_consul_services", return_value=services
+        ), mock.patch.object(self.server, "_consul_health", return_value=health):
+            entries = self.server._consul_fetch()
+
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0][2], ["http://10.0.0.1:8080"])
+
+    def test_consul_fetch_port_filter_multiple(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        services = {"myapp": ["proxy.enable=true", "proxy.port=8080,9090"]}
+        health = [
+            {
+                "Service": {"Address": "10.0.0.1", "Port": 8080},
+                "Node": {"Address": "10.0.0.100"},
+            },
+            {
+                "Service": {"Address": "10.0.0.2", "Port": 9090},
+                "Node": {"Address": "10.0.0.101"},
+            },
+            {
+                "Service": {"Address": "10.0.0.3", "Port": 3000},
+                "Node": {"Address": "10.0.0.102"},
+            },
+        ]
+
+        with mock.patch.object(
+            self.server, "_consul_services", return_value=services
+        ), mock.patch.object(self.server, "_consul_health", return_value=health):
+            entries = self.server._consul_fetch()
+
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(
+            entries[0][2], ["http://10.0.0.1:8080", "http://10.0.0.2:9090"]
+        )
+
     def test_resolve_domain(self):
         tags = ["proxy.enable=true", "proxy.domain=myapp.local"]
         result = self.server._resolve_domain("myapp", tags)
@@ -112,6 +348,128 @@ class ConsulProxyServerTest(unittest.TestCase):
         tags = ["proxy.enable=true", "proxy.name="]
         result = self.server._resolve_domain("MyApp", tags)
         self.assertEqual(result, "myapp")
+
+    def test_resolve_ports(self):
+        tags = ["proxy.enable=true", "proxy.port=8080"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080})
+
+    def test_resolve_ports_multiple(self):
+        tags = ["proxy.enable=true", "proxy.port=8080,9090"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080, 9090})
+
+    def test_resolve_ports_alias(self):
+        tags = ["proxy.enable=true", "proxy.ports=8080,9090"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080, 9090})
+
+    def test_resolve_ports_none(self):
+        tags = ["proxy.enable=true"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_ports_empty(self):
+        tags = ["proxy.enable=true", "proxy.port="]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_ports_priority(self):
+        tags = ["proxy.enable=true", "proxy.port=8080", "proxy.ports=9090"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080})
+
+    def test_resolve_ports_spaces(self):
+        tags = ["proxy.enable=true", "proxy.port=8080 , 9090"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080, 9090})
+
+    def test_resolve_ports_invalid(self):
+        tags = ["proxy.enable=true", "proxy.port=abc"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, None)
+
+    def test_apply_tags_password(self):
+        tags = ["proxy.enable=true", "proxy.password=secret123"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertTrue("myapp" in self.server.auth)
+        self.assertEqual(self.server.auth["myapp"].password, "secret123")
+
+    def test_apply_tags_password_empty(self):
+        tags = ["proxy.enable=true", "proxy.password="]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertTrue("myapp" not in self.server.auth)
+
+    def test_apply_tags_error_url(self):
+        tags = ["proxy.enable=true", "proxy.error-url=http://errors.local/50x"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.error_urls.get("myapp"), "http://errors.local/50x")
+
+    def test_apply_tags_error_url_empty(self):
+        tags = ["proxy.enable=true", "proxy.error-url="]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertTrue("myapp" not in self.server.error_urls)
+
+    def test_apply_tags_redirect_ssl(self):
+        tags = ["proxy.enable=true", "proxy.redirect-ssl=true"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.redirect.get("myapp"), ("myapp", "https"))
+
+    def test_apply_tags_redirect_ssl_custom_name(self):
+        tags = ["proxy.enable=true", "proxy.name=webapp", "proxy.redirect-ssl=true"]
+        entries = [("myapp", "webapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.redirect.get("webapp"), ("webapp", "https"))
+        self.assertTrue("myapp" not in self.server.redirect)
+
+    def test_apply_tags_combined(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.password=secret",
+            "proxy.error-url=http://errors.local/50x",
+            "proxy.redirect-ssl=true",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.hosts.get("myapp"), "http://10.0.0.1:8080")
+        self.assertEqual(self.server.auth["myapp"].password, "secret")
+        self.assertEqual(self.server.error_urls.get("myapp"), "http://errors.local/50x")
+        self.assertEqual(self.server.redirect.get("myapp"), ("myapp", "https"))
+
+    def test_apply_tags_cleanup(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.password=secret",
+            "proxy.error-url=http://errors.local/50x",
+            "proxy.redirect-ssl=true",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertTrue("myapp" in self.server.auth)
+        self.assertTrue("myapp" in self.server.error_urls)
+        self.assertTrue("myapp" in self.server.redirect)
+
+        # simulates second rebuild with the service removed from
+        # consul, all entries should be properly cleaned up
+        self.server._build_hosts([])
+
+        self.assertTrue("myapp" not in self.server.hosts)
+        self.assertTrue("myapp" not in self.server.auth)
+        self.assertTrue("myapp" not in self.server.error_urls)
+        self.assertTrue("myapp" not in self.server.redirect)
 
     def test_build_urls(self):
         instances = [
@@ -171,205 +529,6 @@ class ConsulProxyServerTest(unittest.TestCase):
         result = self.server._build_urls([])
         self.assertEqual(result, [])
 
-    def test_build_hosts(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {
-            "myapp": ["proxy.enable=true"],
-            "redis": ["database"],
-        }
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            }
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertEqual(self.server.hosts.get("myapp"), "http://10.0.0.1:8080")
-        self.assertTrue("redis" not in self.server.hosts)
-
-    def test_build_hosts_multiple(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {"myapp": ["proxy.enable=true"]}
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            },
-            {
-                "Service": {"Address": "10.0.0.2", "Port": 8080},
-                "Node": {"Address": "10.0.0.101"},
-            },
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertEqual(
-            self.server.hosts.get("myapp"),
-            ("http://10.0.0.1:8080", "http://10.0.0.2:8080"),
-        )
-
-    def test_build_hosts_custom_domain(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {"myapp": ["proxy.enable=true", "proxy.domain=app.local"]}
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            }
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertEqual(self.server.hosts.get("app.local"), "http://10.0.0.1:8080")
-        self.assertTrue("myapp" not in self.server.hosts)
-
-    def test_build_hosts_custom_name(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {"myapp": ["proxy.enable=true", "proxy.name=webapp"]}
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            }
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertEqual(self.server.hosts.get("webapp"), "http://10.0.0.1:8080")
-        self.assertTrue("myapp" not in self.server.hosts)
-
-    def test_build_hosts_cleanup(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {"myapp": ["proxy.enable=true"]}
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            }
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertEqual(self.server.hosts.get("myapp"), "http://10.0.0.1:8080")
-
-        # simulates second rebuild with the service removed from
-        # consul, the host entry should be properly cleaned up
-        with mock.patch.object(self.server, "_consul_services", return_value=dict()):
-            self.server._build_hosts()
-
-        self.assertTrue("myapp" not in self.server.hosts)
-
-    def test_build_hosts_empty(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        with mock.patch.object(self.server, "_consul_services", return_value=dict()):
-            self.server._build_hosts()
-
-        self.assertEqual(len(self.server._consul_hosts), 0)
-
-    def test_build_hosts_no_healthy(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {"myapp": ["proxy.enable=true"]}
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=[]):
-            self.server._build_hosts()
-
-        self.assertTrue("myapp" not in self.server.hosts)
-
-    def test_host_rules(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {"myapp": ["proxy.enable=true"]}
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            }
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        Parser = collections.namedtuple("Parser", "headers")
-        parser = Parser(headers=dict(host="myapp"))
-        result = self.server.rules_host(None, parser)
-        self.assertEqual(result, ("http://10.0.0.1:8080", None))
-
-    def test_resolve_ports(self):
-        tags = ["proxy.enable=true", "proxy.port=8080"]
-        result = self.server._resolve_ports(tags)
-        self.assertEqual(result, {8080})
-
-    def test_resolve_ports_multiple(self):
-        tags = ["proxy.enable=true", "proxy.port=8080,9090"]
-        result = self.server._resolve_ports(tags)
-        self.assertEqual(result, {8080, 9090})
-
-    def test_resolve_ports_alias(self):
-        tags = ["proxy.enable=true", "proxy.ports=8080,9090"]
-        result = self.server._resolve_ports(tags)
-        self.assertEqual(result, {8080, 9090})
-
-    def test_resolve_ports_none(self):
-        tags = ["proxy.enable=true"]
-        result = self.server._resolve_ports(tags)
-        self.assertEqual(result, None)
-
-    def test_resolve_ports_empty(self):
-        tags = ["proxy.enable=true", "proxy.port="]
-        result = self.server._resolve_ports(tags)
-        self.assertEqual(result, None)
-
-    def test_resolve_ports_priority(self):
-        tags = ["proxy.enable=true", "proxy.port=8080", "proxy.ports=9090"]
-        result = self.server._resolve_ports(tags)
-        self.assertEqual(result, {8080})
-
-    def test_resolve_ports_spaces(self):
-        tags = ["proxy.enable=true", "proxy.port=8080 , 9090"]
-        result = self.server._resolve_ports(tags)
-        self.assertEqual(result, {8080, 9090})
-
-    def test_resolve_ports_invalid(self):
-        tags = ["proxy.enable=true", "proxy.port=abc"]
-        result = self.server._resolve_ports(tags)
-        self.assertEqual(result, None)
-
     def test_build_urls_port_filter(self):
         instances = [
             {
@@ -398,246 +557,11 @@ class ConsulProxyServerTest(unittest.TestCase):
         result = self.server._build_urls(instances, ports=None)
         self.assertEqual(result, ["http://10.0.0.1:8080", "http://10.0.0.2:9090"])
 
-    def test_build_hosts_port_filter(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
+    def test_host_rules(self):
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
+        self.server._build_hosts(entries)
 
-        services = {"myapp": ["proxy.enable=true", "proxy.port=8080"]}
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            },
-            {
-                "Service": {"Address": "10.0.0.2", "Port": 9090},
-                "Node": {"Address": "10.0.0.101"},
-            },
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertEqual(self.server.hosts.get("myapp"), "http://10.0.0.1:8080")
-
-    def test_build_hosts_port_filter_multiple(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {"myapp": ["proxy.enable=true", "proxy.port=8080,9090"]}
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            },
-            {
-                "Service": {"Address": "10.0.0.2", "Port": 9090},
-                "Node": {"Address": "10.0.0.101"},
-            },
-            {
-                "Service": {"Address": "10.0.0.3", "Port": 3000},
-                "Node": {"Address": "10.0.0.102"},
-            },
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertEqual(
-            self.server.hosts.get("myapp"),
-            ("http://10.0.0.1:8080", "http://10.0.0.2:9090"),
-        )
-
-    def test_apply_tags_password(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {"myapp": ["proxy.enable=true", "proxy.password=secret123"]}
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            }
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertTrue("myapp" in self.server.auth)
-        self.assertEqual(self.server.auth["myapp"].password, "secret123")
-
-    def test_apply_tags_password_empty(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {"myapp": ["proxy.enable=true", "proxy.password="]}
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            }
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertTrue("myapp" not in self.server.auth)
-
-    def test_apply_tags_error_url(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {
-            "myapp": ["proxy.enable=true", "proxy.error-url=http://errors.local/50x"]
-        }
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            }
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertEqual(self.server.error_urls.get("myapp"), "http://errors.local/50x")
-
-    def test_apply_tags_error_url_empty(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {"myapp": ["proxy.enable=true", "proxy.error-url="]}
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            }
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertTrue("myapp" not in self.server.error_urls)
-
-    def test_apply_tags_redirect_ssl(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {"myapp": ["proxy.enable=true", "proxy.redirect-ssl=true"]}
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            }
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertEqual(self.server.redirect.get("myapp"), ("myapp", "https"))
-
-    def test_apply_tags_redirect_ssl_custom_name(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {
-            "myapp": [
-                "proxy.enable=true",
-                "proxy.name=webapp",
-                "proxy.redirect-ssl=true",
-            ]
-        }
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            }
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertEqual(self.server.redirect.get("webapp"), ("webapp", "https"))
-        self.assertTrue("myapp" not in self.server.redirect)
-
-    def test_apply_tags_combined(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {
-            "myapp": [
-                "proxy.enable=true",
-                "proxy.password=secret",
-                "proxy.error-url=http://errors.local/50x",
-                "proxy.redirect-ssl=true",
-            ]
-        }
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            }
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertEqual(self.server.hosts.get("myapp"), "http://10.0.0.1:8080")
-        self.assertEqual(self.server.auth["myapp"].password, "secret")
-        self.assertEqual(self.server.error_urls.get("myapp"), "http://errors.local/50x")
-        self.assertEqual(self.server.redirect.get("myapp"), ("myapp", "https"))
-
-    def test_apply_tags_cleanup(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        services = {
-            "myapp": [
-                "proxy.enable=true",
-                "proxy.password=secret",
-                "proxy.error-url=http://errors.local/50x",
-                "proxy.redirect-ssl=true",
-            ]
-        }
-        health = [
-            {
-                "Service": {"Address": "10.0.0.1", "Port": 8080},
-                "Node": {"Address": "10.0.0.100"},
-            }
-        ]
-
-        with mock.patch.object(
-            self.server, "_consul_services", return_value=services
-        ), mock.patch.object(self.server, "_consul_health", return_value=health):
-            self.server._build_hosts()
-
-        self.assertTrue("myapp" in self.server.auth)
-        self.assertTrue("myapp" in self.server.error_urls)
-        self.assertTrue("myapp" in self.server.redirect)
-
-        # simulates second rebuild with the service removed from
-        # consul, all entries should be properly cleaned up
-        with mock.patch.object(self.server, "_consul_services", return_value=dict()):
-            self.server._build_hosts()
-
-        self.assertTrue("myapp" not in self.server.hosts)
-        self.assertTrue("myapp" not in self.server.auth)
-        self.assertTrue("myapp" not in self.server.error_urls)
-        self.assertTrue("myapp" not in self.server.redirect)
+        Parser = collections.namedtuple("Parser", "headers")
+        parser = Parser(headers=dict(host="myapp"))
+        result = self.server.rules_host(None, parser)
+        self.assertEqual(result, ("http://10.0.0.1:8080", None))
