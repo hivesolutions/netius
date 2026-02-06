@@ -65,7 +65,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         consul_url="http://localhost:8500",
         consul_token=None,
         consul_tag="proxy.enable=true",
-        consul_poll_interval=30.0,
+        consul_poll_interval=60.0,
         host_suffixes=[],
         *args,
         **kwargs
@@ -79,6 +79,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             host_suffixes=host_suffixes,
         )
         self._consul_hosts = set()
+        self._consul_aliases = set()
 
     def on_serve(self):
         proxy_r.ReverseProxyServer.on_serve(self)
@@ -100,11 +101,11 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         self.info("Consul poll interval set to %.2fs" % self.consul_poll_interval)
         self._consul_tick(timeout=self.consul_poll_interval)
 
-    def _build_consul(self):
-        self._build_hosts()
+    def _build_consul(self, entries):
+        self._build_hosts(entries)
         self._build_suffixes()
 
-    def _build_hosts(self):
+    def _build_hosts(self, entries):
         # removes any previously registered consul-managed hosts,
         # auth, error URLs and redirects to ensure a clean state
         # before rebuilding the complete set of entries
@@ -115,8 +116,56 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             self.redirect.pop(host, None)
         self._consul_hosts = set()
 
-        # retrieves the complete set of services from the consul
-        # catalog and iterates over them looking for eligible ones
+        # iterates over the fetched entries registering each one
+        # in the hosts map and applying per-service configuration
+        for service, domain, urls, tags in entries:
+            # registers the service in the hosts map, using a
+            # tuple for multiple instances (load balancing) or
+            # a plain string for a single instance
+            if len(urls) == 1:
+                self.hosts[domain] = urls[0]
+            else:
+                self.hosts[domain] = tuple(urls)
+
+            # applies extra per-service configuration from consul
+            # tags (password, error URL, SSL redirect)
+            self._apply_tags(domain, tags)
+
+            # tracks the consul-managed host key so it can be
+            # cleaned up on the next rebuild cycle
+            self._consul_hosts.add(domain)
+
+            self.debug(
+                "Registered Consul service '%s' as '%s' with %d instance(s)"
+                % (service, domain, len(urls))
+            )
+
+    def _build_suffixes(self, alias=True, redirect=True):
+        # removes any previously registered consul-managed aliases
+        # and hosts to ensure a clean state before rebuilding
+        for fqn in self._consul_aliases:
+            self.alias.pop(fqn, None)
+            self.hosts.pop(fqn, None)
+        self._consul_aliases = set()
+
+        for host_suffix in self.host_suffixes:
+            self.info("Registering %s host suffix" % host_suffix)
+            for _alias, value in netius.legacy.items(self.alias):
+                fqn = _alias + "." + str(host_suffix)
+                self.alias[fqn] = value
+                self._consul_aliases.add(fqn)
+            for name, value in netius.legacy.items(self.hosts):
+                fqn = name + "." + str(host_suffix)
+                if alias:
+                    self.alias[fqn] = name
+                else:
+                    self.hosts[fqn] = value
+                self._consul_aliases.add(fqn)
+
+    def _consul_fetch(self):
+        # fetches all eligible service data from the consul catalog
+        # and health endpoints (I/O bound, safe to run in a thread)
+        entries = []
         services = self._consul_services()
         for service, tags in netius.legacy.iteritems(services):
             # verifies that the current service contains the required
@@ -145,56 +194,33 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             if not urls:
                 continue
 
-            # registers the service in the hosts map, using a
-            # tuple for multiple instances (load balancing) or
-            # a plain string for a single instance
-            if len(urls) == 1:
-                self.hosts[domain] = urls[0]
-            else:
-                self.hosts[domain] = tuple(urls)
-
-            # applies extra per-service configuration from consul
-            # tags (password, error URL, SSL redirect)
-            self._apply_tags(domain, tags)
-
-            # tracks the consul-managed host key so it can be
-            # cleaned up on the next rebuild cycle
-            self._consul_hosts.add(domain)
-
-            self.debug(
-                "Registered Consul service '%s' as '%s' with %d instance(s)"
-                % (service, domain, len(urls))
-            )
-
-    def _build_suffixes(self, alias=True, redirect=True):
-        for host_suffix in self.host_suffixes:
-            self.info("Registering %s host suffix" % host_suffix)
-            for _alias, value in netius.legacy.items(self.alias):
-                fqn = _alias + "." + str(host_suffix)
-                self.alias[fqn] = value
-            for name, value in netius.legacy.items(self.hosts):
-                fqn = name + "." + str(host_suffix)
-                if alias:
-                    self.alias[fqn] = name
-                else:
-                    self.hosts[fqn] = value
+            # adds the resolved entry to the list of entries to
+            # be applied later if necessary
+            entries.append((service, domain, urls, tags))
+        return entries
 
     def _consul_tick(self, timeout=30.0):
-        # runs the consul discovery process, rebuilding the
-        # complete set of hosts from the consul catalog
-        self._build_consul()
+        # offloads the consul discovery I/O to a background thread
+        # to avoid blocking the main event loop during HTTP requests,
+        # the results are then applied back on the main loop via delay_s
+        def _fetch():
+            entries = self._consul_fetch()
 
-        # verifies if the requested timeout is zero and if that's
-        # the case only one execution of the consul tick is
-        # pretended, returns control flow to caller immediately
-        if timeout == 0:
-            return
+            # builds the consult structures using the fetched entries,
+            # then schedules the next tick after the configured, this
+            # function is meant to run in the main event loop, so it
+            # can safely modify the proxy configuration without any
+            # kind of locking concerns
+            def _apply():
+                self._build_consul(entries)
+                if timeout > 0:
+                    self.delay(
+                        lambda: self._consul_tick(timeout=timeout), timeout=timeout
+                    )
 
-        # schedules a delayed execution taking into account the
-        # timeout that has been provided, this is going to update
-        # the various services that are registered in consul
-        tick = lambda: self._consul_tick(timeout=timeout)
-        self.delay(tick, timeout=timeout)
+            self.delay_s(_apply)
+
+        self.ensure(_fetch, thread=True)
 
     def _consul_services(self):
         url = self.consul_url + "/v1/catalog/services"
