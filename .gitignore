@@ -12,6 +12,7 @@ fs.data
 
 /.env
 /.venv
+/.claude
 
 /dist
 /build

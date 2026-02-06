@@ -103,6 +103,28 @@
 | **X_FORWARDED_PORT**  | `str`   | If defined allow "forcing" the `X-Forwarded-Port` HTTP header (defaults to `None`).                                                                                              |
 | **X_FORWARDED_PROTO** | `str`   | If defined allow "forcing" the `X-Forwarded-Proto` HTTP header (defaults to `None`).                                                                                             |
 
+#### Consul Proxy
+
+| Name                     | Type    | Default                 | Description                                                                                                                                                            |
+| ------------------------ | ------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CONSUL_URL**           | `str`   | `http://localhost:8500` | The base URL of the Consul HTTP API used for service discovery.                                                                                                        |
+| **CONSUL_TOKEN**         | `str`   | `None`                  | The ACL token to be sent in the `X-Consul-Token` header for authenticated Consul API requests.                                                                         |
+| **CONSUL_TAG**           | `str`   | `proxy.enable=true`     | The tag that a Consul service must have to be eligible for reverse proxying, only services containing this exact tag in their tag list are registered.                 |
+| **CONSUL_POLL_INTERVAL** | `float` | `30.0`                  | The interval in seconds between Consul API polling cycles for service discovery, set to `0` to disable periodic polling and only discover services at startup.         |
+| **HOST_SUFFIXES**        | `list`  | `[]`                    | List of domain suffixes to register as aliases for each discovered service (eg: `example.com` would register `myapp.example.com` as an alias for the `myapp` service). |
+
+Services may also use the following Consul tags to control routing behavior:
+
+| Tag                           | Description                                                                                                                                                     |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **proxy.name=\<name\>**       | Overrides the subdomain name used for host-based routing instead of the service/job name (eg: `proxy.name=webapp` routes `webapp` instead of the service name). |
+| **proxy.domain=\<domain\>**   | Alias for `proxy.name` with lower priority, overrides the domain name used for routing.                                                                         |
+| **proxy.password=\<secret\>** | Sets password protection for the service using simple authentication, requires a valid password to access the proxied service.                                  |
+| **proxy.error-url=\<url\>**   | Configures a custom error page URL to redirect users when the proxied service returns an error response.                                                        |
+| **proxy.port=\<ports\>**      | Comma-separated list of allowed ports for the service, only instances with matching ports are registered (eg: `proxy.port=8080,9090`).                          |
+| **proxy.ports=\<ports\>**     | Alias for `proxy.port` with the same behavior, first match wins when both are present.                                                                          |
+| **proxy.redirect-ssl=true**   | Enables automatic HTTP to HTTPS redirection for the service, all HTTP requests are redirected to the equivalent HTTPS URL.                                      |
+
 #### DNS Client
 
 | Name                | Type   | Description                                                                                   |
