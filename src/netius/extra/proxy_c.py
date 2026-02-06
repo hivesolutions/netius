@@ -206,7 +206,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         def _fetch():
             entries = self._consul_fetch()
 
-            # builds the consult structures using the fetched entries,
+            # builds the consul structures using the fetched entries,
             # then schedules the next tick after the configured, this
             # function is meant to run in the main event loop, so it
             # can safely modify the proxy configuration without any
