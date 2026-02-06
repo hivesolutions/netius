@@ -199,7 +199,12 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         return result
 
     def _consul_health(self, service):
-        url = self.consul_url + "/v1/health/service/" + service + "?passing=true"
+        url = (
+            self.consul_url
+            + "/v1/health/service/"
+            + netius.legacy.quote(service)
+            + "?passing=true"
+        )
         result = self._consul_get(url)
         if result == None:
             return []
