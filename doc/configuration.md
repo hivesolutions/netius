@@ -121,6 +121,8 @@ Services may also use the following Consul tags to control routing behavior:
 | **proxy.domain=\<domain\>**   | Alias for `proxy.name` with lower priority, overrides the domain name used for routing.                                                                         |
 | **proxy.password=\<secret\>** | Sets password protection for the service using simple authentication, requires a valid password to access the proxied service.                                  |
 | **proxy.error-url=\<url\>**   | Configures a custom error page URL to redirect users when the proxied service returns an error response.                                                        |
+| **proxy.port=\<ports\>**      | Comma-separated list of allowed ports for the service, only instances with matching ports are registered (eg: `proxy.port=8080,9090`).                          |
+| **proxy.ports=\<ports\>**     | Alias for `proxy.port` with the same behavior, first match wins when both are present.                                                                          |
 | **proxy.redirect-ssl=true**   | Enables automatic HTTP to HTTPS redirection for the service, all HTTP requests are redirected to the equivalent HTTPS URL.                                      |
 
 #### DNS Client

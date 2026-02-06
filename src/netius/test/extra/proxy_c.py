@@ -330,6 +330,127 @@ class ConsulProxyServerTest(unittest.TestCase):
         result = self.server.rules_host(None, parser)
         self.assertEqual(result, ("http://10.0.0.1:8080", None))
 
+    def test_resolve_ports(self):
+        tags = ["proxy.enable=true", "proxy.port=8080"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080})
+
+    def test_resolve_ports_multiple(self):
+        tags = ["proxy.enable=true", "proxy.port=8080,9090"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080, 9090})
+
+    def test_resolve_ports_alias(self):
+        tags = ["proxy.enable=true", "proxy.ports=8080,9090"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080, 9090})
+
+    def test_resolve_ports_none(self):
+        tags = ["proxy.enable=true"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_ports_empty(self):
+        tags = ["proxy.enable=true", "proxy.port="]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_ports_priority(self):
+        tags = ["proxy.enable=true", "proxy.port=8080", "proxy.ports=9090"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080})
+
+    def test_resolve_ports_spaces(self):
+        tags = ["proxy.enable=true", "proxy.port=8080 , 9090"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080, 9090})
+
+    def test_resolve_ports_invalid(self):
+        tags = ["proxy.enable=true", "proxy.port=abc"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, None)
+
+    def test_build_urls_port_filter(self):
+        instances = [
+            {
+                "Service": {"Address": "10.0.0.1", "Port": 8080},
+                "Node": {"Address": "10.0.0.100"},
+            },
+            {
+                "Service": {"Address": "10.0.0.2", "Port": 9090},
+                "Node": {"Address": "10.0.0.101"},
+            },
+        ]
+        result = self.server._build_urls(instances, ports={8080})
+        self.assertEqual(result, ["http://10.0.0.1:8080"])
+
+    def test_build_urls_port_filter_none(self):
+        instances = [
+            {
+                "Service": {"Address": "10.0.0.1", "Port": 8080},
+                "Node": {"Address": "10.0.0.100"},
+            },
+            {
+                "Service": {"Address": "10.0.0.2", "Port": 9090},
+                "Node": {"Address": "10.0.0.101"},
+            },
+        ]
+        result = self.server._build_urls(instances, ports=None)
+        self.assertEqual(result, ["http://10.0.0.1:8080", "http://10.0.0.2:9090"])
+
+    def test_build_hosts_port_filter(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        services = {"myapp": ["proxy.enable=true", "proxy.port=8080"]}
+        health = [
+            {
+                "Service": {"Address": "10.0.0.1", "Port": 8080},
+                "Node": {"Address": "10.0.0.100"},
+            },
+            {
+                "Service": {"Address": "10.0.0.2", "Port": 9090},
+                "Node": {"Address": "10.0.0.101"},
+            },
+        ]
+
+        with mock.patch.object(
+            self.server, "_consul_services", return_value=services
+        ), mock.patch.object(self.server, "_consul_health", return_value=health):
+            self.server._build_hosts()
+
+        self.assertEqual(self.server.hosts.get("myapp"), "http://10.0.0.1:8080")
+
+    def test_build_hosts_port_filter_multiple(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        services = {"myapp": ["proxy.enable=true", "proxy.port=8080,9090"]}
+        health = [
+            {
+                "Service": {"Address": "10.0.0.1", "Port": 8080},
+                "Node": {"Address": "10.0.0.100"},
+            },
+            {
+                "Service": {"Address": "10.0.0.2", "Port": 9090},
+                "Node": {"Address": "10.0.0.101"},
+            },
+            {
+                "Service": {"Address": "10.0.0.3", "Port": 3000},
+                "Node": {"Address": "10.0.0.102"},
+            },
+        ]
+
+        with mock.patch.object(
+            self.server, "_consul_services", return_value=services
+        ), mock.patch.object(self.server, "_consul_health", return_value=health):
+            self.server._build_hosts()
+
+        self.assertEqual(
+            self.server.hosts.get("myapp"),
+            ("http://10.0.0.1:8080", "http://10.0.0.2:9090"),
+        )
+
     def test_apply_tags_password(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
