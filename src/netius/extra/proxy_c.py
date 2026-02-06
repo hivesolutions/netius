@@ -254,7 +254,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                     "Consul request error for %s: %s" % (url, result.get("message"))
                 )
                 return None
-            if result["code"] != 200:
+            if not result["code"] == 200:
                 self.info("Consul returned %d for %s" % (result["code"], url))
                 return None
             data = result.get("data", b"")

@@ -164,7 +164,7 @@ def modinv(first, second):
     """
 
     d, l, _e = egcd(first, second)
-    if d != 1:
+    if not d == 1:
         raise netius.DataError("Modular inverse does not exist")
     else:
         return l % second
