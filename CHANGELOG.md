@@ -9,12 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* `conf_override` context manager for temporarily overriding configuration values
-* `ConsulProxyServer` for Consul-based service discovery in the reverse proxy
+*
 
 ### Changed
 
 *
+
+### Fixed
+
+*
+
+## [1.21.0] - 2026-02-07
+
+### Added
+
+* `conf_override` context manager for temporarily overriding configuration values
+* `ConsulProxyServer` for Consul-based service discovery in the reverse proxy
 
 ### Fixed
 
