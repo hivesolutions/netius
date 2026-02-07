@@ -128,6 +128,18 @@ HTTPBIN=httpbin.bemisc.com pytest
 - Prefer `item not in list` over `not item in list`
 - Prefer `item == None` over `item is None`
 
+## New Release
+
+To create a new release follow the following steps:
+
+- Make sure that both the tests pass and the code formatting are valid.
+- Increment (look at `CHANGELOG.md` for semver changes) the `version` value in `setup.py` and the `VERSION` value in `src/netius/base/common.py`.
+- Move all the `CHANGELOG.md` Unreleased items that have at least one non empty item the into a new section with the new version number and date, and then create new empty sub-sections (Added, Changed and Fixed) for the Unreleased section with a single empty item.
+- Create a commit with the following message `version: $VERSION_NUMBER`.
+- Push the commit.
+- Create a new tag with the value fo the new version number `$VERSION_NUMBER`.
+- Create a new release on the GitHub repo using the Markdown from the corresponding version entry in `CHANGELOG.md` as the description of the release and the version number as the title. Do not include the title of the release (version and date) in the description.
+
 ## Further Reading
 
 - [README.md](README.md) for general usage and installation.
