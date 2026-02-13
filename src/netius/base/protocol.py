@@ -362,14 +362,19 @@ class StreamProtocol(Protocol):
         expose a connection object.
         """
 
-        # In asyncio compat mode the transport may be an asyncio transport
-        # instance, which does not expose the private `_connection`
-        # attribute. Guard access to avoid AttributeError while keeping
-        # backward compatibility for custom transports that do define it.
+        # in case there's no transport associated with the current protocol
+        # it's not possible to retrieve the connection object so None is
+        # returned to indicate the absence of a connection
         if not self._transport:
             return None
+
+        # in asyncio compat mode the transport may be an asyncio transport
+        # instance, which does not expose the private `_connection`
+        # attribute, guard access to avoid AttributeError while keeping
+        # backward compatibility for custom transports that do define it.
         if not hasattr(self._transport, "_connection"):
             return None
+
         return self._transport._connection
 
     @property
