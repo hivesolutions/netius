@@ -31,7 +31,6 @@ __license__ = "Apache License, Version 2.0"
 import re
 import unittest
 import collections
-import contextlib
 
 import netius
 import netius.extra
@@ -808,7 +807,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         frontend.is_deflate.return_value = False
         frontend.is_compressed.return_value = False
         frontend.is_measurable.return_value = True
-        frontend.ctx_request.return_value = contextlib.nullcontext()
+        frontend.ctx_request.return_value = mock.MagicMock()
         # removes dynamic attributes that on_headers checks via hasattr
         del frontend.prefix
         del frontend.state
