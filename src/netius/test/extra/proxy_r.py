@@ -857,6 +857,56 @@ class ReverseProxyServerTest(unittest.TestCase):
         parser.content_l = 100
         return parser
 
+    def test_throttle_connection(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        frontend.renable = False
+        backend = self._make_backend()
+
+        # removes `_protocol` so that getattr falls back to the
+        # connection itself as the conn_map key (old architecture)
+        del backend._protocol
+
+        self.server.conn_map[backend] = frontend
+        self.server._throttle(backend)
+
+        frontend.enable_read.assert_called_once()
+
+    def test_throttle_transport(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        frontend.renable = False
+        backend = self._make_backend()
+        self.server.conn_map[backend] = frontend
+
+        # creates a transport mock whose `_protocol` points to the
+        # backend, simulating the new protocol architecture path
+        transport = mock.MagicMock()
+        transport.is_restored.return_value = True
+        transport._protocol = backend
+
+        self.server._throttle(transport)
+
+        frontend.enable_read.assert_called_once()
+
+    def test_throttle_not_restored(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        frontend.renable = False
+        backend = self._make_backend()
+        backend.is_restored.return_value = False
+        self.server.conn_map[backend] = frontend
+
+        self.server._throttle(backend)
+
+        frontend.enable_read.assert_not_called()
+
     def test_close_no_loop_destroys_before_event(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")

@@ -9,15 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `ConnectionCompat` mixin in `mixin.py` extracting backward-compatible `Connection` delegation methods (`socket`, `renable`, `is_restored()`, `enable_read()`, etc.) from `StreamProtocol`
+* `ConnectionCompat` applied to `TransportStream` so it exposes `is_restored()` and other throttle-related methods
+* Throttle unit tests for proxy server covering both Connection and TransportStream paths
 
 ### Changed
 
-*
+* `StreamProtocol` now inherits from `ConnectionCompat` mixin instead of defining delegation methods inline
+* `_throttle()` in `ProxyServer` and `SocksServer` resolves `TransportStream` to its `_protocol` for `conn_map` key lookup
 
 ### Fixed
 
-*
+* `AttributeError: 'TransportStream' object has no attribute 'is_restored'` in proxy throttle callbacks when using protocol-based architecture
 
 ## [1.23.2] - 2026-02-13
 

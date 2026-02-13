@@ -211,7 +211,13 @@ class SOCKSServer(netius.ServerAgent):
     def _throttle(self, _connection):
         if not _connection.is_restored():
             return
-        connection = self.conn_map[_connection]
+
+        # tries to resolve a protocol from the possible transport
+        # parameter (parameter can be a protocol or a transport)
+        # and then uses the resolved value as the key
+        _connection_key = getattr(_connection, "_protocol", _connection)
+        connection = self.conn_map[_connection_key]
+
         if not connection.renable == False:
             return
         connection.enable_read()

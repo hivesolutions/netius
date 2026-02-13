@@ -28,6 +28,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+from . import mixin
 from . import legacy
 from . import request
 from . import observer
@@ -381,139 +382,16 @@ class DatagramProtocol(Protocol):
         return self.requests_m.get(id, None)
 
 
-class StreamProtocol(Protocol):
+class StreamProtocol(Protocol, mixin.ConnectionCompat):
     """
     Protocol for stream-based (TCP) communication, providing
     an interface compatible with asyncio's `Protocol` class.
 
     Incoming bytes arrive through `data_received` and
-    outgoing data is written via `send`. Exposes backward
-    compatibility delegation properties (`socket`, `renable`,
-    `is_throttleable`, etc.) that reach through the transport
-    to the underlying `Connection` object, allowing protocol
-    instances to be used in code paths that still expect the
-    older `Connection` interface (eg proxy servers).
+    outgoing data is written via `send`. Backward
+    compatibility with the `Connection` interface is
+    provided by the `ConnectionCompat` mixin.
     """
-
-    @property
-    def connection(self):
-        """
-        Returns the underlying connection for backward compatibility
-        with code that expects a Connection object (eg proxy servers).
-
-        :rtype: Connection
-        :return: The underlying connection object associated with
-        the transport, or None if no transport is set or does not
-        expose a connection object.
-        """
-
-        # in case there's no transport associated with the current protocol
-        # it's not possible to retrieve the connection object so None is
-        # returned to indicate the absence of a connection
-        if not self._transport:
-            return None
-
-        # in asyncio compat mode the transport may be an asyncio transport
-        # instance, which does not expose the private `_connection`
-        # attribute, guard access to avoid AttributeError while keeping
-        # backward compatibility for custom transports that do define it.
-        if not hasattr(self._transport, "_connection"):
-            return None
-
-        return self._transport._connection
-
-    @property
-    def socket(self):
-        connection = self.connection
-        if not connection:
-            return None
-        return connection.socket
-
-    @property
-    def address(self):
-        connection = self.connection
-        if connection:
-            return connection.address
-        return getattr(self, "_address", None)
-
-    @address.setter
-    def address(self, value):
-        self._address = value
-        connection = self.connection
-        if connection:
-            connection.address = value
-
-    @property
-    def renable(self):
-        connection = self.connection
-        if not connection:
-            return True
-        return connection.renable
-
-    @renable.setter
-    def renable(self, value):
-        connection = self.connection
-        if not connection:
-            return
-        connection.renable = value
-
-    def is_throttleable(self):
-        connection = self.connection
-        if not connection:
-            return False
-        return connection.is_throttleable()
-
-    def is_exhausted(self):
-        connection = self.connection
-        if not connection:
-            return False
-        return connection.is_exhausted()
-
-    def is_restored(self):
-        connection = self.connection
-        if not connection:
-            return True
-        return connection.is_restored()
-
-    def disable_read(self):
-        connection = self.connection
-        if not connection:
-            return
-        connection.disable_read()
-
-    def enable_read(self):
-        connection = self.connection
-        if not connection:
-            return
-        connection.enable_read()
-
-    @property
-    def max_pending(self):
-        connection = self.connection
-        if connection:
-            return connection.max_pending
-        return getattr(self, "_max_pending", -1)
-
-    @max_pending.setter
-    def max_pending(self, value):
-        self._max_pending = value
-        connection = self.connection
-        if connection:
-            connection.max_pending = value
-
-    @property
-    def min_pending(self):
-        connection = self.connection
-        if connection:
-            return connection.min_pending
-        return getattr(self, "_min_pending", -1)
-
-    @min_pending.setter
-    def min_pending(self, value):
-        self._min_pending = value
-        connection = self.connection
-        if connection:
-            connection.min_pending = value
 
     def connection_made(self, transport):
         Protocol.connection_made(self, transport)
@@ -580,3 +458,30 @@ class StreamProtocol(Protocol):
         # returns the size (in bytes) of the data that has just been
         # explicitly sent through the associated transport
         return len(data)
+
+    @property
+    def connection(self):
+        """
+        Returns the underlying connection for backward compatibility
+        with code that expects a Connection object (eg proxy servers).
+
+        :rtype: Connection
+        :return: The underlying connection object associated with
+        the transport, or None if no transport is set or does not
+        expose a connection object.
+        """
+
+        # in case there's no transport associated with the current protocol
+        # it's not possible to retrieve the connection object so None is
+        # returned to indicate the absence of a connection
+        if not self._transport:
+            return None
+
+        # in asyncio compat mode the transport may be an asyncio transport
+        # instance, which does not expose the private `_connection`
+        # attribute, guard access to avoid AttributeError while keeping
+        # backward compatibility for custom transports that do define it.
+        if not hasattr(self._transport, "_connection"):
+            return None
+
+        return self._transport._connection

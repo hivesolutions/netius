@@ -36,6 +36,7 @@ from . import container
 from . import errors
 from . import legacy
 from . import log
+from . import mixin
 from . import observer
 from . import poll
 from . import protocol
@@ -146,6 +147,7 @@ from .log import (
     rotating_handler,
     smtp_handler,
 )
+from .mixin import ConnectionCompat
 from .observer import Observable
 from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
 from .protocol import Protocol, DatagramProtocol, StreamProtocol

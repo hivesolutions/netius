@@ -28,6 +28,7 @@ __copyright__ = "Copyright (c) 2008-2017 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+from . import mixin
 from . import errors
 from . import observer
 from . import asynchronous
@@ -314,14 +315,25 @@ class TransportDatagram(Transport):
         self._cleanup()
 
 
-class TransportStream(Transport):
+class TransportStream(Transport, mixin.ConnectionCompat):
     """
     Abstract class to be used when creating a stream based
     (connection) transport.
 
     This implementation reflects the decisions made for the
     netius based transport abstraction, inspired by asyncio.
+
+    Extends the base `Transport` with the `ConnectionCompat`
+    mixin so that instances expose the same backward
+    compatibility surface as `StreamProtocol` (eg
+    `is_restored`, `renable`, `socket`), allowing them to
+    be used transparently in throttle callbacks and other
+    code paths that expect the `Connection` interface.
     """
+
+    @property
+    def connection(self):
+        return self._connection
 
     def _on_data(self, connection, data):
         self._protocol.data_received(data)
