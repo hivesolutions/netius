@@ -97,16 +97,9 @@ Attributes not explicitly implemented fall through to the underlying `Base` via 
 
 ## Why Native is Faster
 
-1. **No Future/Task overhead.** Native uses direct callbacks. Compat allocates a Future, creates
-   a Task, and dispatches through done-callbacks for every operation.
-
-2. **No translation layer.** Native calls `Base.connect()` directly. Compat routes every call
-   through `CompatLoop` which translates asyncio API into Netius equivalents.
-
-3. **No coroutine frames.** Compat's `_create_connection()` and `_create_server()` are
-   generator coroutines (`yield future`). Native is purely callback-driven.
-
-4. **Direct SSL.** Native passes SSL parameters to `Base.connect()` for OS-level wrapping.
-   Compat constructs an `ssl.SSLContext` and routes through asyncio's SSL layer.
+1. **No Future/Task overhead.** Native uses direct callbacks. Compat allocates a Future, creates a Task, and dispatches through done-callbacks for every operation.
+2. **No translation layer.** Native calls `Base.connect()` directly. Compat routes every call through `CompatLoop` which translates asyncio API into Netius equivalents.
+3. **No coroutine frames.** Compat's `_create_connection()` and `_create_server()` are generator coroutines (`yield future`). Native is purely callback-driven.
+4. **Direct SSL.** Native passes SSL parameters to `Base.connect()` for OS-level wrapping. Compat constructs an `ssl.SSLContext` and routes through asyncio's SSL layer.
 
 The difference accumulates under high connection rates where per-connection overhead matters.

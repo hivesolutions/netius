@@ -595,9 +595,7 @@ class ReverseProxyServerTest(unittest.TestCase):
 
         response_parser = self._make_response_parser(backend)
 
-        self.server._on_prx_message(
-            self.server.http_client, response_parser, b""
-        )
+        self.server._on_prx_message(self.server.http_client, response_parser, b"")
 
         frontend.flush_s.assert_called_once()
         self.assertFalse(backend.waiting)
@@ -616,9 +614,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         response_parser = self._make_response_parser(backend)
         response_parser.keep_alive = True
 
-        self.server._on_prx_message(
-            self.server.http_client, response_parser, b""
-        )
+        self.server._on_prx_message(self.server.http_client, response_parser, b"")
 
         # keep-alive means no close callback
         call_kwargs = frontend.flush_s.call_args[1]
@@ -636,9 +632,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         response_parser = self._make_response_parser(backend)
         response_parser.keep_alive = False
 
-        self.server._on_prx_message(
-            self.server.http_client, response_parser, b""
-        )
+        self.server._on_prx_message(self.server.http_client, response_parser, b"")
 
         # no keep-alive means a close callback is set
         call_kwargs = frontend.flush_s.call_args[1]
@@ -730,18 +724,14 @@ class ReverseProxyServerTest(unittest.TestCase):
         frontend.send_header.assert_called_once()
 
         # simulates partial body data from the back-end
-        self.server._on_prx_partial(
-            self.server.http_client, response_parser, b"<html>"
-        )
+        self.server._on_prx_partial(self.server.http_client, response_parser, b"<html>")
         self.server._on_prx_partial(
             self.server.http_client, response_parser, b"</html>"
         )
         self.assertEqual(frontend.send_part.call_count, 2)
 
         # completes the back-end response
-        self.server._on_prx_message(
-            self.server.http_client, response_parser, b""
-        )
+        self.server._on_prx_message(self.server.http_client, response_parser, b"")
         frontend.flush_s.assert_called_once()
         self.assertEqual(self.server.busy_conn, 0)
 
