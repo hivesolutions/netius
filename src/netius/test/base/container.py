@@ -77,8 +77,8 @@ class ContainerTest(unittest.TestCase):
         self.container.add_base(raw_client)
 
         self.assertEqual(len(self.container.bases), 2)
-        self.assertTrue(http_client in self.container.bases)
-        self.assertTrue(raw_client in self.container.bases)
+        self.assertIn(http_client, self.container.bases)
+        self.assertIn(raw_client, self.container.bases)
 
         http_client.cleanup()
         raw_client.cleanup()
