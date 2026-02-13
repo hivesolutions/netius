@@ -9,11 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* POST, PUT and DELETE integration tests for `ReverseProxyIntegrationTest` verifying request body forwarding through the proxy
+*
 
 ### Changed
 
 *
+
+### Fixed
+
+*
+
+## [1.23.2] - 2026-02-13
+
+### Added
+
+* POST, PUT and DELETE integration tests for `ReverseProxyIntegrationTest` verifying request body forwarding through the proxy
 
 ### Fixed
 
