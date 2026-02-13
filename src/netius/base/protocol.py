@@ -326,6 +326,17 @@ class DatagramProtocol(Protocol):
         # the underlying transport send to operation
         data = legacy.bytes(data)
 
+        # in case the protocol is already closed or closing the send
+        # operation is silently ignored to avoid writing to a dead transport
+        if self.is_closed_or_closing():
+            return 0
+
+        # in case the transport has not yet been set (connection still
+        # being established) the data is buffered and will be flushed
+        # once connection_made() fires
+        if not self._transport:
+            return self._delay_send(data, address=address, callback=callback)
+
         # in case the current transport buffers do not allow writing
         # (paused mode) the writing of the data is delayed until the
         # writing is again enabled (resume writing)
@@ -534,8 +545,16 @@ class StreamProtocol(Protocol):
 
         # in case the transport has been unset (connection closed or
         # closing) the send operation is silently ignored
-        if not self._transport:
+        if self.is_closed_or_closing():
             return 0
+
+        # in case the transport has not yet been set (connection still
+        # being established) the data is buffered and will be flushed
+        # once `connection_made()` fires, this is critical for proxy
+        # scenarios where body data may arrive before the backend
+        # connection is fully established
+        if not self._transport:
+            return self._delay_send(data, callback=callback)
 
         # in case the current transport buffers do not allow writing
         # (paused mode) the writing of the data is delayed until the

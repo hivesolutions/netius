@@ -974,40 +974,26 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
         if netius.conf("NO_NETWORK", False, cast=bool):
             self.skipTest("Network access is disabled")
 
-    def _request(self, path, headers=None):
-        conn = http_client.HTTPConnection("127.0.0.1", self.proxy_port, timeout=30)
-        try:
-            _headers = {"Host": self.httpbin}
-            if headers:
-                _headers.update(headers)
-            conn.request("GET", path, headers=_headers)
-            response = conn.getresponse()
-            body = response.read()
-            response_headers = dict(response.getheaders())
-            return response.status, response_headers, body
-        finally:
-            conn.close()
-
     def test_simple_get(self):
-        code, headers, body = self._request("/get")
+        code, _headers, body = self._request("/get")
         self.assertEqual(code, 200)
         self.assertGreater(len(body), 0)
 
     def test_response_body_integrity(self):
-        code, headers, body = self._request("/get")
+        code, _headers, body = self._request("/get")
         self.assertEqual(code, 200)
         data = json.loads(body.decode("utf-8"))
         self.assertIn("headers", data)
         self.assertIn("url", data)
 
     def test_via_header(self):
-        code, headers, body = self._request("/get")
+        code, headers, _body = self._request("/get")
         self.assertEqual(code, 200)
         via = headers.get("Via", None)
         self.assertIsNotNone(via, "Proxy should add a Via header to the response")
 
     def test_x_forwarded_headers_sent(self):
-        code, headers, body = self._request("/get")
+        code, _headers, body = self._request("/get")
         self.assertEqual(code, 200)
         data = json.loads(body.decode("utf-8"))
         request_headers = data.get("headers", {})
@@ -1040,6 +1026,49 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
 
     def test_multiple_requests(self):
         for _i in range(3):
-            code, headers, body = self._request("/get")
+            code, _headers, body = self._request("/get")
             self.assertEqual(code, 200)
             self.assertGreater(len(body), 0)
+
+    def test_post_with_body(self):
+        payload = json.dumps({"key": "value"}).encode("utf-8")
+        code, _headers, body = self._request(
+            "/post",
+            method="POST",
+            headers={"Content-Type": "application/json"},
+            body=payload,
+        )
+        self.assertEqual(code, 200)
+        data = json.loads(body.decode("utf-8"))
+        self.assertIn("data", data)
+        self.assertIn("key", data.get("json", {}))
+
+    def test_put_with_body(self):
+        payload = b"updated content"
+        code, _headers, body = self._request(
+            "/put",
+            method="PUT",
+            headers={"Content-Type": "text/plain"},
+            body=payload,
+        )
+        self.assertEqual(code, 200)
+        data = json.loads(body.decode("utf-8"))
+        self.assertEqual(data.get("data"), "updated content")
+
+    def test_delete(self):
+        code, _headers, _body = self._request("/delete", method="DELETE")
+        self.assertEqual(code, 200)
+
+    def _request(self, path, method="GET", headers=None, body=None):
+        conn = http_client.HTTPConnection("127.0.0.1", self.proxy_port, timeout=30)
+        try:
+            _headers = {"Host": self.httpbin}
+            if headers:
+                _headers.update(headers)
+            conn.request(method, path, body=body, headers=_headers)
+            response = conn.getresponse()
+            response_body = response.read()
+            response_headers = dict(response.getheaders())
+            return response.status, response_headers, response_body
+        finally:
+            conn.close()

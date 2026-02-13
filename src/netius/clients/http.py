@@ -280,6 +280,11 @@ class HTTPProtocol(netius.StreamProtocol):
         # the process of sending the request to the server
         self.run_request()
 
+        # flushes any data that was buffered before the transport
+        # was available (eg proxy body chunks that arrived before
+        # the backend connection was established)
+        self._flush_send()
+
     def loop_set(self, loop):
         netius.StreamProtocol.loop_set(self, loop)
         self.set_dynamic()

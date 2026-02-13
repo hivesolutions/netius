@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* POST, PUT and DELETE integration tests for `ReverseProxyIntegrationTest` verifying request body forwarding through the proxy
 
 ### Changed
 
@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Proxy POST/PUT body data silently dropped when backend connection not yet established - `StreamProtocol.send()` now buffers data via `_delay_send()` instead of returning 0 when transport is None
+* `HTTPClientProtocol.connection_made()` now flushes buffered data after sending request headers, ensuring proxy-forwarded body chunks reach the backend
+* `DatagramProtocol.send_to()` aligned with `StreamProtocol.send()` guards - added `is_closed_or_closing()` and missing transport checks for consistency
 
 ## [1.23.1] - 2026-02-13
 
