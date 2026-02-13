@@ -160,8 +160,6 @@ class Container(Base):
         base.level = self.level
         base.logger = self.logger
         base.load()
-        if not isinstance(base, Base):
-            base._container_loop = self.owner
 
     def start_all(self):
         for base in self.bases:
