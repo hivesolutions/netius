@@ -513,7 +513,7 @@ class ReverseProxyServerTest(unittest.TestCase):
 
         self.server.on_headers(frontend, request_parser)
 
-        frontend.send_response.assert_called_once()
+        self.assertEqual(frontend.send_response.call_count, 1)
         call_kwargs = frontend.send_response.call_args
         self.assertEqual(call_kwargs[1]["code"], 404)
 
@@ -531,7 +531,7 @@ class ReverseProxyServerTest(unittest.TestCase):
 
         server.on_headers(frontend, request_parser)
 
-        frontend.send_response.assert_called_once()
+        self.assertEqual(frontend.send_response.call_count, 1)
         call_kwargs = frontend.send_response.call_args[1]
         self.assertEqual(call_kwargs["code"], 303)
         self.assertIn("location", call_kwargs["headers"])
@@ -554,7 +554,7 @@ class ReverseProxyServerTest(unittest.TestCase):
             self.server.http_client, response_parser, response_parser.headers
         )
 
-        frontend.send_header.assert_called_once()
+        self.assertEqual(frontend.send_header.call_count, 1)
         call_kwargs = frontend.send_header.call_args[1]
         self.assertEqual(call_kwargs["code"], 200)
         self.assertEqual(call_kwargs["code_s"], "OK")
@@ -577,7 +577,7 @@ class ReverseProxyServerTest(unittest.TestCase):
             self.server.http_client, response_parser, b"<html>hello</html>"
         )
 
-        frontend.send_part.assert_called_once()
+        self.assertEqual(frontend.send_part.call_count, 1)
         args = frontend.send_part.call_args
         self.assertEqual(args[0][0], b"<html>hello</html>")
 
@@ -596,7 +596,7 @@ class ReverseProxyServerTest(unittest.TestCase):
 
         self.server._on_prx_message(self.server.http_client, response_parser, b"")
 
-        frontend.flush_s.assert_called_once()
+        self.assertEqual(frontend.flush_s.call_count, 1)
         self.assertFalse(backend.waiting)
         self.assertEqual(backend.busy, 0)
         self.assertEqual(self.server.busy_conn, 0)
@@ -650,7 +650,7 @@ class ReverseProxyServerTest(unittest.TestCase):
 
         self.server._on_prx_close(self.server.http_client, backend)
 
-        frontend.send_response.assert_called_once()
+        self.assertEqual(frontend.send_response.call_count, 1)
         call_kwargs = frontend.send_response.call_args[1]
         self.assertEqual(call_kwargs["code"], 403)
         self.assertNotIn(backend, self.server.conn_map)
@@ -692,7 +692,7 @@ class ReverseProxyServerTest(unittest.TestCase):
             self.server.http_client, backend, Exception("connection timeout")
         )
 
-        frontend.send_response.assert_called_once()
+        self.assertEqual(frontend.send_response.call_count, 1)
         call_kwargs = frontend.send_response.call_args[1]
         self.assertEqual(call_kwargs["code"], 500)
 
@@ -720,7 +720,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.server._on_prx_headers(
             self.server.http_client, response_parser, response_parser.headers
         )
-        frontend.send_header.assert_called_once()
+        self.assertEqual(frontend.send_header.call_count, 1)
 
         # simulates partial body data from the back-end
         self.server._on_prx_partial(self.server.http_client, response_parser, b"<html>")
@@ -731,7 +731,7 @@ class ReverseProxyServerTest(unittest.TestCase):
 
         # completes the back-end response
         self.server._on_prx_message(self.server.http_client, response_parser, b"")
-        frontend.flush_s.assert_called_once()
+        self.assertEqual(frontend.flush_s.call_count, 1)
         self.assertEqual(self.server.busy_conn, 0)
 
     def test_busy_conn_multiple_requests(self):
