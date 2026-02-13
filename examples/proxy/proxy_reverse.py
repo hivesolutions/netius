@@ -19,6 +19,20 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""
+Simple reverse proxy that forwards all incoming HTTP requests
+to httpbin.org and relays the responses back to the client,
+run it from the repository root with::
+
+    PYTHONPATH=src python examples/proxy/proxy_reverse.py
+
+then try::
+
+    curl -H "Host: httpbin.org" http://localhost:8080/get
+    curl -H "Host: httpbin.org" http://localhost:8080/headers
+    curl -H "Host: httpbin.org" http://localhost:8080/ip
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
@@ -27,18 +41,6 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
-
-# Simple reverse proxy that forwards all incoming HTTP requests
-# to httpbin.org and relays the responses back to the client,
-# run it from the repository root with:
-#
-#   PYTHONPATH=src python examples/proxy/proxy_reverse.py
-#
-# then try:
-#
-#   curl -H "Host: httpbin.org" http://localhost:8080/get
-#   curl -H "Host: httpbin.org" http://localhost:8080/headers
-#   curl -H "Host: httpbin.org" http://localhost:8080/ip
 
 import logging
 
