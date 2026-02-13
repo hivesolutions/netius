@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `address` property on `StreamProtocol` delegating to underlying `Connection` for backward compatibility with proxy code that accesses `protocol.address`
+* End-to-end integration tests for `ReverseProxyServer` exercising the full proxy data flow through a real server with httpbin backend
+* Reverse proxy example (`examples/proxy/proxy_reverse.py`) showing minimal setup for forwarding requests to a backend
 
 ### Changed
 

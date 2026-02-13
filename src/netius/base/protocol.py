@@ -419,6 +419,20 @@ class StreamProtocol(Protocol):
         return connection.socket
 
     @property
+    def address(self):
+        connection = self.connection
+        if connection:
+            return connection.address
+        return getattr(self, "_address", None)
+
+    @address.setter
+    def address(self, value):
+        self._address = value
+        connection = self.connection
+        if connection:
+            connection.address = value
+
+    @property
     def renable(self):
         connection = self.connection
         if not connection:

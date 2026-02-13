@@ -29,8 +29,14 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import re
+import json
+import time
+import socket
 import unittest
+import threading
 import collections
+
+import http.client
 
 import netius
 import netius.extra
@@ -849,20 +855,6 @@ class ReverseProxyServerTest(unittest.TestCase):
         return parser
 
     def test_close_no_loop_destroys_before_event(self):
-        """
-        When a `Protocol` has no event loop (`_loop` is None),
-        `close_c()` calls `delay(self.finish)` which invokes
-        `finish()` immediately (synchronously). `finish()` calls
-        `destroy()` -> `unbind_all()` which removes all event
-        handlers. Then when `close()` reaches `trigger("close")`
-        the handler list is already empty and the relay never
-        fires, so `_on_prx_close` is never called and the
-        `conn_map` entry is never cleaned up.
-
-        This test reproduces the scenario using a real
-        `StreamProtocol` whose `_loop` is None.
-        """
-
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
 
@@ -905,3 +897,141 @@ class ReverseProxyServerTest(unittest.TestCase):
         # the entry remains (this is the bug)
         self.assertNotIn(backend, self.server.conn_map)
         self.assertEqual(self.server.busy_conn, 0)
+
+
+class ReverseProxyIntegrationTest(unittest.TestCase):
+    """
+    End-to-end integration tests for the reverse proxy.
+
+    Starts a real ReverseProxyServer in a background thread
+    and makes HTTP requests through it to an httpbin
+    backend. Verifies the complete data flow including
+    routing, header forwarding (Via, X-Forwarded-*),
+    response relay, body integrity, and error handling
+    for unmatched hosts.
+
+    These tests exercise the protocol-level address
+    attribute and other backward-compatibility properties
+    that are only reachable through actual network I/O.
+
+    Requires network; skipped when NO_NETWORK is set.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        if netius.conf("NO_NETWORK", False, cast=bool):
+            return
+
+        cls.httpbin = netius.conf("HTTPBIN", "httpbin.org")
+
+        # create a reverse proxy that forwards all requests to httpbin
+        cls.server = netius.extra.ReverseProxyServer(
+            hosts={"default": "http://%s" % cls.httpbin},
+            env=False,
+            resolve=False,
+        )
+        cls.server.x_forwarded_proto = None
+        cls.server.x_forwarded_port = None
+
+        # call serve() with start=False to bind the socket and set up
+        # the poll without entering the event loop yet, using port 0
+        # lets the OS pick a free port which is retrieved afterwards
+        cls.server.serve(host="127.0.0.1", port=0, start=False)
+        cls.proxy_port = cls.server.port
+
+        # start the proxy server event loop in a background thread
+        cls.server_thread = threading.Thread(target=cls.server.start, daemon=True)
+        cls.server_thread.start()
+
+        # wait for the server to be ready (accepting connections)
+        for _i in range(50):
+            time.sleep(0.1)
+            try:
+                probe = socket.create_connection(
+                    ("127.0.0.1", cls.proxy_port), timeout=1
+                )
+                probe.close()
+                break
+            except (ConnectionRefusedError, OSError):
+                continue
+
+    @classmethod
+    def tearDownClass(cls):
+        if not hasattr(cls, "server"):
+            return
+        cls.server.stop()
+        cls.server_thread.join(timeout=5)
+
+    def setUp(self):
+        if netius.conf("NO_NETWORK", False, cast=bool):
+            self.skipTest("Network access is disabled")
+
+    def _request(self, path, headers=None):
+        conn = http.client.HTTPConnection("127.0.0.1", self.proxy_port, timeout=30)
+        try:
+            _headers = {"Host": self.httpbin}
+            if headers:
+                _headers.update(headers)
+            conn.request("GET", path, headers=_headers)
+            response = conn.getresponse()
+            body = response.read()
+            response_headers = dict(response.getheaders())
+            return response.status, response_headers, body
+        finally:
+            conn.close()
+
+    def test_simple_get(self):
+        code, headers, body = self._request("/get")
+        self.assertEqual(code, 200)
+        self.assertGreater(len(body), 0)
+
+    def test_response_body_integrity(self):
+        code, headers, body = self._request("/get")
+        self.assertEqual(code, 200)
+        data = json.loads(body.decode("utf-8"))
+        self.assertIn("headers", data)
+        self.assertIn("url", data)
+
+    def test_via_header(self):
+        code, headers, body = self._request("/get")
+        self.assertEqual(code, 200)
+        via = headers.get("Via", None)
+        self.assertIsNotNone(via, "Proxy should add a Via header to the response")
+
+    def test_x_forwarded_headers_sent(self):
+        code, headers, body = self._request("/get")
+        self.assertEqual(code, 200)
+        data = json.loads(body.decode("utf-8"))
+        request_headers = data.get("headers", {})
+
+        # httpbin echoes the request headers back to us,
+        # build a case-insensitive lookup since different httpbin
+        # implementations normalize casing differently
+        headers_lower = {k.lower(): v for k, v in request_headers.items()}
+
+        # verify the proxy injected the x-forwarded-* headers,
+        # note that some httpbin variants or upstream proxies may
+        # strip certain headers, so we check for the ones that are
+        # reliably passed through
+        self.assertIn("x-forwarded-host", headers_lower)
+        self.assertIn("x-client-ip", headers_lower)
+
+    def test_404_no_match(self):
+        connection = http.client.HTTPConnection(
+            "127.0.0.1", self.proxy_port, timeout=30
+        )
+        try:
+            connection.request(
+                "GET", "/get", headers={"Host": "unknown.host.example.com"}
+            )
+            response = connection.getresponse()
+            response.read()
+            self.assertEqual(response.status, 404)
+        finally:
+            connection.close()
+
+    def test_multiple_requests(self):
+        for _i in range(3):
+            code, headers, body = self._request("/get")
+            self.assertEqual(code, 200)
+            self.assertGreater(len(body), 0)
