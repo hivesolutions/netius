@@ -350,6 +350,125 @@ class DatagramProtocol(Protocol):
 
 class StreamProtocol(Protocol):
 
+    @property
+    def connection(self):
+        """
+        Returns the underlying connection for backward compatibility
+        with code that expects a Connection object (eg proxy servers).
+
+        :rtype: Connection
+        :return: The underlying connection object associated with
+        the transport, or None if no transport is set or does not
+        expose a connection object.
+        """
+
+        # in case there's no transport associated with the current protocol
+        # it's not possible to retrieve the connection object so None is
+        # returned to indicate the absence of a connection
+        if not self._transport:
+            return None
+
+        # in asyncio compat mode the transport may be an asyncio transport
+        # instance, which does not expose the private `_connection`
+        # attribute, guard access to avoid AttributeError while keeping
+        # backward compatibility for custom transports that do define it.
+        if not hasattr(self._transport, "_connection"):
+            return None
+
+        return self._transport._connection
+
+    @property
+    def socket(self):
+        connection = self.connection
+        if not connection:
+            return None
+        return connection.socket
+
+    @property
+    def renable(self):
+        connection = self.connection
+        if not connection:
+            return True
+        return connection.renable
+
+    @renable.setter
+    def renable(self, value):
+        connection = self.connection
+        if not connection:
+            return
+        connection.renable = value
+
+    def is_throttleable(self):
+        connection = self.connection
+        if not connection:
+            return False
+        return connection.is_throttleable()
+
+    def is_exhausted(self):
+        connection = self.connection
+        if not connection:
+            return False
+        return connection.is_exhausted()
+
+    def is_restored(self):
+        connection = self.connection
+        if not connection:
+            return True
+        return connection.is_restored()
+
+    def disable_read(self):
+        connection = self.connection
+        if not connection:
+            return
+        connection.disable_read()
+
+    def enable_read(self):
+        connection = self.connection
+        if not connection:
+            return
+        connection.enable_read()
+
+    @property
+    def max_pending(self):
+        connection = self.connection
+        if connection:
+            return connection.max_pending
+        return getattr(self, "_max_pending", -1)
+
+    @max_pending.setter
+    def max_pending(self, value):
+        self._max_pending = value
+        connection = self.connection
+        if connection:
+            connection.max_pending = value
+
+    @property
+    def min_pending(self):
+        connection = self.connection
+        if connection:
+            return connection.min_pending
+        return getattr(self, "_min_pending", -1)
+
+    @min_pending.setter
+    def min_pending(self, value):
+        self._min_pending = value
+        connection = self.connection
+        if connection:
+            connection.min_pending = value
+
+    def connection_made(self, transport):
+        Protocol.connection_made(self, transport)
+
+        # propagates any pending limit values that were set before the
+        # connection was established, this is required for container
+        # proxy scenarios where limits are set right after connect()
+        connection = self.connection
+        if connection:
+            if hasattr(self, "_max_pending"):
+                connection.max_pending = self._max_pending
+            if hasattr(self, "_min_pending"):
+                connection.min_pending = self._min_pending
+
     def data_received(self, data):
         self.on_data(data)
 

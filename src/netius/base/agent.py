@@ -30,6 +30,7 @@ __license__ = "Apache License, Version 2.0"
 
 import threading
 
+from . import compat
 from . import legacy
 from . import observer
 
@@ -49,7 +50,25 @@ class Agent(observer.Observable):
 
     For complex protocols instantiation may be useful to provided extra
     flexibility and context for abstract operations.
+
+    Provides Base-compatible stub methods so that Agents can be added
+    to a Container alongside Base-derived objects without requiring
+    the Container to use defensive guards. The new code (Agent) adapts
+    to the old code (Container), keeping retro-compatibility.
     """
+
+    _container_loop = None
+    """ Reference to the container's owner (a Base instance) set by
+    `Container.apply_base()` when this agent is added to a container,
+    enables protocol connections to join the container's shared poll """
+
+    @property
+    def name(self):
+        return self.__class__.__name__
+
+    @property
+    def connections(self):
+        return []
 
     @classmethod
     def cleanup_s(cls):
@@ -61,6 +80,27 @@ class Agent(observer.Observable):
 
     def destroy(self):
         observer.Observable.destroy(self)
+
+    def load(self):
+        pass
+
+    def unload(self):
+        pass
+
+    def ticks(self):
+        pass
+
+    def on_start(self):
+        pass
+
+    def on_stop(self):
+        pass
+
+    def connections_dict(self, full=False, parent=False):
+        return dict()
+
+    def info_dict(self, full=False):
+        return dict(name=self.name)
 
 
 class ClientAgent(Agent):
@@ -88,6 +128,57 @@ class ClientAgent(Agent):
         client = cls(*args, **kwargs)
         cls._clients[tid] = client
         return client
+
+    def connect(self, host, port, ssl=False, *args, **kwargs):
+        """
+        Creates a new protocol based connection to the provided
+        host and port, using the container's shared event loop when
+        available (dual architecture support).
+
+        :type host: String
+        :param host: The hostname or IP address of the remote
+        host to which the connection should be made.
+        :type port: int
+        :param port: The port number of the remote host to
+        which the connection should be made.
+        :type ssl: bool
+        :param ssl: If the connection should be established using
+        a secure SSL/TLS channel.
+        :rtype: Protocol
+        :return: The protocol instance that represents the newly
+        created connection.
+        """
+
+        cls = self.__class__
+        protocol = cls.protocol()
+        compat.connect_stream(
+            lambda: protocol,
+            host=host,
+            port=port,
+            ssl=ssl,
+            loop=self._container_loop,
+            *args,
+            **kwargs
+        )
+        self._relay_protocol_events(protocol)
+        return protocol
+
+    def _relay_protocol_events(self, protocol):
+        """
+        Relays protocol events through this client agent so that
+        observers that bind on the client (eg proxy servers) receive
+        events from all managed protocols.
+
+        Subclasses should override this method and call the parent
+        implementation to add protocol-specific event relays.
+
+        :type protocol: Protocol
+        :param protocol: The protocol instance whose events should
+        be relayed through this client agent.
+        """
+
+        protocol.bind("open", lambda protocol: self.trigger("connect", self, protocol))
+        protocol.bind("close", lambda protocol: self.trigger("close", self, protocol))
 
 
 class ServerAgent(Agent):

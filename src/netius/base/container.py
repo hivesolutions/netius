@@ -176,6 +176,13 @@ class Container(Base):
         base.logger = self.logger
         base.poll_owner = base == self.owner
 
+        # provides the container's shared loop (owner Base) to agent-based
+        # objects so that their `connect_stream` calls join the shared poll,
+        # this enables protocol based connections to be part of the same
+        # event loop as the container's owner (dual architecture support)
+        if not isinstance(base, Base):
+            base._container_loop = self.owner
+
     def call_all(self, name, *args, **kwargs):
         for base in self.bases:
             method = getattr(base, name)

@@ -402,7 +402,7 @@ class ProxyServer(http2.HTTP2Server):
             return
 
         proxy_c.enable_read()
-        self.http_client.reads((proxy_c.socket,), state=False)
+        self.reads((proxy_c.socket,), state=False)
 
     def _raw_throttle(self, connection):
         if not connection.is_restored():
@@ -415,7 +415,7 @@ class ProxyServer(http2.HTTP2Server):
             return
 
         tunnel_c.enable_read()
-        self.raw_client.reads((tunnel_c.socket,), state=False)
+        self.reads((tunnel_c.socket,), state=False)
 
     def _on_prx_headers(self, client, parser, headers):
         # retrieves the owner of the parser as the client connection

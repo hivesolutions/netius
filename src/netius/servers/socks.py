@@ -228,7 +228,7 @@ class SOCKSServer(netius.ServerAgent):
             return
 
         tunnel_c.enable_read()
-        self.raw_client.reads((tunnel_c.socket,), state=False)
+        self.reads((tunnel_c.socket,), state=False)
 
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
