@@ -36,11 +36,14 @@ import unittest
 import threading
 import collections
 
-import http.client
-
 import netius
 import netius.extra
 import netius.clients
+
+try:
+    import http.client as http_client
+except ImportError:
+    http_client = None
 
 try:
     import unittest.mock as mock
@@ -919,6 +922,9 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        if http_client == None:
+            return
+
         if netius.conf("NO_NETWORK", False, cast=bool):
             return
 
@@ -963,11 +969,13 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
         cls.server_thread.join(timeout=5)
 
     def setUp(self):
+        if http_client == None:
+            self.skipTest("Skipping test: http.client unavailable")
         if netius.conf("NO_NETWORK", False, cast=bool):
             self.skipTest("Network access is disabled")
 
     def _request(self, path, headers=None):
-        conn = http.client.HTTPConnection("127.0.0.1", self.proxy_port, timeout=30)
+        conn = http_client.HTTPConnection("127.0.0.1", self.proxy_port, timeout=30)
         try:
             _headers = {"Host": self.httpbin}
             if headers:
@@ -1017,7 +1025,7 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
         self.assertIn("x-client-ip", headers_lower)
 
     def test_404_no_match(self):
-        connection = http.client.HTTPConnection(
+        connection = http_client.HTTPConnection(
             "127.0.0.1", self.proxy_port, timeout=30
         )
         try:
