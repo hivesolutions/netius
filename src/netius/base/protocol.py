@@ -358,10 +358,17 @@ class StreamProtocol(Protocol):
 
         :rtype: Connection
         :return: The underlying connection object associated with
-        the transport, or None if no transport is set.
+        the transport, or None if no transport is set or does not
+        expose a connection object.
         """
 
+        # In asyncio compat mode the transport may be an asyncio transport
+        # instance, which does not expose the private `_connection`
+        # attribute. Guard access to avoid AttributeError while keeping
+        # backward compatibility for custom transports that do define it.
         if not self._transport:
+            return None
+        if not hasattr(self._transport, "_connection"):
             return None
         return self._transport._connection
 
