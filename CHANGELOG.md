@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+*
+
+## [1.23.1] - 2026-02-13
+
+### Fixed
+
 * `ImportError: No module named http` on Python 2.7/PyPy - `http.client` import now uses conditional fallback with skip guard for integration tests
 
 ## [1.23.0] - 2026-02-13
