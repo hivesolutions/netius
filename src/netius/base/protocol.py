@@ -80,10 +80,22 @@ class Protocol(observer.Observable):
             return
 
         # calls the concrete implementation of the close operation
-        # allowing an extra level of indirection
+        # allowing an extra level of indirection, allowing subclasses
+        # to implement custom close behavior
         self.close_c()
 
+        # triggers the close event before the delayed finish
+        # operation runs, this is critical because when _loop
+        # is None the delay call executes finish() synchronously
+        # which destroys all event bindings via unbind_all(),
+        # the event must fire while handlers are still bound
         self.trigger("close", self)
+
+        # delays the execution of the finish (cleanup) operation
+        # so that all the pending operations from the close
+        # can be executed in the meantime, ensuring a proper,
+        # secure and clean execution of the finish method
+        self.delay(self.finish)
 
     def finish(self):
         # in case the current protocol is already (completely) closed
@@ -121,12 +133,6 @@ class Protocol(observer.Observable):
         # this operation is only considered to be safely completed
         # on the next tick of the event loop
         self._close_transport()
-
-        # delays the execution of the finish (cleanup) operation
-        # so that all the pending operations from the close transport
-        # call can be executed in the meantime, ensuring a proper,
-        # secure and clean execution of the finish method
-        self.delay(self.finish)
 
     def finish_c(self):
         del self._delayed[:]
@@ -511,6 +517,11 @@ class StreamProtocol(Protocol):
         # so that its format is compliant with what's expected by
         # the underlying transport write operation
         data = legacy.bytes(data)
+
+        # in case the transport has been unset (connection closed or
+        # closing) the send operation is silently ignored
+        if not self._transport:
+            return 0
 
         # in case the current transport buffers do not allow writing
         # (paused mode) the writing of the data is delayed until the

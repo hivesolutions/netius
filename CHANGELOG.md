@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Protocol close event not firing when `_loop` is None - `delay(finish)` ran synchronously inside `close_c()`, calling `destroy()` → `unbind_all()` before `trigger("close")` could fire, leaving stale `conn_map` entries in the proxy
+* `NoneType` attribute error on `StreamProtocol.send()` when transport is already closed - added guard for `_transport` being None
 
 ## [1.22.0] - 2026-02-13
 

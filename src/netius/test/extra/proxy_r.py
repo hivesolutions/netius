@@ -847,3 +847,61 @@ class ReverseProxyServerTest(unittest.TestCase):
         parser.keep_alive = True
         parser.content_l = 100
         return parser
+
+    def test_close_no_loop_destroys_before_event(self):
+        """
+        When a `Protocol` has no event loop (`_loop` is None),
+        `close_c()` calls `delay(self.finish)` which invokes
+        `finish()` immediately (synchronously). `finish()` calls
+        `destroy()` -> `unbind_all()` which removes all event
+        handlers. Then when `close()` reaches `trigger("close")`
+        the handler list is already empty and the relay never
+        fires, so `_on_prx_close` is never called and the
+        `conn_map` entry is never cleaned up.
+
+        This test reproduces the scenario using a real
+        `StreamProtocol` whose `_loop` is None.
+        """
+
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # creates a real StreamProtocol to exercise the actual
+        # close -> close_c -> delay -> finish -> destroy chain
+        backend = netius.StreamProtocol()
+        backend.open_c()
+
+        # sets up the attributes that the proxy expects on
+        # a backend connection (normally set during on_headers)
+        backend.waiting = True
+        backend.busy = 1
+        backend.state = None
+        backend.error_url = None
+        backend.current = 0
+        backend.address = ("10.0.0.1", 8080)
+
+        # wire a frontend mock into the conn_map
+        frontend = self._make_frontend()
+        self.server.conn_map[backend] = frontend
+        self.server.busy_conn = 1
+
+        # verify the protocol has no loop, which is the
+        # precondition for the bug
+        self.assertIsNone(backend._loop)
+
+        # simulate the event relay that HTTPClient.method()
+        # would normally set up via _relay_protocol_events
+        self.server.http_client._relay_protocol_events(backend)
+
+        # close the backend protocol, this is the operation
+        # that should trigger _on_prx_close via the event relay
+        # but when _loop is None the events are unbound before
+        # the "close" trigger fires
+        backend.close()
+
+        # the conn_map entry should have been cleaned up by
+        # _on_prx_close but because finish() ran synchronously
+        # and destroyed all bindings before trigger("close"),
+        # the entry remains (this is the bug)
+        self.assertNotIn(backend, self.server.conn_map)
+        self.assertEqual(self.server.busy_conn, 0)
