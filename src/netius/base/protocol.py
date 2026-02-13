@@ -333,7 +333,7 @@ class DatagramProtocol(Protocol):
 
         # in case the transport has not yet been set (connection still
         # being established) the data is buffered and will be flushed
-        # once connection_made() fires
+        # once `connection_made()` fires
         if not self._transport:
             return self._delay_send(data, address=address, callback=callback)
 

@@ -282,9 +282,9 @@ class HTTPProtocol(netius.StreamProtocol):
 
         # flushes any data that was buffered before the transport
         # was available, this happens in the proxy scenario where
-        # on_headers() and on_partial() fire in the same parser
+        # `on_headers()` and `on_partial()` fire in the same parser
         # pass (same event loop tick) so body chunks are queued
-        # via _delay_send() before connection_made() runs
+        # via `_delay_send()` before `connection_made()` runs
         self._flush_send()
 
     def loop_set(self, loop):
