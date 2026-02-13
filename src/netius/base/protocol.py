@@ -35,12 +35,18 @@ from . import observer
 
 class Protocol(observer.Observable):
     """
-    Abstract class from which concrete implementation of
-    protocol logic should be inherited.
+    Abstract base for protocol implementations, providing
+    an interface that is API-compatible with asyncio's
+    `Protocol` class.
 
-    The logic of a protocol should implement both a reaction
-    to the arrival of information (receive) and the sending
-    of processed data (send).
+    Manages the lifecycle of a connection through the
+    standard `connection_made` and `connection_lost` callbacks
+    and provides flow control via `pause_writing` and
+    `resume_writing`.
+
+    Concrete subclasses should override data handling
+    methods (eg `data_received`, `datagram_received`)
+    to implement their specific protocol logic.
     """
 
     def __init__(self, owner=None):
@@ -280,6 +286,16 @@ class Protocol(observer.Observable):
 
 
 class DatagramProtocol(Protocol):
+    """
+    Protocol for connectionless datagram-based communication
+    (eg UDP), API-compatible with asyncio's
+    `DatagramProtocol`.
+
+    Incoming data arrives through `datagram_received`
+    and outgoing data is sent via `send`. Maintains a
+    request queue for correlating responses to pending
+    requests using their identifiers.
+    """
 
     def __init__(self):
         Protocol.__init__(self)
@@ -349,6 +365,18 @@ class DatagramProtocol(Protocol):
 
 
 class StreamProtocol(Protocol):
+    """
+    Protocol for stream-based (TCP) communication, providing
+    an interface compatible with asyncio's `Protocol` class.
+
+    Incoming bytes arrive through `data_received` and
+    outgoing data is written via `send`. Exposes backward
+    compatibility delegation properties (`socket`, `renable`,
+    `is_throttleable`, etc.) that reach through the transport
+    to the underlying `Connection` object, allowing protocol
+    instances to be used in code paths that still expect the
+    older `Connection` interface (eg proxy servers).
+    """
 
     @property
     def connection(self):
