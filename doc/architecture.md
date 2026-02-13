@@ -9,7 +9,7 @@ on a shared poll.
 A core design principle of Netius is **bi-directional compatibility** with Python's asyncio. Rather
 than being a one-way wrapper, compatibility works in both directions across three layers:
 
-**Protocol layer** -- Netius protocols (`Protocol`, `StreamProtocol`, `DatagramProtocol`) implement
+**Protocol layer** - Netius protocols (`Protocol`, `StreamProtocol`, `DatagramProtocol`) implement
 the same interface as `asyncio.Protocol`: `connection_made()`, `connection_lost()`,
 `data_received()`, `pause_writing()`, `resume_writing()`. A protocol written for Netius runs on
 asyncio's event loop with zero changes, and a protocol written for asyncio runs on Netius.
@@ -18,12 +18,12 @@ asyncio's event loop with zero changes, and a protocol written for asyncio runs 
 implement the `asyncio.Transport` interface: `write()`, `close()`, `abort()`,
 `get_write_buffer_size()`, `get_extra_info()`. Internally they wrap Netius `Connection` objects, but
 protocols only see the standard interface. When running on asyncio, Python provides its own
-transports with the same API -- protocols don't know the difference.
+transports with the same API - protocols don't know the difference.
 
 **Event loop layer** - `CompatLoop` wraps a Netius `Base` loop and presents the full
 `asyncio.AbstractEventLoop` interface (`call_soon`, `create_connection`, `create_server`,
-`create_task`, `run_until_complete`, etc.). This means code that expects an asyncio loop -- including
-third-party libraries -- can run on Netius. Conversely, when `ASYNCIO=1` is set, Netius uses
+`create_task`, `run_until_complete`, etc.). This means code that expects an asyncio loop - including
+third-party libraries - can run on Netius. Conversely, when `ASYNCIO=1` is set, Netius uses
 Python's native asyncio loop directly, with Netius protocols plugging in through the standard
 protocol/transport interfaces.
 
@@ -48,7 +48,7 @@ while running:
     errors(sockets)      # dispatch error sockets
 ```
 
-Each socket is registered via `sub_read(socket, owner=self)` -- the `owner` is the `Base` that
+Each socket is registered via `sub_read(socket, owner=self)` - the `owner` is the `Base` that
 created the connection. This ownership is used by the Container for routing (see below).
 
 ### Read Path
