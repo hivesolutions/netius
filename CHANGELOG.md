@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.22.0] - 2026-02-13
+
+### Added
+
 * Base-compatible stub methods on `Agent` so that `Container` works with both old (`Base`) and new (`Agent`/`Protocol`) architectures without defensive guards
 * `ClientAgent.connect()` method with `_container_loop` support for protocol-based connections to join the container's shared poll
 * Event relay system in `ClientAgent._relay_protocol_events()` bridging protocol events to client-level observers
