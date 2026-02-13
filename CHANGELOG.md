@@ -9,15 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Base-compatible stub methods on `Agent` so that `Container` works with both old (`Base`) and new (`Agent`/`Protocol`) architectures without defensive guards
+* `ClientAgent.connect()` method with `_container_loop` support for protocol-based connections to join the container's shared poll
+* Event relay system in `ClientAgent._relay_protocol_events()` bridging protocol events to client-level observers
+* Container tests (`netius.test.base.container`) covering setup, event bindings, lifecycle, and cleanup
+* Data flow tests for `ReverseProxyServer` covering request routing, response relay, error handling, and lifecycle management
 
 ### Changed
 
-*
+* `Container.apply_base()` now sets `_container_loop` on non-`Base` objects to enable dual architecture multiplexing
+* `HTTPClient.method()` uses `_container_loop` as default loop when available for container integration
+* Proxy throttle methods use `self.reads()` / `self.writes()` since connections are owned by the proxy server
 
 ### Fixed
 
-*
+* `AttributeError` when running `ConsulProxyServer` due to `Agent` subclasses missing `load`, `unload`, `ticks`, and other `Base`-expected methods
 
 ## [1.21.0] - 2026-02-07
 

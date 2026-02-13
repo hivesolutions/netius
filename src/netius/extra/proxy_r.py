@@ -436,9 +436,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         )
 
         # calls the proper (HTTP) method in the client this should acquire
-        # a new connection and start the process of sending the request
-        # to the associated HTTP server (request handling)
-        _connection = self.http_client.method(
+        # a new protocol and start the process of sending the request
+        # to the associated HTTP server (request handling), the method
+        # returns a tuple of (loop, protocol) in the async execution mode
+        _loop, _connection = self.http_client.method(
             method,
             url,
             headers=headers,

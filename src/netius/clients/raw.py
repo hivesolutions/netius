@@ -56,6 +56,12 @@ class RawClient(netius.ClientAgent):
 
         return loop, protocol
 
+    def _relay_protocol_events(self, protocol):
+        netius.ClientAgent._relay_protocol_events(self, protocol)
+        protocol.bind(
+            "data", lambda protocol, data: self.trigger("data", self, protocol, data)
+        )
+
 
 if __name__ == "__main__":
 
