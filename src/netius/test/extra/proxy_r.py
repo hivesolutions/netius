@@ -872,7 +872,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.server.conn_map[backend] = frontend
         self.server._throttle(backend)
 
-        frontend.enable_read.assert_called_once()
+        self.assertEqual(frontend.enable_read.call_count, 1)
 
     def test_throttle_transport(self):
         if mock == None:
@@ -891,7 +891,7 @@ class ReverseProxyServerTest(unittest.TestCase):
 
         self.server._throttle(transport)
 
-        frontend.enable_read.assert_called_once()
+        self.assertEqual(frontend.enable_read.call_count, 1)
 
     def test_throttle_not_restored(self):
         if mock == None:
@@ -905,7 +905,7 @@ class ReverseProxyServerTest(unittest.TestCase):
 
         self.server._throttle(backend)
 
-        frontend.enable_read.assert_not_called()
+        self.assertEqual(frontend.enable_read.call_count, 0)
 
     def test_close_no_loop_destroys_before_event(self):
         if mock == None:
