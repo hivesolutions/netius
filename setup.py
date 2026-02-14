@@ -57,7 +57,7 @@ if not os.environ.get("SKIP_SETUP", "0") == "1":
 
 setuptools.setup(
     name="netius",
-    version="1.23.2",
+    version="1.24.0",
     author="Hive Solutions Lda.",
     author_email="development@hive.pt",
     description="Netius System",

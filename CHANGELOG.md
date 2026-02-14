@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.24.0] - 2026-02-14
+
+### Added
+
 * `ConnectionCompat` mixin in `mixin.py` extracting backward-compatible `Connection` delegation methods (`socket`, `renable`, `is_restored()`, `enable_read()`, etc.) from `StreamProtocol`
 * `ConnectionCompat` applied to `TransportStream` so it exposes `is_restored()` and other throttle-related methods
 * Throttle unit tests for proxy server covering both Connection and TransportStream paths
