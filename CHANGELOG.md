@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Consul proxy polling stops permanently if `_consul_fetch()` raises an unexpected exception - tick loop now catches errors, logs them, and always reschedules the next poll
 
 ## [1.24.0] - 2026-02-14
 

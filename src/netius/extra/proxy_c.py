@@ -204,7 +204,11 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         # to avoid blocking the main event loop during HTTP requests,
         # the results are then applied back on the main loop via delay_s
         def _fetch():
-            entries = self._consul_fetch()
+            try:
+                entries = self._consul_fetch()
+            except Exception as exception:
+                self.info("Consul fetch failed: %s" % str(exception))
+                entries = None
 
             # builds the consul structures using the fetched entries,
             # then schedules the next tick after the configured, this
@@ -212,7 +216,8 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             # can safely modify the proxy configuration without any
             # kind of locking concerns
             def _apply():
-                self._build_consul(entries)
+                if entries:
+                    self._build_consul(entries)
                 if timeout > 0:
                     self.delay(
                         lambda: self._consul_tick(timeout=timeout), timeout=timeout
