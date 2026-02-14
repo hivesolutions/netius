@@ -32,14 +32,14 @@ __license__ = "Apache License, Version 2.0"
 class ConnectionCompat(object):
     """
     Mixin that delegates `Connection`-level attributes and
-    methods through a ``connection`` property, allowing
+    methods through a `connection` property, allowing
     protocol and transport objects to be used transparently
     in code paths that still expect the older `Connection`
     interface (eg proxy servers, throttle callbacks).
 
-    Host classes must provide a ``connection`` property
+    Host classes must provide a `connection` property
     that returns the underlying `Connection` instance
-    (or ``None`` when unavailable).
+    (or `None` when unavailable).
     """
 
     @property
