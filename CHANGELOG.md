@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `REMOTE_PORT` variable in WSGI environ dictionary, exposing the client's source port as a string
 
 ### Changed
 
