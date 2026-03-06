@@ -3319,6 +3319,22 @@ class AbstractBase(observer.Observable):
         return connection
 
     def base_connection(self, *args, **kwargs):
+        """
+        Creates a new connection using the base level builder
+        and marks it with the `_base` flag so that upper layers
+        (eg: servers) delegate its I/O handling back to the
+        :class:`Base` class instead of processing it themselves.
+
+        This is used for client-side connections created inside
+        a server context (eg: proxy outbound connections) where
+        the read, write and error events should bypass the
+        server's own handlers.
+
+        :rtype: Connection
+        :return: The newly created connection object with the
+        `_base` flag set to True.
+        """
+
         connection = Base.build_connection(self, *args, **kwargs)
         connection._base = True
         return connection

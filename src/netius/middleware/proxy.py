@@ -84,6 +84,11 @@ class ProxyMiddleware(Middleware):
         self.owner.unbind("connection_c", self.on_connection_c)
 
     def on_connection_c(self, owner, connection):
+        if hasattr(connection, "_base"):
+            return
+        if hasattr(connection, "_skip_proxy"):
+            return
+
         if self.version == 1:
             connection.add_starter(self._proxy_handshake_v1)
         elif self.version == 2:
