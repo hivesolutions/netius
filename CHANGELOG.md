@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.25.1] - 2026-03-06
+
+### Added
+
 * Docstring for `base_connection` method in `AbstractBase` explaining the `_base` flag semantics
 
 ### Changed
