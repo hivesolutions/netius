@@ -132,7 +132,7 @@ class WSGIServer(http2.HTTP2Server):
             SERVER_PROTOCOL=parser.version_s,
             SERVER_SOFTWARE=SERVER_SOFTWARE,
             REMOTE_ADDR=connection.address[0],
-            REMOTE_PORT=str(connection.address[1])
+            REMOTE_PORT=str(connection.address[1]),
         )
 
         # updates the environment map with all the structures referring
