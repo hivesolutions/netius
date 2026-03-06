@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * `REMOTE_PORT` variable in WSGI environ dictionary, exposing the client's source port as a string
+* `tick` event trigger in `ConsulProxyServer` tick loop for external monitoring of the consul discovery process
 
 ### Changed
 

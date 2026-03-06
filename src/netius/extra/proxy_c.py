@@ -227,6 +227,11 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
 
         self.ensure(_fetch, thread=True)
 
+        # triggers a tick event to allow external monitoring of the consul
+        # discovery process, this can be used for logging or reacting to
+        # changes in the registered services (e.g. for metrics or alerts)
+        self.trigger("tick", self)
+
     def _consul_services(self):
         url = self.consul_url + "/v1/catalog/services"
         result = self._consul_get(url)
