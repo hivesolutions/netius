@@ -25,10 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Docstring for `base_connection` method in `AbstractBase` explaining the `_base` flag semantics
 
-### Changed
-
-*
-
 ### Fixed
 
 * PROXY protocol middleware now skips base (`_base`) and explicitly excluded (`_skip_proxy`) connections, preventing outbound client connections from being validated for PROXY headers
