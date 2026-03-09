@@ -405,12 +405,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         if auth_regex:
             self.auth_regex = list(self.auth_regex) + auth_regex
             self._consul_auth_regex.extend(auth_regex)
-            for regex, auth in auth_regex:
-                auth_s = auth.__class__.__name__ if auth else "none"
-                self.debug(
-                    "Registered auth regex '%s' for '%s' with auth type '%s'"
-                    % (regex.pattern, domain, auth_s)
-                )
+            self._debug_auth_regex(domain, auth_regex)
 
     def _build_urls(self, instances, address=None, ports=None):
         urls = []
@@ -445,6 +440,14 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                     len(tags),
                     "" if len(tags) == 1 else "s",
                 )
+            )
+
+    def _debug_auth_regex(self, domain, auth_regex):
+        for regex, auth in auth_regex:
+            auth_s = auth.__class__.__name__ if auth else "none"
+            self.debug(
+                "Registered auth regex '%s' for '%s' with auth type '%s'"
+                % (regex.pattern, domain, auth_s)
             )
 
 
