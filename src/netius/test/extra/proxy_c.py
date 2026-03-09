@@ -473,6 +473,66 @@ class ConsulProxyServerTest(unittest.TestCase):
         result = self.server._resolve_ports(tags)
         self.assertEqual(result, None)
 
+    def test_resolve_auth_regex(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.auth-regex=/api/*;none,/*;password",
+            "proxy.password=secret",
+        ]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0][0].pattern, "/api/*")
+        self.assertEqual(result[0][1], None)
+        self.assertEqual(result[1][0].pattern, "/*")
+        self.assertIsInstance(result[1][1], netius.SimpleAuth)
+        self.assertEqual(result[1][1].password, "secret")
+
+    def test_resolve_auth_regex_none(self):
+        tags = ["proxy.enable=true"]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_auth_regex_empty(self):
+        tags = ["proxy.enable=true", "proxy.auth-regex="]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_auth_regex_simple(self):
+        tags = ["proxy.enable=true", "proxy.auth-regex=/*;simple:admin:pass123"]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][0].pattern, "/*")
+        self.assertIsInstance(result[0][1], netius.SimpleAuth)
+        self.assertEqual(result[0][1].username, "admin")
+        self.assertEqual(result[0][1].password, "pass123")
+
+    def test_resolve_auth_regex_password_no_tag(self):
+        tags = ["proxy.enable=true", "proxy.auth-regex=/*;password"]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_auth_regex_multiple_none(self):
+        tags = ["proxy.enable=true", "proxy.auth-regex=/api/*;none,/health;none"]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0][1], None)
+        self.assertEqual(result[1][1], None)
+
+    def test_resolve_auth_regex_priority(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.auth-regex=/first;none",
+            "proxy.auth-regex=/second;none",
+        ]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][0].pattern, "/first")
+
+    def test_resolve_auth_regex_no_separator(self):
+        tags = ["proxy.enable=true", "proxy.auth-regex=/api/*"]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(result, None)
+
     def test_apply_tags_password(self):
         tags = ["proxy.enable=true", "proxy.password=secret123"]
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
@@ -554,6 +614,38 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.assertTrue("myapp" not in self.server.auth)
         self.assertTrue("myapp" not in self.server.error_urls)
         self.assertTrue("myapp" not in self.server.redirect)
+
+    def test_apply_tags_auth_regex(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.auth-regex=/api/*;none,/*;password",
+            "proxy.password=secret",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(len(self.server.auth_regex), 2)
+        self.assertEqual(self.server.auth_regex[0][0].pattern, "/api/*")
+        self.assertEqual(self.server.auth_regex[0][1], None)
+        self.assertEqual(self.server.auth_regex[1][0].pattern, "/*")
+        self.assertIsInstance(self.server.auth_regex[1][1], netius.SimpleAuth)
+
+    def test_apply_tags_auth_regex_cleanup(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.auth-regex=/api/*;none,/*;password",
+            "proxy.password=secret",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(len(self.server.auth_regex), 2)
+
+        # simulates second rebuild with the service removed from
+        # consul, auth regex entries should be properly cleaned up
+        self.server._build_hosts([])
+
+        self.assertEqual(len(self.server.auth_regex), 0)
 
     def test_build_urls(self):
         instances = [

@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `proxy.auth-regex` consul tag for declarative regex-based auth rules with `none`, `password` and `simple:<user>:<pass>` auth types
 
 ### Changed
 

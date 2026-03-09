@@ -28,6 +28,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import re
 import json
 
 import netius
@@ -58,7 +59,8 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
     (`proxy.error-url=<url>`), automatic HTTPS redirection
     (`proxy.redirect-ssl=true`), port filtering
     (`proxy.port=<port1,port2,...>` or alias `proxy.ports`),
-    and address override (`proxy.address=<address>`).
+    address override (`proxy.address=<address>`), and regex-based
+    auth rules (`proxy.auth-regex=<pattern>;<type>,...`).
     """
 
     def __init__(
@@ -81,6 +83,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         )
         self._consul_hosts = set()
         self._consul_aliases = set()
+        self._consul_auth_regex = []
 
     def on_serve(self):
         proxy_r.ReverseProxyServer.on_serve(self)
@@ -109,14 +112,20 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
 
     def _build_hosts(self, entries):
         # removes any previously registered consul-managed hosts,
-        # auth, error URLs and redirects to ensure a clean state
-        # before rebuilding the complete set of entries
+        # auth, error URLs, redirects and auth regex entries to
+        # ensure a clean state before rebuilding the complete set
         for host in self._consul_hosts:
             self.hosts.pop(host, None)
             self.auth.pop(host, None)
             self.error_urls.pop(host, None)
             self.redirect.pop(host, None)
+        for entry in self._consul_auth_regex:
+            try:
+                self.auth_regex.remove(entry)
+            except ValueError:
+                pass
         self._consul_hosts = set()
+        self._consul_auth_regex = []
 
         # iterates over the fetched entries registering each one
         # in the hosts map and applying per-service configuration
@@ -295,10 +304,12 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
 
     def _resolve_address(self, tags):
         for tag in tags:
-            if tag.startswith("proxy.address="):
-                value = tag[len("proxy.address=") :]
-                if value:
-                    return str(value)
+            if not tag.startswith("proxy.address="):
+                continue
+            value = tag[len("proxy.address=") :]
+            if not value:
+                continue
+            return str(value)
         return None
 
     def _resolve_ports(self, tags):
@@ -331,6 +342,52 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                     continue
         return ports if ports else None
 
+    def _resolve_auth_regex(self, tags):
+        value = None
+        for tag in tags:
+            if tag.startswith("proxy.auth-regex=") and value == None:
+                value = tag[len("proxy.auth-regex=") :]
+        if not value:
+            return None
+        result = []
+        for part in value.split(","):
+            part = part.strip()
+            if not part:
+                continue
+            if ";" not in part:
+                continue
+            pattern, auth_type = part.split(";", 1)
+            pattern = pattern.strip()
+            auth_type = auth_type.strip()
+            if not pattern:
+                continue
+            regex = re.compile(pattern)
+            if auth_type == "none":
+                result.append((regex, None))
+            elif auth_type == "password":
+                password = self._resolve_tag(tags, "proxy.password=")
+                if password:
+                    auth = netius.SimpleAuth(password=password)
+                    result.append((regex, auth))
+            elif auth_type.startswith("simple:"):
+                credentials = auth_type[len("simple:") :]
+                parts = credentials.split(":", 1)
+                username = parts[0] if len(parts) > 0 else None
+                password = parts[1] if len(parts) > 1 else None
+                auth = netius.SimpleAuth(username=username, password=password)
+                result.append((regex, auth))
+        return result if result else None
+
+    def _resolve_tag(self, tags, prefix):
+        for tag in tags:
+            if not tag.startswith(prefix):
+                continue
+            value = tag[len(prefix) :]
+            if not value:
+                continue
+            return str(value)
+        return None
+
     def _apply_tags(self, domain, tags):
         for tag in tags:
             if tag.startswith("proxy.password="):
@@ -344,6 +401,10 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                     self.error_urls[domain] = str(error_url)
             elif tag == "proxy.redirect-ssl=true":
                 self.redirect[domain] = (domain, "https")
+        auth_regex = self._resolve_auth_regex(tags)
+        if auth_regex:
+            self.auth_regex = list(self.auth_regex) + auth_regex
+            self._consul_auth_regex.extend(auth_regex)
 
     def _build_urls(self, instances, address=None, ports=None):
         urls = []
