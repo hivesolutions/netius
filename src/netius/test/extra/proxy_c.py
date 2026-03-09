@@ -384,6 +384,41 @@ class ConsulProxyServerTest(unittest.TestCase):
         result = self.server._resolve_ports(tags)
         self.assertEqual(result, {8080, 9090})
 
+    def test_resolve_ports_range(self):
+        tags = ["proxy.enable=true", "proxy.port=8080-8083"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080, 8081, 8082, 8083})
+
+    def test_resolve_ports_range_single(self):
+        tags = ["proxy.enable=true", "proxy.port=8080-8080"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080})
+
+    def test_resolve_ports_range_and_list(self):
+        tags = ["proxy.enable=true", "proxy.port=8080-8082,9090"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080, 8081, 8082, 9090})
+
+    def test_resolve_ports_range_multiple(self):
+        tags = ["proxy.enable=true", "proxy.port=8080-8082,9090-9092"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080, 8081, 8082, 9090, 9091, 9092})
+
+    def test_resolve_ports_range_spaces(self):
+        tags = ["proxy.enable=true", "proxy.port=8080 - 8082"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080, 8081, 8082})
+
+    def test_resolve_ports_range_invalid(self):
+        tags = ["proxy.enable=true", "proxy.port=abc-def"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_ports_range_alias(self):
+        tags = ["proxy.enable=true", "proxy.ports=8080-8082"]
+        result = self.server._resolve_ports(tags)
+        self.assertEqual(result, {8080, 8081, 8082})
+
     def test_resolve_ports_invalid(self):
         tags = ["proxy.enable=true", "proxy.port=abc"]
         result = self.server._resolve_ports(tags)

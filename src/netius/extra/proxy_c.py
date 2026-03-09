@@ -301,10 +301,20 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             part = part.strip()
             if not part:
                 continue
-            try:
-                ports.add(int(part))
-            except ValueError:
-                continue
+            if "-" in part:
+                bounds = part.split("-", 1)
+                try:
+                    start = int(bounds[0].strip())
+                    end = int(bounds[1].strip())
+                except ValueError:
+                    continue
+                for port in range(start, end + 1):
+                    ports.add(port)
+            else:
+                try:
+                    ports.add(int(part))
+                except ValueError:
+                    continue
         return ports if ports else None
 
     def _apply_tags(self, domain, tags):
