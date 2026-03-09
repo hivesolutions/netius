@@ -319,6 +319,26 @@ class ConsulProxyServerTest(unittest.TestCase):
             entries[0][2], ["http://10.0.0.1:8080", "http://10.0.0.2:9090"]
         )
 
+    def test_consul_fetch_address_override(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        services = {"myapp": ["proxy.enable=true", "proxy.address=10.99.0.1"]}
+        health = [
+            {
+                "Service": {"Address": "10.0.0.1", "Port": 8080},
+                "Node": {"Address": "10.0.0.100"},
+            }
+        ]
+
+        with mock.patch.object(
+            self.server, "_consul_services", return_value=services
+        ), mock.patch.object(self.server, "_consul_health", return_value=health):
+            entries = self.server._consul_fetch()
+
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0][2], ["http://10.99.0.1:8080"])
+
     def test_resolve_domain(self):
         tags = ["proxy.enable=true", "proxy.domain=myapp.local"]
         result = self.server._resolve_domain("myapp", tags)
@@ -348,6 +368,35 @@ class ConsulProxyServerTest(unittest.TestCase):
         tags = ["proxy.enable=true", "proxy.name="]
         result = self.server._resolve_domain("MyApp", tags)
         self.assertEqual(result, "myapp")
+
+    def test_resolve_address(self):
+        tags = ["proxy.enable=true", "proxy.address=10.99.0.1"]
+        result = self.server._resolve_address(tags)
+        self.assertEqual(result, "10.99.0.1")
+
+    def test_resolve_address_hostname(self):
+        tags = ["proxy.enable=true", "proxy.address=backend.local"]
+        result = self.server._resolve_address(tags)
+        self.assertEqual(result, "backend.local")
+
+    def test_resolve_address_none(self):
+        tags = ["proxy.enable=true"]
+        result = self.server._resolve_address(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_address_empty(self):
+        tags = ["proxy.enable=true", "proxy.address="]
+        result = self.server._resolve_address(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_address_first_wins(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.address=10.0.0.1",
+            "proxy.address=10.0.0.2",
+        ]
+        result = self.server._resolve_address(tags)
+        self.assertEqual(result, "10.0.0.1")
 
     def test_resolve_ports(self):
         tags = ["proxy.enable=true", "proxy.port=8080"]
@@ -591,6 +640,66 @@ class ConsulProxyServerTest(unittest.TestCase):
         ]
         result = self.server._build_urls(instances, ports=None)
         self.assertEqual(result, ["http://10.0.0.1:8080", "http://10.0.0.2:9090"])
+
+    def test_build_urls_address_override(self):
+        instances = [
+            {
+                "Service": {"Address": "10.0.0.1", "Port": 8080},
+                "Node": {"Address": "10.0.0.100"},
+            }
+        ]
+        result = self.server._build_urls(instances, address="10.99.0.1")
+        self.assertEqual(result, ["http://10.99.0.1:8080"])
+
+    def test_build_urls_address_override_multiple(self):
+        instances = [
+            {
+                "Service": {"Address": "10.0.0.1", "Port": 8080},
+                "Node": {"Address": "10.0.0.100"},
+            },
+            {
+                "Service": {"Address": "10.0.0.2", "Port": 9090},
+                "Node": {"Address": "10.0.0.101"},
+            },
+        ]
+        result = self.server._build_urls(instances, address="10.99.0.1")
+        self.assertEqual(result, ["http://10.99.0.1:8080", "http://10.99.0.1:9090"])
+
+    def test_build_urls_address_override_no_port(self):
+        instances = [
+            {
+                "Service": {"Address": "10.0.0.1", "Port": 0},
+                "Node": {"Address": "10.0.0.100"},
+            }
+        ]
+        result = self.server._build_urls(instances, address="10.99.0.1")
+        self.assertEqual(result, [])
+
+    def test_build_urls_address_fallback_node(self):
+        # when address override is not set and service address is
+        # empty, the node address should still be used as fallback
+        instances = [
+            {
+                "Service": {"Address": "", "Port": 8080},
+                "Node": {"Address": "10.0.0.100"},
+            }
+        ]
+        result = self.server._build_urls(instances, address=None)
+        self.assertEqual(result, ["http://10.0.0.100:8080"])
+
+    def test_build_urls_address_with_port_filter(self):
+        instances = [
+            {
+                "Service": {"Address": "10.0.0.1", "Port": 8080},
+                "Node": {"Address": "10.0.0.100"},
+            },
+            {
+                "Service": {"Address": "10.0.0.2", "Port": 9090},
+                "Node": {"Address": "10.0.0.101"},
+            },
+        ]
+        result = self.server._build_urls(instances, address="10.99.0.1", ports={8080})
+        self.assertEqual(result, ["http://10.99.0.1:8080"])
 
     def test_host_rules(self):
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]

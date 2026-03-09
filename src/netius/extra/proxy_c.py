@@ -56,8 +56,9 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
     Additional per-service tags are supported for password
     protection (`proxy.password=<secret>`), custom error pages
     (`proxy.error-url=<url>`), automatic HTTPS redirection
-    (`proxy.redirect-ssl=true`), and port filtering
-    (`proxy.port=<port1,port2,...>` or alias `proxy.ports`).
+    (`proxy.redirect-ssl=true`), port filtering
+    (`proxy.port=<port1,port2,...>` or alias `proxy.ports`),
+    and address override (`proxy.address=<address>`).
     """
 
     def __init__(
@@ -102,6 +103,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         self._consul_tick(timeout=self.consul_poll_interval)
 
     def _build_consul(self, entries):
+        self._debug_entries(entries)
         self._build_hosts(entries)
         self._build_suffixes()
 
@@ -184,13 +186,17 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             if not instances:
                 continue
 
+            # resolves the optional address override from the
+            # consul tags, bypassing the default resolution
+            address = self._resolve_address(tags)
+
             # resolves the optional port filter from the consul
             # tags, limiting which ports are considered valid
             ports = self._resolve_ports(tags)
 
             # builds the complete set of backend URLs from the
             # healthy instances, filtering out any invalid ones
-            urls = self._build_urls(instances, ports=ports)
+            urls = self._build_urls(instances, address=address, ports=ports)
             if not urls:
                 continue
 
@@ -287,6 +293,14 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             return str(domain)
         return str(service.lower())
 
+    def _resolve_address(self, tags):
+        for tag in tags:
+            if tag.startswith("proxy.address="):
+                value = tag[len("proxy.address=") :]
+                if value:
+                    return str(value)
+        return None
+
     def _resolve_ports(self, tags):
         value = None
         for tag in tags:
@@ -331,22 +345,40 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             elif tag == "proxy.redirect-ssl=true":
                 self.redirect[domain] = (domain, "https")
 
-    def _build_urls(self, instances, ports=None):
+    def _build_urls(self, instances, address=None, ports=None):
         urls = []
         for instance in instances:
             service = instance.get("Service", dict())
             node = instance.get("Node", dict())
-            address = service.get("Address", None)
-            if not address:
-                address = node.get("Address", None)
+            _address = address or service.get("Address", None)
+            if not _address:
+                _address = node.get("Address", None)
             port = service.get("Port", 0)
-            if not address or not port:
+            if not _address or not port:
                 continue
             if ports and port not in ports:
                 continue
-            url = str("http://%s:%d" % (address, port))
+            url = str("http://%s:%d" % (_address, port))
             urls.append(url)
         return urls
+
+    def _debug_entries(self, entries):
+        self.debug(
+            "Building consul proxy from %d entr%s"
+            % (len(entries), "y" if len(entries) == 1 else "ies")
+        )
+        for service, domain, urls, tags in entries:
+            self.debug(
+                "  %s => %s (%d URL%s, %d tag%s)"
+                % (
+                    service,
+                    domain,
+                    len(urls),
+                    "" if len(urls) == 1 else "s",
+                    len(tags),
+                    "" if len(tags) == 1 else "s",
+                )
+            )
 
 
 if __name__ == "__main__":
