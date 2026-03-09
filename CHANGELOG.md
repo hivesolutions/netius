@@ -9,8 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* `proxy.address` consul tag to override the default instance address resolution when building backend URLs
-* Debug logging of fetched entries in `ConsulProxyServer._build_consul()`
+*
 
 ### Changed
 
@@ -19,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.27.0] - 2026-03-09
+
+### Added
+
+* `proxy.address` consul tag to override the default instance address resolution when building backend URLs
+* Debug logging of fetched entries in `ConsulProxyServer._build_consul()`
 
 ## [1.26.0] - 2026-03-09
 
