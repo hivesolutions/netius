@@ -25,14 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Support for port range syntax (e.g. `8080-8085`) in `proxy.port` and `proxy.ports` consul tags
 
-### Changed
-
-*
-
-### Fixed
-
-*
-
 ## [1.25.1] - 2026-03-06
 
 ### Added
