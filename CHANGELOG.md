@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
+## [1.28.1] - 2026-03-09
+
+### Added
+
+* Debug logging of registered auth regex entries in `ConsulProxyServer._apply_tags()` showing pattern, domain and auth type
+
 ## [1.28.0] - 2026-03-09
 
 ### Added
