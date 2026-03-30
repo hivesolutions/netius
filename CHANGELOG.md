@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * Extracted `_debug_auth_regex()` helper method in `ConsulProxyServer` to improve readability of auth regex debug logging
+* Added debug logging throughout `ConsulProxyServer` consul fetch lifecycle — no healthy instances, no valid URLs, instance/URL counts, fetch completion summary, and `None` responses from catalog/health endpoints
+* Include exception details in consul HTTP error log messages
 
 ## [1.28.1] - 2026-03-09
 

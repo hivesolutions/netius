@@ -193,6 +193,10 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             # current service from the consul health endpoint
             instances = self._consul_health(service)
             if not instances:
+                self.debug(
+                    "Consul service '%s' (%s): no healthy instances, skipping"
+                    % (service, domain)
+                )
                 continue
 
             # resolves the optional address override from the
@@ -207,11 +211,22 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             # healthy instances, filtering out any invalid ones
             urls = self._build_urls(instances, address=address, ports=ports)
             if not urls:
+                self.debug(
+                    "Consul service '%s' (%s): %d instance(s) but no valid URLs, skipping"
+                    % (service, domain, len(instances))
+                )
                 continue
+
+            self.debug(
+                "Consul service '%s' (%s): %d healthy instance(s), %d URL(s)"
+                % (service, domain, len(instances), len(urls))
+            )
 
             # adds the resolved entry to the list of entries to
             # be applied later if necessary
             entries.append((service, domain, urls, tags))
+
+        self.debug("Consul fetch complete: %d service(s) resolved" % len(entries))
         return entries
 
     def _consul_tick(self, timeout=30.0):
@@ -251,6 +266,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         url = self.consul_url + "/v1/catalog/services"
         result = self._consul_get(url)
         if result == None:
+            self.debug("Consul catalog/services returned None")
             return dict()
         return result
 
@@ -263,6 +279,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         )
         result = self._consul_get(url)
         if result == None:
+            self.debug("Consul health query for '%s' returned None" % service)
             return []
         return result
 
@@ -284,8 +301,8 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 return None
             data = result.get("data", b"")
             return json.loads(data)
-        except Exception:
-            self.info("Failed to retrieve Consul data from %s" % url)
+        except Exception as exception:
+            self.info("Failed to retrieve Consul data from %s: %s" % (url, exception))
             return None
 
     def _resolve_domain(self, service, tags):
