@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Connection leak in `ReverseProxyServer` when the HTTP client returns a different connection than the one provided for reuse — the stale connection is now explicitly closed
 
 ## [1.28.3] - 2026-03-30
 

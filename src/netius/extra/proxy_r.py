@@ -449,6 +449,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             connection=proxy_c,
         )
 
+        # in case the connection returned by the HTTP client is not the same
+        # as the one that was provided for possible re-use then the provided
+        # connection must be closed as it's not going to be used, this is
+        # required to avoid connection leaks and other related problems
+        if not _connection == proxy_c and proxy_c:
+            proxy_c.close()
+
         # sets the state attribute in the connection so that it's possible
         # to retrieve it latter for tagging evaluation, this is required for
         # advanced load balancing techniques to be performed
