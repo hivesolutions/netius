@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.28.2] - 2026-03-30
+
 ### Changed
 
 * Extracted `_debug_auth_regex()` helper method in `ConsulProxyServer` to improve readability of auth regex debug logging
