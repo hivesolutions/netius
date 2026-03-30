@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* `tick` event in `ConsulProxyServer` firing before async consul fetch completes — moved trigger inside `_apply()` callback so tick handlers see the updated host configuration
 
 ## [1.28.2] - 2026-03-30
 

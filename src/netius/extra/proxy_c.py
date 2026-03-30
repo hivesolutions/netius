@@ -248,6 +248,12 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             def _apply():
                 if entries:
                     self._build_consul(entries)
+
+                # triggers a tick event to allow external monitoring of the
+                # consul discovery process, this is done after `_build_consul`
+                # so that tick handlers see the updated host configuration
+                self.trigger("tick", self)
+
                 if timeout > 0:
                     self.delay(
                         lambda: self._consul_tick(timeout=timeout), timeout=timeout
@@ -256,11 +262,6 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             self.delay_s(_apply)
 
         self.ensure(_fetch, thread=True)
-
-        # triggers a tick event to allow external monitoring of the consul
-        # discovery process, this can be used for logging or reacting to
-        # changes in the registered services (e.g. for metrics or alerts)
-        self.trigger("tick", self)
 
     def _consul_services(self):
         url = self.consul_url + "/v1/catalog/services"
