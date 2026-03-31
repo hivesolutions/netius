@@ -59,8 +59,9 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
     (`proxy.error-url=<url>`), automatic HTTPS redirection
     (`proxy.redirect-ssl=true`), port filtering
     (`proxy.port=<port1,port2,...>` or alias `proxy.ports`),
-    address override (`proxy.address=<address>`), and regex-based
-    auth rules (`proxy.auth-regex=<pattern>;<type>,...`).
+    address override (`proxy.address=<address>`), domain aliasing
+    (`proxy.alias=<domain1>,<domain2>,...`), and regex-based auth
+    rules (`proxy.auth-regex=<pattern>;<type>,...`).
     """
 
     def __init__(
@@ -246,18 +247,26 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             # can safely modify the proxy configuration without any
             # kind of locking concerns
             def _apply():
-                if entries:
-                    self._build_consul(entries)
+                try:
+                    # applies the new consul configuration if any entries were
+                    # successfully fetched, otherwise keeps the existing one
+                    # considered to be the safer approach
+                    if entries:
+                        self._build_consul(entries)
 
-                # triggers a tick event to allow external monitoring of the
-                # consul discovery process, this is done after `_build_consul`
-                # so that tick handlers see the updated host configuration
-                self.trigger("tick", self)
-
-                if timeout > 0:
-                    self.delay(
-                        lambda: self._consul_tick(timeout=timeout), timeout=timeout
-                    )
+                    # triggers a tick event to allow external monitoring of the
+                    # consul discovery process, this is done after `_build_consul`
+                    # so that tick handlers see the updated host configuration
+                    self.trigger("tick", self)
+                finally:
+                    # schedules the next tick after the configured interval, this is
+                    # done inside a finally block to ensure it happens even if there
+                    # were errors during the fetch or apply phases, preventing the
+                    # discovery process from halting due to transient issues
+                    if timeout > 0:
+                        self.delay(
+                            lambda: self._consul_tick(timeout=timeout), timeout=timeout
+                        )
 
             self.delay_s(_apply)
 
@@ -417,6 +426,13 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 error_url = tag[len("proxy.error-url=") :]
                 if error_url:
                     self.error_urls[domain] = str(error_url)
+            elif tag.startswith("proxy.alias="):
+                aliases = tag[len("proxy.alias=") :]
+                for alias in aliases.split(","):
+                    alias = alias.strip()
+                    if alias:
+                        self.alias[alias] = domain
+                        self._consul_aliases.add(alias)
             elif tag == "proxy.redirect-ssl=true":
                 self.redirect[domain] = (domain, "https")
         auth_regex = self._resolve_auth_regex(tags)

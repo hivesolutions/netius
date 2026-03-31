@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `proxy.alias` consul tag in `ConsulProxyServer` for declaring domain aliases (comma-separated) that route to the same backend service
 
 ### Changed
 
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* `ConsulProxyServer` tick scheduling now wrapped in try/finally so the discovery loop continues even if `_build_consul` or `trigger("tick")` raises an exception
 
 ## [1.28.4] - 2026-03-30
 
