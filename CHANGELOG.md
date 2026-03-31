@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Unit tests for `proxy.alias` tag functionality in `ConsulProxyServerTest` covering registration, cleanup, suffix survival, and multi-tick rebuild persistence
+*
 
 ### Changed
 
@@ -17,7 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* `proxy.alias` entries in `ConsulProxyServer` lost after each consul tick because `_build_suffixes` reset `_consul_aliases` — tag-based aliases are now tracked separately and preserved across rebuilds
+*
+
+## [1.30.1] - 2026-03-31
+
+### Added
+
+* Unit tests for `proxy.alias` tag functionality in `ConsulProxyServerTest` covering registration, cleanup, suffix survival, and multi-tick rebuild persistence
+
+### Fixed
+
+* `proxy.alias` entries in `ConsulProxyServer` lost after each consul tick because `_build_suffixes` reset `_consul_aliases` - tag-based aliases are now tracked separately and preserved across rebuilds
 
 ## [1.30.0] - 2026-03-31
 
