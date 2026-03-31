@@ -193,7 +193,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         for service, tags in netius.legacy.iteritems(services):
             # verifies that the current service contains the required
             # proxy tag, skipping it in case it does not
-            if self.consul_tag not in tags:
+            if not self.consul_tag in tags:
                 continue
 
             # determines the domain name for the service, using
@@ -218,6 +218,11 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             # resolves the optional port filter from the consul
             # tags, limiting which ports are considered valid
             ports = self._resolve_ports(tags)
+            if ports:
+                self.debug(
+                    "Consul service '%s' (%s): port filter %s"
+                    % (service, domain, sorted(ports))
+                )
 
             # builds the complete set of backend URLs from the
             # healthy instances, filtering out any invalid ones
@@ -356,6 +361,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 value = tag[len("proxy.ports=") :]
         if not value:
             return None
+        self.debug("Parsing port filter value '%s'" % value)
         ports = set()
         for part in value.split(","):
             part = part.strip()
@@ -367,6 +373,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                     start = int(bounds[0].strip())
                     end = int(bounds[1].strip())
                 except ValueError:
+                    self.warning("Invalid port range '%s', skipping" % part)
                     continue
                 for port in range(start, end + 1):
                     ports.add(port)
@@ -374,6 +381,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 try:
                     ports.add(int(part))
                 except ValueError:
+                    self.warning("Invalid port value '%s', skipping" % part)
                     continue
         return ports if ports else None
 
@@ -389,7 +397,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             part = part.strip()
             if not part:
                 continue
-            if ";" not in part:
+            if not ";" in part:
                 continue
             pattern, auth_type = part.split(";", 1)
             pattern = pattern.strip()
@@ -479,8 +487,15 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 _address = node.get("Address", None)
             port = service.get("Port", 0)
             if not _address or not port:
+                self.debug(
+                    "Skipping instance, missing address=%s port=%s" % (_address, port)
+                )
                 continue
-            if ports and port not in ports:
+            if ports and not port in ports:
+                self.debug(
+                    "Skipping instance %s:%d, port not in allowed %s"
+                    % (_address, port, sorted(ports))
+                )
                 continue
             url = str("http://%s:%d" % (_address, port))
             urls.append(url)
