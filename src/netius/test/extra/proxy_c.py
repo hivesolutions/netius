@@ -577,6 +577,125 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.assertEqual(self.server.redirect.get("webapp"), ("webapp", "https"))
         self.assertTrue("myapp" not in self.server.redirect)
 
+    def test_apply_tags_alias(self):
+        tags = ["proxy.enable=true", "proxy.alias=api,api-v2"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.alias.get("api"), "myapp")
+        self.assertEqual(self.server.alias.get("api-v2"), "myapp")
+
+    def test_apply_tags_alias_single(self):
+        tags = ["proxy.enable=true", "proxy.alias=api"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.alias.get("api"), "myapp")
+
+    def test_apply_tags_alias_empty(self):
+        tags = ["proxy.enable=true", "proxy.alias="]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(len(self.server._consul_tag_aliases), 0)
+
+    def test_apply_tags_alias_spaces(self):
+        tags = ["proxy.enable=true", "proxy.alias= api , api-v2 "]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.alias.get("api"), "myapp")
+        self.assertEqual(self.server.alias.get("api-v2"), "myapp")
+
+    def test_apply_tags_alias_custom_domain(self):
+        tags = ["proxy.enable=true", "proxy.name=webapp", "proxy.alias=api"]
+        entries = [("myapp", "webapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.alias.get("api"), "webapp")
+
+    def test_apply_tags_alias_cleanup(self):
+        tags = ["proxy.enable=true", "proxy.alias=api,api-v2"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_consul(entries)
+
+        self.assertEqual(self.server.alias.get("api"), "myapp")
+        self.assertEqual(self.server.alias.get("api-v2"), "myapp")
+
+        # simulates second rebuild with the service removed from
+        # consul, alias entries should be properly cleaned up
+        self.server._build_consul([])
+
+        self.assertTrue("api" not in self.server.alias)
+        self.assertTrue("api-v2" not in self.server.alias)
+
+    def test_apply_tags_alias_survives_suffixes(self):
+        server = netius.extra.ConsulProxyServer(
+            host_suffixes=["example.com"],
+            hosts=dict(),
+            auth=dict(),
+            redirect=dict(),
+            error_urls=dict(),
+        )
+
+        tags = ["proxy.enable=true", "proxy.alias=api"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        server._build_consul(entries)
+
+        # the tag alias should survive the suffix rebuild
+        self.assertEqual(server.alias.get("api"), "myapp")
+        # suffix-expanded aliases should also be created
+        self.assertEqual(server.alias.get("api.example.com"), "myapp")
+        self.assertEqual(server.alias.get("myapp.example.com"), "myapp")
+        server.cleanup()
+
+    def test_apply_tags_alias_survives_rebuild(self):
+        server = netius.extra.ConsulProxyServer(
+            host_suffixes=["example.com"],
+            hosts=dict(),
+            auth=dict(),
+            redirect=dict(),
+            error_urls=dict(),
+        )
+
+        tags = ["proxy.enable=true", "proxy.alias=api"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+
+        # simulates two consecutive consul ticks to verify that
+        # tag aliases persist across multiple rebuild cycles
+        server._build_consul(entries)
+        server._build_consul(entries)
+
+        self.assertEqual(server.alias.get("api"), "myapp")
+        self.assertEqual(server.alias.get("api.example.com"), "myapp")
+        self.assertEqual(server.alias.get("myapp.example.com"), "myapp")
+        server.cleanup()
+
+    def test_apply_tags_alias_removed_on_rebuild(self):
+        server = netius.extra.ConsulProxyServer(
+            host_suffixes=["example.com"],
+            hosts=dict(),
+            auth=dict(),
+            redirect=dict(),
+            error_urls=dict(),
+        )
+
+        tags = ["proxy.enable=true", "proxy.alias=api"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        server._build_consul(entries)
+
+        self.assertEqual(server.alias.get("api"), "myapp")
+        self.assertEqual(server.alias.get("api.example.com"), "myapp")
+
+        # simulates second rebuild with the service removed, both
+        # the tag alias and its suffix expansion should be cleaned up
+        server._build_consul([])
+
+        self.assertTrue("api" not in server.alias)
+        self.assertTrue("api.example.com" not in server.alias)
+        self.assertTrue("myapp.example.com" not in server.alias)
+        server.cleanup()
+
     def test_apply_tags_combined(self):
         tags = [
             "proxy.enable=true",
