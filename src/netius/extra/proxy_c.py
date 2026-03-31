@@ -493,6 +493,19 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 _address = node.get("Address", None)
             port = service.get("Port", 0)
 
+            # detects host network mode by checking if the service
+            # address matches the node address (no separate network),
+            # in which case the port from consul is unreliable and
+            # should be derived from the proxy.port tag instead
+            node_address = node.get("Address", None)
+            if _address == node_address and ports:
+                self.debug(
+                    "Instance %s detected as host network mode, ignoring port %d",
+                    _address,
+                    port,
+                )
+                port = 0
+
             # skips instance if no address could be resolved
             # from either the service or the node
             if not _address:

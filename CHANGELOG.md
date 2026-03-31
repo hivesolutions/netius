@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* `_build_urls` in `ConsulProxyServer` now detects host network mode (service address matches node address) and derives ports from the `proxy.port` tag instead of using the unreliable consul-reported port
 
 ## [1.31.2] - 2026-03-31
 
