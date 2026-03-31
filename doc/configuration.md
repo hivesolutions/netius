@@ -105,13 +105,14 @@
 
 #### Consul Proxy
 
-| Name                     | Type    | Default                 | Description                                                                                                                                                            |
-| ------------------------ | ------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **CONSUL_URL**           | `str`   | `http://localhost:8500` | The base URL of the Consul HTTP API used for service discovery.                                                                                                        |
-| **CONSUL_TOKEN**         | `str`   | `None`                  | The ACL token to be sent in the `X-Consul-Token` header for authenticated Consul API requests.                                                                         |
-| **CONSUL_TAG**           | `str`   | `proxy.enable=true`     | The tag that a Consul service must have to be eligible for reverse proxying, only services containing this exact tag in their tag list are registered.                 |
-| **CONSUL_POLL_INTERVAL** | `float` | `30.0`                  | The interval in seconds between Consul API polling cycles for service discovery, set to `0` to disable periodic polling and only discover services at startup.         |
-| **HOST_SUFFIXES**        | `list`  | `[]`                    | List of domain suffixes to register as aliases for each discovered service (eg: `example.com` would register `myapp.example.com` as an alias for the `myapp` service). |
+| Name                     | Type    | Default                 | Description                                                                                                                                                               |
+| ------------------------ | ------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CONSUL_URL**           | `str`   | `http://localhost:8500` | The base URL of the Consul HTTP API used for service discovery.                                                                                                           |
+| **CONSUL_TOKEN**         | `str`   | `None`                  | The ACL token to be sent in the `X-Consul-Token` header for authenticated Consul API requests.                                                                            |
+| **CONSUL_TAG**           | `str`   | `proxy.enable=true`     | The tag that a Consul service must have to be eligible for reverse proxying, only services containing this exact tag in their tag list are registered.                    |
+| **CONSUL_POLL_INTERVAL** | `float` | `30.0`                  | The interval in seconds between Consul API polling cycles for service discovery, set to `0` to disable periodic polling and only discover services at startup.            |
+| **CONSUL_SKIP_HEALTH**   | `bool`  | `True`                  | If `True` the `?passing=true` filter is omitted from Consul health queries so services in any health state are included; set to `False` to only include passing services. |
+| **HOST_SUFFIXES**        | `list`  | `[]`                    | List of domain suffixes to register as aliases for each discovered service (eg: `example.com` would register `myapp.example.com` as an alias for the `myapp` service).    |
 
 Services may also use the following Consul tags to control routing behavior:
 

@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `consul_skip_health` parameter (default `True`) in `ConsulProxyServer` to control whether unhealthy consul services are filtered out, configurable via `CONSUL_SKIP_HEALTH` env var
 
 ### Changed
 

@@ -70,6 +70,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         consul_token=None,
         consul_tag="proxy.enable=true",
         consul_poll_interval=60.0,
+        consul_skip_health=True,
         host_suffixes=[],
         *args,
         **kwargs
@@ -80,6 +81,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             consul_token=consul_token,
             consul_tag=consul_tag,
             consul_poll_interval=consul_poll_interval,
+            consul_skip_health=consul_skip_health,
             host_suffixes=host_suffixes,
         )
         self._consul_hosts = set()
@@ -98,6 +100,10 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         if self.env:
             self.consul_poll_interval = self.get_env(
                 "CONSUL_POLL_INTERVAL", self.consul_poll_interval, cast=float
+            )
+        if self.env:
+            self.consul_skip_health = self.get_env(
+                "CONSUL_SKIP_HEALTH", self.consul_skip_health, cast=bool
             )
         if self.env:
             self.host_suffixes = self.get_env(
@@ -286,12 +292,9 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         return result
 
     def _consul_health(self, service):
-        url = (
-            self.consul_url
-            + "/v1/health/service/"
-            + netius.legacy.quote(service)
-            + "?passing=true"
-        )
+        url = self.consul_url + "/v1/health/service/" + netius.legacy.quote(service)
+        if not self.consul_skip_health:
+            url += "?passing=true"
         result = self._consul_get(url)
         if result == None:
             self.debug("Consul health query for '%s' returned None" % service)
