@@ -950,6 +950,36 @@ class ConsulProxyServerTest(unittest.TestCase):
         result = self.server._build_urls(instances, address="10.99.0.1", ports={8080})
         self.assertEqual(result, ["http://10.99.0.1:8080"])
 
+    def test_build_urls_host_network_no_port(self):
+        instances = [
+            {
+                "Service": {"Address": "", "Port": 0},
+                "Node": {"Address": "10.0.0.100"},
+            }
+        ]
+        result = self.server._build_urls(instances, ports={8080, 9090})
+        self.assertEqual(result, ["http://10.0.0.100:8080", "http://10.0.0.100:9090"])
+
+    def test_build_urls_host_network_no_port_no_filter(self):
+        instances = [
+            {
+                "Service": {"Address": "", "Port": 0},
+                "Node": {"Address": "10.0.0.100"},
+            }
+        ]
+        result = self.server._build_urls(instances)
+        self.assertEqual(result, [])
+
+    def test_build_urls_host_network_address_override(self):
+        instances = [
+            {
+                "Service": {"Address": "", "Port": 0},
+                "Node": {"Address": "10.0.0.100"},
+            }
+        ]
+        result = self.server._build_urls(instances, address="10.99.0.1", ports={8080})
+        self.assertEqual(result, ["http://10.99.0.1:8080"])
+
     def test_host_rules(self):
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
         self.server._build_hosts(entries)

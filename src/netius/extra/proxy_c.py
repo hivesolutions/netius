@@ -480,23 +480,52 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
     def _build_urls(self, instances, address=None, ports=None):
         urls = []
         for instance in instances:
+            # resolves the address and port for the instance, using
+            # the tag-defined address override if available or the
+            # default resolution from consul
             service = instance.get("Service", dict())
             node = instance.get("Node", dict())
             _address = address or service.get("Address", None)
             if not _address:
                 _address = node.get("Address", None)
             port = service.get("Port", 0)
-            if not _address or not port:
-                self.info(
-                    "Skipping instance, missing address=%s port=%s" % (_address, port)
-                )
+
+            # skips instance if no address could be resolved
+            # from either the service or the node
+            if not _address:
+                self.info("Skipping instance, missing address")
                 continue
+
+            # handles host network mode where consul reports port
+            # as zero, using the tag-defined port filter instead
+            if not port and ports:
+                self.info(
+                    "Instance %s has no port, expanding from port filter %s"
+                    % (_address, sorted(ports))
+                )
+                for _port in sorted(ports):
+                    url = str("http://%s:%d" % (_address, _port))
+                    urls.append(url)
+                continue
+
+            # skips instance if port is missing and no port
+            # filter is available to fall back on
+            if not port:
+                self.info("Skipping instance %s, missing port" % _address)
+                continue
+
+            # skips instance if its port is not within the
+            # allowed set defined by the proxy.port tag
             if ports and not port in ports:
                 self.info(
                     "Skipping instance %s:%d, port not in allowed %s"
                     % (_address, port, sorted(ports))
                 )
                 continue
+
+            # addresses the instance as a valid backend URL for
+            # the service, using the tag-defined address override
+            # if available or the default address resolution from consul
             url = str("http://%s:%d" % (_address, port))
             urls.append(url)
         return urls
