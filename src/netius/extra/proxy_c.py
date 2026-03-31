@@ -84,6 +84,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         )
         self._consul_hosts = set()
         self._consul_aliases = set()
+        self._consul_tag_aliases = set()
         self._consul_auth_regex = []
 
     def on_serve(self):
@@ -127,6 +128,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             except ValueError:
                 pass
         self._consul_hosts = set()
+        self._consul_tag_aliases = set()
         self._consul_auth_regex = []
 
         # iterates over the fetched entries registering each one
@@ -154,12 +156,14 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             )
 
     def _build_suffixes(self, alias=True, redirect=True):
-        # removes any previously registered consul-managed aliases
-        # and hosts to ensure a clean state before rebuilding
-        for fqn in self._consul_aliases:
+        # removes any previously registered consul-managed suffix aliases
+        # and hosts to ensure a clean state before rebuilding, preserving
+        # tag-based aliases (e.g. proxy.alias) that were set in `_apply_tags``
+        suffix_aliases = self._consul_aliases - self._consul_tag_aliases
+        for fqn in suffix_aliases:
             self.alias.pop(fqn, None)
             self.hosts.pop(fqn, None)
-        self._consul_aliases = set()
+        self._consul_aliases = set(self._consul_tag_aliases)
 
         for host_suffix in self.host_suffixes:
             self.info("Registering %s host suffix" % host_suffix)
@@ -438,6 +442,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                     if alias:
                         self.alias[alias] = domain
                         self._consul_aliases.add(alias)
+                        self._consul_tag_aliases.add(alias)
                         self.debug(
                             "Registered proxy.alias '%s' -> '%s'" % (alias, domain)
                         )
