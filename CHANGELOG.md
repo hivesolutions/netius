@@ -9,11 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* `proxy.alias` consul tag in `ConsulProxyServer` for declaring domain aliases (comma-separated) that route to the same backend service
+*
 
 ### Changed
 
 *
+
+### Fixed
+
+*
+
+## [1.29.0] - 2026-03-31
+
+### Added
+
+* `proxy.alias` consul tag in `ConsulProxyServer` for declaring domain aliases (comma-separated) that route to the same backend service
 
 ### Fixed
 
