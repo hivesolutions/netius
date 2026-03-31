@@ -422,10 +422,14 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 if password:
                     simple_auth = netius.SimpleAuth(password=password)
                     self.auth[domain] = simple_auth
+                    self.debug("Registered proxy.password for '%s'" % domain)
             elif tag.startswith("proxy.error-url="):
                 error_url = tag[len("proxy.error-url=") :]
                 if error_url:
                     self.error_urls[domain] = str(error_url)
+                    self.debug(
+                        "Registered proxy.error-url '%s' for '%s'" % (error_url, domain)
+                    )
             elif tag.startswith("proxy.alias="):
                 aliases = tag[len("proxy.alias=") :]
                 for alias in aliases.split(","):
@@ -433,8 +437,12 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                     if alias:
                         self.alias[alias] = domain
                         self._consul_aliases.add(alias)
+                        self.debug(
+                            "Registered proxy.alias '%s' -> '%s'" % (alias, domain)
+                        )
             elif tag == "proxy.redirect-ssl=true":
                 self.redirect[domain] = (domain, "https")
+                self.debug("Registered proxy.redirect-ssl for '%s'" % domain)
         auth_regex = self._resolve_auth_regex(tags)
         if auth_regex:
             self.auth_regex = list(self.auth_regex) + auth_regex
