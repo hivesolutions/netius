@@ -53,7 +53,7 @@ class HelloServer(netius.servers.HTTP2Server):
             self.message = self.get_env("MESSAGE", self.message, cast=str)
         if self.env:
             self.keep_alive = self.get_env("KEEP_ALIVE", True, cast=bool)
-        self.info("Serving '%s' as welcome message ..." % self.message)
+        self.info("Serving '%s' as welcome message ...", self.message)
 
     def on_data_http(self, connection, parser):
         netius.servers.HTTP2Server.on_data_http(self, connection, parser)
