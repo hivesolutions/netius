@@ -228,7 +228,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # other internal resolution process as the canonical URL of the request
         url = "%s://%s%s" % (protocol, host, path)
 
-        # tries to determine if a proper (client side) redirection should operation
+        # tries to determine if a proper (client side) redirection operation
         # should be applied to the current request, if that's the case (match) an
         # immediate response is returned with proper redirection instructions
         redirect = self.redirect.get(DEFAULT_NAME, None)

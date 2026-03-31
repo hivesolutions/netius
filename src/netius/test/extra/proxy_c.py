@@ -711,6 +711,44 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.assertEqual(self.server.error_urls.get("myapp"), "http://errors.local/50x")
         self.assertEqual(self.server.redirect.get("myapp"), ("myapp", "https"))
 
+    def test_apply_tags_redirect_ssl_with_alias(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.alias=api,api-v2",
+            "proxy.redirect-ssl=true",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.redirect.get("myapp"), ("myapp", "https"))
+        self.assertEqual(self.server.redirect.get("api"), ("api", "https"))
+        self.assertEqual(self.server.redirect.get("api-v2"), ("api-v2", "https"))
+
+    def test_apply_tags_redirect_ssl_with_alias_reverse_order(self):
+        tags = ["proxy.enable=true", "proxy.redirect-ssl=true", "proxy.alias=api"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.redirect.get("myapp"), ("myapp", "https"))
+        self.assertEqual(self.server.redirect.get("api"), ("api", "https"))
+
+    def test_apply_tags_redirect_ssl_with_alias_suffixes(self):
+        server = netius.extra.ConsulProxyServer(
+            host_suffixes=["example.com"],
+            hosts=dict(),
+            auth=dict(),
+            redirect=dict(),
+            error_urls=dict(),
+        )
+
+        tags = ["proxy.enable=true", "proxy.alias=api", "proxy.redirect-ssl=true"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        server._build_consul(entries)
+
+        self.assertEqual(server.redirect.get("myapp"), ("myapp", "https"))
+        self.assertEqual(server.redirect.get("api"), ("api", "https"))
+        server.cleanup()
+
     def test_apply_tags_cleanup(self):
         tags = [
             "proxy.enable=true",

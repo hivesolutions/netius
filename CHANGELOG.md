@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* `proxy.redirect-ssl` not being applied to `proxy.alias` domains or their suffix-expanded variants in `ConsulProxyServer`
 
 ## [1.31.0] - 2026-03-31
 
