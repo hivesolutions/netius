@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Debug logging for `proxy.password`, `proxy.error-url`, and `proxy.redirect-ssl` tag registration in `ConsulProxyServer._apply_tags()`
+*
 
 ### Changed
 
@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.29.1] - 2026-03-31
+
+### Added
+
+* Debug logging for `proxy.password`, `proxy.error-url`, and `proxy.redirect-ssl` tag registration in `ConsulProxyServer._apply_tags()`
 
 ## [1.29.0] - 2026-03-31
 
