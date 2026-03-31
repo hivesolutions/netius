@@ -715,35 +715,35 @@ class BaseConnection(observer.Observable):
             return None
         return self.socket.selected_npn_protocol()
 
-    def debug(self, object, **kwargs):
+    def debug(self, object, *args, **kwargs):
         if not self.owner:
             return
         self.owner.add_log_ctx(kwargs, lambda: dict(connection=self.log_dict()))
-        self.owner.debug(object, **kwargs)
+        self.owner.debug(object, *args, **kwargs)
 
-    def info(self, object, **kwargs):
+    def info(self, object, *args, **kwargs):
         if not self.owner:
             return
         self.owner.add_log_ctx(kwargs, self.log_ctx)
-        self.owner.info(object, **kwargs)
+        self.owner.info(object, *args, **kwargs)
 
-    def warning(self, object, **kwargs):
+    def warning(self, object, *args, **kwargs):
         if not self.owner:
             return
         self.owner.add_log_ctx(kwargs, self.log_ctx)
-        self.owner.warning(object, **kwargs)
+        self.owner.warning(object, *args, **kwargs)
 
-    def error(self, object, **kwargs):
+    def error(self, object, *args, **kwargs):
         if not self.owner:
             return
         self.owner.add_log_ctx(kwargs, self.log_ctx)
-        self.owner.error(object, **kwargs)
+        self.owner.error(object, *args, **kwargs)
 
-    def critical(self, object, **kwargs):
+    def critical(self, object, *args, **kwargs):
         if not self.owner:
             return
         self.owner.add_log_ctx(kwargs, self.log_ctx)
-        self.owner.critical(object, **kwargs)
+        self.owner.critical(object, *args, **kwargs)
 
     def log_ctx(self):
         return dict(connection=self.log_dict())

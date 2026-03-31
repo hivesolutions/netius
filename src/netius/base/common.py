@@ -3465,30 +3465,30 @@ class AbstractBase(observer.Observable):
             return False
         return self.logger.isEnabledFor(logging.CRITICAL)
 
-    def debug(self, object, **kwargs):
+    def debug(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, level=logging.DEBUG, **kwargs)
+        self.log(object, *args, level=logging.DEBUG, **kwargs)
 
-    def info(self, object, **kwargs):
+    def info(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, level=logging.INFO, **kwargs)
+        self.log(object, *args, level=logging.INFO, **kwargs)
 
-    def warning(self, object, **kwargs):
+    def warning(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, level=logging.WARNING, **kwargs)
+        self.log(object, *args, level=logging.WARNING, **kwargs)
 
-    def error(self, object, **kwargs):
+    def error(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, level=logging.ERROR, **kwargs)
+        self.log(object, *args, level=logging.ERROR, **kwargs)
 
-    def critical(self, object, **kwargs):
+    def critical(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, level=logging.CRITICAL, **kwargs)
+        self.log(object, *args, level=logging.CRITICAL, **kwargs)
 
     def log_stack(self, method=None, info=True):
         if not method:
@@ -3520,7 +3520,8 @@ class AbstractBase(observer.Observable):
         finally:
             self._logging = False
 
-    def log_python_3(self, object, level=logging.INFO, **kwargs):
+    def log_python_3(self, object, *args, **kwargs):
+        level = kwargs.pop("level", logging.INFO)
         is_str = isinstance(object, legacy.STRINGS)
         try:
             message = str(object) if not is_str else object
@@ -3528,9 +3529,10 @@ class AbstractBase(observer.Observable):
             message = str(object)
         if not self.logger:
             return
-        self.logger.log(level, message, **kwargs)
+        self.logger.log(level, message, *args, **kwargs)
 
-    def log_python_2(self, object, level=logging.INFO, **kwargs):
+    def log_python_2(self, object, *args, **kwargs):
+        level = kwargs.pop("level", logging.INFO)
         is_str = isinstance(object, legacy.STRINGS)
         try:
             message = unicode(object) if not is_str else object  # @UndefinedVariable
@@ -3538,7 +3540,7 @@ class AbstractBase(observer.Observable):
             message = str(object).decode("utf-8", "ignore")
         if not self.logger:
             return
-        self.logger.log(level, message, **kwargs)
+        self.logger.log(level, message, *args, **kwargs)
 
     def log_ctx(self):
         return dict(service=self.log_dict(full=True))

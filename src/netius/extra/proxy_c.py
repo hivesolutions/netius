@@ -109,8 +109,8 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             self.host_suffixes = self.get_env(
                 "HOST_SUFFIXES", self.host_suffixes, cast=list
             )
-        self.info("Using Consul at %s for service discovery" % self.consul_url)
-        self.info("Consul poll interval set to %.2fs" % self.consul_poll_interval)
+        self.info("Using Consul at %s for service discovery", self.consul_url)
+        self.info("Consul poll interval set to %.2fs", self.consul_poll_interval)
         self._consul_tick(timeout=self.consul_poll_interval)
 
     def _build_consul(self, entries):
@@ -157,8 +157,10 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             self._consul_hosts.add(domain)
 
             self.debug(
-                "Registered Consul service '%s' as '%s' with %d instance(s)"
-                % (service, domain, len(urls))
+                "Registered Consul service '%s' as '%s' with %d instance(s)",
+                service,
+                domain,
+                len(urls),
             )
 
     def _build_suffixes(self, alias=True, redirect=True):
@@ -172,7 +174,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         self._consul_aliases = set(self._consul_tag_aliases)
 
         for host_suffix in self.host_suffixes:
-            self.info("Registering %s host suffix" % host_suffix)
+            self.info("Registering %s host suffix", host_suffix)
             for _alias, value in netius.legacy.items(self.alias):
                 fqn = _alias + "." + str(host_suffix)
                 self.alias[fqn] = value
@@ -206,8 +208,9 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             instances = self._consul_health(service)
             if not instances:
                 self.debug(
-                    "Consul service '%s' (%s): no healthy instances, skipping"
-                    % (service, domain)
+                    "Consul service '%s' (%s): no healthy instances, skipping",
+                    service,
+                    domain,
                 )
                 continue
 
@@ -220,8 +223,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             ports = self._resolve_ports(tags)
             if ports:
                 self.debug(
-                    "Consul service '%s' (%s): port filter %s"
-                    % (service, domain, sorted(ports))
+                    "Consul service '%s' (%s): port filter %s", service, domain, ports
                 )
 
             # builds the complete set of backend URLs from the
@@ -229,21 +231,26 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             urls = self._build_urls(instances, address=address, ports=ports)
             if not urls:
                 self.debug(
-                    "Consul service '%s' (%s): %d instance(s) but no valid URLs, skipping"
-                    % (service, domain, len(instances))
+                    "Consul service '%s' (%s): %d instance(s) but no valid URLs, skipping",
+                    service,
+                    domain,
+                    len(instances),
                 )
                 continue
 
             self.debug(
-                "Consul service '%s' (%s): %d healthy instance(s), %d URL(s)"
-                % (service, domain, len(instances), len(urls))
+                "Consul service '%s' (%s): %d healthy instance(s), %d URL(s)",
+                service,
+                domain,
+                len(instances),
+                len(urls),
             )
 
             # adds the resolved entry to the list of entries to
             # be applied later if necessary
             entries.append((service, domain, urls, tags))
 
-        self.debug("Consul fetch complete: %d service(s) resolved" % len(entries))
+        self.debug("Consul fetch complete: %d service(s) resolved", len(entries))
         return entries
 
     def _consul_tick(self, timeout=30.0):
@@ -254,7 +261,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             try:
                 entries = self._consul_fetch()
             except Exception as exception:
-                self.info("Consul fetch failed: %s" % str(exception))
+                self.info("Consul fetch failed: %s", exception)
                 entries = None
 
             # builds the consul structures using the fetched entries,
@@ -302,7 +309,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             url += "?passing=true"
         result = self._consul_get(url)
         if result == None:
-            self.debug("Consul health query for '%s' returned None" % service)
+            self.debug("Consul health query for '%s' returned None", service)
             return []
         return result
 
@@ -315,17 +322,15 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 url, headers=headers, asynchronous=False, timeout=10
             )
             if result.get("error"):
-                self.info(
-                    "Consul request error for %s: %s" % (url, result.get("message"))
-                )
+                self.info("Consul request error for %s: %s", url, result.get("message"))
                 return None
             if not result["code"] == 200:
-                self.info("Consul returned %d for %s" % (result["code"], url))
+                self.info("Consul returned %d for %s", result["code"], url)
                 return None
             data = result.get("data", b"")
             return json.loads(data)
         except Exception as exception:
-            self.info("Failed to retrieve Consul data from %s: %s" % (url, exception))
+            self.info("Failed to retrieve Consul data from %s: %s", url, exception)
             return None
 
     def _resolve_domain(self, service, tags):
@@ -361,7 +366,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 value = tag[len("proxy.ports=") :]
         if not value:
             return None
-        self.debug("Parsing port filter value '%s'" % value)
+        self.debug("Parsing port filter value '%s'", value)
         ports = set()
         for part in value.split(","):
             part = part.strip()
@@ -373,7 +378,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                     start = int(bounds[0].strip())
                     end = int(bounds[1].strip())
                 except ValueError:
-                    self.warning("Invalid port range '%s', skipping" % part)
+                    self.warning("Invalid port range '%s', skipping", part)
                     continue
                 for port in range(start, end + 1):
                     ports.add(port)
@@ -381,7 +386,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 try:
                     ports.add(int(part))
                 except ValueError:
-                    self.warning("Invalid port value '%s', skipping" % part)
+                    self.warning("Invalid port value '%s', skipping", part)
                     continue
         return ports if ports else None
 
@@ -438,13 +443,13 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 if password:
                     simple_auth = netius.SimpleAuth(password=password)
                     self.auth[domain] = simple_auth
-                    self.debug("Registered proxy.password for '%s'" % domain)
+                    self.debug("Registered proxy.password for '%s'", domain)
             elif tag.startswith("proxy.error-url="):
                 error_url = tag[len("proxy.error-url=") :]
                 if error_url:
                     self.error_urls[domain] = str(error_url)
                     self.debug(
-                        "Registered proxy.error-url '%s' for '%s'" % (error_url, domain)
+                        "Registered proxy.error-url '%s' for '%s'", error_url, domain
                     )
             elif tag.startswith("proxy.alias="):
                 aliases = tag[len("proxy.alias=") :]
@@ -454,12 +459,10 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                         self.alias[alias] = domain
                         self._consul_aliases.add(alias)
                         self._consul_tag_aliases.add(alias)
-                        self.debug(
-                            "Registered proxy.alias '%s' -> '%s'" % (alias, domain)
-                        )
+                        self.debug("Registered proxy.alias '%s' -> '%s'", alias, domain)
             elif tag == "proxy.redirect-ssl=true":
                 self.redirect[domain] = (domain, "https")
-                self.debug("Registered proxy.redirect-ssl for '%s'" % domain)
+                self.debug("Registered proxy.redirect-ssl for '%s'", domain)
 
         # in case the domain itself is registered for SSL redirection, also
         # registers the same redirection for any aliases of the domain to
@@ -469,7 +472,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 if not self.alias.get(alias) == domain:
                     continue
                 self.redirect[alias] = (alias, "https")
-                self.debug("Registered proxy.redirect-ssl for alias '%s'" % alias)
+                self.debug("Registered proxy.redirect-ssl for alias '%s'", alias)
 
         auth_regex = self._resolve_auth_regex(tags)
         if auth_regex:
@@ -496,13 +499,11 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 self.info("Skipping instance, missing address")
                 continue
 
-            # handles host network mode where consul reports port
-            # as zero, using the tag-defined port filter instead
-            if not port and ports:
-                self.info(
-                    "Instance %s has no port, expanding from port filter %s"
-                    % (_address, sorted(ports))
-                )
+            # when a port range is defined via proxy.ports, expands
+            # the instance to all ports in the range for load balancing
+            # across multiple worker threads
+            if ports and len(ports) > 1:
+                self.info("Instance %s expanding from port filter %s", _address, ports)
                 for _port in sorted(ports):
                     url = str("http://%s:%d" % (_address, _port))
                     urls.append(url)
@@ -510,16 +511,18 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
 
             # skips instance if port is missing and no port
             # filter is available to fall back on
-            if not port:
-                self.info("Skipping instance %s, missing port" % _address)
+            if not port and not ports:
+                self.info("Skipping instance %s, missing port", _address)
                 continue
 
             # skips instance if its port is not within the
             # allowed set defined by the proxy.port tag
             if ports and not port in ports:
                 self.info(
-                    "Skipping instance %s:%d, port not in allowed %s"
-                    % (_address, port, sorted(ports))
+                    "Skipping instance %s:%d, port not in allowed %s",
+                    _address,
+                    port,
+                    ports,
                 )
                 continue
 
@@ -532,59 +535,60 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
 
     def _debug_entries(self, entries):
         self.debug(
-            "Building consul proxy from %d entr%s"
-            % (len(entries), "y" if len(entries) == 1 else "ies")
+            "Building consul proxy from %d entr%s",
+            len(entries),
+            "y" if len(entries) == 1 else "ies",
         )
         for service, domain, urls, tags in entries:
             self.debug(
-                "  %s => %s (%d URL%s, %d tag%s)"
-                % (
-                    service,
-                    domain,
-                    len(urls),
-                    "" if len(urls) == 1 else "s",
-                    len(tags),
-                    "" if len(tags) == 1 else "s",
-                )
+                "  %s => %s (%d URL%s, %d tag%s)",
+                service,
+                domain,
+                len(urls),
+                "" if len(urls) == 1 else "s",
+                len(tags),
+                "" if len(tags) == 1 else "s",
             )
 
     def _debug_state(self):
         self.debug("Proxy state:")
-        self.debug("  hosts (%d):" % len(self.hosts))
+        self.debug("  hosts (%d):", len(self.hosts))
         for name, value in netius.legacy.items(self.hosts):
             if isinstance(value, tuple):
-                self.debug("    %s => %s (%d)" % (name, value[0], len(value)))
+                self.debug("    %s => %s (%d)", name, value[0], len(value))
             else:
-                self.debug("    %s => %s" % (name, value))
-        self.debug("  alias (%d):" % len(self.alias))
+                self.debug("    %s => %s", name, value)
+        self.debug("  alias (%d):", len(self.alias))
         for name, value in netius.legacy.items(self.alias):
-            self.debug("    %s => %s" % (name, value))
-        self.debug("  auth (%d):" % len(self.auth))
+            self.debug("    %s => %s", name, value)
+        self.debug("  auth (%d):", len(self.auth))
         for name, value in netius.legacy.items(self.auth):
-            self.debug("    %s => %s" % (name, value.__class__.__name__))
-        self.debug("  error_urls (%d):" % len(self.error_urls))
+            self.debug("    %s => %s", name, value.__class__.__name__)
+        self.debug("  error_urls (%d):", len(self.error_urls))
         for name, value in netius.legacy.items(self.error_urls):
-            self.debug("    %s => %s" % (name, value))
-        self.debug("  redirect (%d):" % len(self.redirect))
+            self.debug("    %s => %s", name, value)
+        self.debug("  redirect (%d):", len(self.redirect))
         for name, value in netius.legacy.items(self.redirect):
-            self.debug("    %s => %s" % (name, str(value)))
-        self.debug("  regex (%d):" % len(self.regex))
+            self.debug("    %s => %s", name, str(value))
+        self.debug("  regex (%d):", len(self.regex))
         for regex, value in self.regex:
-            self.debug("    %s => %s" % (regex.pattern, value))
-        self.debug("  auth_regex (%d):" % len(self.auth_regex))
+            self.debug("    %s => %s", regex.pattern, value)
+        self.debug("  auth_regex (%d):", len(self.auth_regex))
         for regex, value in self.auth_regex:
             auth_s = value.__class__.__name__ if value else "none"
-            self.debug("    %s => %s" % (regex.pattern, auth_s))
-        self.debug("  redirect_regex (%d):" % len(self.redirect_regex))
+            self.debug("    %s => %s", regex.pattern, auth_s)
+        self.debug("  redirect_regex (%d):", len(self.redirect_regex))
         for regex, value in self.redirect_regex:
-            self.debug("    %s => %s" % (regex.pattern, str(value)))
+            self.debug("    %s => %s", regex.pattern, str(value))
 
     def _debug_auth_regex(self, domain, auth_regex):
         for regex, auth in auth_regex:
             auth_s = auth.__class__.__name__ if auth else "none"
             self.debug(
-                "Registered auth regex '%s' for '%s' with auth type '%s'"
-                % (regex.pattern, domain, auth_s)
+                "Registered auth regex '%s' for '%s' with auth type '%s'",
+                regex.pattern,
+                domain,
+                auth_s,
             )
 
 

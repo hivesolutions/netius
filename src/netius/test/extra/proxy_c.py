@@ -316,7 +316,15 @@ class ConsulProxyServerTest(unittest.TestCase):
 
         self.assertEqual(len(entries), 1)
         self.assertEqual(
-            entries[0][2], ["http://10.0.0.1:8080", "http://10.0.0.2:9090"]
+            entries[0][2],
+            [
+                "http://10.0.0.1:8080",
+                "http://10.0.0.1:9090",
+                "http://10.0.0.2:8080",
+                "http://10.0.0.2:9090",
+                "http://10.0.0.3:8080",
+                "http://10.0.0.3:9090",
+            ],
         )
 
     def test_consul_fetch_address_override(self):
@@ -977,8 +985,10 @@ class ConsulProxyServerTest(unittest.TestCase):
                 "Node": {"Address": "10.0.0.100"},
             }
         ]
-        result = self.server._build_urls(instances, address="10.99.0.1", ports={8080})
-        self.assertEqual(result, ["http://10.99.0.1:8080"])
+        result = self.server._build_urls(
+            instances, address="10.99.0.1", ports={8080, 9090}
+        )
+        self.assertEqual(result, ["http://10.99.0.1:8080", "http://10.99.0.1:9090"])
 
     def test_host_rules(self):
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]

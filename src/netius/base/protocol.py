@@ -207,26 +207,26 @@ class Protocol(observer.Observable):
         else:
             return self._loop.call_soon(callable)
 
-    def debug(self, object):
+    def debug(self, object, *args, **kwargs):
         if not self._loop:
             return
         if not hasattr(self._loop, "debug"):
             return
-        self._loop.debug(object)
+        self._loop.debug(object, *args, **kwargs)
 
-    def info(self, object):
+    def info(self, object, *args, **kwargs):
         if not self._loop:
             return
         if not hasattr(self._loop, "info"):
             return
-        self._loop.info(object)
+        self._loop.info(object, *args, **kwargs)
 
-    def warning(self, object):
+    def warning(self, object, *args, **kwargs):
         if not self._loop:
             return
         if not hasattr(self._loop, "warning"):
             return
-        self._loop.warning(object)
+        self._loop.warning(object, *args, **kwargs)
 
     def error(self, object):
         if not self._loop:

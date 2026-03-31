@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* Logging methods (`debug`, `info`, `warning`, `error`, `critical`) in `Base`, `Connection`, and `Protocol` now accept `*args` for deferred `%`-formatting, avoiding string interpolation when the log level is disabled
+* All log calls in `ConsulProxyServer` converted to use deferred formatting
 
 ### Fixed
 
