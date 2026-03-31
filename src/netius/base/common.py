@@ -174,6 +174,11 @@ SSL_ERROR_NAMES = {
 """ The dictionary containing the association between the
 various SSL errors and their string representation """
 
+SSL_SILENT_REASONS = ("WRONG_VERSION_NUMBER",)
+""" The list containing the SSL reasons that should be silenced
+while still making the connection dropped as they are expected
+to occur and should not be considered an exception """
+
 SSL_VALID_REASONS = ("CERT_ALREADY_IN_HASH_TABLE",)
 """ The list containing the valid reasons for the handshake
 operation of the SSL connection establishment """
@@ -3016,7 +3021,7 @@ class AbstractBase(observer.Observable):
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
-            if error_v in SSL_SILENT_ERRORS:
+            if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error, connection)
             elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error, connection)
@@ -3061,7 +3066,7 @@ class AbstractBase(observer.Observable):
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
-            if error_v in SSL_SILENT_ERRORS:
+            if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error, connection)
             elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error, connection)
@@ -3102,7 +3107,7 @@ class AbstractBase(observer.Observable):
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
-            if error_v in SSL_SILENT_ERRORS:
+            if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected_s(error)
             elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception_s(error)
@@ -3399,7 +3404,7 @@ class AbstractBase(observer.Observable):
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
-            if error_v in SSL_SILENT_ERRORS:
+            if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error, connection)
             elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error, connection)

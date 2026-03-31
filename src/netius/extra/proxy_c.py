@@ -110,6 +110,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         self._debug_entries(entries)
         self._build_hosts(entries)
         self._build_suffixes()
+        self._debug_state()
 
     def _build_hosts(self, entries):
         # removes any previously registered consul-managed hosts,
@@ -483,6 +484,37 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                     "" if len(tags) == 1 else "s",
                 )
             )
+
+    def _debug_state(self):
+        self.debug("Proxy state:")
+        self.debug("  hosts (%d):" % len(self.hosts))
+        for name, value in netius.legacy.items(self.hosts):
+            if isinstance(value, tuple):
+                self.debug("    %s => %s (%d)" % (name, value[0], len(value)))
+            else:
+                self.debug("    %s => %s" % (name, value))
+        self.debug("  alias (%d):" % len(self.alias))
+        for name, value in netius.legacy.items(self.alias):
+            self.debug("    %s => %s" % (name, value))
+        self.debug("  auth (%d):" % len(self.auth))
+        for name, value in netius.legacy.items(self.auth):
+            self.debug("    %s => %s" % (name, value.__class__.__name__))
+        self.debug("  error_urls (%d):" % len(self.error_urls))
+        for name, value in netius.legacy.items(self.error_urls):
+            self.debug("    %s => %s" % (name, value))
+        self.debug("  redirect (%d):" % len(self.redirect))
+        for name, value in netius.legacy.items(self.redirect):
+            self.debug("    %s => %s" % (name, str(value)))
+        self.debug("  regex (%d):" % len(self.regex))
+        for regex, value in self.regex:
+            self.debug("    %s => %s" % (regex.pattern, value))
+        self.debug("  auth_regex (%d):" % len(self.auth_regex))
+        for regex, value in self.auth_regex:
+            auth_s = value.__class__.__name__ if value else "none"
+            self.debug("    %s => %s" % (regex.pattern, auth_s))
+        self.debug("  redirect_regex (%d):" % len(self.redirect_regex))
+        for regex, value in self.redirect_regex:
+            self.debug("    %s => %s" % (regex.pattern, str(value)))
 
     def _debug_auth_regex(self, domain, auth_regex):
         for regex, auth in auth_regex:

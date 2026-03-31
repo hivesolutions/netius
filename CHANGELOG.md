@@ -9,11 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `SSL_SILENT_REASONS` constant for SSL errors that should be silenced by reason string, starting with `WRONG_VERSION_NUMBER`
+* `_debug_state()` method in `ConsulProxyServer` logging full proxy state (hosts, alias, auth, error_urls, redirect, regex, auth_regex, redirect_regex) after each consul tick
+* Debug logging for `proxy.password`, `proxy.error-url`, and `proxy.redirect-ssl` tag registration in `ConsulProxyServer._apply_tags()`
+* `proxy.alias` consul tag documented in `configuration.md`
 
 ### Changed
 
-*
+* SSL error handlers in `common.py`, `server.py`, and `client.py` now check `SSL_SILENT_REASONS` alongside `SSL_SILENT_ERRORS` for expected error classification
 
 ### Fixed
 

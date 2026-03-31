@@ -181,7 +181,7 @@ class DatagramClient(Client):
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
-            if error_v in SSL_SILENT_ERRORS:
+            if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error)
             elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error)
@@ -213,7 +213,7 @@ class DatagramClient(Client):
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
-            if error_v in SSL_SILENT_ERRORS:
+            if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error)
             elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error)
@@ -854,7 +854,7 @@ class StreamClient(Client):
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
-            if error_v in SSL_SILENT_ERRORS:
+            if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error, connection)
             elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error, connection)
@@ -899,7 +899,7 @@ class StreamClient(Client):
         except ssl.SSLError as error:
             error_v = error.args[0] if error.args else None
             error_m = error.reason if hasattr(error, "reason") else None
-            if error_v in SSL_SILENT_ERRORS:
+            if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error, connection)
             elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error, connection)
