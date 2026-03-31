@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+*
+
+## [1.31.2] - 2026-03-31
+
+### Fixed
+
 * `_build_urls` in `ConsulProxyServer` skipping instances with host network mode (`Port: 0`) instead of expanding from the `proxy.port` tag filter
 
 ## [1.31.1] - 2026-03-31
