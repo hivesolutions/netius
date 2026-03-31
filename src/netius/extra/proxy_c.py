@@ -487,12 +487,12 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 _address = node.get("Address", None)
             port = service.get("Port", 0)
             if not _address or not port:
-                self.debug(
+                self.info(
                     "Skipping instance, missing address=%s port=%s" % (_address, port)
                 )
                 continue
             if ports and not port in ports:
-                self.debug(
+                self.info(
                     "Skipping instance %s:%d, port not in allowed %s"
                     % (_address, port, sorted(ports))
                 )
