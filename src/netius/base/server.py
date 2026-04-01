@@ -209,6 +209,7 @@ class Server(Base):
         self.port = port
         self.type = type
         self.ssl = ssl
+        self.ssl_verify = ssl_verify
         self.ssl_host = ssl_host
         self.ssl_fingerprint = ssl_fingerprint
         self.ssl_dump = ssl_dump

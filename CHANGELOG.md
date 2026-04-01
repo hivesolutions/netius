@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `ssl_verify` attribute stored on `Server` instance for runtime access to the SSL verification setting
 
 ### Changed
 
-*
+* Logging calls in `common.py` now use lazy `,` evaluation instead of `%` string formatting for deferred argument resolution
 
 ### Fixed
 
