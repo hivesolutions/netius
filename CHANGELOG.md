@@ -9,8 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Debug logging of OpenSSL version and SSL file paths (KEY, CER, CA, DH) at server startup
-* `VERIFY_X509_PARTIAL_CHAIN` flag on SSL context when certificate verification is enabled, allowing validation of intermediate certificates without the full chain
+*
 
 ### Changed
 
@@ -19,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.34.0] - 2026-04-01
+
+### Added
+
+* Debug logging of OpenSSL version and SSL file paths (KEY, CER, CA, DH) at server startup
+* `VERIFY_X509_PARTIAL_CHAIN` flag on SSL context when certificate verification is enabled, allowing validation of intermediate certificates without the full chain
 
 ## [1.33.1] - 2026-04-01
 
