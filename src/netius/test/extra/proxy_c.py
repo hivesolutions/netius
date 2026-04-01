@@ -541,6 +541,144 @@ class ConsulProxyServerTest(unittest.TestCase):
         result = self.server._resolve_auth_regex(tags)
         self.assertEqual(result, None)
 
+    def test_resolve_auth_regex_address(self):
+        tags = ["proxy.enable=true", "proxy.auth-regex=/*;address:192.168.1.1"]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][0].pattern, "/*")
+        self.assertIsInstance(result[0][1], netius.AddressAuth)
+        self.assertEqual(result[0][1].allowed, ["192.168.1.1"])
+
+    def test_resolve_auth_regex_address_multiple(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.auth-regex=/*;address:192.168.1.1+10.0.0.0/24",
+        ]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result[0][1], netius.AddressAuth)
+        self.assertEqual(result[0][1].allowed, ["192.168.1.1", "10.0.0.0/24"])
+
+    def test_resolve_auth_regex_address_empty(self):
+        tags = ["proxy.enable=true", "proxy.auth-regex=/*;address:"]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_auth_regex_address_spaces(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.auth-regex=/*;address:192.168.1.1 + 10.0.0.1",
+        ]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result[0][1], netius.AddressAuth)
+        self.assertEqual(result[0][1].allowed, ["192.168.1.1", "10.0.0.1"])
+
+    def test_resolve_auth_regex_pipe_simple_and_address(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.auth-regex=/*;simple:admin:pass123|address:192.168.1.1",
+        ]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][0].pattern, "/*")
+        self.assertIsInstance(result[0][1], tuple)
+        self.assertEqual(len(result[0][1]), 2)
+        self.assertIsInstance(result[0][1][0], netius.SimpleAuth)
+        self.assertEqual(result[0][1][0].username, "admin")
+        self.assertEqual(result[0][1][0].password, "pass123")
+        self.assertIsInstance(result[0][1][1], netius.AddressAuth)
+        self.assertEqual(result[0][1][1].allowed, ["192.168.1.1"])
+
+    def test_resolve_auth_regex_pipe_none_and_address(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.auth-regex=/*;none|address:10.0.0.1",
+        ]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result[0][1], tuple)
+        self.assertEqual(len(result[0][1]), 2)
+        self.assertEqual(result[0][1][0], None)
+        self.assertIsInstance(result[0][1][1], netius.AddressAuth)
+
+    def test_resolve_auth_regex_pipe_single(self):
+        # a single auth type with no pipe separator should not
+        # produce a tuple, just the auth object directly
+        tags = ["proxy.enable=true", "proxy.auth-regex=/*;simple:admin:pass"]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result[0][1], netius.SimpleAuth)
+
+    def test_resolve_auth_regex_pipe_with_comma_rules(self):
+        # verifies that pipe and comma separators work together,
+        # comma separates rules and pipe separates auth types
+        tags = [
+            "proxy.enable=true",
+            "proxy.auth-regex=/api/*;none,/*;simple:admin:pass|address:10.0.0.1",
+        ]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0][0].pattern, "/api/*")
+        self.assertEqual(result[0][1], None)
+        self.assertEqual(result[1][0].pattern, "/*")
+        self.assertIsInstance(result[1][1], tuple)
+        self.assertEqual(len(result[1][1]), 2)
+
+    def test_resolve_auth_regex_unknown_type(self):
+        tags = ["proxy.enable=true", "proxy.auth-regex=/*;unknown"]
+        result = self.server._resolve_auth_regex(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_auth_type_none(self):
+        result = self.server._resolve_auth_type("none", [])
+        self.assertEqual(result, None)
+
+    def test_resolve_auth_type_password(self):
+        tags = ["proxy.password=secret"]
+        result = self.server._resolve_auth_type("password", tags)
+        self.assertIsInstance(result, netius.SimpleAuth)
+        self.assertEqual(result.password, "secret")
+
+    def test_resolve_auth_type_password_missing(self):
+        result = self.server._resolve_auth_type("password", [])
+        self.assertEqual(result, False)
+
+    def test_resolve_auth_type_simple(self):
+        result = self.server._resolve_auth_type("simple:admin:pass123", [])
+        self.assertIsInstance(result, netius.SimpleAuth)
+        self.assertEqual(result.username, "admin")
+        self.assertEqual(result.password, "pass123")
+
+    def test_resolve_auth_type_simple_no_password(self):
+        result = self.server._resolve_auth_type("simple:admin", [])
+        self.assertIsInstance(result, netius.SimpleAuth)
+        self.assertEqual(result.username, "admin")
+        self.assertEqual(result.password, None)
+
+    def test_resolve_auth_type_address(self):
+        result = self.server._resolve_auth_type("address:192.168.1.1", [])
+        self.assertIsInstance(result, netius.AddressAuth)
+        self.assertEqual(result.allowed, ["192.168.1.1"])
+
+    def test_resolve_auth_type_address_cidr(self):
+        result = self.server._resolve_auth_type("address:10.0.0.0/24", [])
+        self.assertIsInstance(result, netius.AddressAuth)
+        self.assertEqual(result.allowed, ["10.0.0.0/24"])
+
+    def test_resolve_auth_type_address_multiple(self):
+        result = self.server._resolve_auth_type("address:192.168.1.1+10.0.0.0/24", [])
+        self.assertIsInstance(result, netius.AddressAuth)
+        self.assertEqual(result.allowed, ["192.168.1.1", "10.0.0.0/24"])
+
+    def test_resolve_auth_type_address_empty(self):
+        result = self.server._resolve_auth_type("address:", [])
+        self.assertEqual(result, False)
+
+    def test_resolve_auth_type_unknown(self):
+        result = self.server._resolve_auth_type("unknown", [])
+        self.assertEqual(result, False)
+
     def test_apply_tags_password(self):
         tags = ["proxy.enable=true", "proxy.password=secret123"]
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]

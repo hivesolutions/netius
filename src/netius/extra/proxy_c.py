@@ -422,29 +422,54 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             part = part.strip()
             if not part:
                 continue
-            if not ";" in part:
+            if ";" not in part:
                 continue
-            pattern, auth_type = part.split(";", 1)
+            pattern, auth_spec = part.split(";", 1)
             pattern = pattern.strip()
-            auth_type = auth_type.strip()
             if not pattern:
                 continue
             regex = re.compile(pattern)
-            if auth_type == "none":
-                result.append((regex, None))
-            elif auth_type == "password":
-                password = self._resolve_tag(tags, "proxy.password=")
-                if password:
-                    auth = netius.SimpleAuth(password=password)
-                    result.append((regex, auth))
-            elif auth_type.startswith("simple:"):
-                credentials = auth_type[len("simple:") :]
-                parts = credentials.split(":", 1)
-                username = parts[0] if len(parts) > 0 else None
-                password = parts[1] if len(parts) > 1 else None
-                auth = netius.SimpleAuth(username=username, password=password)
-                result.append((regex, auth))
+            # splits the auth spec by the pipe character to support
+            # multiple auth methods per rule (evaluated with OR logic)
+            auths = []
+            for auth_part in auth_spec.split("|"):
+                auth = self._resolve_auth_type(auth_part.strip(), tags)
+                if auth == False:
+                    continue
+                auths.append(auth)
+            if not auths:
+                continue
+            if len(auths) == 1:
+                result.append((regex, auths[0]))
+            else:
+                result.append((regex, tuple(auths)))
         return result if result else None
+
+    def _resolve_auth_type(self, auth_type, tags):
+        if auth_type == "none":
+            return None
+        elif auth_type == "password":
+            password = self._resolve_tag(tags, "proxy.password=")
+            if password:
+                return netius.SimpleAuth(password=password)
+            return False
+        elif auth_type.startswith("simple:"):
+            credentials = auth_type[len("simple:") :]
+            parts = credentials.split(":", 1)
+            username = parts[0] if len(parts) > 0 else None
+            password = parts[1] if len(parts) > 1 else None
+            return netius.SimpleAuth(username=username, password=password)
+        elif auth_type.startswith("address:"):
+            addresses = auth_type[len("address:") :]
+            allowed = []
+            for address in addresses.split("+"):
+                address = address.strip()
+                if address:
+                    allowed.append(address)
+            if allowed:
+                return netius.AddressAuth(allowed=allowed)
+            return False
+        return False
 
     def _resolve_tag(self, tags, prefix):
         for tag in tags:

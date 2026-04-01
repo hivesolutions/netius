@@ -126,7 +126,7 @@ Services may also use the following Consul tags to control routing behavior:
 | **proxy.port=\<ports\>**       | Comma-separated list of allowed ports or port ranges for the service (eg: `proxy.port=8080,9090` or `proxy.port=8080-8085,9090`).                               |
 | **proxy.ports=\<ports\>**      | Alias for `proxy.port` with the same behavior including port range support, first match wins when both are present.                                             |
 | **proxy.alias=\<domains\>**    | Comma-separated list of domain aliases that should route to the same backend service (eg: `proxy.alias=api,api-v2` registers both as aliases for the service).  |
-| **proxy.auth-regex=\<rules\>** | Comma-separated regex auth rules as `<pattern>;<type>` where type is `none`, `password` or `simple:<user>:<pass>`.                                              |
+| **proxy.auth-regex=\<rules\>** | Comma-separated regex auth rules as `<pattern>;<type>` with types `none`, `password`, `simple:<user>:<pass>`, `address:<ip+cidr>`, `\|` for OR.                 |
 | **proxy.redirect-ssl=true**    | Enables automatic HTTP to HTTPS redirection for the service, all HTTP requests are redirected to the equivalent HTTPS URL.                                      |
 
 #### DNS Client

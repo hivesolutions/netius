@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `address:<ips>` auth type in `proxy.auth-regex` consul tag for IP whitelist with CIDR support, multiple IPs separated by `+`
+* Multiple auth types per rule via `|` separator in `proxy.auth-regex` (eg `simple:admin:pass|address:10.0.0.1`) evaluated with OR logic
+* `_resolve_auth_type()` method in `ConsulProxyServer` extracting auth type parsing from `_resolve_auth_regex`
 
 ### Changed
 
