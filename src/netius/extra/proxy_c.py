@@ -179,6 +179,16 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 fqn = _alias + "." + str(host_suffix)
                 self.alias[fqn] = value
                 self._consul_aliases.add(fqn)
+
+                # propagates redirect rules to the FQN so that eg
+                # myapp.example.com redirects to itself, not to myapp
+                if redirect and _alias in self.redirect:
+                    _redirect = self.redirect[_alias]
+                    self.redirect[fqn] = (
+                        (fqn, _redirect[1])
+                        if isinstance(_redirect, tuple)
+                        else _redirect
+                    )
             for name, value in netius.legacy.items(self.hosts):
                 fqn = name + "." + str(host_suffix)
                 if alias:
@@ -186,6 +196,16 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 else:
                     self.hosts[fqn] = value
                 self._consul_aliases.add(fqn)
+
+                # propagates redirect rules to the FQN so that eg
+                # myapp.example.com redirects to itself, not to myapp
+                if redirect and name in self.redirect:
+                    _redirect = self.redirect[name]
+                    self.redirect[fqn] = (
+                        (fqn, _redirect[1])
+                        if isinstance(_redirect, tuple)
+                        else _redirect
+                    )
 
     def _consul_fetch(self):
         # fetches all eligible service data from the consul catalog

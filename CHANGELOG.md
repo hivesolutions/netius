@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* `proxy.redirect-ssl` not being applied to suffix-expanded FQN aliases in `ConsulProxyServer` — redirect rules are now propagated inline during `_build_suffixes` so that eg `myapp.example.com` redirects to itself instead of the short name
 
 ## [1.32.0] - 2026-03-31
 

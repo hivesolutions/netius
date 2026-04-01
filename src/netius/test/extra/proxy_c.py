@@ -755,6 +755,33 @@ class ConsulProxyServerTest(unittest.TestCase):
 
         self.assertEqual(server.redirect.get("myapp"), ("myapp", "https"))
         self.assertEqual(server.redirect.get("api"), ("api", "https"))
+        self.assertEqual(
+            server.redirect.get("myapp.example.com"),
+            ("myapp.example.com", "https"),
+        )
+        self.assertEqual(
+            server.redirect.get("api.example.com"), ("api.example.com", "https")
+        )
+        server.cleanup()
+
+    def test_apply_tags_redirect_ssl_suffixes_no_alias(self):
+        server = netius.extra.ConsulProxyServer(
+            host_suffixes=["example.com"],
+            hosts=dict(),
+            auth=dict(),
+            redirect=dict(),
+            error_urls=dict(),
+        )
+
+        tags = ["proxy.enable=true", "proxy.redirect-ssl=true"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        server._build_consul(entries)
+
+        self.assertEqual(server.redirect.get("myapp"), ("myapp", "https"))
+        self.assertEqual(
+            server.redirect.get("myapp.example.com"),
+            ("myapp.example.com", "https"),
+        )
         server.cleanup()
 
     def test_apply_tags_cleanup(self):
