@@ -4366,7 +4366,7 @@ class AbstractBase(observer.Observable):
             and hasattr(context, "verify_flags")
             and hasattr(ssl, "VERIFY_X509_PARTIAL_CHAIN")
         ):
-            context.verify_flags = ssl.VERIFY_X509_PARTIAL_CHAIN
+            context.verify_flags |= ssl.VERIFY_X509_PARTIAL_CHAIN
         if ca_file:
             context.load_verify_locations(cafile=ca_file)
         if ca_root and hasattr(context, "load_default_certs"):
