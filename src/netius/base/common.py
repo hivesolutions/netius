@@ -4367,6 +4367,18 @@ class AbstractBase(observer.Observable):
             context.load_default_certs(purpose=ssl.Purpose.SERVER_AUTH)
         if ca_root and SSL_CA_PATH:
             context.load_verify_locations(cafile=SSL_CA_PATH)
+        self.debug(
+            "SSL certs configured: verify_mode=%s, check_hostname=%s, "
+            "ca_file=%s, ca_root=%s, SSL_CA_PATH=%s, ca_certs=%d"
+            % (
+                verify_mode,
+                check_hostname,
+                ca_file,
+                ca_root,
+                SSL_CA_PATH,
+                len(context.get_ca_certs()) if hasattr(context, "get_ca_certs") else -1,
+            )
+        )
 
     def _ssl_upgrade(
         self,
@@ -4435,6 +4447,21 @@ class AbstractBase(observer.Observable):
                 do_handshake_on_connect=False,
             )
 
+        self.debug(
+            "SSL wrap: server=%s, ssl_verify=%s, cert_reqs=%s, "
+            "ca_file=%s, ca_root=%s, check_hostname=%s, server_hostname=%s, "
+            "has_context=%s"
+            % (
+                server,
+                ssl_verify,
+                cert_reqs,
+                ca_file,
+                ca_root,
+                check_hostname,
+                server_hostname,
+                bool(self._ssl_context),
+            )
+        )
         self._ssl_certs(
             self._ssl_context,
             key_file=key_file,
