@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+*
+
+## [1.34.1] - 2026-04-01
+
+### Fixed
+
 * `VERIFY_X509_PARTIAL_CHAIN` flag now added with `|=` instead of `=` to preserve existing SSL verify flags
 
 ## [1.34.0] - 2026-04-01
