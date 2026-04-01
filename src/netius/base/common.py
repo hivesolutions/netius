@@ -4361,6 +4361,12 @@ class AbstractBase(observer.Observable):
         context.verify_mode = verify_mode
         if hasattr(context, "check_hostname"):
             context.check_hostname = check_hostname
+        if (
+            not verify_mode == ssl.CERT_NONE
+            and hasattr(context, "verify_flags")
+            and hasattr(ssl, "VERIFY_X509_PARTIAL_CHAIN")
+        ):
+            context.verify_flags = ssl.VERIFY_X509_PARTIAL_CHAIN
         if ca_file:
             context.load_verify_locations(cafile=ca_file)
         if ca_root and hasattr(context, "load_default_certs"):
