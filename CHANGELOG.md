@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Debug logging of OpenSSL version and SSL file paths (KEY, CER, CA, DH) at server startup
 
 ### Changed
 

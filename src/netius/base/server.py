@@ -67,6 +67,11 @@ class Server(Base):
         Base.welcome(self)
 
         self.info("Booting %s %s (%s) ..." % (NAME, VERSION, PLATFORM))
+        self.debug("OpenSSL %s" % ssl.OPENSSL_VERSION)
+        self.debug(
+            "SSL paths: SSL_KEY_PATH=%s, SSL_CER_PATH=%s, SSL_CA_PATH=%s, SSL_DH_PATH=%s"
+            % (SSL_KEY_PATH, SSL_CER_PATH, SSL_CA_PATH, SSL_DH_PATH)
+        )
 
     def cleanup(self):
         Base.cleanup(self)
