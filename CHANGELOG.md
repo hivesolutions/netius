@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Debug logging of SSL verify flags and available X509 verification features (PARTIAL_CHAIN, STRICT, TRUSTED_FIRST) in `_ssl_certs`
 
 ### Changed
 

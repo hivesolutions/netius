@@ -4374,15 +4374,26 @@ class AbstractBase(observer.Observable):
         if ca_root and SSL_CA_PATH:
             context.load_verify_locations(cafile=SSL_CA_PATH)
         self.debug(
-            "SSL certs configured: verify_mode=%s, check_hostname=%s, "
-            "ca_file=%s, ca_root=%s, SSL_CA_PATH=%s, ca_certs=%d"
+            "SSL certs configured: verify_mode=%s, verify_flags=%s, "
+            "check_hostname=%s, ca_file=%s, ca_root=%s, SSL_CA_PATH=%s, "
+            "ca_certs=%d"
             % (
                 verify_mode,
+                getattr(context, "verify_flags", "N/A"),
                 check_hostname,
                 ca_file,
                 ca_root,
                 SSL_CA_PATH,
                 len(context.get_ca_certs()) if hasattr(context, "get_ca_certs") else -1,
+            )
+        )
+        self.debug(
+            "SSL features: VERIFY_X509_PARTIAL_CHAIN=%s, "
+            "VERIFY_X509_STRICT=%s, VERIFY_X509_TRUSTED_FIRST=%s"
+            % (
+                hasattr(ssl, "VERIFY_X509_PARTIAL_CHAIN"),
+                hasattr(ssl, "VERIFY_X509_STRICT"),
+                hasattr(ssl, "VERIFY_X509_TRUSTED_FIRST"),
             )
         )
 
