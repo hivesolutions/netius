@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Debug logging for SSL certificate configuration and SSL socket wrapping in `AbstractBase`, including verify mode, hostname checks, CA file paths, and context state
+*
 
 ### Changed
 
@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.33.1] - 2026-04-01
+
+### Added
+
+* Debug logging for SSL certificate configuration and SSL socket wrapping in `AbstractBase`, including verify mode, hostname checks, CA file paths, and context state
 
 ## [1.33.0] - 2026-04-01
 
