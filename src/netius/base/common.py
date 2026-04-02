@@ -4259,9 +4259,16 @@ class AbstractBase(observer.Observable):
             )
             self._ssl_contexts[hostname] = (context, values)
 
+        # saves the values of secure and context options of the SSL
+        # so that they can be used later for reference
+        self._ssl_secure = secure
+        self._ssl_context_options = context_options
+
     def _ssl_destroy(self):
         self._ssl_context = None
         self._ssl_contexts = dict()
+        self._ssl_secure = None
+        self._ssl_context_options = None
 
     def _ssl_callback(self, socket, hostname, context):
         context, values = self._ssl_contexts.get(hostname, (context, None))
@@ -4573,6 +4580,12 @@ class AbstractBase(observer.Observable):
             ca_root=ca_root,
             verify_mode=cert_reqs,
             check_hostname=check_hostname,
+        )
+
+        self._ssl_ctx_debug(
+            self._ssl_context,
+            secure=self._ssl_secure,
+            context_options=self._ssl_context_options,
         )
 
         return self._ssl_context.wrap_socket(
