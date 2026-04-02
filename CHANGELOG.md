@@ -14,10 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * Logging calls in `common.py` now use lazy `,` evaluation instead of `%` string formatting for deferred argument resolution
+* Moved SSL debug logging from `_ssl_ctx_base` to `_ssl_ctx` and `_ssl_init` for complete post-setup context reporting
+* Moved ALPN/NPN protocol debug logging from `_ssl_ctx_alpn`/`_ssl_ctx_npn` into `_ssl_ctx_debug`
+* Clear `OP_NO_*` protocol flags when `SSL_SECURE` level is below threshold, allowing legacy TLS protocols on newer Python versions
 
 ### Fixed
 
-*
+* Added missing `OP_NO_TLSv1_3` check in `_ssl_ctx_debug` so TLSv1.3 is correctly reported as disabled
 
 ## [1.34.2] - 2026-04-01
 

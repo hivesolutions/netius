@@ -4237,6 +4237,9 @@ class AbstractBase(observer.Observable):
         )
         self._ssl_ctx_protocols(self._ssl_context)
         self._ssl_certs(self._ssl_context)
+        self._ssl_ctx_debug(
+            self._ssl_context, secure=secure, context_options=context_options
+        )
         has_callback = hasattr(self._ssl_context, "set_servername_callback")
         if has_callback:
             self._ssl_context.set_servername_callback(self._ssl_callback)
@@ -4290,17 +4293,26 @@ class AbstractBase(observer.Observable):
             ca_root=ca_root,
             verify_mode=cert_reqs,
         )
+        self._ssl_ctx_debug(context, secure=secure, context_options=context_options)
         return context
 
     def _ssl_ctx_base(self, context, secure=1, context_options=[]):
         if secure >= 1 and hasattr(ssl, "OP_NO_SSLv2"):
             context.options |= ssl.OP_NO_SSLv2
+        elif hasattr(ssl, "OP_NO_SSLv2"):
+            context.options &= ~ssl.OP_NO_SSLv2
         if secure >= 1 and hasattr(ssl, "OP_NO_SSLv3"):
             context.options |= ssl.OP_NO_SSLv3
+        elif hasattr(ssl, "OP_NO_SSLv3"):
+            context.options &= ~ssl.OP_NO_SSLv3
         if secure >= 2 and hasattr(ssl, "OP_NO_TLSv1"):
             context.options |= ssl.OP_NO_TLSv1
+        elif hasattr(ssl, "OP_NO_TLSv1"):
+            context.options &= ~ssl.OP_NO_TLSv1
         if secure >= 2 and hasattr(ssl, "OP_NO_TLSv1_1"):
             context.options |= ssl.OP_NO_TLSv1_1
+        elif hasattr(ssl, "OP_NO_TLSv1_1"):
+            context.options &= ~ssl.OP_NO_TLSv1_1
         if secure >= 1 and hasattr(ssl, "OP_SINGLE_DH_USE"):
             context.options |= ssl.OP_SINGLE_DH_USE
         if secure >= 1 and hasattr(ssl, "OP_SINGLE_ECDH_USE"):
@@ -4340,6 +4352,61 @@ class AbstractBase(observer.Observable):
             if protocols:
                 context.set_npn_protocols(protocols)
 
+    def _ssl_ctx_debug(self, context, secure=1, context_options=[]):
+        if not self.is_debug():
+            return
+
+        disabled = []
+        if context.options & getattr(ssl, "OP_NO_SSLv2", 0):
+            disabled.append("SSLv2")
+        if context.options & getattr(ssl, "OP_NO_SSLv3", 0):
+            disabled.append("SSLv3")
+        if context.options & getattr(ssl, "OP_NO_TLSv1", 0):
+            disabled.append("TLSv1.0")
+        if context.options & getattr(ssl, "OP_NO_TLSv1_1", 0):
+            disabled.append("TLSv1.1")
+        if context.options & getattr(ssl, "OP_NO_TLSv1_2", 0):
+            disabled.append("TLSv1.2")
+        if context.options & getattr(ssl, "OP_NO_TLSv1_3", 0):
+            disabled.append("TLSv1.3")
+
+        allowed = []
+        for proto in ("SSLv2", "SSLv3", "TLSv1.0", "TLSv1.1", "TLSv1.2", "TLSv1.3"):
+            if proto in disabled:
+                continue
+            allowed.append(proto)
+
+        min_version = getattr(context, "minimum_version", None)
+        max_version = getattr(context, "maximum_version", None)
+
+        self.debug(
+            "SSL context created: secure=%d, allowed=[%s], disabled=[%s]",
+            secure,
+            ", ".join(allowed),
+            ", ".join(disabled),
+        )
+        self.debug(
+            "SSL context details: protocol=%s, min_version=%s, max_version=%s, options=0x%x",
+            getattr(context, "protocol", "N/A"),
+            min_version,
+            max_version,
+            context.options,
+        )
+        if context_options:
+            self.debug(
+                "SSL custom options: %s",
+                ", ".join(context_options),
+            )
+
+        protocols = self.get_protocols()
+        if protocols:
+            if getattr(ssl, "HAS_ALPN", False) and hasattr(
+                context, "set_alpn_protocols"
+            ):
+                self.debug("SSL ALPN protocols: %s", ", ".join(protocols))
+            if getattr(ssl, "HAS_NPN", False) and hasattr(context, "set_npn_protocols"):
+                self.debug("SSL NPN protocols: %s", ", ".join(protocols))
+
     def _ssl_certs(
         self,
         context,
@@ -4374,22 +4441,23 @@ class AbstractBase(observer.Observable):
         if ca_root and SSL_CA_PATH:
             context.load_verify_locations(cafile=SSL_CA_PATH)
 
-        self.debug(
-            "SSL certs configured: verify_mode=%s, verify_flags=%s, check_hostname=%s, ca_file=%s, ca_root=%s, SSL_CA_PATH=%s, ca_certs=%d",
-            verify_mode,
-            getattr(context, "verify_flags", "N/A"),
-            check_hostname,
-            ca_file,
-            ca_root,
-            SSL_CA_PATH,
-            len(context.get_ca_certs()) if hasattr(context, "get_ca_certs") else -1,
-        )
-        self.debug(
-            "SSL features: VERIFY_X509_PARTIAL_CHAIN=%s, VERIFY_X509_STRICT=%s, VERIFY_X509_TRUSTED_FIRST=%s",
-            hasattr(ssl, "VERIFY_X509_PARTIAL_CHAIN"),
-            hasattr(ssl, "VERIFY_X509_STRICT"),
-            hasattr(ssl, "VERIFY_X509_TRUSTED_FIRST"),
-        )
+        if self.is_debug():
+            self.debug(
+                "SSL certs configured: verify_mode=%s, verify_flags=%s, check_hostname=%s, ca_file=%s, ca_root=%s, SSL_CA_PATH=%s, ca_certs=%d",
+                verify_mode,
+                getattr(context, "verify_flags", "N/A"),
+                check_hostname,
+                ca_file,
+                ca_root,
+                SSL_CA_PATH,
+                len(context.get_ca_certs()) if hasattr(context, "get_ca_certs") else -1,
+            )
+            self.debug(
+                "SSL features: VERIFY_X509_PARTIAL_CHAIN=%s, VERIFY_X509_STRICT=%s, VERIFY_X509_TRUSTED_FIRST=%s",
+                hasattr(ssl, "VERIFY_X509_PARTIAL_CHAIN"),
+                hasattr(ssl, "VERIFY_X509_STRICT"),
+                hasattr(ssl, "VERIFY_X509_TRUSTED_FIRST"),
+            )
 
     def _ssl_upgrade(
         self,
@@ -4471,6 +4539,7 @@ class AbstractBase(observer.Observable):
             server_hostname,
             bool(self._ssl_context),
         )
+
         self._ssl_certs(
             self._ssl_context,
             key_file=key_file,
