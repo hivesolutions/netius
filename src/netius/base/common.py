@@ -4339,11 +4339,11 @@ class AbstractBase(observer.Observable):
         if secure >= 1 and SSL_DH_PATH and hasattr(context, "load_dh_params"):
             context.load_dh_params(SSL_DH_PATH)
         if hasattr(context, "minimum_version") and hasattr(ssl, "TLSVersion"):
-            if secure >= 2:
+            if secure >= 2 and hasattr(ssl.TLSVersion, "TLSv1_2"):
                 context.minimum_version = ssl.TLSVersion.TLSv1_2
-            elif secure >= 1:
+            elif secure >= 1 and hasattr(ssl.TLSVersion, "TLSv1"):
                 context.minimum_version = ssl.TLSVersion.TLSv1
-            else:
+            elif secure >= 0 and hasattr(ssl.TLSVersion, "SSLv3"):
                 context.minimum_version = ssl.TLSVersion.SSLv3
 
     def _ssl_ctx_protocols(self, context):

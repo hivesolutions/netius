@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Use `ssl.TLSVersion` enum values instead of `ssl.PROTOCOL_*` constants for `minimum_version`, fixing `ValueError` on PyPy
+* Add `hasattr` guards for individual `ssl.TLSVersion` members to handle builds missing specific TLS version enums
 
 ## [1.36.0] - 2026-04-02
 
