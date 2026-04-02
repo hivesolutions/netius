@@ -4376,6 +4376,14 @@ class AbstractBase(observer.Observable):
                 continue
             allowed.append(proto)
 
+        enabled = []
+        if context.options & getattr(ssl, "OP_SINGLE_DH_USE", 0):
+            enabled.append("SINGLE_DH_USE")
+        if context.options & getattr(ssl, "OP_SINGLE_ECDH_USE", 0):
+            enabled.append("SINGLE_ECDH_USE")
+        if context.options & getattr(ssl, "OP_CIPHER_SERVER_PREFERENCE", 0):
+            enabled.append("CIPHER_SERVER_PREFERENCE")
+
         min_version = getattr(context, "minimum_version", None)
         max_version = getattr(context, "maximum_version", None)
 
@@ -4392,6 +4400,11 @@ class AbstractBase(observer.Observable):
             max_version,
             context.options,
         )
+        if enabled:
+            self.debug(
+                "SSL security options: %s",
+                ", ".join(enabled),
+            )
         if context_options:
             self.debug(
                 "SSL custom options: %s",

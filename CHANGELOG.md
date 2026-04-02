@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Debug logging of SSL security options (SINGLE_DH_USE, SINGLE_ECDH_USE, CIPHER_SERVER_PREFERENCE) in `_ssl_ctx_debug`
 
 ### Changed
 
