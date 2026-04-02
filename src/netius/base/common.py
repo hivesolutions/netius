@@ -4177,26 +4177,30 @@ class AbstractBase(observer.Observable):
         if count == None:
             count = self.keepalive_count
         is_inet = _socket.family in (socket.AF_INET, socket.AF_INET6)
-        is_inet and hasattr(_socket, "TCP_KEEPIDLE") and _socket.setsockopt(
-            socket.IPPROTO_TCP,
-            socket.TCP_KEEPIDLE,  # @UndefinedVariable pylint: disable=E1101
-            timeout,
-        )
-        is_inet and hasattr(_socket, "TCP_KEEPINTVL") and _socket.setsockopt(
-            socket.IPPROTO_TCP,
-            socket.TCP_KEEPINTVL,  # @UndefinedVariable pylint: disable=E1101
-            interval,
-        )
-        is_inet and hasattr(_socket, "TCP_KEEPCNT") and _socket.setsockopt(
-            socket.IPPROTO_TCP,
-            socket.TCP_KEEPCNT,  # @UndefinedVariable pylint: disable=E1101
-            count,
-        )
-        hasattr(_socket, "SO_REUSEPORT") and _socket.setsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_REUSEPORT,  # @UndefinedVariable pylint: disable=E1101
-            1,
-        )
+        if is_inet and hasattr(_socket, "TCP_KEEPIDLE"):
+            _socket.setsockopt(
+                socket.IPPROTO_TCP,
+                socket.TCP_KEEPIDLE,  # @UndefinedVariable pylint: disable=E1101
+                timeout,
+            )
+        if is_inet and hasattr(_socket, "TCP_KEEPINTVL"):
+            _socket.setsockopt(
+                socket.IPPROTO_TCP,
+                socket.TCP_KEEPINTVL,  # @UndefinedVariable pylint: disable=E1101
+                interval,
+            )
+        if is_inet and hasattr(_socket, "TCP_KEEPCNT"):
+            _socket.setsockopt(
+                socket.IPPROTO_TCP,
+                socket.TCP_KEEPCNT,  # @UndefinedVariable pylint: disable=E1101
+                count,
+            )
+        if hasattr(_socket, "SO_REUSEPORT"):
+            _socket.setsockopt(
+                socket.SOL_SOCKET,
+                socket.SO_REUSEPORT,  # @UndefinedVariable pylint: disable=E1101
+                1,
+            )
 
     def _ssl_init(self, strict=True, env=True):
         # initializes the values of both the "main" context for SSL
@@ -4383,6 +4387,14 @@ class AbstractBase(observer.Observable):
             enabled.append("SINGLE_ECDH_USE")
         if context.options & getattr(ssl, "OP_CIPHER_SERVER_PREFERENCE", 0):
             enabled.append("CIPHER_SERVER_PREFERENCE")
+        if context.options & getattr(ssl, "OP_NO_COMPRESSION", 0):
+            enabled.append("NO_COMPRESSION")
+        if context.options & getattr(ssl, "OP_NO_TICKET", 0):
+            enabled.append("NO_TICKET")
+        if context.options & getattr(ssl, "OP_NO_RENEGOTIATION", 0):
+            enabled.append("NO_RENEGOTIATION")
+        if context.options & getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0):
+            enabled.append("LEGACY_SERVER_CONNECT")
 
         min_version = getattr(context, "minimum_version", None)
         max_version = getattr(context, "maximum_version", None)
