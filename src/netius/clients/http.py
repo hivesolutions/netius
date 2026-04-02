@@ -712,6 +712,12 @@ class HTTPProtocol(netius.StreamProtocol):
         parsed = self.parsed
         safe = self.safe
 
+        # in case the parsed URL is not available (connection was closed
+        # before the request could be sent) closes the protocol to avoid
+        # errors in the request sending process
+        if parsed == None:
+            return
+
         if parsed.query:
             path += "?" + parsed.query
 

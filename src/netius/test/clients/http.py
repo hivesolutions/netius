@@ -34,6 +34,53 @@ import unittest
 import netius.clients
 
 
+class HTTPProtocolTest(unittest.TestCase):
+
+    def test_send_request_parsed_none(self):
+        protocol = netius.clients.HTTPProtocol(
+            "GET", "http://example.com/", asynchronous=True
+        )
+
+        self.assertNotEqual(protocol.parsed, None)
+
+        protocol.parsed = None
+
+        result = protocol.send_request()
+        self.assertEqual(result, None)
+
+    def test_send_request_parsed_valid(self):
+        protocol = netius.clients.HTTPProtocol(
+            "GET", "http://example.com/path", asynchronous=True
+        )
+
+        self.assertNotEqual(protocol.parsed, None)
+        self.assertEqual(protocol.parsed.hostname, "example.com")
+        self.assertEqual(protocol.parsed.path, "/path")
+
+    def test_close_c_clears_parsed(self):
+        protocol = netius.clients.HTTPProtocol(
+            "GET", "http://example.com/", asynchronous=True
+        )
+
+        self.assertNotEqual(protocol.parsed, None)
+
+        protocol.close_c()
+
+        self.assertEqual(protocol.parsed, None)
+
+    def test_close_c_send_request_safe(self):
+        protocol = netius.clients.HTTPProtocol(
+            "GET", "http://example.com/", asynchronous=True
+        )
+
+        protocol.close_c()
+
+        self.assertEqual(protocol.parsed, None)
+
+        result = protocol.send_request()
+        self.assertEqual(result, None)
+
+
 class HTTPClientTest(unittest.TestCase):
 
     def setUp(self):

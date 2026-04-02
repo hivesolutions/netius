@@ -212,6 +212,12 @@ class Transport(observer.Observable):
             return True
         if self._connection.is_closed():
             return True
+        if (
+            self._protocol
+            and hasattr(self._protocol, "is_closing")
+            and self._protocol.is_closing()
+        ):
+            return True
         return False
 
     def _on_data(self, connection, data):

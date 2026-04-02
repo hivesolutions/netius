@@ -52,3 +52,68 @@ class TransportTest(unittest.TestCase):
         self.assertEqual(connection.is_closed(), True)
 
         transport.write(b"")
+
+    def test_is_closing_no_connection(self):
+        transport = netius.Transport(None, None, open=False)
+
+        self.assertEqual(transport._connection, None)
+        self.assertEqual(transport.is_closing(), True)
+
+    def test_is_closing_open_connection(self):
+        connection = netius.Connection()
+        transport = netius.Transport(None, connection)
+
+        self.assertEqual(transport.is_closing(), False)
+        self.assertEqual(connection.is_closed(), False)
+
+    def test_is_closing_closed_connection(self):
+        connection = netius.Connection()
+        transport = netius.Transport(None, connection)
+
+        connection.status = netius.CLOSED
+
+        self.assertEqual(transport.is_closing(), True)
+        self.assertEqual(connection.is_closed(), True)
+
+    def test_is_closing_protocol_closing(self):
+        connection = netius.Connection()
+        transport = netius.Transport(None, connection)
+
+        protocol = netius.Protocol()
+        protocol._open = True
+        transport._protocol = protocol
+
+        self.assertEqual(transport.is_closing(), False)
+        self.assertEqual(protocol.is_closing(), False)
+
+        protocol._closing = True
+
+        self.assertEqual(transport.is_closing(), True)
+        self.assertEqual(protocol.is_closing(), True)
+
+    def test_is_closing_protocol_not_closing(self):
+        connection = netius.Connection()
+        transport = netius.Transport(None, connection)
+
+        protocol = netius.Protocol()
+        protocol._open = True
+        transport._protocol = protocol
+
+        self.assertEqual(transport.is_closing(), False)
+        self.assertEqual(protocol.is_open(), True)
+        self.assertEqual(protocol.is_closing(), False)
+
+    def test_is_closing_no_protocol(self):
+        connection = netius.Connection()
+        transport = netius.Transport(None, connection)
+
+        self.assertEqual(transport._protocol, None)
+        self.assertEqual(transport.is_closing(), False)
+
+    def test_is_closing_protocol_no_is_closing(self):
+        connection = netius.Connection()
+        transport = netius.Transport(None, connection)
+
+        transport._protocol = object()
+
+        self.assertEqual(transport.is_closing(), False)
