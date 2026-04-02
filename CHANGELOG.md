@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* Set `minimum_version` on SSL context based on `SSL_SECURE` level (secure>=2: TLSv1.2, secure>=1: TLSv1, secure>=0: SSLv3)
 
 ### Fixed
 
