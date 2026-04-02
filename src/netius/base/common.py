@@ -4468,6 +4468,27 @@ class AbstractBase(observer.Observable):
                 ", ".join(context_options),
             )
 
+        self.debug(
+            "SSL library: %s, seclevel=%s",
+            getattr(ssl, "OPENSSL_VERSION", "N/A"),
+            getattr(context, "security_level", "N/A"),
+        )
+
+        ciphers = context.get_ciphers() if hasattr(context, "get_ciphers") else []
+        if ciphers:
+            cipher_protos = {}
+            for c in ciphers:
+                proto = c.get("protocol", "unknown")
+                cipher_protos[proto] = cipher_protos.get(proto, 0) + 1
+            cipher_summary = ", ".join(
+                "%s: %d" % (p, n) for p, n in sorted(cipher_protos.items())
+            )
+            self.debug(
+                "SSL ciphers: %d total (%s)",
+                len(ciphers),
+                cipher_summary,
+            )
+
         protocols = self.get_protocols()
         if protocols:
             if getattr(ssl, "HAS_ALPN", False) and hasattr(
