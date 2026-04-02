@@ -4477,8 +4477,8 @@ class AbstractBase(observer.Observable):
         ciphers = context.get_ciphers() if hasattr(context, "get_ciphers") else []
         if ciphers:
             cipher_protos = {}
-            for c in ciphers:
-                proto = c.get("protocol", "unknown")
+            for cipher in ciphers:
+                proto = cipher.get("protocol", "unknown")
                 cipher_protos[proto] = cipher_protos.get(proto, 0) + 1
             cipher_summary = ", ".join(
                 "%s: %d" % (p, n) for p, n in sorted(cipher_protos.items())
