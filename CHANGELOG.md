@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* Resolve `min_version`, `max_version`, `protocol`, and `options` to human-readable names in SSL debug logging
 
 ### Fixed
 

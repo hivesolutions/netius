@@ -4330,6 +4330,28 @@ class AbstractBase(observer.Observable):
             context.options |= ssl.OP_SINGLE_ECDH_USE
         if secure >= 1 and hasattr(ssl, "OP_CIPHER_SERVER_PREFERENCE"):
             context.options |= ssl.OP_CIPHER_SERVER_PREFERENCE
+        if hasattr(context, "minimum_version") and hasattr(ssl, "TLSVersion"):
+            if secure >= 2 and hasattr(ssl.TLSVersion, "TLSv1_2"):
+                context.minimum_version = ssl.TLSVersion.TLSv1_2
+            elif secure >= 1 and hasattr(ssl.TLSVersion, "TLSv1"):
+                context.minimum_version = ssl.TLSVersion.TLSv1
+            elif secure >= 0 and hasattr(ssl.TLSVersion, "SSLv3"):
+                context.minimum_version = ssl.TLSVersion.SSLv3
+        if hasattr(context, "set_ciphers"):
+            try:
+                if secure >= 2:
+                    context.set_ciphers("DEFAULT:@SECLEVEL=1")
+                elif secure >= 1:
+                    context.set_ciphers("DEFAULT:@SECLEVEL=0")
+                else:
+                    context.set_ciphers("ALL:@SECLEVEL=0")
+            except ssl.SSLError:
+                if secure >= 2:
+                    context.set_ciphers("DEFAULT")
+                elif secure >= 1:
+                    context.set_ciphers("DEFAULT")
+                else:
+                    context.set_ciphers("ALL")
         for context_option in context_options:
             if not hasattr(ssl, context_option):
                 continue
@@ -4338,13 +4360,6 @@ class AbstractBase(observer.Observable):
             context.set_ecdh_curve("prime256v1")
         if secure >= 1 and SSL_DH_PATH and hasattr(context, "load_dh_params"):
             context.load_dh_params(SSL_DH_PATH)
-        if hasattr(context, "minimum_version") and hasattr(ssl, "TLSVersion"):
-            if secure >= 2 and hasattr(ssl.TLSVersion, "TLSv1_2"):
-                context.minimum_version = ssl.TLSVersion.TLSv1_2
-            elif secure >= 1 and hasattr(ssl.TLSVersion, "TLSv1"):
-                context.minimum_version = ssl.TLSVersion.TLSv1
-            elif secure >= 0 and hasattr(ssl.TLSVersion, "SSLv3"):
-                context.minimum_version = ssl.TLSVersion.SSLv3
 
     def _ssl_ctx_protocols(self, context):
         self._ssl_ctx_alpn(context)
@@ -4410,8 +4425,10 @@ class AbstractBase(observer.Observable):
         if context.options & getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0):
             enabled.append("LEGACY_SERVER_CONNECT")
 
-        min_version = getattr(context, "minimum_version", None)
-        max_version = getattr(context, "maximum_version", None)
+        min_version_v = getattr(context, "minimum_version", None)
+        max_version_v = getattr(context, "maximum_version", None)
+        min_version = getattr(min_version_v, "name", min_version_v)
+        max_version = getattr(max_version_v, "name", max_version_v)
 
         self.debug(
             "SSL context created: secure=%d, allowed=[%s], disabled=[%s]",
@@ -4419,12 +4436,26 @@ class AbstractBase(observer.Observable):
             ", ".join(allowed),
             ", ".join(disabled),
         )
+        protocol = getattr(context, "protocol", None)
+        protocol_s = getattr(protocol, "name", protocol)
+
+        options_s = []
+        for name in dir(ssl):
+            if not name.startswith("OP_"):
+                continue
+            value = getattr(ssl, name)
+            if not value:
+                continue
+            if context.options & value:
+                options_s.append(name)
+
         self.debug(
-            "SSL context details: protocol=%s, min_version=%s, max_version=%s, options=0x%x",
-            getattr(context, "protocol", "N/A"),
+            "SSL context details: protocol=%s, min_version=%s, max_version=%s, options=0x%x (%s)",
+            protocol_s,
             min_version,
             max_version,
             context.options,
+            ", ".join(options_s) if options_s else "none",
         )
         if enabled:
             self.debug(
