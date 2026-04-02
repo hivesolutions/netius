@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.36.0] - 2026-04-02
+
+### Added
+
 * Debug logging of SSL security options (SINGLE_DH_USE, SINGLE_ECDH_USE, CIPHER_SERVER_PREFERENCE, NO_COMPRESSION, NO_TICKET, NO_RENEGOTIATION, LEGACY_SERVER_CONNECT) in `_ssl_ctx_debug`
 * Debug logging of SSL context at socket wrap time via stored `_ssl_secure` and `_ssl_context_options` attributes
 
