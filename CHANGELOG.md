@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.35.0] - 2026-04-02
+
+### Added
+
 * `ssl_verify` attribute stored on `Server` instance for runtime access to the SSL verification setting
 
 ### Changed
