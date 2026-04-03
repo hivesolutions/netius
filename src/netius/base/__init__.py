@@ -141,9 +141,11 @@ from .errors import (
 )
 from .log import (
     SILENT,
+    TRACE,
     MAX_LENGTH_LOGSTASH,
     TIMEOUT_LOGSTASH,
     LogstashHandler,
+    patch_logging,
     rotating_handler,
     smtp_handler,
 )
