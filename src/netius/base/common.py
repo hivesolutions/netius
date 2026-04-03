@@ -275,6 +275,13 @@ LOG_FORMAT = "%(asctime)s [%(levelname)s] %(message)s"
 netius infra-structure for debugging purposes it should allow
 and end developer to dig into the details of the execution """
 
+TRACE_FORMAT = (
+    "%(asctime)s [%(levelname)s] %(pathname)s:%(lineno)d | %(message)s"
+)
+""" The format to be used when the logging level is set to TRACE,
+includes file path and line number to allow for fine-grained debugging
+of low-level protocol operations """
+
 # initializes the various paths that are going to be used for
 # the base files configuration in the complete service infra
 # structure, these should include the SSL based files
@@ -1272,7 +1279,7 @@ class AbstractBase(observer.Observable):
     def welcome(self):
         pass
 
-    def load_logging(self, level=logging.DEBUG, format=LOG_FORMAT, unique=False):
+    def load_logging(self, level=logging.DEBUG, format=None, unique=False):
         # verifies if there's a logger already set in the current service
         # if that's the case ignores the call no double reloading allowed
         if self.logger:
@@ -1284,10 +1291,12 @@ class AbstractBase(observer.Observable):
         log.patch_logging()
 
         # normalizes the provided level value so that it represents
-        # a proper and understandable value, then starts the formatter
-        # that is going to be used and retrieves the (possibly unique)
-        # identifier to be used in the logger retrieval/identification
+        # a proper and understandable value, then selects the appropriate
+        # format for the level and starts the formatter that is going to
+        # be used, retrieving the (possibly unique) identifier to be
+        # used in the logger retrieval/identification
         level = self._level(level)
+        format = format or (LOG_FORMAT if level > log.TRACE else TRACE_FORMAT)
         formatter = logging.Formatter(format)
         identifier = self.get_id(unique=unique)
 
