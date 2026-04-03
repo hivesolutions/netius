@@ -1207,7 +1207,7 @@ class HTTPClient(netius.ClientAgent):
         # to be re-used and closes them, then empties the map
         # of available instances (no more re-usage possible)
         for protocol in netius.legacy.values(self.available):
-            protocol.traced("closing pooled")
+            protocol.traced("Closing pooled")
             protocol.close()
         self.available.clear()
 
@@ -1328,13 +1328,13 @@ class HTTPClient(netius.ClientAgent):
         # case calls the connection made directly, indicating that the connection
         # is already established (re-usage of protocol)
         if protocol.is_open():
-            protocol.traced("reusing open")
+            protocol.traced("Reusing open, calling connection_made immediately")
             protocol.connection_made(protocol.transport())
 
         # runs the global connect stream function on netius to initialize the
         # connection operation and maybe a new event loop (if that's required)
         else:
-            protocol.traced("connecting")
+            protocol.traced("Connecting")
             loop = netius.connect_stream(
                 lambda: protocol,
                 protocol.host,
@@ -1353,7 +1353,7 @@ class HTTPClient(netius.ClientAgent):
             # in case the auto release (no connection re-usage) mode is
             # set the protocol is closed immediately
             if self.auto_release:
-                protocol.traced("auto-releasing")
+                protocol.traced("Auto-releasing")
                 protocol.close()
 
             # verifies if the current connection is meant to be kept alive
@@ -1361,13 +1361,13 @@ class HTTPClient(netius.ClientAgent):
             # the client is the responsible for triggering the disconnect
             # operation, avoiding problems with possible connection re-usage
             elif not parser.keep_alive:
-                protocol.traced("closing non-keepalive")
+                protocol.traced("Closing non-keepalive")
                 protocol.close()
 
             # otherwise the protocol is set in the available map and
             # the only the loop is stopped (unblocking the processor)
             else:
-                protocol.traced("pooling")
+                protocol.traced("Pooling for reuse")
                 self.available[protocol.key] = protocol
                 netius.compat_loop(loop).stop()
 

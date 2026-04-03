@@ -250,6 +250,8 @@ class Protocol(observer.Observable):
             logger.critical(object)
 
     def traced(self, message=None, *args):
+        if not self.is_trace:
+            return
         frame = sys._getframe(1)
         caller = frame.f_code.co_name
         caller_self = frame.f_locals.get("self", None)
@@ -281,6 +283,11 @@ class Protocol(observer.Observable):
         if not hasattr(self._loop, "is_devel"):
             return False
         return self._loop.is_devel()
+
+    def is_trace(self):
+        if self._loop and hasattr(self._loop, "is_trace"):
+            return self._loop.is_trace()
+        return logger.isEnabledFor(log.TRACE)
 
     def _close_transport(self, force=False):
         if not self._transport:
