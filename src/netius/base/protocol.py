@@ -256,7 +256,7 @@ class Protocol(observer.Observable):
         if caller_self:
             caller = "%s:%s()" % (caller_self.__class__.__name__, caller)
         if message:
-            self.trace("%s | %r " + message, caller, self, *args)
+            self.trace("%s | %r | " + message, caller, self, *args)
         else:
             self.trace("%s | %r", caller, self)
 
