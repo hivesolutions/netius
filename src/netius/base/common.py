@@ -1273,15 +1273,15 @@ class AbstractBase(observer.Observable):
         pass
 
     def load_logging(self, level=logging.DEBUG, format=LOG_FORMAT, unique=False):
-        # patches the logging infra-structure so that the TRACE level
-        # is properly registered and available for usage, this call
-        # is idempotent and safe to be called multiple times
-        log.patch_logging()
-
         # verifies if there's a logger already set in the current service
         # if that's the case ignores the call no double reloading allowed
         if self.logger:
             return
+
+        # patches the logging infra-structure so that the TRACE level
+        # is properly registered and available for usage, this call
+        # is idempotent and safe to be called multiple times
+        log.patch_logging()
 
         # normalizes the provided level value so that it represents
         # a proper and understandable value, then starts the formatter

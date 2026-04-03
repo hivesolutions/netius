@@ -234,14 +234,13 @@ def smtp_handler(
 def patch_logging():
     if hasattr(logging, "_netius_patched"):
         return
+
+    # patches the logging infra-structure adding the trace level
+    # support and the corresponding trace method to the logger
     logging.addLevelName(TRACE, "TRACE")
     logging.Logger.trace = _trace
+
     logging._netius_patched = True
-
-
-def _trace(self, message, *args, **kwargs):
-    if self.isEnabledFor(TRACE):
-        self._log(TRACE, message, args, **kwargs)
 
 
 def in_signature(callable, name):
@@ -252,3 +251,8 @@ def in_signature(callable, name):
         spec = inspect.getargspec(callable)
     args, _varargs, kwargs = spec[:3]
     return (args and name in args) or (kwargs and "secure" in kwargs)
+
+
+def _trace(self, message, *args, **kwargs):
+    if self.isEnabledFor(TRACE):
+        self._log(TRACE, message, args, **kwargs)
