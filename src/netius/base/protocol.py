@@ -250,7 +250,7 @@ class Protocol(observer.Observable):
             logger.critical(object)
 
     def traced(self, message=None, *args):
-        if not self.is_trace:
+        if not self.is_trace():
             return
         frame = sys._getframe(1)
         caller = frame.f_code.co_name

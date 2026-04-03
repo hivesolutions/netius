@@ -146,6 +146,7 @@ from .log import (
     TIMEOUT_LOGSTASH,
     LogstashHandler,
     patch_logging,
+    setup_logging,
     rotating_handler,
     smtp_handler,
 )

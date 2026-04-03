@@ -1443,16 +1443,7 @@ class HTTPClient(netius.ClientAgent):
 
 
 if __name__ == "__main__":
-    import logging
-
-    from netius.base import log
-    from netius.base.common import LOG_FORMAT, TRACE_FORMAT
-
-    log.patch_logging()
-    level = netius.conf("LEVEL", "DEBUG")
-    level = logging.getLevelName(level)
-    format = TRACE_FORMAT if level <= log.TRACE else LOG_FORMAT
-    logging.basicConfig(level=level, format=format)
+    netius.setup_logging()
 
     buffer = []
 
