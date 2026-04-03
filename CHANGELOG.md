@@ -9,9 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* TRACE log level and `patch_logging()` for fine-grained protocol-level debugging
-* TRACE logging for HTTP client connection lifecycle, pooling, and reuse
-* `trace()` method on `Protocol` and `Connection` base classes
+*
 
 ### Changed
 
@@ -20,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.37.0] - 2026-04-03
+
+### Added
+
+* TRACE log level and `patch_logging()` for fine-grained protocol-level debugging
+* TRACE logging for HTTP client connection lifecycle, pooling, and reuse
+* `trace()` method on `Protocol` and `Connection` base classes
 
 ## [1.36.2] - 2026-04-02
 
