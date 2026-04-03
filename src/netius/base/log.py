@@ -250,7 +250,7 @@ def in_signature(callable, name):
     else:
         spec = inspect.getargspec(callable)
     args, _varargs, kwargs = spec[:3]
-    return (args and name in args) or (kwargs and "secure" in kwargs)
+    return bool((args and name in args) or (kwargs and "secure" in kwargs))
 
 
 def _trace(self, message, *args, **kwargs):

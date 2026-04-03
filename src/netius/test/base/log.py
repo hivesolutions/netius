@@ -296,10 +296,10 @@ class LogTest(unittest.TestCase):
     def test_in_signature_missing(self):
         def sample(a, b):
             pass
-            
+
         result = log.in_signature(sample, "secure")
 
-        self.assertFalse(result)
+        self.assertEqual(result, False)
 
     def test_in_signature_args(self):
         def sample(a, b, secure):
