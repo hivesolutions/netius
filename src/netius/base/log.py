@@ -45,6 +45,12 @@ SILENT = logging.CRITICAL + 1
 or an handler, this is used as an utility for debugging
 purposes more that a real feature for production systems """
 
+TRACE = logging.DEBUG - 5
+""" The trace level used for extremely detailed and verbose
+logging of protocol-level operations, this is meant to be
+used for fine-grained debugging of low-level operations
+like raw byte transfers and frame parsing """
+
 MAX_LENGTH_LOGSTASH = 256
 """ The maximum amount of messages that are kept in
 memory until they are flushed, avoid a very large
@@ -223,6 +229,19 @@ def smtp_handler(
     return logging.handlers.SMTPHandler(
         address, sender, receivers, subject, credentials=credentials, **kwargs
     )
+
+
+def patch_logging():
+    if hasattr(logging, "_netius_patched"):
+        return
+    logging.addLevelName(TRACE, "TRACE")
+    logging.Logger.trace = _trace
+    logging._netius_patched = True
+
+
+def _trace(self, message, *args, **kwargs):
+    if self.isEnabledFor(TRACE):
+        self._log(TRACE, message, args, **kwargs)
 
 
 def in_signature(callable, name):

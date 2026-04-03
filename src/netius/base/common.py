@@ -3440,6 +3440,11 @@ class AbstractBase(observer.Observable):
 
         return self.is_debug()
 
+    def is_trace(self):
+        if not self.logger:
+            return False
+        return self.logger.isEnabledFor(log.TRACE)
+
     def is_debug(self):
         if not self.logger:
             return False
@@ -3464,6 +3469,11 @@ class AbstractBase(observer.Observable):
         if not self.logger:
             return False
         return self.logger.isEnabledFor(logging.CRITICAL)
+
+    def trace(self, object, *args, **kwargs):
+        if not logging:
+            return
+        self.log(object, *args, level=log.TRACE, **kwargs)
 
     def debug(self, object, *args, **kwargs):
         if not logging:
@@ -4828,6 +4838,8 @@ class AbstractBase(observer.Observable):
             return level
         if level == "SILENT":
             return log.SILENT
+        if level == "TRACE":
+            return log.TRACE
         if hasattr(logging, "_checkLevel"):
             return logging._checkLevel(level)
         return logging.getLevelName(level)
