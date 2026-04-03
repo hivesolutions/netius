@@ -170,22 +170,35 @@ class LogTest(unittest.TestCase):
         handler.emit = lambda record: records.append(record)
         logger.addHandler(handler)
 
-        logger.trace("trace test message")
+        try:
+            logger.trace("trace test message")
 
-        self.assertEqual(len(records), 1)
-        self.assertEqual(records[0].message, "trace test message")
-        self.assertEqual(records[0].levelno, netius.TRACE)
-        self.assertEqual(records[0].levelname, "TRACE")
+            self.assertEqual(len(records), 1)
+            self.assertEqual(records[0].getMessage(), "trace test message")
+            self.assertEqual(records[0].levelno, netius.TRACE)
+            self.assertEqual(records[0].levelname, "TRACE")
+        finally:
+            logger.removeHandler(handler)
 
     def test_patch_logging_logger_trace_filtered(self):
         netius.patch_logging()
 
         logger = logging.getLogger("netius.test.trace.filtered")
         logger.setLevel(logging.DEBUG)
+        records = []
+        handler = logging.Handler()
+        handler.setLevel(netius.TRACE)
+        handler.emit = lambda record: records.append(record)
+        logger.addHandler(handler)
 
-        # the trace message should be filtered since the logger
-        # level is set to DEBUG which is above TRACE
-        logger.trace("this should be filtered")
+        try:
+            # the trace message should be filtered since the logger
+            # level is set to DEBUG which is above TRACE
+            logger.trace("this should be filtered")
+
+            self.assertEqual(len(records), 0)
+        finally:
+            logger.removeHandler(handler)
 
     def test_trace_before_patch(self):
         # temporarily removes the patched state to simulate a
@@ -210,9 +223,10 @@ class LogTest(unittest.TestCase):
             base.trace("trace before patch")
 
             self.assertEqual(len(records), 1)
-            self.assertEqual(records[0].message, "trace before patch")
+            self.assertEqual(records[0].getMessage(), "trace before patch")
             self.assertEqual(records[0].levelno, netius.TRACE)
         finally:
+            base.logger.removeHandler(handler)
             if patched:
                 logging._netius_patched = patched
             if trace_method:
