@@ -187,6 +187,90 @@ class LogTest(unittest.TestCase):
         # level is set to DEBUG which is above TRACE
         logger.trace("this should be filtered")
 
+    def test_trace_before_patch(self):
+        # temporarily removes the patched state to simulate a
+        # scenario where patch_logging() has not been called yet
+        patched = getattr(logging, "_netius_patched", None)
+        if patched:
+            del logging._netius_patched
+        trace_method = getattr(logging.Logger, "trace", None)
+        if trace_method:
+            del logging.Logger.trace
+        try:
+            base = netius.Base.__new__(netius.Base)
+            base._logging = False
+            base.logger = logging.getLogger("netius.test.trace.before")
+            base.logger.setLevel(netius.TRACE)
+            records = []
+            handler = logging.Handler()
+            handler.setLevel(netius.TRACE)
+            handler.emit = lambda record: records.append(record)
+            base.logger.addHandler(handler)
+
+            base.trace("trace before patch")
+
+            self.assertEqual(len(records), 1)
+            self.assertEqual(records[0].message, "trace before patch")
+            self.assertEqual(records[0].levelno, netius.TRACE)
+        finally:
+            if patched:
+                logging._netius_patched = patched
+            if trace_method:
+                logging.Logger.trace = trace_method
+
+    def test_level_trace_before_patch(self):
+        # temporarily removes the patched state to simulate a
+        # scenario where patch_logging() has not been called yet
+        patched = getattr(logging, "_netius_patched", None)
+        if patched:
+            del logging._netius_patched
+        trace_method = getattr(logging.Logger, "trace", None)
+        if trace_method:
+            del logging.Logger.trace
+        try:
+            base = netius.Base.__new__(netius.Base)
+
+            result = base._level("TRACE")
+
+            self.assertEqual(result, netius.TRACE)
+            self.assertEqual(result, 5)
+        finally:
+            if patched:
+                logging._netius_patched = patched
+            if trace_method:
+                logging.Logger.trace = trace_method
+
+    def test_level_trace_after_patch(self):
+        netius.patch_logging()
+
+        base = netius.Base.__new__(netius.Base)
+
+        result = base._level("TRACE")
+
+        self.assertEqual(result, netius.TRACE)
+        self.assertEqual(result, 5)
+
+    def test_level_silent(self):
+        base = netius.Base.__new__(netius.Base)
+
+        result = base._level("SILENT")
+
+        self.assertEqual(result, netius.SILENT)
+
+    def test_level_integer(self):
+        base = netius.Base.__new__(netius.Base)
+
+        result = base._level(logging.DEBUG)
+
+        self.assertEqual(result, logging.DEBUG)
+
+    def test_level_none(self):
+        base = netius.Base.__new__(netius.Base)
+
+        result = base._level(None)
+
+        self.assertEqual(result, None)
+
     def test_in_signature(self):
         def sample(a, b, secure=None):
             pass
