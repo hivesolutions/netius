@@ -28,10 +28,16 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import sys
+import logging
+
+from . import log
 from . import mixin
 from . import legacy
 from . import request
 from . import observer
+
+logger = logging.getLogger("netius")
 
 
 class Protocol(observer.Observable):
@@ -207,40 +213,54 @@ class Protocol(observer.Observable):
         else:
             return self._loop.call_soon(callable)
 
+    def trace(self, object, *args, **kwargs):
+        if self._loop and hasattr(self._loop, "trace"):
+            self._loop.trace(object, *args, **kwargs)
+        else:
+            logger.log(log.TRACE, object, *args, **kwargs)
+
     def debug(self, object, *args, **kwargs):
-        if not self._loop:
-            return
-        if not hasattr(self._loop, "debug"):
-            return
-        self._loop.debug(object, *args, **kwargs)
+        if self._loop and hasattr(self._loop, "debug"):
+            self._loop.debug(object, *args, **kwargs)
+        else:
+            logger.debug(object, *args, **kwargs)
 
     def info(self, object, *args, **kwargs):
-        if not self._loop:
-            return
-        if not hasattr(self._loop, "info"):
-            return
-        self._loop.info(object, *args, **kwargs)
+        if self._loop and hasattr(self._loop, "info"):
+            self._loop.info(object, *args, **kwargs)
+        else:
+            logger.info(object, *args, **kwargs)
 
     def warning(self, object, *args, **kwargs):
-        if not self._loop:
-            return
-        if not hasattr(self._loop, "warning"):
-            return
-        self._loop.warning(object, *args, **kwargs)
+        if self._loop and hasattr(self._loop, "warning"):
+            self._loop.warning(object, *args, **kwargs)
+        else:
+            logger.warning(object, *args, **kwargs)
 
     def error(self, object):
-        if not self._loop:
-            return
-        if not hasattr(self._loop, "error"):
-            return
-        self._loop.error(object)
+        if self._loop and hasattr(self._loop, "error"):
+            self._loop.error(object)
+        else:
+            logger.error(object)
 
     def critical(self, object):
-        if not self._loop:
+        if self._loop and hasattr(self._loop, "critical"):
+            self._loop.critical(object)
+        else:
+            logger.critical(object)
+
+    def traced(self, message=None, *args):
+        if not self.is_trace():
             return
-        if not hasattr(self._loop, "critical"):
-            return
-        self._loop.critical(object)
+        frame = sys._getframe(1)
+        caller = frame.f_code.co_name
+        caller_self = frame.f_locals.get("self", None)
+        if caller_self:
+            caller = "%s:%s()" % (caller_self.__class__.__name__, caller)
+        if message:
+            self.trace("%s | %r | " + message, caller, self, *args)
+        else:
+            self.trace("%s | %r", caller, self)
 
     def is_pending(self):
         return not self._open and not self._closed and not self._closing
@@ -263,6 +283,11 @@ class Protocol(observer.Observable):
         if not hasattr(self._loop, "is_devel"):
             return False
         return self._loop.is_devel()
+
+    def is_trace(self):
+        if self._loop and hasattr(self._loop, "is_trace"):
+            return self._loop.is_trace()
+        return logger.isEnabledFor(log.TRACE)
 
     def _close_transport(self, force=False):
         if not self._transport:

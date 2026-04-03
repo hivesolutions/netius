@@ -28,9 +28,12 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import os
 import logging
-import logging.handlers
+import tempfile
 import unittest
+
+import logging.handlers
 
 import netius
 
@@ -113,21 +116,31 @@ class LogTest(unittest.TestCase):
         self.assertEqual(type(result), bool)
 
     def test_rotating_handler(self):
-        handler = netius.rotating_handler(path="/dev/null", max_bytes=1024, max_log=3)
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        try:
+            handler = netius.rotating_handler(path=path, max_bytes=1024, max_log=3)
 
-        self.assertEqual(type(handler), logging.handlers.RotatingFileHandler)
-        self.assertEqual(handler.maxBytes, 1024)
-        self.assertEqual(handler.backupCount, 3)
+            self.assertEqual(type(handler), logging.handlers.RotatingFileHandler)
+            self.assertEqual(handler.maxBytes, 1024)
+            self.assertEqual(handler.backupCount, 3)
 
-        handler.close()
+            handler.close()
+        finally:
+            os.unlink(path)
 
     def test_rotating_handler_defaults(self):
-        handler = netius.rotating_handler(path="/dev/null")
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        try:
+            handler = netius.rotating_handler(path=path)
 
-        self.assertEqual(handler.maxBytes, 1048576)
-        self.assertEqual(handler.backupCount, 5)
+            self.assertEqual(handler.maxBytes, 1048576)
+            self.assertEqual(handler.backupCount, 5)
 
-        handler.close()
+            handler.close()
+        finally:
+            os.unlink(path)
 
     def test_patch_logging(self):
         netius.patch_logging()

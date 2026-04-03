@@ -243,6 +243,17 @@ def patch_logging():
     logging._netius_patched = True
 
 
+def setup_logging(level=None, default="DEBUG"):
+    from . import common
+
+    patch_logging()
+    level = level or config.conf("LEVEL", default)
+    if isinstance(level, str):
+        level = logging.getLevelName(level)
+    format = common.TRACE_FORMAT if level <= TRACE else common.LOG_FORMAT
+    logging.basicConfig(level=level, format=format)
+
+
 def in_signature(callable, name):
     has_full = hasattr(inspect, "getfullargspec")
     if has_full:

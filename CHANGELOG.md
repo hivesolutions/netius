@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * TRACE log level and `patch_logging()` for fine-grained protocol-level debugging
+* TRACE logging for HTTP client connection lifecycle, pooling, and reuse
+* `trace()` method on `Protocol` and `Connection` base classes
 
 ### Changed
 
