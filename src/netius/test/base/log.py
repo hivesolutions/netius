@@ -34,7 +34,7 @@ import unittest
 
 import netius
 
-from netius.base import log
+import netius.base.log
 
 
 class LogTest(unittest.TestCase):
@@ -289,15 +289,15 @@ class LogTest(unittest.TestCase):
         def sample(a, b, secure=None):
             pass
 
-        result = log.in_signature(sample, "secure")
+        result = netius.base.log.in_signature(sample, "secure")
 
         self.assertEqual(result, True)
 
     def test_in_signature_missing(self):
         def sample(a, b):
             pass
-
-        result = log.in_signature(sample, "secure")
+            
+        result = logging.log.in_signature(sample, "secure")
 
         self.assertFalse(result)
 
@@ -305,6 +305,6 @@ class LogTest(unittest.TestCase):
         def sample(a, b, secure):
             pass
 
-        result = log.in_signature(sample, "secure")
+        result = netius.base.log.in_signature(sample, "secure")
 
         self.assertEqual(result, True)
