@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* Consul proxy instance resolution logging downgraded from `info` to `debug` in `proxy_c.py`
 
 ### Fixed
 
