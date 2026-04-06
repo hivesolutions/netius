@@ -276,7 +276,7 @@ netius infra-structure for debugging purposes it should allow
 and end developer to dig into the details of the execution """
 
 TRACE_FORMAT = (
-    "%(asctime)s [%(name)s] [%(levelname)s] %(pathname)s:%(lineno)d | %(message)s"
+    "%(asctime)s [%(name)s] [%(levelname)s] %(message)s"
 )
 """ The format to be used when the logging level is set to TRACE,
 includes file path and line number to allow for fine-grained debugging
