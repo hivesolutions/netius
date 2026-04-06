@@ -275,9 +275,7 @@ LOG_FORMAT = "%(asctime)s [%(levelname)s] %(message)s"
 netius infra-structure for debugging purposes it should allow
 and end developer to dig into the details of the execution """
 
-TRACE_FORMAT = (
-    "%(asctime)s [%(name)s] [%(levelname)s] %(message)s"
-)
+TRACE_FORMAT = "%(asctime)s [%(name)s] [%(levelname)s] %(message)s"
 """ The format to be used when the logging level is set to TRACE,
 includes file path and line number to allow for fine-grained debugging
 of low-level protocol operations """
@@ -3487,32 +3485,32 @@ class AbstractBase(observer.Observable):
     def trace(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, *args, level=log.TRACE, **kwargs)
+        self.log(object, *args, level=log.TRACE, stacklevel=4, **kwargs)
 
     def debug(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, *args, level=logging.DEBUG, **kwargs)
+        self.log(object, *args, level=logging.DEBUG, stacklevel=4, **kwargs)
 
     def info(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, *args, level=logging.INFO, **kwargs)
+        self.log(object, *args, level=logging.INFO, stacklevel=4, **kwargs)
 
     def warning(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, *args, level=logging.WARNING, **kwargs)
+        self.log(object, *args, level=logging.WARNING, stacklevel=4, **kwargs)
 
     def error(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, *args, level=logging.ERROR, **kwargs)
+        self.log(object, *args, level=logging.ERROR, stacklevel=4, **kwargs)
 
     def critical(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, *args, level=logging.CRITICAL, **kwargs)
+        self.log(object, *args, level=logging.CRITICAL, stacklevel=4, **kwargs)
 
     def log_stack(self, method=None, info=True):
         if not method:
@@ -3546,6 +3544,7 @@ class AbstractBase(observer.Observable):
 
     def log_python_3(self, object, *args, **kwargs):
         level = kwargs.pop("level", logging.INFO)
+        stacklevel = kwargs.pop("stacklevel", 3)
         is_str = isinstance(object, legacy.STRINGS)
         try:
             message = str(object) if not is_str else object
@@ -3553,7 +3552,7 @@ class AbstractBase(observer.Observable):
             message = str(object)
         if not self.logger:
             return
-        self.logger.log(level, message, *args, **kwargs)
+        self.logger.log(level, message, *args, stacklevel=stacklevel, **kwargs)
 
     def log_python_2(self, object, *args, **kwargs):
         level = kwargs.pop("level", logging.INFO)
