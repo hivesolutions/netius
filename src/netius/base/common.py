@@ -3556,7 +3556,9 @@ class AbstractBase(observer.Observable):
             message = str(object)
         if not self.logger:
             return
-        self.logger.log(level, message, *args, stacklevel=stacklevel, **kwargs)
+        if sys.version_info >= (3, 8):
+            kwargs["stacklevel"] = stacklevel
+        self.logger.log(level, message, *args, **kwargs)
 
     def log_python_2(self, object, *args, **kwargs):
         level = kwargs.pop("level", logging.INFO)
