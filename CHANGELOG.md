@@ -13,11 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Consul proxy instance resolution logging downgraded from `info` to `debug` in `proxy_c.py`
+*
 
 ### Fixed
 
 *
+
+## [1.37.1] - 2026-04-07
+
+### Changed
+
+* Consul proxy instance resolution logging downgraded from `info` to `debug` in `proxy_c.py`
 
 ## [1.37.0] - 2026-04-03
 
