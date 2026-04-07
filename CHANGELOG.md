@@ -9,13 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Fallback module-level logger on `Protocol` logging methods for standalone client usage
-* `_log_fallback()` helper on `Protocol` with `stacklevel` support for accurate caller file/line
-* `setup_logging()` utility in `log` module for standalone script logging setup
+*
 
 ### Changed
 
 *
+
+### Fixed
+
+*
+
+## [1.38.0] - 2026-04-07
+
+### Added
+
+* Fallback module-level logger on `Protocol` logging methods for standalone client usage
+* `_log_fallback()` helper on `Protocol` with `stacklevel` support for accurate caller file/line
+* `setup_logging()` utility in `log` module for standalone script logging setup
 
 ### Fixed
 
