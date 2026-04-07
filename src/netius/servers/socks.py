@@ -214,7 +214,10 @@ class SOCKSServer(netius.ServerAgent):
 
         # tries to resolve a protocol from the possible transport
         # parameter (parameter can be a protocol or a transport)
-        # and then uses the resolved value as the key
+        # and then uses the resolved value as the key, notice that
+        # in case the connection is in a final closing flush state
+        # (graceful closing) the connection mapping may have already
+        # been removed (requires early return)
         _connection_key = getattr(_connection, "_protocol", _connection)
         if not _connection_key in self.conn_map:
             return
