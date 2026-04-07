@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+*
+
+## [1.38.1] - 2026-04-07
+
+### Fixed
+
 * Strip `stacklevel` from `kwargs` in `Protocol` logging methods before forwarding to `Base` to prevent `TypeError: got multiple values for keyword argument 'stacklevel'`
 
 ## [1.38.0] - 2026-04-07
