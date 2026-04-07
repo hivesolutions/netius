@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Fallback module-level logger on `Protocol` logging methods for standalone client usage
+* `_log_fallback()` helper on `Protocol` with `stacklevel` support for accurate caller file/line
+* `setup_logging()` utility in `log` module for standalone script logging setup
 
 ### Changed
 
@@ -17,7 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Guard `stacklevel` kwarg for Python < 3.8 in `log_python_3` and `Protocol._log_fallback`
+* `proto=type` in `compat.py` passing wrong value to `create_connection`/`create_datagram_endpoint`
+* `ssl=None` in `compat.py` wiping SSL flag for HTTPS connections and TLS servers
 
 ## [1.37.2] - 2026-04-07
 
