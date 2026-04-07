@@ -2683,11 +2683,13 @@ class AbstractBase(observer.Observable):
         self.delay(lambda: self._connect(connection), immediately=True)
 
         def on_close(conection):
-            callback and callback(connection, False)
+            if callback:
+                callback(connection, False)
 
         def on_connect(conection):
             connection.unbind("close", on_close)
-            callback and callback(connection, True)
+            if callback:
+                callback(connection, True)
 
         # in case there's a callback defined for the connection establishment
         # then registers such callback for the connect event in the connection

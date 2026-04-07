@@ -216,6 +216,8 @@ class SOCKSServer(netius.ServerAgent):
         # parameter (parameter can be a protocol or a transport)
         # and then uses the resolved value as the key
         _connection_key = getattr(_connection, "_protocol", _connection)
+        if not _connection_key in self.conn_map:
+            return
         connection = self.conn_map[_connection_key]
 
         if not connection.renable == False:

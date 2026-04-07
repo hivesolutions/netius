@@ -770,7 +770,8 @@ class HTTPProtocol(netius.StreamProtocol):
             except StopIteration:
                 if hasattr(data, "close"):
                     data.close()
-                callback and callback(transport)
+                if callback:
+                    callback(transport)
                 return
 
             self.send_base(_data, force=True, callback=send_part)
