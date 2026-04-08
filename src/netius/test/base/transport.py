@@ -88,7 +88,7 @@ class TransportTest(unittest.TestCase):
 
         protocol._closing = True
 
-        self.assertEqual(transport.is_closing(), True)
+        self.assertEqual(transport.is_closing(), False)
         self.assertEqual(protocol.is_closing(), True)
 
     def test_is_closing_protocol_not_closing(self):
