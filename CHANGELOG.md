@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+*
+
+## [1.38.2] - 2026-04-08
+
+### Fixed
+
 * Correct `stacklevel` propagation through `Protocol` → `Base` logging chain for accurate `%(pathname)s:%(lineno)d` in `TRACE_FORMAT`
 * Adjust `stacklevel` in `_log_fallback` to compensate for shorter call chain vs `Base` path
 
