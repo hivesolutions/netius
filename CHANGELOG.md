@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+*
+
+## [1.38.3] - 2026-04-08
+
+### Fixed
+
 * Guard against None parsed URL in HTTPProtocol.send_request when connection closes during SSL handshake
 
 ## [1.38.2] - 2026-04-08
