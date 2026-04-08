@@ -587,12 +587,7 @@ def _build_datagram_compat(
     )
 
     connect = loop.create_datagram_endpoint(
-        build_protocol,
-        family=family,
-        proto=type,
-        remote_addr=remote_addr,
-        *args,
-        **kwargs
+        build_protocol, family=family, remote_addr=remote_addr, *args, **kwargs
     )
 
     future = loop.create_task(connect)
@@ -720,18 +715,9 @@ def _connect_stream_compat(
         ssl_context = _ssl.SSLContext()
         ssl_context.load_cert_chain(cer_file, keyfile=key_file)
         ssl = ssl_context
-    else:
-        ssl = None
 
     connect = loop.create_connection(
-        build_protocol,
-        host=host,
-        port=port,
-        ssl=ssl,
-        family=family,
-        proto=type,
-        *args,
-        **kwargs
+        build_protocol, host=host, port=port, ssl=ssl, family=family, *args, **kwargs
     )
 
     future = loop.create_task(connect)

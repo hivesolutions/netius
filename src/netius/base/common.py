@@ -58,7 +58,7 @@ NAME = "netius"
 identification of both the clients and the services this
 value may be prefixed or suffixed """
 
-VERSION = "1.36.2"
+VERSION = "1.38.2"
 """ The version value that identifies the version of the
 current infra-structure, all of the services and clients
 may share this value """
@@ -274,6 +274,15 @@ LOG_FORMAT = "%(asctime)s [%(levelname)s] %(message)s"
 """ The format that is going to be used by the logger of the
 netius infra-structure for debugging purposes it should allow
 and end developer to dig into the details of the execution """
+
+TRACE_FORMAT = (
+    "%(asctime)s [%(name)s] [%(levelname)s] %(pathname)s:%(lineno)d | %(message)s"
+    if sys.version_info >= (3, 8)
+    else "%(asctime)s [%(name)s] [%(levelname)s] %(message)s"
+)
+""" The format to be used when the logging level is set to TRACE,
+includes file path and line number on Python 3.8+ where stacklevel
+is supported for accurate caller information """
 
 # initializes the various paths that are going to be used for
 # the base files configuration in the complete service infra
@@ -1272,17 +1281,24 @@ class AbstractBase(observer.Observable):
     def welcome(self):
         pass
 
-    def load_logging(self, level=logging.DEBUG, format=LOG_FORMAT, unique=False):
+    def load_logging(self, level=logging.DEBUG, format=None, unique=False):
         # verifies if there's a logger already set in the current service
         # if that's the case ignores the call no double reloading allowed
         if self.logger:
             return
 
+        # patches the logging infra-structure so that the TRACE level
+        # is properly registered and available for usage, this call
+        # is idempotent and safe to be called multiple times
+        log.patch_logging()
+
         # normalizes the provided level value so that it represents
-        # a proper and understandable value, then starts the formatter
-        # that is going to be used and retrieves the (possibly unique)
-        # identifier to be used in the logger retrieval/identification
+        # a proper and understandable value, then selects the appropriate
+        # format for the level and starts the formatter that is going to
+        # be used, retrieving the (possibly unique) identifier to be
+        # used in the logger retrieval/identification
         level = self._level(level)
+        format = format or (LOG_FORMAT if level > log.TRACE else TRACE_FORMAT)
         formatter = logging.Formatter(format)
         identifier = self.get_id(unique=unique)
 
@@ -2667,11 +2683,13 @@ class AbstractBase(observer.Observable):
         self.delay(lambda: self._connect(connection), immediately=True)
 
         def on_close(conection):
-            callback and callback(connection, False)
+            if callback:
+                callback(connection, False)
 
         def on_connect(conection):
             connection.unbind("close", on_close)
-            callback and callback(connection, True)
+            if callback:
+                callback(connection, True)
 
         # in case there's a callback defined for the connection establishment
         # then registers such callback for the connect event in the connection
@@ -3440,6 +3458,11 @@ class AbstractBase(observer.Observable):
 
         return self.is_debug()
 
+    def is_trace(self):
+        if not self.logger:
+            return False
+        return self.logger.isEnabledFor(log.TRACE)
+
     def is_debug(self):
         if not self.logger:
             return False
@@ -3465,30 +3488,41 @@ class AbstractBase(observer.Observable):
             return False
         return self.logger.isEnabledFor(logging.CRITICAL)
 
+    def trace(self, object, *args, **kwargs):
+        if not logging:
+            return
+        stacklevel = kwargs.pop("stacklevel", 4)
+        self.log(object, *args, level=log.TRACE, stacklevel=stacklevel, **kwargs)
+
     def debug(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, *args, level=logging.DEBUG, **kwargs)
+        stacklevel = kwargs.pop("stacklevel", 4)
+        self.log(object, *args, level=logging.DEBUG, stacklevel=stacklevel, **kwargs)
 
     def info(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, *args, level=logging.INFO, **kwargs)
+        stacklevel = kwargs.pop("stacklevel", 4)
+        self.log(object, *args, level=logging.INFO, stacklevel=stacklevel, **kwargs)
 
     def warning(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, *args, level=logging.WARNING, **kwargs)
+        stacklevel = kwargs.pop("stacklevel", 4)
+        self.log(object, *args, level=logging.WARNING, stacklevel=stacklevel, **kwargs)
 
     def error(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, *args, level=logging.ERROR, **kwargs)
+        stacklevel = kwargs.pop("stacklevel", 4)
+        self.log(object, *args, level=logging.ERROR, stacklevel=stacklevel, **kwargs)
 
     def critical(self, object, *args, **kwargs):
         if not logging:
             return
-        self.log(object, *args, level=logging.CRITICAL, **kwargs)
+        stacklevel = kwargs.pop("stacklevel", 4)
+        self.log(object, *args, level=logging.CRITICAL, stacklevel=stacklevel, **kwargs)
 
     def log_stack(self, method=None, info=True):
         if not method:
@@ -3522,6 +3556,7 @@ class AbstractBase(observer.Observable):
 
     def log_python_3(self, object, *args, **kwargs):
         level = kwargs.pop("level", logging.INFO)
+        stacklevel = kwargs.pop("stacklevel", 3)
         is_str = isinstance(object, legacy.STRINGS)
         try:
             message = str(object) if not is_str else object
@@ -3529,10 +3564,13 @@ class AbstractBase(observer.Observable):
             message = str(object)
         if not self.logger:
             return
+        if sys.version_info >= (3, 8):
+            kwargs["stacklevel"] = stacklevel
         self.logger.log(level, message, *args, **kwargs)
 
     def log_python_2(self, object, *args, **kwargs):
         level = kwargs.pop("level", logging.INFO)
+        kwargs.pop("stacklevel", None)
         is_str = isinstance(object, legacy.STRINGS)
         try:
             message = unicode(object) if not is_str else object  # @UndefinedVariable
@@ -4828,6 +4866,8 @@ class AbstractBase(observer.Observable):
             return level
         if level == "SILENT":
             return log.SILENT
+        if level == "TRACE":
+            return log.TRACE
         if hasattr(logging, "_checkLevel"):
             return logging._checkLevel(level)
         return logging.getLevelName(level)

@@ -554,14 +554,14 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             # skips instance if no address could be resolved
             # from either the service or the node
             if not _address:
-                self.info("Skipping instance, missing address")
+                self.debug("Skipping instance, missing address")
                 continue
 
             # when a port range is defined via proxy.ports, expands
             # the instance to all ports in the range for load balancing
             # across multiple worker threads
             if ports and len(ports) > 1:
-                self.info("Instance %s expanding from port filter %s", _address, ports)
+                self.debug("Instance %s expanding from port filter %s", _address, ports)
                 for _port in sorted(ports):
                     url = str("http://%s:%d" % (_address, _port))
                     urls.append(url)
@@ -570,13 +570,13 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             # skips instance if port is missing and no port
             # filter is available to fall back on
             if not port and not ports:
-                self.info("Skipping instance %s, missing port", _address)
+                self.debug("Skipping instance %s, missing port", _address)
                 continue
 
             # skips instance if its port is not within the
             # allowed set defined by the proxy.port tag
             if ports and not port in ports:
-                self.info(
+                self.debug(
                     "Skipping instance %s:%d, port not in allowed %s",
                     _address,
                     port,

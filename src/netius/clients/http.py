@@ -109,6 +109,22 @@ class HTTPProtocol(netius.StreamProtocol):
             on_result=on_result,
         )
 
+    def __repr__(self):
+        if self._closed:
+            state = "closed"
+        elif self._closing:
+            state = "closing"
+        elif self._open:
+            state = "open"
+        else:
+            state = "pending"
+        return "HTTPProtocol(%x, <%s:%s>, %s)" % (
+            id(self),
+            self.host or "?",
+            self.port or 0,
+            state,
+        )
+
     @classmethod
     def key_g(cls, url):
         parsed = netius.legacy.urlparse(url)
@@ -234,6 +250,7 @@ class HTTPProtocol(netius.StreamProtocol):
 
     def open_c(self, *args, **kwargs):
         netius.StreamProtocol.open_c(self, *args, **kwargs)
+        self.traced()
 
         # creates a new HTTP parser instance and set the correct event
         # handlers so that the data parsing is properly handled
@@ -245,6 +262,7 @@ class HTTPProtocol(netius.StreamProtocol):
 
     def close_c(self, *args, **kwargs):
         netius.StreamProtocol.close_c(self, *args, **kwargs)
+        self.traced()
 
         if self.parser:
             self.parser.parse_closed()
@@ -275,6 +293,7 @@ class HTTPProtocol(netius.StreamProtocol):
 
     def connection_made(self, transport):
         netius.StreamProtocol.connection_made(self, transport)
+        self.traced()
 
         # performs the run request operation that should trigger
         # the process of sending the request to the server
@@ -511,6 +530,7 @@ class HTTPProtocol(netius.StreamProtocol):
         # computes the unique re-usage key for the current protocol taking
         # into account its own state
         self.key = cls.key_g(self.url)
+        self.traced("%s", self.url)
 
         # runs the unbind all operation to make sure that no handlers is
         # currently registered for operations
@@ -704,6 +724,8 @@ class HTTPProtocol(netius.StreamProtocol):
         )
 
     def send_request(self, callback=None):
+        self.traced("%s %s %s", self.method, self.path, self.version)
+
         method = self.method
         path = self.path
         version = self.version
@@ -754,7 +776,8 @@ class HTTPProtocol(netius.StreamProtocol):
             except StopIteration:
                 if hasattr(data, "close"):
                     data.close()
-                callback and callback(transport)
+                if callback:
+                    callback(transport)
                 return
 
             self.send_base(_data, force=True, callback=send_part)
@@ -911,10 +934,12 @@ class HTTPProtocol(netius.StreamProtocol):
 
     def on_data(self, data):
         netius.StreamProtocol.on_data(self, data)
+        self.traced("%d bytes", len(data))
         self.parser.parse(data)
 
     def _on_data(self):
         message = self.parser.get_message()
+        self.traced("%d %s", self.parser.code, self.parser.status)
         self.trigger("message", self, self.parser, message)
         self.parser.clear()
         self.gzip_c = None
@@ -923,6 +948,7 @@ class HTTPProtocol(netius.StreamProtocol):
         self.trigger("partial", self, self.parser, data)
 
     def on_headers(self):
+        self.traced("%d %s", self.parser.code, self.parser.status)
         self.trigger("headers", self, self.parser)
 
     def on_chunk(self, range):
@@ -1188,6 +1214,7 @@ class HTTPClient(netius.ClientAgent):
         # to be re-used and closes them, then empties the map
         # of available instances (no more re-usage possible)
         for protocol in netius.legacy.values(self.available):
+            protocol.traced("Closing pooled")
             protocol.close()
         self.available.clear()
 
@@ -1254,8 +1281,10 @@ class HTTPClient(netius.ClientAgent):
             or protocol.transport().is_closing()
             or (hasattr(protocol, "is_closing") and protocol.is_closing())
         ):
+            protocol.traced("Discarding stale protocol")
             protocol = None
         if protocol:
+            protocol.traced("Reusing protocol")
             loop = loop or protocol.loop()
 
         # if no loop was provided and this client has a container loop
@@ -1311,11 +1340,13 @@ class HTTPClient(netius.ClientAgent):
         # case calls the connection made directly, indicating that the connection
         # is already established (re-usage of protocol)
         if protocol.is_open():
+            protocol.traced("Reusing open, calling connection_made immediately")
             protocol.connection_made(protocol.transport())
 
         # runs the global connect stream function on netius to initialize the
         # connection operation and maybe a new event loop (if that's required)
         else:
+            protocol.traced("Connecting")
             loop = netius.connect_stream(
                 lambda: protocol,
                 protocol.host,
@@ -1334,6 +1365,7 @@ class HTTPClient(netius.ClientAgent):
             # in case the auto release (no connection re-usage) mode is
             # set the protocol is closed immediately
             if self.auto_release:
+                protocol.traced("Auto-releasing")
                 protocol.close()
 
             # verifies if the current connection is meant to be kept alive
@@ -1341,11 +1373,13 @@ class HTTPClient(netius.ClientAgent):
             # the client is the responsible for triggering the disconnect
             # operation, avoiding problems with possible connection re-usage
             elif not parser.keep_alive:
+                protocol.traced("Closing non-keepalive")
                 protocol.close()
 
             # otherwise the protocol is set in the available map and
             # the only the loop is stopped (unblocking the processor)
             else:
+                protocol.traced("Pooling for reuse")
                 self.available[protocol.key] = protocol
                 netius.compat_loop(loop).stop()
 
@@ -1354,6 +1388,7 @@ class HTTPClient(netius.ClientAgent):
             # the pool of available protocols, so that decisions on
             # the stopping of the event loop may be made later on
             from_pool = protocol.key in self.available
+            protocol.traced("from_pool=%s", from_pool)
 
             # because the protocol was closed we must release it from
             # the available map (if it exits) and then unblock the current
@@ -1420,6 +1455,8 @@ class HTTPClient(netius.ClientAgent):
 
 
 if __name__ == "__main__":
+    netius.setup_logging()
+
     buffer = []
 
     def on_headers(protocol, parser):

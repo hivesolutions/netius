@@ -715,6 +715,12 @@ class BaseConnection(observer.Observable):
             return None
         return self.socket.selected_npn_protocol()
 
+    def trace(self, object, *args, **kwargs):
+        if not self.owner:
+            return
+        self.owner.add_log_ctx(kwargs, self.log_ctx)
+        self.owner.trace(object, *args, **kwargs)
+
     def debug(self, object, *args, **kwargs):
         if not self.owner:
             return

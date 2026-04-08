@@ -19,6 +19,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Guard against None parsed URL in HTTPProtocol.send_request when connection closes during SSL handshake
 
+## [1.38.2] - 2026-04-08
+
+### Fixed
+
+* Correct `stacklevel` propagation through `Protocol` → `Base` logging chain for accurate `%(pathname)s:%(lineno)d` in `TRACE_FORMAT`
+* Adjust `stacklevel` in `_log_fallback` to compensate for shorter call chain vs `Base` path
+
+## [1.38.1] - 2026-04-07
+
+### Fixed
+
+* Strip `stacklevel` from `kwargs` in `Protocol` logging methods before forwarding to `Base` to prevent `TypeError: got multiple values for keyword argument 'stacklevel'`
+
+## [1.38.0] - 2026-04-07
+
+### Added
+
+* Fallback module-level logger on `Protocol` logging methods for standalone client usage
+* `_log_fallback()` helper on `Protocol` with `stacklevel` support for accurate caller file/line
+* `setup_logging()` utility in `log` module for standalone script logging setup
+
+### Fixed
+
+* Guard `stacklevel` kwarg for Python < 3.8 in `log_python_3` and `Protocol._log_fallback`
+* `proto=type` in `compat.py` passing wrong value to `create_connection`/`create_datagram_endpoint`
+* `ssl=None` in `compat.py` wiping SSL flag for HTTPS connections and TLS servers
+
+## [1.37.2] - 2026-04-07
+
+### Fixed
+
+* `KeyError` in proxy/SOCKS `_throttle` when delayed callback fires after connection removal - added `conn_map` guard before key lookup
+
+## [1.37.1] - 2026-04-07
+
+### Changed
+
+* Consul proxy instance resolution logging downgraded from `info` to `debug` in `proxy_c.py`
+
+## [1.37.0] - 2026-04-03
+
+### Added
+
+* TRACE log level and `patch_logging()` for fine-grained protocol-level debugging
+* TRACE logging for HTTP client connection lifecycle, pooling, and reuse
+* `trace()` method on `Protocol` and `Connection` base classes
+
 ## [1.36.2] - 2026-04-02
 
 ### Changed
@@ -99,7 +146,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* `proxy.redirect-ssl` not being applied to suffix-expanded FQN aliases in `ConsulProxyServer` — redirect rules are now propagated inline during `_build_suffixes` so that eg `myapp.example.com` redirects to itself instead of the short name
+* `proxy.redirect-ssl` not being applied to suffix-expanded FQN aliases in `ConsulProxyServer` - redirect rules are now propagated inline during `_build_suffixes` so that eg `myapp.example.com` redirects to itself instead of the short name
 
 ## [1.32.0] - 2026-03-31
 
@@ -177,20 +224,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* Connection leak in `ReverseProxyServer` when the HTTP client returns a different connection than the one provided for reuse — the stale connection is now explicitly closed
+* Connection leak in `ReverseProxyServer` when the HTTP client returns a different connection than the one provided for reuse - the stale connection is now explicitly closed
 
 ## [1.28.3] - 2026-03-30
 
 ### Fixed
 
-* `tick` event in `ConsulProxyServer` firing before async consul fetch completes — moved trigger inside `_apply()` callback so tick handlers see the updated host configuration
+* `tick` event in `ConsulProxyServer` firing before async consul fetch completes - moved trigger inside `_apply()` callback so tick handlers see the updated host configuration
 
 ## [1.28.2] - 2026-03-30
 
 ### Changed
 
 * Extracted `_debug_auth_regex()` helper method in `ConsulProxyServer` to improve readability of auth regex debug logging
-* Added debug logging throughout `ConsulProxyServer` consul fetch lifecycle — no healthy instances, no valid URLs, instance/URL counts, fetch completion summary, and `None` responses from catalog/health endpoints
+* Added debug logging throughout `ConsulProxyServer` consul fetch lifecycle - no healthy instances, no valid URLs, instance/URL counts, fetch completion summary, and `None` responses from catalog/health endpoints
 * Include exception details in consul HTTP error log messages
 
 ## [1.28.1] - 2026-03-09

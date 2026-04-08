@@ -45,6 +45,12 @@ SILENT = logging.CRITICAL + 1
 or an handler, this is used as an utility for debugging
 purposes more that a real feature for production systems """
 
+TRACE = logging.DEBUG - 5
+""" The trace level used for extremely detailed and verbose
+logging of protocol-level operations, this is meant to be
+used for fine-grained debugging of low-level operations
+like raw byte transfers and frame parsing """
+
 MAX_LENGTH_LOGSTASH = 256
 """ The maximum amount of messages that are kept in
 memory until they are flushed, avoid a very large
@@ -225,6 +231,29 @@ def smtp_handler(
     )
 
 
+def patch_logging():
+    if hasattr(logging, "_netius_patched"):
+        return
+
+    # patches the logging infra-structure adding the trace level
+    # support and the corresponding trace method to the logger
+    logging.addLevelName(TRACE, "TRACE")
+    logging.Logger.trace = _trace
+
+    logging._netius_patched = True
+
+
+def setup_logging(level=None, default="DEBUG"):
+    from . import common
+
+    patch_logging()
+    level = level or config.conf("LEVEL", default)
+    if isinstance(level, str):
+        level = logging.getLevelName(level)
+    format = common.TRACE_FORMAT if level <= TRACE else common.LOG_FORMAT
+    logging.basicConfig(level=level, format=format)
+
+
 def in_signature(callable, name):
     has_full = hasattr(inspect, "getfullargspec")
     if has_full:
@@ -232,4 +261,9 @@ def in_signature(callable, name):
     else:
         spec = inspect.getargspec(callable)
     args, _varargs, kwargs = spec[:3]
-    return (args and name in args) or (kwargs and "secure" in kwargs)
+    return bool((args and name in args) or (kwargs and "secure" in kwargs))
+
+
+def _trace(self, message, *args, **kwargs):
+    if self.isEnabledFor(TRACE):
+        self._log(TRACE, message, args, **kwargs)

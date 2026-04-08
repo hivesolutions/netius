@@ -28,10 +28,16 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import sys
+import logging
+
+from . import log
 from . import mixin
 from . import legacy
 from . import request
 from . import observer
+
+logger = logging.getLogger("netius")
 
 
 class Protocol(observer.Observable):
@@ -207,40 +213,60 @@ class Protocol(observer.Observable):
         else:
             return self._loop.call_soon(callable)
 
+    def trace(self, object, *args, **kwargs):
+        kwargs["stacklevel"] = kwargs.pop("stacklevel", 5)
+        if self._loop and hasattr(self._loop, "trace"):
+            self._loop.trace(object, *args, **kwargs)
+        else:
+            self._log_fallback(log.TRACE, object, *args, **kwargs)
+
     def debug(self, object, *args, **kwargs):
-        if not self._loop:
-            return
-        if not hasattr(self._loop, "debug"):
-            return
-        self._loop.debug(object, *args, **kwargs)
+        kwargs["stacklevel"] = kwargs.pop("stacklevel", 5)
+        if self._loop and hasattr(self._loop, "debug"):
+            self._loop.debug(object, *args, **kwargs)
+        else:
+            self._log_fallback(logging.DEBUG, object, *args, **kwargs)
 
     def info(self, object, *args, **kwargs):
-        if not self._loop:
-            return
-        if not hasattr(self._loop, "info"):
-            return
-        self._loop.info(object, *args, **kwargs)
+        kwargs["stacklevel"] = kwargs.pop("stacklevel", 5)
+        if self._loop and hasattr(self._loop, "info"):
+            self._loop.info(object, *args, **kwargs)
+        else:
+            self._log_fallback(logging.INFO, object, *args, **kwargs)
 
     def warning(self, object, *args, **kwargs):
-        if not self._loop:
-            return
-        if not hasattr(self._loop, "warning"):
-            return
-        self._loop.warning(object, *args, **kwargs)
+        kwargs["stacklevel"] = kwargs.pop("stacklevel", 5)
+        if self._loop and hasattr(self._loop, "warning"):
+            self._loop.warning(object, *args, **kwargs)
+        else:
+            self._log_fallback(logging.WARNING, object, *args, **kwargs)
 
-    def error(self, object):
-        if not self._loop:
-            return
-        if not hasattr(self._loop, "error"):
-            return
-        self._loop.error(object)
+    def error(self, object, *args, **kwargs):
+        kwargs["stacklevel"] = kwargs.pop("stacklevel", 5)
+        if self._loop and hasattr(self._loop, "error"):
+            self._loop.error(object, *args, **kwargs)
+        else:
+            self._log_fallback(logging.ERROR, object, *args, **kwargs)
 
-    def critical(self, object):
-        if not self._loop:
+    def critical(self, object, *args, **kwargs):
+        kwargs["stacklevel"] = kwargs.pop("stacklevel", 5)
+        if self._loop and hasattr(self._loop, "critical"):
+            self._loop.critical(object, *args, **kwargs)
+        else:
+            self._log_fallback(logging.CRITICAL, object, *args, **kwargs)
+
+    def traced(self, message=None, *args):
+        if not self.is_trace():
             return
-        if not hasattr(self._loop, "critical"):
-            return
-        self._loop.critical(object)
+        frame = sys._getframe(1)
+        caller = frame.f_code.co_name
+        caller_self = frame.f_locals.get("self", None)
+        if caller_self:
+            caller = "%s:%s()" % (caller_self.__class__.__name__, caller)
+        if message:
+            self.trace("%s | %r | " + message, caller, self, *args, stacklevel=6)
+        else:
+            self.trace("%s | %r", caller, self, stacklevel=6)
 
     def is_pending(self):
         return not self._open and not self._closed and not self._closing
@@ -263,6 +289,11 @@ class Protocol(observer.Observable):
         if not hasattr(self._loop, "is_devel"):
             return False
         return self._loop.is_devel()
+
+    def is_trace(self):
+        if self._loop and hasattr(self._loop, "is_trace"):
+            return self._loop.is_trace()
+        return logger.isEnabledFor(log.TRACE)
 
     def _close_transport(self, force=False):
         if not self._transport:
@@ -290,6 +321,15 @@ class Protocol(observer.Observable):
                 self.send(data, address, callback=callback)  # pylint: disable=E1101
             else:
                 self.send(data, callback=callback)  # pylint: disable=E1101
+
+    def _log_fallback(self, level, object, *args, **kwargs):
+        # adjusts the stacklevel to account for the shorter call chain
+        # in the fallback path compared to the Base path (2 fewer frames:
+        # `Base.log` and `log_python_3` are not in the fallback chain)
+        stacklevel = kwargs.pop("stacklevel", 3) - 2
+        if sys.version_info >= (3, 8):
+            kwargs["stacklevel"] = stacklevel
+        logger.log(level, object, *args, **kwargs)
 
 
 class DatagramProtocol(Protocol):
