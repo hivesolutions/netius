@@ -1248,7 +1248,12 @@ class HTTPClient(netius.ClientAgent):
         # notice that the event loop is also re-used accordingly
         key = cls.protocol.key_g(url)
         protocol = self.available.pop(key, None)
-        if protocol and (not protocol.is_open() or protocol.transport().is_closing()):
+        if protocol and (
+            not protocol.is_open()
+            or not protocol.transport()
+            or protocol.transport().is_closing()
+            or (hasattr(protocol, "is_closing") and protocol.is_closing())
+        ):
             protocol = None
         if protocol:
             loop = loop or protocol.loop()
