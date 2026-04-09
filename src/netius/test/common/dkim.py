@@ -127,6 +127,48 @@ class DKIMTest(unittest.TestCase):
             result, b"dkim-signature:v=1; a=rsa-sha256; c=relaxed/simple; b="
         )
 
+    def test_fold(self):
+        header = b"DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=example.com; i=user@example.com; l=100; q=dns/txt; s=selector; t=1234567890; h=From:To:Subject; bh=abcdef; b="
+        result = netius.common.dkim_fold(header)
+        lines = result.split(b"\r\n ")
+        for line in lines:
+            self.assertLessEqual(len(line), 72)
+
+    def test_fold_short(self):
+        header = b"DKIM-Signature: v=1; a=rsa-sha256"
+        result = netius.common.dkim_fold(header)
+        self.assertEqual(result, header)
+
+    def test_fold_exact(self):
+        header = b"a" * 72
+        result = netius.common.dkim_fold(header)
+        self.assertEqual(result, header)
+
+    def test_fold_continuations(self):
+        header = b"DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=example.com; i=user@example.com; bh=abc; b="
+        result = netius.common.dkim_fold(header)
+        lines = result.split(b"\r\n ")
+        self.assertTrue(len(lines) > 1)
+        for line in lines:
+            self.assertLessEqual(len(line), 72)
+
+    def test_fold_no_space(self):
+        header = b"h=Content-Type:MIME-Version:Subject:From:To:Date:User-Agent:Received:Message-ID"
+        result = netius.common.dkim_fold(header)
+        self.assertNotIn(b"\r\n", result)
+
+    def test_fold_pre_folded(self):
+        header = b"DKIM-Signature: v=1;\r\n a=rsa-sha256; c=relaxed/simple"
+        result = netius.common.dkim_fold(header)
+        self.assertTrue(result.startswith(b"DKIM-Signature: v=1;\r\n "))
+
+    def test_fold_custom_length(self):
+        header = b"DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple"
+        result = netius.common.dkim_fold(header, length=40)
+        lines = result.split(b"\r\n ")
+        for line in lines:
+            self.assertLessEqual(len(line), 40)
+
     def test_fold_b(self):
         value = b"a" * 200
         result = netius.common.dkim_fold_b(value)
@@ -148,11 +190,6 @@ class DKIMTest(unittest.TestCase):
         value = b"a" * 150
         result = netius.common.dkim_fold_b(value)
         self.assertEqual(result, b"a" * 72 + b"\r\n " + b"a" * 72 + b"\r\n " + b"a" * 6)
-
-    def test_fold_no_space(self):
-        header = b"h=Content-Type:MIME-Version:Subject:From:To:Date:User-Agent:Received:Message-ID"
-        result = netius.common.dkim_fold(header)
-        self.assertNotIn(b"\r\n", result)
 
     def test_fold_b_separate(self):
         private_key = netius.common.open_private_key_b64(PRIVATE_KEY)

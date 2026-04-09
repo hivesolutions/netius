@@ -213,20 +213,21 @@ def dkim_fold(header, length=72):
 
     index = header.rfind(b"\r\n ")
     if index == -1:
-        pre = b""
+        buffer = []
     else:
         index += 3
-        pre = header[:index]
+        buffer = [header[:index]]
         header = header[index:]
 
     while len(header) > length:
         index = header[:length].rfind(b" ")
         if index == -1:
             break
-        pre += header[:index] + b"\r\n "
+        buffer.append(header[:index])
         header = header[index + 1 :]
 
-    return pre + header
+    buffer.append(header)
+    return b"\r\n ".join(buffer)
 
 
 def dkim_fold_b(value, length=72):
@@ -250,12 +251,12 @@ def dkim_fold_b(value, length=72):
     after the correct processing of the string value.
     """
 
-    result = b""
+    buffer = []
     while len(value) > length:
-        result += value[:length] + b"\r\n "
+        buffer.append(value[:length])
         value = value[length:]
-    result += value
-    return result
+    buffer.append(value)
+    return b"\r\n ".join(buffer)
 
 
 def dkim_generate(domain, suffix=None, number_bits=1024):
