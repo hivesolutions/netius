@@ -1405,6 +1405,8 @@ class HTTPClient(netius.ClientAgent):
             # successful runs the stop operation on the loop
             netius.compat_loop(loop).stop()
 
+        protocol.traced("registering handlers")
+
         # binds the protocol message and finish events to the associated
         # function for proper handling of the synchronous request details
         protocol.bind("message", on_message)
@@ -1417,6 +1419,8 @@ class HTTPClient(netius.ClientAgent):
         loop.run_forever()
         if not loop == self._loop and not user_loop:
             loop.close()
+
+        protocol.traced("exited loop")
 
         # returns the final request object (that should be populated by this
         # time) to the called method, so that a simple interface is provided

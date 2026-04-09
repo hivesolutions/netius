@@ -276,9 +276,9 @@ netius infra-structure for debugging purposes it should allow
 and end developer to dig into the details of the execution """
 
 TRACE_FORMAT = (
-    "%(asctime)s [%(name)s] [%(levelname)s] %(pathname)s:%(lineno)d | %(message)s"
+    "%(asctime)s [%(name)s] [%(levelname)s] [%(thread)d] | %(pathname)s:%(lineno)d | %(message)s"
     if sys.version_info >= (3, 8)
-    else "%(asctime)s [%(name)s] [%(levelname)s] %(message)s"
+    else "%(asctime)s [%(name)s] [%(levelname)s] [%(thread)d] | %(message)s"
 )
 """ The format to be used when the logging level is set to TRACE,
 includes file path and line number on Python 3.8+ where stacklevel
