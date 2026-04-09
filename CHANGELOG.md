@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
+## [1.38.8] - 2026-04-09
+
+### Changed
+
+* Refactored `dkim_fold` and `dkim_fold_b` to use list buffer with join for better performance
+
 ## [1.38.7] - 2026-04-09
 
 ### Fixed
