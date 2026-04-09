@@ -48,10 +48,12 @@ Xfag2fryGge5AkCFPjggILI8jZZoEW9gJoyqh13fkf+WjtwL1mLztK2gQcrvlyUd\
 
 MESSAGE = b"Header: Value\r\n\r\nHello World"
 
-RESULT = b"DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=netius.hive.pt;\r\n\
+RESULT = b"DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=netius.hive.pt;\r\n\
  i=email@netius.hive.pt; l=13; q=dns/txt; s=20160523113052;\r\n\
  t=1464003802; h=Header;\r\n\
- bh=sIAi0xXPHrEtJmW97Q5q9AZTwKC+l1Iy+0m8vQIc/DY=; b=Pr7dVjQIX3ovG78v1X45seFwA/+uyIAofJbxn5iXTRBA5Mv+YVdiI9QMm/gU1ljoSGqqC+hvLS4iB2N1kC4fGuDxXOyNaApOLSA2hl/mBpzca6SNyu6CYvUDdhmfD+8TsYMe6Vy8UY9lWpPYNgfb9BhORqPvxiC8A8F9ScTVT/s=\r\nHeader: Value\r\n\r\nHello World"
+ bh=sIAi0xXPHrEtJmW97Q5q9AZTwKC+l1Iy+0m8vQIc/DY=; b=MzkFXsO3vyJg23JWaBdGOB8RFzF8eElLDrQKpq/wOK4rXCxueox5qqXWHXdPRS4CtFg5zCKl\r\n\
+ cJ2h1k5Rsgb1O5ijO4jT+LTomare/IrlGBhDpxsbEnf7+flfRC3sRCqP6cqwWRTMonzFaMZr\r\n\
+ YcHONgR8zeDAT/pu7Vx3ZkHB0tI=\r\nHeader: Value\r\n\r\nHello World"
 
 REGISTRY = {
     "netius.hive.pt": dict(

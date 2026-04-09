@@ -50,3 +50,22 @@ class MimeTest(unittest.TestCase):
         headers.set(b"Header", netius.legacy.u("值").encode("utf-8"))
         headers_s = headers.join()
         self.assertEqual(headers_s, netius.legacy.u("Header: 值").encode("utf-8"))
+
+    def test_headers_pop(self):
+        headers = netius.common.mime.Headers()
+        headers.set(b"Message-ID", b"<123@example.com>")
+        result = headers.pop("Message-ID", None)
+        self.assertEqual(result, b"<123@example.com>")
+        self.assertEqual(len(headers), 0)
+
+    def test_headers_pop_bytes(self):
+        headers = netius.common.mime.Headers()
+        headers.set(b"Message-ID", b"<123@example.com>")
+        result = headers.pop(b"Message-ID", None)
+        self.assertEqual(result, b"<123@example.com>")
+        self.assertEqual(len(headers), 0)
+
+    def test_headers_pop_default(self):
+        headers = netius.common.mime.Headers()
+        result = headers.pop("Missing", "default")
+        self.assertEqual(result, "default")

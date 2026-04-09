@@ -87,7 +87,16 @@ from .dhcp import (
     VERBS_DHCP,
     AddressPool,
 )
-from .dkim import dkim_sign, dkim_headers, dkim_body, dkim_fold, dkim_generate
+from .dkim import (
+    dkim_sign,
+    dkim_headers,
+    dkim_body,
+    dkim_header_relaxed,
+    dkim_header_relaxed_dkim,
+    dkim_fold,
+    dkim_fold_b,
+    dkim_generate,
+)
 from .ftp import FTPParser
 from .geo import GeoResolver
 from .http import (

@@ -58,9 +58,11 @@ PqoSAiRfLXFmXMNTFFfNerMSd4YukU8+32kbybY/SdkjNnGN3qtMUEjP3bw9X6lAgMBAAE="'
 
 MESSAGE = b"Header: Value\r\n\r\nHello World"
 
-RESULT = b"DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=netius.hive.pt;\r\n\
+RESULT = b"DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=netius.hive.pt;\r\n\
  i=@netius.hive.pt; l=13; q=dns/txt; s=20160523113052; t=1464003802;\r\n\
- h=Header; bh=sIAi0xXPHrEtJmW97Q5q9AZTwKC+l1Iy+0m8vQIc/DY=; b=TTDenBUdjKRjBAORnX2mhIZLVdeK2R4xfLPYERKthDvKsDvfdFgv4znf0BpyV/7gjSc7v2VAoeDxZSeYueZ8xtI2XEU2VoJFRy9Ccm0aFnFLy5H3yldK3xye4pKQ+8goRfjrlL/AMfaoDNJsEXXw1+ZPaRYeKnB1OwNTOC2a194=\r\n"
+ h=Header; bh=sIAi0xXPHrEtJmW97Q5q9AZTwKC+l1Iy+0m8vQIc/DY=; b=NJ3NxUSIsgaA4hYMsZ76yrld3gRRY52dohXfc9JUD81E8Ac4quubX4KriE+cDGQKp9RjHkW+\r\n\
+ 3s+TYAslCNHubwzzy+8ZAEG0T1meyZ/TXJGvZiYYWP5n8yfr0z6GMu8bYtOx0R9cv1iJHpx4\r\n\
+ Un1f47qcDMq1rAFw+5bBf7PDbuY=\r\n"
 
 
 class DKIMTest(unittest.TestCase):
@@ -75,3 +77,73 @@ class DKIMTest(unittest.TestCase):
             creation=1464003802,
         )
         self.assertEqual(result, RESULT)
+
+    def test_relaxed(self):
+        private_key = netius.common.open_private_key_b64(PRIVATE_KEY)
+        result = netius.common.dkim_sign(
+            MESSAGE,
+            "20160523113052",
+            "netius.hive.pt",
+            private_key,
+            creation=1464003802,
+        )
+        self.assertIn(b"c=relaxed/simple", result)
+
+    def test_relaxed_whitespace(self):
+        private_key = netius.common.open_private_key_b64(PRIVATE_KEY)
+        message = b"Header:  Value  \r\n\r\nHello World"
+        result = netius.common.dkim_sign(
+            message,
+            "20160523113052",
+            "netius.hive.pt",
+            private_key,
+            creation=1464003802,
+        )
+        self.assertIn(b"c=relaxed/simple", result)
+
+    def test_header_relaxed(self):
+        result = netius.common.dkim_header_relaxed(b"From", b" user@example.com")
+        self.assertEqual(result, b"from:user@example.com\r\n")
+
+    def test_header_relaxed_whitespace(self):
+        result = netius.common.dkim_header_relaxed(b"From", b"  user@example.com  ")
+        self.assertEqual(result, b"from:user@example.com\r\n")
+
+    def test_header_relaxed_folded(self):
+        result = netius.common.dkim_header_relaxed(
+            b"Received", b" from example.com\r\n\tby server.com"
+        )
+        self.assertEqual(result, b"received:from example.com by server.com\r\n")
+
+    def test_header_relaxed_tabs(self):
+        result = netius.common.dkim_header_relaxed(b"Subject", b"\t hello \t world ")
+        self.assertEqual(result, b"subject:hello world\r\n")
+
+    def test_header_relaxed_dkim(self):
+        signature = b"DKIM-Signature: v=1; a=rsa-sha256;\r\n c=relaxed/simple; b="
+        result = netius.common.dkim_header_relaxed_dkim(signature)
+        self.assertEqual(
+            result, b"dkim-signature:v=1; a=rsa-sha256; c=relaxed/simple; b="
+        )
+
+    def test_fold_b(self):
+        value = b"a" * 200
+        result = netius.common.dkim_fold_b(value)
+        lines = result.split(b"\r\n ")
+        for line in lines:
+            self.assertLessEqual(len(line), 72)
+
+    def test_fold_b_short(self):
+        value = b"a" * 50
+        result = netius.common.dkim_fold_b(value)
+        self.assertEqual(result, value)
+
+    def test_fold_b_exact(self):
+        value = b"a" * 72
+        result = netius.common.dkim_fold_b(value)
+        self.assertEqual(result, value)
+
+    def test_fold_b_continuations(self):
+        value = b"a" * 150
+        result = netius.common.dkim_fold_b(value)
+        self.assertEqual(result, b"a" * 72 + b"\r\n " + b"a" * 72 + b"\r\n " + b"a" * 6)

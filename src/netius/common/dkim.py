@@ -79,7 +79,7 @@ def dkim_sign(
     sign_fields = [
         ("v", "1"),
         ("a", "rsa-sha256"),
-        ("c", "simple/simple"),
+        ("c", "relaxed/simple"),
         ("d", domain),
         ("i", identity),
         ("l", len(body)),
@@ -98,11 +98,9 @@ def dkim_sign(
 
     hash = hashlib.sha256()
     for name, value in sign_headers:
-        hash.update(name)
-        hash.update(b":")
-        hash.update(value + b"\r\n")
+        hash.update(dkim_header_relaxed(name, value))
 
-    hash.update(signature)
+    hash.update(dkim_header_relaxed_dkim(signature))
     digest = hash.digest()
 
     digest_info = asn.asn1_gen(
@@ -139,7 +137,7 @@ def dkim_sign(
     signature_i = rsa.rsa_crypt(base_i, exponent, modulus)
     signature_s = util.integer_to_bytes(signature_i, length=modulus_l)
 
-    signature += base64.b64encode(signature_s) + b"\r\n"
+    signature += dkim_fold_b(base64.b64encode(signature_s)) + b"\r\n"
     return signature
 
 
@@ -153,6 +151,42 @@ def dkim_body(body):
     # remove the complete set of empty lines in the body
     # and adds only one line to the end of it as requested
     return re.sub(b"(\r\n)*$", b"\r\n", body)
+
+
+def dkim_header_relaxed(name, value):
+    # converts the header name to lowercase as required
+    # by the relaxed header canonicalization strategy
+    name = name.lower()
+
+    # unfolds the header value by removing all CRLF sequences
+    # that are followed by whitespace (continuation lines)
+    value = re.sub(b"\r\n[ \t]+", b" ", value)
+
+    # reduces any sequence of whitespace (spaces and tabs)
+    # to a single space character as required by relaxed
+    value = re.sub(b"[ \t]+", b" ", value)
+
+    # strips the leading and trailing whitespace from the
+    # header value as defined by the relaxed specification
+    value = value.strip()
+
+    return name + b":" + value + b"\r\n"
+
+
+def dkim_header_relaxed_dkim(signature):
+    # extracts the header name and value from the complete
+    # DKIM-Signature header line for relaxed canonicalization
+    index = signature.find(b":")
+    name = signature[:index]
+    value = signature[index + 1 :]
+
+    # applies the relaxed canonicalization to the DKIM-Signature
+    # header without the trailing CRLF as required by the spec
+    name = name.lower()
+    value = re.sub(b"\r\n[ \t]+", b" ", value)
+    value = re.sub(b"[ \t]+", b" ", value)
+    value = value.strip()
+    return name + b":" + value
 
 
 def dkim_fold(header, length=72):
@@ -192,6 +226,35 @@ def dkim_fold(header, length=72):
         header = header[_index:]
 
     return pre + header
+
+
+def dkim_fold_b(value, length=72):
+    """
+    Folds the b= (signature) value into multiple line feed
+    separated continuation lines at column length defined
+    (defaults to 72).
+
+    This is required to ensure the DKIM-Signature header
+    does not exceed the maximum line length defined by
+    the RFC specification.
+
+    :type value: String
+    :param value: The base64 encoded signature value that
+    is going to be folded into multiple lines.
+    :type length: int
+    :param length: The maximum length of a column until
+    it gets broken into multiple lines.
+    :rtype: String
+    :return: The folded string value for the b= field
+    after the correct processing of the string value.
+    """
+
+    result = b""
+    while len(value) > length:
+        result += value[:length] + b"\r\n "
+        value = value[length:]
+    result += value
+    return result
 
 
 def dkim_generate(domain, suffix=None, number_bits=1024):

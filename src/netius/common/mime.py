@@ -132,6 +132,7 @@ class Headers(list):
             self[key] = value
 
     def pop(self, key, default=None):
+        key = self._normalize(key)
         if not key in self:
             return default
         value = self[key]
