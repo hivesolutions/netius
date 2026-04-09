@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+*
+
+### Fixed
+
+*
+
+## [1.38.6] - 2026-04-09
+
+### Changed
+
 * DKIM signing now uses relaxed/simple header canonicalization for better compatibility with strict verifiers (Microsoft, Yahoo)
 * DKIM signature `b=` value is now folded to comply with RFC 5322 line length limits
 
