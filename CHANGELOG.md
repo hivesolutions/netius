@@ -13,7 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* Include thread ID in `TRACE_FORMAT` log output for easier multi-threaded debugging
+* Set default `stacklevel=2` in `_trace` log method on Python 3.8+ for accurate caller file/line
+* Add trace logging calls in `HTTPClient` synchronous request flow
 
 ### Fixed
 
