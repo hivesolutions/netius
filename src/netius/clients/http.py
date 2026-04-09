@@ -1412,6 +1412,11 @@ class HTTPClient(netius.ClientAgent):
         protocol.bind("message", on_message)
         protocol.bind("close", on_close_)
 
+        # in case the loop is already running the synchronous mode cannot
+        # run safely a warning message must be sent alerting about the issue
+        if loop.is_running():
+            self.warning("Loop already running, synchronous call is not safe")
+
         # runs the loop until complete, this should be the main blocking
         # call into the event loop, notice that in case the loop that was
         # used is not the HTTP client's static loop and also not a user's
