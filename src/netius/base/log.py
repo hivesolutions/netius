@@ -87,7 +87,11 @@ class LogstashHandler(logging.Handler):
             import logstash
         except ImportError:
             return False
-        if not config.conf("LOGGING_LOGSTASH", False, cast=bool):
+        if not config.conf(
+            "NETIUS_LOGGING_LOGSTASH",
+            config.conf("LOGGING_LOGSTASH", False, cast=bool),
+            cast=bool,
+        ):
             return False
         return True
 
@@ -193,7 +197,11 @@ class LogstashHandler(logging.Handler):
         except ImportError:
             return None
 
-        if not config.conf("LOGGING_LOGSTASH", False, cast=bool):
+        if not config.conf(
+            "NETIUS_LOGGING_LOGSTASH",
+            config.conf("LOGGING_LOGSTASH", False, cast=bool),
+            cast=bool,
+        ):
             return None
 
         return logstash.API()

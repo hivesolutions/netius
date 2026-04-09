@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* `LOGGING_LOGSTASH` config now also checks `NETIUS_LOGGING_LOGSTASH` with fallback to the original key
 
 ### Fixed
 
