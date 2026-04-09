@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
+## [1.38.7] - 2026-04-09
+
+### Fixed
+
+* DKIM `b=` field is now placed on its own continuation line to prevent `dkim_fold` from splitting the tag across lines
+* `dkim_fold` no longer mangles header values when no space is found within the fold length
+
 ## [1.38.6] - 2026-04-09
 
 ### Changed
