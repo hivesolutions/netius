@@ -9,15 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.38.5] - 2026-04-09
+
+### Added
+
 * Warning log when `HTTPClient` synchronous call is made on an already running event loop
 
 ### Changed
 
 * `LOGGING_LOGSTASH` config now also checks `NETIUS_LOGGING_LOGSTASH` with fallback to the original key
-
-### Fixed
-
-*
 
 ## [1.38.4] - 2026-04-09
 
