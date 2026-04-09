@@ -60,7 +60,8 @@ MESSAGE = b"Header: Value\r\n\r\nHello World"
 
 RESULT = b"DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=netius.hive.pt;\r\n\
  i=@netius.hive.pt; l=13; q=dns/txt; s=20160523113052; t=1464003802;\r\n\
- h=Header; bh=sIAi0xXPHrEtJmW97Q5q9AZTwKC+l1Iy+0m8vQIc/DY=; b=NJ3NxUSIsgaA4hYMsZ76yrld3gRRY52dohXfc9JUD81E8Ac4quubX4KriE+cDGQKp9RjHkW+\r\n\
+ h=Header; bh=sIAi0xXPHrEtJmW97Q5q9AZTwKC+l1Iy+0m8vQIc/DY=;\r\n\
+ b=NJ3NxUSIsgaA4hYMsZ76yrld3gRRY52dohXfc9JUD81E8Ac4quubX4KriE+cDGQKp9RjHkW+\r\n\
  3s+TYAslCNHubwzzy+8ZAEG0T1meyZ/TXJGvZiYYWP5n8yfr0z6GMu8bYtOx0R9cv1iJHpx4\r\n\
  Un1f47qcDMq1rAFw+5bBf7PDbuY=\r\n"
 
@@ -147,3 +148,20 @@ class DKIMTest(unittest.TestCase):
         value = b"a" * 150
         result = netius.common.dkim_fold_b(value)
         self.assertEqual(result, b"a" * 72 + b"\r\n " + b"a" * 72 + b"\r\n " + b"a" * 6)
+
+    def test_fold_no_space(self):
+        header = b"h=Content-Type:MIME-Version:Subject:From:To:Date:User-Agent:Received:Message-ID"
+        result = netius.common.dkim_fold(header)
+        self.assertNotIn(b"\r\n", result)
+
+    def test_fold_b_separate(self):
+        private_key = netius.common.open_private_key_b64(PRIVATE_KEY)
+        result = netius.common.dkim_sign(
+            MESSAGE,
+            "20160523113052",
+            "netius.hive.pt",
+            private_key,
+            creation=1464003802,
+        )
+        self.assertIn(b";\r\n b=", result)
+        self.assertNotIn(b"; b\r\n", result)

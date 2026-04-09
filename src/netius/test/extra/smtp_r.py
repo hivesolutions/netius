@@ -50,8 +50,8 @@ MESSAGE = b"Header: Value\r\n\r\nHello World"
 
 RESULT = b"DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=netius.hive.pt;\r\n\
  i=email@netius.hive.pt; l=13; q=dns/txt; s=20160523113052;\r\n\
- t=1464003802; h=Header;\r\n\
- bh=sIAi0xXPHrEtJmW97Q5q9AZTwKC+l1Iy+0m8vQIc/DY=; b=MzkFXsO3vyJg23JWaBdGOB8RFzF8eElLDrQKpq/wOK4rXCxueox5qqXWHXdPRS4CtFg5zCKl\r\n\
+ t=1464003802; h=Header; bh=sIAi0xXPHrEtJmW97Q5q9AZTwKC+l1Iy+0m8vQIc/DY=;\r\n\
+ b=MzkFXsO3vyJg23JWaBdGOB8RFzF8eElLDrQKpq/wOK4rXCxueox5qqXWHXdPRS4CtFg5zCKl\r\n\
  cJ2h1k5Rsgb1O5ijO4jT+LTomare/IrlGBhDpxsbEnf7+flfRC3sRCqP6cqwWRTMonzFaMZr\r\n\
  YcHONgR8zeDAT/pu7Vx3ZkHB0tI=\r\nHeader: Value\r\n\r\nHello World"
 

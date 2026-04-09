@@ -88,13 +88,16 @@ def dkim_sign(
         ("t", creation_s),
         ("h", names),
         ("bh", body_hash),
-        ("b", ""),
     ]
 
+    # builds the signature header without the b= field first
+    # so that folding does not split the b= tag across lines,
+    # then appends b= on its own continuation line
     signature = "DKIM-Signature: " + "; ".join("%s=%s" % field for field in sign_fields)
     if isinstance(signature, netius.legacy.UNICODE):
         signature = signature.encode("utf-8")
     signature = dkim_fold(signature)
+    signature += b";\r\n b="
 
     hash = hashlib.sha256()
     for name, value in sign_headers:
@@ -219,11 +222,9 @@ def dkim_fold(header, length=72):
     while len(header) > length:
         index = header[:length].rfind(b" ")
         if index == -1:
-            _index = index
-        else:
-            _index = index + 1
+            break
         pre += header[:index] + b"\r\n "
-        header = header[_index:]
+        header = header[index + 1 :]
 
     return pre + header
 
