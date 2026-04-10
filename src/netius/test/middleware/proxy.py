@@ -138,3 +138,111 @@ class ProxyMiddlewareTest(unittest.TestCase):
         self.assertEqual(connection.address, ("192.168.1.1", 32598))
         self.assertEqual(connection.restored_s, 0)
         self.assertEqual(len(connection.restored), 0)
+
+    def test_pending_flag_v1(self):
+        self.server.register_middleware(netius.middleware.ProxyMiddleware)
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        self.assertTrue(hasattr(connection, "_proxy_pending"))
+        self.assertTrue(connection._proxy_pending)
+
+        connection.restore(b"PROXY TCP4 192.168.1.1 192.168.1.2 32598 8080\r\n")
+        connection.run_starter()
+
+        self.assertFalse(connection._proxy_pending)
+
+    def test_pending_flag_v2(self):
+        self.server.register_middleware(netius.middleware.ProxyMiddleware, version=2)
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        self.assertTrue(hasattr(connection, "_proxy_pending"))
+        self.assertTrue(connection._proxy_pending)
+
+        body = struct.pack(
+            "!IIHH",
+            netius.common.ip4_to_addr("192.168.1.1"),
+            netius.common.ip4_to_addr("192.168.1.2"),
+            32598,
+            8080,
+        )
+
+        header = struct.pack(
+            "!12sBBH",
+            netius.middleware.ProxyMiddleware.HEADER_MAGIC_V2,
+            (2 << 4) + (netius.middleware.ProxyMiddleware.TYPE_PROXY_V2),
+            (netius.middleware.ProxyMiddleware.AF_INET_v2 << 4)
+            + (netius.middleware.ProxyMiddleware.PROTO_STREAM_v2),
+            len(body),
+        )
+
+        connection.restore(header)
+        connection.restore(body)
+        connection.run_starter()
+
+        self.assertFalse(connection._proxy_pending)
+
+    def test_timeout_stale(self):
+        instance = self.server.register_middleware(
+            netius.middleware.ProxyMiddleware, handshake_timeout=1
+        )
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        self.assertTrue(connection._proxy_pending)
+        self.assertEqual(connection.status, netius.OPEN)
+        self.assertIn(connection, self.server.connections)
+
+        instance._proxy_timeout(connection)
+
+        self.assertEqual(connection.status, netius.CLOSED)
+        self.assertNotIn(connection, self.server.connections)
+
+    def test_timeout_completed(self):
+        instance = self.server.register_middleware(
+            netius.middleware.ProxyMiddleware, handshake_timeout=1
+        )
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        connection.restore(b"PROXY TCP4 192.168.1.1 192.168.1.2 32598 8080\r\n")
+        connection.run_starter()
+
+        self.assertFalse(connection._proxy_pending)
+        self.assertEqual(connection.status, netius.OPEN)
+
+        instance._proxy_timeout(connection)
+
+        self.assertEqual(connection.status, netius.OPEN)
+        self.assertIn(connection, self.server.connections)
+
+    def test_timeout_already_closed(self):
+        instance = self.server.register_middleware(
+            netius.middleware.ProxyMiddleware, handshake_timeout=1
+        )
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        connection.close()
+
+        self.assertEqual(connection.status, netius.CLOSED)
+
+        instance._proxy_timeout(connection)
+
+        self.assertEqual(connection.status, netius.CLOSED)
+
+    def test_timeout_disabled(self):
+        self.server.register_middleware(
+            netius.middleware.ProxyMiddleware, handshake_timeout=0
+        )
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        self.assertFalse(hasattr(connection, "_proxy_pending"))

@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Handshake timeout for the PROXY protocol middleware to close zombie connections that never complete the handshake (default 30s, configurable via `PROXY_HANDSHAKE_TIMEOUT`)
+* Trace logging for PROXY handshake EOF and blocked read events
 
 ### Changed
 

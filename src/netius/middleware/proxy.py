@@ -70,13 +70,22 @@ class ProxyMiddleware(Middleware):
     PROTO_STREAM_v2 = 0x1
     PROTO_DGRAM_v2 = 0x2
 
-    def __init__(self, owner, version=1):
+    HANDSHAKE_TIMEOUT = 30
+    """ The maximum number of seconds allowed for the PROXY
+    protocol handshake to complete, connections that exceed
+    this timeout are considered stale and closed """
+
+    def __init__(self, owner, version=1, handshake_timeout=HANDSHAKE_TIMEOUT):
         Middleware.__init__(self, owner)
         self.version = version
+        self.handshake_timeout = handshake_timeout
 
     def start(self):
         Middleware.start(self)
         self.version = netius.conf("PROXY_VERSION", self.version, cast=int)
+        self.handshake_timeout = netius.conf(
+            "PROXY_HANDSHAKE_TIMEOUT", self.handshake_timeout, cast=int
+        )
         self.owner.bind("connection_c", self.on_connection_c)
 
     def stop(self):
@@ -95,6 +104,31 @@ class ProxyMiddleware(Middleware):
             connection.add_starter(self._proxy_handshake_v2)
         else:
             raise netius.RuntimeError("Invalid PROXY version")
+
+        # schedules a delayed close for the connection in case the
+        # PROXY protocol handshake does not complete within the
+        # allowed timeout period (avoids zombie connections)
+        if self.handshake_timeout:
+            connection._proxy_pending = True
+            self.owner.delay(
+                lambda: self._proxy_timeout(connection),
+                timeout=self.handshake_timeout,
+            )
+
+    def _proxy_timeout(self, connection):
+        # verifies if the connection is still pending for the PROXY
+        # protocol handshake and if that's the case closes it as it
+        # has exceeded the allowed timeout period (stale connection)
+        if not hasattr(connection, "_proxy_pending"):
+            return
+        if not connection._proxy_pending:
+            return
+        if not connection.status == netius.OPEN:
+            return
+        self.owner.debug(
+            "PROXY handshake timeout for '%s', closing connection" % connection.id
+        )
+        connection.close()
 
     def _proxy_handshake_v1(self, connection):
         cls = self.__class__
@@ -201,6 +235,10 @@ class ProxyMiddleware(Middleware):
         # the major and most important fix to be done
         connection.address = (source, int(source_p))
 
+        # clears the pending flag as the handshake has been completed
+        # and no timeout action should be taken for this connection
+        connection._proxy_pending = False
+
         # runs the end starter operation, indicating to the connection that
         # the PROXY header has been properly parsed
         connection.end_starter()
@@ -303,6 +341,10 @@ class ProxyMiddleware(Middleware):
         # the major and most important fix to be done
         connection.address = (source, int(source_p))
 
+        # clears the pending flag as the handshake has been completed
+        # and no timeout action should be taken for this connection
+        connection._proxy_pending = False
+
         # runs the end starter operation, indicating to the connection that
         # the PROXY header has been properly parsed
         connection.end_starter()
@@ -355,12 +397,20 @@ class ProxyMiddleware(Middleware):
             # in case the received data represents that of a closed connection
             # the connection is closed and the control flow returned
             if data == b"":
+                self.owner.trace(
+                    "PROXY handshake EOF for '%s' (read %d/%d bytes)"
+                    % (connection.id, len(buffer), count)
+                )
                 connection.close()
                 return None
 
             # in case the received value is false, that indicates that the
             # execution has failed due to an exception (expected or unexpected)
             if data == False:
+                self.owner.trace(
+                    "PROXY handshake blocked for '%s' (read %d/%d bytes)"
+                    % (connection.id, len(buffer), count)
+                )
                 return None
 
             # adds the newly read data to the current buffer
