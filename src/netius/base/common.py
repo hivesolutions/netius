@@ -2889,21 +2889,13 @@ class AbstractBase(observer.Observable):
     def on_connection_c(self, connection):
         # prints some debug information about the connection that has
         # just been created (for possible debugging purposes)
-        if connection.address == None:
-            self.debug(
-                "Connection '%s' %s from '%s' created (no address)\n%s",
-                connection.id,
-                connection.address,
-                connection.owner.name,
-                "".join(traceback.format_stack()),
-            )
-        else:
-            self.debug(
-                "Connection '%s' %s from '%s' created",
-                connection.id,
-                connection.address,
-                connection.owner.name,
-            )
+        self.debug(
+            "Connection '%s' %s (%s) from '%s' created",
+            connection.id,
+            connection.address,
+            "datagram" if connection.datagram else "stream",
+            connection.owner.name,
+        )
         self.debug(
             "There are %d connections for '%s'",
             len(connection.owner.connections),
