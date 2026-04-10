@@ -293,12 +293,12 @@ class DKIMTest(unittest.TestCase):
         self.assertEqual(result, b"Line 1\r\nLine 2\r\n")
 
     def test_body_utf8(self):
-        body = "Recuperação de conta\r\n".encode("utf-8")
+        body = b"Recupera\xc3\xa7\xc3\xa3o de conta\r\n"
         result = netius.common.dkim_body(body)
-        self.assertEqual(result, "Recuperação de conta\r\n".encode("utf-8"))
+        self.assertEqual(result, b"Recupera\xc3\xa7\xc3\xa3o de conta\r\n")
 
     def test_body_utf8_hash(self):
-        body = "Recuperação de conta\r\n".encode("utf-8")
+        body = b"Recupera\xc3\xa7\xc3\xa3o de conta\r\n"
         body = netius.common.dkim_body(body)
         hash_value = base64.b64encode(hashlib.sha256(body).digest())
         self.assertIsInstance(hash_value, bytes)
@@ -329,7 +329,7 @@ class DKIMTest(unittest.TestCase):
 
     def test_sign_utf8_body(self):
         private_key = netius.common.open_private_key_b64(PRIVATE_KEY)
-        message = b"Subject: Test\r\n\r\n" + "Recuperação de conta\r\n".encode("utf-8")
+        message = b"Subject: Test\r\n\r\nRecupera\xc3\xa7\xc3\xa3o de conta\r\n"
         result = netius.common.dkim_sign(
             message,
             "20160523113052",
