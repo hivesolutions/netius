@@ -41,7 +41,7 @@ class DNSClientTest(unittest.TestCase):
         self.original_build = netius.build_datagram
         self.original_protocol = netius.clients.DNSClient.protocol
         self.closed = []
-        self.mock_protocol = None
+        self.callbacks = []
 
         def mock_build(protocol_factory, callback=None, **kwargs):
             protocol = protocol_factory()
@@ -60,55 +60,54 @@ class DNSClientTest(unittest.TestCase):
 
     def test_query_s_closes_protocol(self):
         results = []
-        mock = self._build_mock_protocol()
+        self._build_mock_protocol()
 
         netius.clients.DNSClient.query_s(
             "example.com", callback=lambda r: results.append(r)
         )
 
-        self.assertNotEqual(mock._query_callback, None)
+        self.assertEqual(len(self.callbacks), 1)
         self.assertEqual(len(self.closed), 0)
 
-        mock._query_callback("response")
+        self.callbacks[0]("response")
 
         self.assertEqual(results, ["response"])
         self.assertEqual(len(self.closed), 1)
 
     def test_query_s_closes_without_callback(self):
-        mock = self._build_mock_protocol()
+        self._build_mock_protocol()
 
         netius.clients.DNSClient.query_s("example.com", callback=None)
 
-        mock._query_callback("response")
+        self.callbacks[0]("response")
 
         self.assertEqual(len(self.closed), 1)
 
     def test_query_s_closes_on_callback_error(self):
-        mock = self._build_mock_protocol()
+        self._build_mock_protocol()
 
         def bad_callback(response):
             raise RuntimeError("callback error")
 
         netius.clients.DNSClient.query_s("example.com", callback=bad_callback)
 
-        self.assertRaises(RuntimeError, mock._query_callback, "response")
+        self.assertRaises(RuntimeError, self.callbacks[0], "response")
 
         self.assertEqual(len(self.closed), 1)
 
     def _build_mock_protocol(self):
         closed = self.closed
+        callbacks = self.callbacks
 
         class MockProtocol(netius.clients.DNSProtocol):
-            _query_callback = None
 
             def query(self, name, type="a", cls="in", ns=None, callback=None):
-                MockProtocol._query_callback = callback
+                callbacks.append(callback)
 
             def close(self):
                 closed.append(True)
 
         netius.clients.DNSClient.protocol = MockProtocol
-        return MockProtocol
 
 
 class _MockTransport(object):

@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Fix DNS client tests failing on Python 2 due to unbound method on class attribute callback storage
 
 ## [1.39.5] - 2026-04-10
 
