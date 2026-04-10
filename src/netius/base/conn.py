@@ -653,6 +653,7 @@ class BaseConnection(observer.Observable):
 
     def info_dict(self, full=False):
         info = dict(
+            cls=self.__class__.__name__,
             status=self.status,
             id=self.id,
             connecting=self.connecting,
@@ -667,6 +668,7 @@ class BaseConnection(observer.Observable):
             starters_count=len(self.starters),
             socket_fileno=self._safe_fileno,
             proxy_pending=getattr(self, "_proxy_pending", None),
+            is_base=getattr(self, "_base", False),
         )
         return info
 
