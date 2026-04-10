@@ -381,8 +381,6 @@ class ProxyMiddleware(Middleware):
         an invalid value meaning that the connection should be dropped.
         """
 
-        cls = self.__class__
-
         # selects the proper receive method to be used to retrieve bytes
         # from the client side taking into account if the connection is
         # secured with SSL or not, note that the "special" SSL receive method
@@ -413,9 +411,9 @@ class ProxyMiddleware(Middleware):
             self.owner.trace(
                 "PROXY handshake recv result for '%s' (data_len %d, data_type %s, is_false %s)",
                 connection.id,
-                len(data) if data and data != False else 0,
+                len(data) if data and not data == False else 0,
                 type(data).__name__,
-                str(data == False),
+                data == False,
             )
 
             # in case the received data represents that of a closed connection

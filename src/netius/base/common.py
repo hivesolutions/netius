@@ -3452,9 +3452,7 @@ class AbstractBase(observer.Observable):
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
             else:
-                self.trace(
-                    "exec_safe valid error %s for '%s'", error_v, connection.id
-                )
+                self.trace("exec_safe valid error %s for '%s'", error_v, connection.id)
         except (KeyboardInterrupt, SystemExit):
             raise
         except BaseException as exception:
