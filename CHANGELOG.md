@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* `cls` and `is_base` fields to connection `info_dict` for class and protocol-mode diagnostics
+*
 
 ### Changed
 
@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.39.3] - 2026-04-10
+
+### Added
+
+* `cls` and `is_base` fields to connection `info_dict` for class and protocol-mode diagnostics
 
 ## [1.39.2] - 2026-04-10
 
