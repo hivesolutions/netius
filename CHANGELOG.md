@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Guard against `None` address in `DiagConnection._resolve()` to prevent `TypeError` on the `/connections` diag endpoint
 
 ## [1.38.10] - 2026-04-10
 

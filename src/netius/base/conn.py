@@ -1028,6 +1028,9 @@ class DiagConnection(BaseConnection):
         return delta_s
 
     def _resolve(self, address):
+        if address == None:
+            return None
+
         import netius.common
 
         ip, _port = address
