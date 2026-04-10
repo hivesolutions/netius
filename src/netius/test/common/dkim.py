@@ -28,6 +28,9 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import re
+import hashlib
+import base64
 import unittest
 
 import netius.common
@@ -202,3 +205,180 @@ class DKIMTest(unittest.TestCase):
         )
         self.assertIn(b";\r\n b=", result)
         self.assertNotIn(b"; b\r\n", result)
+
+    def test_body_hash_consistency(self):
+        private_key = netius.common.open_private_key_b64(PRIVATE_KEY)
+        result = netius.common.dkim_sign(
+            MESSAGE,
+            "20160523113052",
+            "netius.hive.pt",
+            private_key,
+            creation=1464003802,
+        )
+        signed_message = result + MESSAGE
+
+        bh_match = re.search(b"bh=([A-Za-z0-9+/=]+)", result)
+        bh_value = bh_match.group(1)
+
+        _headers, body = netius.common.rfc822_parse(signed_message, strip=False)
+        body = netius.common.dkim_body(body)
+
+        computed_hash = base64.b64encode(hashlib.sha256(body).digest())
+        self.assertEqual(bh_value, computed_hash)
+
+    def test_body_hash_type(self):
+        private_key = netius.common.open_private_key_b64(PRIVATE_KEY)
+        result = netius.common.dkim_sign(
+            MESSAGE,
+            "20160523113052",
+            "netius.hive.pt",
+            private_key,
+            creation=1464003802,
+        )
+        self.assertIsInstance(result, bytes)
+
+    def test_body_length_tag(self):
+        private_key = netius.common.open_private_key_b64(PRIVATE_KEY)
+        result = netius.common.dkim_sign(
+            MESSAGE,
+            "20160523113052",
+            "netius.hive.pt",
+            private_key,
+            creation=1464003802,
+        )
+
+        import re
+
+        l_match = re.search(b"l=([0-9]+)", result)
+        l_value = int(l_match.group(1))
+
+        _headers, body = netius.common.rfc822_parse(MESSAGE, strip=False)
+        body = netius.common.dkim_body(body)
+
+        self.assertEqual(l_value, len(body))
+
+    def test_body_trailing_crlf(self):
+        body = b"Hello World\r\n\r\n\r\n"
+        result = netius.common.dkim_body(body)
+        self.assertEqual(result, b"Hello World\r\n")
+
+    def test_body_no_trailing_crlf(self):
+        body = b"Hello World"
+        result = netius.common.dkim_body(body)
+        self.assertEqual(result, b"Hello World\r\n")
+
+    def test_body_single_crlf(self):
+        body = b"Hello World\r\n"
+        result = netius.common.dkim_body(body)
+        self.assertEqual(result, b"Hello World\r\n")
+
+    def test_body_empty(self):
+        body = b""
+        result = netius.common.dkim_body(body)
+        self.assertEqual(result, b"\r\n")
+
+    def test_body_only_crlf(self):
+        body = b"\r\n\r\n\r\n"
+        result = netius.common.dkim_body(body)
+        self.assertEqual(result, b"\r\n")
+
+    def test_body_multiline(self):
+        body = b"Line 1\r\nLine 2\r\nLine 3\r\n"
+        result = netius.common.dkim_body(body)
+        self.assertEqual(result, b"Line 1\r\nLine 2\r\nLine 3\r\n")
+
+    def test_body_multiline_trailing(self):
+        body = b"Line 1\r\nLine 2\r\n\r\n\r\n"
+        result = netius.common.dkim_body(body)
+        self.assertEqual(result, b"Line 1\r\nLine 2\r\n")
+
+    def test_body_utf8(self):
+        body = "Recuperação de conta\r\n".encode("utf-8")
+        result = netius.common.dkim_body(body)
+        self.assertEqual(result, "Recuperação de conta\r\n".encode("utf-8"))
+
+    def test_body_utf8_hash(self):
+        body = "Recuperação de conta\r\n".encode("utf-8")
+        body = netius.common.dkim_body(body)
+        hash_value = base64.b64encode(hashlib.sha256(body).digest())
+        self.assertIsInstance(hash_value, bytes)
+        self.assertTrue(len(hash_value) > 0)
+
+    def test_sign_roundtrip(self):
+        private_key = netius.common.open_private_key_b64(PRIVATE_KEY)
+        result = netius.common.dkim_sign(
+            MESSAGE,
+            "20160523113052",
+            "netius.hive.pt",
+            private_key,
+            creation=1464003802,
+        )
+        signed_message = result + MESSAGE
+
+        bh_match = re.search(b"bh=([A-Za-z0-9+/=]+)", result)
+        l_match = re.search(b"l=([0-9]+)", result)
+        bh_value = bh_match.group(1)
+        l_value = int(l_match.group(1))
+
+        _headers, body = netius.common.rfc822_parse(signed_message, strip=False)
+        body = netius.common.dkim_body(body)
+        body_limited = body[:l_value]
+
+        computed_hash = base64.b64encode(hashlib.sha256(body_limited).digest())
+        self.assertEqual(bh_value, computed_hash)
+
+    def test_sign_utf8_body(self):
+        private_key = netius.common.open_private_key_b64(PRIVATE_KEY)
+        message = b"Subject: Test\r\n\r\n" + "Recuperação de conta\r\n".encode("utf-8")
+        result = netius.common.dkim_sign(
+            message,
+            "20160523113052",
+            "netius.hive.pt",
+            private_key,
+            creation=1464003802,
+        )
+        self.assertIsInstance(result, bytes)
+        self.assertIn(b"bh=", result)
+
+        bh_match = re.search(b"bh=([A-Za-z0-9+/=]+)", result)
+        bh_value = bh_match.group(1)
+
+        _headers, body = netius.common.rfc822_parse(message, strip=False)
+        body = netius.common.dkim_body(body)
+
+        computed_hash = base64.b64encode(hashlib.sha256(body).digest())
+        self.assertEqual(bh_value, computed_hash)
+
+    def test_sign_multipart_body(self):
+        private_key = netius.common.open_private_key_b64(PRIVATE_KEY)
+        body_content = (
+            b"--boundary\r\n"
+            b"Content-Type: text/plain\r\n\r\n"
+            b"Hello World\r\n"
+            b"--boundary\r\n"
+            b"Content-Type: text/html\r\n\r\n"
+            b"<p>Hello World</p>\r\n"
+            b"--boundary--\r\n"
+        )
+        message = (
+            b"Content-Type: multipart/alternative; boundary=boundary\r\n\r\n"
+            + body_content
+        )
+        result = netius.common.dkim_sign(
+            message,
+            "20160523113052",
+            "netius.hive.pt",
+            private_key,
+            creation=1464003802,
+        )
+        self.assertIsInstance(result, bytes)
+        self.assertIn(b"bh=", result)
+
+        bh_match = re.search(b"bh=([A-Za-z0-9+/=]+)", result)
+        bh_value = bh_match.group(1)
+
+        _headers, body = netius.common.rfc822_parse(message, strip=False)
+        body = netius.common.dkim_body(body)
+
+        computed_hash = base64.b64encode(hashlib.sha256(body).digest())
+        self.assertEqual(bh_value, computed_hash)

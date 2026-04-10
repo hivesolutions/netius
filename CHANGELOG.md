@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Fix `dkim_body` simple canonicalization producing incorrect body hash on Python 3 due to `re.sub` zero-length match behavior with `*` quantifier
 
 ## [1.38.8] - 2026-04-09
 

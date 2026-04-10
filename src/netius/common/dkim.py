@@ -151,9 +151,11 @@ def dkim_headers(headers):
 
 
 def dkim_body(body):
-    # remove the complete set of empty lines in the body
-    # and adds only one line to the end of it as requested
-    return re.sub(b"(\r\n)*$", b"\r\n", body)
+    # removes the complete set of trailing CRLF sequences from
+    # the body and then adds a single CRLF to the end of it
+    # as required by the simple body canonicalization strategy
+    body = re.sub(b"(\r\n)+$", b"", body)
+    return body + b"\r\n"
 
 
 def dkim_header_relaxed(name, value):
