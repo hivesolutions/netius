@@ -418,7 +418,7 @@ class TorrentTask(netius.Observable):
 
         # prints a debug message about the peer loading that has just occurred, this
         # may be used for the purpose of development (and traceability)
-        self.owner.debug("Received %d peers from DHT peer '%s'" % (len(peers), host))
+        self.owner.debug("Received %d peers from DHT peer '%s'", len(peers), host)
 
     def on_tracker(self, client, parser, result):
         # extracts the data (string) contents of the HTTP response and in case
@@ -612,7 +612,7 @@ class TorrentTask(netius.Observable):
                 info_hash=self.info_hash,
                 callback=self.on_dht,
             )
-            self.owner.debug("Requested peers from DHT peer '%s'" % host)
+            self.owner.debug("Requested peers from DHT peer '%s'", host)
 
     def peers_tracker(self):
         """
@@ -665,7 +665,7 @@ class TorrentTask(netius.Observable):
 
                 # prints a debug message about the request for peer that was just
                 # performed in order to provide some debugging information
-                self.owner.debug("Requested peers using '%s'" % tracker_url)
+                self.owner.debug("Requested peers using '%s'", tracker_url)
 
     def peers_file(self):
         for path in PEER_PATHS:
@@ -694,7 +694,7 @@ class TorrentTask(netius.Observable):
         if not peer["new"]:
             return
         peer["new"] = False
-        self.owner.debug("Connecting to peer '%s:%d'" % (peer["ip"], peer["port"]))
+        self.owner.debug("Connecting to peer '%s:%d'", peer["ip"], peer["port"])
         connection = self.owner.client.peer(self, peer["ip"], peer["port"])
         self.connections.append(connection)
         connection.bind("close", self.on_close)
@@ -770,7 +770,7 @@ class TorrentTask(netius.Observable):
     def refute_piece(self, index):
         self.requested.mark_piece(index, value=True)
         self.stored.mark_piece(index, value=True)
-        self.owner.warning("Refuted piece '%d' (probably invalid)" % index)
+        self.owner.warning("Refuted piece '%d' (probably invalid)", index)
 
     def extend_peers(self, peers):
         for peer in peers:

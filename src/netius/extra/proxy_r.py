@@ -164,14 +164,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if self.env:
             self.x_forwarded_proto = self.get_env("X_FORWARDED_PROTO", None)
         if self.sts:
-            self.info("Strict transport security set to %d seconds" % self.sts)
+            self.info("Strict transport security set to %d seconds", self.sts)
         if self.resolve:
             self.info(
-                "DNS based resolution enabled in proxy with %.2fs timeout"
-                % self.resolve_t
+                "DNS based resolution enabled in proxy with %.2fs timeout",
+                self.resolve_t,
             )
         if self.strategy:
-            self.info("Using '%s' as load balancing strategy" % self.strategy)
+            self.info("Using '%s' as load balancing strategy", self.strategy)
         if self.echo:
             self._echo()
         self._set_strategy()
@@ -515,7 +515,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         # prints a debug message about the matching that has just occurred
         # so that proper debugging may take place if required
-        self.debug("Found regex prefix '%s' for '%s'" % (_prefix, url))
+        self.debug("Found regex prefix '%s' for '%s'", _prefix, url)
 
         # uses the resolved prefix value in the balancer to obtain the
         # proper final prefix and its associated state
@@ -528,7 +528,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         # prints more debug information to be used for possible runtime debug
         # this should represent the final resolution process
-        self.debug("Resolved regex prefix '%s' for '%s'" % (prefix, url))
+        self.debug("Resolved regex prefix '%s' for '%s'", prefix, url)
 
         # returns the prefix and state values that have just been resolved
         # through regex based validation, this value may be unset for a mismatch
@@ -559,7 +559,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         # prints more debug information to be used for possible runtime debug
         # this should represent the final resolution process
-        self.debug("Resolved host prefix '%s' for '%s'" % (prefix, url))
+        self.debug("Resolved host prefix '%s' for '%s'", prefix, url)
 
         # returns the final "resolved" prefix value (in case there's any)
         # to the caller method, this should be used for URL reconstruction
@@ -829,7 +829,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
     def _echo_regex(self, sort=True):
         self.info("Regex registration information")
         for key, value in self.regex:
-            self.info("%s => %s" % (key, value))
+            self.info("%s => %s", key, value)
 
     def _echo_hosts(self, sort=True):
         keys = netius.legacy.keys(self.hosts)
@@ -837,7 +837,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             keys.sort()
         self.info("Host registration information")
         for key in keys:
-            self.info("%s => %s" % (key, self.hosts[key]))
+            self.info("%s => %s", key, self.hosts[key])
 
     def _echo_alias(self, sort=True):
         keys = netius.legacy.keys(self.alias)
@@ -845,7 +845,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             keys.sort()
         self.info("Alias registration information")
         for key in keys:
-            self.info("%s => %s" % (key, self.alias[key]))
+            self.info("%s => %s", key, self.alias[key])
 
     def _echo_redirect(self, sort=True):
         keys = netius.legacy.keys(self.redirect)
@@ -853,7 +853,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             keys.sort()
         self.info("Redirect registration information")
         for key in keys:
-            self.info("%s => %s" % (key, self.redirect[key]))
+            self.info("%s => %s", key, self.redirect[key])
 
     def _echo_error_urls(self, sort=True):
         keys = netius.legacy.keys(self.error_urls)
@@ -861,7 +861,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             keys.sort()
         self.info("Error URLs registration information")
         for key in keys:
-            self.info("%s => %s" % (key, self.error_urls[key]))
+            self.info("%s => %s", key, self.error_urls[key])
 
 
 if __name__ == "__main__":

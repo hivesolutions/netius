@@ -404,8 +404,10 @@ class SMTPServer(netius.StreamServer):
         self.adapter = self.get_adapter(self.adapter_s)
         self.auth = self.get_auth(self.auth_s)
         self.info(
-            "Starting SMTP server on '%s' using '%s' and '%s' ..."
-            % (self.host, self.adapter_s, self.auth_s)
+            "Starting SMTP server on '%s' using '%s' and '%s' ...",
+            self.host,
+            self.adapter_s,
+            self.auth_s,
         )
 
     def build_connection(self, socket, address, ssl=False):

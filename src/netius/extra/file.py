@@ -490,14 +490,14 @@ class FileServer(netius.servers.HTTP2Server):
         self.cache_d = datetime.timedelta(seconds=self.cache)
         self.base_path = netius.legacy.u(self.base_path, force=True)
         self.info(
-            "Defining '%s' as the root of the file server ..." % (self.base_path or ".")
+            "Defining '%s' as the root of the file server ...", self.base_path or "."
         )
         if self.list_dirs:
-            self.info("Listing directories with '%s' engine ..." % self.list_engine)
+            self.info("Listing directories with '%s' engine ...", self.list_engine)
         if self.cors:
             self.info("Cross origin resource sharing is enabled")
         if self.cache:
-            self.info("Resource cache set with %d seconds" % self.cache)
+            self.info("Resource cache set with %d seconds", self.cache)
 
     def on_data_http(self, connection, parser):
         netius.servers.HTTP2Server.on_data_http(self, connection, parser)
@@ -620,7 +620,7 @@ class FileServer(netius.servers.HTTP2Server):
 
         # prints a debug message about the file that is going to be read
         # from the current file system to be sent to the connection
-        connection.debug("Reading file '%s' from file system" % path_s)
+        connection.debug("Reading file '%s' from file system", path_s)
 
         # uses the parser from the connection to be able to gather the
         # range as a string to be used latter for conversion

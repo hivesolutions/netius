@@ -227,8 +227,13 @@ class ProxyMiddleware(Middleware):
         # prints a debug message about the PROXY header received, so that runtime
         # debugging is possible (and expected for this is a sensible part)
         self.owner.debug(
-            "Received header %s %s %s:%s => %s:%s"
-            % (header, protocol, source, source_p, destination, destination_p)
+            "Received header %s %s %s:%s => %s:%s",
+            header,
+            protocol,
+            source,
+            source_p,
+            destination,
+            destination_p,
         )
 
         # re-constructs the source address from the provided information, this is
@@ -333,8 +338,12 @@ class ProxyMiddleware(Middleware):
         # prints a debug message about the PROXY header received, so that runtime
         # debugging is possible (and expected for this is a sensible part)
         self.owner.debug(
-            "Received header v2 %d %s:%s => %s:%s"
-            % (protocol, source, source_p, destination, destination_p)
+            "Received header v2 %d %s:%s => %s:%s",
+            protocol,
+            source,
+            source_p,
+            destination,
+            destination_p,
         )
 
         # re-constructs the source address from the provided information, this is
@@ -392,14 +401,31 @@ class ProxyMiddleware(Middleware):
 
             # tries to receive the maximum size of data that is required
             # for the handling of the PROXY information
+            self.owner.trace(
+                "PROXY handshake recv for '%s' (pending %d, buffer %d/%d bytes, status %d)",
+                connection.id,
+                pending,
+                len(buffer),
+                count,
+                connection.status,
+            )
             data = self.owner.exec_safe(connection, recv, pending)
+            self.owner.trace(
+                "PROXY handshake recv result for '%s' (data_len %d, data_type %s, is_false %s)",
+                connection.id,
+                len(data) if data and data != False else 0,
+                type(data).__name__,
+                str(data == False),
+            )
 
             # in case the received data represents that of a closed connection
             # the connection is closed and the control flow returned
             if data == b"":
                 self.owner.trace(
-                    "PROXY handshake EOF for '%s' (read %d/%d bytes)"
-                    % (connection.id, len(buffer), count)
+                    "PROXY handshake EOF for '%s' (read %d/%d bytes)",
+                    connection.id,
+                    len(buffer),
+                    count,
                 )
                 connection.close()
                 return None
@@ -408,8 +434,10 @@ class ProxyMiddleware(Middleware):
             # execution has failed due to an exception (expected or unexpected)
             if data == False:
                 self.owner.trace(
-                    "PROXY handshake blocked for '%s' (read %d/%d bytes)"
-                    % (connection.id, len(buffer), count)
+                    "PROXY handshake blocked for '%s' (read %d/%d bytes)",
+                    connection.id,
+                    len(buffer),
+                    count,
                 )
                 return None
 

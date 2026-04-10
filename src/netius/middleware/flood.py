@@ -66,7 +66,7 @@ class FloodMiddleware(Middleware):
             return
         if host in self.whitelist:
             return
-        self.owner.warning("Connection from '%s' dropped (flooding avoidance)" % host)
+        self.owner.warning("Connection from '%s' dropped (flooding avoidance)", host)
         connection.close()
 
     def _update_flood(self, host):

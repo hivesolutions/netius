@@ -123,7 +123,7 @@ class Client(Base):
 
         # prints a debug message about the new thread to be created for
         # the client infra-structure (required for execution)
-        self.debug("Starting new thread for '%s' ..." % self.name)
+        self.debug("Starting new thread for '%s' ...", self.name)
 
         # in case the thread flag is set a new thread must be constructed
         # for the running of the client's main loop then, these thread
@@ -940,8 +940,10 @@ class StreamClient(Client):
 
     def on_connect(self, connection):
         self.debug(
-            "Connection '%s' %s from '%s' connected"
-            % (connection.id, connection.address, connection.owner.name)
+            "Connection '%s' %s from '%s' connected",
+            connection.id,
+            connection.address,
+            connection.owner.name,
         )
         connection.set_connected()
         if hasattr(connection, "tuple"):
@@ -949,8 +951,10 @@ class StreamClient(Client):
 
     def on_upgrade(self, connection):
         self.debug(
-            "Connection '%s' %s from '%s' upgraded"
-            % (connection.id, connection.address, connection.owner.name)
+            "Connection '%s' %s from '%s' upgraded",
+            connection.id,
+            connection.address,
+            connection.owner.name,
         )
         connection.set_upgraded()
 

@@ -60,5 +60,5 @@ class BlacklistMiddleware(Middleware):
             return
         if host in self.whitelist:
             return
-        self.owner.warning("Connection from '%s' dropped (blacklisted)" % host)
+        self.owner.warning("Connection from '%s' dropped (blacklisted)", host)
         connection.close()

@@ -1102,7 +1102,7 @@ class HTTP2Server(http.HTTPServer):
     def on_serve(self):
         http.HTTPServer.on_serve(self)
         safe_s = "with" if self.safe else "without"
-        self.info("Starting HTTP2 server %s safe mode ..." % safe_s)
+        self.info("Starting HTTP2 server %s safe mode ...", safe_s)
         if not self.has_h2:
             self.info("No support for HTTP2 is available ...")
         elif not self.has_all_h2:
@@ -1114,7 +1114,7 @@ class HTTP2Server(http.HTTPServer):
             if value == None:
                 continue
             self.settings[setting] = value
-            self.info("Setting HTTP2 setting %s with value '%d' ..." % (name, value))
+            self.info("Setting HTTP2 setting %s with value '%d' ...", name, value)
         self.settings_t = netius.legacy.items(self.settings)
 
     def on_preface_http2(self, connection, parser):
@@ -1147,7 +1147,7 @@ class HTTP2Server(http.HTTPServer):
     def on_settings_http2(self, connection, parser, settings, ack):
         if ack:
             return
-        self.debug("Received settings %s for connection" % str(settings))
+        self.debug("Received settings %s for connection", settings)
         connection.set_settings(dict(settings))
         connection.send_settings(ack=True)
 
@@ -1162,7 +1162,7 @@ class HTTP2Server(http.HTTPServer):
         self._log_error(error_code, extra)
 
     def on_window_update_http2(self, connection, parser, stream, increment):
-        self.debug("Window updated with increment %d bytes" % increment)
+        self.debug("Window updated with increment %d bytes", increment)
 
     def on_continuation_http2(self, connection, parser, stream):
         pass
@@ -1204,8 +1204,11 @@ class HTTP2Server(http.HTTPServer):
 
     def _log_frame(self, connection, parser):
         self.debug(
-            "Received frame 0x%02x (%s) for stream %d with length %d bytes"
-            % (parser.type, parser.type_s, parser.stream, parser.length)
+            "Received frame 0x%02x (%s) for stream %d with length %d bytes",
+            parser.type,
+            parser.type_s,
+            parser.stream,
+            parser.length,
         )
 
         self._log_frame_details(
@@ -1214,15 +1217,18 @@ class HTTP2Server(http.HTTPServer):
 
     def _log_error(self, error_code, extra):
         message = netius.legacy.str(extra)
-        self.warning("Received error 0x%02x with message '%s'" % (error_code, message))
+        self.warning("Received error 0x%02x with message '%s'", error_code, message)
 
     def _log_send(self, connection, parser, type, flags, payload, stream):
         length = len(payload)
         type_s = parser.get_type_s(type)
 
         self.debug(
-            "Sent frame 0x%02x (%s) for stream %d with length %d bytes"
-            % (type, type_s, stream, length)
+            "Sent frame 0x%02x (%s) for stream %d with length %d bytes",
+            type,
+            type_s,
+            stream,
+            length,
         )
 
         self._log_frame_details(parser, type_s, flags, payload, stream, True)
@@ -1231,14 +1237,18 @@ class HTTP2Server(http.HTTPServer):
         name = "SEND" if remote else "RECV"
         connection = parser.connection
         window = connection.window if remote else connection.window_l
-        self.debug("Connection %s window size is %d bytes" % (name, window))
+        self.debug("Connection %s window size is %d bytes", name, window)
         stream = parser._get_stream(stream, strict=False)
         if not stream:
             return
         window = stream.window if remote else stream.window_l
         self.debug(
-            "Stream %d (dependency = %d, weight = %d) %s window size is %d bytes"
-            % (stream.identifier, stream.dependency, stream.weight, name, window)
+            "Stream %d (dependency = %d, weight = %d) %s window size is %d bytes",
+            stream.identifier,
+            stream.dependency,
+            stream.weight,
+            name,
+            window,
         )
 
     def _log_frame_details(self, parser, type_s, flags, payload, stream, out):
@@ -1253,16 +1263,16 @@ class HTTP2Server(http.HTTPServer):
         flags = ", ".join(args)
         pluralized = "flags" if len(args) > 1 else "flag"
         if flags:
-            self.debug("%s with %s %s active" % (type_s, pluralized, flags))
+            self.debug("%s with %s %s active", type_s, pluralized, flags)
         else:
-            self.debug("Frame %s with no flags active" % type_s)
+            self.debug("Frame %s with no flags active", type_s)
 
     def _log_frame_data(self, parser, flags, payload, stream, out):
         _stream = parser._get_stream(stream, strict=False)
         flags_l = self._flags_l(flags, (("END_STREAM", 0x01),))
         self._log_frame_flags("DATA", *flags_l)
         if _stream:
-            self.debug("Frame DATA for path '%s'" % _stream.path_s)
+            self.debug("Frame DATA for path '%s'", _stream.path_s)
         self._log_window(parser, stream, remote=out)
 
     def _log_frame_headers(self, parser, flags, payload, stream, out):
@@ -1279,7 +1289,7 @@ class HTTP2Server(http.HTTPServer):
 
     def _log_frame_rst_stream(self, parser, flags, payload, stream, out):
         (error_code,) = struct.unpack("!I", payload)
-        self.debug("Frame RST_STREAM with error code %d" % error_code)
+        self.debug("Frame RST_STREAM with error code %d", error_code)
 
     def _log_frame_goaway(self, parser, flags, payload, stream, out):
         last_stream, error_code = struct.unpack("!II", payload[:8])
@@ -1291,7 +1301,7 @@ class HTTP2Server(http.HTTPServer):
 
     def _log_frame_window_update(self, parser, flags, payload, stream, out):
         (increment,) = struct.unpack("!I", payload)
-        self.debug("Frame WINDOW_UPDATE with increment %d" % increment)
+        self.debug("Frame WINDOW_UPDATE with increment %d", increment)
         self._log_window(parser, stream, remote=not out)
 
     def _flags_l(self, flags, definition):

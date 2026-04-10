@@ -245,7 +245,7 @@ class TFTPServer(netius.DatagramServer):
         type = request.get_type()
         type_s = request.get_type_s()
 
-        self.debug("Received %s message from '%s'" % (type_s, address))
+        self.debug("Received %s message from '%s'", type_s, address)
 
         if not type in cls.ALLOWED_OPERATIONS:
             raise netius.NetiusError("Invalid operation type '%d'", type)
@@ -262,7 +262,7 @@ class TFTPServer(netius.DatagramServer):
         header = struct.pack("!HH", netius.common.ERROR_TFTP, 0)
         response = header + message_b + b"\x00"
         self.send(response, address)
-        self.info("Sent error message '%s' to '%s'" % (message, address))
+        self.info("Sent error message '%s' to '%s'", message, address)
 
 
 if __name__ == "__main__":

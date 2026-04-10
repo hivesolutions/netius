@@ -662,9 +662,9 @@ class HTTPServer(netius.StreamServer):
         if self.common_log:
             self.common_file = open(self.common_log, "wb+")
         self.encoding = ENCODING_MAP.get(self.encoding_s, PLAIN_ENCODING)
-        self.info("Starting HTTP server with '%s' encoding ..." % self.encoding_s)
+        self.info("Starting HTTP server with '%s' encoding ...", self.encoding_s)
         if self.common_log:
-            self.info("Logging with Common Log Format to '%s' ..." % self.common_log)
+            self.info("Logging with Common Log Format to '%s' ...", self.common_log)
 
     def build_connection(self, socket, address, ssl=False):
         return HTTPConnection(
@@ -694,8 +694,10 @@ class HTTPServer(netius.StreamServer):
 
     def on_flush_http(self, connection, parser, encoding=None):
         connection.debug(
-            "Connection '%s' %s from '%s' flushed"
-            % (connection.id, connection.address, self.name)
+            "Connection '%s' %s from '%s' flushed",
+            connection.id,
+            connection.address,
+            self.name,
         )
 
     def authorize(self, connection, parser, auth=None, **kwargs):

@@ -255,7 +255,7 @@ class BaseConnection(observer.Observable):
 
         # prints a debug message about the upgrading of the connection that is
         # going to be performed for the current connection
-        self.owner.debug("Upgrading '%s' into an SSL connection ..." % self.id)
+        self.owner.debug("Upgrading '%s' into an SSL connection ...", self.id)
 
         # sets the SSL flag of the current connection as the connection is now
         # going to be considered as SSL oriented and then sets the upgrading flag
@@ -277,11 +277,11 @@ class BaseConnection(observer.Observable):
         # prints some debug information about the files that are going to be used for
         # the SSL based connection upgrade, this is mainly for debugging purposes
         if key_file:
-            self.owner.debug("Using '%s' as key file" % key_file)
+            self.owner.debug("Using '%s' as key file", key_file)
         if cer_file:
-            self.owner.debug("Using '%s' as certificate file" % cer_file)
+            self.owner.debug("Using '%s' as certificate file", cer_file)
         if ca_file:
-            self.owner.debug("Using '%s' as certificate authority file" % ca_file)
+            self.owner.debug("Using '%s' as certificate authority file", ca_file)
 
         # removes the "old" association socket association for the connection and
         # unsubscribes the "old" socket from the complete set of events, this should

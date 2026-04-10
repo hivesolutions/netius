@@ -66,11 +66,14 @@ class Server(Base):
     def welcome(self):
         Base.welcome(self)
 
-        self.info("Booting %s %s (%s) ..." % (NAME, VERSION, PLATFORM))
-        self.debug("OpenSSL %s" % ssl.OPENSSL_VERSION)
+        self.info("Booting %s %s (%s) ...", NAME, VERSION, PLATFORM)
+        self.debug("OpenSSL %s", ssl.OPENSSL_VERSION)
         self.debug(
-            "SSL paths: SSL_KEY_PATH=%s, SSL_CER_PATH=%s, SSL_CA_PATH=%s, SSL_DH_PATH=%s"
-            % (SSL_KEY_PATH, SSL_CER_PATH, SSL_CA_PATH, SSL_DH_PATH)
+            "SSL paths: SSL_KEY_PATH=%s, SSL_CER_PATH=%s, SSL_CA_PATH=%s, SSL_DH_PATH=%s",
+            SSL_KEY_PATH,
+            SSL_CER_PATH,
+            SSL_CA_PATH,
+            SSL_DH_PATH,
         )
 
     def cleanup(self):
@@ -285,8 +288,12 @@ class Server(Base):
         ipv6_s = " on IPv6" if ipv6 else ""
         ssl_s = " using SSL" if ssl else ""
         self.info(
-            "Serving '%s' service on %s:%s%s%s ..."
-            % (self.name, host, port, ipv6_s, ssl_s)
+            "Serving '%s' service on %s:%s%s%s ...",
+            self.name,
+            host,
+            port,
+            ipv6_s,
+            ssl_s,
         )
 
         # runs the fork operation responsible for the forking of the
@@ -338,13 +345,13 @@ class Server(Base):
         # retrieves the proper string based type for the current server socket
         # and the prints a series of log message about the socket to be created
         type_s = " SSL" if ssl else ""
-        self.debug("Creating server's TCP%s socket ..." % type_s)
+        self.debug("Creating server's TCP%s socket ...", type_s)
         if ssl:
-            self.debug("Loading '%s' as key file" % key_file)
+            self.debug("Loading '%s' as key file", key_file)
         if ssl:
-            self.debug("Loading '%s' as certificate file" % cer_file)
+            self.debug("Loading '%s' as certificate file", cer_file)
         if ssl and ca_file:
-            self.debug("Loading '%s' as certificate authority file" % ca_file)
+            self.debug("Loading '%s' as certificate authority file", ca_file)
         if ssl and ssl_verify:
             self.debug("Loading with client SSL verification")
 

@@ -56,9 +56,9 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         self.postmaster = self.get_env("POSTMASTER", self.postmaster)
         self.dkim = self.get_env("DKIM", self.dkim)
         dkim_l = len(self.dkim)
-        self.info("Starting Relay SMTP server with %d DKIM registers  ..." % dkim_l)
+        self.info("Starting Relay SMTP server with %d DKIM registers  ...", dkim_l)
         if self.postmaster:
-            self.info("Using '%s' as the Postmaster email sender ..." % self.postmaster)
+            self.info("Using '%s' as the Postmaster email sender ...", self.postmaster)
 
     def on_header_smtp(self, connection, from_l, to_l):
         netius.servers.SMTPServer.on_header_smtp(self, connection, from_l, to_l)

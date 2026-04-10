@@ -1694,8 +1694,9 @@ class AbstractBase(observer.Observable):
         # to the logger indicating this start, this stage
         # should block the thread until a stop call is made
         self.debug(
-            "Starting '%s' service main loop (%.2fs) ..."
-            % (self.name, self.poll_timeout)
+            "Starting '%s' service main loop (%.2fs) ...",
+            self.name,
+            self.poll_timeout,
         )
         self.debug("Using thread '%s' with TID '%d'", self.tname, self.tid)
         self.debug("Using '%s' as polling mechanism", poll_name)
@@ -1731,8 +1732,9 @@ class AbstractBase(observer.Observable):
 
     def resume(self):
         self.debug(
-            "Resuming '%s' service main loop (%.2fs) ..."
-            % (self.name, self.poll_timeout)
+            "Resuming '%s' service main loop (%.2fs) ...",
+            self.name,
+            self.poll_timeout,
         )
         self.on_resume()
         self.main()
@@ -2370,8 +2372,12 @@ class AbstractBase(observer.Observable):
             ipv6_s = " on IPv6" if ipv6 else ""
             ssl_s = " using SSL" if ssl else ""
             self.info(
-                "Serving '%s' service on %s:%s%s%s ..."
-                % (self.name, host, port_i, ipv6_s, ssl_s)
+                "Serving '%s' service on %s:%s%s%s ...",
+                self.name,
+                host,
+                port_i,
+                ipv6_s,
+                ssl_s,
             )
 
             # ensures that the current polling mechanism is correctly open as the
@@ -2884,12 +2890,15 @@ class AbstractBase(observer.Observable):
         # prints some debug information about the connection that has
         # just been created (for possible debugging purposes)
         self.debug(
-            "Connection '%s' %s from '%s' created"
-            % (connection.id, connection.address, connection.owner.name)
+            "Connection '%s' %s from '%s' created",
+            connection.id,
+            connection.address,
+            connection.owner.name,
         )
         self.debug(
-            "There are %d connections for '%s'"
-            % (len(connection.owner.connections), connection.owner.name)
+            "There are %d connections for '%s'",
+            len(connection.owner.connections),
+            connection.owner.name,
         )
 
         # triggers the event notifying any listener about the new connection
@@ -2900,12 +2909,15 @@ class AbstractBase(observer.Observable):
         # prints some debug information about the connection
         # that has just been scheduled for destruction
         self.debug(
-            "Connection '%s' %s from '%s' deleted"
-            % (connection.id, connection.address, connection.owner.name)
+            "Connection '%s' %s from '%s' deleted",
+            connection.id,
+            connection.address,
+            connection.owner.name,
         )
         self.debug(
-            "There are %d connections for '%s'"
-            % (len(connection.owner.connections), connection.owner.name)
+            "There are %d connections for '%s'",
+            len(connection.owner.connections),
+            connection.owner.name,
         )
 
         # triggers the event notifying any listener about the
@@ -2920,7 +2932,7 @@ class AbstractBase(observer.Observable):
         # prints some debug information on the stream that has just been
         # created (may be used for debugging purposes)
         self.debug(
-            "Stream '%s' from '%s' created" % (stream.identifier, connection.owner.name)
+            "Stream '%s' from '%s' created", stream.identifier, connection.owner.name
         )
 
         # notifies any listener of the stream created event about the
@@ -2935,7 +2947,7 @@ class AbstractBase(observer.Observable):
         # prints some debug information on the stream that has just been
         # deleted (may be used for debugging purposes)
         self.debug(
-            "Stream '%s' from '%s' deleted" % (stream.identifier, connection.owner.name)
+            "Stream '%s' from '%s' deleted", stream.identifier, connection.owner.name
         )
 
         # notifies any listener of the stream deleted event about the
@@ -3426,12 +3438,23 @@ class AbstractBase(observer.Observable):
                 self.on_expected(error, connection)
             elif not error_v in SSL_VALID_ERRORS and not error_m in SSL_VALID_REASONS:
                 self.on_exception(error, connection)
+            else:
+                self.trace(
+                    "exec_safe SSL valid error %s/%s for '%s'",
+                    error_v,
+                    error_m,
+                    connection.id,
+                )
         except socket.error as error:
             error_v = error.args[0] if error.args else None
             if error_v in SILENT_ERRORS:
                 self.on_expected(error, connection)
             elif not error_v in VALID_ERRORS:
                 self.on_exception(error, connection)
+            else:
+                self.trace(
+                    "exec_safe valid error %s for '%s'", error_v, connection.id
+                )
         except (KeyboardInterrupt, SystemExit):
             raise
         except BaseException as exception:

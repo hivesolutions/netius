@@ -584,7 +584,7 @@ class SMTPClient(netius.StreamClient):
 
                 # prints a debug message about the connection that is now
                 # going to be established (helps with debugging purposes)
-                self.debug("Establishing SMTP connection on %s:%d ..." % (_host, _port))
+                self.debug("Establishing SMTP connection on %s:%d ...", _host, _port)
 
                 # establishes the connection to the target host and port
                 # and using the provided key and certificate files and then
@@ -641,7 +641,7 @@ class SMTPClient(netius.StreamClient):
 
             # prints a small debug message about the resolution of the
             # domain for the current message (debugging purposes)
-            self.debug("Resolving MX domain for'%s' ..." % domain)
+            self.debug("Resolving MX domain for'%s' ...", domain)
 
             # runs the dns query to be able to retrieve the proper
             # mail exchange host for the target email address and then
