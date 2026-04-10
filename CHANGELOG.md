@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* `has_starter`, `starters_count`, `socket_fileno`, and `proxy_pending` fields to connection `info_dict` for richer diagnostics
+*
 
 ### Changed
 
@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.39.2] - 2026-04-10
+
+### Added
+
+* `has_starter`, `starters_count`, `socket_fileno`, and `proxy_pending` fields to connection `info_dict` for richer diagnostics
 
 ## [1.39.1] - 2026-04-10
 
