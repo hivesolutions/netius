@@ -13,11 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Logging calls across the codebase now use lazy `,` evaluation instead of `%` string formatting for deferred argument resolution
+*
 
 ### Fixed
 
 *
+
+## [1.39.1] - 2026-04-10
+
+### Changed
+
+* Logging calls across the codebase now use lazy `,` evaluation instead of `%` string formatting for deferred argument resolution
 
 ## [1.39.0] - 2026-04-10
 
