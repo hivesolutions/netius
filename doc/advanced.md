@@ -120,6 +120,10 @@ IPV6=1 MESSAGE="Hello Netius" python -m netius.extra.hello
 
 ## Debugging
 
+Netius includes a built-in [diagnostics server](diag.md) that exposes HTTP endpoints for runtime
+introspection of any running service. Enable it with `DIAG=1` to inspect connections, system state,
+and change log levels at runtime.
+
 It's important to keep track of the memory leaks that may be created by any circular references or
 unclosed resources associated with a netius server. For that purpose, a [special document](leak.md) has
 been created, documenting the various tools and strategies that may be used to detect such leaks.

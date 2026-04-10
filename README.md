@@ -101,6 +101,7 @@ The servers that come with netius out-of-the-box, can be tested through the comm
 ### Basic
 
 * [Configuration](doc/configuration.md) - how to configure your server/client
+* [Diagnostics](doc/diag.md) - built-in HTTP diagnostics server for runtime introspection
 
 ### Advanced topics
 
