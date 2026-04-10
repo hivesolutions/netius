@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Close datagram protocol after DNS query callback in `DNSClient.query_s()` to prevent connection leak
 
 ## [1.39.4] - 2026-04-10
 
