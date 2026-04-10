@@ -550,7 +550,7 @@ class SMTPClient(netius.StreamClient):
                 # used in the establishment of the SMTP connection
                 if response:
                     # in case there are no answers present in the response
-                    # of the dns resolution an exception must be raised, note
+                    # of the DNS resolution an exception must be raised, note
                     # that the on close handler is called so that proper
                     # fallback for this connections is handled
                     if not response.answers:
@@ -616,7 +616,7 @@ class SMTPClient(netius.StreamClient):
 
         # ensures that the proper main loop is started so that the current
         # SMTP client does not become orphan as no connection has been
-        # established as of this moment (as expected) and the dns client
+        # established as of this moment (as expected) and the DNS client
         # is going to be run as a daemon (avoids process exit)
         if ensure_loop:
             self.ensure_loop()
@@ -643,7 +643,7 @@ class SMTPClient(netius.StreamClient):
             # domain for the current message (debugging purposes)
             self.debug("Resolving MX domain for'%s' ...", domain)
 
-            # runs the dns query to be able to retrieve the proper
+            # runs the DNS query to be able to retrieve the proper
             # mail exchange host for the target email address and then
             # sets the proper callback for sending
             dns.DNSClient.query_s(domain, type="mx", callback=handler)
