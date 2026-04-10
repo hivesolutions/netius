@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+*
+
+## [1.38.10] - 2026-04-10
+
+### Fixed
+
 * Use byte literals for UTF-8 test strings in DKIM tests for Python 2 compatibility
 
 ## [1.38.9] - 2026-04-10
