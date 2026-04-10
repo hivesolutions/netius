@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Stack trace logging for connections created with `None` address to help diagnose origin of address-less connections
+*
 
 ### Changed
 
@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.39.4] - 2026-04-10
+
+### Added
+
+* Stack trace logging for connections created with `None` address to help diagnose origin of address-less connections
 
 ## [1.39.3] - 2026-04-10
 
