@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `datagram`, `socket_family`, and `socket_type` fields to connection `info_dict` for socket-level diagnostics
 
 ### Changed
 

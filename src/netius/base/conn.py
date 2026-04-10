@@ -660,6 +660,7 @@ class BaseConnection(observer.Observable):
             upgrading=self.upgrading,
             address=self.address,
             ssl=self.ssl,
+            datagram=self.datagram,
             renable=self.renable,
             wready=self.wready,
             pending_s=self.pending_s,
@@ -667,6 +668,8 @@ class BaseConnection(observer.Observable):
             has_starter=self._has_starter,
             starters_count=len(self.starters),
             socket_fileno=self._safe_fileno,
+            socket_family=self._safe_socket_attr("family"),
+            socket_type=self._safe_socket_attr("type"),
             proxy_pending=getattr(self, "_proxy_pending", None),
             is_base=getattr(self, "_base", False),
         )
@@ -989,6 +992,12 @@ class BaseConnection(observer.Observable):
         """
 
         self.owner.writes((self.socket,), state=False)
+
+    def _safe_socket_attr(self, name):
+        try:
+            return getattr(self.socket, name, None) if self.socket else None
+        except Exception:
+            return None
 
     @property
     def _has_starter(self):
