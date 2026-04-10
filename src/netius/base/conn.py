@@ -663,6 +663,10 @@ class BaseConnection(observer.Observable):
             wready=self.wready,
             pending_s=self.pending_s,
             restored_s=self.restored_s,
+            has_starter=not self._starter == None,
+            starters_count=len(self.starters),
+            socket_fileno=self._safe_fileno,
+            proxy_pending=getattr(self, "_proxy_pending", None),
         )
         return info
 
@@ -983,6 +987,13 @@ class BaseConnection(observer.Observable):
         """
 
         self.owner.writes((self.socket,), state=False)
+
+    @property
+    def _safe_fileno(self):
+        try:
+            return self.socket.fileno() if self.socket else None
+        except Exception:
+            return -1
 
 
 class DiagConnection(BaseConnection):
