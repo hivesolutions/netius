@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * `ActivityRelaySMTPServer` middleware in `extra/smtp_a.py` that posts delivery status (delivered/failed) to an external HTTP endpoint after each relay operation, configurable via `SMTP_ACTIVITY_URL` and `SMTP_ACTIVITY_SECRET` environment variables
+* `_ssl_reload()` method on the base server to reload SSL contexts from disk when certificate files have changed, without requiring a process restart
+* `reload(domains)` and `_mtime(domain)` methods on `TLSContextDict` for mtime-based certificate change detection
 * `datagram`, `socket_family`, and `socket_type` fields to connection `info_dict` for socket-level diagnostics
 
 ### Changed
