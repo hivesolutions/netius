@@ -28,6 +28,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import time
 import base64
 import datetime
 
@@ -89,11 +90,15 @@ class SMTPConnection(netius.Connection):
         self.sequence = ()
         self.capabilities = ()
         self.messages = []
+        self.greeting = None
+        self.queue_response = None
+        self.start_time = None
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
         if not self.is_open():
             return
+        self.start_time = time.time()
         self.parser = netius.common.SMTPParser(self)
         self.parser.bind("on_line", self.on_line)
         self.build()
@@ -263,10 +268,14 @@ class SMTPConnection(netius.Connection):
         self.call()
 
     def helo_t(self):
+        if self.greeting == None:
+            self.greeting = self.messages[0] if self.messages else None
         self.helo(self.host)
         self.next_sequence()
 
     def ehlo_t(self):
+        if self.greeting == None:
+            self.greeting = self.messages[0] if self.messages else None
         self.ehlo(self.host)
         self.next_sequence()
 
@@ -331,6 +340,7 @@ class SMTPConnection(netius.Connection):
         self.next_sequence()
 
     def quit_t(self):
+        self.queue_response = self.messages[0] if self.messages else None
         self.quit()
         self.next_sequence()
 
@@ -498,12 +508,19 @@ class SMTPClient(netius.StreamClient):
         if mark:
             contents = self.mark(contents)
 
+        # creates the shared sessions list that will accumulate
+        # deliverability information across all domain handlers
+        # for the current message relay operation
+        sessions = []
+
         # creates the method that is able to generate handler for a
         # certain sequence of to based (email) addresses
         def build_handler(tos, domain=None, tos_map=None):
 
             # creates the context object that will be used to pass
-            # contextual information to the callbacks
+            # contextual information to the callbacks, the sessions
+            # list is shared across all handlers for the same message
+            # and accumulates deliverability info per domain session
             context = dict(
                 froms=froms,
                 tos=tos,
@@ -513,11 +530,31 @@ class SMTPClient(netius.StreamClient):
                 ensure_loop=ensure_loop,
                 domain=domain,
                 tos_map=tos_map,
+                sessions=sessions,
             )
 
             def on_close(connection=None):
-                # verifies if the current handler has been build with a
-                # domain based clojure and if that's the case removes the
+                # captures the deliverability information from the
+                # SMTP session that has just completed, including the
+                # remote server greeting, queue response, session
+                # duration and the recipients for this session
+                if connection:
+                    end_time = time.time()
+                    start_time = getattr(connection, "start_time", None)
+                    duration = end_time - start_time if start_time else None
+                    session = dict(
+                        domain=domain,
+                        host=connection.address[0] if connection.address else None,
+                        port=connection.address[1] if connection.address else None,
+                        greeting=getattr(connection, "greeting", None),
+                        queue_response=getattr(connection, "queue_response", None),
+                        duration=duration,
+                        recipients=list(tos),
+                    )
+                    context["sessions"].append(session)
+
+                # verifies if the current handler has been built with a
+                # domain based closure and if that's the case removes the
                 # reference of it from the map of tos, then verifies if the
                 # map is still valid and if that's the case returns and this
                 # is not considered the last remaining SMTP session for the
@@ -527,11 +564,13 @@ class SMTPClient(netius.StreamClient):
                 if tos_map:
                     return
 
+                # stores the accumulated session information on the
+                # client instance so it can be accessed by the callback
                 # verifies if the callback method is defined and if that's
                 # the case calls the callback indicating the end of the send
                 # operation (note that this may represent multiple SMTP sessions)
                 if callback:
-                    callback(self)
+                    callback(self, context)
 
             def on_exception(connection=None, exception=None):
                 if callback_error:

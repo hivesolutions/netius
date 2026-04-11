@@ -103,7 +103,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         froms = self._emails(connection.from_l, prefix="from")
         self.relay(connection, froms, connection.remotes, data_s)
 
-    def on_relay_smtp(self, smtp_client, connection, froms, tos, contents):
+    def on_relay_smtp(self, connection, context, smtp_client, froms, tos, contents):
         # by default the relay operation is considered to be successful
         # and the client is closed once the message is sent to all the
         # recipients
@@ -111,14 +111,14 @@ class RelaySMTPServer(netius.servers.SMTPServer):
 
     def on_relay_error_smtp(
         self,
-        smtp_client,
         connection,
+        context,
+        exception,
+        smtp_client,
         froms,
         tos,
         contents,
         reply_to,
-        context,
-        exception,
     ):
         # in case of error a postmaster email is sent to the reply
         # to address with the details of the error, the client
@@ -181,8 +181,8 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # is sent to all the recipients (better auto close support), note
         # that multiple SMTP session may be created for the message so that
         # all the hosts associated with the recipients are notified
-        callback = lambda smtp_client: self.on_relay_smtp(
-            smtp_client, connection, froms, tos, contents
+        callback = lambda smtp_client, context: self.on_relay_smtp(
+            connection, context, smtp_client, froms, tos, contents
         )
 
         # creates the callback to the error as a function that sends a
@@ -191,14 +191,14 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # address defined as postmaster for this SMTP server
         callback_error = (
             lambda smtp_client, context, exception: self.on_relay_error_smtp(
-                smtp_client,
                 connection,
+                context,
+                exception,
+                smtp_client,
                 froms,
                 tos,
                 contents,
                 reply_to,
-                context,
-                exception,
             )
         )
 
