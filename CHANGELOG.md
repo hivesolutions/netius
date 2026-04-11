@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.41.0] - 2026-04-12
+
+### Added
+
 * RFC 2047 encoded word subject decoding in `ActivityRelaySMTPServer` so that MIME-encoded subjects are posted as clean unicode strings
 * Per-domain SMTP session deliverability info (`sessions` list) in the activity webhook payload including remote host, port, greeting, queue response, duration and recipients
 * `greeting`, `queue_response` and `start_time` attributes on `SMTPConnection` (client) to capture remote server identification and delivery confirmation
@@ -17,10 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * Reordered `on_relay_smtp` and `on_relay_error_smtp` arguments to lead with `connection`, `context` (and `exception` for error) for consistency
-
-### Fixed
-
-*
 
 ## [1.40.0] - 2026-04-11
 
