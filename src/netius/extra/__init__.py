@@ -35,6 +35,7 @@ from . import proxy_c
 from . import proxy_d
 from . import proxy_f
 from . import proxy_r
+from . import smtp_a
 from . import smtp_r
 
 from .desktop import DesktopServer
@@ -46,4 +47,5 @@ from .proxy_c import ConsulProxyServer
 from .proxy_d import DockerProxyServer
 from .proxy_f import ForwardProxyServer
 from .proxy_r import ReverseProxyServer
+from .smtp_a import ActivityRelaySMTPServer
 from .smtp_r import RelaySMTPServer
