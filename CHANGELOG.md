@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.40.0] - 2026-04-11
+
+### Added
+
 * `ActivityRelaySMTPServer` middleware in `extra/smtp_a.py` that posts delivery status (delivered/failed) to an external HTTP endpoint after each relay operation, configurable via `SMTP_ACTIVITY_URL` and `SMTP_ACTIVITY_SECRET` environment variables
 * `_ssl_reload()` method on the base server to reload SSL contexts from disk when certificate files have changed, without requiring a process restart
 * `reload(domains)` and `_mtime(domain)` methods on `TLSContextDict` for mtime-based certificate change detection
@@ -17,10 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * Added `RECORD_LAYER_FAILURE` to `SSL_SILENT_REASONS` so that record layer failures are treated as expected (silent) SSL errors
-
-### Fixed
-
-*
 
 ## [1.39.6] - 2026-04-10
 
