@@ -109,6 +109,14 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
         message_id = headers.get("Message-Id", message_id)
         username = getattr(connection, "username", None)
 
+        # converts the headers list of byte pairs into a dictionary
+        # of string key-value pairs for JSON serialization and also
+        # decodes the full contents as a string value
+        headers_d = dict(
+            (netius.legacy.str(key), netius.legacy.str(value)) for key, value in headers
+        )
+        contents_s = netius.legacy.str(contents)
+
         # builds the activity payload using the extracted values
         # and the relay context information
         payload = dict(
@@ -120,6 +128,8 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
             message_id=message_id,
             server=self.host,
             username=username,
+            headers=headers_d,
+            contents=contents_s,
         )
         if error:
             payload["error"] = error
