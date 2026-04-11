@@ -541,7 +541,7 @@ class SMTPClient(netius.StreamClient):
                 if connection:
                     end_time = time.time()
                     start_time = getattr(connection, "start_time", None)
-                    duration = end_time - start_time if start_time else None
+                    duration = end_time - start_time if not start_time == None else None
                     session = dict(
                         domain=domain,
                         host=connection.address[0] if connection.address else None,
@@ -564,8 +564,6 @@ class SMTPClient(netius.StreamClient):
                 if tos_map:
                     return
 
-                # stores the accumulated session information on the
-                # client instance so it can be accessed by the callback
                 # verifies if the callback method is defined and if that's
                 # the case calls the callback indicating the end of the send
                 # operation (note that this may represent multiple SMTP sessions)
