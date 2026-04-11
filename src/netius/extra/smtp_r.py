@@ -121,10 +121,10 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         exception,
     ):
         # in case of error a postmaster email is sent to the reply
-        # to address with the details of the error and the client
-        # is closed to release the associated resources
+        # to address with the details of the error, the client
+        # close is handled by the on_close callback that fires
+        # after the exception handler completes
         self.relay_postmaster(reply_to, context, exception)
-        smtp_client.close()
 
     def relay(self, connection, froms, tos, contents):
         # verifies that the current connection has an authenticated user
