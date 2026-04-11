@@ -158,14 +158,25 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # is sent to all the recipients (better auto close support), note
         # that multiple SMTP session may be created for the message so that
         # all the hosts associated with the recipients are notified
-        callback = lambda smtp_client: smtp_client.close()
+        callback = lambda smtp_client: self.on_relay_smtp(
+            smtp_client, connection, froms, tos, contents
+        )
 
         # creates the callback to the error as a function that sends a
         # postmaster email to the reply to address found in the message,
         # note that this is only performed in case there's a valid email
         # address defined as postmaster for this SMTP server
-        callback_error = lambda smtp_client, context, exception: self.relay_postmaster(
-            reply_to, context, exception
+        callback_error = (
+            lambda smtp_client, context, exception: self.on_relay_error_smtp(
+                smtp_client,
+                connection,
+                froms,
+                tos,
+                contents,
+                reply_to,
+                context,
+                exception,
+            )
         )
 
         # generates a new SMTP client for the sending of the message,
@@ -180,6 +191,22 @@ class RelaySMTPServer(netius.servers.SMTPServer):
             callback=callback,
             callback_error=callback_error,
         )
+
+    def on_relay_smtp(self, smtp_client, connection, froms, tos, contents):
+        smtp_client.close()
+
+    def on_relay_error_smtp(
+        self,
+        smtp_client,
+        connection,
+        froms,
+        tos,
+        contents,
+        reply_to,
+        context,
+        exception,
+    ):
+        self.relay_postmaster(reply_to, context, exception)
 
     def relay_postmaster(self, reply_to, context, exception):
         # validates that the base information required for
