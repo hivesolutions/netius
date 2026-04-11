@@ -64,6 +64,7 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
             )
 
     def on_relay_smtp(self, smtp_client, connection, froms, tos, contents):
+        self.debug("Relay delivered from %s to %s", froms, tos)
         self._post_activity(connection, froms, tos, contents, "delivered")
         smtp_r.RelaySMTPServer.on_relay_smtp(
             self, smtp_client, connection, froms, tos, contents
@@ -80,6 +81,7 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
         context,
         exception,
     ):
+        self.debug("Relay failed from %s to %s (%s)", froms, tos, str(exception))
         self._post_activity(
             connection, froms, tos, contents, "failed", error=str(exception)
         )
@@ -108,6 +110,7 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
         # certain error scenarios)
         has_post = getattr(connection, "_activity_post", False)
         if has_post:
+            self.debug("Activity already posted, skipping duplicate for %s", froms)
             return
         connection._activity_post = True
 
@@ -159,6 +162,12 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
         # posts the activity payload to the external endpoint
         # using a non-blocking HTTP client request, in case of
         # failure a warning is logged and the error is ignored
+        self.debug(
+            "Posting activity '%s' for %s to '%s' ...",
+            status,
+            froms,
+            self.activity_url,
+        )
         try:
             netius.clients.HTTPClient.method_s(
                 "POST",
