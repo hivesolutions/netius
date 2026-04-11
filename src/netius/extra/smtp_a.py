@@ -44,7 +44,7 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
     endpoint after each relay operation completes.
 
     The activity tracking is optional and only enabled when
-    the SMTP_ACTIVITY_URL environment variable is set.
+    the `SMTP_ACTIVITY_URL` environment variable is set.
     """
 
     def __init__(self, activity_url=None, activity_secret=None, *args, **kwargs):
@@ -123,13 +123,13 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
             timestamp=time.time(),
             sender=froms[0] if froms else None,
             recipients=list(tos),
-            subject=subject,
-            status=status,
-            message_id=message_id,
-            server=self.host,
-            username=username,
             headers=headers_d,
             contents=contents_s,
+            subject=subject,
+            message_id=message_id,
+            status=status,
+            server=self.host,
+            username=username,
         )
         if error:
             payload["error"] = error
