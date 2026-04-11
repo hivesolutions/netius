@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* Added `RECORD_LAYER_FAILURE` to `SSL_SILENT_REASONS` so that record layer failures are treated as expected (silent) SSL errors
 
 ### Fixed
 
