@@ -64,15 +64,7 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
             )
 
     def on_relay_smtp(self, smtp_client, connection, froms, tos, contents):
-        # verifies if the activity has already been posted for this
-        # relay operation, if that's the case skips the activity
-        # post to avoid duplicate webhook calls (the SMTP client
-        # may call both on_close and on_exception for the same
-        # relay operation in certain error scenarios)
-        has_post = getattr(connection, "_activity_post", False)
-        if not has_post:
-            self._post_activity(connection, froms, tos, contents, "delivered")
-        connection._activity_post = False
+        self._post_activity(connection, froms, tos, contents, "delivered")
         smtp_r.RelaySMTPServer.on_relay_smtp(
             self, smtp_client, connection, froms, tos, contents
         )
@@ -88,10 +80,6 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
         context,
         exception,
     ):
-        # marks the connection as having the activity posted so
-        # that the success callback (on_relay_smtp) does not post
-        # a duplicate activity for the same relay operation
-        connection._activity_post = True
         self._post_activity(
             connection, froms, tos, contents, "failed", error=str(exception)
         )
@@ -112,6 +100,16 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
         # disabled and the method returns immediately
         if not self.activity_url:
             return
+
+        # verifies if the activity has already been posted for this
+        # relay operation, if that's the case skips the post to avoid
+        # duplicate webhook calls (the SMTP client may call both
+        # on_close and on_exception for the same relay operation in
+        # certain error scenarios)
+        has_post = getattr(connection, "_activity_post", False)
+        if has_post:
+            return
+        connection._activity_post = True
 
         # parses the message headers to extract the subject and
         # message id values for the activity payload, note that
