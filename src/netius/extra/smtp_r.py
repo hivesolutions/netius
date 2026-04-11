@@ -103,6 +103,29 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         froms = self._emails(connection.from_l, prefix="from")
         self.relay(connection, froms, connection.remotes, data_s)
 
+    def on_relay_smtp(self, smtp_client, connection, froms, tos, contents):
+        # by default the relay operation is considered to be successful
+        # and the client is closed once the message is sent to all the
+        # recipients
+        smtp_client.close()
+
+    def on_relay_error_smtp(
+        self,
+        smtp_client,
+        connection,
+        froms,
+        tos,
+        contents,
+        reply_to,
+        context,
+        exception,
+    ):
+        # in case of error a postmaster email is sent to the reply
+        # to address with the details of the error and the client
+        # is closed to release the associated resources
+        self.relay_postmaster(reply_to, context, exception)
+        smtp_client.close()
+
     def relay(self, connection, froms, tos, contents):
         # verifies that the current connection has an authenticated user
         # and if not raises an exception as the authentication is mandatory
@@ -191,22 +214,6 @@ class RelaySMTPServer(netius.servers.SMTPServer):
             callback=callback,
             callback_error=callback_error,
         )
-
-    def on_relay_smtp(self, smtp_client, connection, froms, tos, contents):
-        smtp_client.close()
-
-    def on_relay_error_smtp(
-        self,
-        smtp_client,
-        connection,
-        froms,
-        tos,
-        contents,
-        reply_to,
-        context,
-        exception,
-    ):
-        self.relay_postmaster(reply_to, context, exception)
 
     def relay_postmaster(self, reply_to, context, exception):
         # validates that the base information required for
