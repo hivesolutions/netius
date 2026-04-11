@@ -102,11 +102,14 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
             return
 
         # parses the message headers to extract the subject and
-        # message id values for the activity payload
+        # message id values for the activity payload, note that
+        # byte keys are used as rfc822_parse returns byte pairs
         headers, _body = netius.common.rfc822_parse(contents)
-        subject = headers.get("Subject", "")
-        message_id = headers.get("Message-ID", "")
-        message_id = headers.get("Message-Id", message_id)
+        subject = headers.get(b"Subject", b"")
+        message_id = headers.get(b"Message-ID", b"")
+        message_id = headers.get(b"Message-Id", message_id)
+        subject = netius.legacy.str(subject)
+        message_id = netius.legacy.str(message_id)
         username = getattr(connection, "username", None)
 
         # converts the headers list of byte pairs into a dictionary
