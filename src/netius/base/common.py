@@ -4330,6 +4330,18 @@ class AbstractBase(observer.Observable):
         self._ssl_secure = None
         self._ssl_context_options = None
 
+    def _ssl_reload(self):
+        # verifies if the current SSL contexts map supports
+        # reload (eg: LetsEncryptDict) and if that's the case
+        # triggers a reload to pick up new certificates from
+        # the file system without requiring a full restart
+        if not hasattr(self._ssl_contexts, "reload"):
+            return
+        domains = list(self._ssl_contexts.keys())
+        changed = self._ssl_contexts.reload(domains)
+        if changed:
+            self.info("Reloaded SSL certificates for updated domains")
+
     def _ssl_callback(self, socket, hostname, context):
         context, values = self._ssl_contexts.get(hostname, (context, None))
         self._ssl_ctx_protocols(context)

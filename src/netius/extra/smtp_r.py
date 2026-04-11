@@ -103,6 +103,29 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         froms = self._emails(connection.from_l, prefix="from")
         self.relay(connection, froms, connection.remotes, data_s)
 
+    def on_relay_smtp(self, smtp_client, connection, froms, tos, contents):
+        # by default the relay operation is considered to be successful
+        # and the client is closed once the message is sent to all the
+        # recipients
+        smtp_client.close()
+
+    def on_relay_error_smtp(
+        self,
+        smtp_client,
+        connection,
+        froms,
+        tos,
+        contents,
+        reply_to,
+        context,
+        exception,
+    ):
+        # in case of error a postmaster email is sent to the reply
+        # to address with the details of the error, the client
+        # close is handled by the `on_close` callback that fires
+        # after the exception handler completes
+        self.relay_postmaster(reply_to, context, exception)
+
     def relay(self, connection, froms, tos, contents):
         # verifies that the current connection has an authenticated user
         # and if not raises an exception as the authentication is mandatory
@@ -158,14 +181,25 @@ class RelaySMTPServer(netius.servers.SMTPServer):
         # is sent to all the recipients (better auto close support), note
         # that multiple SMTP session may be created for the message so that
         # all the hosts associated with the recipients are notified
-        callback = lambda smtp_client: smtp_client.close()
+        callback = lambda smtp_client: self.on_relay_smtp(
+            smtp_client, connection, froms, tos, contents
+        )
 
         # creates the callback to the error as a function that sends a
         # postmaster email to the reply to address found in the message,
         # note that this is only performed in case there's a valid email
         # address defined as postmaster for this SMTP server
-        callback_error = lambda smtp_client, context, exception: self.relay_postmaster(
-            reply_to, context, exception
+        callback_error = (
+            lambda smtp_client, context, exception: self.on_relay_error_smtp(
+                smtp_client,
+                connection,
+                froms,
+                tos,
+                contents,
+                reply_to,
+                context,
+                exception,
+            )
         )
 
         # generates a new SMTP client for the sending of the message,
