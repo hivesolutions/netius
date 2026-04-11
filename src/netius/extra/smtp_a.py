@@ -31,6 +31,8 @@ __license__ = "Apache License, Version 2.0"
 import json
 import time
 
+import email.header
+
 import netius.common
 import netius.clients
 
@@ -63,28 +65,31 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
                 "Activity tracking enabled, posting to '%s' ...", self.activity_url
             )
 
-    def on_relay_smtp(self, smtp_client, connection, froms, tos, contents):
+    def on_relay_smtp(self, connection, context, smtp_client, froms, tos, contents):
         self.debug("Relay delivered from %s to %s", froms, tos)
-        self._post_activity(smtp_client, connection, froms, tos, contents, "delivered")
+        self._post_activity(
+            smtp_client, connection, context, froms, tos, contents, "delivered"
+        )
         smtp_r.RelaySMTPServer.on_relay_smtp(
-            self, smtp_client, connection, froms, tos, contents
+            self, connection, context, smtp_client, froms, tos, contents
         )
 
     def on_relay_error_smtp(
         self,
-        smtp_client,
         connection,
+        context,
+        exception,
+        smtp_client,
         froms,
         tos,
         contents,
         reply_to,
-        context,
-        exception,
     ):
         self.debug("Relay failed from %s to %s (%s)", froms, tos, str(exception))
         self._post_activity(
             smtp_client,
             connection,
+            context,
             froms,
             tos,
             contents,
@@ -93,18 +98,26 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
         )
         smtp_r.RelaySMTPServer.on_relay_error_smtp(
             self,
-            smtp_client,
             connection,
+            context,
+            exception,
+            smtp_client,
             froms,
             tos,
             contents,
             reply_to,
-            context,
-            exception,
         )
 
     def _post_activity(
-        self, smtp_client, connection, froms, tos, contents, status, error=None
+        self,
+        smtp_client,
+        connection,
+        context,
+        froms,
+        tos,
+        contents,
+        status,
+        error=None,
     ):
         # in case no activity URL is defined the tracking is
         # disabled and the method returns immediately
@@ -135,6 +148,11 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
         message_id = netius.legacy.str(message_id)
         username = getattr(connection, "username", None)
 
+        # decodes the subject value using the RFC 2047 encoded
+        # word format (eg: =?utf-8?q?Recupera=C3=A7=C3=A3o?=)
+        # so that the activity payload contains a clean string
+        subject = self._decode_header(subject)
+
         # converts the headers list of byte pairs into a dictionary
         # of string key-value pairs for JSON serialization and also
         # decodes the full contents as a string value
@@ -142,6 +160,11 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
             (netius.legacy.str(key), netius.legacy.str(value)) for key, value in headers
         )
         contents_s = netius.legacy.str(contents)
+
+        # retrieves the accumulated session information from the
+        # relay context that contains deliverability details for each
+        # domain session (remote host, greeting, queue response, etc)
+        sessions = context.get("sessions", [])
 
         # builds the activity payload using the extracted values
         # and the relay context information
@@ -156,6 +179,7 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
             status=status,
             server=self.host,
             username=username,
+            sessions=sessions,
         )
         if error:
             payload["error"] = error
@@ -203,6 +227,20 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
                 self.activity_url,
                 str(exception),
             )
+
+    def _decode_header(self, value):
+        # decodes a MIME encoded word header value as defined
+        # in RFC 2047 into a plain unicode string, in case
+        # of any decoding error the original value is returned
+        try:
+            parts = email.header.decode_header(value)
+            decoded = "".join(
+                part.decode(encoding or "utf-8") if isinstance(part, bytes) else part
+                for part, encoding in parts
+            )
+            return decoded
+        except Exception:
+            return value
 
 
 if __name__ == "__main__":
