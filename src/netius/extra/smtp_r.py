@@ -122,7 +122,7 @@ class RelaySMTPServer(netius.servers.SMTPServer):
     ):
         # in case of error a postmaster email is sent to the reply
         # to address with the details of the error, the client
-        # close is handled by the on_close callback that fires
+        # close is handled by the `on_close` callback that fires
         # after the exception handler completes
         self.relay_postmaster(reply_to, context, exception)
 
