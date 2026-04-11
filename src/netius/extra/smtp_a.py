@@ -65,7 +65,7 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
 
     def on_relay_smtp(self, smtp_client, connection, froms, tos, contents):
         self.debug("Relay delivered from %s to %s", froms, tos)
-        self._post_activity(connection, froms, tos, contents, "delivered")
+        self._post_activity(smtp_client, connection, froms, tos, contents, "delivered")
         smtp_r.RelaySMTPServer.on_relay_smtp(
             self, smtp_client, connection, froms, tos, contents
         )
@@ -83,7 +83,13 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
     ):
         self.debug("Relay failed from %s to %s (%s)", froms, tos, str(exception))
         self._post_activity(
-            connection, froms, tos, contents, "failed", error=str(exception)
+            smtp_client,
+            connection,
+            froms,
+            tos,
+            contents,
+            "failed",
+            error=str(exception),
         )
         smtp_r.RelaySMTPServer.on_relay_error_smtp(
             self,
@@ -97,7 +103,9 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
             exception,
         )
 
-    def _post_activity(self, connection, froms, tos, contents, status, error=None):
+    def _post_activity(
+        self, smtp_client, connection, froms, tos, contents, status, error=None
+    ):
         # in case no activity URL is defined the tracking is
         # disabled and the method returns immediately
         if not self.activity_url:
@@ -107,12 +115,14 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
         # relay operation, if that's the case skips the post to avoid
         # duplicate webhook calls (the SMTP client may call both
         # on_close and on_exception for the same relay operation in
-        # certain error scenarios)
-        has_post = getattr(connection, "_activity_post", False)
+        # certain error scenarios), the flag is stored on the relay
+        # SMTP client (not the connection) because a single SMTP
+        # connection can relay multiple messages over its lifetime
+        has_post = getattr(smtp_client, "_activity_post", False)
         if has_post:
             self.debug("Activity already posted, skipping duplicate for %s", froms)
             return
-        connection._activity_post = True
+        smtp_client._activity_post = True
 
         # parses the message headers to extract the subject and
         # message id values for the activity payload, note that
@@ -168,12 +178,24 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
             froms,
             self.activity_url,
         )
+
+        def on_result(protocol, parser, result):
+            code = result.get("code", None)
+            if code == None or code < 200 or code >= 300:
+                self.info(
+                    "Failed to post activity to '%s' (%s)",
+                    self.activity_url,
+                    result.get("error", result.get("message", "invalid status")),
+                )
+            protocol.close()
+
         try:
             netius.clients.HTTPClient.method_s(
                 "POST",
                 self.activity_url,
                 headers=headers,
                 data=data,
+                on_result=on_result,
             )
         except Exception as exception:
             self.info(

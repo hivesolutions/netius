@@ -145,7 +145,7 @@ class LetsEncryptDict(TLSContextDict):
     """
 
     def __init__(self, owner, domains, *args, **kwargs):
-        self.letse_path = kwargs.get("letse_path", "/data/letsencrypt/etc/live")
+        self.letse_path = kwargs.pop("letse_path", "/data/letsencrypt/etc/live")
         TLSContextDict.__init__(self, owner, domains, *args, **kwargs)
 
     def cer_path(self, domain):
