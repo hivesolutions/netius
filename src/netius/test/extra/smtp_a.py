@@ -31,12 +31,9 @@ __license__ = "Apache License, Version 2.0"
 import json
 import unittest
 
-import netius.extra
+import unittest.mock as mock
 
-try:
-    import unittest.mock as mock
-except ImportError:
-    mock = None
+import netius.extra
 
 MESSAGE = b"Subject: Test Subject\r\nMessage-ID: <test123@localhost>\r\n\r\nHello World"
 
@@ -68,7 +65,6 @@ class ActivityRelaySMTPServerTest(unittest.TestCase):
         self.assertEqual(server.activity_secret, None)
         server.cleanup()
 
-    @unittest.skipIf(mock == None, "Skipping mock test")
     def test_on_relay_smtp(self):
         connection = mock.MagicMock()
         connection.username = "user@localhost"
@@ -82,7 +78,6 @@ class ActivityRelaySMTPServerTest(unittest.TestCase):
         post_mock.assert_called_once_with(connection, froms, tos, MESSAGE, "delivered")
         smtp_client.close.assert_called_once()
 
-    @unittest.skipIf(mock == None, "Skipping mock test")
     def test_on_relay_error_smtp(self):
         connection = mock.MagicMock()
         connection.username = "user@localhost"
@@ -111,7 +106,6 @@ class ActivityRelaySMTPServerTest(unittest.TestCase):
         )
         smtp_client.close.assert_called_once()
 
-    @unittest.skipIf(mock == None, "Skipping mock test")
     def test_post_activity_disabled(self):
         server = netius.extra.ActivityRelaySMTPServer(activity_url=None)
         connection = mock.MagicMock()
@@ -129,7 +123,6 @@ class ActivityRelaySMTPServerTest(unittest.TestCase):
         method_mock.assert_not_called()
         server.cleanup()
 
-    @unittest.skipIf(mock == None, "Skipping mock test")
     def test_post_activity_delivered(self):
         connection = mock.MagicMock()
         connection.username = "user@localhost"
@@ -157,7 +150,6 @@ class ActivityRelaySMTPServerTest(unittest.TestCase):
         self.assertEqual(headers["Content-Type"], "application/json")
         self.assertEqual(headers["X-Activity-Secret"], "test-secret")
 
-    @unittest.skipIf(mock == None, "Skipping mock test")
     def test_post_activity_failed(self):
         connection = mock.MagicMock()
         connection.username = "user@localhost"
@@ -174,7 +166,6 @@ class ActivityRelaySMTPServerTest(unittest.TestCase):
         self.assertEqual(data["status"], "failed")
         self.assertEqual(data["error"], "Connection refused")
 
-    @unittest.skipIf(mock == None, "Skipping mock test")
     def test_post_activity_headers(self):
         connection = mock.MagicMock()
         connection.username = "user@localhost"
@@ -189,7 +180,6 @@ class ActivityRelaySMTPServerTest(unittest.TestCase):
         self.assertEqual(data["headers"]["Subject"], "Test Subject")
         self.assertEqual(data["headers"]["Message-ID"], "<test123@localhost>")
 
-    @unittest.skipIf(mock == None, "Skipping mock test")
     def test_post_activity_contents(self):
         connection = mock.MagicMock()
         connection.username = "user@localhost"
@@ -204,7 +194,6 @@ class ActivityRelaySMTPServerTest(unittest.TestCase):
         self.assertIn("Hello World", data["contents"])
         self.assertIn("Subject: Test Subject", data["contents"])
 
-    @unittest.skipIf(mock == None, "Skipping mock test")
     def test_post_activity_no_subject(self):
         connection = mock.MagicMock()
         connection.username = "user@localhost"
@@ -221,7 +210,6 @@ class ActivityRelaySMTPServerTest(unittest.TestCase):
         data = json.loads(method_mock.call_args[1]["data"])
         self.assertEqual(data["subject"], "")
 
-    @unittest.skipIf(mock == None, "Skipping mock test")
     def test_post_activity_no_message_id(self):
         connection = mock.MagicMock()
         connection.username = "user@localhost"
@@ -238,7 +226,6 @@ class ActivityRelaySMTPServerTest(unittest.TestCase):
         data = json.loads(method_mock.call_args[1]["data"])
         self.assertEqual(data["message_id"], "")
 
-    @unittest.skipIf(mock == None, "Skipping mock test")
     def test_post_activity_no_secret(self):
         server = netius.extra.ActivityRelaySMTPServer(
             activity_url="http://localhost:8080/api/activity"
@@ -259,7 +246,6 @@ class ActivityRelaySMTPServerTest(unittest.TestCase):
         self.assertNotIn("X-Activity-Secret", headers)
         server.cleanup()
 
-    @unittest.skipIf(mock == None, "Skipping mock test")
     def test_post_activity_http_failure(self):
         connection = mock.MagicMock()
         connection.username = "user@localhost"
