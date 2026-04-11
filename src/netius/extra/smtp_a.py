@@ -64,15 +64,15 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
             )
 
     def on_relay_smtp(self, smtp_client, connection, froms, tos, contents):
-        # verifies if an error has already been posted for this
+        # verifies if the activity has already been posted for this
         # relay operation, if that's the case skips the activity
         # post to avoid duplicate webhook calls (the SMTP client
         # may call both on_close and on_exception for the same
         # relay operation in certain error scenarios)
-        has_error = getattr(connection, "_activity_error", False)
-        if not has_error:
+        has_post = getattr(connection, "_activity_post", False)
+        if not has_post:
             self._post_activity(connection, froms, tos, contents, "delivered")
-        connection._activity_error = False
+        connection._activity_post = False
         smtp_r.RelaySMTPServer.on_relay_smtp(
             self, smtp_client, connection, froms, tos, contents
         )
@@ -88,10 +88,10 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
         context,
         exception,
     ):
-        # marks the connection as having an error so that the
-        # success callback (on_relay_smtp) does not post a
-        # duplicate activity for the same relay operation
-        connection._activity_error = True
+        # marks the connection as having the activity posted so
+        # that the success callback (on_relay_smtp) does not post
+        # a duplicate activity for the same relay operation
+        connection._activity_post = True
         self._post_activity(
             connection, froms, tos, contents, "failed", error=str(exception)
         )
