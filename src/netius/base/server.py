@@ -481,7 +481,9 @@ class DatagramServer(Server):
             error_v = error.args[0] if error.args else None
             error_m = (
                 error.reason.upper().replace(" ", "_")
-                if hasattr(error, "reason") and error.reason
+                if not error_v in SSL_VALID_ERRORS
+                and hasattr(error, "reason")
+                and error.reason
                 else None
             )
             if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
@@ -517,7 +519,9 @@ class DatagramServer(Server):
             error_v = error.args[0] if error.args else None
             error_m = (
                 error.reason.upper().replace(" ", "_")
-                if hasattr(error, "reason") and error.reason
+                if not error_v in SSL_VALID_ERRORS
+                and hasattr(error, "reason")
+                and error.reason
                 else None
             )
             if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
@@ -760,7 +764,9 @@ class StreamServer(Server):
             error_v = error.args[0] if error.args else None
             error_m = (
                 error.reason.upper().replace(" ", "_")
-                if hasattr(error, "reason") and error.reason
+                if not error_v in SSL_VALID_ERRORS
+                and hasattr(error, "reason")
+                and error.reason
                 else None
             )
             if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
@@ -842,7 +848,9 @@ class StreamServer(Server):
             error_v = error.args[0] if error.args else None
             error_m = (
                 error.reason.upper().replace(" ", "_")
-                if hasattr(error, "reason") and error.reason
+                if not error_v in SSL_VALID_ERRORS
+                and hasattr(error, "reason")
+                and error.reason
                 else None
             )
             if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
@@ -885,7 +893,9 @@ class StreamServer(Server):
             error_v = error.args[0] if error.args else None
             error_m = (
                 error.reason.upper().replace(" ", "_")
-                if hasattr(error, "reason") and error.reason
+                if not error_v in SSL_VALID_ERRORS
+                and hasattr(error, "reason")
+                and error.reason
                 else None
             )
             if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
