@@ -185,7 +185,9 @@ class DatagramClient(Client):
                 if not error_v in SSL_VALID_ERRORS
                 and hasattr(error, "reason")
                 and error.reason
-                else None
+                else (
+                    self._ssl_reason(error) if not error_v in SSL_VALID_ERRORS else None
+                )
             )
             if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error)
@@ -223,7 +225,9 @@ class DatagramClient(Client):
                 if not error_v in SSL_VALID_ERRORS
                 and hasattr(error, "reason")
                 and error.reason
-                else None
+                else (
+                    self._ssl_reason(error) if not error_v in SSL_VALID_ERRORS else None
+                )
             )
             if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error)
@@ -870,7 +874,9 @@ class StreamClient(Client):
                 if not error_v in SSL_VALID_ERRORS
                 and hasattr(error, "reason")
                 and error.reason
-                else None
+                else (
+                    self._ssl_reason(error) if not error_v in SSL_VALID_ERRORS else None
+                )
             )
             if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error, connection)
@@ -921,7 +927,9 @@ class StreamClient(Client):
                 if not error_v in SSL_VALID_ERRORS
                 and hasattr(error, "reason")
                 and error.reason
-                else None
+                else (
+                    self._ssl_reason(error) if not error_v in SSL_VALID_ERRORS else None
+                )
             )
             if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error, connection)

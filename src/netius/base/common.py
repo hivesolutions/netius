@@ -183,6 +183,17 @@ SSL_VALID_REASONS = ("CERT_ALREADY_IN_HASH_TABLE",)
 """ The list containing the valid reasons for the handshake
 operation of the SSL connection establishment """
 
+SSL_ALL_REASONS = SSL_SILENT_REASONS + SSL_VALID_REASONS
+""" The combined list of all SSL reasons that require matching,
+pre-computed to avoid repeated tuple concatenation """
+
+SSL_ALL_REASONS_L = tuple(
+    reason.lower().replace("_", " ") for reason in SSL_ALL_REASONS
+)
+""" The lowercase space-separated version of the SSL reasons
+used for fallback matching against str(error) when error.reason
+is not available (eg: PyPy with unmapped OpenSSL error codes) """
+
 TCP_TYPE = 1
 """ The type enumeration value that represents the TCP (stream)
 based communication protocol, for various usages in the base
@@ -3056,7 +3067,9 @@ class AbstractBase(observer.Observable):
                 if not error_v in SSL_VALID_ERRORS
                 and hasattr(error, "reason")
                 and error.reason
-                else None
+                else (
+                    self._ssl_reason(error) if not error_v in SSL_VALID_ERRORS else None
+                )
             )
             if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error, connection)
@@ -3107,7 +3120,9 @@ class AbstractBase(observer.Observable):
                 if not error_v in SSL_VALID_ERRORS
                 and hasattr(error, "reason")
                 and error.reason
-                else None
+                else (
+                    self._ssl_reason(error) if not error_v in SSL_VALID_ERRORS else None
+                )
             )
             if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error, connection)
@@ -3154,7 +3169,9 @@ class AbstractBase(observer.Observable):
                 if not error_v in SSL_VALID_ERRORS
                 and hasattr(error, "reason")
                 and error.reason
-                else None
+                else (
+                    self._ssl_reason(error) if not error_v in SSL_VALID_ERRORS else None
+                )
             )
             if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected_s(error)
@@ -3457,7 +3474,9 @@ class AbstractBase(observer.Observable):
                 if not error_v in SSL_VALID_ERRORS
                 and hasattr(error, "reason")
                 and error.reason
-                else None
+                else (
+                    self._ssl_reason(error) if not error_v in SSL_VALID_ERRORS else None
+                )
             )
             if error_v in SSL_SILENT_ERRORS or error_m in SSL_SILENT_REASONS:
                 self.on_expected(error, connection)
@@ -4877,6 +4896,17 @@ class AbstractBase(observer.Observable):
                     self.unsub_write(_socket)
             else:
                 raise
+
+    def _ssl_reason(self, error):
+        # extracts the SSL error reason from the string representation
+        # of the exception as a fallback when error.reason is not set
+        # (eg: PyPy's cffi SSL may not map all OpenSSL error codes)
+        error_s = str(error).lower()
+        for index, reason_l in enumerate(SSL_ALL_REASONS_L):
+            if not reason_l in error_s:
+                continue
+            return SSL_ALL_REASONS[index]
+        return None
 
     def _expand_destroy(self):
         """

@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Capture TLS version and cipher in `quit_t` before socket close instead of in `on_close` where the socket is already closed
 * Derive `starttls` from actual TLS negotiation state instead of the initial `stls` parameter
+* Add `_ssl_reason` fallback that parses `str(error)` when `error.reason` is `None` (eg: OpenSSL 3 error codes not mapped in the runtime's SSL data tables)
 
 ## [1.43.1] - 2026-04-12
 
