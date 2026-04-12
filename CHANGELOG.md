@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
+## [1.43.1] - 2026-04-12
+
+### Fixed
+
+* Normalize SSL error reason in `server.py` and `client.py` for PyPy compatibility (9 additional sites missed in 1.41.1)
+
 ## [1.43.0] - 2026-04-12
 
 ### Added
