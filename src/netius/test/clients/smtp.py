@@ -63,6 +63,156 @@ class SMTPClientTest(unittest.TestCase):
         netius.clients.SMTPClient.connect = self.original_connect
         netius.clients.SMTPClient.ensure_loop = self.original_ensure_loop
 
+    def test_message_direct_host(self):
+        client = netius.clients.SMTPClient()
+        connection = client.message(
+            ["sender@example.com"],
+            ["user1@domain-a.com"],
+            "test contents",
+            host="relay.example.com",
+            mark=False,
+        )
+
+        self.assertEqual(len(self.dns_queries), 0)
+        self.assertEqual(len(self.connections), 1)
+        self.assertEqual(connection.host, "relay.example.com")
+        self.assertEqual(connection.port, 25)
+        self.assertEqual(connection.tos, ["user1@domain-a.com"])
+        self.assertEqual(connection.froms, ["sender@example.com"])
+
+    def test_message_direct_host_returns_connection(self):
+        client = netius.clients.SMTPClient()
+        connection = client.message(
+            ["sender@example.com"],
+            ["user1@domain-a.com"],
+            "test contents",
+            host="relay.example.com",
+            mark=False,
+        )
+
+        self.assertNotEqual(connection, None)
+        self.assertIsInstance(connection, _MockSMTPConnection)
+
+    def test_message_direct_host_port(self):
+        client = netius.clients.SMTPClient()
+        connection = client.message(
+            ["sender@example.com"],
+            ["user1@domain-a.com"],
+            "test contents",
+            host="relay.example.com",
+            port=587,
+            mark=False,
+        )
+
+        self.assertEqual(connection.host, "relay.example.com")
+        self.assertEqual(connection.port, 587)
+
+    def test_message_direct_host_multiple_tos(self):
+        client = netius.clients.SMTPClient()
+        connection = client.message(
+            ["sender@example.com"],
+            [
+                "user1@domain-a.com",
+                "user2@domain-b.com",
+                "user3@domain-c.com",
+            ],
+            "test contents",
+            host="relay.example.com",
+            mark=False,
+        )
+
+        self.assertEqual(len(self.connections), 1)
+        self.assertEqual(len(connection.tos), 3)
+
+    def test_message_direct_host_no_dns(self):
+        client = netius.clients.SMTPClient()
+        client.message(
+            ["sender@example.com"],
+            [
+                "user1@domain-a.com",
+                "user2@domain-b.com",
+            ],
+            "test contents",
+            host="relay.example.com",
+            mark=False,
+        )
+
+        self.assertEqual(len(self.dns_queries), 0)
+
+    def test_message_direct_host_binds_close(self):
+        client = netius.clients.SMTPClient()
+        connection = client.message(
+            ["sender@example.com"],
+            ["user1@domain-a.com"],
+            "test contents",
+            host="relay.example.com",
+            mark=False,
+        )
+
+        self.assertIn("close", connection._bindings)
+        self.assertIn("exception", connection._bindings)
+
+    def test_message_direct_host_stls(self):
+        client = netius.clients.SMTPClient()
+        connection = client.message(
+            ["sender@example.com"],
+            ["user1@domain-a.com"],
+            "test contents",
+            host="relay.example.com",
+            stls=True,
+            mark=False,
+        )
+
+        self.assertEqual(connection.sequence, "stls")
+
+    def test_message_direct_host_no_stls(self):
+        client = netius.clients.SMTPClient()
+        connection = client.message(
+            ["sender@example.com"],
+            ["user1@domain-a.com"],
+            "test contents",
+            host="relay.example.com",
+            stls=False,
+            mark=False,
+        )
+
+        self.assertEqual(connection.sequence, "message")
+
+    def test_message_single_domain(self):
+        self._build_mock_dns(unique=True)
+
+        client = netius.clients.SMTPClient()
+        client.message(
+            ["sender@example.com"],
+            ["user1@domain-a.com", "user2@domain-a.com"],
+            "test contents",
+            mark=False,
+        )
+
+        self.assertEqual(len(self.dns_queries), 1)
+        self.assertEqual(self.dns_queries[0], "domain-a.com")
+        self.assertEqual(len(self.connections), 1)
+        self.assertEqual(len(self.connections[0].tos), 2)
+
+    def test_message_separate_different_mx(self):
+        self._build_mock_dns(unique=True)
+
+        client = netius.clients.SMTPClient()
+        client.message(
+            ["sender@example.com"],
+            [
+                "user1@domain-a.com",
+                "user2@domain-b.com",
+            ],
+            "test contents",
+            mark=False,
+        )
+
+        self.assertEqual(len(self.connections), 2)
+
+        hosts = set(netius.legacy.str(c.host) for c in self.connections)
+        self.assertEqual(hosts, {"mx.domain-a.com", "mx.domain-b.com"})
+
     def test_message_dedup_same_mx(self):
         self._build_mock_dns(unique=False)
 
@@ -87,56 +237,6 @@ class SMTPClientTest(unittest.TestCase):
         self.assertIn("user1@domain-a.com", connection.tos)
         self.assertIn("user2@domain-b.com", connection.tos)
         self.assertIn("user3@domain-a.com", connection.tos)
-
-    def test_message_separate_different_mx(self):
-        self._build_mock_dns(unique=True)
-
-        client = netius.clients.SMTPClient()
-        client.message(
-            ["sender@example.com"],
-            [
-                "user1@domain-a.com",
-                "user2@domain-b.com",
-            ],
-            "test contents",
-            mark=False,
-        )
-
-        self.assertEqual(len(self.connections), 2)
-
-        hosts = set(netius.legacy.str(c.host) for c in self.connections)
-        self.assertEqual(hosts, {"mx.domain-a.com", "mx.domain-b.com"})
-
-    def test_message_single_domain(self):
-        self._build_mock_dns(unique=True)
-
-        client = netius.clients.SMTPClient()
-        client.message(
-            ["sender@example.com"],
-            ["user1@domain-a.com", "user2@domain-a.com"],
-            "test contents",
-            mark=False,
-        )
-
-        self.assertEqual(len(self.dns_queries), 1)
-        self.assertEqual(self.dns_queries[0], "domain-a.com")
-        self.assertEqual(len(self.connections), 1)
-        self.assertEqual(len(self.connections[0].tos), 2)
-
-    def test_message_direct_host(self):
-        client = netius.clients.SMTPClient()
-        connection = client.message(
-            ["sender@example.com"],
-            ["user1@domain-a.com"],
-            "test contents",
-            host="relay.example.com",
-            mark=False,
-        )
-
-        self.assertEqual(len(self.dns_queries), 0)
-        self.assertEqual(len(self.connections), 1)
-        self.assertEqual(connection.host, "relay.example.com")
-        self.assertEqual(connection.tos, ["user1@domain-a.com"])
 
     def _build_mock_dns(self, unique=False):
         dns_queries = self.dns_queries
@@ -169,13 +269,14 @@ class _MockSMTPConnection(object):
         self.tos = None
         self.contents = None
         self.mx_host = None
+        self.sequence = None
         self._bindings = {}
 
     def set_message_seq(self, ehlo=True):
-        pass
+        self.sequence = "message"
 
     def set_message_stls_seq(self, ehlo=True):
-        pass
+        self.sequence = "stls"
 
     def set_smtp(self, froms, tos, contents, username=None, password=None):
         self.froms = froms
