@@ -178,7 +178,7 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
             message_id=message_id,
             status=status,
             server=self.host,
-            server_agent="%s/%s" % (netius.NAME, netius.VERSION),
+            server_agent=netius.IDENTIFIER,
             username=username,
             sessions=sessions,
         )
