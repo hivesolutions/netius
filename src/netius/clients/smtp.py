@@ -95,6 +95,8 @@ class SMTPConnection(netius.Connection):
         self.tls_version = None
         self.tls_cipher = None
         self.start_time = None
+        self.transcript = []
+        self.transcript_max = 50
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
@@ -220,6 +222,7 @@ class SMTPConnection(netius.Connection):
         data = base + "\r\n"
         count = self.send(data, delay=delay, callback=callback)
         self.debug(base)
+        self._transcript_add("send", base)
         return count
 
     def on_line(self, code, message, is_final=True):
@@ -228,6 +231,7 @@ class SMTPConnection(netius.Connection):
         # current debug logger support (for traceability)
         base = "%s %s" % (code, message)
         self.debug(base)
+        self._transcript_add("recv", base)
 
         # adds the message part of the line to the buffer that holds the
         # various messages "pending" for the current response, these values
@@ -474,13 +478,25 @@ class SMTPConnection(netius.Connection):
         usable = [method for method in methods if method in cls.AUTH_METHODS]
         return usable[0] if usable else "plain"
 
+    def _transcript_add(self, direction, message):
+        if not self.owner or not getattr(self.owner, "capture_transcript", False):
+            return
+        if len(self.transcript) >= self.transcript_max:
+            return
+        self.transcript.append(
+            dict(direction=direction, message=message, timestamp=time.time())
+        )
+
 
 class SMTPClient(netius.StreamClient):
 
-    def __init__(self, host=None, auto_close=False, *args, **kwargs):
+    def __init__(
+        self, host=None, auto_close=False, capture_transcript=False, *args, **kwargs
+    ):
         netius.StreamClient.__init__(self, *args, **kwargs)
         self.host = host if host else "[" + netius.common.host() + "]"
         self.auto_close = auto_close
+        self.capture_transcript = capture_transcript
 
     @classmethod
     def message_s(
@@ -581,6 +597,7 @@ class SMTPClient(netius.StreamClient):
                         duration=duration,
                         recipients=list(tos),
                         error=getattr(connection, "_session_error", None),
+                        transcript=connection.transcript,
                     )
                     context["sessions"].append(session)
 

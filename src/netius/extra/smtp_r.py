@@ -46,19 +46,25 @@ class RelaySMTPServer(netius.servers.SMTPServer):
     to relay the messages.
     """
 
-    def __init__(self, postmaster=None, *args, **kwargs):
+    def __init__(self, postmaster=None, capture_transcript=False, *args, **kwargs):
         netius.servers.SMTPServer.__init__(self, *args, **kwargs)
         self.postmaster = postmaster
+        self.capture_transcript = capture_transcript
         self.dkim = {}
 
     def on_serve(self):
         netius.servers.SMTPServer.on_serve(self)
         self.postmaster = self.get_env("POSTMASTER", self.postmaster)
+        self.capture_transcript = self.get_env(
+            "SMTP_CAPTURE_TRANSCRIPT", self.capture_transcript, cast=bool
+        )
         self.dkim = self.get_env("DKIM", self.dkim)
         dkim_l = len(self.dkim)
         self.info("Starting Relay SMTP server with %d DKIM registers  ...", dkim_l)
         if self.postmaster:
             self.info("Using '%s' as the Postmaster email sender ...", self.postmaster)
+        if self.capture_transcript:
+            self.info("SMTP session transcript capture enabled")
 
     def on_header_smtp(self, connection, from_l, to_l):
         netius.servers.SMTPServer.on_header_smtp(self, connection, from_l, to_l)
@@ -204,8 +210,12 @@ class RelaySMTPServer(netius.servers.SMTPServer):
 
         # generates a new SMTP client for the sending of the message,
         # uses the current host for identification and then triggers
-        # the message event to send the message to the target host
-        smtp_client = netius.clients.SMTPClient(host=self.host)
+        # the message event to send the message to the target host,
+        # the capture_transcript flag is forwarded from the server
+        # configuration to enable per-session SMTP conversation logging
+        smtp_client = netius.clients.SMTPClient(
+            host=self.host, capture_transcript=self.capture_transcript
+        )
         smtp_client.message(
             froms,
             tos,

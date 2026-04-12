@@ -137,6 +137,24 @@ Services may also use the following Consul tags to control routing behavior:
 | **NAMESERVERS_IP4** | `list` | Same as `NAMESERVERS` but just for IPv4 resolution (defaults to `[]`).                        |
 | **NAMESERVERS_IP6** | `list` | Same as `NAMESERVERS` but just for IPv6 resolution (defaults to `[]`).                        |
 
+#### SMTP Relay
+
+| Name                        | Type   | Default  | Description                                                                                                                                                                         |
+| --------------------------- | ------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMTP_HOST**               | `str`  | auto     | The hostname used for SMTP EHLO identification and Message-ID generation.                                                                                                           |
+| **SMTP_ADAPTER**            | `str`  | `memory` | The storage adapter used for local message delivery (eg: `memory`, `fs`, `mongo`).                                                                                                  |
+| **SMTP_AUTH**               | `str`  | `dummy`  | The authentication handler used for SMTP relay authorization (eg: `dummy`, `memory`).                                                                                               |
+| **POSTMASTER**              | `str`  | `None`   | The email address used as sender for Delivery Status Notification (DSN) error emails sent on relay failure.                                                                         |
+| **DKIM**                    | `dict` | `{}`     | Dictionary mapping domains to DKIM signing configuration with `key`/`key_b64`, `selector` and `domain` fields.                                                                      |
+| **SMTP_CAPTURE_TRANSCRIPT** | `bool` | `False`  | If enabled, captures the full SMTP command/response conversation (excluding DATA payload) for each relay session, stored as a `transcript` list in the session deliverability data. |
+
+#### SMTP Activity Tracking
+
+| Name                     | Type  | Default | Description                                                                                                                                 |
+| ------------------------ | ----- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMTP_ACTIVITY_URL**    | `str` | `None`  | The webhook URL to POST delivery activity events to (eg: `http://localhost:8080/api/activity`). Activity tracking is disabled when not set. |
+| **SMTP_ACTIVITY_SECRET** | `str` | `None`  | The shared secret sent as `X-Activity-Secret` header on each webhook POST for authentication.                                               |
+
 #### Blacklist Middleware
 
 | Name          | Type   | Description                                                                                                         |
