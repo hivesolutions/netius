@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *
 
+## [1.41.1] - 2026-04-12
+
+### Fixed
+
+* Normalize SSL error reason string for PyPy compatibility so that `SSL_SILENT_REASONS` matching works on both CPython and PyPy runtimes
+
 ## [1.41.0] - 2026-04-12
 
 ### Added
