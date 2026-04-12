@@ -9,11 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* TLS session info (`tls_version`, `tls_cipher`, `starttls`) in SMTP client session deliverability data
-* EHLO `capabilities` list in session deliverability data
-* MX hostname (`mx_host`) from DNS resolution in session deliverability data
-* Per-session `error` field capturing exceptions from failed SMTP sessions
-* Message `message_size` in session deliverability data
+*
 
 ### Changed
 
@@ -22,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.42.0] - 2026-04-12
+
+### Added
+
+* TLS session info (`tls_version`, `tls_cipher`, `starttls`) in SMTP client session deliverability data
+* EHLO `capabilities` list in session deliverability data
+* MX hostname (`mx_host`) from DNS resolution in session deliverability data
+* Per-session `error` field capturing exceptions from failed SMTP sessions
+* Message `message_size` in session deliverability data
 
 ## [1.41.1] - 2026-04-12
 
