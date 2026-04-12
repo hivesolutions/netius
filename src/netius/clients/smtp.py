@@ -548,6 +548,8 @@ class SMTPClient(netius.StreamClient):
                         port=connection.address[1] if connection.address else None,
                         greeting=getattr(connection, "greeting", None),
                         queue_response=getattr(connection, "queue_response", None),
+                        start_time=start_time,
+                        end_time=end_time,
                         duration=duration,
                         recipients=list(tos),
                     )
