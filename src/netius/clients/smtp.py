@@ -565,7 +565,11 @@ class SMTPClient(netius.StreamClient):
                             else None
                         ),
                         port=connection.address[1] if connection.address else None,
-                        mx_host=getattr(connection, "mx_host", None),
+                        mx_host=(
+                            netius.legacy.str(connection.mx_host)
+                            if getattr(connection, "mx_host", None)
+                            else None
+                        ),
                         greeting=connection.greeting,
                         queue_response=connection.queue_response,
                         capabilities=list(connection.capabilities),
