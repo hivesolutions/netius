@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `server_agent` field in activity webhook payload using `netius.IDENTIFIER`
+* `contents_size` field in activity webhook payload
 
 ### Changed
 

@@ -572,7 +572,6 @@ class SMTPClient(netius.StreamClient):
                         start_time=start_time,
                         end_time=end_time,
                         duration=duration,
-                        message_size=len(contents) if contents else 0,
                         recipients=list(tos),
                         error=getattr(connection, "_session_error", None),
                     )

@@ -180,6 +180,7 @@ class ActivityRelaySMTPServer(smtp_r.RelaySMTPServer):
             server=self.host,
             server_agent=netius.IDENTIFIER,
             username=username,
+            contents_size=len(contents) if contents else 0,
             sessions=sessions,
         )
         if error:
