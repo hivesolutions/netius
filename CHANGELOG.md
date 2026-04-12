@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+*
+
+### Fixed
+
+*
+
+## [1.44.0] - 2026-04-12
+
+### Changed
+
 * Skip SSL error reason normalization for `SSL_VALID_ERRORS` (`WANT_READ`/`WANT_WRITE`) to avoid unnecessary string operations on the hot path
 
 ### Fixed
