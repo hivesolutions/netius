@@ -556,7 +556,11 @@ class SMTPClient(netius.StreamClient):
 
                     session = dict(
                         domain=domain,
-                        host=connection.address[0] if connection.address else None,
+                        host=(
+                            netius.legacy.str(connection.address[0])
+                            if connection.address
+                            else None
+                        ),
                         port=connection.address[1] if connection.address else None,
                         mx_host=getattr(connection, "mx_host", None),
                         greeting=getattr(connection, "greeting", None),
