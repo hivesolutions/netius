@@ -542,16 +542,35 @@ class SMTPClient(netius.StreamClient):
                     end_time = time.time()
                     start_time = getattr(connection, "start_time", None)
                     duration = end_time - start_time if not start_time == None else None
+
+                    # tries to retrieve the TLS information from the
+                    # underlying socket, this may fail if the socket
+                    # has already been closed or if TLS was not used
+                    try:
+                        _socket = connection.socket
+                        tls_version = _socket.version() if _socket else None
+                        tls_cipher = _socket.cipher() if _socket else None
+                    except Exception:
+                        tls_version = None
+                        tls_cipher = None
+
                     session = dict(
                         domain=domain,
                         host=connection.address[0] if connection.address else None,
                         port=connection.address[1] if connection.address else None,
+                        mx_host=getattr(connection, "mx_host", None),
                         greeting=getattr(connection, "greeting", None),
                         queue_response=getattr(connection, "queue_response", None),
+                        capabilities=list(getattr(connection, "capabilities", ())),
+                        starttls=stls,
+                        tls_version=tls_version,
+                        tls_cipher=tls_cipher,
                         start_time=start_time,
                         end_time=end_time,
                         duration=duration,
+                        message_size=len(contents) if contents else 0,
                         recipients=list(tos),
+                        error=getattr(connection, "_session_error", None),
                     )
                     context["sessions"].append(session)
 
@@ -573,6 +592,8 @@ class SMTPClient(netius.StreamClient):
                     callback(self, context)
 
             def on_exception(connection=None, exception=None):
+                if connection:
+                    connection._session_error = str(exception) if exception else None
                 if callback_error:
                     callback_error(self, context, exception)
 
@@ -625,11 +646,12 @@ class SMTPClient(netius.StreamClient):
                 # going to be established (helps with debugging purposes)
                 self.debug("Establishing SMTP connection on %s:%d ...", _host, _port)
 
-                # establishes the connection to the target host and port
-                # and using the provided key and certificate files and then
+                # establishes the connection to the target host and port,
+                # using the provided key and certificate files and then
                 # sets the SMTP information in the current connection, after
                 # the connections is completed the SMTP session should start
                 connection = self.connect(_host, _port)
+                connection.mx_host = address if not address == host else None
                 if stls:
                     connection.set_message_stls_seq(ehlo=ehlo)
                 else:
