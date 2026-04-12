@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* Added `NO_SHARED_CIPHER` to `SSL_SILENT_REASONS` so that no shared cipher errors are silenced
 
 ### Fixed
 

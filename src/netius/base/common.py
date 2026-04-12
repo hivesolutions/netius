@@ -174,7 +174,11 @@ SSL_ERROR_NAMES = {
 """ The dictionary containing the association between the
 various SSL errors and their string representation """
 
-SSL_SILENT_REASONS = ("WRONG_VERSION_NUMBER", "RECORD_LAYER_FAILURE")
+SSL_SILENT_REASONS = (
+    "WRONG_VERSION_NUMBER",
+    "RECORD_LAYER_FAILURE",
+    "NO_SHARED_CIPHER",
+)
 """ The list containing the SSL reasons that should be silenced
 while still making the connection dropped as they are expected
 to occur and should not be considered an exception """
