@@ -523,6 +523,109 @@ class SMTPClient(netius.StreamClient):
         callback=None,
         callback_error=None,
     ):
+        """
+        Sends an email message to the provided recipients, establishing
+        one or more SMTP connections as needed based on the target hosts.
+
+        This method operates in two distinct modes depending on whether
+        the host parameter is provided:
+
+        **Direct host mode** (host is set): connects directly to the
+        specified host and sends the message to all recipients through
+        that single connection. This is the typical mode for relay
+        operations where a smart host or specific SMTP server is used.
+        The method returns the connection object synchronously.
+
+        **MX resolution mode** (host is None): resolves MX records for
+        each unique recipient domain via DNS, groups recipients by
+        resolved MX host, and opens one connection per unique MX server.
+        This avoids opening multiple connections to the same server when
+        different domains share the same MX (eg. multiple Google Workspace
+        domains), which could cause the remote to drop extra connections.
+        The method returns None as connections are established
+        asynchronously through DNS callbacks.
+
+        In both modes the callback is invoked once all SMTP sessions
+        have completed (not per-connection), receiving the client instance
+        and a context dictionary containing deliverability information
+        accumulated across all sessions. The callback_error on the other
+        hand fires per-connection whenever an exception occurs during
+        an individual SMTP session.
+
+        STARTTLS is auto-negotiated based on server capabilities
+        regardless of the stls parameter. When the remote server
+        advertises starttls in its EHLO capabilities the connection
+        is automatically upgraded. The stls parameter controls the
+        initial connection sequence: when True the sequence assumes
+        STARTTLS from the start, when False (default) the sequence
+        starts plain and upgrades dynamically if supported.
+
+        :type froms: list
+        :param froms: The list of sender email addresses, typically
+        a single-element list. Only the first element is used as the
+        MAIL FROM address in the SMTP envelope.
+        :type tos: list
+        :param tos: The list of recipient email addresses. In MX
+        resolution mode these are grouped by domain and then by
+        resolved MX host for connection deduplication.
+        :type contents: str
+        :param contents: The raw email message contents including
+        headers and body in RFC 2822 format.
+        :type message_id: str
+        :param message_id: Optional message identifier to be set in
+        the headers when the comply flag is enabled.
+        :type host: str
+        :param host: The target SMTP host to connect to directly,
+        bypassing MX resolution. When set the method operates in
+        direct host mode, when None it operates in MX resolution mode.
+        :type port: int
+        :param port: The target SMTP port, defaults to 25.
+        :type username: str
+        :param username: Optional username for SMTP authentication
+        on the target server.
+        :type password: str
+        :param password: Optional password for SMTP authentication
+        on the target server.
+        :type ehlo: bool
+        :param ehlo: If True uses EHLO for the greeting (default),
+        if False uses the legacy HELO command instead.
+        :type stls: bool
+        :param stls: If True the initial connection sequence includes
+        STARTTLS negotiation before sending. Note that STARTTLS is
+        auto-negotiated from server capabilities regardless of this
+        flag, so this primarily controls the initial sequence setup.
+        :type mark: bool
+        :param mark: If True (default) the contents are marked with
+        the client's user agent and date headers. Should be set to
+        False when relaying messages to preserve original headers.
+        :type comply: bool
+        :param comply: If True ensures that mandatory RFC headers
+        (From, To, Message-ID) are present in the contents, adding
+        them if missing.
+        :type ensure_loop: bool
+        :param ensure_loop: If True (default) ensures the event loop
+        thread is started before initiating DNS queries. This is
+        required for standalone usage where no event loop is running
+        yet. Should be disabled when the client is already running
+        within an active event loop.
+        :type callback: function
+        :param callback: Optional callback invoked once all SMTP
+        sessions for this message have completed. Called with
+        (smtp_client, context) where context is a dictionary
+        containing froms, tos, contents, and a sessions list with
+        per-connection deliverability information (greeting, queue
+        response, TLS details, transcript, duration, etc).
+        :type callback_error: function
+        :param callback_error: Optional callback invoked per-connection
+        when an exception occurs during an SMTP session. Called with
+        (smtp_client, context, exception). Unlike callback this may
+        fire multiple times if multiple connections encounter errors.
+        :rtype: SMTPConnection/None
+        :return: The connection object in direct host mode, or None
+        in MX resolution mode where connections are established
+        asynchronously.
+        """
+
         # in case the comply flag is set then ensure that a series
         # of mandatory fields are present in the contents
         if comply:
@@ -624,50 +727,14 @@ class SMTPClient(netius.StreamClient):
                 if callback_error:
                     callback_error(self, context, exception)
 
-            def handler(response=None):
-                # in case the provided response value is invalid returns
-                # immediately, as this should represent a resolution error,
-                # this is only done in case the host is also not defined
-                # as for such situations an address is not retrievable
-                if response == None and host == None:
-                    return
-
-                # in case there's a valid response provided must parse it
-                # to try to "recover" the final address that is going to be
-                # used in the establishment of the SMTP connection
-                if response:
-                    # in case there are no answers present in the response
-                    # of the DNS resolution an exception must be raised, note
-                    # that the on close handler is called so that proper
-                    # fallback for this connections is handled
-                    if not response.answers:
-                        on_close()
-                        if self.auto_close:
-                            self.close()
-                        exception = netius.NetiusError(
-                            "Not possible to resolve MX for '%s'" % domain
-                        )
-                        if callback_error:
-                            callback_error(self, context, exception)
-                        raise exception
-
-                    # retrieves the first answer (probably the most accurate)
-                    # and then unpacks it until the mx address is retrieved
-                    first = response.answers[0]
-                    extra = first[4]
-                    address = extra[1]
-
-                # otherwise the host should have been provided and as such the
-                # address value is set with the provided host
-                else:
-                    address = host
-
+            def connect_mx(address, _tos=None):
                 # sets the proper address (host) and port values that are
                 # going to be used to establish the connection, notice that
                 # in case the values provided as parameter to the message
                 # method are valid they are used instead of the "resolved"
                 _host = host or address
                 _port = port or 25
+                _tos = _tos or tos
 
                 # prints a debug message about the connection that is now
                 # going to be established (helps with debugging purposes)
@@ -684,22 +751,22 @@ class SMTPClient(netius.StreamClient):
                 else:
                     connection.set_message_seq(ehlo=ehlo)
                 connection.set_smtp(
-                    froms, tos, contents, username=username, password=password
+                    froms, _tos, contents, username=username, password=password
                 )
                 connection.bind("close", on_close)
                 connection.bind("exception", on_exception)
                 return connection
 
-            # returns the clojure bound handler method, ready
-            # to be used under a specific context
-            return handler
+            # returns the connect method bound to the current
+            # handler context, ready to be used for connection
+            return connect_mx
 
         # in case the host address has been provided by argument the
         # handler method is called immediately to trigger the processing
         # of the SMTP connection using the current host and port
         if host:
-            handler = build_handler(tos)
-            connection = handler()
+            connect_mx = build_handler(tos)
+            connection = connect_mx(host)
             return connection
 
         # ensures that the proper main loop is started so that the current
@@ -712,29 +779,84 @@ class SMTPClient(netius.StreamClient):
         # creates the map that is going to be used to associate each of
         # the domains with the proper to (email) addresses, this is going
         # to allow aggregated based SMTP sessions (performance wise)
-        tos_map = dict()
+        domains_map = dict()
         for to in tos:
             _name, domain = to.split("@", 1)
-            _tos = tos_map.get(domain, [])
+            _tos = domains_map.get(domain, [])
             _tos.append(to)
-            tos_map[domain] = _tos
+            domains_map[domain] = _tos
 
-        # iterates over the complete set of domain and associated
-        # to addresses list for each of them to run the mx based
-        # query operation and then start the SMTP session
-        for domain, tos in netius.legacy.items(tos_map):
-            # creates a new handler method bound to the to addresses
-            # associated with the current domain in iteration
-            handler = build_handler(tos, domain=domain, tos_map=tos_map)
+        # creates the structures used to collect the DNS MX resolutions
+        # before initiating any connections, this ensures that domains
+        # resolving to the same MX host are grouped into a single
+        # connection avoiding drops from the remote server
+        mx_resolved = dict()
+        domains_pending = list(domains_map.keys())
 
-            # prints a small debug message about the resolution of the
-            # domain for the current message (debugging purposes)
-            self.debug("Resolving MX domain for'%s' ...", domain)
+        def on_mx_resolved(domain, response):
+            """
+            Callback for MX DNS resolution that collects the resolved
+            addresses and once all domains are resolved groups the
+            recipients by MX host and initiates the SMTP connections.
 
-            # runs the DNS query to be able to retrieve the proper
-            # mail exchange host for the target email address and then
-            # sets the proper callback for sending
-            dns.DNSClient.query_s(domain, type="mx", callback=handler)
+            :type domain: String
+            :param domain: The email domain that was resolved.
+            :type response: DNSResponse
+            :param response: The DNS response containing the MX
+            records for the domain, or None if resolution failed.
+            """
+
+            # stores the resolved MX address for the domain or none
+            # in case the resolution has failed
+            if response and response.answers:
+                first = response.answers[0]
+                extra = first[4]
+                mx_resolved[domain] = extra[1]
+            else:
+                mx_resolved[domain] = None
+
+            # removes the current domain from the pending list, in
+            # case there are still pending domains returns immediately
+            # waiting for all resolutions to complete
+            domains_pending.remove(domain)
+            if domains_pending:
+                return
+
+            # all MX records have been resolved, groups the recipients
+            # by resolved MX host so that a single connection is used
+            # per unique MX server address
+            mx_map = dict()
+            for domain, tos in netius.legacy.items(domains_map):
+                mx_host = mx_resolved.get(domain)
+                if mx_host == None:
+                    continue
+                mx_key = netius.legacy.str(mx_host)
+                existing = mx_map.get(mx_key, ([], []))
+                existing[0].extend(tos)
+                existing[1].append(domain)
+                mx_map[mx_key] = existing
+
+            # creates the tos map keyed by MX host for the completion
+            # tracking of the send operation
+            tos_map = dict(
+                (mx_key, value[0]) for mx_key, value in netius.legacy.items(mx_map)
+            )
+
+            # iterates over the unique MX hosts establishing a single
+            # connection per host with all the associated recipients
+            for mx_key, (tos, _domains) in netius.legacy.items(mx_map):
+                connect_mx = build_handler(tos, domain=mx_key, tos_map=tos_map)
+                connect_mx(mx_key, _tos=tos)
+
+        # iterates over the complete set of domains to run the MX
+        # based query operation collecting the results
+        for domain in domains_map:
+            self.debug("Resolving MX domain for '%s' ...", domain)
+
+            def _make_mx_callback(_domain):
+                return lambda response: on_mx_resolved(_domain, response)
+
+            dns.DNSClient.query_s(domain, type="mx", callback=_make_mx_callback(domain))
 
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
