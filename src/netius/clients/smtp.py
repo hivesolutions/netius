@@ -92,6 +92,8 @@ class SMTPConnection(netius.Connection):
         self.messages = []
         self.greeting = None
         self.queue_response = None
+        self.tls_version = None
+        self.tls_cipher = None
         self.start_time = None
 
     def open(self, *args, **kwargs):
@@ -341,6 +343,16 @@ class SMTPConnection(netius.Connection):
 
     def quit_t(self):
         self.queue_response = self.messages[0] if self.messages else None
+
+        # captures TLS information that can be later used for
+        # diagnostics purposes and critical security analysis
+        try:
+            self.tls_version = self.socket.version() if self.socket else None
+            self.tls_cipher = self.socket.cipher() if self.socket else None
+        except Exception:
+            self.tls_version = None
+            self.tls_cipher = None
+
         self.quit()
         self.next_sequence()
 
@@ -540,20 +552,11 @@ class SMTPClient(netius.StreamClient):
                 # duration and the recipients for this session
                 if connection:
                     end_time = time.time()
-                    start_time = getattr(connection, "start_time", None)
-                    duration = end_time - start_time if not start_time == None else None
-
-                    # tries to retrieve the TLS information from the
-                    # underlying socket, this may fail if the socket
-                    # has already been closed or if TLS was not used
-                    try:
-                        _socket = connection.socket
-                        tls_version = _socket.version() if _socket else None
-                        tls_cipher = _socket.cipher() if _socket else None
-                    except Exception:
-                        tls_version = None
-                        tls_cipher = None
-
+                    duration = (
+                        end_time - connection.start_time
+                        if not connection.start_time == None
+                        else None
+                    )
                     session = dict(
                         domain=domain,
                         host=(
@@ -563,13 +566,13 @@ class SMTPClient(netius.StreamClient):
                         ),
                         port=connection.address[1] if connection.address else None,
                         mx_host=getattr(connection, "mx_host", None),
-                        greeting=getattr(connection, "greeting", None),
-                        queue_response=getattr(connection, "queue_response", None),
-                        capabilities=list(getattr(connection, "capabilities", ())),
-                        starttls=stls,
-                        tls_version=tls_version,
-                        tls_cipher=tls_cipher,
-                        start_time=start_time,
+                        greeting=connection.greeting,
+                        queue_response=connection.queue_response,
+                        capabilities=list(connection.capabilities),
+                        starttls=not connection.tls_version == None,
+                        tls_version=connection.tls_version,
+                        tls_cipher=connection.tls_cipher,
+                        start_time=connection.start_time,
                         end_time=end_time,
                         duration=duration,
                         recipients=list(tos),

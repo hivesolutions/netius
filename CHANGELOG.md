@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Capture TLS version and cipher in `quit_t` before socket close instead of in `on_close` where the socket is already closed
+* Derive `starttls` from actual TLS negotiation state instead of the initial `stls` parameter
 
 ## [1.43.1] - 2026-04-12
 
