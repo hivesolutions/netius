@@ -9,8 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* SMTP session transcript capture gated by `SMTP_CAPTURE_TRANSCRIPT` environment variable, records the full command/response conversation (excluding DATA payload) with timestamps per entry, capped at 50 entries per session
-* SMTP Relay and SMTP Activity Tracking sections in `doc/configuration.md`
+*
 
 ### Changed
 
@@ -19,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.45.0] - 2026-04-12
+
+### Added
+
+* SMTP session transcript capture gated by `SMTP_CAPTURE_TRANSCRIPT` environment variable, records the full command/response conversation (excluding DATA payload) with timestamps per entry, capped at 50 entries per session
+* SMTP Relay and SMTP Activity Tracking sections in `doc/configuration.md`
 
 ## [1.44.1] - 2026-04-12
 
