@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* `mx_dedup` parameter in `SMTPClient.message()` to control whether domains sharing the same MX host are grouped into a single connection, defaults to `False` to avoid `451 4.3.0` rejections from servers that refuse multi-domain transactions
+*
 
 ### Changed
 
@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.47.0] - 2026-04-13
+
+### Added
+
+* `mx_dedup` parameter in `SMTPClient.message()` to control whether domains sharing the same MX host are grouped into a single connection, defaults to `False` to avoid `451 4.3.0` rejections from servers that refuse multi-domain transactions
 
 ## [1.46.1] - 2026-04-13
 
