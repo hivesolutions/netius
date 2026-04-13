@@ -614,7 +614,7 @@ class SMTPClient(netius.StreamClient):
         MX hosts are established one at a time, waiting for each
         session to complete before starting the next. This reduces
         pressure on remote servers that may drop concurrent connections
-        from the same source IP. Defaults to False (parallel).
+        from the same source IP. Defaults to True (sequential).
         :type callback: Callable
         :param callback: Optional callback invoked once all SMTP
         sessions for this message have completed. Called with
