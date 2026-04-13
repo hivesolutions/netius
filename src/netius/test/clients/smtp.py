@@ -221,6 +221,7 @@ class SMTPClientTest(unittest.TestCase):
             ],
             "test contents",
             mark=False,
+            sequential=False,
         )
 
         self.assertEqual(len(self.connections), 2)
@@ -336,6 +337,71 @@ class SMTPClientTest(unittest.TestCase):
         self.assertEqual(len(self.connections), 1)
         self.assertEqual(len(self.connections[0].tos), 2)
 
+    def test_message_sequential_one_at_a_time(self):
+        self._build_mock_dns(unique=True)
+
+        client = self._build_client()
+        client.message(
+            ["sender@example.com"],
+            [
+                "user1@domain-a.com",
+                "user2@domain-b.com",
+                "user3@domain-c.com",
+            ],
+            "test contents",
+            mark=False,
+            sequential=True,
+        )
+
+        self.assertEqual(len(self.connections), 1)
+
+        self.connections[0].trigger("close", self.connections[0])
+        self.assertEqual(len(self.connections), 2)
+
+        self.connections[1].trigger("close", self.connections[1])
+        self.assertEqual(len(self.connections), 3)
+
+    def test_message_sequential_all_recipients(self):
+        self._build_mock_dns(unique=True)
+
+        client = self._build_client()
+        client.message(
+            ["sender@example.com"],
+            [
+                "user1@domain-a.com",
+                "user2@domain-b.com",
+            ],
+            "test contents",
+            mark=False,
+            sequential=True,
+        )
+
+        self.assertEqual(len(self.connections), 1)
+
+        self.connections[0].trigger("close", self.connections[0])
+        self.assertEqual(len(self.connections), 2)
+
+        hosts = set(netius.legacy.str(c.host) for c in self.connections)
+        self.assertEqual(hosts, {"mx.domain-a.com", "mx.domain-b.com"})
+
+    def test_message_parallel_all_at_once(self):
+        self._build_mock_dns(unique=True)
+
+        client = self._build_client()
+        client.message(
+            ["sender@example.com"],
+            [
+                "user1@domain-a.com",
+                "user2@domain-b.com",
+                "user3@domain-c.com",
+            ],
+            "test contents",
+            mark=False,
+            sequential=False,
+        )
+
+        self.assertEqual(len(self.connections), 3)
+
     def _build_client(self):
         client = netius.clients.SMTPClient()
         self.clients.append(client)
@@ -373,6 +439,14 @@ class _MockSMTPConnection(object):
         self.contents = None
         self.mx_host = None
         self.sequence = None
+        self.address = (host, port)
+        self.start_time = None
+        self.greeting = None
+        self.queue_response = None
+        self.capabilities = []
+        self.tls_version = None
+        self.tls_cipher = None
+        self.transcript = []
         self._bindings = {}
 
     def set_message_seq(self, ehlo=True):
@@ -387,4 +461,11 @@ class _MockSMTPConnection(object):
         self.contents = contents
 
     def bind(self, event, callback):
-        self._bindings[event] = callback
+        methods = self._bindings.get(event, [])
+        methods.append(callback)
+        self._bindings[event] = methods
+
+    def trigger(self, name, *args, **kwargs):
+        methods = self._bindings.get(name, [])
+        for method in methods:
+            method(*args, **kwargs)
