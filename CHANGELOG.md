@@ -9,15 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.46.0] - 2026-04-13
+
+### Added
+
 * Sequential MX session mode for SMTP client (`sequential` parameter in `message()`), establishes one connection at a time per MX host to reduce pressure on remote servers that drop concurrent connections from the same source
 
 ### Changed
 
 * Extract `initiate_mx()` from `on_mx_resolved()` in SMTP client for clearer separation of DNS collection and connection initiation phases
-
-### Fixed
-
-*
 
 ## [1.45.1] - 2026-04-13
 
