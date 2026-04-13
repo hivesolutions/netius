@@ -520,6 +520,7 @@ class SMTPClient(netius.StreamClient):
         mark=True,
         comply=False,
         ensure_loop=True,
+        sequential=True,
         callback=None,
         callback_error=None,
     ):
@@ -608,6 +609,12 @@ class SMTPClient(netius.StreamClient):
         required for standalone usage where no event loop is running
         yet. Should be disabled when the client is already running
         within an active event loop.
+        :type sequential: bool
+        :param sequential: If True the SMTP connections to different
+        MX hosts are established one at a time, waiting for each
+        session to complete before starting the next. This reduces
+        pressure on remote servers that may drop concurrent connections
+        from the same source IP. Defaults to False (parallel).
         :type callback: Callable
         :param callback: Optional callback invoked once all SMTP
         sessions for this message have completed. Called with
@@ -919,11 +926,37 @@ class SMTPClient(netius.StreamClient):
                         )
                     return
 
-            # iterates over the unique MX hosts establishing a single
-            # connection per host with all the associated recipients
-            for mx_key, (tos, _domains) in netius.legacy.items(mx_map):
+            def _connect_next_mx(pending, tos_map):
+                # in case there are no more pending MX entries returns
+                # immediately as all connections have been processed
+                if not pending:
+                    return
+
+                # retrieves the next MX entry from the pending list
+                # and establishes the connection for it
+                mx_key, (tos, _domains) = pending[0]
+                remaining = pending[1:]
                 connect_mx = build_handler(tos, domain=mx_key, tos_map=tos_map)
-                connect_mx(mx_key, _tos=tos)
+                connection = connect_mx(mx_key, _tos=tos)
+
+                # binds an additional close handler that triggers the
+                # next connection once the current one completes
+                connection.bind(
+                    "close",
+                    lambda connection=None: _connect_next_mx(remaining, tos_map),
+                )
+
+            # retrieves the list of MX entries to be processed, in
+            # sequential mode these are processed one at a time with
+            # each connection starting only after the previous completes
+            mx_entries = netius.legacy.items(mx_map)
+
+            if sequential:
+                _connect_next_mx(mx_entries, tos_map)
+            else:
+                for mx_key, (tos, _domains) in mx_entries:
+                    connect_mx = build_handler(tos, domain=mx_key, tos_map=tos_map)
+                    connect_mx(mx_key, _tos=tos)
 
         # iterates over the complete set of domains to run the MX
         # based query operation collecting the results
