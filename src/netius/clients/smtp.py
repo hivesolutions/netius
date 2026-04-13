@@ -678,45 +678,64 @@ class SMTPClient(netius.StreamClient):
                 sessions=sessions,
             )
 
-            def on_close(connection=None):
-                # captures the deliverability information from the
-                # SMTP session that has just completed, including the
-                # remote server greeting, queue response, session
-                # duration and the recipients for this session
-                if connection:
-                    end_time = time.time()
-                    duration = (
-                        end_time - connection.start_time
-                        if not connection.start_time == None
+            def capture_session(connection):
+                """
+                Captures the deliverability information from the SMTP
+                session into the shared sessions list, including the
+                remote server greeting, queue response, TLS details,
+                session duration, recipients and transcript. Skips
+                if already captured to avoid duplicates when both
+                `on_exception` and `on_close` fire for the same
+                connection.
+
+                :type connection: SMTPConnection
+                :param connection: The SMTP connection to capture
+                session information from, or None if not available.
+                """
+
+                if not connection:
+                    return
+                if getattr(connection, "_session_captured", False):
+                    return
+                connection._session_captured = True
+                end_time = time.time()
+                duration = (
+                    end_time - connection.start_time
+                    if not connection.start_time == None
+                    else None
+                )
+                session = dict(
+                    domain=domain,
+                    host=(
+                        netius.legacy.str(connection.address[0])
+                        if connection.address
                         else None
-                    )
-                    session = dict(
-                        domain=domain,
-                        host=(
-                            netius.legacy.str(connection.address[0])
-                            if connection.address
-                            else None
-                        ),
-                        port=connection.address[1] if connection.address else None,
-                        mx_host=(
-                            netius.legacy.str(connection.mx_host)
-                            if getattr(connection, "mx_host", None)
-                            else None
-                        ),
-                        greeting=connection.greeting,
-                        queue_response=connection.queue_response,
-                        capabilities=list(connection.capabilities),
-                        starttls=not connection.tls_version == None,
-                        tls_version=connection.tls_version,
-                        tls_cipher=connection.tls_cipher,
-                        start_time=connection.start_time,
-                        end_time=end_time,
-                        duration=duration,
-                        recipients=list(tos),
-                        error=getattr(connection, "_session_error", None),
-                        transcript=connection.transcript,
-                    )
-                    context["sessions"].append(session)
+                    ),
+                    port=connection.address[1] if connection.address else None,
+                    mx_host=(
+                        netius.legacy.str(connection.mx_host)
+                        if getattr(connection, "mx_host", None)
+                        else None
+                    ),
+                    greeting=connection.greeting,
+                    queue_response=connection.queue_response,
+                    capabilities=list(connection.capabilities),
+                    starttls=not connection.tls_version == None,
+                    tls_version=connection.tls_version,
+                    tls_cipher=connection.tls_cipher,
+                    start_time=connection.start_time,
+                    end_time=end_time,
+                    duration=duration,
+                    recipients=list(tos),
+                    error=getattr(connection, "_session_error", None),
+                    transcript=connection.transcript,
+                )
+                context["sessions"].append(session)
+
+            def on_close(connection=None):
+                # ensures the session deliverability information is
+                # persisted before the completion tracking runs
+                capture_session(connection)
 
                 # verifies if the current handler has been built with a
                 # domain based closure and if that's the case removes the
@@ -738,6 +757,11 @@ class SMTPClient(netius.StreamClient):
             def on_exception(connection=None, exception=None):
                 if connection:
                     connection._session_error = str(exception) if exception else None
+
+                # captures session before calling `callback_error` so
+                # that the error report includes all session data
+                capture_session(connection)
+
                 if callback_error:
                     callback_error(self, context, exception)
 

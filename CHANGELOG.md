@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Capture SMTP session data before `callback_error` fires so that deliverability info (greeting, transcript, TLS details, etc.) is available in `context["sessions"]` on error
 
 ## [1.47.0] - 2026-04-13
 
