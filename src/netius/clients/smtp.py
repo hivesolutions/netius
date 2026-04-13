@@ -560,30 +560,30 @@ class SMTPClient(netius.StreamClient):
         STARTTLS from the start, when False (default) the sequence
         starts plain and upgrades dynamically if supported.
 
-        :type froms: list
+        :type froms: List
         :param froms: The list of sender email addresses, typically
         a single-element list. Only the first element is used as the
         MAIL FROM address in the SMTP envelope.
-        :type tos: list
+        :type tos: List
         :param tos: The list of recipient email addresses. In MX
         resolution mode these are grouped by domain and then by
         resolved MX host for connection deduplication.
-        :type contents: str
+        :type contents: String
         :param contents: The raw email message contents including
         headers and body in RFC 2822 format.
-        :type message_id: str
+        :type message_id: String
         :param message_id: Optional message identifier to be set in
         the headers when the comply flag is enabled.
-        :type host: str
+        :type host: String
         :param host: The target SMTP host to connect to directly,
         bypassing MX resolution. When set the method operates in
         direct host mode, when None it operates in MX resolution mode.
         :type port: int
         :param port: The target SMTP port, defaults to 25.
-        :type username: str
+        :type username: String
         :param username: Optional username for SMTP authentication
         on the target server.
-        :type password: str
+        :type password: String
         :param password: Optional password for SMTP authentication
         on the target server.
         :type ehlo: bool
@@ -608,14 +608,14 @@ class SMTPClient(netius.StreamClient):
         required for standalone usage where no event loop is running
         yet. Should be disabled when the client is already running
         within an active event loop.
-        :type callback: function
+        :type callback: Callable
         :param callback: Optional callback invoked once all SMTP
         sessions for this message have completed. Called with
         (smtp_client, context) where context is a dictionary
         containing froms, tos, contents, and a sessions list with
         per-connection deliverability information (greeting, queue
         response, TLS details, transcript, duration, etc).
-        :type callback_error: function
+        :type callback_error: Callable
         :param callback_error: Optional callback invoked per-connection
         when an exception occurs during an SMTP session. Called with
         (smtp_client, context, exception). Unlike callback this may
