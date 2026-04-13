@@ -193,6 +193,75 @@ class SMTPClientTest(unittest.TestCase):
 
         self.assertEqual(connection.sequence, "message")
 
+    def test_message_capture_session_on_close(self):
+        results = []
+
+        client = self._build_client()
+        connection = client.message(
+            ["sender@example.com"],
+            ["user1@domain-a.com"],
+            "test contents",
+            host="relay.example.com",
+            mark=False,
+            callback=lambda c, ctx: results.append(ctx),
+        )
+
+        connection.trigger("close", connection)
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(len(results[0]["sessions"]), 1)
+
+        session = results[0]["sessions"][0]
+        self.assertEqual(session["domain"], None)
+        self.assertEqual(session["host"], "relay.example.com")
+        self.assertEqual(session["port"], 25)
+        self.assertEqual(session["recipients"], ["user1@domain-a.com"])
+        self.assertEqual(session["error"], None)
+
+    def test_message_capture_session_on_exception(self):
+        results = []
+        errors = []
+
+        client = self._build_client()
+        connection = client.message(
+            ["sender@example.com"],
+            ["user1@domain-a.com"],
+            "test contents",
+            host="relay.example.com",
+            mark=False,
+            callback=lambda c, ctx: results.append(ctx),
+            callback_error=lambda c, ctx, e: errors.append(ctx),
+        )
+
+        exception = Exception("451 temporary failure")
+        connection.trigger("exception", connection, exception)
+
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(len(errors[0]["sessions"]), 1)
+
+        session = errors[0]["sessions"][0]
+        self.assertEqual(session["error"], "451 temporary failure")
+        self.assertEqual(session["recipients"], ["user1@domain-a.com"])
+
+    def test_message_capture_session_no_duplicate(self):
+        results = []
+
+        client = self._build_client()
+        connection = client.message(
+            ["sender@example.com"],
+            ["user1@domain-a.com"],
+            "test contents",
+            host="relay.example.com",
+            mark=False,
+            callback=lambda c, ctx: results.append(ctx),
+        )
+
+        connection.trigger("exception", connection, Exception("error"))
+        connection.trigger("close", connection)
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(len(results[0]["sessions"]), 1)
+
     def test_message_single_domain(self):
         self._build_mock_dns(unique=True)
 
