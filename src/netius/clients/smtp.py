@@ -931,6 +931,11 @@ class SMTPClient(netius.StreamClient):
             # each connection starting only after the previous completes
             mx_entries = netius.legacy.items(mx_map)
 
+            # in sequential mode the connections are established one
+            # at a time, each starting only after the previous one
+            # completes, reducing pressure on remote MX servers that
+            # may drop concurrent connections from the same source,
+            # in parallel mode all connections are started immediately
             if sequential:
                 _connect_next_mx(mx_entries, tos_map)
             else:

@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Sequential MX session mode for SMTP client (`sequential` parameter in `message()`), establishes one connection at a time per MX host to reduce pressure on remote servers that drop concurrent connections from the same source
 
 ### Changed
 
