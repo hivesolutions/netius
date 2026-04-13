@@ -846,7 +846,7 @@ class SMTPClient(netius.StreamClient):
             """
             Groups recipients by resolved MX host and initiates one
             SMTP connection per unique server. Domains that failed MX
-            resolution are reported via callback_error and tracked
+            resolution are reported via `callback_error` and tracked
             for completion. Called once all DNS resolutions complete.
             """
 
