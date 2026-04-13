@@ -521,6 +521,7 @@ class SMTPClient(netius.StreamClient):
         comply=False,
         ensure_loop=True,
         sequential=True,
+        mx_dedup=False,
         callback=None,
         callback_error=None,
     ):
@@ -615,6 +616,12 @@ class SMTPClient(netius.StreamClient):
         session to complete before starting the next. This reduces
         pressure on remote servers that may drop concurrent connections
         from the same source IP. Defaults to True (sequential).
+        :type mx_dedup: bool
+        :param mx_dedup: If True recipients on different email domains
+        that resolve to the same MX host are grouped into a single
+        SMTP connection. Should be disabled when the remote server
+        rejects multiple destination domains per transaction (eg.
+        Google returns 451 4.3.0). Defaults to False.
         :type callback: Callable
         :param callback: Optional callback invoked once all SMTP
         sessions for this message have completed. Called with
@@ -859,7 +866,9 @@ class SMTPClient(netius.StreamClient):
 
             # groups the recipients by resolved MX host so that a
             # single connection is used per unique MX server address,
-            # domains that failed resolution are tracked separately
+            # when `mx_dedup` is disabled each domain gets its own
+            # connection even if they share the same MX host, domains
+            # that failed resolution are tracked separately
             mx_map = dict()
             mx_failed = []
             for domain, tos in netius.legacy.items(domains_map):
@@ -867,8 +876,12 @@ class SMTPClient(netius.StreamClient):
                 if mx_host == None:
                     mx_failed.append(domain)
                     continue
-                mx_key = netius.legacy.str(mx_host).rstrip(".").lower()
-                existing = mx_map.get(mx_key, ([], []))
+                mx_host_s = netius.legacy.str(mx_host).rstrip(".").lower()
+                if mx_dedup:
+                    mx_key = mx_host_s
+                else:
+                    mx_key = domain
+                existing = mx_map.get(mx_key, ([], [], mx_host_s))
                 existing[0].extend(tos)
                 existing[1].append(domain)
                 mx_map[mx_key] = existing
@@ -939,9 +952,9 @@ class SMTPClient(netius.StreamClient):
             if sequential:
                 _connect_next_mx(mx_entries, tos_map)
             else:
-                for mx_key, (tos, _domains) in mx_entries:
+                for mx_key, (tos, _domains, mx_host_s) in mx_entries:
                     connect_mx = build_handler(tos, domain=mx_key, tos_map=tos_map)
-                    connect_mx(mx_key, _tos=tos)
+                    connect_mx(mx_host_s, _tos=tos)
 
         def _connect_next_mx(pending, tos_map):
             # in case there are no more pending MX entries returns
@@ -951,10 +964,10 @@ class SMTPClient(netius.StreamClient):
 
             # retrieves the next MX entry from the pending list
             # and establishes the connection for it
-            mx_key, (tos, _domains) = pending[0]
+            mx_key, (tos, _domains, mx_host_s) = pending[0]
             remaining = pending[1:]
             connect_mx = build_handler(tos, domain=mx_key, tos_map=tos_map)
-            connection = connect_mx(mx_key, _tos=tos)
+            connection = connect_mx(mx_host_s, _tos=tos)
 
             # binds an additional close handler that triggers the
             # next connection once the current one completes

@@ -242,6 +242,7 @@ class SMTPClientTest(unittest.TestCase):
             ],
             "test contents",
             mark=False,
+            mx_dedup=True,
         )
 
         self.assertEqual(sorted(self.dns_queries), ["domain-a.com", "domain-b.com"])
@@ -332,6 +333,7 @@ class SMTPClientTest(unittest.TestCase):
             ["user1@domain-a.com", "user2@domain-b.com"],
             "test contents",
             mark=False,
+            mx_dedup=True,
         )
 
         self.assertEqual(len(self.connections), 1)
