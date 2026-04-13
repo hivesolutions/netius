@@ -1012,8 +1012,7 @@ class BaseConnection(observer.Observable):
             return None
         try:
             return tuple(
-                legacy.str(v) if isinstance(v, bytes) else v
-                for v in self.address
+                legacy.str(v) if isinstance(v, bytes) else v for v in self.address
             )
         except Exception:
             return None
