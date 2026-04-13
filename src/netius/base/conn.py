@@ -658,7 +658,7 @@ class BaseConnection(observer.Observable):
             id=self.id,
             connecting=self.connecting,
             upgrading=self.upgrading,
-            address=self.address,
+            address=self._safe_address,
             ssl=self.ssl,
             datagram=self.datagram,
             renable=self.renable,
@@ -995,13 +995,28 @@ class BaseConnection(observer.Observable):
 
     def _safe_socket_attr(self, name):
         try:
-            return getattr(self.socket, name, None) if self.socket else None
+            value = getattr(self.socket, name, None) if self.socket else None
+            if hasattr(value, "value"):
+                return value.value
+            return value
         except Exception:
             return None
 
     @property
     def _has_starter(self):
         return not self._starter == None
+
+    @property
+    def _safe_address(self):
+        if self.address == None:
+            return None
+        try:
+            return tuple(
+                legacy.str(v) if isinstance(v, bytes) else v
+                for v in self.address
+            )
+        except Exception:
+            return None
 
     @property
     def _safe_fileno(self):

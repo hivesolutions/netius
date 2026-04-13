@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Ensure `info_dict()` returns JSON-safe values on PyPy by converting bytes address components to strings and extracting `.value` from socket enum attributes
 
 ## [1.47.1] - 2026-04-13
 
