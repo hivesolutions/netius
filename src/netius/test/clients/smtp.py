@@ -38,13 +38,16 @@ class SMTPClientTest(unittest.TestCase):
     def setUp(self):
         unittest.TestCase.setUp(self)
 
-        self.original_query_s = netius.clients.DNSClient.query_s
+        self.original_query_s = netius.clients.DNSClient.__dict__["query_s"]
         self.original_connect = netius.clients.SMTPClient.connect
         self.original_ensure_loop = netius.clients.SMTPClient.ensure_loop
         self.connections = []
         self.dns_queries = []
+        self.clients = []
+        self._dns_resolver = None
 
         connections = self.connections
+        dns_queries = self.dns_queries
 
         def mock_connect(self, host, port):
             connection = _MockSMTPConnection(host, port)
@@ -54,17 +57,29 @@ class SMTPClientTest(unittest.TestCase):
         def mock_ensure_loop(self):
             pass
 
+        def mock_query_s(name, type="a", cls_="in", ns=None, callback=None, loop=None):
+            dns_queries.append(name)
+            if self._dns_resolver:
+                response = self._dns_resolver(name)
+                if callback:
+                    callback(response)
+                return
+            raise AssertionError("Unexpected DNS query: %s" % name)
+
+        netius.clients.DNSClient.query_s = staticmethod(mock_query_s)
         netius.clients.SMTPClient.connect = mock_connect
         netius.clients.SMTPClient.ensure_loop = mock_ensure_loop
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
+        for client in self.clients:
+            client.cleanup()
         netius.clients.DNSClient.query_s = self.original_query_s
         netius.clients.SMTPClient.connect = self.original_connect
         netius.clients.SMTPClient.ensure_loop = self.original_ensure_loop
 
     def test_message_direct_host(self):
-        client = netius.clients.SMTPClient()
+        client = self._build_client()
         connection = client.message(
             ["sender@example.com"],
             ["user1@domain-a.com"],
@@ -81,7 +96,7 @@ class SMTPClientTest(unittest.TestCase):
         self.assertEqual(connection.froms, ["sender@example.com"])
 
     def test_message_direct_host_returns_connection(self):
-        client = netius.clients.SMTPClient()
+        client = self._build_client()
         connection = client.message(
             ["sender@example.com"],
             ["user1@domain-a.com"],
@@ -94,7 +109,7 @@ class SMTPClientTest(unittest.TestCase):
         self.assertIsInstance(connection, _MockSMTPConnection)
 
     def test_message_direct_host_port(self):
-        client = netius.clients.SMTPClient()
+        client = self._build_client()
         connection = client.message(
             ["sender@example.com"],
             ["user1@domain-a.com"],
@@ -108,7 +123,7 @@ class SMTPClientTest(unittest.TestCase):
         self.assertEqual(connection.port, 587)
 
     def test_message_direct_host_multiple_tos(self):
-        client = netius.clients.SMTPClient()
+        client = self._build_client()
         connection = client.message(
             ["sender@example.com"],
             [
@@ -125,7 +140,7 @@ class SMTPClientTest(unittest.TestCase):
         self.assertEqual(len(connection.tos), 3)
 
     def test_message_direct_host_no_dns(self):
-        client = netius.clients.SMTPClient()
+        client = self._build_client()
         client.message(
             ["sender@example.com"],
             [
@@ -140,7 +155,7 @@ class SMTPClientTest(unittest.TestCase):
         self.assertEqual(len(self.dns_queries), 0)
 
     def test_message_direct_host_binds_close(self):
-        client = netius.clients.SMTPClient()
+        client = self._build_client()
         connection = client.message(
             ["sender@example.com"],
             ["user1@domain-a.com"],
@@ -153,7 +168,7 @@ class SMTPClientTest(unittest.TestCase):
         self.assertIn("exception", connection._bindings)
 
     def test_message_direct_host_stls(self):
-        client = netius.clients.SMTPClient()
+        client = self._build_client()
         connection = client.message(
             ["sender@example.com"],
             ["user1@domain-a.com"],
@@ -166,7 +181,7 @@ class SMTPClientTest(unittest.TestCase):
         self.assertEqual(connection.sequence, "stls")
 
     def test_message_direct_host_no_stls(self):
-        client = netius.clients.SMTPClient()
+        client = self._build_client()
         connection = client.message(
             ["sender@example.com"],
             ["user1@domain-a.com"],
@@ -181,7 +196,7 @@ class SMTPClientTest(unittest.TestCase):
     def test_message_single_domain(self):
         self._build_mock_dns(unique=True)
 
-        client = netius.clients.SMTPClient()
+        client = self._build_client()
         client.message(
             ["sender@example.com"],
             ["user1@domain-a.com", "user2@domain-a.com"],
@@ -197,7 +212,7 @@ class SMTPClientTest(unittest.TestCase):
     def test_message_separate_different_mx(self):
         self._build_mock_dns(unique=True)
 
-        client = netius.clients.SMTPClient()
+        client = self._build_client()
         client.message(
             ["sender@example.com"],
             [
@@ -216,7 +231,7 @@ class SMTPClientTest(unittest.TestCase):
     def test_message_dedup_same_mx(self):
         self._build_mock_dns(unique=False)
 
-        client = netius.clients.SMTPClient()
+        client = self._build_client()
         client.message(
             ["sender@example.com"],
             [
@@ -238,26 +253,114 @@ class SMTPClientTest(unittest.TestCase):
         self.assertIn("user2@domain-b.com", connection.tos)
         self.assertIn("user3@domain-a.com", connection.tos)
 
+    def test_message_mx_failure_calls_error(self):
+        errors = []
+
+        def resolver(name):
+            return _MockDNSResponse(name, fail=True)
+
+        self._dns_resolver = resolver
+
+        client = self._build_client()
+        client.message(
+            ["sender@example.com"],
+            ["user1@bad-domain.com"],
+            "test contents",
+            mark=False,
+            callback_error=lambda c, ctx, e: errors.append(e),
+        )
+
+        self.assertEqual(len(self.connections), 0)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("bad-domain.com", str(errors[0]))
+
+    def test_message_mx_failure_calls_callback(self):
+        results = []
+
+        def resolver(name):
+            return _MockDNSResponse(name, fail=True)
+
+        self._dns_resolver = resolver
+
+        client = self._build_client()
+        client.message(
+            ["sender@example.com"],
+            ["user1@bad-domain.com"],
+            "test contents",
+            mark=False,
+            callback=lambda c, ctx: results.append(ctx),
+        )
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(len(self.connections), 0)
+
+    def test_message_mx_partial_failure(self):
+        errors = []
+
+        def resolver(name):
+            if name == "bad-domain.com":
+                return _MockDNSResponse(name, fail=True)
+            return _MockDNSResponse(name, unique=True)
+
+        self._dns_resolver = resolver
+
+        client = self._build_client()
+        client.message(
+            ["sender@example.com"],
+            ["user1@good-domain.com", "user2@bad-domain.com"],
+            "test contents",
+            mark=False,
+            callback_error=lambda c, ctx, e: errors.append(e),
+        )
+
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(len(self.connections), 1)
+        self.assertIn("user1@good-domain.com", self.connections[0].tos)
+
+    def test_message_mx_dedup_case_insensitive(self):
+        def resolver(name):
+            if name == "domain-a.com":
+                return _MockDNSResponse(name, mx_host=b"MX.GOOGLE.COM.")
+            return _MockDNSResponse(name, mx_host=b"mx.google.com")
+
+        self._dns_resolver = resolver
+
+        client = self._build_client()
+        client.message(
+            ["sender@example.com"],
+            ["user1@domain-a.com", "user2@domain-b.com"],
+            "test contents",
+            mark=False,
+        )
+
+        self.assertEqual(len(self.connections), 1)
+        self.assertEqual(len(self.connections[0].tos), 2)
+
+    def _build_client(self):
+        client = netius.clients.SMTPClient()
+        self.clients.append(client)
+        return client
+
     def _build_mock_dns(self, unique=False):
-        dns_queries = self.dns_queries
+        def resolver(name):
+            return _MockDNSResponse(name, unique=unique)
 
-        def mock_query_s(name, type="a", cls_="in", ns=None, callback=None, loop=None):
-            dns_queries.append(name)
-            response = _MockDNSResponse(name, unique=unique)
-            if callback:
-                callback(response)
-
-        netius.clients.DNSClient.query_s = staticmethod(mock_query_s)
+        self._dns_resolver = resolver
 
 
 class _MockDNSResponse(object):
 
-    def __init__(self, domain, unique=False):
-        if unique:
-            mx_host = b"mx." + domain.encode("utf-8")
+    def __init__(self, domain, unique=False, fail=False, mx_host=None):
+        if fail:
+            self.answers = []
+            return
+        if mx_host:
+            _mx_host = mx_host
+        elif unique:
+            _mx_host = b"mx." + domain.encode("utf-8")
         else:
-            mx_host = "same-mx.example.com"
-        self.answers = [(domain, "MX", "IN", 300, (10, mx_host))]
+            _mx_host = "same-mx.example.com"
+        self.answers = [(domain, "MX", "IN", 300, (10, _mx_host))]
 
 
 class _MockSMTPConnection(object):

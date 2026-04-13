@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Report MX lookup failures as errors instead of silently dropping recipients, invoke `callback_error` per failed domain and fire `callback` when all domains fail
+* Normalize MX host dedup key with `.rstrip(".").lower()` to avoid case/trailing-dot mismatches splitting identical hosts into separate connections
 
 ## [1.45.0] - 2026-04-12
 

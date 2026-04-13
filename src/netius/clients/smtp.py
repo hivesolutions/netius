@@ -840,23 +840,73 @@ class SMTPClient(netius.StreamClient):
 
             # all MX records have been resolved, groups the recipients
             # by resolved MX host so that a single connection is used
-            # per unique MX server address
+            # per unique MX server address, domains that failed MX
+            # resolution are tracked separately for error handling
             mx_map = dict()
+            mx_failed = []
             for domain, tos in netius.legacy.items(domains_map):
                 mx_host = mx_resolved.get(domain)
                 if mx_host == None:
+                    mx_failed.append(domain)
                     continue
-                mx_key = netius.legacy.str(mx_host)
+                mx_key = netius.legacy.str(mx_host).rstrip(".").lower()
                 existing = mx_map.get(mx_key, ([], []))
                 existing[0].extend(tos)
                 existing[1].append(domain)
                 mx_map[mx_key] = existing
 
             # creates the tos map keyed by MX host for the completion
-            # tracking of the send operation
+            # tracking of the send operation, failed domains are also
+            # included so that the on close fallback fires properly
             tos_map = dict(
                 (mx_key, value[0]) for mx_key, value in netius.legacy.items(mx_map)
             )
+            for domain in mx_failed:
+                tos_map[domain] = domains_map[domain]
+
+            # handles any domains that failed MX resolution by
+            # raising the proper error and triggering the on close
+            # handler for completion tracking
+            for domain in mx_failed:
+                _tos = domains_map[domain]
+                connect_mx = build_handler(_tos, domain=domain, tos_map=tos_map)
+                exception = netius.NetiusError(
+                    "Not possible to resolve MX for '%s'" % domain
+                )
+                if callback_error:
+                    callback_error(
+                        self,
+                        dict(
+                            froms=froms,
+                            tos=_tos,
+                            contents=contents,
+                            mark=mark,
+                            comply=comply,
+                            ensure_loop=ensure_loop,
+                            domain=domain,
+                            tos_map=tos_map,
+                            sessions=sessions,
+                        ),
+                        exception,
+                    )
+                del tos_map[domain]
+                if not tos_map:
+                    if callback:
+                        callback(
+                            self,
+                            dict(
+                                froms=froms,
+                                tos=list(tos),
+                                contents=contents,
+                                mark=mark,
+                                comply=comply,
+                                ensure_loop=ensure_loop,
+                                domain=None,
+                                tos_map=tos_map,
+                                sessions=sessions,
+                            ),
+                        )
+                    return
 
             # iterates over the unique MX hosts establishing a single
             # connection per host with all the associated recipients
