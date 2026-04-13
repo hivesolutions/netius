@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `last_recv_ts` and `last_send_ts` timestamps in `DiagConnection` exposed via `info_dict()` and the DIAG `/connections` endpoint
 
 ### Changed
 

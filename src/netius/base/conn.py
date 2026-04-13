@@ -1020,17 +1020,21 @@ class DiagConnection(BaseConnection):
         self.sends = 0
         self.in_bytes = 0
         self.out_bytes = 0
+        self.last_recv_ts = None
+        self.last_send_ts = None
 
     def recv(self, *args, **kwargs):
         result = BaseConnection.recv(self, *args, **kwargs)
         self.in_bytes += len(result) if result else 0
         self.recvs += 1
+        self.last_recv_ts = time.time()
         return result
 
     def send(self, data, *args, **kwargs):
         result = BaseConnection.send(self, data, *args, **kwargs)
         self.out_bytes += result
         self.sends += 1
+        self.last_send_ts = time.time()
         return result
 
     def info_dict(self, full=False):
@@ -1041,6 +1045,8 @@ class DiagConnection(BaseConnection):
             sends=self.sends,
             in_bytes=self.in_bytes,
             out_bytes=self.out_bytes,
+            last_recv_ts=self.last_recv_ts,
+            last_send_ts=self.last_send_ts,
         )
         geo = self._resolve(self.address)
         if geo:
