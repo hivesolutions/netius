@@ -728,6 +728,22 @@ class SMTPClient(netius.StreamClient):
                     callback_error(self, context, exception)
 
             def connect_mx(address, _tos=None):
+                """
+                Establishes an SMTP connection to the provided MX address
+                and configures it for message delivery. Binds the `on_close`
+                and `on_exception` handlers from the enclosing `build_handler`
+                context for session completion tracking.
+
+                :type address: String
+                :param address: The resolved MX host address to connect to.
+                :type _tos: List
+                :param _tos: Optional override for the recipient list, used
+                when multiple domains have been merged into a single
+                connection after MX deduplication.
+                :rtype: SMTPConnection
+                :return: The established SMTP connection.
+                """
+
                 # sets the proper address (host) and port values that are
                 # going to be used to establish the connection, notice that
                 # in case the values provided as parameter to the message
@@ -853,10 +869,10 @@ class SMTPClient(netius.StreamClient):
         for domain in domains_map:
             self.debug("Resolving MX domain for '%s' ...", domain)
 
-            def _make_mx_callback(_domain):
+            def build_mx_callback(_domain):
                 return lambda response: on_mx_resolved(_domain, response)
 
-            dns.DNSClient.query_s(domain, type="mx", callback=_make_mx_callback(domain))
+            dns.DNSClient.query_s(domain, type="mx", callback=build_mx_callback(domain))
 
     def on_connect(self, connection):
         netius.StreamClient.on_connect(self, connection)
