@@ -178,6 +178,7 @@ SSL_SILENT_REASONS = (
     "WRONG_VERSION_NUMBER",
     "RECORD_LAYER_FAILURE",
     "NO_SHARED_CIPHER",
+    "SSLV3_ALERT_CERTIFICATE_UNKNOWN",
 )
 """ The list containing the SSL reasons that should be silenced
 while still making the connection dropped as they are expected

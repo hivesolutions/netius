@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* Added `SSLV3_ALERT_CERTIFICATE_UNKNOWN` to `SSL_SILENT_REASONS` so that certificate unknown alerts are silenced
 
 ### Fixed
 
