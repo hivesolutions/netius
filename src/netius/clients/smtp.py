@@ -812,8 +812,8 @@ class SMTPClient(netius.StreamClient):
         def on_mx_resolved(domain, response):
             """
             Callback for MX DNS resolution that collects the resolved
-            addresses and once all domains are resolved groups the
-            recipients by MX host and initiates the SMTP connections.
+            address and once all domains are resolved triggers the
+            connection initiation phase via `initiate_mx`.
 
             :type domain: String
             :param domain: The email domain that was resolved.
@@ -838,10 +838,21 @@ class SMTPClient(netius.StreamClient):
             if domains_pending:
                 return
 
-            # all MX records have been resolved, groups the recipients
-            # by resolved MX host so that a single connection is used
-            # per unique MX server address, domains that failed MX
-            # resolution are tracked separately for error handling
+            # all domains have been resolved, triggers the connection
+            # initiation phase that groups recipients by MX host
+            initiate_mx()
+
+        def initiate_mx():
+            """
+            Groups recipients by resolved MX host and initiates one
+            SMTP connection per unique server. Domains that failed MX
+            resolution are reported via callback_error and tracked
+            for completion. Called once all DNS resolutions complete.
+            """
+
+            # groups the recipients by resolved MX host so that a
+            # single connection is used per unique MX server address,
+            # domains that failed resolution are tracked separately
             mx_map = dict()
             mx_failed = []
             for domain, tos in netius.legacy.items(domains_map):

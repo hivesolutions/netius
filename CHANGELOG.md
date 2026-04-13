@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* Extract `initiate_mx()` from `on_mx_resolved()` in SMTP client for clearer separation of DNS collection and connection initiation phases
 
 ### Fixed
 
