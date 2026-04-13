@@ -926,26 +926,6 @@ class SMTPClient(netius.StreamClient):
                         )
                     return
 
-            def _connect_next_mx(pending, tos_map):
-                # in case there are no more pending MX entries returns
-                # immediately as all connections have been processed
-                if not pending:
-                    return
-
-                # retrieves the next MX entry from the pending list
-                # and establishes the connection for it
-                mx_key, (tos, _domains) = pending[0]
-                remaining = pending[1:]
-                connect_mx = build_handler(tos, domain=mx_key, tos_map=tos_map)
-                connection = connect_mx(mx_key, _tos=tos)
-
-                # binds an additional close handler that triggers the
-                # next connection once the current one completes
-                connection.bind(
-                    "close",
-                    lambda connection=None: _connect_next_mx(remaining, tos_map),
-                )
-
             # retrieves the list of MX entries to be processed, in
             # sequential mode these are processed one at a time with
             # each connection starting only after the previous completes
@@ -957,6 +937,26 @@ class SMTPClient(netius.StreamClient):
                 for mx_key, (tos, _domains) in mx_entries:
                     connect_mx = build_handler(tos, domain=mx_key, tos_map=tos_map)
                     connect_mx(mx_key, _tos=tos)
+
+        def _connect_next_mx(pending, tos_map):
+            # in case there are no more pending MX entries returns
+            # immediately as all connections have been processed
+            if not pending:
+                return
+
+            # retrieves the next MX entry from the pending list
+            # and establishes the connection for it
+            mx_key, (tos, _domains) = pending[0]
+            remaining = pending[1:]
+            connect_mx = build_handler(tos, domain=mx_key, tos_map=tos_map)
+            connection = connect_mx(mx_key, _tos=tos)
+
+            # binds an additional close handler that triggers the
+            # next connection once the current one completes
+            connection.bind(
+                "close",
+                lambda connection=None: _connect_next_mx(remaining, tos_map),
+            )
 
         # iterates over the complete set of domains to run the MX
         # based query operation collecting the results

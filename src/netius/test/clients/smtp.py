@@ -221,6 +221,7 @@ class SMTPClientTest(unittest.TestCase):
             ],
             "test contents",
             mark=False,
+            sequential=False,
         )
 
         self.assertEqual(len(self.connections), 2)
