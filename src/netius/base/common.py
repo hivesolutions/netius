@@ -1509,6 +1509,12 @@ class AbstractBase(observer.Observable):
         if not self.diag:
             return
 
+        # in case there's already a diagnostics application running
+        # stops it before creating a new one to avoid socket binding
+        # conflicts (address already in use)
+        if self.diag_app:
+            self.unload_diag()
+
         # runs the import operations for the diag module, note that
         # this must be performed locally no avoid any unwanted behavior
         # or collision with a runtime process (would pose issues)
@@ -1540,6 +1546,21 @@ class AbstractBase(observer.Observable):
         self.diag_app.serve(
             server=server, host=host, port=port, diag=False, threaded=True, conf=False
         )
+
+    def unload_diag(self):
+        # verifies if there's a valid diagnostics application
+        # currently running and if not returns immediately
+        if not self.diag_app:
+            return
+
+        # stops the diagnostics application by refraining its
+        # underlying server, this will release the bound socket
+        # allowing a new diagnostics app to bind to the same port
+        try:
+            self.diag_app.refrain()
+        except Exception:
+            pass
+        self.diag_app = None
 
     def load_middleware(self, suffix="Middleware"):
         # iterates over the complete set of string that define the middleware
@@ -1879,6 +1900,10 @@ class AbstractBase(observer.Observable):
         del self._delayed[:]
         del self._delayed_o[:]
         del self._delayed_n[:]
+
+        # stops the diagnostics application if it's currently running
+        # releasing the bound socket and associated resources
+        self.unload_diag()
 
         # runs the expand destroy operation so that the complete set of expanded
         # values get their (temporary) files removed (garbage collection)
