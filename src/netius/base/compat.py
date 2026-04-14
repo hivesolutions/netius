@@ -264,29 +264,9 @@ class CompatLoop(BaseLoop):
             protocol = protocol_factory()
             _transport = transport.TransportStream(self, connection)
             _transport._set_compat(protocol)
-            conn_id = connection.id if hasattr(connection, "id") else "?"
-            owner_name = (
-                connection.owner.name
-                if hasattr(connection, "owner") and connection.owner
-                else "?"
-            )
-            self._loop.info(
-                "Compat stream connect %s:%d conn=%s owner=%s",
-                host,
-                port,
-                conn_id,
-                owner_name,
-            )
             future.set_result((_transport, protocol))
 
         def on_error(connection):
-            conn_id = connection.id if hasattr(connection, "id") else "?"
-            self._loop.info(
-                "Compat stream connect error %s:%d conn=%s",
-                host,
-                port,
-                conn_id,
-            )
             future.set_exception(errors.RuntimeError("Connection issue"))
 
         self._loop.connect(host, port, ssl=ssl, family=family, callback=on_complete)

@@ -673,6 +673,8 @@ class BaseConnection(observer.Observable):
             proxy_pending=getattr(self, "_proxy_pending", None),
             is_base=getattr(self, "_base", False),
             owner=getattr(self.owner, "name", None) if self.owner else None,
+            waiting=getattr(self, "waiting", None),
+            busy=getattr(self, "busy", None),
         )
         return info
 
