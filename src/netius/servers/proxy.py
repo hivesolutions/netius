@@ -639,8 +639,8 @@ class ProxyServer(http2.HTTP2Server):
     def _on_prx_error(self, client, _connection, error):
         """
         Handles an error in the back-end proxy connection. The
-        _connection parameter may be either a Connection object
-        or an HTTPProtocol instance depending on the architecture.
+        `_connection` parameter may be either a `Connection` object
+        or an `HTTPProtocol` instance depending on the architecture.
 
         :type client: HTTPClient
         :param client: The HTTP client that owns the connection.
