@@ -425,6 +425,16 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if proxy_c in self.conn_map:
             del self.conn_map[proxy_c]
 
+        # verifies that the old proxy connection is not still waiting
+        # for a response, if it is the connection is being reassigned
+        # while its callbacks are still in-flight which may cause the
+        # response to be delivered to the wrong frontend connection
+        if proxy_c and proxy_c.waiting:
+            self.warning(
+                "Reassigning proxy_c while old connection '%s' is still waiting",
+                proxy_c.id,
+            )
+
         # tries to determine the transfer encoding of the received request
         # and by using that determines the proper encoding to be applied
         encoding = headers.pop("transfer-encoding", None)

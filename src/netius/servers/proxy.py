@@ -232,6 +232,7 @@ class ProxyServer(http2.HTTP2Server):
             throttle=self.throttle,
             max_pending=self.max_pending,
             min_pending=self.min_pending,
+            conn_map_size=len(self.conn_map),
             http_client=self.http_client.info_dict(full=full),
             raw_client=self.raw_client.info_dict(full=full),
         )
@@ -574,7 +575,22 @@ class ProxyServer(http2.HTTP2Server):
         # to the caller method immediately (nothing done)
         connection = self.conn_map.get(_connection, None)
         if not connection:
+            self.debug(
+                "Backend close callback for unmapped connection '%s'",
+                _connection.id,
+            )
             return
+
+        # verifies that the front-end connection is still in a valid
+        # state, if it has been closed by another callback the close
+        # handler would operate on stale state
+        if not connection.is_open():
+            self.warning(
+                "Backend close for '%s' but frontend '%s' is not open (status=%d)",
+                _connection.id,
+                connection.id,
+                connection.status,
+            )
 
         # in case the connection is under the waiting state
         # the forbidden response is set to the client otherwise
