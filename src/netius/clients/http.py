@@ -738,6 +738,7 @@ class HTTPProtocol(netius.StreamProtocol):
         # before the request could be sent) closes the protocol to avoid
         # errors in the request sending process
         if parsed == None:
+            self.traced("Parsed URL is not available, closing protocol")
             return
 
         if parsed.query:
