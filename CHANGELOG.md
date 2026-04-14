@@ -13,12 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Add debug logging to `CompatLoop.connect_stream()` for connection success and error events
-* Elevate duplicate protocol pool replacement log in `HTTPClient` from debug to warning level
+*
 
 ### Fixed
 
 *
+
+## [1.48.2] - 2026-04-14
+
+### Changed
+
+* Add debug logging to `CompatLoop.connect_stream()` for connection success and error events
+* Elevate duplicate protocol pool replacement log in `HTTPClient` from debug to warning level
 
 ## [1.48.1] - 2026-04-14
 
