@@ -575,10 +575,9 @@ class ProxyServer(http2.HTTP2Server):
         # to the caller method immediately (nothing done)
         connection = self.conn_map.get(_connection, None)
         if not connection:
-            _conn_id = _connection.id if hasattr(_connection, "id") else "?"
             self.debug(
                 "Backend close callback for unmapped connection '%s'",
-                _conn_id,
+                connection.id,
             )
             return
 
@@ -586,10 +585,9 @@ class ProxyServer(http2.HTTP2Server):
         # state, if it has been closed by another callback the close
         # handler would operate on stale state
         if not connection.is_open():
-            _conn_id = _connection.id if hasattr(_connection, "id") else "?"
             self.warning(
                 "Backend close for '%s' but frontend '%s' is not open (status=%d)",
-                _conn_id,
+                _connection.id,
                 connection.id,
                 connection.status,
             )
