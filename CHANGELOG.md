@@ -13,12 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Remove redundant frontend connection state check in `ProxyServer._on_prx_close()`
-* Use `hasattr` guard for `is_closed()` check in `_connect_stream_native` to support non-Netius protocol instances
+*
 
 ### Fixed
 
 *
+
+## [1.52.2] - 2026-04-14
+
+### Changed
+
+* Remove redundant frontend connection state check in `ProxyServer._on_prx_close()`
+* Use `hasattr` guard for `is_closed()` check in `_connect_stream_native` to support non-Netius protocol instances
 
 ## [1.52.1] - 2026-04-14
 
