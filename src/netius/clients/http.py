@@ -1282,6 +1282,7 @@ class HTTPClient(netius.ClientAgent):
             or (hasattr(protocol, "is_closing") and protocol.is_closing())
         ):
             protocol.traced("Discarding stale protocol")
+            protocol.close()
             protocol = None
         if protocol:
             protocol.traced("Reusing protocol")
