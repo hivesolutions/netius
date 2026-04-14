@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Test suite for `ConnectionCompat` mixin covering all delegation properties, setters, defaults, and no-connection fallbacks (42 tests)
 
 ### Changed
 
