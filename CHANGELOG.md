@@ -9,9 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* `conn_map_size` field in `ProxyServer.info_dict()` for monitoring the connection mapping table size in DIAG
-* Warning log in `ReverseProxyServer` when a proxy connection is reassigned while the old connection is still waiting for a response
-* Debug/warning logging in `ProxyServer._on_prx_close()` for unmapped backend close callbacks and stale frontend connections
+*
 
 ### Changed
 
@@ -20,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 *
+
+## [1.50.0] - 2026-04-14
+
+### Added
+
+* `conn_map_size` field in `ProxyServer.info_dict()` for monitoring the connection mapping table size in DIAG
+* Warning log in `ReverseProxyServer` when a proxy connection is reassigned while the old connection is still waiting for a response
+* Debug/warning logging in `ProxyServer._on_prx_close()` for unmapped backend close callbacks and stale frontend connections
 
 ## [1.49.0] - 2026-04-14
 
