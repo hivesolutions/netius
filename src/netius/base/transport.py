@@ -197,9 +197,7 @@ class Transport(observer.Observable):
             compression=lambda: _safe_socket_call("compression"),
             cipher=lambda: _safe_socket_call("cipher"),
             peercert=lambda: _safe_socket_call("getpeercert"),
-            sslcontext=lambda: (
-                getattr(_safe_socket(), "context", None)
-            ),
+            sslcontext=lambda: (getattr(_safe_socket(), "context", None)),
             ssl_object=_safe_socket,
         )
 
