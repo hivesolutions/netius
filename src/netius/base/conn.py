@@ -672,6 +672,7 @@ class BaseConnection(observer.Observable):
             socket_type=self._safe_socket_attr("type"),
             proxy_pending=getattr(self, "_proxy_pending", None),
             is_base=getattr(self, "_base", False),
+            owner=getattr(self.owner, "name", None) if self.owner else None,
         )
         return info
 

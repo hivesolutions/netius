@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `owner` field in `info_dict()` exposing the connection owner's name in the DIAG `/connections` endpoint
 
 ### Changed
 
-*
+* Enhance `CompatLoop.connect_stream()` logging with owner name, full connection ID, and info-level output
 
 ### Fixed
 
