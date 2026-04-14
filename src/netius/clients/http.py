@@ -1378,9 +1378,19 @@ class HTTPClient(netius.ClientAgent):
                 protocol.close()
 
             # otherwise the protocol is set in the available map and
-            # the only the loop is stopped (unblocking the processor)
+            # the only the loop is stopped (unblocking the processor),
+            # any previous protocol for the same key is closed first
+            # to avoid leaking the underlying connection
             else:
                 protocol.traced("Pooling for reuse")
+
+                # safe guards the available list against duplication of
+                # protocols for the same key, closing any previous protocol
+                previous = self.available.pop(protocol.key, None)
+                if previous:
+                    self.debug("Closing previous protocol for key %s", protocol.key)
+                    previous.close()
+
                 self.available[protocol.key] = protocol
                 netius.compat_loop(loop).stop()
 
