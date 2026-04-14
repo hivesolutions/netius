@@ -1388,7 +1388,7 @@ class HTTPClient(netius.ClientAgent):
                 # protocols for the same key, closing any previous protocol
                 previous = self.available.pop(protocol.key, None)
                 if previous:
-                    self.debug("Closing previous protocol for key '%s'", protocol.key)
+                    self.warning("Closing previous protocol for key '%s'", protocol.key)
                     previous.close()
 
                 self.available[protocol.key] = protocol
