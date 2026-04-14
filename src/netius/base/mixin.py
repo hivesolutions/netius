@@ -33,7 +33,7 @@ class ConnectionCompat(object):
     """
     Mixin that delegates `Connection`-level attributes and
     methods through a `connection` property, allowing
-    protocol and transport objects to be used transparently
+    `Protocol` and `Transport` objects to be used transparently
     in code paths that still expect the older `Connection`
     interface (eg proxy servers, throttle callbacks).
 
