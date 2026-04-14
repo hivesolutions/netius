@@ -173,19 +173,34 @@ class Transport(observer.Observable):
         self._connection.min_pending = low
 
     def set_extra_dict(self):
+        def _safe_socket():
+            if not self._connection:
+                return None
+            return self._connection.socket
+
+        def _safe_socket_call(method):
+            _socket = _safe_socket()
+            if not _socket:
+                return None
+            _method = getattr(_socket, method, None)
+            if not _method:
+                return None
+            try:
+                return _method()
+            except Exception:
+                return None
+
         self._extra_dict = dict(
-            socket=lambda: self._connection.socket,
-            peername=lambda: self._connection.socket.getpeername(),
-            sockname=lambda: self._connection.socket.getsockname(),
-            compression=lambda: self._connection.socket.compression(),
-            cipher=lambda: self._connection.socket.cipher(),
-            peercert=lambda: self._connection.socket.getpeercert(),
+            socket=_safe_socket,
+            peername=lambda: _safe_socket_call("getpeername"),
+            sockname=lambda: _safe_socket_call("getsockname"),
+            compression=lambda: _safe_socket_call("compression"),
+            cipher=lambda: _safe_socket_call("cipher"),
+            peercert=lambda: _safe_socket_call("getpeercert"),
             sslcontext=lambda: (
-                self._connection.socket.context
-                if hasattr(self._connection.socket, "context")
-                else None
+                getattr(_safe_socket(), "context", None)
             ),
-            ssl_object=lambda: self._connection.socket,
+            ssl_object=_safe_socket,
         )
 
     def get_protocol(self):

@@ -117,6 +117,36 @@ class ConnectionCompatTest(unittest.TestCase):
         self.compat.enable_read()
         self.assertEqual(self.connection._read_disabled, False)
 
+    def test_bind(self):
+        results = []
+        self.compat.bind("test", lambda c: results.append(c))
+        self.connection.trigger("test", self.connection)
+        self.assertEqual(len(results), 1)
+
+    def test_bind_no_connection(self):
+        self.compat_none.bind("test", lambda c: None)
+
+    def test_unbind(self):
+        callback = lambda c: None
+        self.compat.bind("test", callback)
+        self.compat.unbind("test", callback)
+
+    def test_trigger(self):
+        results = []
+        self.connection.bind("test", lambda c: results.append(c))
+        self.compat.trigger("test", self.connection)
+        self.assertEqual(len(results), 1)
+
+    def test_trigger_no_connection(self):
+        self.compat_none.trigger("test")
+
+    def test_pending_s(self):
+        self.connection.pending_s = 1024
+        self.assertEqual(self.compat.pending_s, 1024)
+
+    def test_pending_s_no_connection(self):
+        self.assertEqual(self.compat_none.pending_s, 0)
+
     def test_max_pending(self):
         self.connection.max_pending = 65536
         self.assertEqual(self.compat.max_pending, 65536)
@@ -216,12 +246,14 @@ class _MockConnection(object):
         self.address = None
         self.status = 0
         self.renable = True
+        self.pending_s = 0
         self.max_pending = -1
         self.min_pending = -1
         self._throttleable = False
         self._exhausted = False
         self._restored = True
         self._read_disabled = False
+        self._events = {}
 
     def is_throttleable(self):
         return self._throttleable
@@ -237,6 +269,22 @@ class _MockConnection(object):
 
     def enable_read(self):
         self._read_disabled = False
+
+    def bind(self, name, method, *args, **kwargs):
+        methods = self._events.get(name, [])
+        methods.append(method)
+        self._events[name] = methods
+
+    def unbind(self, name, method=None):
+        if method:
+            methods = self._events.get(name, [])
+            methods.remove(method)
+        else:
+            self._events.pop(name, None)
+
+    def trigger(self, name, *args, **kwargs):
+        for method in self._events.get(name, []):
+            method(*args, **kwargs)
 
 
 class _MockCompat(ConnectionCompat):

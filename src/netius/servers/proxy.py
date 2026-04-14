@@ -386,8 +386,10 @@ class ProxyServer(http2.HTTP2Server):
         # and then uses the resolved value as the key, notice that
         # in case the connection is in a final closing flush state
         # (graceful closing) the connection mapping may have already
-        # been removed (requires early return)
-        _connection_key = getattr(_connection, "_protocol", _connection)
+        # been removed (requires early return), the lookup tries the
+        # protocol first (transport case) then the connection itself
+        _connection_key = getattr(_connection, "_protocol", None)
+        _connection_key = _connection_key or _connection
         if not _connection_key in self.conn_map:
             return
         connection = self.conn_map[_connection_key]

@@ -128,6 +128,31 @@ class ConnectionCompat(object):
             return
         connection.enable_read()
 
+    def bind(self, name, method, *args, **kwargs):
+        connection = self.connection
+        if not connection:
+            return
+        connection.bind(name, method, *args, **kwargs)
+
+    def unbind(self, name, method=None):
+        connection = self.connection
+        if not connection:
+            return
+        connection.unbind(name, method=method)
+
+    def trigger(self, name, *args, **kwargs):
+        connection = self.connection
+        if not connection:
+            return
+        connection.trigger(name, *args, **kwargs)
+
+    @property
+    def pending_s(self):
+        connection = self.connection
+        if connection:
+            return connection.pending_s
+        return 0
+
     @property
     def max_pending(self):
         connection = self.connection
