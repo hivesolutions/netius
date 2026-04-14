@@ -1208,6 +1208,16 @@ class HTTPClient(netius.ClientAgent):
             raise exception
         raise netius.NetiusError(message)
 
+    def info_dict(self, full=False):
+        info = netius.ClientAgent.info_dict(self, full=full)
+        info.update(
+            auto_release=self.auto_release,
+            available_count=len(self.available),
+        )
+        if full:
+            info["available_keys"] = list(self.available.keys())
+        return info
+
     def cleanup(self):
         netius.ClientAgent.cleanup(self)
 

@@ -9,15 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `info_dict()` override in `HTTPClient` exposing `auto_release`, `available_count`, and `available_keys` (full mode) for DIAG connection pool visibility
 
 ### Changed
 
-*
+* Use safe `getattr` for attribute access on `_connection` in `ProxyServer._on_prx_close()` since it may be a Connection or HTTPProtocol
 
 ### Fixed
 
-*
+* Fix `AttributeError` in `ProxyServer._on_prx_close()` when logging unmapped backend connection close (`connection.id` on `None`)
 
 ## [1.50.0] - 2026-04-14
 

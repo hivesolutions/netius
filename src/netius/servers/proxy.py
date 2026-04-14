@@ -565,6 +565,21 @@ class ProxyServer(http2.HTTP2Server):
         _connection.waiting = False
 
     def _on_prx_close(self, client, _connection):
+        """
+        Handles the closing of a back-end proxy connection.
+
+        The `_connection` parameter may be either a Connection object
+        (old Base architecture) or an `HTTPProtocol` instance (new
+        Agent/Protocol architecture via Container compat layer),
+        so attribute access on it must not assume a specific type.
+
+        :type client: HTTPClient
+        :param client: The HTTP client that owns the connection.
+        :type _connection: Connection/HTTPProtocol
+        :param _connection: The back-end connection or protocol
+        that has been closed.
+        """
+
         # retrieves the reference to the parent class value
         # so that it can be used for class level operations
         cls = self.__class__
@@ -577,7 +592,7 @@ class ProxyServer(http2.HTTP2Server):
         if not connection:
             self.debug(
                 "Backend close callback for unmapped connection '%s'",
-                connection.id,
+                getattr(_connection, "id", "?"),
             )
             return
 
@@ -587,15 +602,16 @@ class ProxyServer(http2.HTTP2Server):
         if not connection.is_open():
             self.warning(
                 "Backend close for '%s' but frontend '%s' is not open (status=%d)",
-                _connection.id,
+                getattr(_connection, "id", "?"),
                 connection.id,
                 connection.status,
             )
 
         # in case the connection is under the waiting state
         # the forbidden response is set to the client otherwise
-        # the front-end connection is closed immediately
-        if _connection.waiting:
+        # the front-end connection is closed immediately, note
+        # that _connection may be either a Connection or a Protocol
+        if getattr(_connection, "waiting", False):
             connection.send_response(
                 data=cls.build_data(
                     "Forbidden",
@@ -621,6 +637,20 @@ class ProxyServer(http2.HTTP2Server):
         del self.conn_map[_connection]
 
     def _on_prx_error(self, client, _connection, error):
+        """
+        Handles an error in the back-end proxy connection. The
+        _connection parameter may be either a Connection object
+        or an HTTPProtocol instance depending on the architecture.
+
+        :type client: HTTPClient
+        :param client: The HTTP client that owns the connection.
+        :type _connection: Connection/HTTPProtocol
+        :param _connection: The back-end connection or protocol
+        that encountered the error.
+        :type error: Exception
+        :param error: The exception that triggered the error.
+        """
+
         # retrieves the reference to the parent class value
         # so that it can be used for class level operations
         cls = self.__class__
@@ -641,7 +671,7 @@ class ProxyServer(http2.HTTP2Server):
         # be handled by the error manager, and that should imply
         # a closing operation on the original/proxy connection)
         error_m = str(error) or "Unknown proxy relay error"
-        if _connection.waiting:
+        if getattr(_connection, "waiting", False):
             connection.send_response(
                 data=cls.build_text(error_m),
                 headers=dict(connection="close"),
