@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+*
+
+## [1.48.1] - 2026-04-14
+
+### Fixed
+
 * Explicitly close stale protocols in `HTTPClient` before discarding them to avoid leaking connections
 * Close previous pooled protocol in `HTTPClient` when a new protocol is stored under the same key to prevent connection leaks
 
