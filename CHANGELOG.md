@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.51.0] - 2026-04-14
+
+### Added
+
 * `info_dict()` override in `HTTPClient` exposing `auto_release`, `available_count`, and `available_keys` (full mode) for DIAG connection pool visibility
 
 ### Changed
