@@ -592,7 +592,7 @@ class ProxyServer(http2.HTTP2Server):
         if not connection:
             self.debug(
                 "Backend close callback for unmapped connection '%s'",
-                getattr(_connection, "id", "?"),
+                _connection.id,
             )
             return
 
@@ -602,7 +602,7 @@ class ProxyServer(http2.HTTP2Server):
         if not connection.is_open():
             self.warning(
                 "Backend close for '%s' but frontend '%s' is not open (status=%d)",
-                getattr(_connection, "id", "?"),
+                _connection.id,
                 connection.id,
                 connection.status,
             )
@@ -611,7 +611,7 @@ class ProxyServer(http2.HTTP2Server):
         # the forbidden response is set to the client otherwise
         # the front-end connection is closed immediately, note
         # that _connection may be either a Connection or a Protocol
-        if getattr(_connection, "waiting", False):
+        if _connection.waiting:
             connection.send_response(
                 data=cls.build_data(
                     "Forbidden",
@@ -671,7 +671,7 @@ class ProxyServer(http2.HTTP2Server):
         # be handled by the error manager, and that should imply
         # a closing operation on the original/proxy connection)
         error_m = str(error) or "Unknown proxy relay error"
-        if getattr(_connection, "waiting", False):
+        if _connection.waiting:
             connection.send_response(
                 data=cls.build_text(error_m),
                 headers=dict(connection="close"),

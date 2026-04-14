@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `id`, `status`, `waiting`, `busy`, `state`, and `error_url` delegation properties in `ConnectionCompat` mixin for full Protocol/Connection compatibility
 
 ### Changed
 
-*
+* Revert `getattr` safety guards in `ProxyServer._on_prx_close()` and `_on_prx_error()` to direct attribute access now that `ConnectionCompat` provides the delegated properties
 
 ### Fixed
 
