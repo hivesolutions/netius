@@ -436,15 +436,24 @@ class StreamProtocol(Protocol, mixin.ConnectionCompat):
     def connection_made(self, transport):
         Protocol.connection_made(self, transport)
 
-        # propagates any pending limit values that were set before the
+        # propagates any pending values that were set before the
         # connection was established, this is required for container
-        # proxy scenarios where limits are set right after connect()
+        # proxy scenarios where attributes are set right after
+        # connect() but before the TCP handshake completes
         connection = self.connection
         if connection:
             if hasattr(self, "_max_pending"):
                 connection.max_pending = self._max_pending
             if hasattr(self, "_min_pending"):
                 connection.min_pending = self._min_pending
+            if hasattr(self, "_waiting"):
+                connection.waiting = self._waiting
+            if hasattr(self, "_busy"):
+                connection.busy = self._busy
+            if hasattr(self, "_state"):
+                connection.state = self._state
+            if hasattr(self, "_error_url"):
+                connection.error_url = self._error_url
 
     def data_received(self, data):
         self.on_data(data)

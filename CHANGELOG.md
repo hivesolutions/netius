@@ -13,11 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* Propagate `waiting`, `busy`, `state`, and `error_url` pending values in `StreamProtocol.connection_made()` to the underlying connection
 
 ### Fixed
 
-*
+* Guard against orphan connections in `_connect_stream_native` by checking if the protocol is already closed before wrapping the connection
 
 ## [1.52.0] - 2026-04-14
 
