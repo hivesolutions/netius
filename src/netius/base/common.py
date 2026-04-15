@@ -1558,8 +1558,8 @@ class AbstractBase(observer.Observable):
         # allowing a new diagnostics app to bind to the same port
         try:
             self.diag_app.refrain()
-        except Exception:
-            pass
+        except Exception as exception:
+            self.warning("Problem unloading diagnostics application: %s", exception)
         self.diag_app = None
 
     def load_middleware(self, suffix="Middleware"):
