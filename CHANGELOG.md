@@ -13,11 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Replace `diag_owner` container flag with process-level `_DIAG_INSTANCE` singleton guard in `AbstractBase` to prevent duplicate diag server binding
+*
 
 ### Fixed
 
 *
+
+## [1.53.2] - 2026-04-15
+
+### Changed
+
+* Replace `diag_owner` container flag with process-level `_DIAG_INSTANCE` singleton guard in `AbstractBase` to prevent duplicate diag server binding
 
 ## [1.53.1] - 2026-04-15
 
