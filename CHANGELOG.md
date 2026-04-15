@@ -9,11 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `diag_owner` flag in `Container` to restrict diagnostics to the owner base, avoiding port binding conflicts in multi-base setups
 
 ### Changed
 
-*
+* Add docstrings to `Container.add_base()`, `remove_base()` and `start_base()`
+* Pass `diag_owner=True` in `ProxyServer` container to prevent child clients from binding to the diag port
 
 ### Fixed
 

@@ -37,6 +37,7 @@ class Container(Base):
 
     def __init__(self, *args, **kwargs):
         Base.__init__(self, *args, **kwargs)
+        self.diag_owner = kwargs.get("diag_owner", False)
         self.owner = None
         self.bases = []
 
@@ -150,15 +151,61 @@ class Container(Base):
         self.call_all("on_stop")
 
     def add_base(self, base):
+        """
+        Adds a base structure to the container, applying the
+        container's shared poll, logger and thread identity to
+        the base before appending it to the internal list of
+        managed bases.
+
+        :type base: Base/Agent
+        :param base: The base structure (server, client or agent)
+        to be added to the container.
+        """
+
         self.apply_base(base)
         self.bases.append(base)
 
     def remove_base(self, base):
+        """
+        Removes a previously added base structure from the
+        container's internal list of managed bases. After this
+        call the base will no longer receive poll events, tick
+        callbacks or lifecycle notifications from the container.
+
+        :type base: Base/Agent
+        :param base: The base structure to be removed from the
+        container.
+        """
+
         self.bases.remove(base)
 
     def start_base(self, base):
+        """
+        Starts a single base structure by propagating the
+        container's logging level and logger and then calling
+        the base's load operation. If the container is configured
+        with `diag_owner` only the owner base will have its
+        diagnostics enabled, all other bases have it disabled
+        to avoid port binding conflicts.
+
+        :type base: Base/Agent
+        :param base: The base structure to be started under
+        the container.
+        """
+
+        # shares the container's logging level and logger with the base
+        # this is required to ensure that the base is properly configured
+        # to use the same logging configuration as the container (required for
+        # the proper propagation of the logging configuration to the bases)
         base.level = self.level
         base.logger = self.logger
+
+        # if the container is configured with `diag_owner` only the
+        # owner base will have its diagnostics enabled, all other bases
+        # have it disabled to avoid port binding conflicts
+        if self.diag_owner and not base == self.owner:
+            base.diag = False
+
         base.load()
 
     def start_all(self):
