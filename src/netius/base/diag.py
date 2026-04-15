@@ -29,6 +29,7 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import os
+import json
 import logging
 
 try:
@@ -40,6 +41,19 @@ except ImportError:
 
     appier = netius.mock.appier
     loaded = False
+
+
+class DiagEncoder(json.JSONEncoder):
+    """
+    Custom JSON encoder that handles bytes values by
+    decoding them to strings, preventing serialization errors
+    in diagnostics endpoints.
+    """
+
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            return obj.decode("utf-8", errors="replace")
+        return super().default(obj)
 
 
 class DiagApp(appier.APIApp):
@@ -62,22 +76,22 @@ class DiagApp(appier.APIApp):
 
     @appier.route("/environ", "GET")
     def show_environ(self):
-        return self.json(dict(os.environ), sort_keys=True)
+        return self.json(dict(os.environ), sort_keys=True, cls=DiagEncoder)
 
     @appier.route("/info", "GET")
     def system_info(self):
         full = self.field("full", True, cast=bool)
         info = self.system.info_dict(full=full)
-        return self.json(info, sort_keys=True)
+        return self.json(info, sort_keys=True, cls=DiagEncoder)
 
     @appier.route("/connections", "GET")
     def list_connections(self):
         full = self.field("full", True, cast=bool)
         info = self.system.connections_dict(full=full)
-        return self.json(info, sort_keys=True)
+        return self.json(info, sort_keys=True, cls=DiagEncoder)
 
     @appier.route("/connections/<str:id>", "GET")
     def show_connection(self, id):
         full = self.field("full", True, cast=bool)
         info = self.system.connection_dict(id, full=full)
-        return self.json(info, sort_keys=True)
+        return self.json(info, sort_keys=True, cls=DiagEncoder)
