@@ -61,7 +61,7 @@ class Container(Base):
 
         # if the container is configured with `diag_owner` disables
         # diagnostics on the container itself as the owner base will
-        # handle it (avoids duplicate port binding)
+        # handle it (avoids duplicate diag server creation)
         if self.diag_owner:
             self.diag = False
 
