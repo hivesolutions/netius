@@ -59,6 +59,12 @@ class Container(Base):
         # this avoids problems with the cleanup operation for the poll
         owner.poll_owner = True
 
+        # if the container is configured with `diag_owner` disables
+        # diagnostics on the container itself as the owner base will
+        # handle it (avoids duplicate port binding)
+        if self.diag_owner:
+            self.diag = False
+
         # runs the starting operation in the complete set of base structures
         # registered under the container, this is the required operation in
         # order to propagate the changed in the container to the bases
