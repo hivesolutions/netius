@@ -1884,6 +1884,10 @@ class AbstractBase(observer.Observable):
         return self.poll.unsub_error(socket)
 
     def cleanup(self, destroy=True):
+        # stops the diagnostics application if it's currently running
+        # releasing the bound socket and associated resources
+        self.unload_diag()
+
         # runs the unload operation for the current base container this should
         # unset/unload some of the components for this base infra-structure
         self.unload()
@@ -1900,10 +1904,6 @@ class AbstractBase(observer.Observable):
         del self._delayed[:]
         del self._delayed_o[:]
         del self._delayed_n[:]
-
-        # stops the diagnostics application if it's currently running
-        # releasing the bound socket and associated resources
-        self.unload_diag()
 
         # runs the expand destroy operation so that the complete set of expanded
         # values get their (temporary) files removed (garbage collection)
