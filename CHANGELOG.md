@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Fix `TypeError: Object of type bytes is not JSON serializable` in DIAG `/connections` endpoint by converting `bytes` values in `Parser.info_dict()`
 
 ## [1.53.2] - 2026-04-15
 

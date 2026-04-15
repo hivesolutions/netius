@@ -71,6 +71,13 @@ class Parser(netius.Observable):
 
     def info_dict(self):
         info = self.get_state()
+        for key, value in info.items():
+            if isinstance(value, bytes):
+                info[key] = netius.legacy.str(value)
+            elif isinstance(value, list):
+                info[key] = [
+                    netius.legacy.str(v) if isinstance(v, bytes) else v for v in value
+                ]
         return info
 
     def parse(self, data):
