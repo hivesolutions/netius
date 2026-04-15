@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* Add `UNKNOWN_PROTOCOL`, `VERSION_TOO_LOW` and `BAD_KEY_SHARE` to `SSL_SILENT_REASONS`
 
 ### Fixed
 
