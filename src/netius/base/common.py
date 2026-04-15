@@ -335,6 +335,11 @@ class AbstractBase(observer.Observable):
     should be used to provide compatibility with protocol and
     transports used by the new API """
 
+    _DIAG_INSTANCE = None
+    """ Reference to the instance currently holding the diagnostics
+    server for the process, ensures only one diag server binds per
+    process even when multiple base instances coexist """
+
     def __init__(self, name=None, handlers=None, *args, **kwargs):
         observer.Observable.__init__(self, *args, **kwargs)
         cls = self.__class__
@@ -1509,6 +1514,12 @@ class AbstractBase(observer.Observable):
         if not self.diag:
             return
 
+        # verifies if there's already a diagnostics application running
+        # in the current process (class-level check) and if that's the
+        # case returns immediately to avoid duplicate port binding
+        if AbstractBase._DIAG_INSTANCE:
+            return
+
         # in case there's already a diagnostics application running
         # stops it before creating a new one to avoid socket binding
         # conflicts (address already in use)
@@ -1537,6 +1548,10 @@ class AbstractBase(observer.Observable):
         # used for serving the diagnostics app
         self.diag_app = diag.DiagApp(self)
 
+        # sets the class-level reference to the current diagnostics
+        # instance to prevent duplicate diag servers in the same process
+        AbstractBase._DIAG_INSTANCE = self
+
         # calls the on diag method so that the current instance is
         # able to act on the newly created application
         self.on_diag()
@@ -1561,6 +1576,11 @@ class AbstractBase(observer.Observable):
         except Exception as exception:
             self.warning("Problem unloading diagnostics application: %s", exception)
         self.diag_app = None
+
+        # clears the class-level reference if this instance was the
+        # one holding the diagnostics server for the process
+        if AbstractBase._DIAG_INSTANCE == self:
+            AbstractBase._DIAG_INSTANCE = None
 
     def load_middleware(self, suffix="Middleware"):
         # iterates over the complete set of string that define the middleware

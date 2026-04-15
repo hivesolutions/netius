@@ -184,7 +184,7 @@ class ProxyServer(http2.HTTP2Server):
         self.raw_client.bind("data", self._on_raw_data)
         self.raw_client.bind("close", self._on_raw_close)
 
-        self.container = netius.Container(*args, diag_owner=True, **kwargs)
+        self.container = netius.Container(*args, **kwargs)
         self.container.add_base(self)
         self.container.add_base(self.http_client)
         self.container.add_base(self.raw_client)

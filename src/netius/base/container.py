@@ -37,7 +37,6 @@ class Container(Base):
 
     def __init__(self, *args, **kwargs):
         Base.__init__(self, *args, **kwargs)
-        self.diag_owner = kwargs.get("diag_owner", False)
         self.owner = None
         self.bases = []
 
@@ -58,12 +57,6 @@ class Container(Base):
         # sets the owner of the current container as the owner of the poll
         # this avoids problems with the cleanup operation for the poll
         owner.poll_owner = True
-
-        # if the container is configured with `diag_owner` disables
-        # diagnostics on the container itself as the owner base will
-        # handle it (avoids duplicate diag server creation)
-        if self.diag_owner:
-            self.diag = False
 
         # runs the starting operation in the complete set of base structures
         # registered under the container, this is the required operation in
@@ -189,29 +182,15 @@ class Container(Base):
         """
         Starts a single base structure by propagating the
         container's logging level and logger and then calling
-        the base's load operation. If the container is configured
-        with `diag_owner` only the owner base will have its
-        diagnostics enabled, all other bases have it disabled
-        to avoid port binding conflicts.
+        the base's load operation.
 
         :type base: Base/Agent
         :param base: The base structure to be started under
         the container.
         """
 
-        # shares the container's logging level and logger with the base
-        # this is required to ensure that the base is properly configured
-        # to use the same logging configuration as the container (required for
-        # the proper propagation of the logging configuration to the bases)
         base.level = self.level
         base.logger = self.logger
-
-        # if the container is configured with `diag_owner` only the
-        # owner base will have its diagnostics enabled, all other bases
-        # have it disabled to avoid port binding conflicts
-        if self.diag_owner and not base == self.owner:
-            base.diag = False
-
         base.load()
 
     def start_all(self):
