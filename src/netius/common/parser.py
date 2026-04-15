@@ -72,7 +72,7 @@ class Parser(netius.Observable):
     def info_dict(self):
         info = self.get_state()
 
-        # removes any `bytes` value from the info dict to avoid problems
+        # removes any `bytes` values from the info dict to avoid problems
         # with JSON serialization required for most of the operations
         # involving `info_dict` (eg. DIAG endpoints, logging, etc.)
         for key, value in list(info.items()):
