@@ -13,11 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Made diag unload when unlding the app
+*
 
 ### Fixed
 
 *
+
+## [1.52.3] - 2026-04-15
+
+### Changed
+
+* Move `unload_diag()` to the top of `cleanup()` so the diagnostics app is stopped before other resources are torn down
+* Log a warning with exception details when `unload_diag()` fails instead of silently swallowing the error
 
 ## [1.52.2] - 2026-04-14
 
