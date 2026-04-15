@@ -28,6 +28,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import json
 import unittest
 
 import netius.common
@@ -316,6 +317,15 @@ class HTTPParserTest(unittest.TestCase):
         self.assertEqual(parser.chunk_l, 0)
         self.assertEqual(parser.chunk_s, 0)
         self.assertEqual(parser.chunk_e, 0)
+
+    def test_info_dict_json(self):
+        parser = netius.common.HTTPParser(self, type=netius.common.REQUEST, store=True)
+        try:
+            parser.parse(SIMPLE_REQUEST)
+            info = parser.info_dict()
+            json.dumps(info)
+        finally:
+            parser.clear()
 
     def test_no_length_response(self):
         parser = netius.common.HTTPParser(self, type=netius.common.RESPONSE, store=True)

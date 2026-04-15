@@ -71,13 +71,16 @@ class Parser(netius.Observable):
 
     def info_dict(self):
         info = self.get_state()
-        for key, value in info.items():
+
+        # removes any `bytes` value from the info dict to avoid problems
+        # with JSON serialization required for most of the operations
+        # involving `info_dict` (eg. DIAG endpoints, logging, etc.)
+        for key, value in list(info.items()):
             if isinstance(value, bytes):
-                info[key] = netius.legacy.str(value)
-            elif isinstance(value, list):
-                info[key] = [
-                    netius.legacy.str(v) if isinstance(v, bytes) else v for v in value
-                ]
+                del info[key]
+            elif isinstance(value, list) and value and isinstance(value[0], bytes):
+                del info[key]
+
         return info
 
     def parse(self, data):
