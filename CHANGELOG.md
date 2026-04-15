@@ -13,11 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Added more ignore SSL errors
+*
 
 ### Fixed
 
 *
+
+## [1.53.6] - 2026-04-15
+
+### Changed
+
+* Added more ignore SSL errors
 
 ## [1.53.5] - 2026-04-15
 
