@@ -13,11 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Move `bytes` serialization handling from `Parser.info_dict()` to DIAG endpoints using a custom `DiagEncoder` JSON encoder
+*
 
 ### Fixed
 
 *
+
+## [1.53.4] - 2026-04-15
+
+### Changed
+
+* Move `bytes` serialization handling from `Parser.info_dict()` to DIAG endpoints using a custom `DiagEncoder` JSON encoder
 
 ## [1.53.3] - 2026-04-15
 
