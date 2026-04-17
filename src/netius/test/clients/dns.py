@@ -28,6 +28,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import struct
 import unittest
 
 import netius.clients
@@ -108,6 +109,50 @@ class DNSClientTest(unittest.TestCase):
                 closed.append(True)
 
         netius.clients.DNSClient.protocol = MockProtocol
+
+
+class DNSResponseParserTest(unittest.TestCase):
+
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        self.response = netius.clients.DNSResponse(b"")
+
+    def test_extended_types(self):
+        self.assertEqual(netius.clients.dns.DNS_TYPES["SRV"], 0x21)
+        self.assertEqual(netius.clients.dns.DNS_TYPES["SVCB"], 0x40)
+        self.assertEqual(netius.clients.dns.DNS_TYPES["HTTPS"], 0x41)
+        self.assertEqual(netius.clients.dns.DNS_TYPES["CAA"], 0x101)
+
+    def test_parse_srv(self):
+        rdata = struct.pack("!HHH", 10, 20, 443)
+        rdata += b"\x04_sip\x07example\x03com\x00"
+        index, payload = self.response.parse_srv(rdata, 0, size=len(rdata))
+        self.assertEqual(index, len(rdata))
+        self.assertEqual(payload, (10, 20, 443, b"_sip.example.com"))
+
+    def test_parse_svcb(self):
+        target = b"\x03svc\x07example\x03com\x00"
+        params = b"\x00\x01\x00\x02h3"
+        rdata = struct.pack("!H", 1) + target + params
+        index, payload = self.response.parse_svcb(rdata, 0, size=len(rdata))
+        self.assertEqual(index, len(rdata))
+        self.assertEqual(payload, (1, b"svc.example.com", params))
+
+    def test_parse_https_matches_svcb(self):
+        target = b"\x03svc\x07example\x03com\x00"
+        params = b"\x00\x01\x00\x02h3"
+        rdata = struct.pack("!H", 1) + target + params
+        _index_svcb, svcb = self.response.parse_svcb(rdata, 0, size=len(rdata))
+        _index_https, https = self.response.parse_https(rdata, 0, size=len(rdata))
+        self.assertEqual(svcb, https)
+
+    def test_parse_caa(self):
+        tag = b"issue"
+        value = b"letsencrypt.org"
+        rdata = struct.pack("!BB", 0x80, len(tag)) + tag + value
+        index, payload = self.response.parse_caa(rdata, 0, size=len(rdata))
+        self.assertEqual(index, len(rdata))
+        self.assertEqual(payload, (0x80, b"issue", b"letsencrypt.org"))
 
 
 class _MockTransport(object):
