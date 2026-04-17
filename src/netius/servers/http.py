@@ -48,6 +48,18 @@ Z_PARTIAL_FLUSH = 1
 of the current zlib stream, this value has to be defined
 locally as it is not defines under the zlib module """
 
+GZIP_LEVEL = 6
+""" The default compression level to be used for the gzip
+and deflate encodings, this is the same value used by the
+zlib module and provides a reasonable balance between the
+compression ratio and the CPU usage """
+
+EMPTY_CODES = (204, 304)
+""" The set of HTTP status codes that according to the HTTP
+specification must not include a message body in the response
+(No Content and Not Modified), used to decide when to omit
+the content length header and body from the response """
+
 ENCODING_MAP = dict(
     plain=PLAIN_ENCODING,
     chunked=CHUNKED_ENCODING,
@@ -173,7 +185,7 @@ class HTTPConnection(netius.Connection):
         )
 
     def send_gzip(
-        self, data, stream=None, final=True, delay=True, callback=None, level=6
+        self, data, stream=None, final=True, delay=True, callback=None, level=GZIP_LEVEL
     ):
         # verifies if the provided data buffer is valid and in
         # in case it's not propagates the sending to the upper
@@ -224,7 +236,7 @@ class HTTPConnection(netius.Connection):
         data = netius.legacy.bytes(data)
         headers = headers or dict()
         data_l = len(data) if data else 0
-        is_empty = code in (204, 304) and data_l == 0
+        is_empty = code in EMPTY_CODES and data_l == 0
 
         # runs a series of verifications taking into account the type
         # of the method defined in the current request, for instance if
@@ -468,7 +480,7 @@ class HTTPConnection(netius.Connection):
         # end of the current request (normal operation)
         self._flush_chunked(stream=stream, callback=callback)
 
-    def _get_gzip(self, stream, level=6, ensure=True):
+    def _get_gzip(self, stream, level=GZIP_LEVEL, ensure=True):
         # tries to retrieve the proper gzip object for the requested
         # stream and in case there's one or if the ensure flag is set
         # the retrieved value is returned to the caller method
