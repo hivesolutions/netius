@@ -121,7 +121,7 @@ CODE_STRINGS = {
     206: "Partial Content",
     207: "Multi-Status",
     226: "IM Used",
-    301: "Moved permanently",
+    301: "Moved Permanently",
     302: "Found",
     303: "See Other",
     304: "Not Modified",
