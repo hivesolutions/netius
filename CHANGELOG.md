@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Additional HTTP status codes to `CODE_STRINGS`: 226 (IM Used), 308 (Permanent Redirect), 418 (I'm a teapot), 422 (Unprocessable Entity) and 451 (Unavailable For Legal Reasons)
 
 ### Changed
 
