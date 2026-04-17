@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* Add `PEER_DID_NOT_RETURN_A_CERTIFICATE`, `NO_SUITABLE_SIGNATURE_ALGORITHM` and `TLSV1_ALERT_UNKNOWN_CA` to `SSL_SILENT_REASONS`
+* Sort `SSL_SILENT_REASONS` tuple alphabetically
 
 ### Fixed
 

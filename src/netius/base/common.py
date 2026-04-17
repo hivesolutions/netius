@@ -175,15 +175,18 @@ SSL_ERROR_NAMES = {
 various SSL errors and their string representation """
 
 SSL_SILENT_REASONS = (
-    "WRONG_VERSION_NUMBER",
-    "RECORD_LAYER_FAILURE",
-    "NO_SHARED_CIPHER",
-    "UNKNOWN_PROTOCOL",
-    "HTTP_REQUEST",
-    "VERSION_TOO_LOW",
     "BAD_KEY_SHARE",
+    "HTTP_REQUEST",
+    "NO_SHARED_CIPHER",
+    "NO_SUITABLE_SIGNATURE_ALGORITHM",
+    "PEER_DID_NOT_RETURN_A_CERTIFICATE",
+    "RECORD_LAYER_FAILURE",
     "SSLV3_ALERT_BAD_CERTIFICATE",
     "SSLV3_ALERT_CERTIFICATE_UNKNOWN",
+    "TLSV1_ALERT_UNKNOWN_CA",
+    "UNKNOWN_PROTOCOL",
+    "VERSION_TOO_LOW",
+    "WRONG_VERSION_NUMBER",
 )
 """ The list containing the SSL reasons that should be silenced
 while still making the connection dropped as they are expected
