@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Guard against `None` connection in `ProxyServer` throttle callbacks when the transport is already closed
 
 ## [1.53.6] - 2026-04-15
 

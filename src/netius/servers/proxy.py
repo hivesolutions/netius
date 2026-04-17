@@ -378,6 +378,12 @@ class ProxyServer(http2.HTTP2Server):
         )
 
     def _throttle(self, _connection):
+        # connection may be unset for situations where the transport
+        # is already closed, in that case the control flow should be
+        # returned immediately (nothing to do)
+        if _connection == None:
+            return
+
         if not _connection.is_restored():
             return
 
@@ -404,6 +410,8 @@ class ProxyServer(http2.HTTP2Server):
         pass
 
     def _prx_throttle(self, connection):
+        if connection == None:
+            return
         if not connection.is_restored():
             return
 
@@ -417,6 +425,8 @@ class ProxyServer(http2.HTTP2Server):
         self.reads((proxy_c.socket,), state=False)
 
     def _raw_throttle(self, connection):
+        if connection == None:
+            return
         if not connection.is_restored():
             return
 
