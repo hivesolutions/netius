@@ -384,6 +384,9 @@ class ProxyServer(http2.HTTP2Server):
         if _connection == None:
             return
 
+        # verifies that the pending send buffer has drained below the
+        # minimum pending threshold, if it hasn't the connection is still
+        # under back-pressure and throttling should remain active
         if not _connection.is_restored():
             return
 
