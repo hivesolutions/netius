@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Additional HTTP status codes to `CODE_STRINGS`: 226 (IM Used), 308 (Permanent Redirect), 418 (I'm a teapot), 422 (Unprocessable Entity) and 451 (Unavailable For Legal Reasons)
 * Module-level `GZIP_LEVEL` and `EMPTY_CODES` constants in `netius.servers.http` replacing previously inlined magic numbers
+* Support for additional DNS record types (`SRV`, `SVCB`, `HTTPS` and `CAA`) in `netius.clients.dns`, including matching `DNSResponse.parse_*` methods
 
 ### Changed
 
