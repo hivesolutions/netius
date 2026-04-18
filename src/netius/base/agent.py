@@ -125,9 +125,19 @@ class ClientAgent(Agent):
         client = cls._clients.get(tid, None)
         if client:
             return client
+        cls._reap_clients_s()
         client = cls(*args, **kwargs)
         cls._clients[tid] = client
         return client
+
+    @classmethod
+    def _reap_clients_s(cls):
+        live_tids = set(thread.ident for thread in threading.enumerate())
+        dead_tids = [tid for tid in cls._clients if tid not in live_tids]
+        for tid in dead_tids:
+            client = cls._clients.pop(tid, None)
+            if client:
+                client.cleanup()
 
     def connect(self, host, port, ssl=False, *args, **kwargs):
         """
