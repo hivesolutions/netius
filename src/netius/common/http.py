@@ -41,7 +41,7 @@ FILE_LIMIT = 5242880
 message storage mechanism will start using a file system
 stored file instead of an in memory object, this way it's
 possible to avoid memory starvation problems, this is a
-default value for the parser and may be overriden using
+default value for the parser and may be overridden using
 the dedicated parameter value in the constructor """
 
 REQUEST = 1
