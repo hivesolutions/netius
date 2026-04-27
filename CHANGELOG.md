@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Reverse proxy `Connection` response header now matches the actual front-end socket lifecycle (logical AND of the client request and upstream response keep-alive flags), preventing the HTTP/1.0 client case where the proxy advertised `keep-alive` but immediately closed the socket
 
 ## [1.53.7] - 2026-04-17
 

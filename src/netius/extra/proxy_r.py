@@ -816,6 +816,15 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if parser_prx.keep_alive:
             parser_prx.headers["Connection"] = "keep-alive"
 
+        # resolves the effective keep-alive state for the front-end
+        # connection as the logical AND of the client request parser and
+        # the upstream response parser flags, since the front-end is
+        # only kept open when both ends agree, and writes the matching
+        # value to the response "Connection" header so the client sees
+        # a promise consistent with what the proxy will actually do
+        keep_alive = parser.keep_alive and parser_prx.keep_alive
+        headers["Connection"] = "keep-alive" if keep_alive else "close"
+
     def _set_strategy(self):
         self.balancer_m = getattr(self, "balancer_" + self.strategy)
         self.acquirer_m = getattr(self, "acquirer_" + self.strategy)

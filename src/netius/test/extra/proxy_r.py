@@ -364,6 +364,128 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertIsNone(server.http_client)
         self.assertIsNone(server.raw_client)
 
+    def test_apply_headers_http_10_no_connection(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # HTTP/1.0 client without a `Connection` header parses as
+        # `keep_alive = False` while the HTTP/1.1 backend defaults to
+        # `keep_alive = True`. Without the override the response would
+        # advertise `keep-alive` to the client and then close the socket,
+        # which is the row-1 contradiction in the keep-alive matrix
+        parser = self._make_apply_headers_parser(version=netius.common.HTTP_10)
+        parser_prx = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        connection = self._make_apply_headers_connection()
+        headers = dict()
+
+        self.server._apply_headers(parser, connection, parser_prx, headers)
+
+        self.assertEqual(headers["Connection"], "close")
+
+    def test_apply_headers_http_10_keep_alive(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # HTTP/1.0 client that explicitly opts into keep-alive matches
+        # the backend's keep-alive flag, so the connection should be kept
+        parser = self._make_apply_headers_parser(
+            version=netius.common.HTTP_10, keep_alive=True
+        )
+        parser_prx = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        connection = self._make_apply_headers_connection()
+        headers = dict()
+
+        self.server._apply_headers(parser, connection, parser_prx, headers)
+
+        self.assertEqual(headers["Connection"], "keep-alive")
+
+    def test_apply_headers_http_10_connection_close(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # HTTP/1.0 client requesting `Connection: close` must result in
+        # both the advertised header and the upstream parser agreeing on
+        # close, regardless of the backend's keep-alive flag
+        parser = self._make_apply_headers_parser(
+            version=netius.common.HTTP_10, keep_alive=False
+        )
+        parser_prx = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        connection = self._make_apply_headers_connection()
+        headers = dict()
+
+        self.server._apply_headers(parser, connection, parser_prx, headers)
+
+        self.assertEqual(headers["Connection"], "close")
+
+    def test_apply_headers_http_11_no_connection(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # HTTP/1.1 client without a `Connection` header defaults to
+        # keep-alive, matching the backend, so the socket should stay open
+        parser = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        parser_prx = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        connection = self._make_apply_headers_connection()
+        headers = dict()
+
+        self.server._apply_headers(parser, connection, parser_prx, headers)
+
+        self.assertEqual(headers["Connection"], "keep-alive")
+
+    def test_apply_headers_http_11_keep_alive(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # HTTP/1.1 client explicitly requesting keep-alive should be
+        # honored when the backend agrees
+        parser = self._make_apply_headers_parser(
+            version=netius.common.HTTP_11, keep_alive=True
+        )
+        parser_prx = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        connection = self._make_apply_headers_connection()
+        headers = dict()
+
+        self.server._apply_headers(parser, connection, parser_prx, headers)
+
+        self.assertEqual(headers["Connection"], "keep-alive")
+
+    def test_apply_headers_http_11_connection_close(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # HTTP/1.1 client requesting `Connection: close` must force the
+        # advertised header to close even though the backend would keep
+        parser = self._make_apply_headers_parser(
+            version=netius.common.HTTP_11, keep_alive=False
+        )
+        parser_prx = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        connection = self._make_apply_headers_connection()
+        headers = dict()
+
+        self.server._apply_headers(parser, connection, parser_prx, headers)
+
+        self.assertEqual(headers["Connection"], "close")
+
+    def test_apply_headers_backend_close(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # backend signals close, so the front-end response must advertise
+        # close regardless of what the client requested, otherwise the
+        # client would retain a socket the proxy is about to tear down
+        parser = self._make_apply_headers_parser(
+            version=netius.common.HTTP_11, keep_alive=True
+        )
+        parser_prx = self._make_apply_headers_parser(
+            version=netius.common.HTTP_11, keep_alive=False
+        )
+        connection = self._make_apply_headers_connection()
+        headers = dict()
+
+        self.server._apply_headers(parser, connection, parser_prx, headers)
+
+        self.assertEqual(headers["Connection"], "close")
+
     def test_resolve_regex(self):
         regexes = [
             (re.compile(r"https://host\.com/api"), "http://api-backend"),
@@ -950,6 +1072,41 @@ class ReverseProxyServerTest(unittest.TestCase):
         # the entry remains (this is the bug)
         self.assertNotIn(backend, self.server.conn_map)
         self.assertEqual(self.server.busy_conn, 0)
+
+    def _make_apply_headers_parser(self, version=None, keep_alive=None, headers=None):
+        # produces a parser stand-in whose `keep_alive` flag follows the
+        # rules in `netius.common.HTTPParser._parse_headers` for the
+        # given HTTP version and `Connection` header value, this avoids
+        # a full parser bootstrap while keeping the matrix faithful
+        if version == None:
+            version = netius.common.HTTP_11
+        if keep_alive == None:
+            keep_alive = version >= netius.common.HTTP_11
+        parser = mock.MagicMock()
+        parser.version = version
+        parser.version_s = (
+            "HTTP/1.0" if version == netius.common.HTTP_10 else "HTTP/1.1"
+        )
+        parser.keep_alive = keep_alive
+        parser.headers = dict(headers) if headers else {}
+        parser.content_l = 0
+        parser.code_s = "200"
+        parser.status_s = "OK"
+        parser.owner = self._make_apply_headers_connection()
+        return parser
+
+    def _make_apply_headers_connection(self):
+        # builds a minimal connection mock that satisfies the encoding
+        # and chunking probes done by `_apply_all` / `_apply_connection`
+        connection = mock.MagicMock()
+        connection.address = ("127.0.0.1", 12345)
+        connection.current = 0
+        connection.is_chunked.return_value = False
+        connection.is_gzip.return_value = False
+        connection.is_deflate.return_value = False
+        connection.is_compressed.return_value = False
+        connection.is_measurable.return_value = True
+        return connection
 
 
 class ReverseProxyIntegrationTest(unittest.TestCase):
