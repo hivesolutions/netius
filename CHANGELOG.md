@@ -13,11 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Updated the deploy infrastructure
+*
 
 ### Fixed
 
 *
+
+## [1.53.9] - 2026-04-27
+
+### Changed
+
+* Updated the deploy infrastructure
 
 ## [1.53.8] - 2026-04-27
 
