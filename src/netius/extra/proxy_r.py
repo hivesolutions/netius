@@ -457,6 +457,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             encodings=None,
             safe=True,
             connection=proxy_c,
+            protocol=proxy_c,
         )
 
         # in case the connection returned by the HTTP client is not the same

@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Protocol re-usage in proxy reverse
 
 ## [1.53.12] - 2026-04-27
 

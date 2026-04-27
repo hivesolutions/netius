@@ -1263,6 +1263,7 @@ class HTTPClient(netius.ClientAgent):
         request=False,
         close=True,
         asynchronous=True,
+        protocol=None,
         timeout=None,
         ssl_verify=False,
         use_file=False,
@@ -1285,7 +1286,7 @@ class HTTPClient(netius.ClientAgent):
         # for connection re-usage (avoids long establish connection times)
         # notice that the event loop is also re-used accordingly
         key = cls.protocol.key_g(url)
-        protocol = self.available.pop(key, None)
+        protocol = protocol or self.available.pop(key, None)
         if protocol and (
             not protocol.is_open()
             or not protocol.transport()
