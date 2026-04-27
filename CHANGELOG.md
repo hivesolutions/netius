@@ -475,10 +475,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Set `minimum_version` on SSL context based on `SSL_SECURE` level (secure>=2: TLSv1.2, secure>=1: TLSv1, secure>=0: SSLv3)
 
-### Fixed
-
-*
-
 ## [1.35.0] - 2026-04-02
 
 ### Added
@@ -666,10 +662,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * `REMOTE_PORT` variable in WSGI environ dictionary, exposing the client's source port as a string
 * `tick` event trigger in `ConsulProxyServer` tick loop for external monitoring of the consul discovery process
-
-### Changed
-
-*
 
 ### Fixed
 
