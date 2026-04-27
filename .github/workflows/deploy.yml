@@ -20,7 +20,6 @@ jobs:
           pip install black
           black . --check
         if: matrix.python-version == '3.14'
-      - run: HTTPBIN=httpbin.bemisc.com python setup.py test
       - run: |
           pip install pytest
           HTTPBIN=httpbin.bemisc.com pytest
