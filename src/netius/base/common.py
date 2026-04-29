@@ -1263,6 +1263,10 @@ class AbstractBase(observer.Observable):
         # redirected to the proper logic through exceptions
         self.bind_signals()
 
+        # runs the binding of the config signals so that the config
+        # event is triggered allowing reload of the configuration
+        self.bind_config()
+
         # sets the private loading flag ensuring that no extra load operations
         # will be done after this first call to the loading (no duplicates)
         self._loaded = True
@@ -1292,6 +1296,10 @@ class AbstractBase(observer.Observable):
         # logging infra-structure of the current system
         if full:
             self.unload_logging()
+
+        # runs the unbind config signals operation, effectively disallowing
+        # the configuration event from producing any more actions
+        self.unbind_config()
 
         # runs the unbind operation for the signals so that no side effects
         # occur while the unloading is going to take place

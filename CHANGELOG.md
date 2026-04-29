@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Wire `bind_config` / `unbind_config` into `AbstractBase.load` and `unload` so the `SIGHUP` config reload handler is registered automatically when `serve()` is called
 
 ### Changed
 
