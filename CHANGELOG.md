@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * `SIGHUP` no longer raises `SystemExit` via `bind_signals` — it is now reserved for the new `"config"` reload handler. Operators relying on `SIGHUP` for shutdown should switch to `SIGINT`, `SIGTERM` or `SIGQUIT`
+* Add `NO_SUITABLE_KEY_SHARE` to `SSL_SILENT_REASONS`
 
 ### Fixed
 
