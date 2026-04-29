@@ -1679,6 +1679,38 @@ class AbstractBase(observer.Observable):
     ):
         self.bind_signals(signals=signals, handler=signal.SIG_IGN)
 
+    def bind_config(
+        self,
+        signals=(
+            (
+                signal.SIGUSR1 if hasattr(signal, "SIGUSR1") else None
+            ),  # @UndefinedVariable
+        ),
+    ):
+        if signals == None:
+            return
+
+        def base_handler(signum=None, frame=None):
+            self.trigger("config")
+
+        for signum in signals:
+            if signum == None:
+                continue
+            try:
+                signal.signal(signum, base_handler)
+            except Exception:
+                self.debug("Failed to register %d handler", signum)
+
+    def unbind_config(
+        self,
+        signals=(
+            (
+                signal.SIGUSR1 if hasattr(signal, "SIGUSR1") else None
+            ),  # @UndefinedVariable
+        ),
+    ):
+        self.bind_signals(signals=signals, handler=signal.SIG_IGN)
+
     def bind_env(self):
         """
         Binds the current environment values to the current instance.
