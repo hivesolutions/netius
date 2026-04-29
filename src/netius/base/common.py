@@ -1644,9 +1644,6 @@ class AbstractBase(observer.Observable):
             signal.SIGINT,
             signal.SIGTERM,
             (
-                signal.SIGHUP if hasattr(signal, "SIGHUP") else None
-            ),  # @UndefinedVariable pylint: disable=E1101
-            (
                 signal.SIGQUIT if hasattr(signal, "SIGQUIT") else None
             ),  # @UndefinedVariable pylint: disable=E1101
         ),
@@ -1671,7 +1668,6 @@ class AbstractBase(observer.Observable):
         signals=(
             signal.SIGINT,
             signal.SIGTERM,
-            signal.SIGHUP if hasattr(signal, "SIGHUP") else None,  # @UndefinedVariable
             (
                 signal.SIGQUIT if hasattr(signal, "SIGQUIT") else None
             ),  # @UndefinedVariable
@@ -1683,13 +1679,10 @@ class AbstractBase(observer.Observable):
         self,
         signals=(
             (
-                signal.SIGUSR1 if hasattr(signal, "SIGUSR1") else None
+                signal.SIGHUP if hasattr(signal, "SIGHUP") else None
             ),  # @UndefinedVariable
         ),
     ):
-        if signals == None:
-            return
-
         def base_handler(signum=None, frame=None):
             self.trigger("config")
 
@@ -1705,7 +1698,7 @@ class AbstractBase(observer.Observable):
         self,
         signals=(
             (
-                signal.SIGUSR1 if hasattr(signal, "SIGUSR1") else None
+                signal.SIGHUP if hasattr(signal, "SIGHUP") else None
             ),  # @UndefinedVariable
         ),
     ):

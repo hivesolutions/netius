@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* `bind_config` and `unbind_config` methods on `AbstractBase` that bind `SIGUSR1` to a handler triggering a `"config"` event, allowing agents to react to configuration reload signals (eg: TLS certificate reload)
+* `bind_config` and `unbind_config` methods on `AbstractBase` that bind `SIGHUP` to a handler triggering a `"config"` event, allowing agents to react to configuration reload signals (eg: TLS certificate reload)
 
 ### Changed
 
-*
+* `SIGHUP` no longer raises `SystemExit` via `bind_signals` — it is now reserved for the new `"config"` reload handler. Operators relying on `SIGHUP` for shutdown should switch to `SIGINT`, `SIGTERM` or `SIGQUIT`
 
 ### Fixed
 
