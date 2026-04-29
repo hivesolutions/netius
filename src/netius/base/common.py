@@ -1693,7 +1693,7 @@ class AbstractBase(observer.Observable):
         ),
     ):
         def base_handler(signum=None, frame=None):
-            self.trigger("config", self)
+            self.delay(lambda: self.on_config(), immediately=True)
 
         for signum in signals:
             if signum == None:
@@ -3099,6 +3099,9 @@ class AbstractBase(observer.Observable):
 
     def on_resume(self):
         self.trigger("resume", self)
+
+    def on_config(self):
+        self.trigger("config", self)
 
     def on_read(self, _socket):
         # tries to retrieve a possible callback registered for the socket

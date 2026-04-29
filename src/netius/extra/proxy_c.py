@@ -113,6 +113,10 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         self.info("Consul poll interval set to %.2fs", self.consul_poll_interval)
         self._consul_tick(timeout=self.consul_poll_interval)
 
+    def on_config(self):
+        proxy_r.ReverseProxyServer.on_config(self)
+        self._consul_tick(timeout=0)
+
     def _build_consul(self, entries):
         self._debug_entries(entries)
         self._build_hosts(entries)

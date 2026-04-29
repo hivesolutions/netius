@@ -9,11 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `on_config` hook on `AbstractBase` that subclasses can override to react to `SIGHUP` reload signals (chains to the existing `"config"` trigger via super)
+* `ConsulProxyServer.on_config` override that schedules an extra `_consul_tick(timeout=0)` on `SIGHUP`, allowing operators to force a Consul service refresh without waiting for the next poll cycle
 
 ### Changed
 
-*
+* `bind_config` SIGHUP handler now defers `on_config` to the main event loop via `delay(immediately=True)` instead of running it synchronously in the signal handler context, so subclass overrides don't have to worry about signal-handler reentrancy
 
 ### Fixed
 
