@@ -9,16 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.54.0] - 2026-04-29
+
+### Added
+
 * `bind_config` and `unbind_config` methods on `AbstractBase` that bind `SIGHUP` to a handler triggering a `"config"` event, allowing agents to react to configuration reload signals (eg: TLS certificate reload)
 
 ### Changed
 
 * `SIGHUP` no longer raises `SystemExit` via `bind_signals` — it is now reserved for the new `"config"` reload handler. Operators relying on `SIGHUP` for shutdown should switch to `SIGINT`, `SIGTERM` or `SIGQUIT`
 * Add `NO_SUITABLE_KEY_SHARE` to `SSL_SILENT_REASONS`
-
-### Fixed
-
-*
 
 ## [1.53.13] - 2026-04-28
 
