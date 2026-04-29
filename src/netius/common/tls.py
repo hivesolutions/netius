@@ -65,6 +65,7 @@ class TLSContextDict(dict):
         dict.__init__(self, *args, **kwargs)
         self.owner = owner
         self.mtimes = {}
+        self.domains = set()
         self.load(domains)
 
     def load(self, domains):
@@ -78,14 +79,15 @@ class TLSContextDict(dict):
             context = self.owner._ssl_ctx(values, secure=secure)
             self[domain] = (context, values)
             self.mtimes[domain] = self._mtime(domain)
+        self.domains.update(domains)
 
-    def reload(self, domains):
+    def reload(self, domains=None):
         # re-scans the certificate directory for new or updated
         # domains, only rebuilding contexts for domains whose
         # certificate files have changed on disk
         secure = self.owner.get_env("SSL_SECURE", 1, cast=int)
         changed = False
-        for domain in domains:
+        for domain in self.domains if domains == None else domains:
             if not self.has_definition(domain):
                 continue
             mtime = self._mtime(domain)

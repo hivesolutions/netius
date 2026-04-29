@@ -4472,8 +4472,7 @@ class AbstractBase(observer.Observable):
         # the file system without requiring a full restart
         if not hasattr(self._ssl_contexts, "reload"):
             return
-        domains = list(self._ssl_contexts.keys())
-        changed = self._ssl_contexts.reload(domains)
+        changed = self._ssl_contexts.reload()
         if changed:
             self.info("Reloaded SSL certificates for updated domains")
 

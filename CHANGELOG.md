@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* `TLSContextDict` now persists the configured domain set on `self.domains` and `reload()` defaults to it, so `_ssl_reload` can promote domains whose certificate files only become available after startup (eg: newly issued Let's Encrypt certs)
 
 ### Fixed
 
