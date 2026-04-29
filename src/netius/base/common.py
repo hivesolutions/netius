@@ -1680,7 +1680,7 @@ class AbstractBase(observer.Observable):
         signals=(
             (
                 signal.SIGHUP if hasattr(signal, "SIGHUP") else None
-            ),  # @UndefinedVariable
+            ),  # @UndefinedVariable pylint: disable=E1101
         ),
     ):
         def base_handler(signum=None, frame=None):
@@ -1699,7 +1699,7 @@ class AbstractBase(observer.Observable):
         signals=(
             (
                 signal.SIGHUP if hasattr(signal, "SIGHUP") else None
-            ),  # @UndefinedVariable
+            ),  # @UndefinedVariable pylint: disable=E1101
         ),
     ):
         self.bind_signals(signals=signals, handler=signal.SIG_IGN)
