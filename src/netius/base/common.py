@@ -1684,7 +1684,7 @@ class AbstractBase(observer.Observable):
         ),
     ):
         def base_handler(signum=None, frame=None):
-            self.trigger("config")
+            self.trigger("config", self)
 
         for signum in signals:
             if signum == None:
