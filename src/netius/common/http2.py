@@ -316,9 +316,12 @@ class HTTP2Parser(parser.Parser):
         size = len(data)
         size_o = size
 
-        # iterates continuously to try to process all that
-        # data that has been sent for processing
-        while size > 0:
+        # iterates continuously to try to process all the
+        # data that has been sent for processing, the extra
+        # condition allows zero-length payload frames (eg: SETTINGS
+        # with the ACK flag, DATA with END_STREAM and no body) to
+        # be flushed even when there are no remaining bytes
+        while size > 0 or self.state == PAYLOAD_STATE:
 
             if self.state <= self.state_l:
                 method = self.states[self.state - 1]

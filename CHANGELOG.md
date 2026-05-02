@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Test scaffolding for HTTP/2 (`HTTP2ParserTest` covering frame size, SETTINGS / PUSH_PROMISE / PING / GOAWAY / WINDOW_UPDATE assertions and parse round-trips for SETTINGS, PING, GOAWAY and WINDOW_UPDATE; `HTTP2ServerTest` covering `_has_hpack`, `_has_alpn`, `_has_npn`, `info_dict` and `get_protocols`)
 
 ### Changed
 
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* `HTTP2Parser.parse` now flushes zero-length payload frames (eg: SETTINGS with the ACK flag, DATA with END_STREAM and no body) instead of leaving the parser stuck in `PAYLOAD_STATE` until subsequent bytes arrive
 
 ## [1.55.0] - 2026-04-29
 
