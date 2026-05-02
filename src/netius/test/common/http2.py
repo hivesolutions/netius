@@ -316,6 +316,27 @@ class HTTP2ParserTest(unittest.TestCase):
         finally:
             parser.clear(force=True)
 
+    def test_parse_settings_ack_then_ping(self):
+        parser = netius.common.HTTP2Parser(self, store=True)
+        try:
+            events = []
+            payloads = []
+            parser.bind(
+                "on_settings", lambda settings, ack: events.append(("settings", ack))
+            )
+            parser.bind("on_ping", lambda data, ack: events.append(("ping", ack)))
+            parser.bind("on_payload", lambda: payloads.append(parser.type))
+            count = parser.parse(SETTINGS_ACK_FRAME + PING_FRAME)
+            self.assertEqual(count, len(SETTINGS_ACK_FRAME) + len(PING_FRAME))
+            self.assertEqual(parser.state, netius.common.http2.FINISH_STATE)
+            self.assertEqual(parser.type, netius.common.PING)
+            self.assertEqual(parser.last_type, netius.common.SETTINGS)
+            self.assertEqual(parser.last_stream, 0x00)
+            self.assertEqual(events, [("settings", 0x01), ("ping", 0x00)])
+            self.assertEqual(payloads, [netius.common.SETTINGS, netius.common.PING])
+        finally:
+            parser.clear(force=True)
+
     def test_parse_ping(self):
         parser = netius.common.HTTP2Parser(self, store=True)
         try:
