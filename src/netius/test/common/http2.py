@@ -48,6 +48,8 @@ SETTINGS_FRAME = _pack_frame(
     + struct.pack("!HI", netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE, 131072),
 )
 
+SETTINGS_ACK_FRAME = _pack_frame(netius.common.SETTINGS, flags=0x01)
+
 PING_FRAME = _pack_frame(
     netius.common.PING, payload=b"\x01\x02\x03\x04\x05\x06\x07\x08"
 )
@@ -292,6 +294,25 @@ class HTTP2ParserTest(unittest.TestCase):
                     netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE: 131072,
                 },
             )
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_settings_ack(self):
+        parser = netius.common.HTTP2Parser(self, store=True)
+        try:
+            events = []
+            parser.bind(
+                "on_settings", lambda settings, ack: events.append((settings, ack))
+            )
+            count = parser.parse(SETTINGS_ACK_FRAME)
+            self.assertEqual(count, len(SETTINGS_ACK_FRAME))
+            self.assertEqual(parser.state, netius.common.http2.FINISH_STATE)
+            self.assertEqual(parser.type, netius.common.SETTINGS)
+            self.assertEqual(parser.length, 0)
+            self.assertEqual(len(events), 1)
+            settings, ack = events[0]
+            self.assertEqual(settings, [])
+            self.assertEqual(ack, 0x01)
         finally:
             parser.clear(force=True)
 
