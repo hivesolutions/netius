@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Test scaffolding for HTTP/2 (`HTTP2ParserTest` covering frame size, SETTINGS / PUSH_PROMISE / PING / GOAWAY / WINDOW_UPDATE assertions and parse round-trips for SETTINGS, PING, GOAWAY and WINDOW_UPDATE; `HTTP2ServerTest` covering `_has_hpack`, `_has_alpn`, `_has_npn`, `info_dict` and `get_protocols`)
 
 ### Changed
 
