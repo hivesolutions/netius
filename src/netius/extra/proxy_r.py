@@ -85,6 +85,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         forward=None,
         strategy="robin",
         reuse=True,
+        x_forwarded_port=None,
+        x_forwarded_proto=None,
         sts=0,
         resolve=True,
         resolve_t=120.0,
@@ -115,6 +117,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             forward=forward,
             strategy=strategy,
             reuse=reuse,
+            x_forwarded_port=x_forwarded_port,
+            x_forwarded_proto=x_forwarded_proto,
             sts=sts,
             resolve=resolve,
             resolve_t=resolve_t,
@@ -160,9 +164,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if self.env:
             self.strategy = self.get_env("STRATEGY", self.strategy)
         if self.env:
-            self.x_forwarded_port = self.get_env("X_FORWARDED_PORT", None)
+            self.x_forwarded_port = self.get_env(
+                "X_FORWARDED_PORT", self.x_forwarded_port
+            )
         if self.env:
-            self.x_forwarded_proto = self.get_env("X_FORWARDED_PROTO", None)
+            self.x_forwarded_proto = self.get_env(
+                "X_FORWARDED_PROTO", self.x_forwarded_proto
+            )
         if self.sts:
             self.info("Strict transport security set to %d seconds", self.sts)
         if self.resolve:

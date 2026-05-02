@@ -58,8 +58,6 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.server = netius.extra.ReverseProxyServer(
             hosts={"host.com": "http://localhost"}, alias={"alias.host.com": "host.com"}
         )
-        self.server.x_forwarded_proto = None
-        self.server.x_forwarded_port = None
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
@@ -355,6 +353,10 @@ class ReverseProxyServerTest(unittest.TestCase):
 
     def test_busy_conn_initial(self):
         self.assertEqual(self.server.busy_conn, 0)
+
+    def test_x_forwarded_initial(self):
+        self.assertEqual(self.server.x_forwarded_port, None)
+        self.assertEqual(self.server.x_forwarded_proto, None)
 
     def test_cleanup(self):
         server = netius.extra.ReverseProxyServer(hosts={"host.com": "http://localhost"})
