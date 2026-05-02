@@ -30,7 +30,14 @@ __license__ = "Apache License, Version 2.0"
 
 import unittest
 
+import netius.common
 import netius.servers
+import netius.servers.http2
+
+try:
+    import hpack
+except ImportError:
+    hpack = None
 
 
 class HTTP2ServerTest(unittest.TestCase):
@@ -74,3 +81,43 @@ class HTTP2ServerTest(unittest.TestCase):
             self.assertEqual(protocols, ["h2", "http/1.1", "http/1.0"])
         else:
             self.assertEqual(protocols, ["http/1.1", "http/1.0"])
+
+
+class HTTP2ConnectionTest(unittest.TestCase):
+
+    def setUp(self):
+        self.settings = dict(netius.common.HTTP2_SETTINGS_OPTIMAL)
+        self.settings_r = dict(netius.common.HTTP2_SETTINGS)
+        self.window = netius.common.HTTP2_WINDOW
+
+    def test_set_settings(self):
+        if hpack == None:
+            self.skipTest("Skipping test: hpack unavailable")
+
+        connection = netius.servers.http2.HTTP2Connection.__new__(
+            netius.servers.http2.HTTP2Connection
+        )
+        connection.legacy = False
+        connection.settings_r = self.settings_r
+        connection.parser = netius.common.HTTP2Parser(self, store=True)
+
+        try:
+            self.assertEqual(connection.parser._encoder, None)
+
+            connection.set_settings(
+                {netius.common.http2.SETTINGS_HEADER_TABLE_SIZE: 8192}
+            )
+            self.assertEqual(connection.parser._encoder, None)
+            self.assertEqual(
+                connection.settings_r[netius.common.http2.SETTINGS_HEADER_TABLE_SIZE],
+                8192,
+            )
+
+            self.assertEqual(connection.parser.encoder.header_table_size, 8192)
+
+            connection.set_settings(
+                {netius.common.http2.SETTINGS_HEADER_TABLE_SIZE: 16384}
+            )
+            self.assertEqual(connection.parser._encoder.header_table_size, 16384)
+        finally:
+            connection.parser.clear(force=True)

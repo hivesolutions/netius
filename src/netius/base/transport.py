@@ -159,7 +159,7 @@ class Transport(observer.Observable):
         before the connection send buffer is unblocked.
         """
 
-        if high is None:
+        if high == None:
             if low == None:
                 high = 65536
             else:

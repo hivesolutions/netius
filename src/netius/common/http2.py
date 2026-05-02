@@ -888,6 +888,9 @@ class HTTP2Parser(parser.Parser):
         import hpack
 
         self._encoder = hpack.hpack.Encoder()
+        self._encoder.header_table_size = self.owner.settings_r[
+            SETTINGS_HEADER_TABLE_SIZE
+        ]
         return self._encoder
 
     @property
@@ -897,6 +900,9 @@ class HTTP2Parser(parser.Parser):
         import hpack
 
         self._decoder = hpack.hpack.Decoder()
+        self._decoder.max_allowed_table_size = self.owner.settings[
+            SETTINGS_HEADER_TABLE_SIZE
+        ]
         return self._decoder
 
 
