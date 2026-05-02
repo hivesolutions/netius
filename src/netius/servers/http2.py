@@ -727,6 +727,18 @@ class HTTP2Connection(http.HTTPConnection):
     def set_settings(self, settings):
         self.settings_r.update(settings)
 
+        # propagates a peer-driven `SETTINGS_HEADER_TABLE_SIZE` change
+        # to the HPACK encoder so the dynamic table stays bounded by
+        # the value the peer is willing to accept (RFC 7541 §6.3)
+        if (
+            netius.common.http2.SETTINGS_HEADER_TABLE_SIZE in settings
+            and self.parser
+            and not self.legacy
+        ):
+            self.parser.encoder.header_table_size = settings[
+                netius.common.http2.SETTINGS_HEADER_TABLE_SIZE
+            ]
+
     def close_stream(self, stream, final=False, flush=False, reset=False):
         if not self.parser._has_stream(stream):
             return
