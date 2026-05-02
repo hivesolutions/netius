@@ -729,13 +729,17 @@ class HTTP2Connection(http.HTTPConnection):
 
         # propagates a peer-driven `SETTINGS_HEADER_TABLE_SIZE` change
         # to the HPACK encoder so the dynamic table stays bounded by
-        # the value the peer is willing to accept (RFC 7541 §6.3)
+        # the value the peer is willing to accept (RFC 7541 §6.3); only
+        # touches an already-initialized encoder so connections that
+        # never send headers don't pay the lazy-init cost — the lazy
+        # property reads `settings_r` on first access anyway
         if (
             netius.common.http2.SETTINGS_HEADER_TABLE_SIZE in settings
             and self.parser
             and not self.legacy
+            and not self.parser._encoder == None
         ):
-            self.parser.encoder.header_table_size = settings[
+            self.parser._encoder.header_table_size = settings[
                 netius.common.http2.SETTINGS_HEADER_TABLE_SIZE
             ]
 

@@ -33,6 +33,11 @@ import unittest
 
 import netius.common
 
+try:
+    import hpack
+except ImportError:
+    hpack = None
+
 
 def _pack_frame(type, flags=0x00, stream=0x00, payload=b""):
     size = len(payload)
@@ -396,6 +401,8 @@ class HTTP2ParserTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_encoder(self):
+        if hpack == None:
+            self.skipTest("Skipping test: hpack unavailable")
         self.settings_r[netius.common.http2.SETTINGS_HEADER_TABLE_SIZE] = 8192
         parser = netius.common.HTTP2Parser(self, store=True)
         try:
@@ -404,6 +411,8 @@ class HTTP2ParserTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_decoder(self):
+        if hpack == None:
+            self.skipTest("Skipping test: hpack unavailable")
         self.settings[netius.common.http2.SETTINGS_HEADER_TABLE_SIZE] = 16384
         parser = netius.common.HTTP2Parser(self, store=True)
         try:
