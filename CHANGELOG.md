@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * `HTTP2Parser.parse` now flushes zero-length payload frames (eg: SETTINGS with the ACK flag, DATA with END_STREAM and no body) instead of leaving the parser stuck in `PAYLOAD_STATE` until subsequent bytes arrive
 * `HTTP2Parser` now syncs the HPACK encoder / decoder dynamic table sizes with `SETTINGS_HEADER_TABLE_SIZE` — the encoder is bounded by the peer's advertised value and the decoder caps `max_allowed_table_size` at our own; `HTTP2Connection.set_settings` propagates peer-driven changes to the live encoder, fixing a latent interop bug where the encoder could emit indices outside the peer's table window
+* `ReverseProxyServer` now initializes `x_forwarded_port` and `x_forwarded_proto` to `None` in `__init__`; previously they were only set inside `on_serve` under `if self.env`, so any embedded usage that called `serve(env=False)` raised `AttributeError` on the first inbound request
 
 ## [1.55.0] - 2026-04-29
 
