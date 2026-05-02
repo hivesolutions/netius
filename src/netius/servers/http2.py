@@ -355,7 +355,8 @@ class HTTP2Connection(http.HTTPConnection):
 
             def callback(connection):
                 self.close_stream(stream, final=final)
-                old_callback and old_callback(connection)
+                if old_callback:
+                    old_callback(connection)
 
         # runs the send headers operations that should send the headers list
         # to the other peer and returns the number of bytes sent
@@ -400,7 +401,8 @@ class HTTP2Connection(http.HTTPConnection):
 
             def callback(connection):
                 self.close_stream(stream, final=final)
-                old_callback and old_callback(connection)
+                if old_callback:
+                    old_callback(connection)
 
         # verifies if the current connection/stream is flushed meaning that it requires
         # a final chunk of data to be sent to the peer, if that's not the case there's
@@ -559,7 +561,8 @@ class HTTP2Connection(http.HTTPConnection):
 
             def callback(connection):
                 self.close()
-                old_callback and old_callback(connection)
+                if old_callback:
+                    old_callback(connection)
 
         message = netius.legacy.bytes(message)
         payload = struct.pack("!II", last_stream, error_code)
@@ -1126,7 +1129,8 @@ class HTTP2Server(http.HTTPServer):
 
     def on_payload_http2(self, connection, parser):
         is_debug = self.is_debug()
-        is_debug and self._log_frame(connection, parser)
+        if self.is_debug:
+            self._log_frame(connection, parser)
 
     def on_frame_http2(self, connection, parser):
         pass
@@ -1169,7 +1173,8 @@ class HTTP2Server(http.HTTPServer):
 
     def on_send_http2(self, connection, parser, type, flags, payload, stream):
         is_debug = self.is_debug()
-        is_debug and self._log_send(connection, parser, type, flags, payload, stream)
+        if is_debug:
+            self._log_send(connection, parser, type, flags, payload, stream)
 
     def _has_h2(self):
         cls = self.__class__
