@@ -855,9 +855,7 @@ class ConsulProxyServerTest(unittest.TestCase):
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
         self.server._build_hosts(entries)
 
-        self.assertEqual(
-            self.server.redirect.get("myapp"), ("other.host.com", "https")
-        )
+        self.assertEqual(self.server.redirect.get("myapp"), ("other.host.com", "https"))
 
     def test_apply_tags_redirect_tuple_with_alias(self):
         tags = [
@@ -868,9 +866,7 @@ class ConsulProxyServerTest(unittest.TestCase):
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
         self.server._build_hosts(entries)
 
-        self.assertEqual(
-            self.server.redirect.get("myapp"), ("other.host.com", "https")
-        )
+        self.assertEqual(self.server.redirect.get("myapp"), ("other.host.com", "https"))
         self.assertEqual(self.server.redirect.get("api"), ("other.host.com", "https"))
 
     def test_apply_tags_redirect_ssl(self):
