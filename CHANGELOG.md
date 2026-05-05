@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Test scaffolding for HTTP/2 (`HTTP2ParserTest` covering frame size, SETTINGS / PUSH_PROMISE / PING / GOAWAY / WINDOW_UPDATE assertions and parse round-trips for SETTINGS, PING, GOAWAY and WINDOW_UPDATE; `HTTP2ServerTest` covering `_has_hpack`, `_has_alpn`, `_has_npn`, `info_dict` and `get_protocols`)
+* `ConsulProxyServer` support for two new redirect tags: `proxy.redirect=<host>` (or `<host>;<protocol>` tuple form) registers a host redirect for the service domain and propagates it to tag aliases and host-suffix expansions, mirroring the existing `proxy.redirect-ssl=true` propagation; `proxy.redirect-regex=<pattern>;<target>,...` registers regex redirect rules in `self.redirect_regex`, mirroring the shape of `proxy.auth-regex`
 
 ### Changed
 
@@ -20,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `HTTP2Parser.parse` now flushes zero-length payload frames (eg: SETTINGS with the ACK flag, DATA with END_STREAM and no body) instead of leaving the parser stuck in `PAYLOAD_STATE` until subsequent bytes arrive
 * `HTTP2Parser` now syncs the HPACK encoder / decoder dynamic table sizes with `SETTINGS_HEADER_TABLE_SIZE` — the encoder is bounded by the peer's advertised value and the decoder caps `max_allowed_table_size` at our own; `HTTP2Connection.set_settings` propagates peer-driven changes to the live encoder, fixing a latent interop bug where the encoder could emit indices outside the peer's table window
 * `ReverseProxyServer` now initializes `x_forwarded_port` and `x_forwarded_proto` to `None` in `__init__`; previously they were only set inside `on_serve` under `if self.env`, so any embedded usage that called `serve(env=False)` raised `AttributeError` on the first inbound request
+* `ConsulProxyServer._build_hosts` now sweeps consul-managed alias keys from `self.redirect` on each rebuild cycle, so redirect entries created for tag aliases (eg: `api`) and host-suffix expansions (eg: `api.example.com`) no longer leak across rebuilds when the underlying service is removed; also incidentally fixes the same pre-existing leak for `proxy.redirect-ssl=true`
 
 ## [1.55.0] - 2026-04-29
 
