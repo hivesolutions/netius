@@ -630,6 +630,49 @@ class ConsulProxyServerTest(unittest.TestCase):
         result = self.server._resolve_auth_regex(tags)
         self.assertEqual(result, None)
 
+    def test_resolve_redirect_regex(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.redirect-regex=^http://old\\.com/(.*)$;new.com,^http://other\\.com/(.*)$;https://other.com",
+        ]
+        result = self.server._resolve_redirect_regex(tags)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0][0].pattern, "^http://old\\.com/(.*)$")
+        self.assertEqual(result[0][1], "new.com")
+        self.assertEqual(result[1][0].pattern, "^http://other\\.com/(.*)$")
+        self.assertEqual(result[1][1], "https://other.com")
+
+    def test_resolve_redirect_regex_none(self):
+        tags = ["proxy.enable=true"]
+        result = self.server._resolve_redirect_regex(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_redirect_regex_empty(self):
+        tags = ["proxy.enable=true", "proxy.redirect-regex="]
+        result = self.server._resolve_redirect_regex(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_redirect_regex_priority(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.redirect-regex=/first;a.com",
+            "proxy.redirect-regex=/second;b.com",
+        ]
+        result = self.server._resolve_redirect_regex(tags)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][0].pattern, "/first")
+        self.assertEqual(result[0][1], "a.com")
+
+    def test_resolve_redirect_regex_no_separator(self):
+        tags = ["proxy.enable=true", "proxy.redirect-regex=/api/*"]
+        result = self.server._resolve_redirect_regex(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_redirect_regex_empty_target(self):
+        tags = ["proxy.enable=true", "proxy.redirect-regex=/api/*;"]
+        result = self.server._resolve_redirect_regex(tags)
+        self.assertEqual(result, None)
+
     def test_resolve_auth_type_none(self):
         result = self.server._resolve_auth_type("none", [])
         self.assertEqual(result, None)
@@ -707,6 +750,81 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.server._build_hosts(entries)
 
         self.assertTrue("myapp" not in self.server.error_urls)
+
+    def test_apply_tags_redirect(self):
+        tags = ["proxy.enable=true", "proxy.redirect=other.host.com"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.redirect.get("myapp"), "other.host.com")
+
+    def test_apply_tags_redirect_empty(self):
+        tags = ["proxy.enable=true", "proxy.redirect="]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertTrue("myapp" not in self.server.redirect)
+
+    def test_apply_tags_redirect_custom_name(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.name=webapp",
+            "proxy.redirect=other.host.com",
+        ]
+        entries = [("myapp", "webapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.redirect.get("webapp"), "other.host.com")
+        self.assertTrue("myapp" not in self.server.redirect)
+
+    def test_apply_tags_redirect_with_alias(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.alias=api,api-v2",
+            "proxy.redirect=other.host.com",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(self.server.redirect.get("myapp"), "other.host.com")
+        self.assertEqual(self.server.redirect.get("api"), "other.host.com")
+        self.assertEqual(self.server.redirect.get("api-v2"), "other.host.com")
+
+    def test_apply_tags_redirect_with_alias_suffixes(self):
+        server = netius.extra.ConsulProxyServer(
+            host_suffixes=["example.com"],
+            hosts=dict(),
+            auth=dict(),
+            redirect=dict(),
+            error_urls=dict(),
+        )
+
+        tags = [
+            "proxy.enable=true",
+            "proxy.alias=api",
+            "proxy.redirect=other.host.com",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        server._build_consul(entries)
+
+        self.assertEqual(server.redirect.get("myapp"), "other.host.com")
+        self.assertEqual(server.redirect.get("api"), "other.host.com")
+        self.assertEqual(server.redirect.get("myapp.example.com"), "other.host.com")
+        self.assertEqual(server.redirect.get("api.example.com"), "other.host.com")
+        server.cleanup()
+
+    def test_apply_tags_redirect_cleanup(self):
+        tags = ["proxy.enable=true", "proxy.redirect=other.host.com"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertTrue("myapp" in self.server.redirect)
+
+        # simulates second rebuild with the service removed from
+        # consul, the redirect entry should be properly cleaned up
+        self.server._build_hosts([])
+
+        self.assertTrue("myapp" not in self.server.redirect)
 
     def test_apply_tags_redirect_ssl(self):
         tags = ["proxy.enable=true", "proxy.redirect-ssl=true"]
@@ -976,6 +1094,40 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.server._build_hosts([])
 
         self.assertEqual(len(self.server.auth_regex), 0)
+
+    def test_apply_tags_redirect_regex(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.redirect-regex=^http://old\\.com/(.*)$;new.com,^http://other\\.com/(.*)$;https://other.com",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(len(self.server.redirect_regex), 2)
+        self.assertEqual(
+            self.server.redirect_regex[0][0].pattern, "^http://old\\.com/(.*)$"
+        )
+        self.assertEqual(self.server.redirect_regex[0][1], "new.com")
+        self.assertEqual(
+            self.server.redirect_regex[1][0].pattern, "^http://other\\.com/(.*)$"
+        )
+        self.assertEqual(self.server.redirect_regex[1][1], "https://other.com")
+
+    def test_apply_tags_redirect_regex_cleanup(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.redirect-regex=^http://old\\.com/(.*)$;new.com",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(len(self.server.redirect_regex), 1)
+
+        # simulates second rebuild with the service removed from
+        # consul, redirect regex entries should be properly cleaned up
+        self.server._build_hosts([])
+
+        self.assertEqual(len(self.server.redirect_regex), 0)
 
     def test_build_urls(self):
         instances = [
