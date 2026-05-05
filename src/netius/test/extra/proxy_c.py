@@ -657,14 +657,14 @@ class ConsulProxyServerTest(unittest.TestCase):
     def test_resolve_redirect_regex(self):
         tags = [
             "proxy.enable=true",
-            "proxy.redirect-regex=^http://old\\.com/(.*)$;new.com,^http://other\\.com/(.*)$;https://other.com",
+            "proxy.redirect-regex=^http://old\\.com/(.*)$;new.com,^http://other\\.com/(.*)$;other.com",
         ]
         result = self.server._resolve_redirect_regex(tags)
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0][0].pattern, "^http://old\\.com/(.*)$")
         self.assertEqual(result[0][1], "new.com")
         self.assertEqual(result[1][0].pattern, "^http://other\\.com/(.*)$")
-        self.assertEqual(result[1][1], "https://other.com")
+        self.assertEqual(result[1][1], "other.com")
 
     def test_resolve_redirect_regex_none(self):
         tags = ["proxy.enable=true"]
@@ -849,6 +849,59 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.server._build_hosts([])
 
         self.assertTrue("myapp" not in self.server.redirect)
+
+    def test_apply_tags_redirect_with_alias_cleanup(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.alias=api,api-v2",
+            "proxy.redirect=other.host.com",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_consul(entries)
+
+        self.assertTrue("myapp" in self.server.redirect)
+        self.assertTrue("api" in self.server.redirect)
+        self.assertTrue("api-v2" in self.server.redirect)
+
+        # simulates second rebuild with the service removed from
+        # consul, redirect entries for the domain and its tag aliases
+        # should be properly cleaned up
+        self.server._build_consul([])
+
+        self.assertTrue("myapp" not in self.server.redirect)
+        self.assertTrue("api" not in self.server.redirect)
+        self.assertTrue("api-v2" not in self.server.redirect)
+
+    def test_apply_tags_redirect_with_alias_suffixes_cleanup(self):
+        server = netius.extra.ConsulProxyServer(
+            host_suffixes=["example.com"],
+            hosts=dict(),
+            auth=dict(),
+            redirect=dict(),
+            error_urls=dict(),
+        )
+
+        tags = [
+            "proxy.enable=true",
+            "proxy.alias=api",
+            "proxy.redirect=other.host.com",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        server._build_consul(entries)
+
+        self.assertTrue("myapp.example.com" in server.redirect)
+        self.assertTrue("api.example.com" in server.redirect)
+
+        # simulates second rebuild with the service removed from
+        # consul, redirect entries for the suffix-expanded aliases
+        # should be properly cleaned up
+        server._build_consul([])
+
+        self.assertTrue("myapp" not in server.redirect)
+        self.assertTrue("api" not in server.redirect)
+        self.assertTrue("myapp.example.com" not in server.redirect)
+        self.assertTrue("api.example.com" not in server.redirect)
+        server.cleanup()
 
     def test_apply_tags_redirect_tuple(self):
         tags = ["proxy.enable=true", "proxy.redirect=other.host.com;https"]
@@ -1141,7 +1194,7 @@ class ConsulProxyServerTest(unittest.TestCase):
     def test_apply_tags_redirect_regex(self):
         tags = [
             "proxy.enable=true",
-            "proxy.redirect-regex=^http://old\\.com/(.*)$;new.com,^http://other\\.com/(.*)$;https://other.com",
+            "proxy.redirect-regex=^http://old\\.com/(.*)$;new.com,^http://other\\.com/(.*)$;other.com",
         ]
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
         self.server._build_hosts(entries)
@@ -1154,7 +1207,7 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.assertEqual(
             self.server.redirect_regex[1][0].pattern, "^http://other\\.com/(.*)$"
         )
-        self.assertEqual(self.server.redirect_regex[1][1], "https://other.com")
+        self.assertEqual(self.server.redirect_regex[1][1], "other.com")
 
     def test_apply_tags_redirect_regex_cleanup(self):
         tags = [

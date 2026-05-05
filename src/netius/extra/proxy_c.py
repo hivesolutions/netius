@@ -146,6 +146,8 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 self.redirect_regex.remove(entry)
             except ValueError:
                 pass
+        for alias in self._consul_aliases:
+            self.redirect.pop(alias, None)
         self._consul_hosts = set()
         self._consul_tag_aliases = set()
         self._consul_auth_regex = []
