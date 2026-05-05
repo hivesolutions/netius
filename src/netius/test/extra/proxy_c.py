@@ -630,6 +630,30 @@ class ConsulProxyServerTest(unittest.TestCase):
         result = self.server._resolve_auth_regex(tags)
         self.assertEqual(result, None)
 
+    def test_resolve_redirect(self):
+        result = self.server._resolve_redirect("other.host.com")
+        self.assertEqual(result, "other.host.com")
+
+    def test_resolve_redirect_tuple(self):
+        result = self.server._resolve_redirect("other.host.com;https")
+        self.assertEqual(result, ("other.host.com", "https"))
+
+    def test_resolve_redirect_none(self):
+        result = self.server._resolve_redirect("")
+        self.assertEqual(result, None)
+
+    def test_resolve_redirect_tuple_spaces(self):
+        result = self.server._resolve_redirect(" other.host.com ; https ")
+        self.assertEqual(result, ("other.host.com", "https"))
+
+    def test_resolve_redirect_tuple_empty_host(self):
+        result = self.server._resolve_redirect(";https")
+        self.assertEqual(result, None)
+
+    def test_resolve_redirect_tuple_empty_protocol(self):
+        result = self.server._resolve_redirect("other.host.com;")
+        self.assertEqual(result, None)
+
     def test_resolve_redirect_regex(self):
         tags = [
             "proxy.enable=true",
@@ -825,6 +849,29 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.server._build_hosts([])
 
         self.assertTrue("myapp" not in self.server.redirect)
+
+    def test_apply_tags_redirect_tuple(self):
+        tags = ["proxy.enable=true", "proxy.redirect=other.host.com;https"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(
+            self.server.redirect.get("myapp"), ("other.host.com", "https")
+        )
+
+    def test_apply_tags_redirect_tuple_with_alias(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.alias=api",
+            "proxy.redirect=other.host.com;https",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(
+            self.server.redirect.get("myapp"), ("other.host.com", "https")
+        )
+        self.assertEqual(self.server.redirect.get("api"), ("other.host.com", "https"))
 
     def test_apply_tags_redirect_ssl(self):
         tags = ["proxy.enable=true", "proxy.redirect-ssl=true"]

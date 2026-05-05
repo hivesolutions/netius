@@ -58,7 +58,8 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
     protection (`proxy.password=<secret>`), custom error pages
     (`proxy.error-url=<url>`), automatic HTTPS redirection
     (`proxy.redirect-ssl=true`), host redirection
-    (`proxy.redirect=<host>`), regex-based redirection
+    (`proxy.redirect=<host>` or `proxy.redirect=<host>;<protocol>`),
+    regex-based redirection
     (`proxy.redirect-regex=<pattern>;<target>,...`), port filtering
     (`proxy.port=<port1,port2,...>` or alias `proxy.ports`),
     address override (`proxy.address=<address>`), domain aliasing
@@ -458,6 +459,20 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 result.append((regex, tuple(auths)))
         return result if result else None
 
+    def _resolve_redirect(self, value):
+        if not value:
+            return None
+        if ";" not in value:
+            return str(value)
+        parts = value.split(";", 1)
+        host = parts[0].strip()
+        protocol = parts[1].strip()
+        if not host:
+            return None
+        if not protocol:
+            return None
+        return (str(host), str(protocol))
+
     def _resolve_redirect_regex(self, tags):
         value = None
         for tag in tags:
@@ -544,9 +559,9 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                         self._consul_tag_aliases.add(alias)
                         self.debug("Registered proxy.alias '%s' -> '%s'", alias, domain)
             elif tag.startswith("proxy.redirect="):
-                redirect = tag[len("proxy.redirect=") :]
+                redirect = self._resolve_redirect(tag[len("proxy.redirect=") :])
                 if redirect:
-                    self.redirect[domain] = str(redirect)
+                    self.redirect[domain] = redirect
                     self.debug(
                         "Registered proxy.redirect '%s' for '%s'", redirect, domain
                     )
