@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* `ProxyServer` now preserves the `content-encoding` response header when running in dynamic mode (body is forwarded byte-identical and must remain decodable by the client); non-dynamic mode keeps the existing pop behaviour since the proxy may re-encode
 
 ## [1.56.0] - 2026-05-05
 

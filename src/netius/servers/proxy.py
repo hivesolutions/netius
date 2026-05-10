@@ -456,10 +456,19 @@ class ProxyServer(http2.HTTP2Server):
 
         # resolves the client connection into the proper proxy connection
         # to be used to send the headers (and status line) to the client
-        # and then retrieves the origin content and transfer encoding values
-        # that are going to be used to determine some heuristics for the data
         connection = self.conn_map[_connection]
-        content_encoding = headers.pop("content-encoding", None)
+
+        # in dynamic mode the body is forwarded byte-identical, so we must
+        # preserve `content-encoding` so the client knows how to decode it,
+        # without dynamic mode the proxy may re-encode and the header is
+        # popped (default behaviour)
+        if self.dynamic:
+            content_encoding = headers.get("content-encoding", None)
+        else:
+            content_encoding = headers.pop("content-encoding", None)
+
+        # obtains the transfer encoding value from the headers, this is required
+        # for the proper handling of the content length
         transfer_encoding = headers.pop("transfer-encoding", None)
 
         # if either the proxy connection or the back-end one is compressed
