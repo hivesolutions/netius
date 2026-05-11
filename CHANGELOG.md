@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `ConsulProxyServer` support for the `proxy.protocol=http|https` tag, controlling the scheme used when constructing backend URLs (defaults to `http`); applies to both the multi-port expansion and single-port code paths
 
 ### Changed
 

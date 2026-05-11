@@ -62,9 +62,11 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
     regex-based redirection
     (`proxy.redirect-regex=<pattern>;<target>,...`), port filtering
     (`proxy.port=<port1,port2,...>` or alias `proxy.ports`),
-    address override (`proxy.address=<address>`), domain aliasing
-    (`proxy.alias=<domain1>,<domain2>,...`), and regex-based auth
-    rules (`proxy.auth-regex=<pattern>;<type>,...`).
+    address override (`proxy.address=<address>`), upstream
+    protocol selection (`proxy.protocol=http|https`), domain
+    aliasing (`proxy.alias=<domain1>,<domain2>,...`), and
+    regex-based auth rules
+    (`proxy.auth-regex=<pattern>;<type>,...`).
     """
 
     def __init__(
@@ -262,9 +264,15 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                     "Consul service '%s' (%s): port filter %s", service, domain, ports
                 )
 
+            # resolves the upstream protocol (http vs https) from the
+            # consul tags, used when constructing the backend URLs
+            protocol = self._resolve_protocol(tags)
+
             # builds the complete set of backend URLs from the
             # healthy instances, filtering out any invalid ones
-            urls = self._build_urls(instances, address=address, ports=ports)
+            urls = self._build_urls(
+                instances, address=address, ports=ports, protocol=protocol
+            )
             if not urls:
                 self.debug(
                     "Consul service '%s' (%s): %d instance(s) but no valid URLs, skipping",
@@ -392,6 +400,15 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 continue
             return str(value)
         return None
+
+    def _resolve_protocol(self, tags):
+        for tag in tags:
+            if not tag.startswith("proxy.protocol="):
+                continue
+            value = tag[len("proxy.protocol=") :].lower()
+            if value in ("http", "https"):
+                return value
+        return "http"
 
     def _resolve_ports(self, tags):
         value = None
@@ -603,7 +620,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             self._consul_redirect_regex.extend(redirect_regex)
             self._debug_redirect_regex(domain, redirect_regex)
 
-    def _build_urls(self, instances, address=None, ports=None):
+    def _build_urls(self, instances, address=None, ports=None, protocol="http"):
         urls = []
         for instance in instances:
             # resolves the address and port for the instance, using
@@ -641,7 +658,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             if ports and len(ports) > 1:
                 self.debug("Instance %s expanding from port filter %s", _address, ports)
                 for _port in sorted(ports):
-                    url = str("http://%s:%d" % (_address, _port))
+                    url = str("%s://%s:%d" % (protocol, _address, _port))
                     urls.append(url)
                 continue
 
@@ -665,7 +682,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             # addresses the instance as a valid backend URL for
             # the service, using the tag-defined address override
             # if available or the default address resolution from consul
-            url = str("http://%s:%d" % (_address, port))
+            url = str("%s://%s:%d" % (protocol, _address, port))
             urls.append(url)
         return urls
 
