@@ -158,6 +158,11 @@ class WSGIServer(http2.HTTP2Server):
                 value = ";".join(value)
             environ[key] = value
 
+        # clears the parser's message data to avoid keeping a duplicate
+        # copy in memory while the request is being processed (the
+        # environ's `wsgi.input` already has a copy of the body)
+        parser.close()
+
         # verifies if the connection already has an iterator associated with
         # it, if that's the case the connection is already in use and the current
         # request processing must be delayed for future processing, this is
@@ -359,6 +364,10 @@ class WSGIServer(http2.HTTP2Server):
                 # the iteration on the overall async generator
                 else:
                     self.delay(lambda: self._send_part(connection), immediately=True)
+
+                # cleans up the future's callback lists to break the
+                # circular reference cycle between connection and future
+                future.cleanup()
 
             def on_ready():
                 return connection.wready
