@@ -516,7 +516,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         connection.state = state
         self.conn_map[_connection] = connection
 
-
     def rules(self, url, parser):
         resolved = self.rules_regex(url, parser)
         if resolved[0]:
