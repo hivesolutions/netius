@@ -405,10 +405,12 @@ class ProxyServer(http2.HTTP2Server):
     def on_data_http(self, connection, parser):
         http2.HTTP2Server.on_data_http(self, connection, parser)
 
-        if not hasattr(connection, "proxy_c"):
+        # retrieves the proxy connection and returns in case it's not set
+        # (eg: a raw tunnel connection or a not yet established proxy), this
+        # also guards against the attribute being explicitly unset to None
+        proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
+        if not proxy_c:
             return
-
-        proxy_c = connection.proxy_c
 
         should_throttle = self.throttle and connection.is_throttleable()
         should_disable = should_throttle and proxy_c.is_exhausted()
@@ -420,10 +422,12 @@ class ProxyServer(http2.HTTP2Server):
         pass
 
     def on_partial(self, connection, parser, data):
-        if not hasattr(connection, "proxy_c"):
+        # retrieves the proxy connection and returns in case it's not set
+        # (eg: a raw tunnel connection or a not yet established proxy), this
+        # also guards against the attribute being explicitly unset to None
+        proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
+        if not proxy_c:
             return
-
-        proxy_c = connection.proxy_c
 
         should_throttle = self.throttle and connection.is_throttleable()
         should_disable = should_throttle and proxy_c.is_exhausted()
