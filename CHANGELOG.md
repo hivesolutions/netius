@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+*
+
+## [1.58.1] - 2026-06-20
+
+### Fixed
+
 * Proxy no longer crashes when handling request data on a connection whose back-end link has already been torn down
 * Proxy no longer crashes when handling a partial request body on a connection whose back-end link has already been torn down
 
