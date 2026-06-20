@@ -423,6 +423,15 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         )
         headers["x-forwarded-host"] = host_o
 
+        # in case the current request represents a WebSocket upgrade the
+        # normal HTTP client based forwarding is not possible (the back-end
+        # switches to a raw protocol) and so a raw tunnel must be established
+        # towards the resolved back-end forwarding the original upgrade
+        # request, the switching protocols response (and any subsequent
+        # frames) then flow back transparently through that tunnel
+        if self.is_upgrade(parser):
+            return self._upgrade(connection, parser, prefix, path, headers)
+
         # verifies if the current connection already contains a valid
         # a proxy connection if that's the case that must be unset from
         # the connection and from the connection map internal structures
@@ -506,6 +515,36 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         connection.prefix = prefix
         connection.state = state
         self.conn_map[_connection] = connection
+
+    def _upgrade(self, connection, parser, prefix, path, headers):
+        # parses the resolved prefix value into its components so that the
+        # back-end host, port and security mode may be extracted and used
+        # for the raw tunnel connection (the prefix is the back-end URL)
+        parsed = netius.legacy.urlparse(prefix)
+        ssl = parsed.scheme == "https"
+        host = parsed.hostname
+        port = parsed.port or (443 if ssl else 80)
+
+        # re-builds the original request line using the back-end path so
+        # that the upgrade request is forwarded transparently to the
+        # back-end, the version string is the one of the original request
+        method = parser.method_s
+        version_s = parser.version_s
+        request = ["%s %s %s\r\n" % (method, path, version_s)]
+
+        # appends the complete set of (possibly modified) headers to the
+        # request buffer so that the back-end receives the original upgrade
+        # headers together with the reverse proxy forwarding headers
+        for key, value in netius.legacy.items(headers):
+            key = netius.common.header_up(key)
+            request.append("%s: %s\r\n" % (key, value))
+        request.append("\r\n")
+        request = netius.legacy.bytes("".join(request))
+
+        # establishes the raw tunnel towards the back-end forwarding the
+        # original upgrade request, the switching protocols response and
+        # any subsequent frames flow back transparently through the tunnel
+        self.tunnel(connection, host, port, ssl=ssl, data=request)
 
     def rules(self, url, parser):
         resolved = self.rules_regex(url, parser)

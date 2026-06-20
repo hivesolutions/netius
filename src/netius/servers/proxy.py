@@ -271,6 +271,77 @@ class ProxyServer(http2.HTTP2Server):
         # the buffer has reached certain (minimum) levels
         tunnel_c.send(data, callback=self._throttle)
 
+    def is_upgrade(self, parser):
+        """
+        Determines if the request associated with the provided parser
+        represents a WebSocket upgrade request, this is the case when
+        the connection header contains the upgrade token and the upgrade
+        header is set to the websocket value.
+
+        :type parser: HTTPParser
+        :param parser: The parser of the request that is going to be
+        verified for the presence of a WebSocket upgrade.
+        :rtype: bool
+        :return: If the request represents a WebSocket upgrade request.
+        """
+
+        headers = parser.headers
+        connection = headers.get("connection", "")
+        upgrade = headers.get("upgrade", "")
+        return "upgrade" in connection.lower() and upgrade.lower() == "websocket"
+
+    def tunnel(self, connection, host, port, ssl=False, data=None, response=None):
+        """
+        Establishes a raw (byte oriented) tunnel between the provided
+        (front-end) connection and a newly created back-end connection
+        targeting the requested host and port.
+
+        After this call any data received from the front-end is relayed
+        verbatim to the back-end (and vice versa) using the raw pump,
+        meaning that no HTTP parsing is performed and protocols such as
+        WebSocket can be transparently proxied.
+
+        The optional data value is sent to the back-end as soon as the
+        connection is established, this is used to forward the original
+        upgrade request so that the back-end may reply with the proper
+        switching protocols response (flowing back through the tunnel).
+
+        The optional response value is the (code, code string) tuple to
+        be sent to the front-end once the back-end connection is
+        established, this is used by the CONNECT method to acknowledge
+        the tunnel, for transparent upgrades it should be unset so that
+        the back-end response is the one flowing back to the front-end.
+
+        :type connection: Connection
+        :param connection: The front-end connection that is going to be
+        tunneled to the back-end.
+        :type host: String
+        :param host: The host of the back-end endpoint to connect to.
+        :type port: int
+        :param port: The port of the back-end endpoint to connect to.
+        :type ssl: bool
+        :param ssl: If the back-end connection should be established
+        using a secure (SSL/TLS) transport.
+        :type data: bytes
+        :param data: The optional set of bytes to be sent to the back-end
+        immediately after the connection is established.
+        :type response: Tuple
+        :param response: The optional (code, code string) tuple to be
+        sent to the front-end on tunnel establishment.
+        :rtype: Connection
+        :return: The back-end (tunnel) connection that has just been
+        created and associated with the front-end connection.
+        """
+
+        _connection = self.raw_client.connect(host, port, ssl=ssl)
+        _connection.max_pending = self.max_pending
+        _connection.min_pending = self.min_pending
+        _connection.tunnel_d = data
+        _connection.tunnel_r = response
+        connection.tunnel_c = _connection
+        self.conn_map[_connection] = connection
+        return _connection
+
     def on_connection_d(self, connection):
         http2.HTTP2Server.on_connection_d(self, connection)
 
@@ -698,7 +769,31 @@ class ProxyServer(http2.HTTP2Server):
 
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
-        connection.send_response(code=200, code_s="Connection established", apply=True)
+
+        # retrieves the optional response and data values that may have
+        # been associated with the tunnel connection, the response is
+        # sent to the front-end to acknowledge the tunnel and the data
+        # is forwarded to the back-end (eg: the original upgrade request)
+        response = hasattr(_connection, "tunnel_r") and _connection.tunnel_r
+        data = hasattr(_connection, "tunnel_d") and _connection.tunnel_d
+
+        # in case a response tuple is defined sends the proper acknowledge
+        # response to the front-end connection (eg: CONNECT method), note
+        # that for transparent upgrades no response is sent as the back-end
+        # one is the one that should flow back to the front-end
+        if response:
+            code, code_s = response
+            connection.send_response(code=code, code_s=code_s, apply=True)
+
+        # in case there's data to be sent to the back-end forwards it as
+        # soon as the connection is established, this is required so that
+        # the back-end may reply with the proper switching protocols
+        # response that is going to flow back through the raw tunnel, the
+        # reference is unset afterwards as it's no longer required (avoids
+        # retaining the request buffer for the lifetime of the tunnel)
+        if data:
+            _connection.send(data)
+            _connection.tunnel_d = None
 
     def _on_raw_data(self, client, _connection, data):
         connection = self.conn_map[_connection]

@@ -9,11 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* `ReverseProxyServer` support for WebSocket (`Connection: Upgrade` + `Upgrade: websocket`) requests, which are now forwarded to the resolved back-end through a raw byte tunnel (the switching protocols response and subsequent frames flow back transparently); the back-end target honours the same regex / host / forward rule resolution and load balancing as regular HTTP requests
+* `ProxyServer.is_upgrade` and `ProxyServer.tunnel` helpers factoring out the raw tunnel establishment (back-end connection, connection mapping, optional initial request forwarding and acknowledge response) shared by the WebSocket upgrade and `CONNECT` code paths
 
 ### Changed
 
-*
+* `ForwardProxyServer` `CONNECT` handling now uses the shared `ProxyServer.tunnel` helper instead of an inline tunnel setup (behaviour preserved, the `200 Connection established` acknowledge is still sent on tunnel establishment)
 
 ### Fixed
 
