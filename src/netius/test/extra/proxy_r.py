@@ -637,6 +637,103 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertEqual(frontend.proxy_c, backend)
         self.assertEqual(frontend.prefix, "http://localhost")
 
+    def test_on_headers_upgrade_tunnels_to_backend(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        request_parser = self._make_upgrade_parser()
+        backend = self._make_backend()
+
+        with mock.patch.object(
+            self.server.raw_client, "connect", return_value=backend
+        ) as connect:
+            with mock.patch.object(self.server.http_client, "method") as method:
+                self.server.on_headers(frontend, request_parser)
+
+        # the upgrade request must be tunneled through the raw client and
+        # never reach the (HTTP) client based forwarding code path
+        self.assertEqual(method.call_count, 0)
+        self.assertEqual(connect.call_count, 1)
+        self.assertEqual(connect.call_args[0], ("localhost", 80))
+        self.assertEqual(connect.call_args[1], dict(ssl=False))
+
+        # the back-end connection must be set as the tunnel connection and
+        # the proper reverse mapping must exist in the connection map
+        self.assertEqual(frontend.tunnel_c, backend)
+        self.assertIn(backend, self.server.conn_map)
+        self.assertEqual(self.server.conn_map[backend], frontend)
+
+        # the original upgrade request must have been stored for forwarding
+        # to the back-end once the tunnel connection is established
+        self.assertTrue(backend.tunnel_d.startswith(b"GET /socket HTTP/1.1\r\n"))
+        self.assertIn(b"Upgrade: websocket\r\n", backend.tunnel_d)
+        self.assertIsNone(backend.tunnel_r)
+
+        # the (case sensitive) WebSocket handshake headers must be forwarded
+        # with their original casing preserved, the proxy must not normalize
+        # them (some back-ends match these headers in a case sensitive way)
+        self.assertIn(
+            b"Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n", backend.tunnel_d
+        )
+        self.assertIn(b"Sec-WebSocket-Version: 13\r\n", backend.tunnel_d)
+
+        # the reverse proxy forwarding headers must be appended to the request
+        # so that the back-end is aware of the original client and protocol
+        self.assertIn(b"x-forwarded-for: ", backend.tunnel_d)
+        self.assertIn(b"x-forwarded-host: ", backend.tunnel_d)
+
+    def test_on_headers_upgrade_secure_backend(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = netius.extra.ReverseProxyServer(
+            hosts={"host.com": "https://localhost"}
+        )
+
+        frontend = self._make_frontend()
+        request_parser = self._make_upgrade_parser()
+        backend = self._make_backend()
+
+        try:
+            with mock.patch.object(
+                server.raw_client, "connect", return_value=backend
+            ) as connect:
+                server.on_headers(frontend, request_parser)
+        finally:
+            server.cleanup()
+
+        # the secure scheme of the back-end must be reflected both in the
+        # default port resolution and in the secure transport flag
+        self.assertEqual(connect.call_args[0], ("localhost", 443))
+        self.assertEqual(connect.call_args[1], dict(ssl=True))
+
+    def test_on_headers_upgrade_prefix_path(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = netius.extra.ReverseProxyServer(
+            hosts={"host.com": "http://localhost/base"}
+        )
+
+        frontend = self._make_frontend()
+        request_parser = self._make_upgrade_parser()
+        backend = self._make_backend()
+
+        try:
+            with mock.patch.object(
+                server.raw_client, "connect", return_value=backend
+            ) as connect:
+                server.on_headers(frontend, request_parser)
+        finally:
+            server.cleanup()
+
+        # the back-end prefix path must be prepended to the original path in
+        # the forwarded request line (prefix + path), matching the routing of
+        # a regular (non upgrade) request to the same prefixed back-end
+        self.assertEqual(connect.call_args[0], ("localhost", 80))
+        self.assertTrue(backend.tunnel_d.startswith(b"GET /base/socket HTTP/1.1\r\n"))
+
     def test_on_headers_no_match_sends_404(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -964,9 +1061,29 @@ class ReverseProxyServerTest(unittest.TestCase):
     def _make_request_parser(self, host="host.com", method="GET", path="/test"):
         parser = mock.MagicMock()
         parser.method = method
+        parser.method_s = method
         parser.path_s = path
         parser.version_s = "HTTP/1.1"
         parser.headers = {"host": host}
+        return parser
+
+    def _make_upgrade_parser(self, host="host.com", path="/socket"):
+        parser = self._make_request_parser(host=host, method="GET", path=path)
+        parser.headers = {
+            "host": host,
+            "connection": "Upgrade",
+            "upgrade": "websocket",
+            "sec-websocket-key": "dGhlIHNhbXBsZSBub25jZQ==",
+            "sec-websocket-version": "13",
+        }
+        # the raw header block preserves the original (case sensitive) header
+        # names exactly as received, the leading separator follows the format
+        # produced by the HTTP parser
+        parser.headers_s = netius.legacy.bytes(
+            "\r\nHost: %s\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n"
+            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+            "Sec-WebSocket-Version: 13" % host
+        )
         return parser
 
     def _make_response_parser(self, backend, code="200", status="OK"):
