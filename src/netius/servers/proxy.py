@@ -246,63 +246,6 @@ class ProxyServer(http2.HTTP2Server):
     def connection_dict(self, id, full=False):
         return self.container.connection_dict(id, full=full)
 
-    def on_data(self, connection, data):
-        netius.StreamServer.on_data(self, connection, data)
-
-        # tries to retrieve the reference to the tunnel connection
-        # currently set in the connection in case it does not exists
-        # (initial handshake or HTTP client proxy) runs the parse
-        # step on the data and then returns immediately
-        tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
-        if not tunnel_c:
-            connection.parse(data)
-            return
-
-        # verifies that the current size of the pending buffer is greater
-        # than the maximum size for the pending buffer the read operations
-        # if that the case the read operations must be disabled
-        should_throttle = self.throttle and connection.is_throttleable()
-        should_disable = should_throttle and tunnel_c.is_exhausted()
-        if should_disable:
-            connection.disable_read()
-
-        # performs the sending operation on the data but uses the throttle
-        # callback so that the connection read operations may be resumed if
-        # the buffer has reached certain (minimum) levels
-        tunnel_c.send(data, callback=self._throttle)
-
-    def is_upgrade(self, parser):
-        """
-        Determines if the request associated with the provided parser
-        represents a WebSocket upgrade request, this is the case when
-        the connection header contains the upgrade token and the upgrade
-        header is set to the websocket value.
-
-        :type parser: HTTPParser
-        :param parser: The parser of the request that is going to be
-        verified for the presence of a WebSocket upgrade.
-        :rtype: bool
-        :return: If the request represents a WebSocket upgrade request.
-        """
-
-        headers = parser.headers
-        connection = headers.get("connection", "")
-        upgrade = headers.get("upgrade", "")
-
-        # normalizes both values into a single string as the HTTP parser
-        # stores repeated headers as a list, using the last definition in
-        # such case (consistent with the regular header retrieval)
-        if isinstance(connection, (list, tuple)):
-            connection = connection[-1] if connection else ""
-        if isinstance(upgrade, (list, tuple)):
-            upgrade = upgrade[-1] if upgrade else ""
-
-        # matches the upgrade option as a complete (comma separated) token
-        # of the connection header instead of a substring, avoiding false
-        # positives for values such as 'notupgrade'
-        tokens = [value.strip() for value in connection.lower().split(",")]
-        return "upgrade" in tokens and upgrade.lower() == "websocket"
-
     def tunnel(self, connection, host, port, ssl=False, data=None, response=None):
         """
         Establishes a raw (byte oriented) tunnel between the provided
@@ -354,6 +297,63 @@ class ProxyServer(http2.HTTP2Server):
         connection.tunnel_c = _connection
         self.conn_map[_connection] = connection
         return _connection
+
+    def is_upgrade(self, parser):
+        """
+        Determines if the request associated with the provided parser
+        represents a WebSocket upgrade request, this is the case when
+        the connection header contains the upgrade token and the upgrade
+        header is set to the websocket value.
+
+        :type parser: HTTPParser
+        :param parser: The parser of the request that is going to be
+        verified for the presence of a WebSocket upgrade.
+        :rtype: bool
+        :return: If the request represents a WebSocket upgrade request.
+        """
+
+        headers = parser.headers
+        connection = headers.get("connection", "")
+        upgrade = headers.get("upgrade", "")
+
+        # normalizes both values into a single string as the HTTP parser
+        # stores repeated headers as a list, using the last definition in
+        # such case (consistent with the regular header retrieval)
+        if isinstance(connection, (list, tuple)):
+            connection = connection[-1] if connection else ""
+        if isinstance(upgrade, (list, tuple)):
+            upgrade = upgrade[-1] if upgrade else ""
+
+        # matches the upgrade option as a complete (comma separated) token
+        # of the connection header instead of a substring, avoiding false
+        # positives for values such as 'notupgrade'
+        tokens = [value.strip() for value in connection.lower().split(",")]
+        return "upgrade" in tokens and upgrade.lower() == "websocket"
+
+    def on_data(self, connection, data):
+        netius.StreamServer.on_data(self, connection, data)
+
+        # tries to retrieve the reference to the tunnel connection
+        # currently set in the connection in case it does not exists
+        # (initial handshake or HTTP client proxy) runs the parse
+        # step on the data and then returns immediately
+        tunnel_c = hasattr(connection, "tunnel_c") and connection.tunnel_c
+        if not tunnel_c:
+            connection.parse(data)
+            return
+
+        # verifies that the current size of the pending buffer is greater
+        # than the maximum size for the pending buffer the read operations
+        # if that the case the read operations must be disabled
+        should_throttle = self.throttle and connection.is_throttleable()
+        should_disable = should_throttle and tunnel_c.is_exhausted()
+        if should_disable:
+            connection.disable_read()
+
+        # performs the sending operation on the data but uses the throttle
+        # callback so that the connection read operations may be resumed if
+        # the buffer has reached certain (minimum) levels
+        tunnel_c.send(data, callback=self._throttle)
 
     def on_connection_d(self, connection):
         http2.HTTP2Server.on_connection_d(self, connection)

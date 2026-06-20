@@ -516,72 +516,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         connection.state = state
         self.conn_map[_connection] = connection
 
-    def _upgrade(self, connection, parser, prefix, path, headers, state=None):
-        # the raw tunnel does not take part in the busy based balancing
-        # life-cycle (no message/close callbacks update the state) so the
-        # previously acquired state is released immediately, otherwise the
-        # selected back-end busy count would leak for the smart strategy
-        if not state == None:
-            self.releaser(state)
-
-        # verifies if the current connection already contains a valid proxy
-        # connection (eg: a previous request on a kept alive connection) and
-        # if that's the case unsets it from the connection map, avoiding a
-        # possible leak or the misrouting of late back-end callbacks
-        proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
-        proxy_c = proxy_c or None
-        connection.proxy_c = None
-        if proxy_c in self.conn_map:
-            del self.conn_map[proxy_c]
-
-        # parses the resolved prefix value into its components so that the
-        # back-end host, port and security mode may be extracted and used
-        # for the raw tunnel connection (the prefix is the back-end URL)
-        parsed = netius.legacy.urlparse(prefix)
-        ssl = parsed.scheme == "https"
-        host = parsed.hostname
-        port = parsed.port or (443 if ssl else 80)
-
-        # re-builds the original request line prepending the prefix path of
-        # the back-end (in case there's one) so that the upgrade request is
-        # forwarded to the same target as a regular request (prefix + path),
-        # the version string is the one of the original request
-        method = parser.method_s
-        version_s = parser.version_s
-        request_path = parsed.path + path
-        request = [
-            netius.legacy.bytes("%s %s %s\r\n" % (method, request_path, version_s))
-        ]
-
-        # forwards the original header block verbatim so that the casing of
-        # the (case sensitive) WebSocket handshake headers is preserved, the
-        # leading separator of the raw headers string is stripped as the
-        # request line already provides it
-        request.append(parser.headers_s.lstrip(b"\r\n"))
-        request.append(b"\r\n")
-
-        # appends the reverse proxy forwarding headers that are not part of
-        # the original request, these are lower cased and do not interfere
-        # with the case sensitive handshake headers already forwarded
-        for key in (
-            "x-real-ip",
-            "x-client-ip",
-            "x-forwarded-for",
-            "x-forwarded-proto",
-            "x-forwarded-port",
-            "x-forwarded-host",
-        ):
-            value = headers.get(key, None)
-            if value == None:
-                continue
-            request.append(netius.legacy.bytes("%s: %s\r\n" % (key, value)))
-        request.append(b"\r\n")
-        request = b"".join(request)
-
-        # establishes the raw tunnel towards the back-end forwarding the
-        # original upgrade request, the switching protocols response and
-        # any subsequent frames flow back transparently through the tunnel
-        self.tunnel(connection, host, port, ssl=ssl, data=request)
 
     def rules(self, url, parser):
         resolved = self.rules_regex(url, parser)
@@ -860,6 +794,73 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if error_url:
             _connection.error_url = None
         netius.servers.ProxyServer._on_prx_close(self, client, _connection)
+
+    def _upgrade(self, connection, parser, prefix, path, headers, state=None):
+        # the raw tunnel does not take part in the busy based balancing
+        # life-cycle (no message/close callbacks update the state) so the
+        # previously acquired state is released immediately, otherwise the
+        # selected back-end busy count would leak for the smart strategy
+        if not state == None:
+            self.releaser(state)
+
+        # verifies if the current connection already contains a valid proxy
+        # connection (eg: a previous request on a kept alive connection) and
+        # if that's the case unsets it from the connection map, avoiding a
+        # possible leak or the misrouting of late back-end callbacks
+        proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
+        proxy_c = proxy_c or None
+        connection.proxy_c = None
+        if proxy_c in self.conn_map:
+            del self.conn_map[proxy_c]
+
+        # parses the resolved prefix value into its components so that the
+        # back-end host, port and security mode may be extracted and used
+        # for the raw tunnel connection (the prefix is the back-end URL)
+        parsed = netius.legacy.urlparse(prefix)
+        ssl = parsed.scheme == "https"
+        host = parsed.hostname
+        port = parsed.port or (443 if ssl else 80)
+
+        # re-builds the original request line prepending the prefix path of
+        # the back-end (in case there's one) so that the upgrade request is
+        # forwarded to the same target as a regular request (prefix + path),
+        # the version string is the one of the original request
+        method = parser.method_s
+        version_s = parser.version_s
+        request_path = parsed.path + path
+        request = [
+            netius.legacy.bytes("%s %s %s\r\n" % (method, request_path, version_s))
+        ]
+
+        # forwards the original header block verbatim so that the casing of
+        # the (case sensitive) WebSocket handshake headers is preserved, the
+        # leading separator of the raw headers string is stripped as the
+        # request line already provides it
+        request.append(parser.headers_s.lstrip(b"\r\n"))
+        request.append(b"\r\n")
+
+        # appends the reverse proxy forwarding headers that are not part of
+        # the original request, these are lower cased and do not interfere
+        # with the case sensitive handshake headers already forwarded
+        for key in (
+            "x-real-ip",
+            "x-client-ip",
+            "x-forwarded-for",
+            "x-forwarded-proto",
+            "x-forwarded-port",
+            "x-forwarded-host",
+        ):
+            value = headers.get(key, None)
+            if value == None:
+                continue
+            request.append(netius.legacy.bytes("%s: %s\r\n" % (key, value)))
+        request.append(b"\r\n")
+        request = b"".join(request)
+
+        # establishes the raw tunnel towards the back-end forwarding the
+        # original upgrade request, the switching protocols response and
+        # any subsequent frames flow back transparently through the tunnel
+        self.tunnel(connection, host, port, ssl=ssl, data=request)
 
     def _apply_all(
         self, parser, connection, headers, upper=True, normalize=False, replace=False
