@@ -708,6 +708,32 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertEqual(connect.call_args[0], ("localhost", 443))
         self.assertEqual(connect.call_args[1], dict(ssl=True))
 
+    def test_on_headers_upgrade_prefix_path(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = netius.extra.ReverseProxyServer(
+            hosts={"host.com": "http://localhost/base"}
+        )
+
+        frontend = self._make_frontend()
+        request_parser = self._make_upgrade_parser()
+        backend = self._make_backend()
+
+        try:
+            with mock.patch.object(
+                server.raw_client, "connect", return_value=backend
+            ) as connect:
+                server.on_headers(frontend, request_parser)
+        finally:
+            server.cleanup()
+
+        # the back-end prefix path must be prepended to the original path in
+        # the forwarded request line (prefix + path), matching the routing of
+        # a regular (non upgrade) request to the same prefixed back-end
+        self.assertEqual(connect.call_args[0], ("localhost", 80))
+        self.assertTrue(backend.tunnel_d.startswith(b"GET /base/socket HTTP/1.1\r\n"))
+
     def test_on_headers_no_match_sends_404(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")

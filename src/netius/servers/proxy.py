@@ -288,7 +288,20 @@ class ProxyServer(http2.HTTP2Server):
         headers = parser.headers
         connection = headers.get("connection", "")
         upgrade = headers.get("upgrade", "")
-        return "upgrade" in connection.lower() and upgrade.lower() == "websocket"
+
+        # normalizes both values into a single string as the HTTP parser
+        # stores repeated headers as a list, using the last definition in
+        # such case (consistent with the regular header retrieval)
+        if isinstance(connection, (list, tuple)):
+            connection = connection[-1] if connection else ""
+        if isinstance(upgrade, (list, tuple)):
+            upgrade = upgrade[-1] if upgrade else ""
+
+        # matches the upgrade option as a complete (comma separated) token
+        # of the connection header instead of a substring, avoiding false
+        # positives for values such as 'notupgrade'
+        tokens = [value.strip() for value in connection.lower().split(",")]
+        return "upgrade" in tokens and upgrade.lower() == "websocket"
 
     def tunnel(self, connection, host, port, ssl=False, data=None, response=None):
         """

@@ -66,6 +66,17 @@ class ProxyServerTest(unittest.TestCase):
         parser = Parser(headers={"connection": "Upgrade", "upgrade": "h2c"})
         self.assertEqual(self.server.is_upgrade(parser), False)
 
+        parser = Parser(headers={"connection": "notupgrade", "upgrade": "websocket"})
+        self.assertEqual(self.server.is_upgrade(parser), False)
+
+        parser = Parser(
+            headers={
+                "connection": ["keep-alive", "Upgrade"],
+                "upgrade": ["websocket"],
+            }
+        )
+        self.assertEqual(self.server.is_upgrade(parser), True)
+
         parser = Parser(headers={})
         self.assertEqual(self.server.is_upgrade(parser), False)
 
