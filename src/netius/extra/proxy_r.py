@@ -530,16 +530,32 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # back-end, the version string is the one of the original request
         method = parser.method_s
         version_s = parser.version_s
-        request = ["%s %s %s\r\n" % (method, path, version_s)]
+        request = [netius.legacy.bytes("%s %s %s\r\n" % (method, path, version_s))]
 
-        # appends the complete set of (possibly modified) headers to the
-        # request buffer so that the back-end receives the original upgrade
-        # headers together with the reverse proxy forwarding headers
-        for key, value in netius.legacy.items(headers):
-            key = netius.common.header_up(key)
-            request.append("%s: %s\r\n" % (key, value))
-        request.append("\r\n")
-        request = netius.legacy.bytes("".join(request))
+        # forwards the original header block verbatim so that the casing of
+        # the (case sensitive) WebSocket handshake headers is preserved, the
+        # leading separator of the raw headers string is stripped as the
+        # request line already provides it
+        request.append(parser.headers_s.lstrip(b"\r\n"))
+        request.append(b"\r\n")
+
+        # appends the reverse proxy forwarding headers that are not part of
+        # the original request, these are lower cased and do not interfere
+        # with the case sensitive handshake headers already forwarded
+        for key in (
+            "x-real-ip",
+            "x-client-ip",
+            "x-forwarded-for",
+            "x-forwarded-proto",
+            "x-forwarded-port",
+            "x-forwarded-host",
+        ):
+            value = headers.get(key, None)
+            if value == None:
+                continue
+            request.append(netius.legacy.bytes("%s: %s\r\n" % (key, value)))
+        request.append(b"\r\n")
+        request = b"".join(request)
 
         # establishes the raw tunnel towards the back-end forwarding the
         # original upgrade request, the switching protocols response and

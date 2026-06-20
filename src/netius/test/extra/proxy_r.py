@@ -670,6 +670,19 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertIn(b"Upgrade: websocket\r\n", backend.tunnel_d)
         self.assertIsNone(backend.tunnel_r)
 
+        # the (case sensitive) WebSocket handshake headers must be forwarded
+        # with their original casing preserved, the proxy must not normalize
+        # them (some back-ends match these headers in a case sensitive way)
+        self.assertIn(
+            b"Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n", backend.tunnel_d
+        )
+        self.assertIn(b"Sec-WebSocket-Version: 13\r\n", backend.tunnel_d)
+
+        # the reverse proxy forwarding headers must be appended to the request
+        # so that the back-end is aware of the original client and protocol
+        self.assertIn(b"x-forwarded-for: ", backend.tunnel_d)
+        self.assertIn(b"x-forwarded-host: ", backend.tunnel_d)
+
     def test_on_headers_upgrade_secure_backend(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -1034,7 +1047,17 @@ class ReverseProxyServerTest(unittest.TestCase):
             "host": host,
             "connection": "Upgrade",
             "upgrade": "websocket",
+            "sec-websocket-key": "dGhlIHNhbXBsZSBub25jZQ==",
+            "sec-websocket-version": "13",
         }
+        # the raw header block preserves the original (case sensitive) header
+        # names exactly as received, the leading separator follows the format
+        # produced by the HTTP parser
+        parser.headers_s = netius.legacy.bytes(
+            "\r\nHost: %s\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n"
+            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+            "Sec-WebSocket-Version: 13" % host
+        )
         return parser
 
     def _make_response_parser(self, backend, code="200", status="OK"):
