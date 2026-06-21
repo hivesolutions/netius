@@ -46,6 +46,10 @@ REFRESH_TIME = 30.0
 each refresh operation should perform some operations (eg: DHT
 refresh, tracker re-retrieval, etc) """
 
+PRINT_TIME = 3.0
+""" The minimum time in between consecutive printing of the task
+status, used to throttle the verbose output of the download """
+
 ID_STRING = "NE1000"
 """ Text value that is going to be used to identify the agent
 of torrent against the other peers, should be a join of both
@@ -987,12 +991,22 @@ if __name__ == "__main__":
     else:
         file_path = "\\file.torrent"
 
+    target_path = "~/Downloads"
+
+    state = dict(next_print=0)
+
     def on_start(server):
-        task = server.download("~/Downloads", file_path, close=True)
+        task = server.download(target_path, file_path, close=True)
         task.bind("piece", on_piece)
         task.bind("complete", on_complete)
 
     def on_piece(task, index):
+        # throttles the printing of the status so that it's only done at
+        # most once every print interval, avoiding excessive output
+        if time.time() < state["next_print"]:
+            return
+        state["next_print"] = time.time() + PRINT_TIME
+
         percent = task.percent()
         speed_s = task.speed_s()
         left = task.left()
@@ -1001,7 +1015,9 @@ if __name__ == "__main__":
         print("[%d%%] - %d bytes (%s/s)" % (percent, left, speed_s))
 
     def on_complete(task):
-        print("Download completed")
+        path = os.path.expanduser(target_path)
+        path = os.path.normpath(path)
+        print("Download completed to '%s'" % path)
 
     server = TorrentServer(level=logging.DEBUG)
     server.bind("start", on_start)

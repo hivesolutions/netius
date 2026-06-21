@@ -424,10 +424,15 @@ class TorrentClient(netius.StreamClient):
 
 
 if __name__ == "__main__":
+    import os
     import logging
     import binascii
 
     import netius.servers
+
+    target_path = "~/Downloads"
+
+    state = dict(next_print=0)
 
     def on_start(server):
         # retrieves the info hash from the configuration (as an hexadecimal
@@ -439,7 +444,7 @@ if __name__ == "__main__":
         # starts the downloading of the file associated with the info hash
         # using a DHT based strategy (no torrent file) and binds the events
         # that are going to provide some feedback about the download progress
-        task = server.download("~/Downloads", info_hash=info_hash, close=True)
+        task = server.download(target_path, info_hash=info_hash, close=True)
         task.bind("metadata", on_metadata)
         task.bind("piece", on_piece)
         task.bind("complete", on_complete)
@@ -448,6 +453,12 @@ if __name__ == "__main__":
         print("Metadata received, starting download")
 
     def on_piece(task, index):
+        # throttles the printing of the status so that it's only done at
+        # most once every print interval, avoiding excessive output
+        if time.time() < state["next_print"]:
+            return
+        state["next_print"] = time.time() + 3.0
+
         percent = task.percent()
         speed_s = task.speed_s()
         left = task.left()
@@ -456,7 +467,9 @@ if __name__ == "__main__":
         print("[%d%%] - %d bytes (%s/s)" % (percent, left, speed_s))
 
     def on_complete(task):
-        print("Download completed")
+        path = os.path.expanduser(target_path)
+        path = os.path.normpath(path)
+        print("Download completed to '%s'" % path)
 
     server = netius.servers.TorrentServer(level=logging.DEBUG)
     server.bind("start", on_start)
