@@ -605,6 +605,12 @@ class TorrentTask(netius.Observable):
         self.info["number_blocks"] = number_blocks
 
     def set_data(self, data, index, begin):
+        # in case the pieces structure is not currently loaded the data
+        # cannot be stored, this may happen for a piece received before the
+        # metadata exchange or after the task has already been unloaded
+        if not self.stored:
+            return
+
         # retrieves the current status of the block in the stored
         # pieces structure and in case it's already stored returns
         # immediately as this is a duplicated block setting, possible
@@ -754,9 +760,20 @@ class TorrentTask(netius.Observable):
         piece_length = info.get("piece length", 0)
         info_hash = binascii.hexlify(self.info_hash) if self.info_hash else b""
         info_hash = netius.legacy.str(info_hash)
+
+        # builds the list of file names from the metadata, for a single file
+        # torrent the name is the file itself, for a multiple file torrent the
+        # name is the (containing) directory and the files come from the list
+        files = self.info.get("files", [])
+        if files:
+            names = [os.path.join(*file["path"]) for file in files]
+        else:
+            names = [name]
+        files_s = ", ".join(names)
         return (
             "==== STATUS ====\n"
             + "name        := %s\n" % name
+            + "files       := %s\n" % files_s
             + "info hash   := %s\n" % info_hash
             + "size        := %d bytes\n" % self.info.get("length", 0)
             + "piece size  := %d bytes\n" % piece_length

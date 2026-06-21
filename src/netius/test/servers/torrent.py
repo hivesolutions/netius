@@ -68,6 +68,14 @@ class TorrentTaskTest(unittest.TestCase):
         self.assertEqual(task.has_metadata(), False)
         self.assertEqual(task.loaded, False)
 
+    def test_set_data_no_pieces(self):
+        task = _build_task()
+        task.stored = None
+
+        # verifies that setting data while the pieces structure is not
+        # loaded (eg: before the metadata exchange) does not raise
+        task.set_data(b"data", 0, 0)
+
 
 def _build_task(info_hash=None):
     task = netius.servers.TorrentTask.__new__(netius.servers.TorrentTask)
