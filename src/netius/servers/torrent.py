@@ -757,7 +757,7 @@ class TorrentTask(netius.Observable):
             % (self.stored.marked_blocks, self.stored.total_blocks)
             + "pieces miss := %s\n" % self.stored.missing_pieces
             + "blocks miss := %s\n" % self.stored.missing_blocks
-            + "percent     := %.2f % %\n" % self.percent()
+            + "percent     := %.2f %%\n" % self.percent()
             + "left        := %d/%d bytes\n" % (self.left(), self.info["length"])
             + "speed       := %s/s" % self.speed_s()
         )

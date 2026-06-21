@@ -340,9 +340,10 @@ class DHTClient(netius.DatagramClient):
     ):
         # retrieves the routing table associated with the local peer
         # identifier and uses it (together with the provided nodes) to
-        # build the initial set of contacts to be queried
+        # build the initial set of contacts to be queried, falling back
+        # to the well known bootstrap nodes in case no contacts exist yet
         routing = self.routing(peer_id)
-        nodes = nodes or routing.closest(target)
+        nodes = nodes or routing.closest(target) or self._bootstrap_nodes()
 
         # builds the set of nodes already queried (keyed by the contact
         # tuple) so that the same node is not queried twice and the list
@@ -437,6 +438,19 @@ class DHTClient(netius.DatagramClient):
         # returns the (still being populated) list of peers so that the
         # caller may inspect it once the lookup operation is complete
         return peers
+
+    def _bootstrap_nodes(self):
+        # resolves the well known bootstrap nodes into their IPv4 address as
+        # the contact information requires a dotted address instead of a name,
+        # nodes that cannot be resolved are skipped (best effort operation)
+        nodes = []
+        for host, port in BOOTSTRAP_NODES:
+            try:
+                host = socket.gethostbyname(host)
+            except socket.error:
+                continue
+            nodes.append((host, port))
+        return nodes
 
     def query(
         self,
