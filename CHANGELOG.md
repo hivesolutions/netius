@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * DHT client now tolerates malformed responses and skips unroutable nodes instead of raising
 * Torrent download no longer crashes when a data block is received before the metadata is available
 * Torrent download no longer crashes on late DHT peer responses received after the download has completed
+* Torrent process now exits cleanly once the download completes instead of hanging
 
 ## [1.58.1] - 2026-06-20
 

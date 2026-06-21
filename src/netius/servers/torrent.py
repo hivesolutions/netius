@@ -915,6 +915,7 @@ class TorrentServer(netius.ContainerServer):
         netius.ContainerServer.cleanup(self)
         self.cleanup_tasks()
         self.client.destroy()
+        self.dht_client.close()
 
     def ticks(self):
         netius.ContainerServer.ticks(self)
