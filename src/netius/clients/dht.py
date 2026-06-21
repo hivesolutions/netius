@@ -493,6 +493,10 @@ if __name__ == "__main__":
     info_hash = netius.conf("DHT_INFO_HASH", "d540fc48eb12f2833163eed6421d449dd8f1ce1f")
     info_hash = binascii.unhexlify(info_hash)
 
+    # retrieves the interval (in seconds) between consecutive lookup
+    # rounds, each round re-seeds the lookup from the bootstrap nodes
+    interval = netius.conf("DHT_INTERVAL", 5, cast=int)
+
     # generates a random (local) peer identifier with the proper size
     # to be used as the origin of the various queries to be performed
     peer_id = os.urandom(PEER_ID_SIZE)
@@ -501,16 +505,38 @@ if __name__ == "__main__":
     # the contact information requires a dotted address instead of a name
     nodes = [(socket.gethostbyname(host), port) for host, port in BOOTSTRAP_NODES]
 
-    # creates the DHT client and runs a get_peers lookup around the info
-    # hash seeded from the well known bootstrap nodes, this is going to
-    # discover both the closest nodes and the actual peers for the hash
+    # creates the DHT client that is going to be used for the running
+    # of the various get_peers lookup rounds against the info hash
     client = DHTClient()
-    client.lookup(
-        peer_id, info_hash, type="get_peers", nodes=nodes, callback=on_response
-    )
+
+    def lookup_round():
+        # in case at least one peer has already been found stops the
+        # main loop as there's nothing else remaining to be done, this
+        # is the termination condition of the lookup loop
+        if seen["peers"]:
+            print("Found %d peer(s), stopping" % len(seen["peers"]))
+            netius.compat_loop(client).stop()
+            return
+
+        # runs a new get_peers lookup round seeded from the bootstrap
+        # nodes, the persistent routing table makes each round resume
+        # from the closest nodes discovered by the previous ones
+        print("Running lookup round (%d nodes known so far) ..." % len(seen["nodes"]))
+        client.lookup(
+            peer_id, info_hash, type="get_peers", nodes=nodes, callback=on_response
+        )
+
+        # schedules the next lookup round to be executed after the
+        # configured interval keeping the loop running until peers
+        # are found (or the process is interrupted by the user)
+        client.delay(lookup_round, timeout=interval, safe=True)
+
+    # runs the first lookup round, this also bootstraps the client's
+    # main loop thread so that the process stays alive while running
+    lookup_round()
 
     # joins the client's main loop thread so that the process stays
-    # alive while the lookup queries are being performed and answered
+    # alive while the lookup rounds are being performed and answered
     client.join()
 else:
     __path__ = []
