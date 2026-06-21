@@ -122,6 +122,7 @@ HTTPBIN=httpbin.bemisc.com pytest
 - Write commit messages using [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 - Never bump the internal package version in `setup.py`. This is handled automatically by the release process.
 - Python files use CRLF as the line ending.
+- Every module should start with a module-level docstring (placed before `__author__`) whose first line is the dotted module name followed by a short description, and modules with a `__main__` entry point should include a command-line usage example.
 - The implementation should be done in Python 2.7+ and compatible with Python 3.12.
 - The style should respect the black formatting.
 - The implementation should be done in a way that is compatible with the existing codebase.
