@@ -1895,10 +1895,12 @@ class AbstractBase(observer.Observable):
             self.critical("Critical level loop exception raised", stack=True)
             self.log_stack(method=self.error)
         finally:
-            if self.is_paused():
-                return
-            self.stop()
-            self.finish()
+            # only runs the cleanup operations in case the loop is not
+            # in the paused state, as a paused loop is expected to be
+            # resumed latter and should not be stopped or finished
+            if not self.is_paused():
+                self.stop()
+                self.finish()
 
     def is_main(self):
         if not self.tid:
