@@ -430,7 +430,7 @@ if __name__ == "__main__":
 
     import netius.servers
 
-    target_path = "~/Downloads"
+    target_path = netius.conf("TORRENT_TARGET_PATH", "~/Downloads")
 
     state = dict(next_print=0)
 

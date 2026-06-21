@@ -991,7 +991,7 @@ if __name__ == "__main__":
     else:
         file_path = "\\file.torrent"
 
-    target_path = "~/Downloads"
+    target_path = netius.conf("TORRENT_TARGET_PATH", "~/Downloads")
 
     state = dict(next_print=0)
 
