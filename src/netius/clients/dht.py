@@ -321,9 +321,9 @@ class DHTClient(netius.DatagramClient):
         routing = self.routing(peer_id)
         nodes = nodes or routing.closest(target)
 
-        # builds the set of nodes already queried so that the same node
-        # is not queried twice and the list that is going to aggregate
-        # the peers eventually discovered by the lookup operation
+        # builds the set of nodes already queried (keyed by the contact
+        # tuple) so that the same node is not queried twice and the list
+        # that is going to aggregate the peers discovered by the lookup
         queried = set()
         peers = []
 
@@ -352,19 +352,22 @@ class DHTClient(netius.DatagramClient):
             if callback:
                 callback(response)
 
-            # iterates over the nodes returned by the response folding
-            # each of them into the routing table and querying the ones
-            # that are still pending (not yet queried)
+            # folds the nodes returned by the response into the routing
+            # table and queries the closest (still unqueried) nodes known
+            # so far, driving the lookup from the global view instead of a
+            # single response so an unresponsive node does not dead-end it
             for node in nodes:
                 routing.add(node)
+            for node in routing.closest(target):
                 _query(node)
 
         def _query(node):
             # in case the node has already been queried returns immediately
             # avoiding the querying of the same node more than once
-            if node.host in queried:
+            contact = (node.host, node.port)
+            if contact in queried:
                 return
-            queried.add(node.host)
+            queried.add(contact)
 
             # prints a debug message about the node that is going to be
             # queried as part of the iterative lookup operation
@@ -386,14 +389,15 @@ class DHTClient(netius.DatagramClient):
                 **extra
             )
 
-        # iterates over the initial set of nodes querying each of them so
-        # that the iterative lookup operation may be started
+        # queries the initial set of nodes directly so that the iterative
+        # lookup operation may be started, these contacts have an unknown
+        # identifier and so are not folded into the routing table (which is
+        # reserved for the proper nodes discovered through the responses)
         for node in nodes:
-            if isinstance(node, DHTNode):
-                _query(node)
-            else:
+            if not isinstance(node, DHTNode):
                 host, port = node
-                _query(DHTNode(peer_id, host=host, port=port))
+                node = DHTNode(peer_id, host=host, port=port)
+            _query(node)
 
         # returns the (still being populated) list of peers so that the
         # caller may inspect it once the lookup operation is complete
