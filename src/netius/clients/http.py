@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.clients.http
+
+Asynchronous HTTP client built on top of the Netius stream infra-structure.
+Supports the common verbs (eg: GET, POST, PUT and DELETE) through both an
+asynchronous and a blocking (synchronous) interface, handling chunked
+transfer and gzip/deflate encodings on both send and receive. Responses
+may be buffered in memory or streamed to a temporary file and connections
+are pooled for re-usage to avoid repeated connection establishment.
+
+Example:
+    HTTP_URL=https://www.flickr.com/ python -m netius.clients.http
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

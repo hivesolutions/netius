@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.extra.filea
+
+Asynchronous variant of the static file server that reads file data
+through the async file pool infra-structure instead of blocking calls.
+Uses a larger chunk size than the synchronous server to reduce the
+per read overhead of the pool. This is an experimental implementation
+and depends on event fd support, so it is not suited for production.
+
+Example:
+    BASE_PATH=. python -m netius.extra.filea
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.auth.dummy
+
+Configurable authentication back-end that returns a fixed boolean
+result decided at construction or call time. Unlike the allow and
+deny back-ends the outcome is parametrised through a single value,
+making it convenient for tests that need to toggle authentication
+success on demand.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

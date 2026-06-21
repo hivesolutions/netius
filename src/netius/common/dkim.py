@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.dkim
+
+DKIM signing utilities for outgoing email messages. Canonicalizes
+the headers (relaxed) and body (simple), hashes the body with SHA-256
+and produces the RSA signature for the DKIM-Signature header, folding
+the long fields to respect the line length limits. Also offers a
+helper to generate a new RSA key pair together with the matching DNS
+TXT record to publish for a domain.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.sh.dkim
+
+Command line tools for DKIM key management and message signing. The
+generate command creates a new key pair for a domain and prints both
+the DNS TXT record and the private key in PEM format. The sign command
+signs an email file in place using a private key, selector and domain.
+Useful for setting up and testing DKIM signed mail delivery.
+
+Example:
+    python -m netius.sh.dkim generate hive.pt
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

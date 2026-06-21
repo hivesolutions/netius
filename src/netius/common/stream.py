@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.stream
+
+Abstractions for seekable byte streams backed by one or more files.
+Defines a base stream interface plus a single-file implementation
+and a multi-file one that presents a set of files as one contiguous
+virtual stream. Read and write operations span file boundaries
+transparently, with optional pre-allocation of the target size.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

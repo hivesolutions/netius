@@ -19,6 +19,17 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.http
+
+Incremental HTTP/1.x message parser shared by the HTTP client and
+server. Consumes the stream through a small state machine (status
+line, headers, message and finish) and emits events as each part
+becomes available. Handles chunked transfer encoding and gzip or
+deflate decompression, and spills large bodies to a temporary file
+past a size threshold. Also provides a lightweight response wrapper
+for one shot request usage.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

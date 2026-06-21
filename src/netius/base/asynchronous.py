@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.asynchronous
+
+Aggregator module that selects the proper asynchronous implementation
+for the running interpreter. Always imports the legacy generator based
+symbols and, when the interpreter is recent enough, overrides them with
+the neo async/await variants. Acts as the single import point for the
+asynchronous primitives used throughout the rest of the framework.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

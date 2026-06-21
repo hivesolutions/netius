@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.sh.auth
+
+Command line helper for generating Netius authentication hashes from a
+plain text password. Wraps the base auth generator, letting the hash
+type and salt be supplied as arguments. The resulting digest can be
+stored and later used by the various servers for password validation.
+Intended to be invoked as a small shell utility.
+
+Example:
+    python -m netius.sh.auth generate secret sha256
+"""
+
 __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 

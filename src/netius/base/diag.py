@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.diag
+
+Diagnostics application that exposes the internal state of a running
+Netius system over HTTP. Built as an Appier API app, it offers routes
+to inspect and change the logger level, dump the process environment
+and report system information and live connection details. Includes a
+JSON encoder that safely serializes byte values in the responses.
+Falls back to a mock Appier when the dependency is not installed.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

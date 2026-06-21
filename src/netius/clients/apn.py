@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.clients.apn
+
+Asynchronous client for the Apple Push Notification (APN) service.
+Connects to the (sandbox or production) gateway over SSL and sends
+notifications encoded in the legacy binary command format, packing
+the device token together with the JSON aps payload (alert, sound
+and badge). Exposes a simple message oriented interface so that a
+single notification may be dispatched without blocking the loop.
+
+Example:
+    APN_TOKEN=abc123 python -m netius.clients.apn
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

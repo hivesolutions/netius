@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.asn
+
+Minimal ASN.1 (DER) encoder and decoder used by the cryptographic
+parts of the code-base. Parses byte buffers against simple templates
+built from the supported tags (eg: INTEGER, BIT STRING, SEQUENCE) and
+builds the matching DER output from the same template structures.
+Also defines the object identifier constants for PKCS#1 RSA and the
+SHA-1/SHA-256 digests relied on by the RSA and DKIM modules.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

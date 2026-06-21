@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.container
+
+Provides the Container that runs multiple Base or Agent structures
+under a single shared event loop. Propagates the owner's poll, logger
+and thread identity to every managed base and routes poll results back
+to the owning service. Drives the combined tick and life cycle calls
+across all registered bases and exposes aggregated connection info.
+Includes the ContainerServer that embeds a container in a stream server.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.tls
+
+TLS/SSL certificate helper functions for the base package. Provides
+computation of certificate fingerprints and verification against an
+expected value, plus hostname matching with wildcard and IDN support
+as a fallback for older Python versions lacking match_hostname.
+Includes a utility to dump the binary (DER) form of a peer certificate
+to the configured SSL path for inspection and debugging purposes.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

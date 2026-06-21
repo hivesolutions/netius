@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.style
+
+Holds shared presentation assets for the HTML pages rendered by
+Netius servers and tools. Exposes a base CSS stylesheet string that
+defines typography, layout, table and traceback styling, including
+responsive rules for narrow viewports. Intended to be embedded in
+generated pages such as directory listings and error pages.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

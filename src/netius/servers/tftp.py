@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.tftp
+
+Abstract trivial FTP (TFTP) server implementation (RFC 1350) over the
+Netius datagram infra-structure. Tracks a per-client session and serves
+read requests by streaming the requested file in fixed size data blocks,
+advancing the sequence on each acknowledge. Only read and acknowledge
+operations are supported, with any parsing or transfer error reported back
+to the client as a TFTP error packet.
+
+Example:
+    python -m netius.servers.tftp
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

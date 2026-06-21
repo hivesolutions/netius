@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.mime
+
+RFC 822 style message and MIME type utilities. Splits a raw message
+into its headers and body, supporting folded continuation lines, and
+joins them back together. Offers a case insensitive ordered Headers
+container that preserves the original header sequence. Also registers
+a handful of extra extension to content type mappings on top of the
+standard library mimetypes module.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

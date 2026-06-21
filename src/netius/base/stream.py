@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.stream
+
+Stream abstraction for multiplexed virtual connections. Defines the
+Stream class representing a logical connection nested within a single
+physical one, tracking an open, closed or pending status and notifying
+its owner connection on open and close. The interface mirrors that of
+a regular connection, the primary use case being protocols such as
+HTTP/2 where many parallel streams share one TCP connection.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

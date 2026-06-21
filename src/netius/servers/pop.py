@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.pop
+
+Abstract POP3 server implementation handling the mailbox session protocol.
+Drives the connection state machine through the greeting, authentication
+and session stages, exposing the STAT, LIST, UIDL, RETR and DELE commands
+and supporting STARTTLS based upgrades. Message storage and credential
+checking are delegated to pluggable adapter and auth back-ends, so that
+subclasses bind the mailbox source through the provided hooks.
+
+Example:
+    python -m netius.servers.pop
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

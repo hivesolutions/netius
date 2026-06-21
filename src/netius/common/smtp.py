@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.smtp
+
+Incremental parser for the SMTP wire protocol response stream.
+Consumes data chunks as they arrive, splitting them into response
+lines and separating the numeric code from the message part. Tracks
+whether each line is a continuation or the final one of a reply,
+emitting an on-line event for every parsed line to its owner.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

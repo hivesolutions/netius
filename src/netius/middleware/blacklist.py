@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.middleware.blacklist
+
+Connection middleware that drops incoming connections originating
+from blacklisted IP addresses using a minimalistic approach. On each
+new connection it checks the remote host against a configured
+blacklist (with support for the "*" catch all entry) and closes it
+unless the host is explicitly present in the whitelist. Both lists
+may be supplied at construction time or through configuration.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

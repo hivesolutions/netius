@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.sh.smtp
+
+Command line tool for sending an email message through the Netius SMTP
+client. Reads the raw message contents from a file and delivers it from
+a sender to a receiver, with optional host, port, credentials and
+STARTTLS arguments. Closes the client automatically once the message
+has been handed off. Useful for quick manual mail delivery tests.
+
+Example:
+    python -m netius.sh.smtp send message.eml me@host.com you@host.com
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

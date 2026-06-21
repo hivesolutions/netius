@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.extra.proxy_d
+
+Reverse proxy that configures itself from Docker style link environment
+variables, mapping linked container names to backend hosts. Builds the
+hosts, aliases, passwords, redirects and regex rules from suffixed
+configuration entries (eg: the port and name variables exported for
+linked services). Aimed at zero touch proxying inside Docker setups.
+
+Example:
+    python -m netius.extra.proxy_d
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.smtp
+
+Abstract SMTP server implementation handling the mail exchange protocol.
+Drives the session state machine through the greeting, header and data
+stages, parses the envelope sender and recipients and supports STARTTLS as
+well as plain and login based authentication. Recipients are split into
+local and remote sets so that subclasses may decide on delivery or relaying
+by overriding the provided message handling hooks.
+
+Example:
+    python -m netius.servers.smtp
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

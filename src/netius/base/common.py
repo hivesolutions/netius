@@ -19,6 +19,17 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.common
+
+Core module of the Netius framework providing the AbstractBase event
+loop on which every server and client is built. Drives the non blocking
+poll based read and write cycle, timers, delayed calls and coroutine
+scheduling. Exposes the loop factory and accessor helpers (eg: get_loop
+and new_loop) used to create or obtain the process wide event loop.
+Defines global identifiers, version constants and the diagnostics hooks.
+All other base modules assume the functionality defined here.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

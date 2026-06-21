@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.middleware.dummy
+
+Trivial connection middleware meant for testing and debugging. It
+binds to the new connection event and simply prints the address of
+each incoming connection to the standard output. Serves primarily as
+a minimal reference implementation that can be copied and extended
+when building more complex middleware units.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.auth.memory
+
+Authentication back-end backed by an in-memory registry mapping
+usernames to credential records. The registry may be supplied per
+instance or loaded from configuration, and submitted passwords are
+verified against the stored hashed values. Also exposes per-user meta
+information kept alongside each record.
+"""
+
 __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 

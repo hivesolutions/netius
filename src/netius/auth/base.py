@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.auth.base
+
+Top level base class shared by the authentication back-ends. Defines
+the generic auth interface and helpers to generate, unpack and verify
+hashed passwords (eg: salted sha256 digests). Also provides cached
+file loading so credential stores can be read from disk efficiently.
+Concrete back-ends subclass it to implement the actual auth logic.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

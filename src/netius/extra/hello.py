@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.extra.hello
+
+Minimal HTTP server that replies to every request with a fixed welcome
+message, meant mostly for benchmarking and smoke testing the stack.
+The greeting text is configurable and keep alive handling is honored
+so that pipelined clients can be measured. Most of the heavy lifting
+lives in the parent HTTP server, keeping this class intentionally thin.
+
+Example:
+    MESSAGE="Hello World" python -m netius.extra.hello
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

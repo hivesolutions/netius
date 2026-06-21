@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.compat
+
+Compatibility layer that bridges the Netius event loop with the asyncio
+infra-structure. Provides the CompatLoop adapter exposing the Netius
+loop through the standard asyncio event loop interface (eg: call_soon
+and call_later). Offers helpers to build datagram endpoints, connect
+stream connections and serve stream servers using either the native
+asyncio transports or the Netius based compatibility ones.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.ws
+
+Frame level helpers for the WebSocket protocol (RFC 6455).
+Provides functions to encode a payload into a WebSocket frame,
+handling the final flag, opcode and the three payload length
+forms, with optional client side masking. Also decodes incoming
+frames, unmasking the payload and reporting any pending data.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

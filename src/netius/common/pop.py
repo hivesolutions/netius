@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.pop
+
+Incremental parser for the POP3 client protocol. Buffers the incoming
+stream and breaks it into complete newline terminated lines, then
+splits each line into the leading status token (eg: +OK or -ERR) and
+the remaining message text. Notifies the owner through an on line
+event for every parsed line, allowing the POP3 client to drive its
+command and response flow.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

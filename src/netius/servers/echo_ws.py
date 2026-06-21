@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.echo_ws
+
+WebSocket variant of the simple echo server, sending every received frame
+back to the originating client. Builds on the base WebSocket server so that
+the handshake and frame encoding/decoding are handled transparently. Serves
+as a compact example of a WebSocket handler and as a convenient endpoint for
+testing WebSocket connectivity.
+
+Example:
+    python -m netius.servers.echo_ws
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.middleware.annoyer
+
+Connection middleware that periodically writes a diagnostic status
+line to the standard output. Runs a background thread that, at a
+configurable interval, reports the server uptime together with the
+current number of active connections. Useful as a lightweight,
+zero-dependency way of confirming that a server is alive and to keep
+an eye on its connection count during development.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

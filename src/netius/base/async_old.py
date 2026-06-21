@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.async_old
+
+Legacy generator based asynchronous primitives compatible with every
+supported Python interpreter. Implements the base Future and Task,
+the Handle and the thread pool Executor, plus the coroutine decorator
+that yields values for the event loop to drive. Provides sleep, wait
+and notify helpers together with the version detection predicates.
+Serves as the fallback layer overridden by the neo implementation.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

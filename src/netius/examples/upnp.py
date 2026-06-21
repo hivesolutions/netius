@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.examples.upnp
+
+Runnable usage example that adds a router port forwarding rule through
+UPnP. Uses the SSDP client to discover an Internet gateway device,
+then follows its advertised location to fetch the device description
+and issues a SOAP AddPortMapping request against the control URL.
+Demonstrates combining the SSDP and HTTP clients to automate NAT
+traversal from behind a UPnP capable router.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

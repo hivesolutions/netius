@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.extra.file
+
+Static file server that exposes a base path over HTTP, serving files
+and rendering directory listings in several styles (base, apache and
+legacy). Supports byte range requests for partial downloads, ETag
+based caching and optional cross origin resource sharing. Reading is
+synchronous, so the loop blocks during file I/O operations.
+
+Example:
+    BASE_PATH=. python -m netius.extra.file
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

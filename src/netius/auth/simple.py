@@ -19,6 +19,14 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.auth.simple
+
+Authentication back-end that checks credentials against a single
+expected username and password pair. The target pair is provided at
+construction time and an empty target rejects every request. Useful
+for protecting an endpoint with one statically configured account.
+"""
+
 __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 """ The copyright for the module """
 

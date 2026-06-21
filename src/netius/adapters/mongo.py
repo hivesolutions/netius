@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.adapters.mongo
+
+Storage adapter intended to persist values in a MongoDB database.
+Subclasses the base adapter to expose the same key based storage
+interface backed by a document collection. The implementation is
+currently only a stub, with the set and get operations left as
+placeholders to be filled in.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

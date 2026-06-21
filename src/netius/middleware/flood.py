@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.middleware.flood
+
+Connection middleware that protects a server against connection
+flooding from a single address. It counts the number of connections
+established by each remote host within the current minute and, once
+a configurable per minute threshold is exceeded, blacklists the host
+and closes any further connections from it. Hosts present in the
+whitelist are always allowed through regardless of their rate.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.extra.desktop
+
+Small demo MJPEG server that streams the local desktop as a motion
+JPEG feed over HTTP. Each frame is captured with Pillow's screen grab
+and encoded as a JPEG image before being pushed to connected clients.
+Requires the optional PIL dependency to be installed, otherwise no
+image data is produced. Handy for quick remote screen viewing.
+
+Example:
+    python -m netius.extra.desktop
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

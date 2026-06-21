@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.socks
+
+SOCKS proxy server implementing both the SOCKSv4 and the SOCKSv5 (RFC 1928)
+protocols. Parses the client handshake and connect request, opens the
+matching raw connection to the target host through an internal client and
+then bridges traffic between the two endpoints. Pending data is throttled
+using configurable buffer thresholds to avoid producer/consumer starvation
+and the associated memory pressure.
+
+Example:
+    python -m netius.servers.socks
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

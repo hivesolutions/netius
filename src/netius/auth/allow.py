@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.auth.allow
+
+Permissive authentication back-end that always succeeds, granting
+access to every request regardless of the credentials provided. Acts
+as the open counterpart to the deny back-end and is flagged as simple
+so it requires no username or password. Useful for development setups
+or for endpoints that should remain unprotected.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

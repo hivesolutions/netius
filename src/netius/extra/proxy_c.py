@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.extra.proxy_c
+
+Reverse proxy that discovers its backends from a Consul agent instead
+of static configuration. Polls the catalog and health endpoints and
+registers the healthy instances of every service tagged for proxying,
+grouping multiple instances for load balancing. Per service Consul
+tags drive passwords, redirects, aliases and other routing options.
+
+Example:
+    CONSUL_URL=http://localhost:8500 python -m netius.extra.proxy_c
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

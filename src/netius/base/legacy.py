@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.legacy
+
+Python 2 and 3 compatibility layer for the Netius framework. Reconciles
+the standard library modules that were moved or renamed across versions
+(eg: urllib, http client and pickle) under a single import surface.
+Provides helpers to abstract the differences in strings, bytes, integers
+and iterators so the rest of the codebase can target both runtimes.
+Centralizes the version specific shims used throughout the project.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

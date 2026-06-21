@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.util
+
+Small general-purpose helpers for the base package. Provides
+camel_to_underscore for normalizing camel cased names into underscore
+based strings using precompiled regular expressions, matching the
+common Python naming convention. Also provides verify, an assertion
+helper that raises a configurable exception with a custom message when
+a given condition does not hold, breaking the current execution flow.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

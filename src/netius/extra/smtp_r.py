@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.extra.smtp_r
+
+Relay SMTP server that forwards messages addressed to non local domains
+to their remote servers using the Netius SMTP client. Requires the
+submitting user to be authenticated and validates the allowed sender
+addresses before relaying. Stamps the standard headers, optionally
+signs outgoing mail with DKIM and notifies the sender on failures.
+
+Example:
+    POSTMASTER=postmaster@localhost python -m netius.extra.smtp_r
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
