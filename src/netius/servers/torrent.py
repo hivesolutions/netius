@@ -36,6 +36,7 @@ import uuid
 import time
 import struct
 import hashlib
+import binascii
 
 import netius.common
 import netius.clients
@@ -745,8 +746,20 @@ class TorrentTask(netius.Observable):
         connection.bind("unchoked", self.on_unchoked)
 
     def info_string(self):
+        # retrieves the various metadata values from the info dictionary
+        # using safe defaults as the metadata may not yet be available
+        # (eg: info hash only based task still waiting for the metadata)
+        info = self.info.get("info", {})
+        name = info.get("name", "undefined")
+        piece_length = info.get("piece length", 0)
+        info_hash = binascii.hexlify(self.info_hash) if self.info_hash else b""
+        info_hash = netius.legacy.str(info_hash)
         return (
             "==== STATUS ====\n"
+            + "name        := %s\n" % name
+            + "info hash   := %s\n" % info_hash
+            + "size        := %d bytes\n" % self.info.get("length", 0)
+            + "piece size  := %d bytes\n" % piece_length
             + "peers       := %d\n" % len(self.peers)
             + "connections := %d\n" % len(self.connections)
             + "choked      := %d\n" % (len(self.connections) - self.unchoked)
