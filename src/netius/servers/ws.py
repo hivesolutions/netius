@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.ws
+
+Base WebSocket server implementing the level 13 specification (RFC 6455).
+Handles the HTTP upgrade handshake and, together with the associated
+connection class, takes care of encoding and decoding the WebSocket frames
+exchanged with the client. Incoming buffers are parsed incrementally so
+that complete frames are dispatched to the message handling hooks. Meant to
+be used as a foundation for concrete WebSocket based servers.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
@@ -95,6 +105,7 @@ class WSConnection(netius.Connection):
             key, value = values
             key = key.strip()
             key = netius.legacy.str(key)
+            key = key.lower()
             value = value.strip()
             value = netius.legacy.str(value)
             self.headers[key] = value
@@ -110,7 +121,7 @@ class WSConnection(netius.Connection):
             self.add_buffer(remaining)
 
     def accept_key(self):
-        socket_key = self.headers.get("Sec-WebSocket-Key", None)
+        socket_key = self.headers.get("sec-websocket-key", None)
         if not socket_key:
             raise netius.NetiusError("No socket key found in headers")
 

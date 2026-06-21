@@ -19,6 +19,20 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.clients.ws
+
+Asynchronous client for the WebSockets protocol (RFC 6455) built on top
+of the Netius stream infra-structure. Performs the HTTP upgrade handshake,
+generating and validating the Sec-WebSocket-Accept key against the magic
+value, and then switches to framed communication. Decodes inbound frames
+and masks the outbound ones as required for client side usage, buffering
+partial data until a complete frame is available. Emits each decoded
+message through an event for real-time bidirectional communication.
+
+Example:
+    WS_URL=wss://echo.websocket.org/ python -m netius.clients.ws
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
@@ -202,6 +216,7 @@ class WSProtocol(netius.StreamProtocol):
             key, value = values
             key = key.strip()
             key = netius.legacy.str(key)
+            key = key.lower()
             value = value.strip()
             value = netius.legacy.str(value)
             self.headers[key] = value
@@ -217,7 +232,7 @@ class WSProtocol(netius.StreamProtocol):
             self.add_buffer(remaining)
 
     def validate_key(self):
-        accept_key = self.headers.get("Sec-WebSocket-Accept", None)
+        accept_key = self.headers.get("sec-websocket-accept", None)
         if not accept_key:
             raise netius.NetiusError("No accept key found in headers")
 
