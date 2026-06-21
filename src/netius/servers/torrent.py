@@ -430,10 +430,8 @@ class TorrentTask(netius.Observable):
         self.extend_peers(peers)
 
         # refreshes the connection with the peers because new peers have been
-        # added to the current task and there may be new connections pending,
-        # the operation is delayed (in a thread safe way) into the owner loop
-        # as the current callback is run under the DHT client thread
-        self.owner.delay(self.connect_peers, safe=True)
+        # added to the current task and there may be new connections pending
+        self.connect_peers()
 
         # prints a debug message about the peer loading that has just occurred,
         # this may be used for the purpose of development (and traceability)
@@ -906,16 +904,16 @@ class TorrentServer(netius.ContainerServer):
         self.peer_id = self._generate_id()
         self.client = netius.clients.TorrentClient(thread=False, *args, **kwargs)
         self.http_client = netius.clients.HTTPClient(thread=False, *args, **kwargs)
-        self.dht_client = netius.clients.DHTClient(*args, **kwargs)
+        self.dht_client = netius.clients.DHTClient(thread=False, *args, **kwargs)
         self.tasks = []
         self.add_base(self.client)
         self.add_base(self.http_client)
+        self.add_base(self.dht_client)
 
     def cleanup(self):
         netius.ContainerServer.cleanup(self)
         self.cleanup_tasks()
         self.client.destroy()
-        self.dht_client.close()
 
     def ticks(self):
         netius.ContainerServer.ticks(self)
