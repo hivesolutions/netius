@@ -1897,7 +1897,7 @@ class AbstractBase(observer.Observable):
         finally:
             # only runs the cleanup operations in case the loop is not
             # in the paused state, as a paused loop is expected to be
-            # resumed latter and should not be stopped or finished
+            # resumed later and should not be stopped or finished
             if not self.is_paused():
                 self.stop()
                 self.finish()
