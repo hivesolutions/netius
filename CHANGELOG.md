@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * DHT client support for bootstrapping and iterative peer discovery, plus a command line example for running lookups
+* Torrent metadata exchange so that downloads can be started from just an info hash, plus a command line example that downloads using the DHT network
 
 ### Changed
 

@@ -57,6 +57,7 @@ TORRENT_TYPES = {
     7: "piece",
     8: "cancel",
     9: "port",
+    20: "extended",
 }
 """ The map that associates the various message type
 identifiers with their internal string representations """
