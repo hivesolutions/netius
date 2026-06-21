@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.service
+
+Service abstraction representing the meta-data of a listening service.
+Defines the Service class, the server-side counterpart to a connection
+object, holding the bound socket, host, port, SSL flag and buffer
+sizes. On each accepted client socket it builds a client connection,
+wraps it in a stream transport and triggers a connection event.
+Inspired by the asyncio stream model and compatible in terms of API.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

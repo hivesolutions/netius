@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.http2
+
+HTTP/2 server extending the base HTTP server with support for the binary
+framing layer. Handles the connection preface, settings negotiation, flow
+control windows and the multiplexing of concurrent streams over a single
+connection, while remaining able to fall back to the legacy HTTP/1.x
+behavior. Frames are dispatched to the proper handlers (eg: data, headers,
+settings and reset stream) through the bound HTTP/2 parser.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

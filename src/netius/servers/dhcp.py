@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.dhcp
+
+Abstract DHCP server built on the Netius datagram infra-structure. Parses
+incoming BOOTP/DHCP requests into a request abstraction, exposing the
+client MAC, message type and requested address, and packs back the matching
+offer or acknowledge responses with the proper options (eg: subnet, router
+and lease time). Subclasses provide the address allocation policy by
+implementing the type, options and yiaddr resolution hooks.
+
+Example:
+    python -m netius.servers.dhcp
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.ftp
+
+Abstract FTP server implementation (RFC 959) backed by the local file
+system. Parses the control channel commands and handles directory listing,
+retrieval and storage of files over a separate passive mode data channel.
+Authentication and the served root path are configurable, although the
+server runs only under the user owning the current process. Subclasses may
+override the line handling hooks to customize the behavior.
+
+Example:
+    python -m netius.servers.ftp
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

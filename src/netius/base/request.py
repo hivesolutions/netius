@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.request
+
+Request and response primitives for the netius client/server model.
+Defines the abstract Request that auto-generates a wrapping identifier
+and carries a timeout and completion callback, enabling pending
+requests to be tracked and garbage collected to avoid memory leaks.
+The companion Response wraps raw reply data and links back to its
+originating request through that shared identifier.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

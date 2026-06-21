@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.tls
+
+Helpers for managing per-domain TLS contexts keyed by hostname.
+Provides a dictionary that builds an SSL context for each domain
+having both a certificate and a key on disk, ready to be used by a
+server's SNI callback. Supports live reload based on file
+modification times and a Let's Encrypt certbot directory layout.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

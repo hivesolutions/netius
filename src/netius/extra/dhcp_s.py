@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.extra.dhcp_s
+
+Concrete DHCP server demo built on top of the base DHCP server. Leases
+addresses out of a configurable address pool, answering both discover
+and request messages with offers and acknowledgements. Resolves the
+extra DHCP options (eg: router, subnet and DNS) from a simple options
+mapping. Meant as a runnable example of a minimal DHCP service.
+
+Example:
+    python -m netius.extra.dhcp_s
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

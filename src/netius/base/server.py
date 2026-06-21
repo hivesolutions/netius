@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.server
+
+Server base classes built on top of the core event loop. Defines the
+Server class that creates, binds and listens on TCP or UDP sockets,
+handles optional SSL wrapping, process forking and graceful cleanup.
+StreamServer accepts incoming TCP connections, drives the SSL handshake
+and dispatches read, write and error events per connection, while
+DatagramServer manages buffered, thread-safe sending for UDP sockets.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

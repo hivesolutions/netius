@@ -19,6 +19,17 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.errors
+
+Defines the exception hierarchy used across the Netius infra-structure.
+Provides the top level NetiusError carrying a message, code and details
+and the RuntimeError base for problems raised during normal execution.
+Includes control flow signals such as StopError, PauseError and
+WakeupError, together with data, parser, generator and security errors.
+These types give the framework a consistent way to raise and classify
+failures.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

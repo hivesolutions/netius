@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.clients.dns
+
+Asynchronous DNS client built on top of the Netius datagram infra-structure.
+Supports the most common resource record types (eg: A, AAAA and MX) through
+both an instance based and a static (one shot) query interface. Encodes and
+decodes the wire format of DNS messages using the request and response
+abstractions defined in this module. Useful whenever name resolution must be
+performed without blocking the event loop.
+
+Example:
+    DNS_NAME=hive.pt DNS_TYPE=mx python -m netius.clients.dns
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

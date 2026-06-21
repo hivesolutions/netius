@@ -19,6 +19,17 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.protocol
+
+Protocol abstractions that are API-compatible with asyncio. Defines the
+Protocol base handling the connection lifecycle (connection_made,
+connection_lost) and flow control via pause_writing and resume_writing,
+with buffering of sends until a transport is available or writing
+resumes. DatagramProtocol adds connectionless handling with a request
+queue for response correlation, while StreamProtocol adds stream byte
+handling and Connection backward compatibility through a mixin.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

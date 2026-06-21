@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.setup
+
+First-run setup helpers for the Netius package, mostly focused on
+ensuring the bundled certificate authority (CA) bundle is present.
+Downloads the CA file from a remote source when missing, following
+any HTTP redirects, and stores it under the base extras directory.
+Used to guarantee TLS verification has a trust store available.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

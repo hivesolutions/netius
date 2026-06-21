@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.transport
+
+Transport abstractions that decorate netius connections and services
+with an asyncio-compatible interface. Transport wraps a connection to
+provide write, sendto, buffer-limit management and flow control that
+pauses and resumes the bound protocol as the send buffer fills and
+drains. TransportDatagram and TransportStream specialize data delivery,
+and ServerTransport exposes an awaitable serving facade for services.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

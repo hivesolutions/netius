@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.tftp
+
+Shared constants for the TFTP (Trivial File Transfer Protocol).
+Defines the numeric opcodes for the read request, write request,
+data, acknowledgement and error packet types, together with a map
+that associates each opcode with its short string representation.
+Used by the TFTP client and server components for packet handling.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

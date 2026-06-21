@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.mock.appier
+
+Stub shim that stands in for the optional Appier dependency when it
+is not installed. Exposes a tiny subset of the real package, namely a
+placeholder application class and a no-op route decorator, so that
+modules referencing Appier can still be imported. Carries no actual
+behaviour and exists purely to satisfy imports in its absence.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

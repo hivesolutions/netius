@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.ftp
+
+Incremental parser for the FTP control channel protocol. Buffers the
+incoming stream and splits it into complete newline terminated lines,
+extracting the numeric reply code and the message text from each one.
+Distinguishes final replies from continuation lines (by inspecting
+the separator that follows the code) and notifies the owner through
+an on line event for every parsed response line.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

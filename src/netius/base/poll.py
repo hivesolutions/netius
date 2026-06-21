@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.poll
+
+Socket polling abstractions that drive the netius event loop. Defines
+an abstract Poll interface for subscribing sockets to read, write and
+error events and concrete back-ends selected by platform availability:
+EpollPoll, KqueuePoll, PollPoll and the portable SelectPoll fallback.
+Each back-end maps ready sockets to their owners and reports edge or
+level triggering, normalizing the differences between the mechanisms.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

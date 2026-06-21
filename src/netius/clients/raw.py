@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.clients.raw
+
+Minimal raw TCP client built on top of the Netius stream infra-structure.
+Establishes a plain stream connection to a given host and port and exposes
+the data received through an event, performing no protocol parsing of its
+own. Includes a helper to issue a basic HTTP 1.0 request so that the raw
+connection may be quickly exercised. Mostly useful as a low level building
+block and for testing or debugging stream based services.
+
+Example:
+    python -m netius.clients.raw
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

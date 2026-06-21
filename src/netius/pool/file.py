@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.pool.file
+
+Background worker pool for non blocking file system operations. Builds
+on the common event pool to run the typical open, close, read and
+write calls on dedicated worker threads, keeping the main event loop
+free from blocking disk access. The outcome of each operation is
+delivered back as an event, allowing results to be consumed
+asynchronously by the owner.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

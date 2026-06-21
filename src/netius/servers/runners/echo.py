@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.runners.echo
+
+Runner script that starts the echo server using one of two interchangeable
+event loop back-ends. By default it runs the native Netius loop, while
+setting the ASYNCIO (or COMPAT) environment flag switches to the standard
+library asyncio loop driving the same echo protocol. Useful as an example
+of running a Netius protocol under either infra-structure.
+
+Example:
+    python -m netius.servers.runners.echo
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

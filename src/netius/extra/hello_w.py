@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.extra.hello_w
+
+Tiny WSGI application that returns a plain text greeting, used as the
+canonical example of running a WSGI callable under the Netius WSGI
+server. Demonstrates the start response plus iterable body contract
+with a single fixed message. Useful as a baseline when benchmarking
+or validating the WSGI server integration.
+
+Example:
+    python -m netius.extra.hello_w
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

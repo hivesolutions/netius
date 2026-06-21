@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.conn
+
+Defines the BaseConnection abstraction that wraps a socket object with
+a safe and event driven interface. Manages the connection life cycle
+through the open, closed and pending states and integrates with the
+poll mechanism by registering and unregistering the socket for read
+and write events. Handles outbound write buffering, SSL handshakes
+and the optional pending data thresholds for flow control.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

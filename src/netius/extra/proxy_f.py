@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.extra.proxy_f
+
+Forward HTTP proxy that relays client requests to arbitrary upstream
+hosts, supporting both plain requests and CONNECT based tunnelling for
+HTTPS. Applies a set of compiled regular expression rules to the target
+path and rejects any matching request with a forbidden response. Acts
+as a simple example of a filtering outbound proxy.
+
+Example:
+    python -m netius.extra.proxy_f
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

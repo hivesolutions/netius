@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.clients.mjpg
+
+Asynchronous client for MJPG (Motion JPEG) HTTP streams, extending the
+base HTTP client to consume a multipart stream of JPEG frames. Scans the
+incoming partial data for the JPEG end of image marker, strips the
+multipart headers and re-assembles each individual frame from the buffer.
+Every complete frame is emitted through an event so that consumers may
+process or persist it. Useful for IP cameras and similar live sources.
+
+Example:
+    MJPG_URL=https://mjpg.bemisc.com/ python -m netius.clients.mjpg
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
@@ -132,7 +145,7 @@ if __name__ == "__main__":
     def on_finish(protocol):
         netius.compat_loop(loop).stop()
 
-    url = netius.conf("MJPG_URL", "http://euglena.stanford.edu:20005/?action=stream")
+    url = netius.conf("MJPG_URL", "https://mjpg.bemisc.com/")
 
     client = MJPGClient()
     loop, protocol = client.get(url)

@@ -19,6 +19,17 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.proxy
+
+Base (reverse) proxy server built on top of the Netius HTTP/2 server.
+Receives the front-end traffic and forwards each request to an upstream
+back-end through an internal HTTP client, while a raw client handles plain
+TCP tunnelling for cases such as CONNECT or bridged WebSocket traffic.
+Pending data is throttled using configurable buffer thresholds to keep the
+producer and consumer sides balanced. Intended to be subclassed rather than
+used directly.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

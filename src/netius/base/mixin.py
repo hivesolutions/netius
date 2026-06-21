@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.mixin
+
+Compatibility mixins shared across the base package. Defines the
+ConnectionCompat mixin that delegates Connection-level attributes and
+methods (eg id, socket, address, status, throttling) through a
+connection property. This lets Protocol and Transport objects be used
+transparently in code paths that still expect the older Connection
+interface, falling back to local values when no connection is set.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

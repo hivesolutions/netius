@@ -19,6 +19,20 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.clients.dht
+
+Asynchronous client for the BitTorrent DHT (Distributed Hash Table)
+as defined by BEP 0005. Encodes and decodes the bencoded ping,
+find_node and get_peers queries exchanged over datagrams and keeps
+a Kademlia style routing table organized into distance based buckets.
+Drives iterative lookups seeded from the well known bootstrap nodes
+to discover the peers sharing a given info hash. Malformed or foreign
+datagrams are tolerated and silently ignored.
+
+Example:
+    DHT_INFO_HASH=d540fc48eb12f2833163eed6421d449dd8f1ce1f python -m netius.clients.dht
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

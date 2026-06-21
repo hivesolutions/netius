@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.sh.base
+
+Shared dispatch helper for the Netius command line shell tools. Reads
+the first positional argument as the name of a function to run and
+forwards the remaining arguments to it, resolving the callable from the
+caller provided globals. Used by the other shell modules to expose
+their functions as simple sub commands.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

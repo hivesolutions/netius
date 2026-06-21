@@ -19,6 +19,17 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.http
+
+Base HTTP/1.x server built on the Netius stream infra-structure. Wraps the
+common HTTP parser to read requests and provides the utilities for building
+and sending responses, including the management of the various transfer
+encodings (eg: plain, chunked, gzip and deflate). Connections track their
+own encoding state and optional gzip stream, and a base set of headers is
+applied to every response. Meant to be used as a foundation for concrete
+HTTP based servers.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

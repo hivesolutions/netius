@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.http2
+
+HTTP/2 framing layer used by the HTTP/2 client and server. Defines
+the frame type, error and settings constants and parses the binary
+frame stream through a header then payload state machine. Decodes the
+various frame kinds (eg: DATA, HEADERS, SETTINGS and WINDOW_UPDATE)
+into events for the owner connection and exposes a per stream
+abstraction that tracks flow control windows and stream state.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

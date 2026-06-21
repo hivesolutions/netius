@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.config
+
+Configuration subsystem that resolves runtime settings for the
+framework. Loads values from JSON files, dot env files and the process
+environment, merging them into a global configuration map. Supports
+include directives, home directory redirection and typed casting of
+the resolved values (eg: bool, list and tuple). Exposes the conf
+accessor family used across the codebase to read these settings.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

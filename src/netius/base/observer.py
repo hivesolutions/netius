@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.observer
+
+Event observer foundation for the netius object model. Defines the
+Observable base class implementing a simple publish/subscribe pattern
+where handlers are bound to named events and invoked on trigger.
+Supports one-shot handlers that unbind themselves after firing and
+bulk unbinding on destruction. Designed to be friendly to multiple
+inheritance, serving as a base for protocols, streams and services.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.client
+
+Base client infra-structure on top of which the concrete protocol
+clients are built. Provides the abstract Client with lazy event loop
+thread management, the connection oriented StreamClient and the
+connectionless DatagramClient. Handles socket creation, non blocking
+connect, send and receive buffering and pending request expiration.
+Concrete socket type clients should inherit from these base classes.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

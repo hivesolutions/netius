@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.socks
+
+State-machine parser for SOCKS proxy requests, supporting both the
+version 4 (including 4a domain extension) and version 5 protocols.
+Decodes the command, target address and port, handling IPv4, IPv6
+and domain name address types as well as the version 5 negotiation
+of authentication methods. Emits events as each part is parsed.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

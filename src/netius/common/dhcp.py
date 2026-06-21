@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.dhcp
+
+Support constants and helpers shared by the DHCP server code.
+Defines the option, message type and verb tables used when encoding
+and decoding DHCP packets. Implements an address pool that hands out
+leases from a start/end range, tracking owners and expiration times
+through a time ordered heap so that expired addresses can be reused.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

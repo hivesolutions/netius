@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.geo
+
+GeoIP resolution helper built on top of the MaxMind database. Looks
+up an IP address and returns its location, optionally simplified to a
+small set of fields (continent, country, city and location) with the
+names resolved for a single locale. Searches a few standard paths for
+the city database and, when missing, downloads and decompresses it on
+demand using the bundled HTTP client.
+
+Example:
+    python -m netius.common.geo
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

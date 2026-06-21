@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.log
+
+Logging utilities for the netius event loop and servers. Patches the
+standard logging module to add a fine-grained TRACE level and the
+matching trace method, and configures the root logging format.
+Provides factory helpers for rotating file and SMTP handlers, plus a
+buffered LogstashHandler that batches records and flushes them in bulk
+to a Logstash infra-structure on size or time thresholds.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

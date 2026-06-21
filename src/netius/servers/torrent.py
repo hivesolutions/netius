@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.torrent
+
+BitTorrent download server that coordinates the retrieval of a torrent
+through a container of underlying clients. Discovers peers using both the
+HTTP tracker and the DHT network, keeps track of the owned and pending
+pieces and requests the missing blocks until the file is complete. Each
+download is driven as a task that emits piece and completion events and
+writes the assembled content to the configured target path.
+
+Example:
+    TORRENT_TARGET_PATH=~/Downloads python -m netius.servers.torrent
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

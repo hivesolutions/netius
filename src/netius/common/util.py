@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.util
+
+General-purpose utilities shared across the Netius code-base.
+Offers helpers for header name casing, IPv4 and IPv6 address
+parsing and subnet checks, integer and byte conversions, random
+integer generation and human-readable size formatting. Also
+includes hostname lookups and lightweight assertion helpers.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

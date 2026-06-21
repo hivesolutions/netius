@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.clients.ssdp
+
+Asynchronous client for the SSDP protocol used under the UPnP standard
+for the discovery and control of network devices. Sends the M-SEARCH
+multicast request over datagrams and parses the HTTP style responses
+returned by the devices using the Netius HTTP parser. The headers of
+each discovered device are emitted through an event so that the caller
+may inspect them. Useful to locate routers, media centers and similar.
+
+Example:
+    SSDP_TARGET=urn:schemas-upnp-org:device:InternetGatewayDevice:1 python -m netius.clients.ssdp
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

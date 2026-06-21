@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.sh.rsa
+
+Command line tools for inspecting and converting RSA keys. Provides
+sub commands to pretty print the contents of a private or public key
+file and to derive a public key from an existing private key, writing
+it to disk. Builds on the common RSA helpers shipped with Netius.
+Handy for quick key inspection during development.
+
+Example:
+    python -m netius.sh.rsa read_private private.key
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.middleware.proxy
+
+Connection middleware that implements the PROXY protocol, both in its
+version 1 (text) and version 2 (binary) forms. On each new connection
+it performs the handshake that recovers the original source and
+destination addresses passed by a front-end load balancer (eg:
+HAProxy) and rewrites the connection address accordingly. A handshake
+timeout guards against stale connections that never send a header.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,17 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.common
+
+Core module of the Netius framework providing the AbstractBase event
+loop on which every server and client is built. Drives the non blocking
+poll based read and write cycle, timers, delayed calls and coroutine
+scheduling. Exposes the loop factory and accessor helpers (eg: get_loop
+and new_loop) used to create or obtain the process wide event loop.
+Defines global identifiers, version constants and the diagnostics hooks.
+All other base modules assume the functionality defined here.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
@@ -1884,10 +1895,12 @@ class AbstractBase(observer.Observable):
             self.critical("Critical level loop exception raised", stack=True)
             self.log_stack(method=self.error)
         finally:
-            if self.is_paused():
-                return
-            self.stop()
-            self.finish()
+            # only runs the cleanup operations in case the loop is not
+            # in the paused state, as a paused loop is expected to be
+            # resumed later and should not be stopped or finished
+            if not self.is_paused():
+                self.stop()
+                self.finish()
 
     def is_main(self):
         if not self.tid:

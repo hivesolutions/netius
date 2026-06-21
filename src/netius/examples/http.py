@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.examples.http
+
+Runnable usage examples for the Netius HTTP client. Demonstrates two
+common patterns: a synchronous request that blocks until the full
+response body is available, and an asynchronous request driven by the
+event loop that delivers the response through a result callback and
+closes once done. Intended as a starting point for writing HTTP
+client code on top of Netius.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

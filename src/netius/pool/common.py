@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.pool.common
+
+Foundations for the background worker pools used by Netius. Provides
+the worker thread and thread pool abstractions that consume callable
+work items from a shared, condition guarded queue. Also defines an
+event pool that can notify the main event loop through a file like
+object, with platform specific backends based on eventfd, pipes or
+loopback sockets depending on what is available.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

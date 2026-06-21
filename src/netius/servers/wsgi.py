@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.wsgi
+
+WSGI compliant server built on top of the Netius HTTP/2 server. Translates
+incoming requests into the standard environ map, invokes the target
+application and streams the resulting iterator back to the client, with
+support for async (future based) responses and request pipelining. Handles
+compression decisions based on a configurable size limit and takes care of
+releasing the per-connection resources to avoid memory leaks.
+
+Example:
+    python -m netius.servers.wsgi
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.agent
+
+Defines the Agent entry point classes that wrap the Protocol, Event Loop
+and Transport objects with a developer friendly interface. Provides the
+ClientAgent and ServerAgent specializations used as the base of the new
+protocol based clients and servers. Exposes Base-compatible stub methods
+so agents can be added to a Container alongside legacy Base objects.
+Most simple protocols interact through the static helpers defined here.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

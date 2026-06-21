@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.extra.proxy_r
+
+Reverse HTTP proxy that routes incoming requests to back-end servers
+based on host, alias and regular expression rules. Supports per host
+authentication, redirects, custom error pages and strict transport
+security headers. Spreads traffic across multiple back-ends using a
+round robin or a connection aware smart balancing strategy, with
+optional periodic DNS re-resolution of the configured hosts.
+
+Example:
+    python -m netius.extra.proxy_r
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

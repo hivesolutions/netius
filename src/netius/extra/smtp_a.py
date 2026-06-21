@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.extra.smtp_a
+
+Relay SMTP server that adds activity tracking on top of the base relay
+behavior. After each delivery attempt it posts a JSON payload (sender,
+recipients, subject, status and session details) to an external HTTP
+endpoint, optionally signed with a shared secret. Tracking only runs
+when an activity URL is configured, otherwise it stays a plain relay.
+
+Example:
+    SMTP_ACTIVITY_URL=http://localhost/activity python -m netius.extra.smtp_a
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

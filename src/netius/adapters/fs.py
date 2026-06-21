@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.adapters.fs
+
+Storage adapter that persists values as files on the local file
+system. Each value is written under a base directory keyed by a
+generated identifier, while per-owner symbolic links group the
+entries by owner (with a Windows specific link fallback). Provides
+file based reads, size lookups and listing over the stored data.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.auth.address
+
+Authentication back-end that grants access based on the client IP
+address. Resolves the effective address from the request host and
+common proxy headers (eg: X-Forwarded-For, X-Real-IP) and validates
+it against an allowed list of IPv4 addresses or CIDR ranges. Used to
+restrict handlers to a set of trusted network origins.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

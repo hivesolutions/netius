@@ -19,6 +19,20 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.clients.smtp
+
+Asynchronous SMTP client for the delivery of email messages. Drives the
+SMTP session as a state machine covering the EHLO/HELO, authentication
+(plain and login), envelope and data phases, auto-negotiating STARTTLS
+when the server advertises it. Can connect directly to a smart host or
+resolve the MX records for each recipient domain via DNS, grouping the
+recipients per server to avoid redundant connections. Reports per session
+deliverability information (greeting, queue response and TLS details).
+
+Example:
+    SMTP_HOST=smtp.example.com python -m netius.clients.smtp
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

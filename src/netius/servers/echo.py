@@ -19,6 +19,18 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.echo
+
+Minimal echo server that writes back every chunk of data it receives.
+Implemented as a thin stream protocol on top of the Netius agent
+infra-structure, serving as the simplest possible example of a protocol
+and server pair. Mostly useful for connectivity tests and as a starting
+point/reference for building custom stream based servers.
+
+Example:
+    python -m netius.servers.echo
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.base.async_neo
+
+Modern asynchronous primitives for interpreters that support the
+async/await syntax and the asyncio infra-structure. Provides a Future
+that is awaitable, wrappers that adapt legacy generators and native
+coroutines, and the coroutine decorator used to build awaitables.
+Also exposes sleep and wait helpers bound to the running event loop.
+Symbols defined here override the legacy versions when neo is available.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

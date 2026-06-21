@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.torrent
+
+Building blocks for the BitTorrent peer wire protocol and metadata.
+Implements bencode encoding and decoding, info-hash computation and
+an incremental parser that handles the initial handshake and the
+subsequent length-prefixed messages. Message types are resolved to
+their string names and reported through events to the owner.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

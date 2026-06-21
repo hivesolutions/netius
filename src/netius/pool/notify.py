@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.pool.notify
+
+Minimal event pool dedicated solely to cross-thread notification. It
+is created with no worker threads, so it does not execute any work
+items and instead exposes only the underlying event signalling
+mechanism inherited from the common event pool. Used as a simple way
+to wake up the main event loop from another thread.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

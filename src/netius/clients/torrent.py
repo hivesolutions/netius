@@ -19,6 +19,20 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.clients.torrent
+
+Asynchronous client for the BitTorrent peer protocol (BEP 0003). Handles
+the peer handshake and the wire messages (eg: bitfield, choke, request
+and piece) required to download blocks across a peer to peer mesh. Supports
+the extension protocol (BEP 10) and the metadata exchange (BEP 9) so that
+downloads may be started from just an info hash (magnet style). Enforces
+keep alive and minimum speed limits, releasing pending blocks from slow or
+choked peers so that they may be requested elsewhere.
+
+Example:
+    TORRENT_INFO_HASH=dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c python -m netius.clients.torrent
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

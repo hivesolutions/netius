@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.parser
+
+Base class for the various protocol parsers in the code-base. Extends
+the observable infrastructure so that concrete parsers can notify
+their owner through events as data is consumed. Provides the common
+lifecycle (build and destroy), a parse identifier counter and helpers
+to capture and restore the parser state, which also enables mock
+instances to be created from a known state.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

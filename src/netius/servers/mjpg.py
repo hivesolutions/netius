@@ -19,6 +19,19 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.servers.mjpg
+
+HTTP server that streams a motion JPEG (MJPEG) feed to connected clients.
+Builds on the HTTP/2 server and replies with a multipart/x-mixed-replace
+response, pushing one JPEG frame after another separated by a boundary
+marker and throttled by a configurable delay. Provided as a foundation
+only, subclasses should override the image provider hooks to supply the
+actual frames (eg: from a camera).
+
+Example:
+    python -m netius.servers.mjpg
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

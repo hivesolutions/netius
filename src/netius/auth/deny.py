@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.auth.deny
+
+Restrictive authentication back-end that always fails, rejecting
+every request regardless of the credentials provided. Acts as the
+closed counterpart to the allow back-end and is flagged as simple so
+it requires no username or password. Useful as a safe default to lock
+down an endpoint completely.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

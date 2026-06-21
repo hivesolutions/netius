@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.middleware.base
+
+Base abstraction for connection middleware components. Defines the
+common contract shared by every middleware unit, namely a reference
+to the owning server and the start and stop lifecycle hooks invoked
+when the server is brought up or torn down. Concrete middleware
+subclasses extend this class to register event handlers and run
+their behaviour around the connection life cycle.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

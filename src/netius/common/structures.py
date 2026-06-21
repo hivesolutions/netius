@@ -19,6 +19,15 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.structures
+
+Small collection of general-purpose data structures and helpers.
+Provides a priority dictionary that keeps an internal heap so the
+smallest valued key can be retrieved or popped efficiently and
+iterated in sorted order. Also includes a file iterator generator
+that first yields the total size and then streams content chunks.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 

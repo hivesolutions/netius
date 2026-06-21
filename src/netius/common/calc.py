@@ -19,6 +19,16 @@
 # You should have received a copy of the Apache License along with
 # Hive Netius System. If not, see <http://www.apache.org/licenses/>.
 
+"""netius.common.calc
+
+Number theory helpers backing the pure Python RSA implementation.
+Generates probable primes through brute force search combined with
+a Solovay-Strassen probabilistic primality test (Jacobi symbol
+based). Provides the greatest common divisor, its extended variant
+and modular inverse used for key generation, plus assorted random
+integer and ceiling utilities.
+"""
+
 __author__ = "João Magalhães <joamag@hive.pt>"
 """ The author(s) of the module """
 
