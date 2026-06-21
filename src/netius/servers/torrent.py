@@ -1071,6 +1071,8 @@ if __name__ == "__main__":
         file_path = "\\file.torrent"
 
     target_path = netius.conf("TORRENT_TARGET_PATH", "~/Downloads")
+    target_path = os.path.expanduser(target_path)
+    target_path = os.path.normpath(target_path)
 
     state = dict(next_print=0)
 
@@ -1094,9 +1096,7 @@ if __name__ == "__main__":
         print("[%d%%] - %d bytes (%s/s)" % (percent, left, speed_s))
 
     def on_complete(task):
-        path = os.path.expanduser(target_path)
-        path = os.path.normpath(path)
-        print("Download completed to '%s'" % path)
+        print("Download completed to '%s'" % target_path)
 
     server = TorrentServer(level=logging.DEBUG)
     server.bind("start", on_start)
