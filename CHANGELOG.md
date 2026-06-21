@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* DHT client support for bootstrapping and iterative peer discovery, plus a command line example for running lookups
 
 ### Changed
 
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* DHT client no longer crashes when receiving a response with no matching pending request
 
 ## [1.58.1] - 2026-06-20
 
