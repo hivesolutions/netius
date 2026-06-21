@@ -35,7 +35,46 @@ import netius.common
 import netius.clients
 
 
+class DHTRequestTest(unittest.TestCase):
+
+    def test_request(self):
+        request = netius.clients.DHTRequest(
+            b"a" * 20, host="1.2.3.4", port=6881, type="get_peers", info_hash=b"b" * 20
+        )
+
+        data = request.request()
+        info = netius.common.bdecode(data)
+
+        self.assertEqual(info["y"], "q")
+        self.assertEqual(info["q"], "get_peers")
+        self.assertEqual(info["a"]["info_hash"], "b" * 20)
+
+    def test_peer_id_length(self):
+        request = netius.clients.DHTRequest(
+            b"a" * 20, host="1.2.3.4", port=6881, type="ping"
+        )
+
+        # the node identifier sent in a query must be exactly the (20 byte)
+        # peer identifier, otherwise nodes reject the query as invalid
+        self.assertEqual(len(request._peer_id), 20)
+        self.assertEqual(request.ping()["id"], b"a" * 20)
+
+
 class DHTResponseTest(unittest.TestCase):
+
+    def test_get_id(self):
+        response = netius.clients.DHTResponse(b"")
+        response.info = dict(t="42")
+
+        self.assertEqual(response.get_id(), 42)
+
+    def test_get_id_invalid(self):
+        response = netius.clients.DHTResponse(b"")
+        response.info = dict(t="\xe6\x12=.")
+
+        # a binary (non numeric) transaction identifier should yield an
+        # invalid value instead of raising so the response is just ignored
+        self.assertEqual(response.get_id(), -1)
 
     def test_get_nodes(self):
         nodes = _contact(b"a" * 20, "1.2.3.4", 6881)
@@ -99,6 +138,16 @@ class DHTNodeTest(unittest.TestCase):
 
         result = node.distance(b"\xff" + b"\x00" * 19)
         self.assertEqual(result, 0xFF << (19 * 8))
+
+    def test_is_valid(self):
+        node = netius.clients.DHTNode(b"a" * 20, host="1.2.3.4", port=6881)
+        self.assertEqual(node.is_valid(), True)
+
+        node = netius.clients.DHTNode(b"a" * 20, host="1.2.3.4", port=0)
+        self.assertEqual(node.is_valid(), False)
+
+        node = netius.clients.DHTNode(b"a" * 20, host="0.0.0.0", port=6881)
+        self.assertEqual(node.is_valid(), False)
 
 
 class DHTRoutingTableTest(unittest.TestCase):

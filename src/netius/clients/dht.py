@@ -113,9 +113,10 @@ class DHTRequest(netius.Request):
         )
 
     def _get_peer_id(self):
-        contact = DHTRequest.contact(self.host, self.port)
-        peer_id = netius.legacy.bytes(self.peer_id)
-        return peer_id + contact
+        # the node identifier sent in a query must be exactly the (20 byte)
+        # peer identifier, no contact information should be appended to it
+        # otherwise nodes reject the query with a "invalid value for 'id'"
+        return netius.legacy.bytes(self.peer_id)
 
 
 class DHTResponse(netius.Response):
@@ -128,8 +129,15 @@ class DHTResponse(netius.Response):
         self.info = netius.common.bdecode(self.data)
 
     def get_id(self):
+        # tries to convert the transaction identifier into an integer
+        # value, some (misbehaving) nodes echo back a binary transaction
+        # identifier that cannot be parsed, in that case an invalid value
+        # is returned so that the response is not matched to any request
         t = self.info.get("t", -1)
-        return int(t)
+        try:
+            return int(t)
+        except (TypeError, ValueError):
+            return -1
 
     def get_payload(self):
         return self.info.get("r", {})
@@ -195,6 +203,21 @@ class DHTNode(object):
         own = self._peer_id_int()
         other = netius.common.bytes_to_integer(peer_id)
         return own ^ other
+
+    def is_valid(self):
+        # verifies that the port is within the valid range, a zero (or out
+        # of range) port is returned by some misbehaving nodes and cannot
+        # be used as the target of a datagram
+        if self.port <= 0 or self.port > 65535:
+            return False
+
+        # verifies that the host is a routable address, the unspecified
+        # address cannot be used as the target of a datagram and would
+        # otherwise raise an error at the socket level
+        if self.host in ("0.0.0.0", ""):
+            return False
+
+        return True
 
     def _peer_id_int(self):
         return netius.common.bytes_to_integer(self.peer_id)
@@ -340,10 +363,17 @@ class DHTClient(netius.DatagramClient):
             peers.extend(payload.get("values", []))
 
             # prints a debug message about the response that has been
-            # received providing some development/tracing capabilities
+            # received (including the contact of the responding node)
+            # providing some development/tracing capabilities
+            request = response.request
             self.debug(
-                "Received DHT response with %d nodes and %d peers"
-                % (len(nodes), len(payload.get("values", [])))
+                "Received DHT response from %s:%d with %d nodes and %d peers"
+                % (
+                    request.host,
+                    request.port,
+                    len(nodes),
+                    len(payload.get("values", [])),
+                )
             )
 
             # in case a (user) callback is defined it's called with the
@@ -353,15 +383,20 @@ class DHTClient(netius.DatagramClient):
                 callback(response)
 
             # folds the nodes returned by the response into the routing
-            # table and queries the closest (still unqueried) nodes known
-            # so far, driving the lookup from the global view instead of a
-            # single response so an unresponsive node does not dead-end it
+            # table (for later reuse) and queries every one of them that
+            # has not been queried yet, nodes return the contacts closest
+            # to the target so this is what drives the lookup towards the
+            # nodes that are responsible for (and hold) the peer values
             for node in nodes:
                 routing.add(node)
-            for node in routing.closest(target):
                 _query(node)
 
         def _query(node):
+            # in case the node does not represent a valid (routable) contact
+            # returns immediately as it cannot be used as a query target
+            if not node.is_valid():
+                return
+
             # in case the node has already been queried returns immediately
             # avoiding the querying of the same node more than once
             contact = (node.host, node.port)
@@ -426,8 +461,15 @@ class DHTClient(netius.DatagramClient):
     def on_data(self, address, data):
         netius.DatagramClient.on_data(self, address, data)
 
+        # creates the DHT response with the provided data stream and tries
+        # to parse it, this operation is risky as the message may be
+        # malformed (eg: foreign or corrupted datagram) in which case the
+        # response is silently ignored as there's nothing to be handled
         response = DHTResponse(data)
-        response.parse()
+        try:
+            response.parse()
+        except netius.ParserError:
+            return
 
         self.on_data_dht(address, response)
 
@@ -514,7 +556,10 @@ if __name__ == "__main__":
         # main loop as there's nothing else remaining to be done, this
         # is the termination condition of the lookup loop
         if seen["peers"]:
-            print("Found %d peer(s), stopping" % len(seen["peers"]))
+            print(
+                "Found %d peer(s) and %d node(s), stopping"
+                % (len(seen["peers"]), len(seen["nodes"]))
+            )
             netius.compat_loop(client).stop()
             return
 
