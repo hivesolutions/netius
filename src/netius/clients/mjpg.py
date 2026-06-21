@@ -29,7 +29,7 @@ Every complete frame is emitted through an event so that consumers may
 process or persist it. Useful for IP cameras and similar live sources.
 
 Example:
-    MJPG_URL=http://euglena.stanford.edu:20005/?action=stream python -m netius.clients.mjpg
+    MJPG_URL=http://pendelcam.kip.uni-heidelberg.de/mjpg/video.mjpg python -m netius.clients.mjpg
 """
 
 __author__ = "João Magalhães <joamag@hive.pt>"
@@ -145,7 +145,9 @@ if __name__ == "__main__":
     def on_finish(protocol):
         netius.compat_loop(loop).stop()
 
-    url = netius.conf("MJPG_URL", "http://euglena.stanford.edu:20005/?action=stream")
+    url = netius.conf(
+        "MJPG_URL", "http://pendelcam.kip.uni-heidelberg.de/mjpg/video.mjpg"
+    )
 
     client = MJPGClient()
     loop, protocol = client.get(url)
