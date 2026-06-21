@@ -110,6 +110,24 @@ class DHTResponseTest(unittest.TestCase):
 
         self.assertEqual(result, [])
 
+    def test_is_error(self):
+        response = netius.clients.DHTResponse(b"")
+
+        response.info = dict(y="e")
+        self.assertEqual(response.is_error(), True)
+
+        response.info = dict(y="r")
+        self.assertEqual(response.is_error(), False)
+
+    def test_is_response(self):
+        response = netius.clients.DHTResponse(b"")
+
+        response.info = dict(r=dict())
+        self.assertEqual(response.is_response(), True)
+
+        response.info = dict(y="e")
+        self.assertEqual(response.is_response(), False)
+
 
 class DHTNodeTest(unittest.TestCase):
 

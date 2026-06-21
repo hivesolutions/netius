@@ -53,6 +53,15 @@ class TorrentConnectionTest(unittest.TestCase):
         self.assertEqual(connection.extensions, dict(ut_metadata=1))
         self.assertEqual(connection.metadata_size, 5)
 
+    def test_extended_t_empty(self):
+        connection = _MockTorrentConnection()
+
+        # verifies that an empty extended message is ignored instead of
+        # raising an error while trying to unpack the (missing) identifier
+        connection.extended_t(b"")
+
+        self.assertEqual(connection.sent, [])
+
     def test_on_extended_handshake(self):
         connection = _MockTorrentConnection()
 
@@ -101,6 +110,17 @@ class TorrentConnectionTest(unittest.TestCase):
 
         # verifies that a reject message does not store any data and
         # that the metadata is not (incorrectly) considered complete
+        self.assertEqual(connection.metadata, [None])
+        self.assertEqual(connection.task.metadata, None)
+
+    def test_on_metadata_malformed(self):
+        connection = _MockTorrentConnection()
+        connection.metadata = [None]
+
+        connection.on_metadata(b"malformed")
+
+        # verifies that a malformed message is ignored instead of raising
+        # and that the metadata is not (incorrectly) considered complete
         self.assertEqual(connection.metadata, [None])
         self.assertEqual(connection.task.metadata, None)
 

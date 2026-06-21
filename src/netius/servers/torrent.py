@@ -335,18 +335,20 @@ class TorrentTask(netius.Observable):
         else:
             self.info = dict(info_hash=self.info_hash)
 
-        self.peers_dht()
-        self.peers_tracker()
-        self.peers_file()
-
         # in case the metadata (info dictionary) is not yet available the
         # loading of both the file and the pieces structures is deferred
         # until the metadata is retrieved from a peer (BEP 9), otherwise
-        # the regular (torrent file based) loading is performed immediately
+        # the regular (torrent file based) loading is performed immediately,
+        # note that this must run before the peer discovery as the tracker
+        # announce relies on the length value populated by the pieces tracker
         if self.has_metadata():
             self.pieces_tracker()
             self.load_file()
             self.load_pieces()
+
+        self.peers_dht()
+        self.peers_tracker()
+        self.peers_file()
 
     def unload(self):
         self.owner = None
@@ -772,8 +774,10 @@ class TorrentTask(netius.Observable):
 
     def info_string(self):
         # retrieves the various metadata values from the info dictionary
-        # using safe defaults as the metadata may not yet be available
-        # (eg: info hash only based task still waiting for the metadata)
+        # using safe defaults for these (header) fields as the metadata may
+        # not yet be available, note that the pieces based fields below still
+        # require the metadata and so this should only be called for a task
+        # whose download has already started (metadata already retrieved)
         info = self.info.get("info", {})
         name = info.get("name", "undefined")
         piece_length = info.get("piece length", 0)

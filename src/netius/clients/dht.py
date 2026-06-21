@@ -148,10 +148,10 @@ class DHTResponse(netius.Response):
         return DHTNode.unpack(nodes)
 
     def is_error(self):
-        return self.info("y", True)
+        return self.info.get("y", None) == "e"
 
     def is_response(self):
-        return self.info("r", True)
+        return "r" in self.info
 
 
 class DHTNode(object):

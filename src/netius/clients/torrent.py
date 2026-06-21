@@ -28,11 +28,15 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import os
 import math
 import time
 import struct
+import logging
+import binascii
 
 import netius.common
+import netius.servers
 
 HANDSHAKE_STATE = 1
 
@@ -187,6 +191,12 @@ class TorrentConnection(netius.Connection):
         self.task.set_dht(self.address, port)
 
     def extended_t(self, data):
+        # in case there's no data available the extended message is
+        # considered malformed and is ignored as no identifier may
+        # be retrieved from it (avoids an unpack error)
+        if not data:
+            return
+
         # retrieves the extended message identifier (first byte) so that
         # the proper handler may be selected, the zero identifier is the
         # reserved one for the extended handshake message (BEP 10)
@@ -227,9 +237,14 @@ class TorrentConnection(netius.Connection):
     def on_metadata(self, data):
         # splits the bencoded header from the trailing binary payload of the
         # metadata message, the header is decoded to retrieve both the type
-        # and the index of the metadata piece being transferred
-        index = data.index(b"ee") + 2
-        message = netius.common.bdecode(data[:index])
+        # and the index of the metadata piece being transferred, this is a
+        # risky operation as the message may be malformed (eg: partial) in
+        # which case it is silently ignored as there's nothing to be handled
+        try:
+            index = data.index(b"ee") + 2
+            message = netius.common.bdecode(data[:index])
+        except (ValueError, netius.ParserError):
+            return
         msg_type = message.get("msg_type", METADATA_REJECT)
         piece = message.get("piece", 0)
 
@@ -424,21 +439,24 @@ class TorrentClient(netius.StreamClient):
 
 
 if __name__ == "__main__":
-    import os
-    import logging
-    import binascii
-
-    import netius.servers
+    netius.setup_logging()
 
     target_path = netius.conf("TORRENT_TARGET_PATH", "~/Downloads")
+    target_path = os.path.expanduser(target_path)
+    target_path = os.path.normpath(target_path)
 
     state = dict(next_print=0)
 
     def on_start(server):
         # retrieves the info hash from the configuration (as an hexadecimal
-        # string) and decodes it into the raw bytes representation that is
-        # going to be used as the reference for the DHT based download
+        # string) and in case it's not defined raises an error as it is a
+        # mandatory value for the DHT based download to be performed
         info_hash = netius.conf("TORRENT_INFO_HASH", None)
+        if not info_hash:
+            raise netius.DataError("No TORRENT_INFO_HASH defined")
+
+        # decodes the info hash into the raw bytes representation that is
+        # going to be used as the reference for the DHT based download
         info_hash = binascii.unhexlify(info_hash)
 
         # starts the downloading of the file associated with the info hash
@@ -467,9 +485,7 @@ if __name__ == "__main__":
         print("[%d%%] - %d bytes (%s/s)" % (percent, left, speed_s))
 
     def on_complete(task):
-        path = os.path.expanduser(target_path)
-        path = os.path.normpath(path)
-        print("Download completed to '%s'" % path)
+        print("Download completed to '%s'" % target_path)
 
     server = netius.servers.TorrentServer(level=logging.DEBUG)
     server.bind("start", on_start)
