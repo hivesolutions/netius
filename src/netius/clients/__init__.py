@@ -37,7 +37,13 @@ from . import torrent
 from . import ws
 
 from .apn import APNProtocol, APNClient
-from .dht import DHTRequest, DHTResponse, DHTClient
+from .dht import (
+    DHTRequest,
+    DHTResponse,
+    DHTNode,
+    DHTRoutingTable,
+    DHTClient,
+)
 from .dns import DNSRequest, DNSResponse, DNSProtocol, DNSClient
 from .http import HTTPProtocol, HTTPClient
 from .mjpg import MJPGProtocol, MJPGClient

@@ -36,6 +36,7 @@ import uuid
 import time
 import struct
 import hashlib
+import binascii
 
 import netius.common
 import netius.clients
@@ -44,6 +45,10 @@ REFRESH_TIME = 30.0
 """ The default time in between refresh call in the torrent task
 each refresh operation should perform some operations (eg: DHT
 refresh, tracker re-retrieval, etc) """
+
+PRINT_TIME = 3.0
+""" The minimum time in between consecutive printing of the task
+status, used to throttle the verbose output of the download """
 
 ID_STRING = "NE1000"
 """ Text value that is going to be used to identify the agent
@@ -64,6 +69,11 @@ MAX_MISSING = 16
 """ The maximum number of unmarked values to be displayed in missing,
 this controls the size of the missing lists, note that this is only
 a default value, that may be overriden at runtime """
+
+MAX_PEERS = 512
+""" The default maximum number of peers that a task is going to keep
+track of, once this limit is reached no more peers are added, this
+may be overriden through the proper configuration value """
 
 PEER_PATHS = ("peers.txt", "~/peers.txt", "\\peers.txt")
 """ The sequence defining the various paths that are going to be search
@@ -311,6 +321,10 @@ class TorrentTask(netius.Observable):
         self.downloaded = 0
         self.unchoked = 0
         self.next_refresh = self.start + REFRESH_TIME
+        self.info = {}
+        self.file = None
+        self.requested = None
+        self.stored = None
         self.connections = []
         self.peers = []
         self.peers_m = {}
@@ -321,13 +335,20 @@ class TorrentTask(netius.Observable):
         else:
             self.info = dict(info_hash=self.info_hash)
 
-        self.pieces_tracker()
+        # in case the metadata (info dictionary) is not yet available the
+        # loading of both the file and the pieces structures is deferred
+        # until the metadata is retrieved from a peer (BEP 9), otherwise
+        # the regular (torrent file based) loading is performed immediately,
+        # note that this must run before the peer discovery as the tracker
+        # announce relies on the length value populated by the pieces tracker
+        if self.has_metadata():
+            self.pieces_tracker()
+            self.load_file()
+            self.load_pieces()
+
         self.peers_dht()
         self.peers_tracker()
         self.peers_file()
-
-        self.load_file()
-        self.load_pieces()
 
     def unload(self):
         self.owner = None
@@ -374,31 +395,42 @@ class TorrentTask(netius.Observable):
         self.trigger("complete", self)
 
     def on_dht(self, response):
+        # verifies if the task has already been unloaded (eg: the download
+        # has completed) and if that's the case returns immediately as no
+        # more peers are required and the owner is no longer available
+        if not self.owner:
+            return
+
         # verifies if the response is valid and in case it's not
         # returns immediately to avoid any erroneous parsing
         if not response:
             return
 
-        # retrieves the payload for the response and then uses it
-        # to retrieves the nodes part of the response for parsing
-        # of the peers that are going to be added (to the task)
+        # retrieves the payload for the response and then uses it to
+        # retrieve the values (peers) part of the response, these are
+        # the actual peers sharing the info hash (BEP 5 get_peers)
         payload = response.get_payload()
-        nodes = payload.get("nodes", "")
+        values = payload.get("values", [])
 
         # creates the list that will hold the final set of peers
-        # parsed from the nodes string, this is going to be used
+        # parsed from the values list, this is going to be used
         # to extend the list of peers in the task
         peers = []
 
-        # splits the current nodes list into a set of chunks of
-        # a pre-defined size and then iterates over all of them
-        # creating the proper peer dictionary for each of them
-        chunks = [chunk for chunk in netius.common.chunks(nodes, 26)]
-        for chunk in chunks:
-            chunk = netius.legacy.bytes(chunk)
-            peer_id, address, port = struct.unpack("!20sLH", chunk)
+        # iterates over the complete set of values (compact peer
+        # information) creating the proper peer dictionary for each
+        # of them from the unpacked address and port information
+        for value in values:
+            value = netius.legacy.bytes(value)
+
+            # ignores values without the expected compact peer size
+            # (eg: malformed or IPv6 entries) as they cannot be unpacked
+            if not len(value) == 6:
+                continue
+
+            address, port = struct.unpack("!LH", value)
             ip = netius.common.addr_to_ip4(address)
-            peer = dict(id=peer_id, ip=ip, port=port)
+            peer = dict(ip=ip, port=port)
             peers.append(peer)
 
         # in case no valid peers have been parsed there's no need
@@ -410,15 +442,13 @@ class TorrentTask(netius.Observable):
         # torrent task with the ones that have been discovered
         self.extend_peers(peers)
 
-        # retrieves the reference to the host id from the request
-        # that originated the current response and then converts it
-        # into the proper string representation to be used in logging
-        request = response.request
-        host = request.host
+        # refreshes the connection with the peers because new peers have been
+        # added to the current task and there may be new connections pending
+        self.connect_peers()
 
-        # prints a debug message about the peer loading that has just occurred, this
-        # may be used for the purpose of development (and traceability)
-        self.owner.debug("Received %d peers from DHT peer '%s'", len(peers), host)
+        # prints a debug message about the peer loading that has just occurred,
+        # this may be used for the purpose of development (and traceability)
+        self.owner.debug("Received %d peers from the DHT network", len(peers))
 
     def on_tracker(self, client, parser, result):
         # extracts the data (string) contents of the HTTP response and in case
@@ -459,6 +489,41 @@ class TorrentTask(netius.Observable):
         # refreshes the connection with the peers because new peers have been added
         # to the current task and there may be new connections pending
         self.connect_peers()
+
+    def has_metadata(self):
+        return True if self.info.get("info", None) else False
+
+    def set_metadata(self, metadata):
+        # in case the metadata (info dictionary) is already available there's
+        # nothing to be done as the task is already properly loaded
+        if self.has_metadata():
+            return
+
+        # verifies that the SHA1 digest of the received metadata matches the
+        # info hash of the task, otherwise the metadata is considered invalid
+        # and is discarded as it cannot be trusted for the download operation
+        metadata = netius.legacy.bytes(metadata)
+        digest = hashlib.sha1(metadata).digest()
+        if not digest == self.info_hash:
+            self.owner.warning("Received invalid metadata (info hash mismatch)")
+            return
+
+        # decodes the received metadata into the info dictionary and stores it
+        # in the info structure of the task, then runs the deferred loading of
+        # both the pieces and the file structures so that the download may start
+        info = netius.common.bdecode(metadata)
+        self.info["info"] = info
+        self.pieces_tracker()
+        self.load_file()
+        self.load_pieces()
+
+        # connects the (pending) peers and resumes the block requesting on
+        # the already established connections so that the (now available)
+        # pieces may start to be requested, triggering the download operation
+        self.connect_peers()
+        for connection in self.connections:
+            connection.next()
+        self.trigger("metadata", self)
 
     def load_info(self, torrent_path):
         file = open(torrent_path, "rb")
@@ -561,6 +626,12 @@ class TorrentTask(netius.Observable):
         self.info["number_blocks"] = number_blocks
 
     def set_data(self, data, index, begin):
+        # in case the pieces structure is not currently loaded the data
+        # cannot be stored, this may happen for a piece received before the
+        # metadata exchange or after the task has already been unloaded
+        if not self.stored:
+            return
+
         # retrieves the current status of the block in the stored
         # pieces structure and in case it's already stored returns
         # immediately as this is a duplicated block setting, possible
@@ -600,19 +671,13 @@ class TorrentTask(netius.Observable):
     def peers_dht(self):
         if not self.info_hash:
             return
-        for peer in self.peers:
-            port = peer.get("dht", None)
-            if not port:
-                continue
-            host = peer["ip"]
-            self.owner.dht_client.get_peers(
-                host=host,
-                port=port,
-                peer_id=self.owner.peer_id,
-                info_hash=self.info_hash,
-                callback=self.on_dht,
-            )
-            self.owner.debug("Requested peers from DHT peer '%s'", host)
+        self.owner.dht_client.lookup(
+            netius.legacy.bytes(self.owner.peer_id)[:20],
+            self.info_hash,
+            type="get_peers",
+            callback=self.on_dht,
+        )
+        self.owner.debug("Requested peers from the DHT network")
 
     def peers_tracker(self):
         """
@@ -634,6 +699,12 @@ class TorrentTask(netius.Observable):
             # iterates over the complete set of tracker urls to try to retrieve
             # the various trackers from each of them
             for tracker_url in tracker:
+                # in case the tracker URL is not defined (eg: info hash only
+                # based task) skips the current iteration as there's no
+                # tracker to be contacted for peer retrieval
+                if not tracker_url:
+                    continue
+
                 # retrieves the first element of the tracker structure as the
                 # URL of it and then verifies that it references an HTTP based
                 # tracker (as that's the only one supported)
@@ -702,8 +773,33 @@ class TorrentTask(netius.Observable):
         connection.bind("unchoked", self.on_unchoked)
 
     def info_string(self):
+        # retrieves the various metadata values from the info dictionary
+        # using safe defaults for these (header) fields as the metadata may
+        # not yet be available, note that the pieces based fields below still
+        # require the metadata and so this should only be called for a task
+        # whose download has already started (metadata already retrieved)
+        info = self.info.get("info", {})
+        name = info.get("name", "undefined")
+        piece_length = info.get("piece length", 0)
+        info_hash = binascii.hexlify(self.info_hash) if self.info_hash else b""
+        info_hash = netius.legacy.str(info_hash)
+
+        # builds the list of file names from the metadata, for a single file
+        # torrent the name is the file itself, for a multiple file torrent the
+        # name is the (containing) directory and the files come from the list
+        files = self.info.get("files", [])
+        if files:
+            names = [os.path.join(*file["path"]) for file in files]
+        else:
+            names = [name]
+        files_s = ", ".join(names)
         return (
             "==== STATUS ====\n"
+            + "name        := %s\n" % name
+            + "files       := %s\n" % files_s
+            + "info hash   := %s\n" % info_hash
+            + "size        := %d bytes\n" % self.info.get("length", 0)
+            + "piece size  := %d bytes\n" % piece_length
             + "peers       := %d\n" % len(self.peers)
             + "connections := %d\n" % len(self.connections)
             + "choked      := %d\n" % (len(self.connections) - self.unchoked)
@@ -714,9 +810,10 @@ class TorrentTask(netius.Observable):
             % (self.stored.marked_blocks, self.stored.total_blocks)
             + "pieces miss := %s\n" % self.stored.missing_pieces
             + "blocks miss := %s\n" % self.stored.missing_blocks
-            + "percent     := %.2f % %\n" % self.percent()
+            + "percent     := %.2f %%\n" % self.percent()
             + "left        := %d/%d bytes\n" % (self.left(), self.info["length"])
-            + "speed       := %s/s" % self.speed_s()
+            + "speed       := %s/s\n" % self.speed_s()
+            + "eta         := %s" % self.eta_s()
         )
 
     def left(self):
@@ -737,11 +834,59 @@ class TorrentTask(netius.Observable):
 
         current = time.time()
         delta = current - self.start
+        if delta == 0:
+            return 0.0
         bytes_second = self.downloaded / delta
         return bytes_second
 
     def speed_s(self):
         return netius.common.size_round_unit(self.speed(), space=True, reduce=False)
+
+    def eta(self):
+        """
+        Retrieves the estimated time of arrival (in seconds) for the
+        completion of the task, computed from the number of bytes left
+        and the current global speed of the download.
+
+        :rtype: float
+        :return: The estimated number of seconds remaining until the
+        completion of the download (zero in case the speed is null).
+        """
+
+        speed = self.speed()
+        if speed == 0:
+            return 0.0
+        return self.left() / speed
+
+    def eta_s(self):
+        """
+        Retrieves the estimated time of arrival as a human readable
+        string in the hours, minutes and seconds format (eg: 1h 2m 3s).
+
+        The representation is built in an opportunistic way, the leading
+        units with a zero value are hidden so that only the relevant
+        part of the time is displayed (eg: 30s instead of 0h 0m 30s).
+
+        :rtype: String
+        :return: The estimated time remaining until the completion of
+        the download as a human readable (hours, minutes, seconds) string.
+        """
+
+        eta = self.eta()
+        hours = int(eta // 3600)
+        minutes = int((eta % 3600) // 60)
+        seconds = int(eta % 60)
+
+        # builds the time parts in an opportunistic way, only the units
+        # that have a non zero value (or a more significant one already
+        # present) are included so that leading zero parts are hidden
+        parts = []
+        if hours:
+            parts.append("%dh" % hours)
+        if minutes or parts:
+            parts.append("%dm" % minutes)
+        parts.append("%ds" % seconds)
+        return " ".join(parts)
 
     def percent(self):
         size = self.info["length"]
@@ -777,6 +922,10 @@ class TorrentTask(netius.Observable):
             self.add_peer(peer)
 
     def add_peer(self, peer):
+        # in case the maximum number of peers has already been reached
+        # no more peers are added so that the task does not grow unbounded
+        if len(self.peers) >= self.owner.max_peers:
+            return
         peer_t = (peer["ip"], peer["port"])
         if peer_t in self.peers_m:
             return
@@ -818,9 +967,10 @@ class TorrentTask(netius.Observable):
 
 class TorrentServer(netius.ContainerServer):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, max_peers=MAX_PEERS, *args, **kwargs):
         netius.ContainerServer.__init__(self, *args, **kwargs)
         self.peer_id = self._generate_id()
+        self.max_peers = max_peers
         self.client = netius.clients.TorrentClient(thread=False, *args, **kwargs)
         self.http_client = netius.clients.HTTPClient(thread=False, *args, **kwargs)
         self.dht_client = netius.clients.DHTClient(thread=False, *args, **kwargs)
@@ -828,6 +978,11 @@ class TorrentServer(netius.ContainerServer):
         self.add_base(self.client)
         self.add_base(self.http_client)
         self.add_base(self.dht_client)
+
+    def on_serve(self):
+        netius.ContainerServer.on_serve(self)
+        if self.env:
+            self.max_peers = self.get_env("TORRENT_MAX_PEERS", self.max_peers, cast=int)
 
     def cleanup(self):
         netius.ContainerServer.cleanup(self)
@@ -915,12 +1070,24 @@ if __name__ == "__main__":
     else:
         file_path = "\\file.torrent"
 
+    target_path = netius.conf("TORRENT_TARGET_PATH", "~/Downloads")
+    target_path = os.path.expanduser(target_path)
+    target_path = os.path.normpath(target_path)
+
+    state = dict(next_print=0)
+
     def on_start(server):
-        task = server.download("~/Downloads", file_path, close=True)
+        task = server.download(target_path, file_path, close=True)
         task.bind("piece", on_piece)
         task.bind("complete", on_complete)
 
     def on_piece(task, index):
+        # throttles the printing of the status so that it's only done at
+        # most once every print interval, avoiding excessive output
+        if time.time() < state["next_print"]:
+            return
+        state["next_print"] = time.time() + PRINT_TIME
+
         percent = task.percent()
         speed_s = task.speed_s()
         left = task.left()
@@ -929,7 +1096,7 @@ if __name__ == "__main__":
         print("[%d%%] - %d bytes (%s/s)" % (percent, left, speed_s))
 
     def on_complete(task):
-        print("Download completed")
+        print("Download completed to '%s'" % target_path)
 
     server = TorrentServer(level=logging.DEBUG)
     server.bind("start", on_start)

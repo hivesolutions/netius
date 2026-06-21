@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* DHT client support for bootstrapping and iterative peer discovery, plus a command line example for running lookups
+* Torrent metadata exchange so that downloads can be started from just an info hash, plus a command line example that downloads using the DHT network
+* Configurable maximum number of peers per torrent task
+* Estimated time of arrival in the torrent task status output
 
 ### Changed
 
@@ -17,7 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* DHT client no longer crashes when receiving a response with no matching pending request
+* DHT queries now send a valid node identifier so that peers can actually be discovered
+* DHT client now tolerates malformed responses and skips unroutable nodes instead of raising
+* Torrent download no longer crashes when a data block is received before the metadata is available
+* Torrent download no longer crashes on late DHT peer responses received after the download has completed
+* Torrent download no longer crashes on malformed DHT peer values or before any data is downloaded
 
 ## [1.58.1] - 2026-06-20
 
