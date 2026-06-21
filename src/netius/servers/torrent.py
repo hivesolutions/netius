@@ -70,6 +70,11 @@ MAX_MISSING = 16
 this controls the size of the missing lists, note that this is only
 a default value, that may be overriden at runtime """
 
+MAX_PEERS = 512
+""" The default maximum number of peers that a task is going to keep
+track of, once this limit is reached no more peers are added, this
+may be overriden through the proper configuration value """
+
 PEER_PATHS = ("peers.txt", "~/peers.txt", "\\peers.txt")
 """ The sequence defining the various paths that are going to be search
 trying to find the (static) peers file with format host:ip in each line """
@@ -415,6 +420,12 @@ class TorrentTask(netius.Observable):
         # of them from the unpacked address and port information
         for value in values:
             value = netius.legacy.bytes(value)
+
+            # ignores values without the expected compact peer size
+            # (eg: malformed or IPv6 entries) as they cannot be unpacked
+            if not len(value) == 6:
+                continue
+
             address, port = struct.unpack("!LH", value)
             ip = netius.common.addr_to_ip4(address)
             peer = dict(ip=ip, port=port)
@@ -797,7 +808,8 @@ class TorrentTask(netius.Observable):
             + "blocks miss := %s\n" % self.stored.missing_blocks
             + "percent     := %.2f %%\n" % self.percent()
             + "left        := %d/%d bytes\n" % (self.left(), self.info["length"])
-            + "speed       := %s/s" % self.speed_s()
+            + "speed       := %s/s\n" % self.speed_s()
+            + "eta         := %s" % self.eta_s()
         )
 
     def left(self):
@@ -818,11 +830,59 @@ class TorrentTask(netius.Observable):
 
         current = time.time()
         delta = current - self.start
+        if delta == 0:
+            return 0.0
         bytes_second = self.downloaded / delta
         return bytes_second
 
     def speed_s(self):
         return netius.common.size_round_unit(self.speed(), space=True, reduce=False)
+
+    def eta(self):
+        """
+        Retrieves the estimated time of arrival (in seconds) for the
+        completion of the task, computed from the number of bytes left
+        and the current global speed of the download.
+
+        :rtype: float
+        :return: The estimated number of seconds remaining until the
+        completion of the download (zero in case the speed is null).
+        """
+
+        speed = self.speed()
+        if speed == 0:
+            return 0.0
+        return self.left() / speed
+
+    def eta_s(self):
+        """
+        Retrieves the estimated time of arrival as a human readable
+        string in the hours, minutes and seconds format (eg: 1h 2m 3s).
+
+        The representation is built in an opportunistic way, the leading
+        units with a zero value are hidden so that only the relevant
+        part of the time is displayed (eg: 30s instead of 0h 0m 30s).
+
+        :rtype: String
+        :return: The estimated time remaining until the completion of
+        the download as a human readable (hours, minutes, seconds) string.
+        """
+
+        eta = self.eta()
+        hours = int(eta // 3600)
+        minutes = int((eta % 3600) // 60)
+        seconds = int(eta % 60)
+
+        # builds the time parts in an opportunistic way, only the units
+        # that have a non zero value (or a more significant one already
+        # present) are included so that leading zero parts are hidden
+        parts = []
+        if hours:
+            parts.append("%dh" % hours)
+        if minutes or parts:
+            parts.append("%dm" % minutes)
+        parts.append("%ds" % seconds)
+        return " ".join(parts)
 
     def percent(self):
         size = self.info["length"]
@@ -858,6 +918,10 @@ class TorrentTask(netius.Observable):
             self.add_peer(peer)
 
     def add_peer(self, peer):
+        # in case the maximum number of peers has already been reached
+        # no more peers are added so that the task does not grow unbounded
+        if len(self.peers) >= self.owner.max_peers:
+            return
         peer_t = (peer["ip"], peer["port"])
         if peer_t in self.peers_m:
             return
@@ -899,9 +963,10 @@ class TorrentTask(netius.Observable):
 
 class TorrentServer(netius.ContainerServer):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, max_peers=MAX_PEERS, *args, **kwargs):
         netius.ContainerServer.__init__(self, *args, **kwargs)
         self.peer_id = self._generate_id()
+        self.max_peers = max_peers
         self.client = netius.clients.TorrentClient(thread=False, *args, **kwargs)
         self.http_client = netius.clients.HTTPClient(thread=False, *args, **kwargs)
         self.dht_client = netius.clients.DHTClient(thread=False, *args, **kwargs)
@@ -909,6 +974,11 @@ class TorrentServer(netius.ContainerServer):
         self.add_base(self.client)
         self.add_base(self.http_client)
         self.add_base(self.dht_client)
+
+    def on_serve(self):
+        netius.ContainerServer.on_serve(self)
+        if self.env:
+            self.max_peers = self.get_env("TORRENT_MAX_PEERS", self.max_peers, cast=int)
 
     def cleanup(self):
         netius.ContainerServer.cleanup(self)
