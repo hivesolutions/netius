@@ -76,6 +76,15 @@ class DHTResponseTest(unittest.TestCase):
         # invalid value instead of raising so the response is just ignored
         self.assertEqual(response.get_id(), -1)
 
+    def test_parse_malformed(self):
+        response = netius.clients.DHTResponse(b"d1:ad2:id20:")
+
+        # a malformed (truncated) datagram should raise an error that is
+        # caught by the data handler so the response is silently ignored
+        self.assertRaises(
+            (netius.ParserError, IndexError, struct.error), response.parse
+        )
+
     def test_get_nodes(self):
         nodes = _contact(b"a" * 20, "1.2.3.4", 6881)
         nodes += _contact(b"b" * 20, "5.6.7.8", 1234)

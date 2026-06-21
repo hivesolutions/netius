@@ -37,6 +37,14 @@ import netius.servers
 
 class TorrentTaskTest(unittest.TestCase):
 
+    def test_on_dht_unloaded(self):
+        task = _build_task()
+        task.owner = None
+
+        # verifies that a DHT response received after the task has been
+        # unloaded (no owner) is ignored instead of raising an error
+        task.on_dht("response")
+
     def test_has_metadata(self):
         task = _build_task()
         self.assertEqual(task.has_metadata(), False)

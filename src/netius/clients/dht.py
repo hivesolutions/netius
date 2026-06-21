@@ -482,7 +482,7 @@ class DHTClient(netius.DatagramClient):
         response = DHTResponse(data)
         try:
             response.parse()
-        except netius.ParserError:
+        except (netius.ParserError, IndexError, struct.error):
             return
 
         self.on_data_dht(address, response)

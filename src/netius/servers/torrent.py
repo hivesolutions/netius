@@ -388,6 +388,12 @@ class TorrentTask(netius.Observable):
         self.trigger("complete", self)
 
     def on_dht(self, response):
+        # verifies if the task has already been unloaded (eg: the download
+        # has completed) and if that's the case returns immediately as no
+        # more peers are required and the owner is no longer available
+        if not self.owner:
+            return
+
         # verifies if the response is valid and in case it's not
         # returns immediately to avoid any erroneous parsing
         if not response:
