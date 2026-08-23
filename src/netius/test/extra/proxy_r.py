@@ -1040,6 +1040,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         frontend.encoding_w.return_value = netius.common.PLAIN_ENCODING
         frontend.encoding_name.return_value = None
         frontend.encodings_a = None
+        frontend.encoding_b = None
         frontend.ctx_request.return_value = mock.MagicMock()
         # removes dynamic attributes that on_headers checks via hasattr
         del frontend.prefix

@@ -1159,6 +1159,11 @@ class HTTP2Stream(netius.Stream):
     def is_uncompressed(self):
         return not self.is_compressed()
 
+    def is_dynamic(self):
+        if self.dynamic == None:
+            return self.connection.owner.dynamic
+        return self.dynamic
+
     def is_flushed(self):
         return self.current > http.PLAIN_ENCODING
 

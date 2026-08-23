@@ -60,6 +60,11 @@ allowed in the sending buffer, this maximum value
 avoids the starvation of the producer to consumer
 relation that could cause memory problems """
 
+COMPRESS_TIMEOUT = 1.0
+""" The maximum amount of time (in seconds) that a response
+may be held while waiting for enough payload to decide on the
+compression, avoids holding a slow trickling back-end forever """
+
 
 class ProxyConnection(http2.HTTP2Connection):
 
@@ -74,7 +79,14 @@ class ProxyConnection(http2.HTTP2Connection):
         self.parser.bind("on_unavailable", self.on_unavailable)
 
     def resolve_encoding(self, parser):
-        pass
+        # under the automatic mode the encoding is negotiated on a response
+        # basis, so the parent resolution (that resets the per response state
+        # and records the codings accepted by the client) is run, for the
+        # remaining modes the encoding is the server wide one and nothing is
+        # negotiated with the client (legacy behaviour)
+        if not self.encoding == netius.common.AUTO_ENCODING:
+            return
+        http2.HTTP2Connection.resolve_encoding(self, parser)
 
     def set_h2(self):
         http2.HTTP2Connection.set_h2(self)
@@ -151,6 +163,9 @@ class ProxyServer(http2.HTTP2Server):
         throttle=True,
         trust_origin=False,
         max_pending=MAX_PENDING,
+        compress_forward_accept=False,
+        compress_buffer=True,
+        compress_timeout=COMPRESS_TIMEOUT,
         *args,
         **kwargs
     ):
@@ -166,6 +181,9 @@ class ProxyServer(http2.HTTP2Server):
         self.trust_origin = trust_origin
         self.max_pending = max_pending
         self.min_pending = int(max_pending * MIN_RATIO)
+        self.compress_forward_accept = compress_forward_accept
+        self.compress_buffer = compress_buffer
+        self.compress_timeout = compress_timeout
         self.conn_map = {}
 
         self.http_client = netius.clients.HTTPClient(
@@ -243,6 +261,8 @@ class ProxyServer(http2.HTTP2Server):
             throttle=self.throttle,
             max_pending=self.max_pending,
             min_pending=self.min_pending,
+            compress_forward_accept=self.compress_forward_accept,
+            compress_buffer=self.compress_buffer,
             conn_map_size=len(self.conn_map),
             http_client=self.http_client.info_dict(full=full),
             raw_client=self.raw_client.info_dict(full=full),
@@ -379,6 +399,7 @@ class ProxyServer(http2.HTTP2Server):
 
         setattr(connection, "tunnel_c", None)
         setattr(connection, "proxy_c", None)
+        setattr(connection, "encoding_b", None)
 
     def on_stream_d(self, stream):
         http2.HTTP2Server.on_stream_d(self, stream)
@@ -393,6 +414,7 @@ class ProxyServer(http2.HTTP2Server):
 
         setattr(stream, "tunnel_c", None)
         setattr(stream, "proxy_c", None)
+        setattr(stream, "encoding_b", None)
 
     def on_serve(self):
         http2.HTTP2Server.on_serve(self)
@@ -404,7 +426,21 @@ class ProxyServer(http2.HTTP2Server):
             self.trust_origin = self.get_env(
                 "TRUST_ORIGIN", self.trust_origin, cast=bool
             )
-        if self.dynamic:
+        if self.env:
+            self.compress_forward_accept = self.get_env(
+                "COMPRESS_FORWARD_ACCEPT", self.compress_forward_accept, cast=bool
+            )
+        if self.env:
+            self.compress_buffer = self.get_env(
+                "COMPRESS_BUFFER", self.compress_buffer, cast=bool
+            )
+        if self.env:
+            self.compress_timeout = self.get_env(
+                "COMPRESS_TIMEOUT", self.compress_timeout, cast=float
+            )
+        if self.is_auto():
+            self.info("Using automatic encoding (negotiated) in proxy ...")
+        elif self.dynamic:
             self.info("Using dynamic encoding (no content re-encoding) in proxy ...")
         if self.throttle:
             self.info("Throttling connections in proxy ...")
@@ -526,6 +562,225 @@ class ProxyServer(http2.HTTP2Server):
         proxy_c.enable_read()
         self.reads((proxy_c.socket,), state=False)
 
+    def _prx_encoding(self, connection, parser, headers, content_encoding):
+        """
+        Runs the negotiation of the response encoding for the automatic
+        encoding mode, submitting the back-end response to the complete
+        set of eligibility gates and resolving the content coding to be
+        applied to it.
+
+        The single rule of the automatic mode is that only the payloads
+        that arrive from the back-end under the identity coding may be
+        compressed, this is what removes both the decoding leg and the
+        failures caused by codings that are not implemented.
+
+        :type connection: Connection
+        :param connection: The front-end connection (or stream) that the
+        response is going to be sent through.
+        :type parser: HTTPParser
+        :param parser: The parser of the back-end response.
+        :type headers: Dictionary
+        :param headers: The headers of the back-end response, the identity
+        content encoding is removed from them when present.
+        :type content_encoding: String
+        :param content_encoding: The content coding of the back-end response.
+        :rtype: Dictionary
+        :return: The codec to be used in the compression of the response or
+        an invalid value in case it should be forwarded byte-identical.
+        """
+
+        # the response is forwarded byte-identical by default, note that the
+        # per response state is set explicitly so that both postures may
+        # co-exist in the same server (and even in the same connection)
+        connection.dynamic = True
+        connection.encodings_a = None
+
+        # the payload must arrive from the back-end under the identity coding,
+        # any other coding is passed through untouched, note that the explicit
+        # identity coding is removed so that the resolved one may be announced
+        if content_encoding:
+            if not content_encoding.strip().lower() == "identity":
+                return None
+            del headers["content-encoding"]
+
+        # the compression of the payload requires the chunked framing, so an
+        # older front-end (that has no such framing) is never compressed
+        if connection.parser.version < netius.common.HTTP_11:
+            return None
+
+        # a payload that is either not going to exist or that must be preserved
+        # as is cannot be compressed, this covers the informational, the empty
+        # and the partial status codes plus the HEAD method
+        code = int(parser.code_s)
+        if code < 200 or code in http.EMPTY_CODES or code == 206:
+            return None
+        method = connection.parser.method
+        if method and method.upper() == "HEAD":
+            return None
+
+        # the no-transform cache directive explicitly forbids the changing of
+        # the coding of the payload, the same applies to the partial payloads
+        # that are identified by the presence of the content range header
+        cache_control = headers.get("cache-control", "")
+        if "no-transform" in cache_control.lower():
+            return None
+        if "content-range" in headers:
+            return None
+
+        # the media type must be one for which the compression provides a
+        # relevant gain, otherwise processor time would just be wasted
+        if not self.is_compressible(headers.get("content-type", None)):
+            return None
+
+        # the payload must be large enough to pay for the framing overhead and
+        # small enough to keep the (synchronous) cost of the compression
+        # bounded, an undeclared length is handled by the deferred decision
+        if parser.content_l > self.compress_max:
+            return None
+        if parser.content_l >= 0 and parser.content_l < self.compress_min:
+            return None
+
+        # from this point on the representation depends on the codings that
+        # are accepted by the client, so the vary header must be announced
+        # even in case no compression ends up being performed
+        encodings = connection.parser.get_encodings()
+        connection.encodings_a = encodings
+
+        # resolves the content coding from the ones that are both enabled in
+        # the server and accepted by the client (server preference order)
+        return self._prx_codec(encodings)
+
+    def _prx_codec(self, encodings):
+        """
+        Resolves the content coding to be used in the compression of a
+        response from the codings that are both enabled in the server and
+        accepted by the client, respecting the server preference order.
+
+        :type encodings: List
+        :param encodings: The sequence of content codings accepted by the
+        client, ordered by descending preference.
+        :rtype: Dictionary
+        :return: The codec of the resolved content coding or an invalid
+        value in case no common coding exists.
+        """
+
+        for name in self.compress_encodings:
+            if not name in encodings:
+                continue
+            codec = http.CODECS.get(name, None)
+            if not codec:
+                continue
+            return codec
+        return None
+
+    def _prx_compress(self, connection, codec):
+        connection.dynamic = False
+        connection.set_encoding(codec["encoding"])
+        connection.encoding_c = codec["name"]
+
+    def _prx_hold(
+        self, connection, parser, headers, codec, version_s, code_s, status_s
+    ):
+        """
+        Holds the response of a back-end that streams the payload with no
+        declared length, so that the decision on the compression is only
+        taken once enough of the payload has been received.
+
+        The response is released either by `_on_prx_partial` (as soon as
+        the minimum size is crossed), by `_on_prx_message` (below the
+        minimum size, with the exact length) or by the flush deadline.
+
+        :type connection: Connection
+        :param connection: The front-end connection (or stream) that the
+        response is going to be sent through.
+        :type parser: HTTPParser
+        :param parser: The parser of the back-end response.
+        :type headers: Dictionary
+        :param headers: The headers of the back-end response.
+        :type codec: Dictionary
+        :param codec: The codec to be used in case the minimum size for
+        the compression ends up being crossed.
+        :type version_s: String
+        :param version_s: The HTTP version of the back-end response.
+        :type code_s: String
+        :param code_s: The status code of the back-end response.
+        :type status_s: String
+        :param status_s: The status message of the back-end response.
+        """
+
+        connection.encoding_b = dict(
+            parser=parser,
+            headers=headers,
+            version=version_s,
+            code=int(code_s),
+            code_s=status_s,
+            codec=codec,
+            data=[],
+            length=0,
+        )
+
+        def release():
+            self._prx_release(connection)
+
+        # schedules the flush deadline so that a back-end that trickles the
+        # payload does not hold the front-end response indefinitely
+        self.delay(release, timeout=self.compress_timeout)
+
+    def _prx_release(self, connection, codec=None, length=None):
+        """
+        Releases a response that is being held for the deferred encoding
+        decision, sending both the headers and the payload received so far
+        to the front-end connection.
+
+        :type connection: Connection
+        :param connection: The front-end connection (or stream) that is
+        holding the response to be released.
+        :type codec: Dictionary
+        :param codec: The codec to be used in the compression of the
+        payload, if unset the payload is forwarded byte-identical.
+        :type length: int
+        :param length: The exact length of the payload, only available in
+        case the complete response has already been received.
+        """
+
+        # retrieves the structure that holds the deferred response returning
+        # immediately in case there's none (the response has been released)
+        buffer = hasattr(connection, "encoding_b") and connection.encoding_b
+        if not buffer:
+            return
+        connection.encoding_b = None
+
+        # in case a codec is provided the connection is set to compress the
+        # payload, otherwise it's forwarded byte-identical announcing the
+        # exact length whenever the complete payload is already known
+        headers = buffer["headers"]
+        if codec:
+            self._prx_compress(connection, codec)
+        elif length == None:
+            connection.set_chunked()
+        else:
+            connection.set_plain()
+            headers["content-length"] = str(length)
+
+        # applies the headers and sends them to the front-end connection,
+        # note that the request context is applied so that the proper
+        # encoding is used in the connection header application
+        with connection.ctx_request():
+            self._apply_headers(
+                connection.parser, connection, buffer["parser"], headers
+            )
+        connection.send_header(
+            headers=headers,
+            version=buffer["version"],
+            code=buffer["code"],
+            code_s=buffer["code_s"],
+        )
+
+        # sends the payload that has been held so far using the encoding
+        # that has just been resolved for the connection
+        for data in buffer["data"]:
+            connection.send_part(data, final=False, callback=self._prx_throttle)
+
     def _raw_throttle(self, connection):
         if connection == None:
             return
@@ -557,11 +812,16 @@ class ProxyServer(http2.HTTP2Server):
         # to be used to send the headers (and status line) to the client
         connection = self.conn_map[_connection]
 
+        # determines if the automatic encoding mode is enabled, under this mode
+        # the payload of the back-end is never decoded (only the identity ones
+        # are re-encoded) and so the content encoding is always preserved
+        is_auto = self.is_auto()
+
         # in dynamic mode the body is forwarded byte-identical, so we must
         # preserve `content-encoding` so the client knows how to decode it,
         # without dynamic mode the proxy may re-encode and the header is
         # popped (default behaviour)
-        if self.dynamic:
+        if self.dynamic or is_auto:
             content_encoding = headers.get("content-encoding", None)
         else:
             content_encoding = headers.pop("content-encoding", None)
@@ -569,6 +829,29 @@ class ProxyServer(http2.HTTP2Server):
         # obtains the transfer encoding value from the headers, this is required
         # for the proper handling of the content length
         transfer_encoding = headers.pop("transfer-encoding", None)
+
+        # under the automatic mode the response is submitted to the complete
+        # set of eligibility gates, resolving the content coding to be applied
+        # to it, this must run before any of the length related operations as
+        # it defines the per response dynamic (no re-encoding) state
+        codec = (
+            self._prx_encoding(connection, parser, headers, content_encoding)
+            if is_auto
+            else None
+        )
+
+        # in case the back-end streams the payload with no declared length the
+        # decision is deferred until enough of it has been received, holding
+        # both the headers and the initial payload in the connection
+        if codec and parser.content_l == -1 and self.compress_buffer:
+            return self._prx_hold(
+                connection, parser, headers, codec, version_s, code_s, status_s
+            )
+
+        # in case a content coding has been resolved the connection is set to
+        # compress the payload of the response, disabling the pass-through
+        if codec:
+            self._prx_compress(connection, codec)
 
         # if either the proxy connection or the back-end one is compressed
         # the length values of the connection are considered unreliable and
@@ -579,7 +862,7 @@ class ProxyServer(http2.HTTP2Server):
             or connection.current > http.CHUNKED_ENCODING
             or parser.content_l == -1
         )
-        unreliable_length &= not self.dynamic
+        unreliable_length &= not connection.is_dynamic()
 
         # in case the content length is unreliable some of the headers defined
         # must be removed so that no extra connection error occurs, as the size
@@ -608,7 +891,7 @@ class ProxyServer(http2.HTTP2Server):
             transfer_encoding, connection.current
         )
         target_encoding = max(content_encoding_c, content_encoding_t)
-        if self.dynamic and target_encoding > connection.current:
+        if connection.is_dynamic() and target_encoding > connection.current:
             connection.set_encoding(target_encoding)
 
         # applies the headers meaning that the headers are going to be
@@ -638,6 +921,13 @@ class ProxyServer(http2.HTTP2Server):
         _connection.waiting = False
         connection = self.conn_map[_connection]
 
+        # in case the encoding decision is still deferred the response has
+        # ended below the minimum size for the compression, so it's released
+        # as identity announcing the exact length of the payload
+        buffer = hasattr(connection, "encoding_b") and connection.encoding_b
+        if buffer:
+            self._prx_release(connection, length=buffer["length"])
+
         # creates the clojure function that will be used to close the
         # current client connection and that may or may not close the
         # corresponding back-end connection (as defined in specification)
@@ -665,18 +955,39 @@ class ProxyServer(http2.HTTP2Server):
     def _on_prx_partial(self, client, parser, data):
         # retrieves the owner of the proxy parser as the proxy connection
         # and then uses the connection to decode the data to obtain the raw
-        # value of it, this is required as gzip compression may exist
+        # value of it, this is required as gzip compression may exist, note
+        # that under the automatic mode the payload is never decoded as only
+        # the identity encoded ones are eligible for re-encoding
         _connection = parser.owner
-        data = data if self.dynamic else _connection.raw_data(data)
+        data = data if self.dynamic or self.is_auto() else _connection.raw_data(data)
 
-        # retrieves the peer connection and tries to send the new data chunk
-        # back to it using the currently defined encoding (as expected), note
-        # that additional throttling operations may apply
+        # retrieves the peer connection and the structure that may be holding
+        # the response while the encoding decision is deferred
         connection = self.conn_map[_connection]
+        buffer = hasattr(connection, "encoding_b") and connection.encoding_b
+
+        # tries to send the new data chunk back to the peer connection using
+        # the currently defined encoding (as expected), note that additional
+        # throttling operations may apply, taking into account both the data
+        # pending in the front-end and the one being held
+        pending = buffer["length"] if buffer else 0
         should_throttle = self.throttle and _connection.is_throttleable()
-        should_disable = should_throttle and connection.is_exhausted()
+        should_disable = should_throttle and (
+            connection.is_exhausted() or pending > self.max_pending
+        )
         if should_disable:
             _connection.disable_read()
+
+        # in case the decision is still deferred the data is held until either
+        # the minimum size for the compression is crossed (the compression is
+        # committed) or the response ends below it (forwarded as identity)
+        if buffer:
+            buffer["data"].append(data)
+            buffer["length"] += len(data)
+            if buffer["length"] >= self.compress_min:
+                self._prx_release(connection, codec=buffer["codec"])
+            return
+
         connection.send_part(data, final=False, callback=self._prx_throttle)
 
     def _on_prx_connect(self, client, _connection):

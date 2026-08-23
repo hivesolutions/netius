@@ -112,10 +112,12 @@ COMPRESS_DENY = (
     "application/x-gzip",
     "application/x-rar-compressed",
     "application/x-xz",
+    "text/event-stream",
 )
-""" The sequence of media types that must never be compressed as
-they are already stored in a compressed format, this takes priority
-over the allowed types (safety net for extended type lists) """
+""" The sequence of media types that must never be compressed, either
+because they are already stored in a compressed format or because they
+are latency sensitive streams (eg: server sent events), this takes
+priority over the allowed types (safety net for extended type lists) """
 
 COMPRESS_ENCODINGS = ["gzip", "deflate"]
 """ The sequence of content codings to be used in the compression
@@ -520,8 +522,9 @@ class HTTPConnection(netius.Connection):
         :return: The encoding to be used in the sending of the payload.
         """
 
-        dynamic = self.owner.dynamic if self.dynamic == None else self.dynamic
-        return min(self.current, CHUNKED_ENCODING) if dynamic else self.current
+        if self.is_dynamic():
+            return min(self.current, CHUNKED_ENCODING)
+        return self.current
 
     def encoding_name(self):
         """
@@ -584,6 +587,11 @@ class HTTPConnection(netius.Connection):
 
     def is_uncompressed(self):
         return not self.is_compressed()
+
+    def is_dynamic(self):
+        if self.dynamic == None:
+            return self.owner.dynamic
+        return self.dynamic
 
     def is_flushed(self):
         return self.current > PLAIN_ENCODING
