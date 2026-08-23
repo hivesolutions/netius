@@ -466,7 +466,10 @@ class ProxyServer(http2.HTTP2Server):
         proxy_c.flush(force=True, callback=self._throttle)
 
     def on_headers(self, connection, parser):
-        pass
+        # resolves the encoding as soon as the request headers are available,
+        # this must happen before the sub-classes rewrite the headers of the
+        # request (the header map is the one of the front-end parser)
+        connection.resolve_encoding(parser)
 
     def on_partial(self, connection, parser, data):
         # retrieves the proxy connection and returns in case it's not set
@@ -711,8 +714,13 @@ class ProxyServer(http2.HTTP2Server):
         :param status_s: The status message of the back-end response.
         """
 
+        # applies the headers while the back-end connection is still around,
+        # note that the encoding related ones are re-applied at release time
+        # as the encoding is only resolved then (the connection is plain here)
+        with connection.ctx_request():
+            self._apply_headers(connection.parser, connection, parser, headers)
+
         connection.encoding_b = dict(
-            parser=parser,
             headers=headers,
             version=version_s,
             code=int(code_s),
@@ -755,7 +763,8 @@ class ProxyServer(http2.HTTP2Server):
 
         # in case a codec is provided the connection is set to compress the
         # payload, otherwise it's forwarded byte-identical announcing the
-        # exact length whenever the complete payload is already known
+        # exact length whenever the complete payload is already known, note
+        # that the header names have already been normalized (upper case)
         headers = buffer["headers"]
         if codec:
             self._prx_compress(connection, codec)
@@ -763,15 +772,13 @@ class ProxyServer(http2.HTTP2Server):
             connection.set_chunked()
         else:
             connection.set_plain()
-            headers["content-length"] = str(length)
+            headers["Content-Length"] = str(length)
 
-        # applies the headers and sends them to the front-end connection,
-        # note that the request context is applied so that the proper
-        # encoding is used in the connection header application
+        # re-applies the encoding related headers now that the encoding has
+        # been resolved and then sends them to the front-end connection, the
+        # request context is applied so that the proper encoding is used
         with connection.ctx_request():
-            self._apply_headers(
-                connection.parser, connection, buffer["parser"], headers
-            )
+            self._apply_connection(connection, headers)
         connection.send_header(
             headers=headers,
             version=buffer["version"],
