@@ -145,6 +145,14 @@ class HTTPEncodingsTest(unittest.TestCase):
         )
         self.assertEqual(netius.common.parse_encodings("gzip, *;q=0"), ["gzip"])
 
+        # a coding explicitly rejected by the peer must never be brought
+        # back by the wildcard, as the explicit definition takes precedence
+        self.assertEqual(netius.common.parse_encodings("gzip;q=0, *"), ["deflate"])
+        self.assertEqual(netius.common.parse_encodings("*, gzip;q=0"), ["deflate"])
+        self.assertEqual(
+            netius.common.parse_encodings("br, gzip;q=0, *"), ["br", "deflate"]
+        )
+
         # an unset or empty header value means that no coding is accepted
         # and a sequence of values is joined as a single one
         self.assertEqual(netius.common.parse_encodings(""), [])

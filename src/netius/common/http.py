@@ -216,8 +216,11 @@ def parse_encodings(value):
 
     # creates the list that is going to hold the coding, quality and
     # index tuples, the index is required to keep the relative order
-    # of the codings that share the same quality value
+    # of the codings that share the same quality value, the named list
+    # keeps every coding referenced by the peer (accepted or rejected)
+    # so that the wildcard never overrides an explicit definition
     codings = []
+    named = []
 
     # iterates over the complete set of comma separated codings to
     # parse each of them into the proper tuple representation
@@ -244,6 +247,7 @@ def parse_encodings(value):
 
         # in case the coding has been explicitly rejected by the peer
         # it's not added to the sequence of the accepted ones
+        named.append(name)
         if quality <= 0.0:
             continue
 
@@ -262,9 +266,10 @@ def parse_encodings(value):
 
     # replaces the wildcard coding with the codings that may be produced
     # and that have not been explicitly referenced, keeping the position
-    # of the wildcard so that the preference order is respected
+    # of the wildcard so that the preference order is respected, note that
+    # a coding rejected by the peer is never brought back by the wildcard
     index = names.index("*")
-    names[index : index + 1] = [name for name in CODINGS if not name in names]
+    names[index : index + 1] = [name for name in CODINGS if not name in named]
     return names
 
 
