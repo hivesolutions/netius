@@ -100,6 +100,63 @@ Server: Test Service/1.0.0\r\n\
 \r\n\
 Hello World"
 
+ENCODINGS_REQUEST = b"GET / HTTP/1.1\r\n\
+Accept-Encoding: deflate;q=0.5, gzip;q=1.0\r\n\
+Content-Length: 11\r\n\
+\r\n\
+Hello World"
+
+
+class HTTPEncodingsTest(unittest.TestCase):
+
+    def test_parse_encodings(self):
+        self.assertEqual(
+            netius.common.parse_encodings("gzip, deflate"), ["gzip", "deflate"]
+        )
+        self.assertEqual(
+            netius.common.parse_encodings(" GZIP , Deflate "), ["gzip", "deflate"]
+        )
+
+        # the codings must be ordered by descending quality value, using
+        # the order defined by the peer as the tie breaker
+        self.assertEqual(
+            netius.common.parse_encodings("deflate;q=0.5, gzip;q=1.0"),
+            ["gzip", "deflate"],
+        )
+        self.assertEqual(
+            netius.common.parse_encodings("gzip;q=0.5, deflate;q=0.5"),
+            ["gzip", "deflate"],
+        )
+
+        # the codings explicitly rejected by the peer must not be part of
+        # the resulting sequence, the same applies to the identity one
+        self.assertEqual(netius.common.parse_encodings("gzip;q=0"), [])
+        self.assertEqual(
+            netius.common.parse_encodings("gzip;q=0, deflate"), ["deflate"]
+        )
+        self.assertEqual(netius.common.parse_encodings("identity;q=0, gzip"), ["gzip"])
+
+        # the wildcard coding must be expanded into the codings that may
+        # be produced, keeping its position in the preference order
+        self.assertEqual(netius.common.parse_encodings("*"), ["gzip", "deflate"])
+        self.assertEqual(
+            netius.common.parse_encodings("deflate;q=1.0, *;q=0.5"),
+            ["deflate", "gzip"],
+        )
+        self.assertEqual(netius.common.parse_encodings("gzip, *;q=0"), ["gzip"])
+
+        # an unset or empty header value means that no coding is accepted
+        # and a sequence of values is joined as a single one
+        self.assertEqual(netius.common.parse_encodings(""), [])
+        self.assertEqual(netius.common.parse_encodings("  "), [])
+        self.assertEqual(
+            netius.common.parse_encodings(["gzip", "deflate"]), ["gzip", "deflate"]
+        )
+
+        # an invalid quality value is considered to be a rejection of the
+        # coding, avoiding the sending of an unexpected coding
+        self.assertEqual(netius.common.parse_encodings("gzip;q=invalid"), [])
+
 
 class HTTPParserTest(unittest.TestCase):
 
@@ -280,6 +337,29 @@ class HTTPParserTest(unittest.TestCase):
             parser.parse(CHUNKED_REQUEST)
             message = parser.get_message()
             self.assertEqual(message, b"")
+        finally:
+            parser.clear()
+
+    def test_get_encodings(self):
+        parser = netius.common.HTTPParser(self, type=netius.common.REQUEST, store=True)
+        try:
+            parser.parse(ENCODINGS_REQUEST)
+
+            # the codings must be resolved from the accept encoding header
+            # and ordered by descending quality value, the result is cached
+            self.assertEqual(parser.get_encodings(), ["gzip", "deflate"])
+            self.assertEqual(parser.encodings, ["gzip", "deflate"])
+            self.assertEqual(parser.get_encodings(), ["gzip", "deflate"])
+        finally:
+            parser.clear()
+
+        parser = netius.common.HTTPParser(self, type=netius.common.REQUEST, store=True)
+        try:
+            parser.parse(SIMPLE_REQUEST)
+
+            # a request with no accept encoding header must not accept any
+            # of the codings, so that no unexpected coding is ever sent
+            self.assertEqual(parser.get_encodings(), [])
         finally:
             parser.clear()
 

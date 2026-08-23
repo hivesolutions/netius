@@ -31,6 +31,7 @@ __license__ = "Apache License, Version 2.0"
 import collections
 import unittest
 
+import netius.common
 import netius.servers
 
 try:
@@ -39,15 +40,68 @@ except ImportError:
     mock = None
 
 
+class ProxyConnectionTest(unittest.TestCase):
+
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        self.server = netius.servers.ProxyServer(encoding="auto")
+
+    def tearDown(self):
+        unittest.TestCase.tearDown(self)
+        self.server.cleanup()
+
+    def test_resolve_encoding(self):
+        parser = self._make_parser("gzip;q=0.5, deflate")
+
+        connection = self._make_connection(netius.common.AUTO_ENCODING)
+        connection.set_gzip()
+        connection.resolve_encoding(parser)
+
+        # under the automatic mode the per response state must be taken back
+        # to its base values and the codings accepted by the client recorded
+        self.assertEqual(connection.current, netius.common.PLAIN_ENCODING)
+        self.assertEqual(connection.encodings_a, ["deflate", "gzip"])
+
+        connection = self._make_connection(netius.common.GZIP_ENCODING)
+        connection.resolve_encoding(parser)
+
+        # for the remaining modes nothing is negotiated with the client, the
+        # encoding is the server wide one (legacy behaviour)
+        self.assertEqual(connection.current, netius.common.GZIP_ENCODING)
+        self.assertEqual(connection.encodings_a, None)
+
+    def _make_connection(self, encoding):
+        # builds a proxy connection without the underlying socket, replicating
+        # the encoding state that the constructor would otherwise initialize
+        connection = netius.servers.proxy.ProxyConnection.__new__(
+            netius.servers.proxy.ProxyConnection
+        )
+        connection.owner = self.server
+        connection.encoding = encoding
+        connection.current = connection.base_encoding()
+        connection.encoding_c = None
+        connection.encodings_a = None
+        connection.dynamic = None
+        return connection
+
+    def _make_parser(self, accept_encoding):
+        parser = netius.common.HTTPParser(self, type=netius.common.REQUEST)
+        parser.version = netius.common.HTTP_11
+        parser.headers = {"accept-encoding": accept_encoding}
+        return parser
+
+
 class ProxyServerTest(unittest.TestCase):
 
     def setUp(self):
         unittest.TestCase.setUp(self)
         self.server = netius.servers.ProxyServer()
+        self.server_a = netius.servers.ProxyServer(encoding="auto")
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
         self.server.cleanup()
+        self.server_a.cleanup()
 
     def test_is_upgrade(self):
         Parser = collections.namedtuple("Parser", "headers")
@@ -111,6 +165,205 @@ class ProxyServerTest(unittest.TestCase):
         self.assertEqual(backend.tunnel_d, b"data")
         self.assertEqual(backend.tunnel_r, None)
 
+    def test__prx_encoding(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_frontend()
+        parser = self._make_response_parser()
+        headers = {"content-type": "text/html"}
+
+        codec = self.server_a._prx_encoding(connection, parser, headers, None)
+
+        # an identity payload of a compressible media type and of a size
+        # within the bounds must be compressed with the resolved coding
+        self.assertEqual(codec["name"], "gzip")
+        self.assertEqual(codec["encoding"], netius.common.GZIP_ENCODING)
+        self.assertEqual(connection.encodings_a, ["gzip", "deflate"])
+        self.assertEqual(connection.dynamic, True)
+
+        # the explicit identity coding must be removed from the headers so
+        # that the resolved coding may be announced in its place
+        headers = {"content-type": "text/html", "content-encoding": "identity"}
+        codec = self.server_a._prx_encoding(connection, parser, headers, "identity")
+        self.assertEqual(codec["name"], "gzip")
+        self.assertEqual("content-encoding" in headers, False)
+
+    def test__prx_encoding_encoded(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_frontend()
+        parser = self._make_response_parser()
+
+        for content_encoding in ("gzip", "br"):
+            headers = {
+                "content-type": "text/html",
+                "content-encoding": content_encoding,
+            }
+            codec = self.server_a._prx_encoding(
+                connection, parser, headers, content_encoding
+            )
+
+            # a payload that does not arrive under the identity coding must
+            # be forwarded byte-identical, keeping the coding of the back-end
+            self.assertEqual(codec, None)
+            self.assertEqual(headers["content-encoding"], content_encoding)
+            self.assertEqual(connection.dynamic, True)
+
+            # the representation does not depend on the codings accepted by
+            # the client, so no vary header must be announced for it
+            self.assertEqual(connection.encodings_a, None)
+
+    def test__prx_encoding_accept(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        parser = self._make_response_parser()
+
+        for accept_encoding in ("", "identity", "gzip;q=0, deflate;q=0"):
+            connection = self._make_frontend(accept_encoding=accept_encoding)
+            headers = {"content-type": "text/html"}
+            codec = self.server_a._prx_encoding(connection, parser, headers, None)
+
+            # a client that does not accept any of the supported codings must
+            # never receive a compressed payload
+            self.assertEqual(codec, None)
+            self.assertEqual("gzip" in connection.encodings_a, False)
+
+            # the response was still eligible, so the representation depends
+            # on the codings accepted and the vary header must be announced
+            self.assertNotEqual(connection.encodings_a, None)
+
+    def test__prx_encoding_status(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_frontend()
+
+        # the informational, empty and partial status codes must never be
+        # compressed as their payload either does not exist or is partial
+        for code_s in ("101", "204", "206", "304"):
+            parser = self._make_response_parser(code_s=code_s)
+            headers = {"content-type": "text/html"}
+            codec = self.server_a._prx_encoding(connection, parser, headers, None)
+            self.assertEqual(codec, None)
+            self.assertEqual(connection.encodings_a, None)
+
+        # a response to a HEAD request carries no payload, so there's nothing
+        # to be compressed in it (the length must be preserved)
+        connection = self._make_frontend(method="HEAD")
+        parser = self._make_response_parser()
+        headers = {"content-type": "text/html"}
+        codec = self.server_a._prx_encoding(connection, parser, headers, None)
+        self.assertEqual(codec, None)
+
+        # an older front-end has no chunked framing available and so it can
+        # never receive a compressed payload
+        connection = self._make_frontend(version=netius.common.HTTP_10)
+        codec = self.server_a._prx_encoding(connection, parser, headers, None)
+        self.assertEqual(codec, None)
+
+    def test__prx_encoding_preserve(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_frontend()
+        parser = self._make_response_parser()
+
+        # the no-transform cache directive forbids the changing of the coding
+        # of the payload, the same applies to the partial payloads
+        headers = {"content-type": "text/html", "cache-control": "no-transform"}
+        self.assertEqual(
+            self.server_a._prx_encoding(connection, parser, headers, None), None
+        )
+
+        headers = {"content-type": "text/html", "content-range": "bytes 0-10/20"}
+        self.assertEqual(
+            self.server_a._prx_encoding(connection, parser, headers, None), None
+        )
+
+    def test__prx_encoding_types(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_frontend()
+        parser = self._make_response_parser()
+
+        # a media type for which the compression provides no relevant gain
+        # must not even be considered eligible (no vary announcement)
+        for content_type in ("image/jpeg", "text/event-stream"):
+            headers = {"content-type": content_type}
+            codec = self.server_a._prx_encoding(connection, parser, headers, None)
+            self.assertEqual(codec, None)
+            self.assertEqual(connection.encodings_a, None)
+
+    def test__prx_encoding_size(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_frontend()
+
+        # a payload that is too small to pay for the framing overhead or too
+        # large to be compressed synchronously must be forwarded as is
+        for content_l in (0, self.server_a.compress_min - 1):
+            parser = self._make_response_parser(content_l=content_l)
+            headers = {"content-type": "text/html"}
+            codec = self.server_a._prx_encoding(connection, parser, headers, None)
+            self.assertEqual(codec, None)
+            self.assertEqual(connection.encodings_a, None)
+
+        parser = self._make_response_parser(content_l=self.server_a.compress_max + 1)
+        headers = {"content-type": "text/html"}
+        codec = self.server_a._prx_encoding(connection, parser, headers, None)
+        self.assertEqual(codec, None)
+        self.assertEqual(connection.encodings_a, None)
+
+        # a payload of undeclared length is still eligible, the decision on
+        # it being deferred until enough of it has been received
+        parser = self._make_response_parser(content_l=-1)
+        headers = {"content-type": "text/html"}
+        codec = self.server_a._prx_encoding(connection, parser, headers, None)
+        self.assertEqual(codec["name"], "gzip")
+
+    def test__prx_codec(self):
+        # the coding must be resolved using the server preference order out
+        # of the ones that are also accepted by the client
+        self.assertEqual(self.server_a._prx_codec(["gzip", "deflate"])["name"], "gzip")
+        self.assertEqual(self.server_a._prx_codec(["deflate", "gzip"])["name"], "gzip")
+        self.assertEqual(self.server_a._prx_codec(["deflate"])["name"], "deflate")
+
+        # a client that accepts no supported coding must not have any coding
+        # resolved for it (no compression is performed)
+        self.assertEqual(self.server_a._prx_codec([]), None)
+        self.assertEqual(self.server_a._prx_codec(["br", "zstd"]), None)
+
+        # a coding that is not enabled in the server must never be used even
+        # in case it's both registered and accepted by the client
+        self.server_a.compress_encodings = ["deflate"]
+        self.assertEqual(
+            self.server_a._prx_codec(["gzip", "deflate"])["name"], "deflate"
+        )
+
+    def test__apply_accept(self):
+        # under the automatic mode the back-end is asked for the identity
+        # coding, so that the proxy becomes the compression authority
+        headers = {"accept-encoding": "gzip, deflate"}
+        self.server_a._apply_accept(headers)
+        self.assertEqual(headers["accept-encoding"], "identity")
+
+        # the codings accepted by the client may be forwarded instead, so
+        # that a back-end that does better than the proxy wins
+        self.server_a.compress_forward_accept = True
+        headers = {"accept-encoding": "gzip, deflate"}
+        self.server_a._apply_accept(headers)
+        self.assertEqual(headers["accept-encoding"], "gzip, deflate")
+
+        # for the remaining modes the header is never changed by the proxy
+        headers = {"accept-encoding": "gzip, deflate"}
+        self.server._apply_accept(headers)
+        self.assertEqual(headers["accept-encoding"], "gzip, deflate")
+
     def test_on_raw_connect_data(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -149,3 +402,31 @@ class ProxyServerTest(unittest.TestCase):
         self.assertEqual(connection.send_response.call_count, 1)
         self.assertEqual(connection.send_response.call_args[1]["code"], 200)
         self.assertEqual(backend.send.call_count, 0)
+
+    def _make_frontend(
+        self,
+        accept_encoding="gzip, deflate",
+        method="GET",
+        version=netius.common.HTTP_11,
+    ):
+        # builds a front-end connection stand-in that carries the request
+        # values probed by the eligibility gates of the automatic mode
+        connection = mock.MagicMock()
+        connection.encoding_c = None
+        connection.encodings_a = None
+        connection.dynamic = None
+        connection.parser = mock.MagicMock()
+        connection.parser.method = method
+        connection.parser.version = version
+        connection.parser.get_encodings.return_value = netius.common.parse_encodings(
+            accept_encoding
+        )
+        return connection
+
+    def _make_response_parser(self, code_s="200", content_l=4096):
+        # builds a back-end response parser stand-in with only the values
+        # that are relevant for the resolution of the encoding
+        parser = mock.MagicMock()
+        parser.code_s = code_s
+        parser.content_l = content_l
+        return parser

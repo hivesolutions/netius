@@ -28,13 +28,72 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import zlib
 import json
 import unittest
 
+import netius.common
 import netius.clients
+
+RAW_MESSAGE = b"Hello World" * 32
+
+
+class HTTPDeflateTest(unittest.TestCase):
+
+    def test_deflate_wbits(self):
+        # a zlib wrapped stream must be detected from the check bits of its
+        # header so that the proper container is used in the decompressor
+        data = zlib.compress(RAW_MESSAGE)
+        self.assertEqual(netius.clients.http.deflate_wbits(data), zlib.MAX_WBITS)
+
+        # a raw deflate stream (the one produced by Netius) has no header
+        # and so it must be decoded with the negative window bits
+        compressor = zlib.compressobj(6, zlib.DEFLATED, -zlib.MAX_WBITS)
+        data = compressor.compress(RAW_MESSAGE) + compressor.flush()
+        self.assertEqual(netius.clients.http.deflate_wbits(data), -zlib.MAX_WBITS)
+
+        # a payload that is too small to carry a header falls back to the
+        # zlib wrapped variant (the one defined by the specification)
+        self.assertEqual(netius.clients.http.deflate_wbits(b"x"), zlib.MAX_WBITS)
 
 
 class HTTPProtocolTest(unittest.TestCase):
+
+    def test_raw_data(self):
+        protocol = netius.clients.HTTPProtocol(
+            "GET", "http://example.com/", asynchronous=True
+        )
+        protocol.parser = netius.common.HTTPParser(
+            protocol, type=netius.common.RESPONSE
+        )
+
+        # a payload with no content coding must be returned unchanged, the
+        # same applies to a coding that is not implemented by the client
+        protocol.parser.headers = {}
+        self.assertEqual(protocol.raw_data(RAW_MESSAGE), RAW_MESSAGE)
+
+        protocol.parser.headers = {"content-encoding": "br"}
+        self.assertEqual(protocol.raw_data(RAW_MESSAGE), RAW_MESSAGE)
+        self.assertEqual(protocol.gzip_c, None)
+
+        # both of the deflate variants must be properly decoded, so that a
+        # Netius origin may be decoded by a Netius proxy
+        protocol.parser.headers = {"content-encoding": "deflate"}
+        protocol.gzip_c = None
+        self.assertEqual(protocol.raw_data(zlib.compress(RAW_MESSAGE)), RAW_MESSAGE)
+
+        compressor = zlib.compressobj(6, zlib.DEFLATED, -zlib.MAX_WBITS)
+        data = compressor.compress(RAW_MESSAGE) + compressor.flush()
+        protocol.gzip_c = None
+        self.assertEqual(protocol.raw_data(data), RAW_MESSAGE)
+
+        # the gzip coding must be decoded taking into account its container
+        # and the coding name is matched independently of the casing
+        compressor = zlib.compressobj(6, zlib.DEFLATED, zlib.MAX_WBITS | 16)
+        data = compressor.compress(RAW_MESSAGE) + compressor.flush()
+        protocol.parser.headers = {"content-encoding": "GZIP"}
+        protocol.gzip_c = None
+        self.assertEqual(protocol.raw_data(data), RAW_MESSAGE)
 
     def test_send_request_parsed_none(self):
         protocol = netius.clients.HTTPProtocol(

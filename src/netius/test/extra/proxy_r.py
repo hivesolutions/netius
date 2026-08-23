@@ -29,6 +29,7 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import re
+import zlib
 import json
 import time
 import socket
@@ -39,6 +40,7 @@ import collections
 import netius
 import netius.extra
 import netius.clients
+import netius.servers
 
 try:
     import http.client as http_client
@@ -1022,6 +1024,63 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertEqual(captured_headers.get("x-real-ip"), "192.168.1.100")
         self.assertEqual(captured_headers.get("x-client-ip"), "192.168.1.100")
 
+    def test_accept_encoding_auto(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = netius.extra.ReverseProxyServer(
+            hosts={"host.com": "http://localhost"}, encoding="auto"
+        )
+        try:
+            frontend = self._make_frontend()
+            request_parser = self._make_request_parser(host="host.com")
+            request_parser.headers["accept-encoding"] = "gzip, deflate"
+            backend = self._make_backend()
+
+            captured_headers = {}
+
+            def capture_method(method, url, **kwargs):
+                captured_headers.update(kwargs.get("headers", {}))
+                return (None, backend)
+
+            with mock.patch.object(
+                server.http_client, "method", side_effect=capture_method
+            ):
+                server.on_headers(frontend, request_parser)
+
+            # the back-end must be asked for the identity coding so that the
+            # proxy becomes the compression authority for the edge
+            self.assertEqual(captured_headers.get("accept-encoding"), "identity")
+
+            # the codings accepted by the client must have been recorded
+            # before the request headers were rewritten
+            self.assertEqual(frontend.resolve_encoding.call_count, 1)
+        finally:
+            server.cleanup()
+
+    def test_accept_encoding_upgrade(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = netius.extra.ReverseProxyServer(
+            hosts={"host.com": "http://localhost"}, encoding="auto"
+        )
+        try:
+            frontend = self._make_frontend()
+            request_parser = self._make_upgrade_parser(host="host.com")
+            request_parser.headers["accept-encoding"] = "gzip, deflate"
+            backend = self._make_backend()
+
+            with mock.patch.object(server.raw_client, "connect", return_value=backend):
+                server.on_headers(frontend, request_parser)
+
+            # an upgrade is bridged through a raw tunnel that bypasses the
+            # encoding layer, so the request must be forwarded untouched
+            self.assertEqual(request_parser.headers["accept-encoding"], "gzip, deflate")
+            self.assertEqual(frontend.tunnel_c, backend)
+        finally:
+            server.cleanup()
+
     def _make_frontend(self):
         frontend = mock.MagicMock()
         frontend.ssl = False
@@ -1399,6 +1458,233 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
             if headers:
                 _headers.update(headers)
             conn.request(method, path, body=body, headers=_headers)
+            response = conn.getresponse()
+            response_body = response.read()
+            response_headers = dict(response.getheaders())
+            return response.status, response_headers, response_body
+        finally:
+            conn.close()
+
+
+class ReverseProxyCompressionTest(unittest.TestCase):
+    """
+    End-to-end tests for the automatic encoding mode of the reverse
+    proxy.
+
+    Starts a real WSGI back-end and a real reverse proxy running
+    under the `auto` encoding, both in background threads and both
+    bound to the loopback interface, so that the complete negotiation
+    (client, proxy and back-end) is exercised without any network
+    access.
+    """
+
+    BIG = b"netius " * 900
+
+    SMALL = b"ab"
+
+    JPEG = b"\xff\xd8" + b"j" * 4000
+
+    ENCODED = zlib.compress(b"netius " * 900)
+
+    BROTLI = b"\x1b\x2e\x00\x00" + b"b" * 200
+
+    @classmethod
+    def setUpClass(cls):
+        if http_client == None:
+            return
+
+        cls.backend = netius.servers.WSGIServer(app=cls._app, env=False)
+        cls.backend.serve(host="127.0.0.1", port=0, start=False)
+        cls.backend_port = cls.backend.port
+        cls.backend_thread = threading.Thread(target=cls.backend.start, daemon=True)
+        cls.backend_thread.start()
+        cls._wait(cls.backend_port)
+
+        cls.server = netius.extra.ReverseProxyServer(
+            hosts={"default": "http://127.0.0.1:%d" % cls.backend_port},
+            encoding="auto",
+            env=False,
+            resolve=False,
+        )
+        cls.server.serve(host="127.0.0.1", port=0, start=False)
+        cls.proxy_port = cls.server.port
+        cls.server_thread = threading.Thread(target=cls.server.start, daemon=True)
+        cls.server_thread.start()
+        cls._wait(cls.proxy_port)
+
+    @classmethod
+    def tearDownClass(cls):
+        if not hasattr(cls, "server"):
+            return
+        cls.server.stop()
+        cls.server_thread.join(timeout=5)
+        cls.backend.stop()
+        cls.backend_thread.join(timeout=5)
+
+    @classmethod
+    def _app(cls, environ, start_response):
+        path = environ["PATH_INFO"]
+        if path == "/big":
+            body, headers = cls.BIG, [("Content-Type", "text/plain")]
+        elif path == "/small":
+            body, headers = cls.SMALL, [("Content-Type", "text/plain")]
+        elif path == "/jpeg":
+            body, headers = cls.JPEG, [("Content-Type", "image/jpeg")]
+        elif path == "/encoded":
+            body, headers = cls.ENCODED, [
+                ("Content-Type", "text/plain"),
+                ("Content-Encoding", "deflate"),
+            ]
+        elif path == "/brotli":
+            body, headers = cls.BROTLI, [
+                ("Content-Type", "text/plain"),
+                ("Content-Encoding", "br"),
+            ]
+        elif path == "/no-transform":
+            body, headers = cls.BIG, [
+                ("Content-Type", "text/plain"),
+                ("Cache-Control", "no-transform"),
+            ]
+        elif path == "/stream":
+            start_response("200 OK", [("Content-Type", "text/plain")])
+            return [cls.BIG[:3000], cls.BIG[3000:]]
+        elif path == "/trickle":
+            start_response("200 OK", [("Content-Type", "text/plain")])
+            return [b"tiny"]
+        else:
+            body, headers = b"not found", [("Content-Type", "text/plain")]
+        headers.append(("Content-Length", str(len(body))))
+        start_response("200 OK", headers)
+        return [body]
+
+    @classmethod
+    def _wait(cls, port):
+        for _i in range(50):
+            time.sleep(0.1)
+            try:
+                probe = socket.create_connection(("127.0.0.1", port), timeout=1)
+                probe.close()
+                break
+            except (ConnectionRefusedError, OSError):
+                continue
+
+    def setUp(self):
+        if http_client == None:
+            self.skipTest("Skipping test: http.client unavailable")
+
+    def test_compress_identity(self):
+        _code, headers, body = self._request("/big")
+
+        # a payload that arrives from the back-end under the identity coding
+        # must be compressed with the coding accepted by the client
+        self.assertEqual(headers.get("Content-Encoding"), "gzip")
+        self.assertEqual(headers.get("Transfer-Encoding"), "chunked")
+        self.assertEqual(headers.get("Vary"), "Accept-Encoding")
+        self.assertEqual(self._decode(body, "gzip"), self.BIG)
+        self.assertLess(len(body), len(self.BIG))
+
+        # the coding must be the one accepted by the client and not the one
+        # preferred by the proxy whenever they do not intersect
+        _code, headers, body = self._request("/big", accept="deflate")
+        self.assertEqual(headers.get("Content-Encoding"), "deflate")
+        self.assertEqual(self._decode(body, "deflate"), self.BIG)
+
+    def test_compress_not_accepted(self):
+        for accept in (None, "identity", "gzip;q=0, deflate;q=0"):
+            _code, headers, body = self._request("/big", accept=accept)
+
+            # a client that does not accept any of the supported codings must
+            # never be handed a compressed payload
+            self.assertEqual(headers.get("Content-Encoding"), None)
+            self.assertEqual(headers.get("Content-Length"), str(len(self.BIG)))
+            self.assertEqual(body, self.BIG)
+
+            # the representation still depends on the codings accepted, so
+            # the vary header must be announced (avoids cache poisoning)
+            self.assertEqual(headers.get("Vary"), "Accept-Encoding")
+
+    def test_compress_encoded(self):
+        # a payload that already arrives encoded must be forwarded
+        # byte-identical, never being decoded and re-encoded
+        _code, headers, body = self._request("/encoded")
+        self.assertEqual(headers.get("Content-Encoding"), "deflate")
+        self.assertEqual(body, self.ENCODED)
+        self.assertEqual(headers.get("Vary"), None)
+
+        # a coding that Netius is not able to decode must be forwarded in
+        # the very same way, instead of taking the response down
+        _code, headers, body = self._request("/brotli")
+        self.assertEqual(headers.get("Content-Encoding"), "br")
+        self.assertEqual(body, self.BROTLI)
+
+    def test_compress_bounds(self):
+        # a payload that is too small to pay for the framing overhead must
+        # be forwarded as is, keeping its exact length
+        _code, headers, body = self._request("/small")
+        self.assertEqual(headers.get("Content-Encoding"), None)
+        self.assertEqual(headers.get("Content-Length"), str(len(self.SMALL)))
+        self.assertEqual(headers.get("Vary"), None)
+
+        # a payload that is larger than the configured maximum must not be
+        # compressed either, keeping the cost of the compression bounded
+        compress_max = self.server.compress_max
+        self.server.compress_max = 128
+        try:
+            _code, headers, body = self._request("/big")
+            self.assertEqual(headers.get("Content-Encoding"), None)
+            self.assertEqual(body, self.BIG)
+        finally:
+            self.server.compress_max = compress_max
+
+    def test_compress_types(self):
+        # a media type for which the compression provides no relevant gain
+        # must be forwarded as is, with no vary announcement
+        _code, headers, body = self._request("/jpeg")
+        self.assertEqual(headers.get("Content-Encoding"), None)
+        self.assertEqual(body, self.JPEG)
+        self.assertEqual(headers.get("Vary"), None)
+
+    def test_compress_preserve(self):
+        # the no-transform cache directive forbids the proxy from changing
+        # the coding of the payload
+        _code, headers, body = self._request("/no-transform")
+        self.assertEqual(headers.get("Content-Encoding"), None)
+        self.assertEqual(body, self.BIG)
+
+        # a response to a HEAD request carries no payload and so there's
+        # nothing in it that may be compressed
+        _code, headers, _body = self._request("/big", method="HEAD")
+        self.assertEqual(headers.get("Content-Encoding"), None)
+
+    def test_compress_deferred(self):
+        # a back-end that streams with no declared length must have the
+        # decision deferred until the minimum size has been crossed
+        _code, headers, body = self._request("/stream")
+        self.assertEqual(headers.get("Content-Encoding"), "gzip")
+        self.assertEqual(self._decode(body, "gzip"), self.BIG)
+
+        # a streamed payload that ends below the minimum size must be
+        # forwarded as identity announcing its exact length
+        _code, headers, body = self._request("/trickle")
+        self.assertEqual(headers.get("Content-Encoding"), None)
+        self.assertEqual(headers.get("Content-Length"), "4")
+        self.assertEqual(body, b"tiny")
+
+    def _decode(self, data, encoding):
+        if encoding == "gzip":
+            return zlib.decompress(data, zlib.MAX_WBITS | 16)
+        try:
+            return zlib.decompress(data)
+        except zlib.error:
+            return zlib.decompress(data, -zlib.MAX_WBITS)
+
+    def _request(self, path, method="GET", accept="gzip, deflate"):
+        conn = http_client.HTTPConnection("127.0.0.1", self.proxy_port, timeout=30)
+        try:
+            headers = {"Host": "compress.example.com"}
+            if not accept == None:
+                headers["Accept-Encoding"] = accept
+            conn.request(method, path, headers=headers)
             response = conn.getresponse()
             response_body = response.read()
             response_headers = dict(response.getheaders())

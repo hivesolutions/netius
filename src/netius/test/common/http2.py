@@ -32,6 +32,7 @@ import struct
 import unittest
 
 import netius.common
+import netius.servers.http2
 
 try:
     import hpack
@@ -419,3 +420,86 @@ class HTTP2ParserTest(unittest.TestCase):
             self.assertEqual(parser.decoder.max_allowed_table_size, 16384)
         finally:
             parser.clear(force=True)
+
+
+class HTTP2StreamTest(unittest.TestCase):
+
+    def test_resolve_encoding(self):
+        connection = self._make_connection(encoding=netius.common.GZIP_ENCODING)
+        parser = connection.parser
+        try:
+            stream_1 = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
+            stream_3 = netius.common.http2.HTTP2Stream(identifier=3, owner=parser)
+            stream_1.headers = {"accept-encoding": "gzip"}
+            stream_3.headers = {}
+
+            stream_1.resolve_encoding(stream_1)
+            stream_3.resolve_encoding(stream_3)
+
+            # each of the multiplexed streams must reach its own decision,
+            # the negotiation of one of them must never revoke the one that
+            # has already been reached by the other
+            self.assertEqual(stream_1.current, netius.common.GZIP_ENCODING)
+            self.assertEqual(stream_1.is_compressed(), True)
+            self.assertEqual(stream_3.current, netius.common.CHUNKED_ENCODING)
+            self.assertEqual(stream_3.is_compressed(), False)
+
+            # the encoding state must live in the stream itself instead of
+            # being delegated to the connection through the attribute lookup
+            self.assertIn("current", stream_1.__dict__)
+            self.assertEqual(connection.current, netius.common.GZIP_ENCODING)
+        finally:
+            parser.clear(force=True)
+
+    def test_get_encodings(self):
+        connection = self._make_connection()
+        parser = connection.parser
+        try:
+            stream = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
+            stream.headers = {"accept-encoding": "deflate;q=0.5, gzip"}
+
+            # the codings must be resolved with the same quality value rules
+            # used in the HTTP/1 parser, being cached in the stream afterwards
+            self.assertEqual(stream.get_encodings(), ["gzip", "deflate"])
+            self.assertEqual(stream.encodings, ["gzip", "deflate"])
+        finally:
+            parser.clear(force=True)
+
+    def test_ctx_request(self):
+        connection = self._make_connection()
+        parser = connection.parser
+        try:
+            stream = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
+            stream.set_gzip()
+
+            # under the request context the encoding state of the stream is
+            # the one visible in the connection, being restored on exit
+            with stream.ctx_request():
+                self.assertEqual(connection.current, netius.common.GZIP_ENCODING)
+                connection.set_deflate()
+                connection.encoding_c = "deflate"
+            self.assertEqual(connection.current, netius.common.PLAIN_ENCODING)
+            self.assertEqual(connection.encoding_c, None)
+
+            # the changes performed under the context must have been stored
+            # back into the stream instead of being lost on the restore
+            self.assertEqual(stream.current, netius.common.DEFLATE_ENCODING)
+            self.assertEqual(stream.encoding_c, "deflate")
+        finally:
+            parser.clear(force=True)
+
+    def _make_connection(self, encoding=netius.common.PLAIN_ENCODING):
+        # builds a minimal HTTP/2 connection (and parser) that satisfies the
+        # encoding and window probes performed on the creation of a stream
+        connection = netius.servers.http2.HTTP2Connection.__new__(
+            netius.servers.http2.HTTP2Connection
+        )
+        connection.legacy = False
+        connection.encoding = encoding
+        connection.current = connection.base_encoding()
+        connection.encoding_c = None
+        connection.encodings_a = None
+        connection.dynamic = None
+        connection.window_o = netius.common.HTTP2_WINDOW
+        connection.parser = netius.common.HTTP2Parser(connection, store=True)
+        return connection
