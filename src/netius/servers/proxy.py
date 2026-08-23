@@ -650,6 +650,9 @@ class ProxyServer(http2.HTTP2Server):
         # the server and accepted by the client (server preference order)
         return self._prx_codec(encodings)
 
+    def _prx_decodable(self, content_encoding):
+        return content_encoding.strip().lower() in netius.clients.http.DECODINGS
+
     def _prx_codec(self, encodings):
         """
         Resolves the content coding to be used in the compression of a
@@ -825,6 +828,12 @@ class ProxyServer(http2.HTTP2Server):
             content_encoding = headers.get("content-encoding", None)
         else:
             content_encoding = headers.pop("content-encoding", None)
+            # in case the back-end used a coding that cannot be decoded the
+            # payload has to be forwarded byte-identical, otherwise the coding
+            # announced to the client would not match the payload sent to it
+            if content_encoding and not self._prx_decodable(content_encoding):
+                headers["content-encoding"] = content_encoding
+                connection.dynamic = True
 
         # obtains the transfer encoding value from the headers, this is required
         # for the proper handling of the content length
@@ -1152,6 +1161,27 @@ class ProxyServer(http2.HTTP2Server):
             self._headers_upper(headers)
         self._apply_via(parser_prx, headers)
         self._apply_all(parser_prx, connection, headers, replace=True)
+
+    def _apply_accept(self, headers):
+        """
+        Applies the accept encoding header of the request that is going
+        to be sent to the back-end.
+
+        Under the automatic mode the proxy is the compression authority
+        for the edge, so the back-end is asked for the identity coding
+        keeping the payload eligible for compression, unless the
+        forwarding of the client codings is explicitly requested.
+
+        :type headers: Dictionary
+        :param headers: The headers of the request that is going to be
+        sent to the back-end, changed in place.
+        """
+
+        if not self.is_auto():
+            return
+        if self.compress_forward_accept:
+            return
+        headers["accept-encoding"] = "identity"
 
     def _apply_via(self, parser_prx, headers):
         # retrieves the various elements of the parser that are going

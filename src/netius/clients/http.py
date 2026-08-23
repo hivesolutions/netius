@@ -60,6 +60,34 @@ Z_PARTIAL_FLUSH = 1
 of the current zlib stream, this value has to be defined
 locally as it is not defines under the zlib module """
 
+DECODINGS = ("gzip", "x-gzip", "deflate")
+""" The sequence of content codings that the client is able to
+decode, a payload under any other coding is kept as is instead
+of raising an exception into the event loop """
+
+
+def deflate_wbits(data):
+    """
+    Determines the window bits value to be used in the decompression
+    of a deflate encoded payload, as the coding is sent both raw and
+    zlib wrapped the container has to be detected from the payload.
+
+    :type data: String
+    :param data: The initial bytes of the deflate encoded payload.
+    :rtype: int
+    :return: The window bits value to be used in the decompressor.
+    """
+
+    # a zlib wrapped stream starts with a CMF/FLG pair where the low
+    # nibble of the first byte identifies the deflate method and the
+    # complete 16 bit value is a multiple of 31 (check bits)
+    if len(data) < 2:
+        return zlib.MAX_WBITS
+    cmf = netius.legacy.ord(data[0])
+    flg = netius.legacy.ord(data[1])
+    is_zlib = cmf & 0x0F == 0x08 and (cmf << 8 | flg) % 31 == 0
+    return zlib.MAX_WBITS if is_zlib else -zlib.MAX_WBITS
+
 
 class HTTPProtocol(netius.StreamProtocol):
     """
@@ -902,6 +930,10 @@ class HTTPProtocol(netius.StreamProtocol):
         into account the possible content encoding present for compression
         or any other kind of operation.
 
+        Note that a payload under a content coding that is not implemented
+        is returned unchanged, so that the caller may forward it as is
+        instead of having an exception raised into the event loop.
+
         :type data: String
         :param data: The data to be converted back to its original
         raw value (probably through decompression).
@@ -912,9 +944,12 @@ class HTTPProtocol(netius.StreamProtocol):
         encoding = self.parser.headers.get("content-encoding", None)
         if not encoding:
             return data
+        encoding = encoding.strip().lower()
+        if not encoding in DECODINGS:
+            return data
         if not self.gzip_c:
             is_deflate = encoding == "deflate"
-            wbits = zlib.MAX_WBITS if is_deflate else zlib.MAX_WBITS | 16
+            wbits = deflate_wbits(data) if is_deflate else zlib.MAX_WBITS | 16
             self.gzip_c = zlib.decompressobj(wbits)
         return self.gzip_c.decompress(data)
 

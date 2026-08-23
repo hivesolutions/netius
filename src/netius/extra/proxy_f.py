@@ -98,6 +98,8 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             if proxy_c in self.conn_map:
                 del self.conn_map[proxy_c]
 
+            self._apply_accept(headers)
+
             encoding = headers.get("transfer-encoding", None)
             is_chunked = encoding == "chunked"
             encoding = (
