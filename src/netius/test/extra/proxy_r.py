@@ -1037,6 +1037,9 @@ class ReverseProxyServerTest(unittest.TestCase):
         frontend.is_deflate.return_value = False
         frontend.is_compressed.return_value = False
         frontend.is_measurable.return_value = True
+        frontend.encoding_w.return_value = netius.common.PLAIN_ENCODING
+        frontend.encoding_name.return_value = None
+        frontend.encodings_a = None
         frontend.ctx_request.return_value = mock.MagicMock()
         # removes dynamic attributes that on_headers checks via hasattr
         del frontend.prefix
@@ -1225,6 +1228,9 @@ class ReverseProxyServerTest(unittest.TestCase):
         connection.is_deflate.return_value = False
         connection.is_compressed.return_value = False
         connection.is_measurable.return_value = True
+        connection.encoding_w.return_value = netius.common.PLAIN_ENCODING
+        connection.encoding_name.return_value = None
+        connection.encodings_a = None
         return connection
 
 
