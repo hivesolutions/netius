@@ -1181,7 +1181,7 @@ class HTTP2Stream(netius.Stream):
         return self.current > http.PLAIN_ENCODING
 
     def is_measurable(self, strict=True):
-        if self.is_compressed():
+        if self.encoding_w() > http.CHUNKED_ENCODING:
             return False
         return True
 

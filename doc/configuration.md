@@ -92,7 +92,10 @@
 | **COMPRESS_TYPES**     | `list` | built-in allowlist | The media types considered to be compressible, a value ending with a slash is matched as a prefix (eg: `text/`) and one starting with a plus as a suffix (eg: `+json`).   |
 | **COMPRESS_ENCODINGS** | `list` | `gzip, deflate`    | The content codings to be used in the compression, defined in descending order of preference (the first one also accepted by the client is the one used).                 |
 | **COMPRESS_LEVEL**     | `int`  | `6`                | The zlib compression level to be used, provides a balance between the compression ratio and the processor usage.                                                          |
+| **COMPRESS_FLUSH**     | `int`  | `16384`            | The amount of payload accumulated in the compressor before a partial flush, set it to `0` to flush every chunk (see the note below on latency sensitive streams).         |
 | **COMPRESS_VARY**      | `bool` | `True`             | If the `Vary: Accept-Encoding` header should be announced for the responses that were eligible for compression, required for correct behaviour behind a shared cache.     |
+
+Accumulating the payload before each flush improves the compression ratio of a chunked response considerably, but it also means that a response is only delivered in blocks of roughly `COMPRESS_FLUSH` bytes. That is a bad trade for a latency sensitive stream (server sent events, long polling, progress output), so `text/event-stream` is never compressed and any deployment that serves such a stream under an explicit `ENCODING=gzip` or `ENCODING=deflate` should set `COMPRESS_FLUSH` to `0`.
 
 #### Proxy
 

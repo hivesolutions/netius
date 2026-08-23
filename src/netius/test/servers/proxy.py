@@ -54,13 +54,21 @@ class ProxyConnectionTest(unittest.TestCase):
         parser = self._make_parser("gzip;q=0.5, deflate")
 
         connection = self._make_connection(netius.common.AUTO_ENCODING)
-        connection.set_gzip()
         connection.resolve_encoding(parser)
 
-        # under the automatic mode the per response state must be taken back
-        # to its base values and the codings accepted by the client recorded
+        # under the automatic mode the codings accepted by the client must be
+        # recorded, ordered by descending quality value
         self.assertEqual(connection.current, netius.common.PLAIN_ENCODING)
         self.assertEqual(connection.encodings_a, ["deflate", "gzip"])
+
+        # once the encoding of the response has been resolved a late call must
+        # not revoke it, as the response may already be under transmission
+        connection.dynamic = False
+        connection.set_gzip()
+        connection.encodings_a = None
+        connection.resolve_encoding(parser)
+        self.assertEqual(connection.current, netius.common.GZIP_ENCODING)
+        self.assertEqual(connection.encodings_a, None)
 
         connection = self._make_connection(netius.common.GZIP_ENCODING)
         connection.resolve_encoding(parser)

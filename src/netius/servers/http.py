@@ -66,10 +66,12 @@ and deflate encodings, this is the same value used by the
 zlib module and provides a reasonable balance between the
 compression ratio and the CPU usage """
 
-GZIP_BUFFER = 16384
+COMPRESS_FLUSH = 16384
 """ The amount of raw data (in bytes) that is accumulated in the
 compressor before a partial flush is performed, avoiding one flush
-per payload chunk which would degrade the compression ratio """
+per payload chunk which would degrade the compression ratio, set it
+to zero to flush every chunk (required for latency sensitive streams
+that are served under an explicit compressed encoding) """
 
 EMPTY_CODES = (204, 304)
 """ The set of HTTP status codes that according to the HTTP
@@ -310,7 +312,7 @@ class HTTPConnection(netius.Connection):
         # flush degrading the compression ratio
         data_c = gzip.compress(data)
         self.gzip_l[stream] = self.gzip_l.get(stream, 0) + len(data)
-        if not data_c and self.gzip_l[stream] >= GZIP_BUFFER:
+        if not data_c and self.gzip_l[stream] >= self.owner.compress_flush:
             data_c = gzip.flush(Z_PARTIAL_FLUSH)
         if data_c:
             self.gzip_l[stream] = 0
@@ -488,10 +490,9 @@ class HTTPConnection(netius.Connection):
 
         # if the target encoding is the automatic one the effective
         # encoding is only resolved once the payload is known, so only
-        # the codings accepted by the client are recorded and the per
-        # response state is taken back to its base values
+        # the codings accepted by the client are recorded, note that the
+        # per response state is reset at the boundary of each response
         elif self.encoding == AUTO_ENCODING:
-            self.set_base()
             self.encodings_a = parser.get_encodings()
 
     def base_encoding(self):
@@ -597,9 +598,10 @@ class HTTPConnection(netius.Connection):
         return self.current > PLAIN_ENCODING
 
     def is_measurable(self, strict=True):
-        if self.is_compressed():
+        encoding = self.encoding_w()
+        if encoding > CHUNKED_ENCODING:
             return False
-        if strict and self.is_chunked():
+        if strict and encoding > PLAIN_ENCODING:
             return False
         return True
 
@@ -730,6 +732,7 @@ class HTTPServer(netius.StreamServer):
         compress_types=COMPRESS_TYPES,
         compress_encodings=COMPRESS_ENCODINGS,
         compress_level=GZIP_LEVEL,
+        compress_flush=COMPRESS_FLUSH,
         compress_vary=True,
         *args,
         **kwargs
@@ -743,6 +746,7 @@ class HTTPServer(netius.StreamServer):
         self.compress_types = compress_types
         self.compress_encodings = compress_encodings
         self.compress_level = compress_level
+        self.compress_flush = compress_flush
         self.compress_vary = compress_vary
         self.dynamic = False
         self.common_file = None
@@ -888,6 +892,10 @@ class HTTPServer(netius.StreamServer):
         if self.env:
             self.compress_level = self.get_env(
                 "COMPRESS_LEVEL", self.compress_level, cast=int
+            )
+        if self.env:
+            self.compress_flush = self.get_env(
+                "COMPRESS_FLUSH", self.compress_flush, cast=int
             )
         if self.env:
             self.compress_vary = self.get_env(
@@ -1059,7 +1067,7 @@ class HTTPServer(netius.StreamServer):
         encoding = connection.encoding_w()
         is_chunked = encoding > PLAIN_ENCODING
         is_compressed = encoding > CHUNKED_ENCODING
-        is_measurable = not is_compressed and not (strict and is_chunked)
+        is_measurable = connection.is_measurable(strict=strict)
         has_length = "Content-Length" in headers
         has_ranges = "Accept-Ranges" in headers
         has_encoding = "Content-Encoding" in headers

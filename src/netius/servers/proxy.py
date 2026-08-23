@@ -79,13 +79,19 @@ class ProxyConnection(http2.HTTP2Connection):
         self.parser.bind("on_unavailable", self.on_unavailable)
 
     def resolve_encoding(self, parser):
-        # under the automatic mode the encoding is negotiated on a response
-        # basis, so the parent resolution (that resets the per response state
-        # and records the codings accepted by the client) is run, for the
-        # remaining modes the encoding is the server wide one and nothing is
+        # under the automatic mode the parent resolution is run so that the
+        # codings accepted by the client are recorded, for the remaining
+        # modes the encoding is the server wide one and nothing is
         # negotiated with the client (legacy behaviour)
         if not self.encoding == netius.common.AUTO_ENCODING:
             return
+
+        # in case the encoding of the response has already been resolved
+        # nothing is done, otherwise a late resolution (eg: the request body
+        # completing after an early response) would revoke the decision
+        if not self.dynamic == None:
+            return
+
         http2.HTTP2Connection.resolve_encoding(self, parser)
 
     def set_h2(self):
@@ -624,7 +630,7 @@ class ProxyServer(http2.HTTP2Server):
         # the no-transform cache directive explicitly forbids the changing of
         # the coding of the payload, the same applies to the partial payloads
         # that are identified by the presence of the content range header
-        cache_control = headers.get("cache-control", "")
+        cache_control = self._prx_header(headers, "cache-control") or ""
         if "no-transform" in cache_control.lower():
             return None
         if "content-range" in headers:
@@ -632,7 +638,7 @@ class ProxyServer(http2.HTTP2Server):
 
         # the media type must be one for which the compression provides a
         # relevant gain, otherwise processor time would just be wasted
-        if not self.is_compressible(headers.get("content-type", None)):
+        if not self.is_compressible(self._prx_header(headers, "content-type")):
             return None
 
         # the payload must be large enough to pay for the framing overhead and
@@ -652,6 +658,27 @@ class ProxyServer(http2.HTTP2Server):
         # resolves the content coding from the ones that are both enabled in
         # the server and accepted by the client (server preference order)
         return self._prx_codec(encodings)
+
+    def _prx_header(self, headers, name):
+        """
+        Obtains a single (string) value for the requested header, as a
+        repeated header is stored as a sequence of values by the parser
+        and the last definition is the one that prevails.
+
+        :type headers: Dictionary
+        :param headers: The map of headers from which the value is going
+        to be retrieved.
+        :type name: String
+        :param name: The (lower cased) name of the header to retrieve.
+        :rtype: String
+        :return: The single value of the requested header or an invalid
+        value in case it's not defined.
+        """
+
+        value = headers.get(name, None)
+        if isinstance(value, (list, tuple)):
+            value = value[-1] if value else None
+        return value
 
     def _prx_decodable(self, content_encoding):
         return content_encoding.strip().lower() in netius.clients.http.DECODINGS
@@ -720,7 +747,7 @@ class ProxyServer(http2.HTTP2Server):
         with connection.ctx_request():
             self._apply_headers(connection.parser, connection, parser, headers)
 
-        connection.encoding_b = dict(
+        buffer = dict(
             headers=headers,
             version=version_s,
             code=int(code_s),
@@ -729,8 +756,14 @@ class ProxyServer(http2.HTTP2Server):
             data=[],
             length=0,
         )
+        connection.encoding_b = buffer
 
         def release():
+            # only releases the response that has armed this deadline, as
+            # the deadline of a previous response of the same (keep alive)
+            # connection may still be pending
+            if not connection.encoding_b is buffer:
+                return
             self._prx_release(connection)
 
         # schedules the flush deadline so that a back-end that trickles the
@@ -832,9 +865,10 @@ class ProxyServer(http2.HTTP2Server):
         # without dynamic mode the proxy may re-encode and the header is
         # popped (default behaviour)
         if self.dynamic or is_auto:
-            content_encoding = headers.get("content-encoding", None)
+            content_encoding = self._prx_header(headers, "content-encoding")
         else:
-            content_encoding = headers.pop("content-encoding", None)
+            content_encoding = self._prx_header(headers, "content-encoding")
+            headers.pop("content-encoding", None)
             # in case the back-end used a coding that cannot be decoded the
             # payload has to be forwarded byte-identical, otherwise the coding
             # announced to the client would not match the payload sent to it
