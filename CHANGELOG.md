@@ -13,13 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Torrent metadata exchange so that downloads can be started from just an info hash, plus a command line example that downloads using the DHT network
 * Configurable maximum number of peers per torrent task
 * Estimated time of arrival in the torrent task status output
+* Proxy response compression that is negotiated with the client and aware of the size and type of the content - [#72](https://github.com/hivesolutions/netius/issues/72)
+* Announcement of the Vary header for the responses whose compression depends on the client
 
 ### Changed
 
-*
+* Accept-Encoding is now parsed honouring quality values and the wildcard value
 
 ### Fixed
 
+* Proxy no longer announces a compression that is not applied to the response - [#72](https://github.com/hivesolutions/netius/issues/72)
+* Proxy no longer replaces the compression that was applied by the back-end - [#72](https://github.com/hivesolutions/netius/issues/72)
+* Proxy no longer fails on a response compressed with an unsupported algorithm - [#72](https://github.com/hivesolutions/netius/issues/72)
+* Compression is no longer shared between the parallel requests of an HTTP/2 client - [#72](https://github.com/hivesolutions/netius/issues/72)
 * DHT client no longer crashes when receiving a response with no matching pending request
 * DHT queries now send a valid node identifier so that peers can actually be discovered
 * DHT client now tolerates malformed responses and skips unroutable nodes instead of raising
