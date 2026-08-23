@@ -1114,6 +1114,19 @@ class HTTP2Stream(netius.Stream):
         with self.ctx_request():
             self.connection.resolve_encoding(parser)
 
+    def encoding_w(self):
+        if self.is_dynamic():
+            return min(self.current, http.CHUNKED_ENCODING)
+        return self.current
+
+    def encoding_name(self):
+        encoding = self.encoding_w()
+        if encoding <= http.CHUNKED_ENCODING:
+            return None
+        if self.encoding_c:
+            return self.encoding_c
+        return "deflate" if encoding == http.DEFLATE_ENCODING else "gzip"
+
     def set_encoding(self, encoding):
         self.current = encoding
 

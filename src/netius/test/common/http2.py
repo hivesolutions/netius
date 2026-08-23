@@ -451,6 +451,26 @@ class HTTP2StreamTest(unittest.TestCase):
         finally:
             parser.clear(force=True)
 
+    def test_encoding_w(self):
+        connection = self._make_connection(encoding=netius.common.GZIP_ENCODING)
+        parser = connection.parser
+        try:
+            stream = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
+
+            # the encoding of the stream must be the one resolved from its
+            # own state and never the one of the shared connection
+            connection.set_plain()
+            self.assertEqual(stream.encoding_w(), netius.common.GZIP_ENCODING)
+            self.assertEqual(stream.encoding_name(), "gzip")
+
+            # the per response dynamic state of the stream must clamp the
+            # encoding so that no re-encoding of the payload is performed
+            stream.dynamic = True
+            self.assertEqual(stream.encoding_w(), netius.common.CHUNKED_ENCODING)
+            self.assertEqual(stream.encoding_name(), None)
+        finally:
+            parser.clear(force=True)
+
     def test_get_encodings(self):
         connection = self._make_connection()
         parser = connection.parser
@@ -495,6 +515,7 @@ class HTTP2StreamTest(unittest.TestCase):
             netius.servers.http2.HTTP2Connection
         )
         connection.legacy = False
+        connection.owner = netius.servers.HTTPServer()
         connection.encoding = encoding
         connection.current = connection.base_encoding()
         connection.encoding_c = None
