@@ -4247,8 +4247,11 @@ class AbstractBase(observer.Observable):
             (run,) = options
 
             # in case the method is not meant to be run, probably canceled
-            # the execution of it should be properly ignored
+            # the execution of it should be properly ignored, note that the
+            # counter of cancelled operations is decremented as the operation
+            # is no longer part of the delayed queues
             if not run:
+                self._cancelled = max(self._cancelled - 1, 0)
                 continue
 
             # calls the callback method as the delayed operation is

@@ -426,6 +426,14 @@ class HTTPParserTest(unittest.TestCase):
             headers_count=1,
         )
 
+        # the count bound is an inclusive one, a message with exactly the
+        # allowed number of headers must still be accepted
+        parser = self._parse(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nX-Header: a\r\n\r\n",
+            headers_count=2,
+        )
+        self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
+
     def test_framing(self):
         # a duplicated content length makes the framing of the message an
         # ambiguous one and so it must be rejected even if the values agree

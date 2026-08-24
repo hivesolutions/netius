@@ -815,8 +815,9 @@ class HTTPParser(parser.Parser):
 
         # verifies that the number of headers is within the allowed
         # bounds, complementing the size based verification for the
-        # situations where many small headers are sent
-        if len(lines) > self.headers_count:
+        # situations where many small headers are sent, note that the
+        # first line of the section is an empty one (not a header)
+        if len(lines) - 1 > self.headers_count:
             raise netius.ParserError("Too many headers", code=431)
 
         # ensures that no bare carriage return or line feed is present in

@@ -692,6 +692,7 @@ class HTTPProtocol(netius.StreamProtocol):
         # the connection operation is exceeded an error is set int
         # the connection and the connection is properly closed
         def connect_timeout():
+            self.timeout_h = None
             if self.is_open():
                 return
             if self.request:
@@ -717,6 +718,10 @@ class HTTPProtocol(netius.StreamProtocol):
         # creates a function that is going to be used to validate
         # the receive operation of the connection (receive timeout)
         def receive_timeout():
+            # the handler is already running so it's no longer part of the
+            # delayed queues, unsetting it avoids a pointless cancellation
+            self.timeout_h = None
+
             # runs the initial verification operations that will
             # try to validate if the requirements for proper request
             # validations are defined, if any of them is not the control

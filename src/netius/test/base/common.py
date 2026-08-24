@@ -58,6 +58,21 @@ class BaseTest(unittest.TestCase):
         finally:
             loop.close()
 
+    def test_unpend_executed(self):
+        loop = netius.Base()
+        try:
+            # an operation that has already been executed is no longer part
+            # of the queues, so cancelling its handler must not be accounted
+            # for as if it were still pending removal
+            callable_t = loop.delay(lambda: None, timeout=60)
+            loop._delayed = []
+            loop._delayed_o = []
+            loop.unpend(callable_t)
+            self.assertEqual(loop._cancelled, 1)
+            self.assertEqual(len(loop._delayed), 0)
+        finally:
+            loop.close()
+
     def test_compact(self):
         loop = netius.Base()
         try:
