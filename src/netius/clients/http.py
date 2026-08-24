@@ -1008,6 +1008,15 @@ class HTTPProtocol(netius.StreamProtocol):
         self.parser.parse(data)
 
     def _on_data(self):
+        # an informational response is an interim one so the exchange is not
+        # finished by it, the message event must not be triggered and the
+        # timeout handler must be kept as a final response is still pending,
+        # note that the switching protocols one is not an interim response
+        if self.parser.code < 200 and not self.parser.code == 101:
+            self.traced("%d %s", self.parser.code, self.parser.status)
+            self.parser.clear()
+            return
+
         self.unset_timeout()
         message = self.parser.get_message()
         self.traced("%d %s", self.parser.code, self.parser.status)

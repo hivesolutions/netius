@@ -931,6 +931,20 @@ class ProxyServer(http2.HTTP2Server):
         # to be used to send the headers (and status line) to the client
         connection = self.conn_map[_connection]
 
+        # an informational response is an interim one, it carries no payload
+        # and is terminated by the end of its headers, so it's relayed as is
+        # and none of the framing decisions apply to it, note that a client
+        # with no support for it must never be presented with one
+        code = int(code_s)
+        if code < 200 and not code == 101:
+            if connection.parser.version < netius.common.HTTP_11:
+                return
+            self._apply_hop(headers)
+            connection.send_header(
+                headers=headers, version=version_s, code=code, code_s=status_s
+            )
+            return
+
         # determines if the automatic encoding mode is enabled, under this mode
         # the payload of the back-end is never decoded (only the identity ones
         # are re-encoded) and so the content encoding is always preserved

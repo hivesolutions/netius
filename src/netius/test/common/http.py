@@ -104,6 +104,13 @@ Server: Test Service/1.0.0\r\n\
 \r\n\
 Hello World"
 
+INTERIM_RESPONSE = b"HTTP/1.1 100 Continue\r\n\
+\r\n\
+HTTP/1.1 200 OK\r\n\
+Content-Length: 2\r\n\
+\r\n\
+hi"
+
 ENCODINGS_REQUEST = b"GET / HTTP/1.1\r\n\
 Host: localhost\r\n\
 Accept-Encoding: deflate;q=0.5, gzip;q=1.0\r\n\
@@ -640,6 +647,21 @@ class HTTPParserTest(unittest.TestCase):
             self.assertEqual(headers["Server"], "Test Service/1.0.0")
 
             parser.parse_closed()
+            self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
+        finally:
+            parser.clear()
+
+    def test_interim_response(self):
+        parser = netius.common.HTTPParser(self, type=netius.common.RESPONSE, store=True)
+        seen = []
+        parser.bind("on_data", lambda: seen.append((parser.code, parser.get_message())))
+        try:
+            # an informational response is always terminated by the empty line
+            # that follows its headers, so the final response that comes after
+            # it must be parsed as a message of its own
+            parser.parse(INTERIM_RESPONSE)
+
+            self.assertEqual(seen, [(100, b""), (200, b"hi")])
             self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
         finally:
             parser.clear()

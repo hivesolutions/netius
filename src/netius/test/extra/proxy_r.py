@@ -845,6 +845,54 @@ class ReverseProxyServerTest(unittest.TestCase):
         headers = call_kwargs["headers"]
         self.assertIn("Via", headers)
 
+    def test_prx_headers_interim(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        backend = self._make_backend()
+        self.server.conn_map[backend] = frontend
+
+        response_parser = self._make_response_parser(
+            backend, code="100", status="Continue"
+        )
+        response_parser.headers = {"connection": "keep-alive"}
+
+        self.server._on_prx_headers(
+            self.server.http_client, response_parser, response_parser.headers
+        )
+
+        # an informational response is relayed as is, carrying neither the
+        # hop-by-hop headers of the back-end nor any framing decision
+        self.assertEqual(frontend.send_header.call_count, 1)
+        call_kwargs = frontend.send_header.call_args[1]
+        self.assertEqual(call_kwargs["code"], 100)
+        self.assertEqual(call_kwargs["code_s"], "Continue")
+        self.assertEqual("connection" in call_kwargs["headers"], False)
+        self.assertEqual("Transfer-Encoding" in call_kwargs["headers"], False)
+
+    def test_prx_headers_interim_http_10(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        backend = self._make_backend()
+        self.server.conn_map[backend] = frontend
+        frontend.parser.version = netius.common.HTTP_10
+
+        response_parser = self._make_response_parser(
+            backend, code="100", status="Continue"
+        )
+        response_parser.headers = {}
+
+        self.server._on_prx_headers(
+            self.server.http_client, response_parser, response_parser.headers
+        )
+
+        # a client with no support for an interim response must never be
+        # presented with one, as it would take it as the final response
+        self.assertEqual(frontend.send_header.call_count, 0)
+
     def test_prx_partial_relays_data(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")

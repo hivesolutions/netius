@@ -936,10 +936,15 @@ class HTTPParser(parser.Parser):
             if type(host) == list:
                 raise netius.ParserError("Duplicated host header")
 
-        # in case the current response in parsing has the no content
-        # code (no payload present) the content length is set to the
-        # zero value in case it has not already been populated
-        if self.type == RESPONSE and self.code in (204, 304) and self.content_l == -1:
+        # in case the current response in parsing is one that may not carry
+        # a payload the content length is set to the zero value in case it
+        # has not already been populated, note that an informational response
+        # is always terminated by the empty line that follows its headers
+        if (
+            self.type == RESPONSE
+            and (self.code < 200 or self.code in (204, 304))
+            and self.content_l == -1
+        ):
             self.content_l = 0
 
         # in case the current request is not chunked and the content length
