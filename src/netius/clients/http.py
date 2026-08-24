@@ -66,29 +66,6 @@ decode, a payload under any other coding is kept as is instead
 of raising an exception into the event loop """
 
 
-def deflate_wbits(data):
-    """
-    Determines the window bits value to be used in the decompression
-    of a deflate encoded payload, as the coding is sent both raw and
-    zlib wrapped the container has to be detected from the payload.
-
-    :type data: String
-    :param data: The initial bytes of the deflate encoded payload.
-    :rtype: int
-    :return: The window bits value to be used in the decompressor.
-    """
-
-    # a zlib wrapped stream starts with a CMF/FLG pair where the low
-    # nibble of the first byte identifies the deflate method and the
-    # complete 16 bit value is a multiple of 31 (check bits)
-    if len(data) < 2:
-        return zlib.MAX_WBITS
-    cmf = netius.legacy.ord(data[0])
-    flg = netius.legacy.ord(data[1])
-    is_zlib = cmf & 0x0F == 0x08 and (cmf << 8 | flg) % 31 == 0
-    return zlib.MAX_WBITS if is_zlib else -zlib.MAX_WBITS
-
-
 class HTTPProtocol(netius.StreamProtocol):
     """
     Implementation of the HTTP protocol to be used by a client
@@ -1532,6 +1509,29 @@ class HTTPClient(netius.ClientAgent):
             return
         self._loop.close()
         self._loop = None
+
+
+def deflate_wbits(data):
+    """
+    Determines the window bits value to be used in the decompression
+    of a deflate encoded payload, as the coding is sent both raw and
+    zlib wrapped the container has to be detected from the payload.
+
+    :type data: String
+    :param data: The initial bytes of the deflate encoded payload.
+    :rtype: int
+    :return: The window bits value to be used in the decompressor.
+    """
+
+    # a zlib wrapped stream starts with a CMF/FLG pair where the low
+    # nibble of the first byte identifies the deflate method and the
+    # complete 16 bit value is a multiple of 31 (check bits)
+    if len(data) < 2:
+        return zlib.MAX_WBITS
+    cmf = netius.legacy.ord(data[0])
+    flg = netius.legacy.ord(data[1])
+    is_zlib = cmf & 0x0F == 0x08 and (cmf << 8 | flg) % 31 == 0
+    return zlib.MAX_WBITS if is_zlib else -zlib.MAX_WBITS
 
 
 if __name__ == "__main__":
