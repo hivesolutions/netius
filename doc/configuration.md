@@ -76,18 +76,54 @@
 
 #### HTTP
 
-| Name           | Type   | Description                                                                                 |
-| -------------- | ------ | ------------------------------------------------------------------------------------------- |
-| **SAFE**       | `bool` | If safe execution should be enforced, (eg: avoiding HTTP2 execution) (defaults to `False`). |
-| **COMMON_LOG** | `str`  | The path to the file to log the HTTP request in "Common Log Format (defaults to `None`).    |
+| Name           | Type   | Description                                                                                                                                                                     |
+| -------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SAFE**       | `bool` | If safe execution should be enforced, (eg: avoiding HTTP2 execution) (defaults to `False`).                                                                                     |
+| **COMMON_LOG** | `str`  | The path to the file to log the HTTP request in "Common Log Format" (defaults to `None`).                                                                                       |
+| **ENCODING**   | `str`  | The encoding to be applied to the responses, one of `plain`, `chunked`, `gzip`, `deflate` or `auto` (defaults to `plain`), check the `Compression` section for the `auto` mode. |
+
+#### Compression
+
+| Name                   | Type   | Default            | Description                                                                                                                                                               |
+| ---------------------- | ------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **COMPRESS_MIN**       | `int`  | `1024`             | The minimum size (in bytes) of a payload for the compression of it to be considered, smaller payloads would grow in size once the framing overhead is taken into account. |
+| **COMPRESS_MAX**       | `int`  | `5242880`          | The maximum size (in bytes) of a payload for the compression of it to be considered, keeps the cost of the (synchronous) compression bounded.                             |
+| **COMPRESSED_LIMIT**   | `int`  | `5242880`          | Alias of `COMPRESS_MAX`, kept for backwards compatibility.                                                                                                                |
+| **COMPRESS_TYPES**     | `list` | built-in allowlist | The media types considered to be compressible, a value ending with a slash is matched as a prefix (eg: `text/`) and one starting with a plus as a suffix (eg: `+json`).   |
+| **COMPRESS_ENCODINGS** | `list` | `gzip, deflate`    | The content codings to be used in the compression, defined in descending order of preference (the first one also accepted by the client is the one used).                 |
+| **COMPRESS_LEVEL**     | `int`  | `6`                | The zlib compression level to be used, provides a balance between the compression ratio and the processor usage.                                                          |
+| **COMPRESS_FLUSH**     | `int`  | `16384`            | The amount of payload accumulated in the compressor before a partial flush, set it to `0` to flush every chunk (see the note below on latency sensitive streams).         |
+| **COMPRESS_VARY**      | `bool` | `True`             | If the `Vary: Accept-Encoding` header should be announced for the responses that were eligible for compression, required for correct behaviour behind a shared cache.     |
+
+Accumulating the payload before each flush improves the compression ratio of a chunked response considerably, but it also means that a response is only delivered in blocks of roughly `COMPRESS_FLUSH` bytes. That is a bad trade for a latency sensitive stream (server sent events, long polling, progress output), so `text/event-stream` is never compressed and any deployment that serves such a stream under an explicit `ENCODING=gzip` or `ENCODING=deflate` should set `COMPRESS_FLUSH` to `0`.
 
 #### Proxy
 
-| Name             | Type   | Description                                                                                                                                                                                                                       |
-| ---------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **DYNAMIC**      | `bool` | In case this value is active dynamic connection encoding is applied, meaning that extra heuristics will be applied on a response basis to determine the proper encoding of the response (eg: plain, chunked, gzip, etc.).         |
-| **THROTTLE**     | `bool` | If throttling of the connection stream should be applied on both ways to avoid starvation of the producer consumer relation.                                                                                                      |
-| **TRUST_ORIGIN** | `bool` | If the origin connection (eg: http client, proxy client, etc.) is meant to be trusted meaning that its information is considered reliable, this value is especially important for proxy to proxy relations (defaults to `False`). |
+| Name                        | Type    | Description                                                                                                                                                                                                                                     |
+| --------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DYNAMIC**                 | `bool`  | In case this value is active dynamic connection encoding is applied, meaning that extra heuristics will be applied on a response basis to determine the proper encoding of the response (eg: plain, chunked, gzip, etc.).                       |
+| **THROTTLE**                | `bool`  | If throttling of the connection stream should be applied on both ways to avoid starvation of the producer consumer relation.                                                                                                                    |
+| **TRUST_ORIGIN**            | `bool`  | If the origin connection (eg: http client, proxy client, etc.) is meant to be trusted meaning that its information is considered reliable, this value is especially important for proxy to proxy relations (defaults to `False`).               |
+| **COMPRESS_FORWARD_ACCEPT** | `bool`  | If the `Accept-Encoding` of the client should be forwarded to the back-end instead of asking it for the `identity` coding, use it when the back-end does better than the proxy (defaults to `False`).                                           |
+| **COMPRESS_BUFFER**         | `bool`  | If the encoding decision should be deferred for the back-ends that stream a payload with no declared length, holding the response until the minimum size is crossed, when disabled such responses are forwarded untouched (defaults to `True`). |
+| **COMPRESS_TIMEOUT**        | `float` | The maximum amount of time (in seconds) that a response may be held while waiting for enough payload to decide on the compression (defaults to `1.0`).                                                                                          |
+
+##### Compression at the proxy (`ENCODING=auto`)
+
+The `auto` encoding makes the proxy the compression authority for the edge, negotiating the coding of every response with the client instead of applying a server wide one. The interaction with `DYNAMIC` is the following:
+
+| `ENCODING`          | `DYNAMIC`     | Behaviour                                                                          |
+| ------------------- | ------------- | ---------------------------------------------------------------------------------- |
+| `plain` / `chunked` | `1` (default) | Pass-through, the payload of the back-end is forwarded byte-identical.             |
+| `gzip` / `deflate`  | `0`           | The payload of the back-end is decoded and re-encoded unconditionally.             |
+| `auto`              | ignored       | Negotiated, size and content type aware compression, resolved on a response basis. |
+
+Under `auto` only the payloads that arrive from the back-end under the `identity` coding are compressed, so an already encoded response is always forwarded byte-identical and never decoded. A response is compressed only when the client accepts one of the configured codings, the status code carries a payload, no `Cache-Control: no-transform` or `Content-Range` is present, the media type is in `COMPRESS_TYPES` and the size is between `COMPRESS_MIN` and `COMPRESS_MAX` (when the back-end declares it). The `CONNECT` and WebSocket tunnels bypass the encoding layer and are therefore never affected. Note that a client rejecting the identity coding with `identity;q=0` still receives an uncompressed response whenever none of the configured codings is acceptable to it, as no `406` is produced.
+
+Two notes worth keeping in mind when enabling it:
+
+- Compressing a response that mixes a secret with attacker influenced content is the pre-condition of the BREACH attack, and a proxy applies it across every back-end at once. `COMPRESS_TYPES` and the support for `Cache-Control: no-transform` are the levers available to exclude the affected responses.
+- Compression runs synchronously in the event loop thread, which at a proxy is shared by every back-end. `COMPRESS_MAX` together with the identity only rule (no decoding leg) is what keeps that cost bounded. Note that a back-end that streams without declaring a length cannot be measured upfront, so `COMPRESS_MAX` does not apply to it, set `COMPRESS_BUFFER` to `0` to leave those responses untouched.
 
 #### Proxy Reverse
 

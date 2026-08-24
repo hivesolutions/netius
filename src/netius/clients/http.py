@@ -60,6 +60,11 @@ Z_PARTIAL_FLUSH = 1
 of the current zlib stream, this value has to be defined
 locally as it is not defines under the zlib module """
 
+DECODINGS = ("gzip", "x-gzip", "deflate")
+""" The sequence of content codings that the client is able to
+decode, a payload under any other coding is kept as is instead
+of raising an exception into the event loop """
+
 
 class HTTPProtocol(netius.StreamProtocol):
     """
@@ -286,6 +291,8 @@ class HTTPProtocol(netius.StreamProtocol):
             self._close_gzip(safe=True)
         if self.gzip_c:
             self.gzip_c = None
+        if self.gzip_d:
+            self.gzip_d = None
 
     def info_dict(self, full=False):
         info = netius.StreamProtocol.info_dict(self, full=full)
@@ -523,6 +530,7 @@ class HTTPProtocol(netius.StreamProtocol):
         self.path = None
         self.gzip = None
         self.gzip_c = None
+        self.gzip_d = None
 
         # in case the provided data is a unicode string it's converted into
         # a raw set of bytes using the default encoding
@@ -902,6 +910,10 @@ class HTTPProtocol(netius.StreamProtocol):
         into account the possible content encoding present for compression
         or any other kind of operation.
 
+        Note that a payload under a content coding that is not implemented
+        is returned unchanged, so that the caller may forward it as is
+        instead of having an exception raised into the event loop.
+
         :type data: String
         :param data: The data to be converted back to its original
         raw value (probably through decompression).
@@ -912,9 +924,23 @@ class HTTPProtocol(netius.StreamProtocol):
         encoding = self.parser.headers.get("content-encoding", None)
         if not encoding:
             return data
+        encoding = encoding.strip().lower()
+        if not encoding in DECODINGS:
+            return data
         if not self.gzip_c:
             is_deflate = encoding == "deflate"
-            wbits = zlib.MAX_WBITS if is_deflate else zlib.MAX_WBITS | 16
+
+            # the container of the deflate coding may only be detected using
+            # the two initial bytes of the payload, so the data is held until
+            # enough of it is available (avoids an invalid detection)
+            if is_deflate:
+                data = self.gzip_d + data if self.gzip_d else data
+                if len(data) < 2:
+                    self.gzip_d = data
+                    return b""
+                self.gzip_d = None
+
+            wbits = deflate_wbits(data) if is_deflate else zlib.MAX_WBITS | 16
             self.gzip_c = zlib.decompressobj(wbits)
         return self.gzip_c.decompress(data)
 
@@ -957,6 +983,7 @@ class HTTPProtocol(netius.StreamProtocol):
         self.trigger("message", self, self.parser, message)
         self.parser.clear()
         self.gzip_c = None
+        self.gzip_d = None
 
     def on_partial(self, data):
         self.trigger("partial", self, self.parser, data)
@@ -1497,6 +1524,29 @@ class HTTPClient(netius.ClientAgent):
             return
         self._loop.close()
         self._loop = None
+
+
+def deflate_wbits(data):
+    """
+    Determines the window bits value to be used in the decompression
+    of a deflate encoded payload, as the coding is sent both raw and
+    zlib wrapped the container has to be detected from the payload.
+
+    :type data: String
+    :param data: The initial bytes of the deflate encoded payload.
+    :rtype: int
+    :return: The window bits value to be used in the decompressor.
+    """
+
+    # a zlib wrapped stream starts with a CMF/FLG pair where the low
+    # nibble of the first byte identifies the deflate method and the
+    # complete 16 bit value is a multiple of 31 (check bits)
+    if len(data) < 2:
+        return zlib.MAX_WBITS
+    cmf = netius.legacy.ord(data[0])
+    flg = netius.legacy.ord(data[1])
+    is_zlib = cmf & 0x0F == 0x08 and (cmf << 8 | flg) % 31 == 0
+    return zlib.MAX_WBITS if is_zlib else -zlib.MAX_WBITS
 
 
 if __name__ == "__main__":

@@ -52,6 +52,7 @@ from netius.common import (
     CHUNKED_ENCODING,
     GZIP_ENCODING,
     DEFLATE_ENCODING,
+    AUTO_ENCODING,
 )
 
 Z_PARTIAL_FLUSH = 1
@@ -65,21 +66,111 @@ and deflate encodings, this is the same value used by the
 zlib module and provides a reasonable balance between the
 compression ratio and the CPU usage """
 
+COMPRESS_FLUSH = 16384
+""" The amount of raw data (in bytes) that is accumulated in the
+compressor before a partial flush is performed, avoiding one flush
+per payload chunk which would degrade the compression ratio, set it
+to zero to flush every chunk (required for latency sensitive streams
+that are served under an explicit compressed encoding) """
+
 EMPTY_CODES = (204, 304)
 """ The set of HTTP status codes that according to the HTTP
 specification must not include a message body in the response
 (No Content and Not Modified), used to decide when to omit
 the content length header and body from the response """
 
+COMPRESS_MIN = 1024
+""" The minimum size (in bytes) of a payload for the compression
+of it to be considered, smaller payloads would most likely grow
+in size once the framing overhead is taken into account """
+
+COMPRESS_MAX = 5242880
+""" The maximum size (in bytes) of a payload for the compression
+of it to be considered, this should ensure proper resource usage
+avoiding extreme high levels of processor usage for large payloads """
+
+COMPRESS_TYPES = [
+    "text/",
+    "+json",
+    "+xml",
+    "application/json",
+    "application/javascript",
+    "application/x-javascript",
+    "application/xml",
+    "application/wasm",
+    "image/x-icon",
+]
+""" The sequence of media types considered to be compressible, the
+values ending with a slash are matched as a prefix (eg: text/) and
+the ones starting with a plus as a structured syntax suffix (eg:
++json), the remaining ones are matched exactly """
+
+COMPRESS_DENY = (
+    "application/gzip",
+    "application/zip",
+    "application/zstd",
+    "application/x-7z-compressed",
+    "application/x-bzip2",
+    "application/x-gzip",
+    "application/x-rar-compressed",
+    "application/x-xz",
+    "text/event-stream",
+)
+""" The sequence of media types that must never be compressed, either
+because they are already stored in a compressed format or because they
+are latency sensitive streams (eg: server sent events), this takes
+priority over the allowed types (safety net for extended type lists) """
+
+COMPRESS_ENCODINGS = ["gzip", "deflate"]
+""" The sequence of content codings to be used in the compression
+of the responses, defined in descending order of preference so that
+the first coding also accepted by the client is the one used """
+
 ENCODING_MAP = dict(
     plain=PLAIN_ENCODING,
     chunked=CHUNKED_ENCODING,
     gzip=GZIP_ENCODING,
     deflate=DEFLATE_ENCODING,
+    auto=AUTO_ENCODING,
 )
 """ The map associating the various types of encoding with
 the corresponding integer value for each of them this is used
 in the initial construction of the server """
+
+CODECS = dict()
+""" The registry that associates the name of each of the supported
+content codings with the information required to build a compressor
+for it, this is the structure that drives the negotiation """
+
+
+def register_codec(name, wbits, encoding, factory=zlib.compressobj):
+    """
+    Registers a new content coding in the codec registry so that it
+    becomes eligible for the encoding negotiation, note that the name
+    is also added to the sequence of codings that the wildcard value
+    of the accept encoding header expands into.
+
+    :type name: String
+    :param name: The name of the content coding as it's going to be
+    used in the `Content-Encoding` header (eg: gzip).
+    :type wbits: int
+    :param wbits: The window bits value to be used in the construction
+    of the compressor, controls the container of the stream.
+    :type encoding: int
+    :param encoding: The value of the encoding ladder that is going to
+    be used whenever this coding is selected.
+    :type factory: Function
+    :param factory: The factory method to be used in the construction
+    of the compressor object for the coding.
+    """
+
+    CODECS[name] = dict(name=name, wbits=wbits, encoding=encoding, factory=factory)
+    if not name in netius.common.CODINGS:
+        netius.common.CODINGS.append(name)
+
+
+register_codec("gzip", zlib.MAX_WBITS | 16, GZIP_ENCODING)
+register_codec("deflate", -zlib.MAX_WBITS, DEFLATE_ENCODING)
 
 
 class HTTPConnection(netius.Connection):
@@ -87,10 +178,14 @@ class HTTPConnection(netius.Connection):
     def __init__(self, encoding=PLAIN_ENCODING, *args, **kwargs):
         netius.Connection.__init__(self, *args, **kwargs)
         self.encoding = encoding
-        self.current = encoding
+        self.current = self.base_encoding()
+        self.encoding_c = None
+        self.encodings_a = None
+        self.dynamic = None
         self.parser = None
         self.legacy = True
         self.gzip_m = dict()
+        self.gzip_l = dict()
 
     def open(self, *args, **kwargs):
         netius.Connection.open(self, *args, **kwargs)
@@ -112,15 +207,15 @@ class HTTPConnection(netius.Connection):
 
     def info_dict(self, full=False):
         info = netius.Connection.info_dict(self, full=full)
-        info.update(encoding=self.encoding, current=self.current)
+        info.update(
+            encoding=self.encoding, current=self.current, encoding_c=self.encoding_c
+        )
         if full:
             info.update(parser=self.parser.info_dict())
         return info
 
     def flush(self, stream=None, callback=None):
-        encoding = (
-            min(self.current, CHUNKED_ENCODING) if self.owner.dynamic else self.current
-        )
+        encoding = self.encoding_w()
 
         if encoding == DEFLATE_ENCODING:
             self._flush_gzip(stream=stream, callback=callback)
@@ -131,7 +226,7 @@ class HTTPConnection(netius.Connection):
         elif encoding == PLAIN_ENCODING:
             self._flush_plain(stream=stream, callback=callback)
 
-        self.current = self.encoding
+        self.set_base()
 
         self.owner.on_flush_http(
             self.connection_ctx, self.parser_ctx, encoding=encoding
@@ -142,9 +237,7 @@ class HTTPConnection(netius.Connection):
 
     def send_base(self, data, stream=None, final=True, delay=True, callback=None):
         data = netius.legacy.bytes(data) if data else data
-        encoding = (
-            min(self.current, CHUNKED_ENCODING) if self.owner.dynamic else self.current
-        )
+        encoding = self.encoding_w()
 
         if encoding == PLAIN_ENCODING:
             return self.send_plain(
@@ -196,7 +289,7 @@ class HTTPConnection(netius.Connection):
         )
 
     def send_gzip(
-        self, data, stream=None, final=True, delay=True, callback=None, level=GZIP_LEVEL
+        self, data, stream=None, final=True, delay=True, callback=None, level=None
     ):
         # verifies if the provided data buffer is valid and in
         # in case it's not propagates the sending to the upper
@@ -209,16 +302,19 @@ class HTTPConnection(netius.Connection):
         # tries to retrieve the gzip object for the current stream
         # in case it's a new connection one will be created with the
         # appropriate compression level (as expected)
+        level = self.owner.compress_level if level == None else level
         gzip = self._get_gzip(stream, level=level)
 
-        # compresses the provided data string and removes the
-        # initial data contents of the compressed data because
-        # they are not part of the gzip specification, notice
-        # that in case the resulting of the compress operation
-        # is not valid a sync flush operation is performed
+        # compresses the provided data string and accumulates the amount
+        # of raw data fed to the compressor since the last flush, so that
+        # the partial flush is only performed once a reasonable amount of
+        # data is pending, otherwise one back-end chunk would force one
+        # flush degrading the compression ratio
         data_c = gzip.compress(data)
-        if not data_c:
-            data_c = gzip.flush(Z_PARTIAL_FLUSH)
+        self.gzip_l[stream] = self.gzip_l.get(stream, 0) + len(data)
+        if self.gzip_l[stream] >= self.owner.compress_flush:
+            data_c += gzip.flush(Z_PARTIAL_FLUSH)
+            self.gzip_l[stream] = 0
 
         # sends the compressed data to the client endpoint setting
         # the correct callback values as requested
@@ -391,8 +487,70 @@ class HTTPConnection(netius.Connection):
             else:
                 self.current = DEFLATE_ENCODING
 
+        # if the target encoding is the automatic one the effective
+        # encoding is only resolved once the payload is known, so only
+        # the codings accepted by the client are recorded, note that the
+        # per response state is reset at the boundary of each response
+        elif self.encoding == AUTO_ENCODING:
+            self.encodings_a = parser.get_encodings()
+
+    def base_encoding(self):
+        """
+        Resolves the base value of the encoding ladder for the connection,
+        this is the value that the current encoding is taken back to at the
+        boundaries of each response.
+
+        Note that the automatic encoding is a target and not a valid rung
+        of the ladder, so it's resolved into the plain encoding instead.
+
+        :rtype: int
+        :return: The base encoding value for the current connection.
+        """
+
+        if self.encoding == AUTO_ENCODING:
+            return PLAIN_ENCODING
+        return self.encoding
+
+    def encoding_w(self):
+        """
+        Resolves the encoding that is effectively going to be used in the
+        wire for the payload of the current response, taking into account
+        the per response dynamic (no re-encoding) state and falling back
+        to the server wide one whenever it has not been resolved.
+
+        :rtype: int
+        :return: The encoding to be used in the sending of the payload.
+        """
+
+        if self.is_dynamic():
+            return min(self.current, CHUNKED_ENCODING)
+        return self.current
+
+    def encoding_name(self):
+        """
+        Obtains the name of the content coding that is going to be applied
+        to the payload of the current response, an invalid value is returned
+        in case no compression is going to be performed.
+
+        :rtype: String
+        :return: The name of the content coding in use (eg: gzip).
+        """
+
+        encoding = self.encoding_w()
+        if encoding <= CHUNKED_ENCODING:
+            return None
+        if self.encoding_c:
+            return self.encoding_c
+        return "deflate" if encoding == DEFLATE_ENCODING else "gzip"
+
     def set_encoding(self, encoding):
         self.current = encoding
+
+    def set_base(self):
+        self.current = self.base_encoding()
+        self.encoding_c = None
+        self.encodings_a = None
+        self.dynamic = None
 
     def set_uncompressed(self):
         if self.current >= CHUNKED_ENCODING:
@@ -430,13 +588,19 @@ class HTTPConnection(netius.Connection):
     def is_uncompressed(self):
         return not self.is_compressed()
 
+    def is_dynamic(self):
+        if self.dynamic == None:
+            return self.owner.dynamic
+        return self.dynamic
+
     def is_flushed(self):
         return self.current > PLAIN_ENCODING
 
     def is_measurable(self, strict=True):
-        if self.is_compressed():
+        encoding = self.encoding_w()
+        if encoding > CHUNKED_ENCODING:
             return False
-        if strict and self.is_chunked():
+        if strict and encoding > PLAIN_ENCODING:
             return False
         return True
 
@@ -499,12 +663,12 @@ class HTTPConnection(netius.Connection):
         if gzip or not ensure:
             return gzip
 
-        # in case this is the first sending a new compress object
-        # is created with the requested compress level, notice that
-        # the special deflate case is handled differently
-        is_deflate = self.is_deflate()
-        wbits = -zlib.MAX_WBITS if is_deflate else zlib.MAX_WBITS | 16
-        gzip = zlib.compressobj(level, zlib.DEFLATED, wbits)
+        # in case this is the first sending a new compress object is
+        # created with the requested compress level, resolving both the
+        # factory and the window bits from the codec registry using the
+        # name of the content coding currently in use
+        codec = CODECS.get(self.encoding_name(), CODECS["gzip"])
+        gzip = codec["factory"](level, zlib.DEFLATED, codec["wbits"])
 
         # updates the gzip objects map with the gzip object that has
         # just been created for the target stream
@@ -515,7 +679,10 @@ class HTTPConnection(netius.Connection):
         self.gzip_m[stream] = gzip
 
     def _unset_gzip(self, stream):
-        del self.gzip_m[stream]
+        if stream in self.gzip_m:
+            del self.gzip_m[stream]
+        if stream in self.gzip_l:
+            del self.gzip_l[stream]
 
     def _close_gzip(self, safe=True):
         # in case the gzip object is not defined returns the control
@@ -527,6 +694,7 @@ class HTTPConnection(netius.Connection):
         # and then recreates a new empty dictionary on the other object
         gzip_m = self.gzip_m
         self.gzip_m = dict()
+        self.gzip_l = dict()
 
         # iterates over the complete set of gzip object to run the flush
         # operation over each of them, as expected for proper and final
@@ -555,10 +723,31 @@ class HTTPServer(netius.StreamServer):
     """ The map containing the complete set of headers
     that are meant to be applied to all the responses """
 
-    def __init__(self, encoding="plain", common_log=None, *args, **kwargs):
+    def __init__(
+        self,
+        encoding="plain",
+        common_log=None,
+        compress_min=COMPRESS_MIN,
+        compress_max=COMPRESS_MAX,
+        compress_types=COMPRESS_TYPES,
+        compress_encodings=COMPRESS_ENCODINGS,
+        compress_level=GZIP_LEVEL,
+        compress_flush=COMPRESS_FLUSH,
+        compress_vary=True,
+        *args,
+        **kwargs
+    ):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.encoding_s = encoding
+        self.encoding = ENCODING_MAP.get(encoding, PLAIN_ENCODING)
         self.common_log = common_log
+        self.compress_min = compress_min
+        self.compress_max = compress_max
+        self.compress_types = compress_types
+        self.compress_encodings = compress_encodings
+        self.compress_level = compress_level
+        self.compress_flush = compress_flush
+        self.compress_vary = compress_vary
         self.dynamic = False
         self.common_file = None
 
@@ -682,10 +871,46 @@ class HTTPServer(netius.StreamServer):
             self.encoding_s = self.get_env("ENCODING", self.encoding_s)
         if self.env:
             self.common_log = self.get_env("COMMON_LOG", self.common_log)
+        if self.env:
+            self.compress_min = self.get_env(
+                "COMPRESS_MIN", self.compress_min, cast=int
+            )
+        if self.env:
+            self.compress_max = self.get_env(
+                "COMPRESS_MAX",
+                self.get_env("COMPRESSED_LIMIT", self.compress_max, cast=int),
+                cast=int,
+            )
+        if self.env:
+            self.compress_types = self.get_env(
+                "COMPRESS_TYPES", self.compress_types, cast=list
+            )
+        if self.env:
+            self.compress_encodings = self.get_env(
+                "COMPRESS_ENCODINGS", self.compress_encodings, cast=list
+            )
+        if self.env:
+            self.compress_level = self.get_env(
+                "COMPRESS_LEVEL", self.compress_level, cast=int
+            )
+        if self.env:
+            self.compress_flush = self.get_env(
+                "COMPRESS_FLUSH", self.compress_flush, cast=int
+            )
+        if self.env:
+            self.compress_vary = self.get_env(
+                "COMPRESS_VARY", self.compress_vary, cast=bool
+            )
         if self.common_log:
             self.common_file = open(self.common_log, "wb+")
         self.encoding = ENCODING_MAP.get(self.encoding_s, PLAIN_ENCODING)
         self.info("Starting HTTP server with '%s' encoding ...", self.encoding_s)
+        if self.is_auto():
+            self.info(
+                "Compressing responses between %d and %d bytes ...",
+                self.compress_min,
+                self.compress_max,
+            )
         if self.common_log:
             self.info("Logging with Common Log Format to '%s' ...", self.common_log)
 
@@ -722,6 +947,50 @@ class HTTPServer(netius.StreamServer):
             connection.address,
             self.name,
         )
+
+    def is_auto(self):
+        return self.encoding == AUTO_ENCODING
+
+    def is_compressible(self, content_type):
+        """
+        Determines if a payload of the provided media type is considered
+        to be compressible, meaning that compressing it is expected to
+        provide a relevant gain in the size of the payload.
+
+        :type content_type: String
+        :param content_type: The value of the content type header of the
+        payload that is going to be verified (parameters allowed).
+        :rtype: bool
+        :return: If the provided media type is considered compressible.
+        """
+
+        # normalizes the media type by removing the possible parameters
+        # (eg: charset) from it and lower casing the remaining value,
+        # an unset media type is never considered compressible
+        if not content_type:
+            return False
+        content_type = content_type.split(";", 1)[0].strip().lower()
+        if not content_type:
+            return False
+
+        # verifies if the media type has been explicitly denied, this is
+        # the case for the formats that are already compressed and that
+        # would only waste processor time (takes precedence)
+        if content_type in COMPRESS_DENY:
+            return False
+
+        # matches the media type against the complete set of the allowed
+        # ones, supporting both the prefix (eg: text/) and the structured
+        # syntax suffix (eg: +json) notations plus the exact match
+        for value in self.compress_types:
+            if value.endswith("/") and content_type.startswith(value):
+                return True
+            if value.startswith("+") and content_type.endswith(value):
+                return True
+            if content_type == value:
+                return True
+
+        return False
 
     def authorize(self, connection, parser, auth=None, **kwargs):
         # determines the proper authorization method to be used
@@ -792,25 +1061,61 @@ class HTTPServer(netius.StreamServer):
             headers["Connection"] = "close"
 
     def _apply_connection(self, connection, headers, strict=True):
-        is_chunked = connection.is_chunked()
-        is_gzip = connection.is_gzip()
-        is_deflate = connection.is_deflate()
-        is_compressed = connection.is_compressed()
+        # a payload that already carries a coding must not be encoded once
+        # again, as the coding announced for it would no longer describe the
+        # complete set of transformations applied to the payload
+        content_encoding = headers.get("Content-Encoding", None)
+        if isinstance(content_encoding, (list, tuple)):
+            content_encoding = ", ".join(content_encoding)
+        if content_encoding and not content_encoding.strip().lower() == "identity":
+            connection.set_uncompressed()
+
+        # resolves the encoding that is effectively going to be used in
+        # the wire, so that the announced encoding is the one applied to
+        # the payload and never the (unclamped) target one
+        encoding = connection.encoding_w()
+        is_chunked = encoding > PLAIN_ENCODING
+        is_compressed = encoding > CHUNKED_ENCODING
         is_measurable = connection.is_measurable(strict=strict)
         has_length = "Content-Length" in headers
         has_ranges = "Accept-Ranges" in headers
+        has_encoding = "Content-Encoding" in headers
 
         if is_chunked:
             headers["Transfer-Encoding"] = "chunked"
-        if is_gzip:
-            headers["Content-Encoding"] = "gzip"
-        if is_deflate:
-            headers["Content-Encoding"] = "deflate"
+        if is_compressed and not has_encoding:
+            headers["Content-Encoding"] = connection.encoding_name()
 
         if not is_measurable and has_length:
             del headers["Content-Length"]
         if is_compressed and has_ranges:
             del headers["Accept-Ranges"]
+
+        # in case the response was eligible for compression the payload
+        # depends on the codings accepted by the client, so the proper
+        # vary header must be announced (even if no compression was done)
+        if self.compress_vary and not connection.encodings_a == None:
+            self._apply_vary(headers, "Accept-Encoding")
+
+    def _apply_vary(self, headers, value):
+        # retrieves the currently defined vary value normalizing it into
+        # a single string, as repeated headers are stored as a sequence
+        vary = headers.get("Vary", "")
+        if isinstance(vary, (list, tuple)):
+            vary = ", ".join(vary)
+
+        # verifies if the field name is already part of the vary value
+        # and if that's the case returns immediately (nothing to be done)
+        tokens = [token.strip().lower() for token in vary.split(",")]
+        if value.lower() in tokens:
+            return
+
+        # appends the field name to the base value or creates a new one
+        # in case no vary header was defined by the back-end
+        if vary:
+            vary += ", "
+        vary += value
+        headers["Vary"] = vary
 
     def _headers_upper(self, headers):
         for key, value in netius.legacy.items(headers):

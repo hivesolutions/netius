@@ -987,6 +987,10 @@ class HTTP2Stream(netius.Stream):
         self.path_s = None
         self.version = HTTP_20
         self.version_s = "HTTP/2.0"
+        self.current = self.connection.base_encoding()
+        self.encoding_c = None
+        self.encodings_a = None
+        self.dynamic = None
         self.encodings = None
         self.chunked = False
         self.keep_alive = True
@@ -1034,6 +1038,11 @@ class HTTP2Stream(netius.Stream):
         # instructions are correctly processed/handled
         netius.Stream.close(self)
 
+        # releases the compressor that may be associated with the stream,
+        # otherwise an aborted (eg: reset) stream would retain it for the
+        # complete lifetime of the underlying connection
+        self.connection._unset_gzip(self.identifier)
+
         # verifies if a stream structure exists in the parser for
         # the provided identifier and if that's not the case returns
         # immediately otherwise removes it from the parent
@@ -1068,6 +1077,8 @@ class HTTP2Stream(netius.Stream):
             path_s=self.path_s,
             version=self.version,
             version_s=self.version_s,
+            current=self.current,
+            encoding_c=self.encoding_c,
             encodings=self.encodings,
             chunked=self.chunked,
             keep_alive=self.keep_alive,
@@ -1100,8 +1111,35 @@ class HTTP2Stream(netius.Stream):
         self._available = False
         self.owner.trigger("on_unavailable")
 
+    def resolve_encoding(self, parser):
+        # runs the encoding resolution in the connection but under the
+        # request context of the stream, so that the resolved state is
+        # stored in the stream and not shared with the other streams
+        # that are multiplexed in the same connection
+        with self.ctx_request():
+            self.connection.resolve_encoding(parser)
+
+    def encoding_w(self):
+        if self.is_dynamic():
+            return min(self.current, http.CHUNKED_ENCODING)
+        return self.current
+
+    def encoding_name(self):
+        encoding = self.encoding_w()
+        if encoding <= http.CHUNKED_ENCODING:
+            return None
+        if self.encoding_c:
+            return self.encoding_c
+        return "deflate" if encoding == http.DEFLATE_ENCODING else "gzip"
+
     def set_encoding(self, encoding):
         self.current = encoding
+
+    def set_base(self):
+        self.current = self.connection.base_encoding()
+        self.encoding_c = None
+        self.encodings_a = None
+        self.dynamic = None
 
     def set_uncompressed(self):
         if self.current >= http.CHUNKED_ENCODING:
@@ -1139,11 +1177,16 @@ class HTTP2Stream(netius.Stream):
     def is_uncompressed(self):
         return not self.is_compressed()
 
+    def is_dynamic(self):
+        if self.dynamic == None:
+            return self.connection.owner.dynamic
+        return self.dynamic
+
     def is_flushed(self):
         return self.current > http.PLAIN_ENCODING
 
     def is_measurable(self, strict=True):
-        if self.is_compressed():
+        if self.encoding_w() > http.CHUNKED_ENCODING:
             return False
         return True
 
@@ -1354,7 +1397,7 @@ class HTTP2Stream(netius.Stream):
         if not self.encodings == None:
             return self.encodings
         accept_encoding_s = self.headers.get("accept-encoding", "")
-        self.encodings = [value.strip() for value in accept_encoding_s.split(",")]
+        self.encodings = http.parse_encodings(accept_encoding_s)
         return self.encodings
 
     def fragment(self, data):
@@ -1501,13 +1544,19 @@ class HTTP2Stream(netius.Stream):
             kwargs["callback"] = self._build_c(callback)
 
         # retrieves the references to the "original"
-        # values of the current and stream objects
+        # values of the encoding state and stream objects
         current = self.connection.current
+        encoding_c = self.connection.encoding_c
+        encodings_a = self.connection.encodings_a
+        dynamic = self.connection.dynamic
         stream_o = self.owner.stream_o
 
-        # replaces the values of the current (encoding)
-        # and stream object with the stream based ones
+        # replaces the values of the encoding state and
+        # stream object with the stream based ones
         self.connection.current = self.current
+        self.connection.encoding_c = self.encoding_c
+        self.connection.encodings_a = self.encodings_a
+        self.connection.dynamic = self.dynamic
         self.owner.stream_o = self
 
         try:
@@ -1516,10 +1565,21 @@ class HTTP2Stream(netius.Stream):
             # at this point
             yield
         finally:
-            # restores both the stream object and the current
-            # values to the original state (before context)
+            # stores the (possibly changed) encoding state back into
+            # the stream, otherwise the changes performed under the
+            # context would be lost on the restore operation
+            self.current = self.connection.current
+            self.encoding_c = self.connection.encoding_c
+            self.encodings_a = self.connection.encodings_a
+            self.dynamic = self.connection.dynamic
+
+            # restores both the stream object and the encoding
+            # state values to the original state (before context)
             self.owner.stream_o = stream_o
             self.connection.current = current
+            self.connection.encoding_c = encoding_c
+            self.connection.encodings_a = encodings_a
+            self.connection.dynamic = dynamic
 
     @property
     def parser(self):

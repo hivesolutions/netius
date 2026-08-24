@@ -102,6 +102,18 @@ DEFLATE_ENCODING = 4
 kind of encoding will always used chunked encoding so
 that the content may be send in parts """
 
+AUTO_ENCODING = 0
+""" The automatic encoding "target", this is not a valid rung
+of the encoding ladder (it lives outside of it) but instead a
+value that is resolved into one of the other encodings on a
+response basis, taking into account the client negotiation and
+the characteristics of the payload """
+
+CODINGS = ["gzip", "deflate"]
+""" The sequence of content codings that may be produced by the
+infra-structure, used to expand the wildcard value of the accept
+encoding header into a concrete set of codings """
+
 HTTP_09 = 1
 """ The enumeration value for the temporary and beta HTTP
 version 0.9 version (very rare) """
@@ -175,6 +187,11 @@ HEADER_NAME_REGEX = re.compile(r"^[\!\#\$\%\&'\*\+\-\.\^\_\`\~0-9a-zA-Z]+$")
 """ Regular expression to be used in the validation of the
 header naming tokens, so that only the valid names are captured
 avoiding possible security issues, should be compliant with RFC 7230 """
+
+QUALITY_REGEX = re.compile(r"^(?:0(?:\.[0-9]{0,3})?|1(?:\.0{0,3})?)$")
+""" Regular expression to be used in the validation of the quality
+value of a coding, only the values between zero and one with at most
+three decimal places are considered valid ones """
 
 
 class HTTPParser(parser.Parser):
@@ -472,7 +489,7 @@ class HTTPParser(parser.Parser):
         if not self.encodings == None:
             return self.encodings
         accept_encoding_s = self.headers.get("accept-encoding", "")
-        self.encodings = [value.strip() for value in accept_encoding_s.split(",")]
+        self.encodings = parse_encodings(accept_encoding_s)
         return self.encodings
 
     def parse_closed(self):
@@ -999,3 +1016,88 @@ class HTTPResponse(object):
 
     def info(self):
         return self.headers
+
+
+def parse_encodings(value):
+    """
+    Parses the provided accept encoding header value obtaining the
+    sequence of content codings accepted by the peer, ordered by
+    descending quality value (preference).
+
+    The codings that have been explicitly rejected (quality value of
+    zero) are removed from the sequence and the wildcard coding is
+    expanded into the codings that may be produced by the infra-structure
+    and that have not been explicitly referenced.
+
+    :type value: String
+    :param value: The raw accept encoding header value that is going
+    to be parsed (eg: `gzip;q=1.0, deflate;q=0.5, *;q=0`), a sequence
+    of values is also accepted (repeated header).
+    :rtype: List
+    :return: The sequence of the accepted content codings ordered by
+    descending preference.
+    """
+
+    # in case a sequence of values is provided (repeated header) joins
+    # them into a single value, as if a single header had been sent
+    if isinstance(value, (list, tuple)):
+        value = ",".join(value)
+
+    # creates the list that is going to hold the coding, quality and
+    # index tuples, the index is required to keep the relative order
+    # of the codings that share the same quality value, the named list
+    # keeps every coding referenced by the peer (accepted or rejected)
+    # so that the wildcard never overrides an explicit definition
+    codings = []
+    named = []
+
+    # iterates over the complete set of comma separated codings to
+    # parse each of them into the proper tuple representation
+    for coding_s in value.split(","):
+        # splits the coding around the parameters separator and
+        # normalizes the coding name, skipping the empty ones
+        parts = coding_s.split(";")
+        name = parts[0].strip().lower()
+        if not name:
+            continue
+
+        # tries to determine the quality value associated with the
+        # coding, defaulting to the maximum one in case no valid
+        # quality parameter is defined for it
+        quality = 1.0
+        for part in parts[1:]:
+            part = part.strip().lower()
+            if not part.startswith("q="):
+                continue
+            quality_s = part[2:]
+            if QUALITY_REGEX.match(quality_s):
+                quality = float(quality_s)
+            else:
+                quality = 0.0
+
+        # in case the coding has been explicitly rejected by the peer
+        # it's not added to the sequence of the accepted ones
+        named.append(name)
+        if quality <= 0.0:
+            continue
+
+        codings.append((name, quality, len(codings)))
+
+    # sorts the codings by descending quality value using the original
+    # position as the tie breaker, so that the order defined by the
+    # peer is preserved for codings of equivalent quality
+    codings.sort(key=lambda coding: (-coding[1], coding[2]))
+
+    # unpacks the sorted sequence into the final list of coding names
+    # and returns it immediately in case no wildcard is present
+    names = [coding[0] for coding in codings]
+    if not "*" in names:
+        return names
+
+    # replaces the wildcard coding with the codings that may be produced
+    # and that have not been explicitly referenced, keeping the position
+    # of the wildcard so that the preference order is respected, note that
+    # a coding rejected by the peer is never brought back by the wildcard
+    index = names.index("*")
+    names[index : index + 1] = [name for name in CODINGS if not name in named]
+    return names

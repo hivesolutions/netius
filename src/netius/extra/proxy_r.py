@@ -465,6 +465,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                 proxy_c.id,
             )
 
+        # applies the accept encoding header of the back-end request, so that
+        # the proper entity responsible for the compression is selected
+        self._apply_accept(headers)
+
         # tries to determine the transfer encoding of the received request
         # and by using that determines the proper encoding to be applied
         encoding = headers.pop("transfer-encoding", None)
