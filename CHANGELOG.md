@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Compression is no longer shared between the parallel requests of an HTTP/2 client - [#72](https://github.com/hivesolutions/netius/issues/72)
 * Memory used to compress an HTTP/2 request is now released as soon as the request ends - [#72](https://github.com/hivesolutions/netius/issues/72)
 * Proxy no longer discards a response when the back-end drops the connection halfway - [#72](https://github.com/hivesolutions/netius/issues/72)
+* Proxy no longer describes a transfer for responses that carry no content, such as 204 and 304 - [#72](https://github.com/hivesolutions/netius/issues/72)
+* Proxy no longer compresses partial content responses, which no longer matched the range announced for them - [#72](https://github.com/hivesolutions/netius/issues/72)
+* Proxy no longer forwards a redundant identity compression label that some clients reject - [#72](https://github.com/hivesolutions/netius/issues/72)
 * DHT client no longer crashes when receiving a response with no matching pending request
 * DHT queries now send a valid node identifier so that peers can actually be discovered
 * DHT client now tolerates malformed responses and skips unroutable nodes instead of raising

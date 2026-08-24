@@ -886,6 +886,12 @@ class ProxyServer(http2.HTTP2Server):
                 headers["content-encoding"] = content_encoding
                 connection.dynamic = True
 
+        # the identity coding is not a valid value for the content encoding
+        # header, so it's removed and the payload considered unencoded
+        if content_encoding and content_encoding.strip().lower() == "identity":
+            headers.pop("content-encoding", None)
+            content_encoding = None
+
         # obtains the transfer encoding value from the headers, this is required
         # for the proper handling of the content length
         transfer_encoding = headers.pop("transfer-encoding", None)
@@ -916,6 +922,16 @@ class ProxyServer(http2.HTTP2Server):
         if codec:
             self._prx_compress(connection, codec)
 
+        # a response that cannot carry a payload must not have either a
+        # framing or a coding announced for it, so the encoding is taken back
+        # to the plain one and the length is never considered unreliable
+        is_empty = int(code_s) in http.EMPTY_CODES
+
+        # a partial payload must never be transformed as the content range
+        # announced for it would no longer match the payload that is sent
+        if "content-range" in headers:
+            connection.set_uncompressed()
+
         # if either the proxy connection or the back-end one is compressed
         # the length values of the connection are considered unreliable and
         # some extra operation must be defined, the same applies when the
@@ -929,6 +945,12 @@ class ProxyServer(http2.HTTP2Server):
             or bool(content_encoding)
         )
         unreliable_length &= not connection.is_dynamic()
+        unreliable_length &= not is_empty
+
+        # takes the encoding of an empty response back to the plain one, so
+        # that no transfer or content encoding is announced for it
+        if is_empty:
+            connection.set_plain()
 
         # in case the content length is unreliable some of the headers defined
         # must be removed so that no extra connection error occurs, as the size

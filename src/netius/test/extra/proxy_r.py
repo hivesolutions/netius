@@ -1727,6 +1727,8 @@ class ReverseProxyMatrixTest(unittest.TestCase):
 
     SOURCES = ("identity", "gzip", "deflate", "zlib", "br")
 
+    SPECIALS = ("204", "304", "206", "explicit")
+
     ACCEPTS = (None, "identity", "gzip", "deflate", "gzip, deflate", "*")
 
     @classmethod
@@ -1801,6 +1803,17 @@ class ReverseProxyMatrixTest(unittest.TestCase):
         failures = []
         for encoding, dynamic, source, accept in self._matrix():
             failures += self._verify_passthrough(encoding, dynamic, source, accept)
+        self.assertEqual(failures, [], "\n".join([""] + failures))
+
+    def test_matrix_framing(self):
+        # a response that cannot carry a payload must never announce either a
+        # framing or a coding, a partial one must never be transformed and the
+        # identity coding must never be announced to the client
+        failures = []
+        for encoding in self.ENCODINGS:
+            for dynamic in self.DYNAMICS:
+                for source in self.SPECIALS:
+                    failures += self._verify_framing(encoding, dynamic, source)
         self.assertEqual(failures, [], "\n".join([""] + failures))
 
     def test_matrix_vary(self):
@@ -1890,6 +1903,55 @@ class ReverseProxyMatrixTest(unittest.TestCase):
             return []
         return ["%s: the coding of the back-end was dropped" % label]
 
+    def _verify_framing(self, encoding, dynamic, source):
+        label = "ENCODING=%s DYNAMIC=%d source=%s" % (
+            encoding,
+            1 if dynamic else 0,
+            source,
+        )
+        status, headers, body = self._request(
+            self.ports[(encoding, dynamic)], "/" + source
+        )
+        announced = headers.get("Content-Encoding", None)
+        transfer = headers.get("Transfer-Encoding", None)
+        failures = []
+
+        # the identity coding is not a valid value for the content encoding
+        # header, so it must never reach the client
+        if announced and announced.lower() == "identity":
+            failures.append("%s: the identity coding was announced" % label)
+
+        # a status that cannot carry a payload must have neither the framing
+        # nor the coding announced for it
+        if source in ("204", "304"):
+            if not status == int(source):
+                failures.append("%s: status %s" % (label, status))
+            if transfer:
+                failures.append(
+                    "%s: '%s' framing on an empty response" % (label, transfer)
+                )
+            if announced:
+                failures.append(
+                    "%s: '%s' coding on an empty response" % (label, announced)
+                )
+            if body:
+                failures.append("%s: payload on an empty response" % label)
+            return failures
+
+        # a partial payload must be forwarded untouched, keeping the range
+        # that has been announced by the back-end consistent with it
+        if source == "206":
+            if not status == 206:
+                failures.append("%s: status %s" % (label, status))
+            if announced:
+                failures.append("%s: partial payload was transformed" % label)
+            if not body == self.PAYLOAD[:100]:
+                failures.append("%s: partial payload does not match" % label)
+            if not headers.get("Content-Range", None):
+                failures.append("%s: the content range was dropped" % label)
+
+        return failures
+
     def _verify_vary(self, encoding, dynamic, source, accept):
         label, headers, _body = self._cell(encoding, dynamic, source, accept)
         vary = headers.get("Vary", None)
@@ -1953,7 +2015,27 @@ class ReverseProxyMatrixTest(unittest.TestCase):
 
     @classmethod
     def _app(cls, environ, start_response):
-        body, encoding = cls._source(environ["PATH_INFO"].lstrip("/"))
+        source = environ["PATH_INFO"].lstrip("/")
+
+        # serves the responses that exercise the framing rules, either
+        # because they carry no payload or because they are partial
+        if source in ("204", "304"):
+            start_response(
+                "204 No Content" if source == "204" else "304 Not Modified", []
+            )
+            return []
+        if source == "206":
+            start_response(
+                "206 Partial Content",
+                [
+                    ("Content-Type", "text/plain"),
+                    ("Content-Range", "bytes 0-99/%d" % len(cls.PAYLOAD)),
+                    ("Content-Length", "100"),
+                ],
+            )
+            return [cls.PAYLOAD[:100]]
+
+        body, encoding = cls._source(source)
         headers = [("Content-Type", "text/plain")]
         if encoding:
             headers.append(("Content-Encoding", encoding))
@@ -1976,6 +2058,8 @@ class ReverseProxyMatrixTest(unittest.TestCase):
             return zlib.compress(cls.PAYLOAD), "deflate"
         if source == "br":
             return cls.BROTLI, "br"
+        if source == "explicit":
+            return cls.PAYLOAD, "identity"
         return cls.PAYLOAD, None
 
     @classmethod
