@@ -55,6 +55,27 @@ possible to avoid memory starvation problems, this is a
 default value for the parser and may be overridden using
 the dedicated parameter value in the constructor """
 
+LINE_LIMIT = 8192
+""" The maximum number of bytes that the initial line of a
+message may occupy, messages that exceed this value are rejected
+avoiding the unbounded buffering of data sent by a peer, this is
+a default value for the parser and may be overridden using the
+dedicated parameter value in the constructor """
+
+HEADERS_LIMIT = 65536
+""" The maximum number of bytes that the complete set of headers
+of a message may occupy, serves the same purpose as the line limit
+for the headers section, this is a default value for the parser and
+may be overridden using the dedicated parameter value in the
+constructor """
+
+HEADERS_COUNT = 128
+""" The maximum number of header lines that a message may contain,
+complements the headers limit for the situations where a large
+number of small headers is sent, this is a default value for the
+parser and may be overridden using the dedicated parameter value
+in the constructor """
+
 REQUEST = 1
 """ The HTTP request message indicator, should be
 used when identifying the HTTP request messages """
@@ -188,6 +209,37 @@ HEADER_NAME_REGEX = re.compile(r"^[\!\#\$\%\&'\*\+\-\.\^\_\`\~0-9a-zA-Z]+$")
 header naming tokens, so that only the valid names are captured
 avoiding possible security issues, should be compliant with RFC 7230 """
 
+METHOD_REGEX = re.compile(r"^[\!\#\$\%\&'\*\+\-\.\^\_\`\~0-9a-zA-Z]+$")
+""" Regular expression to be used in the validation of the method
+token of a request, shares the token definition with the header
+names, should be compliant with RFC 9110 """
+
+VERSION_REGEX = re.compile(r"^HTTP/[0-9]\.[0-9]$")
+""" Regular expression to be used in the validation of the protocol
+version of a message, only the single digit major and minor form is
+considered a valid one, should be compliant with RFC 9112 """
+
+TARGET_REGEX = re.compile(r"^[^\x00-\x20\x7f]+$")
+""" Regular expression to be used in the validation of the target of
+a request, neither the control characters nor the space are allowed
+in it, avoiding the smuggling of an extra request """
+
+CODE_REGEX = re.compile(r"^[0-9]{3}$")
+""" Regular expression to be used in the validation of the status
+code of a response, exactly three digits are expected as defined
+by RFC 9112 """
+
+LENGTH_REGEX = re.compile(r"^[0-9]+$")
+""" Regular expression to be used in the validation of the content
+length of a message, only a sequence of digits is considered valid
+avoiding the request smuggling issues allowed by a more relaxed
+parsing of the value """
+
+CHUNK_REGEX = re.compile(r"^[0-9a-fA-F]+$")
+""" Regular expression to be used in the validation of the size of
+a chunk, only a sequence of hexadecimal digits is considered a valid
+one as defined by RFC 9112 """
+
 QUALITY_REGEX = re.compile(r"^(?:0(?:\.[0-9]{0,3})?|1(?:\.0{0,3})?)$")
 """ Regular expression to be used in the validation of the quality
 value of a coding, only the values between zero and one with at most
@@ -209,6 +261,9 @@ class HTTPParser(parser.Parser):
         "type",
         "store",
         "file_limit",
+        "line_limit",
+        "headers_limit",
+        "headers_count",
         "state",
         "buffer",
         "headers",
@@ -238,11 +293,27 @@ class HTTPParser(parser.Parser):
         "chunk_e",
     )
 
-    def __init__(self, owner, type=REQUEST, store=False, file_limit=FILE_LIMIT):
+    def __init__(
+        self,
+        owner,
+        type=REQUEST,
+        store=False,
+        file_limit=FILE_LIMIT,
+        line_limit=LINE_LIMIT,
+        headers_limit=HEADERS_LIMIT,
+        headers_count=HEADERS_COUNT,
+    ):
         parser.Parser.__init__(self, owner)
 
         self.build()
-        self.reset(type=type, store=store, file_limit=file_limit)
+        self.reset(
+            type=type,
+            store=store,
+            file_limit=file_limit,
+            line_limit=line_limit,
+            headers_limit=headers_limit,
+            headers_count=headers_count,
+        )
 
     def build(self):
         """
@@ -274,7 +345,15 @@ class HTTPParser(parser.Parser):
         self.states = ()
         self.state_l = 0
 
-    def reset(self, type=REQUEST, store=False, file_limit=FILE_LIMIT):
+    def reset(
+        self,
+        type=REQUEST,
+        store=False,
+        file_limit=FILE_LIMIT,
+        line_limit=LINE_LIMIT,
+        headers_limit=HEADERS_LIMIT,
+        headers_count=HEADERS_COUNT,
+    ):
         """
         Initializes the state of the parser setting the values
         for the various internal structures to the original value.
@@ -291,12 +370,24 @@ class HTTPParser(parser.Parser):
         :param file_limit: The maximum content for the payload message
         from which a in file buffer will be used instead of the one that
         is stored in memory (avoid memory starvation).
+        :type line_limit: int
+        :param line_limit: The maximum number of bytes that the initial
+        line of the message may occupy.
+        :type headers_limit: int
+        :param headers_limit: The maximum number of bytes that the set of
+        headers of the message may occupy.
+        :type headers_count: int
+        :param headers_count: The maximum number of header lines that the
+        message may contain.
         """
 
         self.close()
         self.type = type
         self.store = store
         self.file_limit = file_limit
+        self.line_limit = line_limit
+        self.headers_limit = headers_limit
+        self.headers_count = headers_count
         self.state = LINE_STATE
         self.buffer = []
         self.headers = {}
@@ -328,7 +419,14 @@ class HTTPParser(parser.Parser):
     def clear(self, force=False):
         if not force and self.state == LINE_STATE:
             return
-        self.reset(type=self.type, store=self.store, file_limit=self.file_limit)
+        self.reset(
+            type=self.type,
+            store=self.store,
+            file_limit=self.file_limit,
+            line_limit=self.line_limit,
+            headers_limit=self.headers_limit,
+            headers_count=self.headers_count,
+        )
 
     def close(self):
         if hasattr(self, "message") and self.message:
@@ -596,6 +694,12 @@ class HTTPParser(parser.Parser):
         # initial line must have been found
         index = data.find(b"\n")
         if index == -1:
+            # verifies that the amount of data pending for the initial line
+            # is still within the allowed bounds, otherwise raises an error
+            # as the peer may be trying to exhaust the available memory
+            pending = sum(len(value) for value in self.buffer) + len(data)
+            if pending > self.line_limit:
+                raise netius.ParserError("Initial line too long", code=414)
             return 0
 
         # adds the partial data (until line ending) to the buffer
@@ -604,9 +708,22 @@ class HTTPParser(parser.Parser):
         # the buffer is cleared as new data is going to be stored for
         # (remaining part of the request or response)
         self.buffer.append(data[:index])
-        self.line_s = b"".join(self.buffer).rstrip()
-        self.line_s = netius.legacy.str(self.line_s)
+        line = b"".join(self.buffer)
         del self.buffer[:]
+
+        # verifies that the initial line respects the allowed bounds, this
+        # is the "complete line" verification as opposed to the partial one
+        # that is run while the line ending is still to be found
+        if len(line) > self.line_limit:
+            raise netius.ParserError("Initial line too long", code=414)
+
+        # ensures that the line is terminated by the complete carriage return
+        # and line feed sequence, a bare line feed is not accepted as a valid
+        # terminator as that would allow the smuggling of an extra request
+        if not line.endswith(b"\r"):
+            raise netius.ParserError("Invalid line terminator")
+
+        self.line_s = netius.legacy.str(line.rstrip())
 
         # restores the final end of line sequence to the buffer, this
         # allows "simple requests" to be parsed properly in under the
@@ -627,14 +744,20 @@ class HTTPParser(parser.Parser):
         # and if that's the case unpacks the status line as a request
         if self.type == REQUEST:
             self.method_s, self.path_s, self.version_s = values
+            if not METHOD_REGEX.match(self.method_s):
+                raise netius.ParserError("Invalid method '%s'" % self.method_s)
+            if not TARGET_REGEX.match(self.path_s):
+                raise netius.ParserError("Invalid target '%s'" % self.path_s)
             self.method = self.method_s.lower()
-            self.version = VERSIONS_MAP.get(self.version_s, HTTP_10)
+            self.version = self._parse_version(self.version_s)
 
         # otherwise ensures that the parsing type is response based
         # and unpacks the status line accordingly
         elif self.type == RESPONSE:
             self.version_s, self.code_s, self.status_s = values
-            self.version = VERSIONS_MAP.get(self.version_s, HTTP_10)
+            if not CODE_REGEX.match(self.code_s):
+                raise netius.ParserError("Invalid status code '%s'" % self.code_s)
+            self.version = self._parse_version(self.version_s)
             self.code = int(self.code_s)
             self.status = self.status_s
 
@@ -662,6 +785,8 @@ class HTTPParser(parser.Parser):
         # the no bytes have been processed (delays parsing)
         index = buffer_s.find(b"\r\n\r\n")
         if index == -1:
+            if len(buffer_s) > self.headers_limit:
+                raise netius.ParserError("Headers too long", code=431)
             return 0
 
         # retrieves the partial headers string from the buffer
@@ -677,10 +802,34 @@ class HTTPParser(parser.Parser):
         base_length = len(buffer_s) - len(data)
         base_index = index - base_length
 
+        # verifies that the headers section respects the allowed bounds,
+        # this is the verification for the situation where the complete
+        # section is received at once (the partial one is done above)
+        if len(self.headers_s) > self.headers_limit:
+            raise netius.ParserError("Headers too long", code=431)
+
         # splits the complete set of lines that compromise
         # the headers and then iterates over each of them
         # to set the key and value in the headers map
         lines = self.headers_s.split(b"\r\n")
+
+        # verifies that the number of headers is within the allowed
+        # bounds, complementing the size based verification for the
+        # situations where many small headers are sent
+        if len(lines) > self.headers_count:
+            raise netius.ParserError("Too many headers", code=431)
+
+        # ensures that no bare carriage return or line feed is present in
+        # the headers, either of them would allow the injection of an extra
+        # header, note that each separator accounts for exactly one of each
+        # of these characters so any extra one is a bare (invalid) one
+        separators = len(lines) - 1
+        if (
+            not self.headers_s.count(b"\r") == separators
+            or not self.headers_s.count(b"\n") == separators
+        ):
+            raise netius.ParserError("Invalid header line")
+
         for line in lines:
             # verifies if the line contains any information if
             # that's not the case the current cycle must be
@@ -735,7 +884,12 @@ class HTTPParser(parser.Parser):
         # headers, this is not required by the specification and
         # the parser should be usable even without it
         self.content_l = self.headers.get("content-length", -1)
-        self.content_l = self.content_l and int(self.content_l)
+        if type(self.content_l) == list:
+            raise netius.ParserError("Duplicated content length")
+        if not self.content_l == -1:
+            if not LENGTH_REGEX.match(self.content_l):
+                raise netius.ParserError("Invalid content length")
+            self.content_l = int(self.content_l)
 
         # verifies if a back-end file object should be used to store
         # the file contents, this is done by checking the store flag
@@ -747,19 +901,40 @@ class HTTPParser(parser.Parser):
         # retrieves the type of transfer encoding that is going to be
         # used in the processing of this request in case it's of type
         # chunked sets the current chunked flag indicating that the
-        # request is meant to be processed as so
+        # request is meant to be processed as so, note that the value
+        # is normalized as the codings are case insensitive ones
         self.transfer_e = self.headers.get("transfer-encoding", None)
-        self.chunked = self.transfer_e == "chunked"
+        if type(self.transfer_e) == list:
+            raise netius.ParserError("Duplicated transfer encoding")
+        self.transfer_e = self.transfer_e and self.transfer_e.lower()
 
         # verifies if the transfer encoding is compliant with the expected
-        # kind of transfer encodings, if not fails with a parsing error
-        if not self.transfer_e in (None, "identity", "chunked"):
-            raise netius.ParserError("Invalid transfer encoding")
+        # kind of transfer encodings, if not fails with a parsing error,
+        # note that the chunked coding must be the last one of the list so
+        # that the framing of the message may be determined
+        if self.transfer_e:
+            codings = [value.strip() for value in self.transfer_e.split(",")]
+            if not all(coding in ("identity", "chunked") for coding in codings):
+                raise netius.ParserError("Invalid transfer encoding")
+            if "chunked" in codings[:-1]:
+                raise netius.ParserError("Invalid transfer encoding")
+            self.chunked = codings[-1] == "chunked"
 
-        # verifies that if the chunked encoding is requested then the content
-        # length value must be unset (as expected)
-        if self.chunked and not self.content_l == -1:
-            raise netius.ParserError("Chunked encoding with content length set")
+        # verifies that the transfer encoding and the content length are not
+        # defined at the same time, as the framing of the message would then
+        # be an ambiguous one (allows request smuggling)
+        if self.transfer_e and not self.content_l == -1:
+            raise netius.ParserError("Transfer encoding with content length set")
+
+        # verifies that a request compliant with the HTTP 1.1 version provides
+        # one and only one host header, as the target of the request would
+        # otherwise be an ambiguous one (as defined by RFC 9112)
+        if self.type == REQUEST and self.version >= HTTP_11:
+            host = self.headers.get("host", None)
+            if host == None:
+                raise netius.ParserError("Missing host header")
+            if type(host) == list:
+                raise netius.ParserError("Duplicated host header")
 
         # in case the current response in parsing has the no content
         # code (no payload present) the content length is set to the
@@ -775,15 +950,22 @@ class HTTPParser(parser.Parser):
             self.content_l = 0
 
         # verifies if the connection is meant to be kept alive by
-        # verifying the current value of the connection header against
-        # the expected keep alive string value, note that the verification
-        # takes into account a possible list value in connection
+        # verifying the tokens of the connection header, for the HTTP 1.1
+        # version the connection is a persistent one unless the close token
+        # is present and for the previous versions the opposite applies
         self.connection_s = self.headers.get("connection", None)
         if type(self.connection_s) == list:
-            self.connection_s = self.connection_s[0]
+            self.connection_s = ", ".join(self.connection_s)
         self.connection_s = self.connection_s and self.connection_s.lower()
-        self.keep_alive = self.connection_s == "keep-alive"
-        self.keep_alive |= self.connection_s == None and self.version >= HTTP_11
+        tokens = (
+            [value.strip() for value in self.connection_s.split(",")]
+            if self.connection_s
+            else []
+        )
+        if self.version >= HTTP_11:
+            self.keep_alive = not "close" in tokens
+        else:
+            self.keep_alive = "keep-alive" in tokens
 
         # verifies if the current message has finished, for those
         # situations an extra (finish) state change will be issued
@@ -907,6 +1089,12 @@ class HTTPParser(parser.Parser):
             # the chunk in case it's not found returns immediately
             index = data.find(b"\n")
             if index == -1:
+                # verifies that the amount of data pending for the size of the
+                # chunk is still within the allowed bounds, otherwise raises an
+                # error as the peer may be trying to exhaust the memory
+                pending = sum(len(value) for value in self.buffer) + len(data)
+                if pending > self.line_limit:
+                    raise netius.ParserError("Chunk size too long", code=431)
                 return 0
 
             # some of the current data to the buffer and then re-joins
@@ -922,10 +1110,14 @@ class HTTPParser(parser.Parser):
 
             # splits the header value so that additional chunk information
             # is removed and then parsed the value as the original chunk
-            # size (dimension) adding the two extra bytes to the length
+            # size (dimension) adding the two extra bytes to the length,
+            # note that only a sequence of hexadecimal digits is accepted
+            # as a valid size (avoids the smuggling of an extra request)
             header_s = header.split(b";", 1)
-            size = header_s[0]
-            self.chunk_d = int(size.strip(), base=16)
+            size = header_s[0].strip()
+            if not CHUNK_REGEX.match(netius.legacy.str(size)):
+                raise netius.ParserError("Invalid chunk size")
+            self.chunk_d = int(size, base=16)
             self.chunk_l = self.chunk_d + 2
             self.chunk_s = len(self.message)
 
@@ -969,6 +1161,19 @@ class HTTPParser(parser.Parser):
             self.message_f.write(data)
         elif memory:
             self.message.append(data)
+
+    def _parse_version(self, version_s):
+        # tries to resolve the version string using the map of the known
+        # versions, this is the fast path for the most common situations
+        version = VERSIONS_MAP.get(version_s, None)
+        if not version == None:
+            return version
+
+        # validates the syntax of the (unknown) version, falling back to
+        # the oldest version of the protocol in case it's a valid one
+        if not VERSION_REGEX.match(version_s):
+            raise netius.ParserError("Invalid version '%s'" % version_s)
+        return HTTP_10
 
     def _parse_query(self, query):
         # runs the "default" parsing of the query string from the system
