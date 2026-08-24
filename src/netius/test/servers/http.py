@@ -229,6 +229,30 @@ class HTTPConnectionTest(unittest.TestCase):
         decompressor = zlib.decompressobj(zlib.MAX_WBITS | 16)
         return [len(decompressor.decompress(data or b"")) for data in sent]
 
+    def test_on_data(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # the connection must stop being a persistent one once the number of
+        # served requests reaches the bound that is defined for the server
+        connection = self._make_connection()
+        connection.owner.requests_limit = 2
+        connection.parser = mock.Mock(keep_alive=True)
+        with mock.patch.object(connection.owner, "on_data_http"):
+            connection.on_data()
+            self.assertEqual(connection.parser.keep_alive, True)
+            connection.on_data()
+            self.assertEqual(connection.parser.keep_alive, False)
+
+        # a bound set to zero means that no limit is enforced, so that the
+        # connection may be kept alive for as long as it's required
+        connection = self._make_connection()
+        connection.owner.requests_limit = 0
+        connection.parser = mock.Mock(keep_alive=True)
+        with mock.patch.object(connection.owner, "on_data_http"):
+            connection.on_data()
+            self.assertEqual(connection.parser.keep_alive, True)
+
     def _send_response(self, code=200, data=None, headers=None, method="GET"):
         # runs the sending of a response over a connection with no socket,
         # returning the headers that have been used in the operation
@@ -263,6 +287,7 @@ class HTTPConnectionTest(unittest.TestCase):
         connection.dynamic = None
         connection.gzip_m = dict()
         connection.gzip_l = dict()
+        connection.requests = 0
         return connection
 
 

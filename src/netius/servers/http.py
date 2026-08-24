@@ -48,6 +48,9 @@ import contextlib
 import netius.common
 
 from netius.common import (
+    LINE_LIMIT,
+    HEADERS_LIMIT,
+    HEADERS_COUNT,
     PLAIN_ENCODING,
     CHUNKED_ENCODING,
     GZIP_ENCODING,
@@ -72,6 +75,12 @@ compressor before a partial flush is performed, avoiding one flush
 per payload chunk which would degrade the compression ratio, set it
 to zero to flush every chunk (required for latency sensitive streams
 that are served under an explicit compressed encoding) """
+
+REQUESTS_LIMIT = 1000
+""" The maximum number of requests that may be served by a single
+connection, once this value is reached the connection stops being
+a persistent one, avoiding it from being held open forever, set it
+to zero to remove the bound (not recommended) """
 
 EMPTY_CODES = (204, 304)
 """ The set of HTTP status codes that according to the HTTP
@@ -184,6 +193,7 @@ class HTTPConnection(netius.Connection):
         self.dynamic = None
         self.parser = None
         self.legacy = True
+        self.requests = 0
         self.gzip_m = dict()
         self.gzip_l = dict()
 
@@ -192,7 +202,12 @@ class HTTPConnection(netius.Connection):
         if not self.is_open():
             return
         self.parser = netius.common.HTTPParser(
-            self, type=netius.common.REQUEST, store=True
+            self,
+            type=netius.common.REQUEST,
+            store=True,
+            line_limit=self.owner.line_limit,
+            headers_limit=self.owner.headers_limit,
+            headers_count=self.owner.headers_count,
         )
         self.parser.bind("on_data", self.on_data)
 
@@ -623,6 +638,13 @@ class HTTPConnection(netius.Connection):
         return True
 
     def on_data(self):
+        # increments the number of requests that have been served by the
+        # current connection and in case the bound has been reached the
+        # connection stops being a persistent one (gets closed afterwards)
+        self.requests += 1
+        if self.owner.requests_limit and self.requests >= self.owner.requests_limit:
+            self.parser.keep_alive = False
+
         self.owner.on_data_http(self.connection_ctx, self.parser_ctx)
 
     @contextlib.contextmanager
@@ -752,6 +774,10 @@ class HTTPServer(netius.StreamServer):
         compress_level=GZIP_LEVEL,
         compress_flush=COMPRESS_FLUSH,
         compress_vary=True,
+        line_limit=LINE_LIMIT,
+        headers_limit=HEADERS_LIMIT,
+        headers_count=HEADERS_COUNT,
+        requests_limit=REQUESTS_LIMIT,
         *args,
         **kwargs
     ):
@@ -766,6 +792,10 @@ class HTTPServer(netius.StreamServer):
         self.compress_level = compress_level
         self.compress_flush = compress_flush
         self.compress_vary = compress_vary
+        self.line_limit = line_limit
+        self.headers_limit = headers_limit
+        self.headers_count = headers_count
+        self.requests_limit = requests_limit
         self.dynamic = False
         self.common_file = None
 
@@ -918,6 +948,20 @@ class HTTPServer(netius.StreamServer):
         if self.env:
             self.compress_vary = self.get_env(
                 "COMPRESS_VARY", self.compress_vary, cast=bool
+            )
+        if self.env:
+            self.line_limit = self.get_env("LINE_LIMIT", self.line_limit, cast=int)
+        if self.env:
+            self.headers_limit = self.get_env(
+                "HEADERS_LIMIT", self.headers_limit, cast=int
+            )
+        if self.env:
+            self.headers_count = self.get_env(
+                "HEADERS_COUNT", self.headers_count, cast=int
+            )
+        if self.env:
+            self.requests_limit = self.get_env(
+                "REQUESTS_LIMIT", self.requests_limit, cast=int
             )
         if self.common_log:
             self.common_file = open(self.common_log, "wb+")

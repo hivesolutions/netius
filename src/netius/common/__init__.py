@@ -100,6 +100,9 @@ from .dkim import (
 from .ftp import FTPParser
 from .geo import GeoResolver
 from .http import (
+    LINE_LIMIT,
+    HEADERS_LIMIT,
+    HEADERS_COUNT,
     REQUEST,
     RESPONSE,
     PLAIN_ENCODING,

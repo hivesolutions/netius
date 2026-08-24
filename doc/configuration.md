@@ -82,6 +82,15 @@
 | **COMMON_LOG** | `str`  | `None`  | The path to the file to log the HTTP request in "Common Log Format".                                                                                      |
 | **ENCODING**   | `str`  | `plain` | The encoding to be applied to the responses, one of `plain`, `chunked`, `gzip`, `deflate` or `auto`, check the `Compression` section for the `auto` mode. |
 
+#### Limits
+
+| Name               | Type  | Default | Description                                                                                                                             |
+| ------------------ | ----- | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **LINE_LIMIT**     | `int` | `8192`  | The maximum size (in bytes) of the initial line of a request, a larger one is rejected with a `414` status code.                        |
+| **HEADERS_LIMIT**  | `int` | `65536` | The maximum size (in bytes) of the headers section of a request, a larger one is rejected with a `431` status code.                     |
+| **HEADERS_COUNT**  | `int` | `128`   | The maximum number of header lines of a request, a larger number is rejected with a `431` status code.                                  |
+| **REQUESTS_LIMIT** | `int` | `1000`  | The maximum number of requests served by a single connection before it stops being a persistent one, set it to `0` to remove the bound. |
+
 #### Compression
 
 | Name                   | Type   | Default               | Description                                                                                                                                                               |
