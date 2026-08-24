@@ -188,6 +188,11 @@ HEADER_NAME_REGEX = re.compile(r"^[\!\#\$\%\&'\*\+\-\.\^\_\`\~0-9a-zA-Z]+$")
 header naming tokens, so that only the valid names are captured
 avoiding possible security issues, should be compliant with RFC 7230 """
 
+QUALITY_REGEX = re.compile(r"^(?:0(?:\.[0-9]{0,3})?|1(?:\.0{0,3})?)$")
+""" Regular expression to be used in the validation of the quality
+value of a coding, only the values between zero and one with at most
+three decimal places are considered valid ones """
+
 
 def parse_encodings(value):
     """
@@ -240,9 +245,10 @@ def parse_encodings(value):
             part = part.strip().lower()
             if not part.startswith("q="):
                 continue
-            try:
-                quality = float(part[2:])
-            except ValueError:
+            quality_s = part[2:]
+            if QUALITY_REGEX.match(quality_s):
+                quality = float(quality_s)
+            else:
                 quality = 0.0
 
         # in case the coding has been explicitly rejected by the peer

@@ -291,6 +291,8 @@ class HTTPProtocol(netius.StreamProtocol):
             self._close_gzip(safe=True)
         if self.gzip_c:
             self.gzip_c = None
+        if self.gzip_d:
+            self.gzip_d = None
 
     def info_dict(self, full=False):
         info = netius.StreamProtocol.info_dict(self, full=full)
@@ -528,6 +530,7 @@ class HTTPProtocol(netius.StreamProtocol):
         self.path = None
         self.gzip = None
         self.gzip_c = None
+        self.gzip_d = None
 
         # in case the provided data is a unicode string it's converted into
         # a raw set of bytes using the default encoding
@@ -926,6 +929,17 @@ class HTTPProtocol(netius.StreamProtocol):
             return data
         if not self.gzip_c:
             is_deflate = encoding == "deflate"
+
+            # the container of the deflate coding may only be detected using
+            # the two initial bytes of the payload, so the data is held until
+            # enough of it is available (avoids an invalid detection)
+            if is_deflate:
+                data = self.gzip_d + data if self.gzip_d else data
+                if len(data) < 2:
+                    self.gzip_d = data
+                    return b""
+                self.gzip_d = None
+
             wbits = deflate_wbits(data) if is_deflate else zlib.MAX_WBITS | 16
             self.gzip_c = zlib.decompressobj(wbits)
         return self.gzip_c.decompress(data)
@@ -969,6 +983,7 @@ class HTTPProtocol(netius.StreamProtocol):
         self.trigger("message", self, self.parser, message)
         self.parser.clear()
         self.gzip_c = None
+        self.gzip_d = None
 
     def on_partial(self, data):
         self.trigger("partial", self, self.parser, data)

@@ -162,8 +162,17 @@ class HTTPEncodingsTest(unittest.TestCase):
         )
 
         # an invalid quality value is considered to be a rejection of the
-        # coding, avoiding the sending of an unexpected coding
+        # coding, avoiding the sending of an unexpected coding, note that
+        # only the values between zero and one with at most three decimal
+        # places are considered to be valid ones
         self.assertEqual(netius.common.parse_encodings("gzip;q=invalid"), [])
+        self.assertEqual(netius.common.parse_encodings("gzip;q=nan"), [])
+        self.assertEqual(netius.common.parse_encodings("gzip;q=inf"), [])
+        self.assertEqual(netius.common.parse_encodings("gzip;q=2"), [])
+        self.assertEqual(netius.common.parse_encodings("gzip;q=1.1"), [])
+        self.assertEqual(netius.common.parse_encodings("gzip;q=0.0001"), [])
+        self.assertEqual(netius.common.parse_encodings("gzip;q=1.000"), ["gzip"])
+        self.assertEqual(netius.common.parse_encodings("gzip;q=0.5"), ["gzip"])
 
 
 class HTTPParserTest(unittest.TestCase):

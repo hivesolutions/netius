@@ -95,6 +95,31 @@ class HTTPProtocolTest(unittest.TestCase):
         protocol.gzip_c = None
         self.assertEqual(protocol.raw_data(data), RAW_MESSAGE)
 
+    def test_raw_data_partial(self):
+        protocol = netius.clients.HTTPProtocol(
+            "GET", "http://example.com/", asynchronous=True
+        )
+        protocol.parser = netius.common.HTTPParser(
+            protocol, type=netius.common.RESPONSE
+        )
+
+        # both of the deflate variants must be decoded even when the payload
+        # arrives in chunks too small to detect the container upfront
+        compressor = zlib.compressobj(6, zlib.DEFLATED, -zlib.MAX_WBITS)
+        raw = compressor.compress(RAW_MESSAGE) + compressor.flush()
+
+        for encoding, data in (
+            ("deflate", raw),
+            ("deflate", zlib.compress(RAW_MESSAGE)),
+        ):
+            protocol.parser.headers = {"content-encoding": encoding}
+            protocol.gzip_c = None
+            protocol.gzip_d = None
+            message = b""
+            for index in range(len(data)):
+                message += protocol.raw_data(data[index : index + 1])
+            self.assertEqual(message, RAW_MESSAGE)
+
     def test_send_request_parsed_none(self):
         protocol = netius.clients.HTTPProtocol(
             "GET", "http://example.com/", asynchronous=True
