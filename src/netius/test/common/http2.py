@@ -514,6 +514,38 @@ class HTTP2StreamTest(unittest.TestCase):
         finally:
             parser.clear(force=True)
 
+    def test_decode_headers(self):
+        if hpack == None:
+            self.skipTest("Skipping test: hpack unavailable")
+
+        connection = self._make_connection()
+        parser = connection.parser
+        try:
+            # a dynamic table size update beyond the negotiated maximum must
+            # be refused, as the peer would otherwise be able to grow the
+            # table of the decoder without any bound
+            stream = self._make_stream(parser, [])
+            stream.end_headers = True
+            stream.header_b = [b"\x3f\xe1\xff\x03\x82"]
+
+            self.assertRaises(netius.ParserError, stream.decode_headers)
+
+            # the failure in the decoding of a field block is a connection
+            # level error, as the dynamic table becomes unsynchronized
+            stream = self._make_stream(parser, [])
+            stream.end_headers = True
+            stream.header_b = [b"\x3f\xe1\xff\x03\x82"]
+            try:
+                stream.decode_headers()
+            except netius.ParserError as error:
+                self.assertEqual(
+                    error.get_kwarg("error_code"),
+                    netius.common.http2.COMPRESSION_ERROR,
+                )
+                self.assertEqual(error.get_kwarg("stream"), None)
+        finally:
+            parser.clear(force=True)
+
     def test_assert_headers(self):
         connection = self._make_connection()
         parser = connection.parser
@@ -564,6 +596,13 @@ class HTTP2StreamTest(unittest.TestCase):
                 headers = base[:index] + base[index + 1 :]
                 stream = self._make_stream(parser, headers)
                 self.assertRaises(netius.ParserError, stream.assert_headers)
+
+            # the target of the request may never be an empty one, as the
+            # resource being requested would then be an unknown one
+            stream = self._make_stream(
+                parser, [(":method", "GET"), (":scheme", "https"), (":path", "")]
+            )
+            self.assertRaises(netius.ParserError, stream.assert_headers)
         finally:
             parser.clear(force=True)
 
