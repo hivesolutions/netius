@@ -2,37 +2,37 @@
 
 #### General
 
-| Name           | Type   | Description                                                                                                                                                                                                                                                                  |
-| -------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **HOST**       | `str`  | The listening address of the server (eg: `127.0.0.1` or `0.0.0.0`).                                                                                                                                                                                                          |
-| **PORT**       | `int`  | The port the server will listen at (eg: `8080`).                                                                                                                                                                                                                             |
-| **IPV6**       | `bool` | If IPv6 should be enabled for the server/client, by default the created socket is either IPV4 or IPv6 only, note that under Linux dual stack is provided for "free" for IPv6 stacks (defaults to `False`).                                                                   |
-| **SSL**        | `bool` | If the server is going to use SSL/TLS (Secure Sockets Layer).                                                                                                                                                                                                                |
-| **UNIX_PATH**  | `str`  | The path to the file that is going to be used for Unix domain sockets (defaults to `$PORT`), note that under the hood the port variable is used as the path for the socket.                                                                                                  |
-| **BACKLOG**    | `int`  | The number of connections to be hold waiting in queue while pending accept operation.                                                                                                                                                                                        |
-| **ALLOWED**    | `list` | Sequence of IP or Subnet addresses (eg: 172.16.0.0/16) that are considered to be allowed as clients for a given server, any client connection with an IP address not contained in the list will be dropped (defaults to `[]`).                                               |
-| **CHILDREN**   | `int`  | Number of child processes that are meant to be created upon launch using a pre-fork approach (defaults to `0`).                                                                                                                                                              |
-| **CHILD**      | `int`  | Same as `CHILDREN`.                                                                                                                                                                                                                                                          |
-| **MIDDLEWARE** | `list` | The middleware as a set of strings (eg: proxy) that is going to be loaded into the instance, the notation used to define the modules to be loaded should be underscore based (notice that loading extra middleware into an instance may impact the performance of the same). |
-| **SECURE**     | `bool` | Control if a secure production environment should be ensured by hiding some critical information (eg: version) (defaults to `True`).                                                                                                                                         |
+| Name           | Type   | Default     | Description                                                                                                                                                                                                                                                                  |
+| -------------- | ------ | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **HOST**       | `str`  | `127.0.0.1` | The listening address of the server (eg: `127.0.0.1` or `0.0.0.0`).                                                                                                                                                                                                          |
+| **PORT**       | `int`  | `9090`      | The port the server will listen at (eg: `8080`).                                                                                                                                                                                                                             |
+| **IPV6**       | `bool` | `False`     | If IPv6 should be enabled for the server/client, by default the created socket is either IPV4 or IPv6 only, note that under Linux dual stack is provided for "free" for IPv6 stacks.                                                                                         |
+| **SSL**        | `bool` | `False`     | If the server is going to use SSL/TLS (Secure Sockets Layer).                                                                                                                                                                                                                |
+| **UNIX_PATH**  | `str`  | `$PORT`     | The path to the file that is going to be used for Unix domain sockets, note that under the hood the port variable is used as the path for the socket.                                                                                                                        |
+| **BACKLOG**    | `int`  | `SOMAXCONN` | The number of connections to be hold waiting in queue while pending accept operation.                                                                                                                                                                                        |
+| **ALLOWED**    | `list` | `[]`        | Sequence of IP or Subnet addresses (eg: 172.16.0.0/16) that are considered to be allowed as clients for a given server, any client connection with an IP address not contained in the list will be dropped.                                                                  |
+| **CHILDREN**   | `int`  | `0`         | Number of child processes that are meant to be created upon launch using a pre-fork approach.                                                                                                                                                                                |
+| **CHILD**      | `int`  | `0`         | Same as `CHILDREN`.                                                                                                                                                                                                                                                          |
+| **MIDDLEWARE** | `list` | `[]`        | The middleware as a set of strings (eg: proxy) that is going to be loaded into the instance, the notation used to define the modules to be loaded should be underscore based (notice that loading extra middleware into an instance may impact the performance of the same). |
+| **SECURE**     | `bool` | `True`      | Control if a secure production environment should be ensured by hiding some critical information (eg: version).                                                                                                                                                              |
 
 #### Logging
 
-| Name                     | Type    | Description                                                                                             |
-| ------------------------ | ------- | ------------------------------------------------------------------------------------------------------- |
-| **LOGGER_FLUSH_TIMEOUT** | `float` | The amount of time in seconds in between flush operations on the logging handlers (defaults to `60.0`). |
+| Name                     | Type    | Default | Description                                                                        |
+| ------------------------ | ------- | ------- | ---------------------------------------------------------------------------------- |
+| **LOGGER_FLUSH_TIMEOUT** | `float` | `60.0`  | The amount of time in seconds in between flush operations on the logging handlers. |
 
 #### Internal
 
-| Name                   | Type    | Description                                                                                                                                                                                                                                           |
-| ---------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **ASYNCIO**            | `bool`  | If the asyncio mode should be used, meaning that the loop retrieval method to be used is the one provided by the asyncio module, in case no asyncio support exists the flag is ignored (defaults to `False`).                                         |
-| **COMPAT**             | `bool`  | If the "heavyweight" compatibility mode should be ensured so that some operations will use an `asyncio` compatible way of performing execution, using this mode has performance implications (defaults to `False`).                                   |
-| **POLL**               | `str`   | The name of the polling system to be used for the controlling of the main event loop by default this values is inferred automatically based on the current system capabilities.                                                                       |
-| **POLL_TIMEOUT**       | `float` | The timeout in seconds for each of the iteration of the event loop, this value should be carefully chosen as it controls the minimum resolution of a delayed execution.                                                                               |
-| **KEEPALIVE_TIMEOUT**  | `int`   | The amount of time in seconds that a connection is set as idle until a new refresh token is sent to it to make sure that it's still online and not disconnected, make sure that this value is high enough that it does not consume to much bandwidth. |
-| **KEEPALIVE_INTERVAL** | `int`   | The time between the retrying of "ping" packets, this value does not need to be too large and should not be considered too important (may be calculated automatically).                                                                               |
-| **KEEPALIVE_COUNT**    | `int`   | The amount of times the "ping" packet is re-sent until the connection is considered to be offline and is dropped.                                                                                                                                     |
+| Name                   | Type    | Default | Description                                                                                                                                                                                                                                           |
+| ---------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ASYNCIO**            | `bool`  | `False` | If the asyncio mode should be used, meaning that the loop retrieval method to be used is the one provided by the asyncio module, in case no asyncio support exists the flag is ignored.                                                               |
+| **COMPAT**             | `bool`  | `False` | If the "heavyweight" compatibility mode should be ensured so that some operations will use an `asyncio` compatible way of performing execution, using this mode has performance implications.                                                         |
+| **POLL**               | `str`   | auto    | The name of the polling system to be used for the controlling of the main event loop, inferred from the capabilities of the current system (eg: `epoll`, `kqueue`, `poll` or `select`).                                                               |
+| **POLL_TIMEOUT**       | `float` | `0.25`  | The timeout in seconds for each of the iteration of the event loop, this value should be carefully chosen as it controls the minimum resolution of a delayed execution.                                                                               |
+| **KEEPALIVE_TIMEOUT**  | `int`   | `300`   | The amount of time in seconds that a connection is set as idle until a new refresh token is sent to it to make sure that it's still online and not disconnected, make sure that this value is high enough that it does not consume to much bandwidth. |
+| **KEEPALIVE_INTERVAL** | `int`   | `30`    | The time between the retrying of "ping" packets, this value does not need to be too large and should not be considered too important (may be calculated automatically).                                                                               |
+| **KEEPALIVE_COUNT**    | `int`   | `3`     | The amount of times the "ping" packet is re-sent until the connection is considered to be offline and is dropped.                                                                                                                                     |
 
 #### Diagnostics
 
@@ -45,68 +45,68 @@
 
 #### SSL
 
-| Name                    | Type   | Description                                                                                                                                                                                                               |
-| ----------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **CER_FILE**            | `str`  | The path to the certificate file to be used for SSL (PEM format).                                                                                                                                                         |
-| **KEY_FILE**            | `str`  | The path to the private key file to be used for SSL (PEM format).                                                                                                                                                         |
-| **CA_FILE**             | `str`  | The path to the CA (certificate authority) file to be used for SSL (PEM format).                                                                                                                                          |
-| **CA_ROOT**             | `bool` | If the default CA file/files should be loaded from the current environment (defaults to `True`).                                                                                                                          |
-| **SSL_VERIFY**          | `bool` | If the standard SSL verification process (CA) should be performed for the connection, if the current instance is a client the host verification will also be performed for the server side host.                          |
-| **SSL_HOST**            | `str`  | The hostname that is going to be used in for domain verification, this value is only user in server to be able to verify client certificates  against an expected host.                                                   |
-| **SSL_FINGERPRINT**     | `str`  | The fingerprint (SHA1 digest of certificate) that is going to be used to verify the integrity of a peer/client certificate against the expected one.                                                                      |
-| **SSL_DUMP**            | `bool` | If the certificate information should be dumped to the directory specified by the `SSL_PATH` configuration value (defaults to `False`).                                                                                   |
-| **SSL_PATH**            | `str`  | Path to the directory where the SSL dump information is going to be placed, in case the directory does not exist it's created (defaults to `/tmp/ssl`).                                                                   |
-| **SSL_SECURE**          | `int`  | The level of security to be used for the suite of SSL (eg: some protocols removed) (defaults to `1`).                                                                                                                     |
-| **SSL_CONTEXT_OPTIONS** | `list` | List of strings that defined the options to be used in the SSL context creation (eg: `OP_NO_SSLv2`) for more information check [ssl module documentation](https://docs.python.org/3/library/ssl.html) (defaults to `[]`). |
-| **SSL_CONTEXTS**        | `dict` | The dictionary that associates the various domains that may be served with different context values (certificate, key, etc) for such domain.                                                                              |
-| **CER_DATA**            | `str`  | Equivalent to `CER_FILE` but with explicit (data) contents of the file (`\n` escaped).                                                                                                                                    |
-| **KEY_DATA**            | `str`  | Equivalent to `KEY_FILE` but with explicit (data) contents of the file (`\n` escaped).                                                                                                                                    |
-| **CA_DATA**             | `str`  | Equivalent to `CA_FILE` but with explicit (data) contents of the file (`\n` escaped).                                                                                                                                     |
+| Name                    | Type   | Default    | Description                                                                                                                                                                                            |
+| ----------------------- | ------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **CER_FILE**            | `str`  | `None`     | The path to the certificate file to be used for SSL (PEM format).                                                                                                                                      |
+| **KEY_FILE**            | `str`  | `None`     | The path to the private key file to be used for SSL (PEM format).                                                                                                                                      |
+| **CA_FILE**             | `str`  | `None`     | The path to the CA (certificate authority) file to be used for SSL (PEM format).                                                                                                                       |
+| **CA_ROOT**             | `bool` | `True`     | If the default CA file/files should be loaded from the current environment.                                                                                                                            |
+| **SSL_VERIFY**          | `bool` | `False`    | If the standard SSL verification process (CA) should be performed for the connection, if the current instance is a client the host verification will also be performed for the server side host.       |
+| **SSL_HOST**            | `str`  | `None`     | The hostname that is going to be used in for domain verification, this value is only user in server to be able to verify client certificates against an expected host.                                 |
+| **SSL_FINGERPRINT**     | `str`  | `None`     | The fingerprint (SHA1 digest of certificate) that is going to be used to verify the integrity of a peer/client certificate against the expected one.                                                   |
+| **SSL_DUMP**            | `bool` | `False`    | If the certificate information should be dumped to the directory specified by the `SSL_PATH` configuration value.                                                                                      |
+| **SSL_PATH**            | `str`  | `/tmp/ssl` | Path to the directory where the SSL dump information is going to be placed, in case the directory does not exist it's created.                                                                         |
+| **SSL_SECURE**          | `int`  | `1`        | The level of security to be used for the suite of SSL (eg: some protocols removed).                                                                                                                    |
+| **SSL_CONTEXT_OPTIONS** | `list` | `[]`       | List of strings that defined the options to be used in the SSL context creation (eg: `OP_NO_SSLv2`) for more information check [ssl module documentation](https://docs.python.org/3/library/ssl.html). |
+| **SSL_CONTEXTS**        | `dict` | `{}`       | The dictionary that associates the various domains that may be served with different context values (certificate, key, etc) for such domain.                                                           |
+| **CER_DATA**            | `str`  | `None`     | Equivalent to `CER_FILE` but with explicit (data) contents of the file (`\n` escaped).                                                                                                                 |
+| **KEY_DATA**            | `str`  | `None`     | Equivalent to `KEY_FILE` but with explicit (data) contents of the file (`\n` escaped).                                                                                                                 |
+| **CA_DATA**             | `str`  | `None`     | Equivalent to `CA_FILE` but with explicit (data) contents of the file (`\n` escaped).                                                                                                                  |
 
 #### File Serving
 
-| Name            | Type   | Description                                                                                                                                                                          |
-| --------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **BASE_PATH**   | `str`  | The base directory path to be used for the file serving, if not defined the current directory is used instead (defaults to `None`).                                                  |
-| **STYLE_URLS**  | `list` | The list of URLs that are going to be used to include stylesheets at directory listing.                                                                                              |
-| **INDEX_FILES** | `list` | List of file names that should be considered for eligible for index operation (eg: `index.html`).                                                                                    |
-| **PATH_REGEX**  | `list` | The list of regex to path values (separated by the `:` character) that provide a simple way of URL re-writing like behaviour under the file serving extension (eg: `.*:index.html`). |
-| **LIST_DIRS**   | `bool` | If directory listing is enabled (may pose a security issue) (defaults to `True`).                                                                                                    |
-| **LIST_ENGINE** | `str`  | The name of the HTML generation engine to be used while listing files (eg: base, apache, legacy, etc.) (defaults to `base`).                                                         |
+| Name            | Type   | Default | Description                                                                                                                                                                          |
+| --------------- | ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **BASE_PATH**   | `str`  | `""`    | The base directory path to be used for the file serving, if not defined the current directory is used instead.                                                                       |
+| **STYLE_URLS**  | `list` | `[]`    | The list of URLs that are going to be used to include stylesheets at directory listing.                                                                                              |
+| **INDEX_FILES** | `list` | `[]`    | List of file names that should be considered for eligible for index operation (eg: `index.html`).                                                                                    |
+| **PATH_REGEX**  | `list` | `[]`    | The list of regex to path values (separated by the `:` character) that provide a simple way of URL re-writing like behaviour under the file serving extension (eg: `.*:index.html`). |
+| **LIST_DIRS**   | `bool` | `True`  | If directory listing is enabled (may pose a security issue).                                                                                                                         |
+| **LIST_ENGINE** | `str`  | `base`  | The name of the HTML generation engine to be used while listing files (eg: base, apache, legacy, etc.).                                                                              |
 
 #### HTTP
 
-| Name           | Type   | Description                                                                                                                                                                     |
-| -------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SAFE**       | `bool` | If safe execution should be enforced, (eg: avoiding HTTP2 execution) (defaults to `False`).                                                                                     |
-| **COMMON_LOG** | `str`  | The path to the file to log the HTTP request in "Common Log Format" (defaults to `None`).                                                                                       |
-| **ENCODING**   | `str`  | The encoding to be applied to the responses, one of `plain`, `chunked`, `gzip`, `deflate` or `auto` (defaults to `plain`), check the `Compression` section for the `auto` mode. |
+| Name           | Type   | Default | Description                                                                                                                                               |
+| -------------- | ------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SAFE**       | `bool` | `False` | If safe execution should be enforced, (eg: avoiding HTTP2 execution).                                                                                     |
+| **COMMON_LOG** | `str`  | `None`  | The path to the file to log the HTTP request in "Common Log Format".                                                                                      |
+| **ENCODING**   | `str`  | `plain` | The encoding to be applied to the responses, one of `plain`, `chunked`, `gzip`, `deflate` or `auto`, check the `Compression` section for the `auto` mode. |
 
 #### Compression
 
-| Name                   | Type   | Default            | Description                                                                                                                                                               |
-| ---------------------- | ------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **COMPRESS_MIN**       | `int`  | `1024`             | The minimum size (in bytes) of a payload for the compression of it to be considered, smaller payloads would grow in size once the framing overhead is taken into account. |
-| **COMPRESS_MAX**       | `int`  | `5242880`          | The maximum size (in bytes) of a payload for the compression of it to be considered, keeps the cost of the (synchronous) compression bounded.                             |
-| **COMPRESSED_LIMIT**   | `int`  | `5242880`          | Alias of `COMPRESS_MAX`, kept for backwards compatibility.                                                                                                                |
-| **COMPRESS_TYPES**     | `list` | built-in allowlist | The media types considered to be compressible, a value ending with a slash is matched as a prefix (eg: `text/`) and one starting with a plus as a suffix (eg: `+json`).   |
-| **COMPRESS_ENCODINGS** | `list` | `gzip, deflate`    | The content codings to be used in the compression, defined in descending order of preference (the first one also accepted by the client is the one used).                 |
-| **COMPRESS_LEVEL**     | `int`  | `6`                | The zlib compression level to be used, provides a balance between the compression ratio and the processor usage.                                                          |
-| **COMPRESS_FLUSH**     | `int`  | `16384`            | The amount of payload accumulated in the compressor before a partial flush, set it to `0` to flush every chunk (see the note below on latency sensitive streams).         |
-| **COMPRESS_VARY**      | `bool` | `True`             | If the `Vary: Accept-Encoding` header should be announced for the responses that were eligible for compression, required for correct behaviour behind a shared cache.     |
+| Name                   | Type   | Default               | Description                                                                                                                                                               |
+| ---------------------- | ------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **COMPRESS_MIN**       | `int`  | `1024`                | The minimum size (in bytes) of a payload for the compression of it to be considered, smaller payloads would grow in size once the framing overhead is taken into account. |
+| **COMPRESS_MAX**       | `int`  | `5242880`             | The maximum size (in bytes) of a payload for the compression of it to be considered, keeps the cost of the (synchronous) compression bounded.                             |
+| **COMPRESSED_LIMIT**   | `int`  | `5242880`             | Alias of `COMPRESS_MAX`, kept for backwards compatibility.                                                                                                                |
+| **COMPRESS_TYPES**     | `list` | built-in allowlist    | The media types considered to be compressible, a value ending with a slash is matched as a prefix (eg: `text/`) and one starting with a plus as a suffix (eg: `+json`).   |
+| **COMPRESS_ENCODINGS** | `list` | `["gzip", "deflate"]` | The content codings to be used in the compression, defined in descending order of preference (the first one also accepted by the client is the one used).                 |
+| **COMPRESS_LEVEL**     | `int`  | `6`                   | The zlib compression level to be used, provides a balance between the compression ratio and the processor usage.                                                          |
+| **COMPRESS_FLUSH**     | `int`  | `16384`               | The amount of payload accumulated in the compressor before a partial flush, set it to `0` to flush every chunk (see the note below on latency sensitive streams).         |
+| **COMPRESS_VARY**      | `bool` | `True`                | If the `Vary: Accept-Encoding` header should be announced for the responses that were eligible for compression, required for correct behaviour behind a shared cache.     |
 
 Accumulating the payload before each flush improves the compression ratio of a chunked response considerably, but it also means that a response is only delivered in blocks of roughly `COMPRESS_FLUSH` bytes. That is a bad trade for a latency sensitive stream (server sent events, long polling, progress output), so `text/event-stream` is never compressed and any deployment that serves such a stream under an explicit `ENCODING=gzip` or `ENCODING=deflate` should set `COMPRESS_FLUSH` to `0`.
 
 #### Proxy
 
-| Name                        | Type    | Description                                                                                                                                                                                                                                     |
-| --------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **DYNAMIC**                 | `bool`  | In case this value is active dynamic connection encoding is applied, meaning that extra heuristics will be applied on a response basis to determine the proper encoding of the response (eg: plain, chunked, gzip, etc.).                       |
-| **THROTTLE**                | `bool`  | If throttling of the connection stream should be applied on both ways to avoid starvation of the producer consumer relation.                                                                                                                    |
-| **TRUST_ORIGIN**            | `bool`  | If the origin connection (eg: http client, proxy client, etc.) is meant to be trusted meaning that its information is considered reliable, this value is especially important for proxy to proxy relations (defaults to `False`).               |
-| **COMPRESS_FORWARD_ACCEPT** | `bool`  | If the `Accept-Encoding` of the client should be forwarded to the back-end instead of asking it for the `identity` coding, use it when the back-end does better than the proxy (defaults to `False`).                                           |
-| **COMPRESS_BUFFER**         | `bool`  | If the encoding decision should be deferred for the back-ends that stream a payload with no declared length, holding the response until the minimum size is crossed, when disabled such responses are forwarded untouched (defaults to `True`). |
-| **COMPRESS_TIMEOUT**        | `float` | The maximum amount of time (in seconds) that a response may be held while waiting for enough payload to decide on the compression (defaults to `1.0`).                                                                                          |
+| Name                        | Type    | Default | Description                                                                                                                                                                                                                |
+| --------------------------- | ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DYNAMIC**                 | `bool`  | `True`  | In case this value is active dynamic connection encoding is applied, meaning that extra heuristics will be applied on a response basis to determine the proper encoding of the response (eg: plain, chunked, gzip, etc.).  |
+| **THROTTLE**                | `bool`  | `True`  | If throttling of the connection stream should be applied on both ways to avoid starvation of the producer consumer relation.                                                                                               |
+| **TRUST_ORIGIN**            | `bool`  | `False` | If the origin connection (eg: http client, proxy client, etc.) is meant to be trusted meaning that its information is considered reliable, this value is especially important for proxy to proxy relations.                |
+| **COMPRESS_FORWARD_ACCEPT** | `bool`  | `False` | If the `Accept-Encoding` of the client should be forwarded to the back-end instead of asking it for the `identity` coding, use it when the back-end does better than the proxy.                                            |
+| **COMPRESS_BUFFER**         | `bool`  | `True`  | If the encoding decision should be deferred for the back-ends that stream a payload with no declared length, holding the response until the minimum size is crossed, when disabled such responses are forwarded untouched. |
+| **COMPRESS_TIMEOUT**        | `float` | `1.0`   | The maximum amount of time (in seconds) that a response may be held while waiting for enough payload to decide on the compression.                                                                                         |
 
 ##### Compression at the proxy (`ENCODING=auto`)
 
@@ -127,17 +127,17 @@ Two notes worth keeping in mind when enabling it:
 
 #### Proxy Reverse
 
-| Name                  | Type    | Description                                                                                                                                                                      |
-| --------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **STS**               | `int`   | Defines the strict transport security header value (in seconds) for the reverse proxy, in case the value is zero the strict transport security is disabled (defaults to `0`).    |
-| **ECHO**              | `bool`  | If enabled allows for more verbose output of the rules associated with the reverse proxy (defaults to `False`).                                                                  |
-| **RESOLVE**           | `bool`  | If the DNS based resolution of the hosts should be enabled meaning that from time to time the hostname associated with the target URLs is resolved (defaults to `True`).         |
-| **RESOLVE_TIMEOUT**   | `float` | The amount of seconds between DNS resolution queries (defaults to `120`).                                                                                                        |
-| **HOST_FORWARD**      | `bool`  | If the `Host` header for HTTP back-end connections should be resolved from rules, avoiding `Host` header populated with the IP address (defaults to `False`).                    |
-| **REUSE**             | `bool`  | If HTTP connections/rules should be re-used from a proxy point of view, this options may pose a problem when different suffixes are used for the same host (defaults to `True`). |
-| **STRATEGY**          | `str`   | The load balancing strategy that is going to be used for multiple back-end connections (defaults to `robin`).                                                                    |
-| **X_FORWARDED_PORT**  | `str`   | If defined allow "forcing" the `X-Forwarded-Port` HTTP header (defaults to `None`).                                                                                              |
-| **X_FORWARDED_PROTO** | `str`   | If defined allow "forcing" the `X-Forwarded-Proto` HTTP header (defaults to `None`).                                                                                             |
+| Name                  | Type    | Default | Description                                                                                                                                                 |
+| --------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **STS**               | `int`   | `0`     | Defines the strict transport security header value (in seconds) for the reverse proxy, in case the value is zero the strict transport security is disabled. |
+| **ECHO**              | `bool`  | `False` | If enabled allows for more verbose output of the rules associated with the reverse proxy.                                                                   |
+| **RESOLVE**           | `bool`  | `True`  | If the DNS based resolution of the hosts should be enabled meaning that from time to time the hostname associated with the target URLs is resolved.         |
+| **RESOLVE_TIMEOUT**   | `float` | `120.0` | The amount of seconds between DNS resolution queries.                                                                                                       |
+| **HOST_FORWARD**      | `bool`  | `False` | If the `Host` header for HTTP back-end connections should be resolved from rules, avoiding `Host` header populated with the IP address.                     |
+| **REUSE**             | `bool`  | `True`  | If HTTP connections/rules should be re-used from a proxy point of view, this options may pose a problem when different suffixes are used for the same host. |
+| **STRATEGY**          | `str`   | `robin` | The load balancing strategy that is going to be used for multiple back-end connections.                                                                     |
+| **X_FORWARDED_PORT**  | `str`   | `None`  | If defined allow "forcing" the `X-Forwarded-Port` HTTP header.                                                                                              |
+| **X_FORWARDED_PROTO** | `str`   | `None`  | If defined allow "forcing" the `X-Forwarded-Proto` HTTP header.                                                                                             |
 
 #### Consul Proxy
 
@@ -168,11 +168,11 @@ Services may also use the following Consul tags to control routing behavior:
 
 #### DNS Client
 
-| Name                | Type   | Description                                                                                   |
-| ------------------- | ------ | --------------------------------------------------------------------------------------------- |
-| **NAMESERVERS**     | `list` | The sequence of DNS servers to be used for forward of resolution requests (defaults to `[]`). |
-| **NAMESERVERS_IP4** | `list` | Same as `NAMESERVERS` but just for IPv4 resolution (defaults to `[]`).                        |
-| **NAMESERVERS_IP6** | `list` | Same as `NAMESERVERS` but just for IPv6 resolution (defaults to `[]`).                        |
+| Name                | Type   | Default | Description                                                                |
+| ------------------- | ------ | ------- | -------------------------------------------------------------------------- |
+| **NAMESERVERS**     | `list` | `[]`    | The sequence of DNS servers to be used for forward of resolution requests. |
+| **NAMESERVERS_IP4** | `list` | `[]`    | Same as `NAMESERVERS` but just for IPv4 resolution.                        |
+| **NAMESERVERS_IP6** | `list` | `[]`    | Same as `NAMESERVERS` but just for IPv6 resolution.                        |
 
 #### SMTP Relay
 
@@ -194,26 +194,26 @@ Services may also use the following Consul tags to control routing behavior:
 
 #### Blacklist Middleware
 
-| Name          | Type   | Description                                                                                                         |
-| ------------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
-| **BLACKLIST** | `list` | List of IP addresses of the connections that should be dropped immediately, use `*` to drop all of the connections. |
-| **WHITELIST** | `list` | Sequence of IP addresses that should be allowed explicitly, use `*` to allow all of the connection to be accepted.  |
+| Name          | Type   | Default | Description                                                                                                         |
+| ------------- | ------ | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| **BLACKLIST** | `list` | `[]`    | List of IP addresses of the connections that should be dropped immediately, use `*` to drop all of the connections. |
+| **WHITELIST** | `list` | `[]`    | Sequence of IP addresses that should be allowed explicitly, use `*` to allow all of the connection to be accepted.  |
 
 #### Flood (Mitigation) Middleware
 
-| Name              | Type   | Description                                                                                                                                          |
-| ----------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **CONNS_PER_MIN** | `int`  | The maximum number of connections per minute allowed per a certain IP before it becomes black listed and connections are dropped (default to `600`). |
-| **WHITELIST**     | `list` | Sequence of IP addresses that should be allowed explicitly, use `*` to allow all of the connection to be accepted.                                   |
+| Name              | Type   | Default | Description                                                                                                                       |
+| ----------------- | ------ | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **CONNS_PER_MIN** | `int`  | `600`   | The maximum number of connections per minute allowed per a certain IP before it becomes black listed and connections are dropped. |
+| **WHITELIST**     | `list` | `[]`    | Sequence of IP addresses that should be allowed explicitly, use `*` to allow all of the connection to be accepted.                |
 
 #### PROXY Middleware
 
-| Name              | Type  | Description                                                                   |
-| ----------------- | ----- | ----------------------------------------------------------------------------- |
-| **PROXY_VERSION** | `int` | The version of the PROXY protocol that is going to be used (defaults to `1`). |
+| Name              | Type  | Default | Description                                                 |
+| ----------------- | ----- | ------- | ----------------------------------------------------------- |
+| **PROXY_VERSION** | `int` | `1`     | The version of the PROXY protocol that is going to be used. |
 
 #### Annoyer Middleware
 
-| Name               | Type    | Description                                                                                                                                          |
-| ------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **ANNOYER_PERIOD** | `float` | The period (in seconds) to wait in between the printing of the "annoying" diagnostics message, this is opposite of the frequency (defaults to `10`). |
+| Name               | Type    | Default | Description                                                                                                                       |
+| ------------------ | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **ANNOYER_PERIOD** | `float` | `10.0`  | The period (in seconds) to wait in between the printing of the "annoying" diagnostics message, this is opposite of the frequency. |
