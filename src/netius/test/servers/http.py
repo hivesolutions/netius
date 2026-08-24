@@ -77,6 +77,71 @@ class HTTPConnectionTest(unittest.TestCase):
         sent = self._send_gzip(16384, (b"chunk-1", b"chunk-2", b"chunk-3"))
         self.assertEqual(sent, [0, 0, 0])
 
+    def test_send_response(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # an informational or a no content response may never announce a
+        # length for a payload that it's not allowed to carry
+        headers = self._send_response(code=204, data=b"payload")
+        self.assertEqual("content-length" in headers, False)
+        headers = self._send_response(code=100, data=b"payload")
+        self.assertEqual("content-length" in headers, False)
+
+        # an explicitly provided length must also be dropped for these
+        # responses, as their framing is defined by the status code alone
+        headers = self._send_response(code=204, headers=dict([("content-length", "7")]))
+        self.assertEqual("content-length" in headers, False)
+
+        # the response to a HEAD request must announce the length of the
+        # payload of the equivalent GET while carrying no payload at all
+        headers = self._send_response(code=200, data=b"payload", method="HEAD")
+        self.assertEqual(headers["content-length"], "7")
+
+        # a normal response must announce the exact length of the payload
+        # that is going to be sent to the client
+        headers = self._send_response(code=200, data=b"payload")
+        self.assertEqual(headers["content-length"], "7")
+
+    def test_send_header(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # a header value that carries a carriage return or a line feed must
+        # be rejected as it would otherwise split the response in two
+        self.assertRaises(
+            netius.GeneratorError,
+            lambda: self._send_header(dict(location="/a\r\nX-Injected: 1")),
+        )
+        self.assertRaises(
+            netius.GeneratorError,
+            lambda: self._send_header(dict(location="/a\nX-Injected: 1")),
+        )
+        self.assertRaises(
+            netius.GeneratorError,
+            lambda: self._send_header(dict(location="/a\rX-Injected: 1")),
+        )
+
+        # a valid set of headers must be serialized using the canonical form
+        # of the name and the complete line terminator sequence
+        data = self._send_header(dict(location="/a"))
+        self.assertEqual("Location: /a\r\n" in data, True)
+
+    def test_resolve_encoding(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # the chunked framing may only be used with a client that speaks at
+        # least the HTTP 1.1 version, as the previous ones have no support
+        # for it and would take the framing as part of the payload
+        connection = self._make_connection(encoding=netius.common.CHUNKED_ENCODING)
+        connection.resolve_encoding(mock.Mock(version=netius.common.HTTP_10))
+        self.assertEqual(connection.current, netius.common.PLAIN_ENCODING)
+
+        connection = self._make_connection(encoding=netius.common.CHUNKED_ENCODING)
+        connection.resolve_encoding(mock.Mock(version=netius.common.HTTP_11))
+        self.assertEqual(connection.current, netius.common.CHUNKED_ENCODING)
+
     def test_base_encoding(self):
         connection = self._make_connection(encoding=netius.common.GZIP_ENCODING)
         self.assertEqual(connection.base_encoding(), netius.common.GZIP_ENCODING)
@@ -163,6 +228,26 @@ class HTTPConnectionTest(unittest.TestCase):
             sent = [call[0][0] for call in send_chunked.call_args_list]
         decompressor = zlib.decompressobj(zlib.MAX_WBITS | 16)
         return [len(decompressor.decompress(data or b"")) for data in sent]
+
+    def _send_response(self, code=200, data=None, headers=None, method="GET"):
+        # runs the sending of a response over a connection with no socket,
+        # returning the headers that have been used in the operation
+        connection = self._make_connection()
+        connection.parser = mock.Mock(method=method)
+        with mock.patch.object(connection, "send_header") as send_header:
+            with mock.patch.object(connection, "send_part"):
+                connection.send_response(code=code, data=data, headers=headers)
+        return send_header.call_args[1]["headers"]
+
+    def _send_header(self, headers):
+        # runs the sending of the headers of a response over a connection with
+        # no socket, returning the raw data that would be sent to the client
+        connection = self._make_connection()
+        connection.parser = mock.Mock(method="GET")
+        with mock.patch.object(connection, "send_plain") as send_plain:
+            with mock.patch.object(connection.owner, "on_send_http"):
+                connection.send_header(headers=headers)
+            return send_plain.call_args[0][0]
 
     def _make_connection(self, encoding=netius.common.PLAIN_ENCODING):
         # builds a connection without the underlying socket, replicating the

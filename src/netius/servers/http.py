@@ -345,6 +345,16 @@ class HTTPConnection(netius.Connection):
         data_l = len(data) if data else 0
         is_empty = code in EMPTY_CODES and data_l == 0
 
+        # in case the response is an informational or a no content one it may
+        # never carry a payload nor announce a length for it, as the message
+        # is terminated by the first empty line after the headers section
+        if code < 200 or code == 204:
+            data = b""
+            data_l = 0
+            is_empty = True
+            if "content-length" in headers:
+                del headers["content-length"]
+
         # runs a series of verifications taking into account the type
         # of the method defined in the current request, for instance if
         # the current request is a HEAD one then no data is sent (as expected)
@@ -411,6 +421,14 @@ class HTTPConnection(netius.Connection):
                 buffer.append("%s: %s\r\n" % (key, _value))
         buffer.append("\r\n")
         buffer_data = "".join(buffer)
+
+        # ensures that no carriage return or line feed has been injected into
+        # any of the header values, each of the lines accounts for exactly one
+        # of these characters so any extra one splits the response
+        if not buffer_data.count("\r") == len(buffer) or not buffer_data.count(
+            "\n"
+        ) == len(buffer):
+            raise netius.GeneratorError("Invalid header value")
 
         # sends the buffer data to the connection peer so that it gets notified
         # about the headers for the current communication/message
