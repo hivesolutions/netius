@@ -1030,22 +1030,22 @@ class HTTPServer(netius.StreamServer):
                 "COMPRESS_VARY", self.compress_vary, cast=bool
             )
         if self.env:
-            self.line_limit = self.get_env("HTTP_LINE_LIMIT", self.line_limit, cast=int)
+            self.line_limit = self.get_env("LINE_LIMIT", self.line_limit, cast=int)
         if self.env:
             self.headers_limit = self.get_env(
-                "HTTP_HEADERS_LIMIT", self.headers_limit, cast=int
+                "HEADERS_LIMIT", self.headers_limit, cast=int
             )
         if self.env:
             self.headers_count = self.get_env(
-                "HTTP_HEADERS_COUNT", self.headers_count, cast=int
+                "HEADERS_COUNT", self.headers_count, cast=int
             )
         if self.env:
             self.requests_limit = self.get_env(
-                "HTTP_REQUESTS_LIMIT", self.requests_limit, cast=int
+                "REQUESTS_LIMIT", self.requests_limit, cast=int
             )
         if self.env:
             self.idle_timeout = self.get_env(
-                "HTTP_IDLE_TIMEOUT", self.idle_timeout, cast=int
+                "IDLE_TIMEOUT", self.idle_timeout, cast=int
             )
         if self.common_log:
             self.common_file = open(self.common_log, "wb+")
