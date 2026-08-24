@@ -585,6 +585,10 @@ class HTTP2Parser(parser.Parser):
         extra, self.length, self.type, self.flags, self.stream = header
         self.length += extra << 16
 
+        # masks the reserved bit of the identifier, as the value of such
+        # field must be ignored by the receiver (as defined by RFC 9113)
+        self.stream &= 0x7FFFFFFF
+
         self.assert_header()
 
         self.state = PAYLOAD_STATE

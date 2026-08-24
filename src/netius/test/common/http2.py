@@ -60,6 +60,12 @@ PING_FRAME = _pack_frame(
     netius.common.PING, payload=b"\x01\x02\x03\x04\x05\x06\x07\x08"
 )
 
+RESERVED_PING_FRAME = _pack_frame(
+    netius.common.PING,
+    stream=0x80000000,
+    payload=b"\x01\x02\x03\x04\x05\x06\x07\x08",
+)
+
 GOAWAY_FRAME = _pack_frame(
     netius.common.GOAWAY, payload=struct.pack("!II", 3, 0x00) + b"bye"
 )
@@ -305,6 +311,19 @@ class HTTP2ParserTest(unittest.TestCase):
                 )
 
             parser.assert_window_update(None, 4096)
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_header(self):
+        parser = netius.common.HTTP2Parser(self, store=True)
+        try:
+            # the reserved bit of the frame header must be ignored, so that
+            # only the remaining bits are taken as the stream identifier,
+            # note that a ping is only valid for the zero stream
+            count = parser.parse(RESERVED_PING_FRAME)
+            self.assertEqual(count, len(RESERVED_PING_FRAME))
+            self.assertEqual(parser.type, netius.common.PING)
+            self.assertEqual(parser.stream, 0x00)
         finally:
             parser.clear(force=True)
 
