@@ -312,9 +312,8 @@ class HTTPConnection(netius.Connection):
         # flush degrading the compression ratio
         data_c = gzip.compress(data)
         self.gzip_l[stream] = self.gzip_l.get(stream, 0) + len(data)
-        if not data_c and self.gzip_l[stream] >= self.owner.compress_flush:
-            data_c = gzip.flush(Z_PARTIAL_FLUSH)
-        if data_c:
+        if self.gzip_l[stream] >= self.owner.compress_flush:
+            data_c += gzip.flush(Z_PARTIAL_FLUSH)
             self.gzip_l[stream] = 0
 
         # sends the compressed data to the client endpoint setting
@@ -1062,6 +1061,15 @@ class HTTPServer(netius.StreamServer):
             headers["Connection"] = "close"
 
     def _apply_connection(self, connection, headers, strict=True):
+        # a payload that already carries a coding must not be encoded once
+        # again, as the coding announced for it would no longer describe the
+        # complete set of transformations applied to the payload
+        content_encoding = headers.get("Content-Encoding", None)
+        if isinstance(content_encoding, (list, tuple)):
+            content_encoding = ", ".join(content_encoding)
+        if content_encoding and not content_encoding.strip().lower() == "identity":
+            connection.set_uncompressed()
+
         # resolves the encoding that is effectively going to be used in
         # the wire, so that the announced encoding is the one applied to
         # the payload and never the (unclamped) target one

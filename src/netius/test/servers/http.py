@@ -28,10 +28,16 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import zlib
 import unittest
 
 import netius.common
 import netius.servers
+
+try:
+    import unittest.mock as mock
+except ImportError:
+    mock = None
 
 
 class HTTPCodecsTest(unittest.TestCase):
@@ -56,6 +62,20 @@ class HTTPCodecsTest(unittest.TestCase):
 
 
 class HTTPConnectionTest(unittest.TestCase):
+
+    def test_send_gzip(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # with no accumulation requested every chunk must be flushed, so that
+        # its payload becomes immediately available to the client
+        sent = self._send_gzip(0, (b"chunk-1", b"chunk-2", b"chunk-3"))
+        self.assertEqual(sent, [7, 7, 7])
+
+        # with the accumulation enabled the payload is withheld until enough
+        # of it is pending, improving the ratio of a chunked back-end
+        sent = self._send_gzip(16384, (b"chunk-1", b"chunk-2", b"chunk-3"))
+        self.assertEqual(sent, [0, 0, 0])
 
     def test_base_encoding(self):
         connection = self._make_connection(encoding=netius.common.GZIP_ENCODING)
@@ -132,6 +152,18 @@ class HTTPConnectionTest(unittest.TestCase):
         connection.dynamic = True
         self.assertEqual(connection.is_dynamic(), True)
 
+    def _send_gzip(self, compress_flush, chunks):
+        # sends the provided chunks through the gzip encoding and returns the
+        # amount of payload that becomes decodable for each one of them
+        connection = self._make_connection(encoding=netius.common.GZIP_ENCODING)
+        connection.owner.compress_flush = compress_flush
+        with mock.patch.object(connection, "send_chunked") as send_chunked:
+            for chunk in chunks:
+                connection.send_gzip(chunk)
+            sent = [call[0][0] for call in send_chunked.call_args_list]
+        decompressor = zlib.decompressobj(zlib.MAX_WBITS | 16)
+        return [len(decompressor.decompress(data or b"")) for data in sent]
+
     def _make_connection(self, encoding=netius.common.PLAIN_ENCODING):
         # builds a connection without the underlying socket, replicating the
         # encoding state that the constructor would otherwise initialize
@@ -195,10 +227,22 @@ class HTTPServerTest(unittest.TestCase):
         self.assertEqual("Accept-Ranges" in headers, False)
 
         # a coding that has already been set by the back-end must never be
-        # overwritten, as the payload is the one produced by it
+        # overwritten and its payload must not be encoded once again, as the
+        # coding announced would no longer describe the complete payload
+        connection = self._make_connection(netius.common.GZIP_ENCODING)
         headers = {"Content-Encoding": "br"}
         http_server._apply_connection(connection, headers)
         self.assertEqual(headers["Content-Encoding"], "br")
+        self.assertEqual(connection.is_compressed(), False)
+
+        # the explicit identity coding does not describe any transformation,
+        # so the payload remains eligible for the compression
+        connection = self._make_connection(netius.common.GZIP_ENCODING)
+        headers = {"Content-Encoding": "identity"}
+        http_server._apply_connection(connection, headers)
+        self.assertEqual(connection.is_compressed(), True)
+
+        connection = self._make_connection(netius.common.GZIP_ENCODING)
 
         # the coding that is announced must be the one applied to the wire
         # and not the (unclamped) target one of the connection
