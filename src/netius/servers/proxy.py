@@ -60,6 +60,28 @@ allowed in the sending buffer, this maximum value
 avoids the starvation of the producer to consumer
 relation that could cause memory problems """
 
+CONNECT_PORTS = (443,)
+""" The sequence of ports to which a tunnel may be established by the
+means of the CONNECT method, restricting the usage of the proxy as a
+relay towards an arbitrary service, set it to an empty sequence so
+that the restriction is removed (not recommended) """
+
+HOP_HEADERS = (
+    "connection",
+    "keep-alive",
+    "proxy-authenticate",
+    "proxy-authorization",
+    "proxy-connection",
+    "te",
+    "trailer",
+    "transfer-encoding",
+    "upgrade",
+)
+""" The sequence of headers that are specific to a single transport
+level connection and that must never be forwarded to the next hop as
+defined by RFC 9110, note that the non standard proxy connection one
+is also included as it's still in use by some of the clients """
+
 COMPRESS_TIMEOUT = 1.0
 """ The maximum amount of time (in seconds) that a response
 may be held while waiting for enough payload to decide on the
@@ -172,6 +194,7 @@ class ProxyServer(http2.HTTP2Server):
         compress_forward_accept=False,
         compress_buffer=True,
         compress_timeout=COMPRESS_TIMEOUT,
+        connect_ports=CONNECT_PORTS,
         *args,
         **kwargs
     ):
@@ -190,6 +213,7 @@ class ProxyServer(http2.HTTP2Server):
         self.compress_forward_accept = compress_forward_accept
         self.compress_buffer = compress_buffer
         self.compress_timeout = compress_timeout
+        self.connect_ports = connect_ports
         self.conn_map = {}
 
         self.http_client = netius.clients.HTTPClient(
@@ -453,6 +477,11 @@ class ProxyServer(http2.HTTP2Server):
             self.info("Throttling connections in proxy ...")
         else:
             self.info("Not throttling connections in proxy ...")
+        if self.env:
+            self.connect_ports = self.get_env(
+                "CONNECT_PORTS", self.connect_ports, cast=list
+            )
+        self.connect_ports = tuple(int(port) for port in self.connect_ports)
         if self.trust_origin:
             self.info('Origin is considered "trustable" by proxy')
 
@@ -690,6 +719,36 @@ class ProxyServer(http2.HTTP2Server):
         if join:
             return ",".join(value)
         return value[-1] if value else None
+
+    def _prx_authority(self, path):
+        """
+        Resolves the authority form target of a CONNECT request into its
+        host and port components, validating that both of them are proper
+        ones and that the port is an allowed target for a tunnel.
+
+        :type path: String
+        :param path: The target of the CONNECT request, expected to be in
+        the authority (host and port) form.
+        :rtype: Tuple
+        :return: A tuple containing the host and the port of the target or
+        an invalid value for both in case the target is not a valid one.
+        """
+
+        # splits the target around the final colon so that an IPv6 literal
+        # is properly handled, verifying that both parts are present
+        host, _separator, port = path.rpartition(":")
+        if not host or not port.isdigit():
+            return (None, None)
+
+        # verifies that the port is both a valid one and an allowed target
+        # for a tunnel, avoiding the usage of the proxy as a generic relay
+        port = int(port)
+        if port < 1 or port > 65535:
+            return (None, None)
+        if self.connect_ports and not port in self.connect_ports:
+            return (None, None)
+
+        return (host, port)
 
     def _prx_decodable(self, content_encoding):
         return content_encoding.strip().lower() in netius.clients.http.DECODINGS
@@ -1264,6 +1323,7 @@ class ProxyServer(http2.HTTP2Server):
     def _apply_headers(self, parser, connection, parser_prx, headers, upper=True):
         if upper:
             self._headers_upper(headers)
+        self._apply_hop(headers)
         self._apply_via(parser_prx, headers)
         self._apply_all(parser_prx, connection, headers, replace=True)
 
@@ -1287,6 +1347,40 @@ class ProxyServer(http2.HTTP2Server):
         if self.compress_forward_accept:
             return
         headers["accept-encoding"] = "identity"
+
+    def _apply_hop(self, headers):
+        """
+        Removes the headers that are specific to a single transport level
+        connection from the provided headers, as a proxy must never
+        forward any of them to the next hop (as defined by RFC 9110).
+
+        :type headers: Dictionary
+        :param headers: The headers of the message that is going to be
+        forwarded to the next hop, changed in place.
+        """
+
+        # maps the lower cased name of each of the headers into the name
+        # that is effectively in use, as the casing of it depends on the
+        # point of the pipeline from which this operation is run
+        names = dict((key.lower(), key) for key in netius.legacy.keys(headers))
+
+        # gathers the extra hop-by-hop headers that have been named by the
+        # connection header, joining its multiple definitions
+        connection = names.get("connection", None)
+        connection = self._prx_header(headers, connection) if connection else None
+        extra = (
+            [value.strip().lower() for value in connection.split(",")]
+            if connection
+            else []
+        )
+
+        # removes both the fixed set of hop-by-hop headers and the extra
+        # ones that the connection header has named
+        for name in tuple(HOP_HEADERS) + tuple(extra):
+            key = names.get(name, None)
+            if key == None:
+                continue
+            del headers[key]
 
     def _apply_via(self, parser_prx, headers):
         # retrieves the various elements of the parser that are going
@@ -1316,6 +1410,8 @@ class ProxyServer(http2.HTTP2Server):
         # and appends the created string to the base string or creates
         # a new one (as defined in the HTTP specification)
         via = headers.get("Via", "")
+        if isinstance(via, (list, tuple)):
+            via = ", ".join(via)
         if via:
             via += ", "
         via += via_s

@@ -116,6 +116,7 @@ Accumulating the payload before each flush improves the compression ratio of a c
 | **COMPRESS_FORWARD_ACCEPT** | `bool`  | `False` | If the `Accept-Encoding` of the client should be forwarded to the back-end instead of asking it for the `identity` coding, use it when the back-end does better than the proxy.                                            |
 | **COMPRESS_BUFFER**         | `bool`  | `True`  | If the encoding decision should be deferred for the back-ends that stream a payload with no declared length, holding the response until the minimum size is crossed, when disabled such responses are forwarded untouched. |
 | **COMPRESS_TIMEOUT**        | `float` | `1.0`   | The maximum amount of time (in seconds) that a response may be held while waiting for enough payload to decide on the compression.                                                                                         |
+| **CONNECT_PORTS**           | `list`  | `[443]` | The ports to which a tunnel may be established using the `CONNECT` method, set it to an empty list to remove the restriction (not recommended).                                                                            |
 
 ##### Compression at the proxy (`ENCODING=auto`)
 

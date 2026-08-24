@@ -377,6 +377,33 @@ class ProxyServerTest(unittest.TestCase):
         )
         self.assertEqual(self.server_a._prx_header(headers, "content-type"), None)
 
+    def test__prx_authority(self):
+        # a target in the authority form must be resolved into its host and
+        # port components, only the allowed ports being accepted for a tunnel
+        self.assertEqual(self.server._prx_authority("host.com:443"), ("host.com", 443))
+
+        # a target towards a port that is not an allowed one must be refused
+        # so that the proxy may not be used as a generic relay
+        self.assertEqual(self.server._prx_authority("host.com:22"), (None, None))
+        self.assertEqual(self.server._prx_authority("host.com:80"), (None, None))
+
+        # a malformed target must also be refused, either because no port is
+        # provided or because the provided one is not a valid number
+        self.assertEqual(self.server._prx_authority("host.com"), (None, None))
+        self.assertEqual(self.server._prx_authority("host.com:"), (None, None))
+        self.assertEqual(self.server._prx_authority(":443"), (None, None))
+        self.assertEqual(self.server._prx_authority("host.com:https"), (None, None))
+        self.assertEqual(self.server._prx_authority("host.com:99999"), (None, None))
+
+        # an IPv6 literal must be properly handled, as the target is split
+        # around the final colon and not around the first one
+        self.assertEqual(self.server._prx_authority("[::1]:443"), ("[::1]", 443))
+
+        # with no restriction in place every valid port must be accepted, as
+        # the allowed ports sequence is an empty one
+        self.server.connect_ports = ()
+        self.assertEqual(self.server._prx_authority("host.com:22"), ("host.com", 22))
+
     def test__prx_codec(self):
         # the coding must be resolved using the server preference order out
         # of the ones that are also accepted by the client

@@ -421,6 +421,12 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if domain:
             headers["host"] = domain
 
+        # a client supplied forwarded header may only be taken into account
+        # in case the origin is considered a trustable one, otherwise it's
+        # removed so that the back-end is not misled by a spoofed value
+        if not self.trust_origin and "forwarded" in headers:
+            del headers["forwarded"]
+
         # updates the various headers that are related with the reverse
         # proxy operation this is required so that the request gets
         # properly handled by the reverse server, otherwise some problems
@@ -470,14 +476,17 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         self._apply_accept(headers)
 
         # tries to determine the transfer encoding of the received request
-        # and by using that determines the proper encoding to be applied
-        encoding = headers.pop("transfer-encoding", None)
-        is_chunked = encoding == "chunked"
+        # and by using that determines the proper encoding to be applied,
+        # note that the parser value is used as it's the normalized one
         encoding = (
             netius.common.CHUNKED_ENCODING
-            if is_chunked
+            if parser.chunked
             else netius.common.PLAIN_ENCODING
         )
+
+        # removes the hop-by-hop headers of the request as they describe the
+        # connection with the client and not the one with the back-end
+        self._apply_hop(headers)
 
         # calls the proper (HTTP) method in the client this should acquire
         # a new protocol and start the process of sending the request

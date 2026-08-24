@@ -386,6 +386,36 @@ class HTTPServerTest(unittest.TestCase):
         http_server._apply_connection(connection, headers)
         self.assertEqual("Vary" in headers, False)
 
+    def test__apply_weak(self):
+        http_server = netius.servers.HTTPServer()
+        connection = self._make_connection(netius.common.GZIP_ENCODING)
+
+        # a payload that gets encoded by the server is no longer the octet
+        # sequence identified by a strong entity tag, so the tag is weakened
+        headers = {"Etag": '"abc"'}
+        http_server._apply_connection(connection, headers)
+        self.assertEqual(headers["Etag"], 'W/"abc"')
+
+        # an entity tag that is already a weak one must be kept untouched
+        # as there's nothing left to be weakened on it
+        headers = {"Etag": 'W/"abc"'}
+        http_server._apply_connection(connection, headers)
+        self.assertEqual(headers["Etag"], 'W/"abc"')
+
+        # a payload that is not encoded by the server keeps the strong tag
+        # as the octet sequence is exactly the one of the origin
+        connection = self._make_connection(netius.common.PLAIN_ENCODING)
+        headers = {"Etag": '"abc"'}
+        http_server._apply_connection(connection, headers)
+        self.assertEqual(headers["Etag"], '"abc"')
+
+        # a payload that already carries a coding is not encoded once again
+        # by the server, so the entity tag still describes it
+        connection = self._make_connection(netius.common.GZIP_ENCODING)
+        headers = {"Etag": '"abc"', "Content-Encoding": "gzip"}
+        http_server._apply_connection(connection, headers)
+        self.assertEqual(headers["Etag"], '"abc"')
+
     def test__apply_vary(self):
         http_server = netius.servers.HTTPServer()
 

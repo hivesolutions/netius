@@ -490,6 +490,56 @@ class ReverseProxyServerTest(unittest.TestCase):
 
         self.assertEqual(headers["Connection"], "close")
 
+    def test_apply_headers_hop(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # the headers that describe a single transport level connection must
+        # never reach the client, as they refer to the connection kept with
+        # the back-end and not to the one kept with the client
+        parser = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        parser_prx = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        connection = self._make_apply_headers_connection()
+        headers = {
+            "keep-alive": "timeout=5",
+            "proxy-connection": "keep-alive",
+            "te": "trailers",
+            "trailer": "Expires",
+            "upgrade": "h2c",
+            "x-kept": "value",
+        }
+
+        self.server._apply_headers(parser, connection, parser_prx, headers)
+
+        self.assertEqual("Keep-Alive" in headers, False)
+        self.assertEqual("Proxy-Connection" in headers, False)
+        self.assertEqual("Te" in headers, False)
+        self.assertEqual("Trailer" in headers, False)
+        self.assertEqual("Upgrade" in headers, False)
+        self.assertEqual(headers["X-Kept"], "value")
+
+    def test_apply_headers_hop_connection(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # every token named by the connection header is also a hop-by-hop one
+        # and so it must be removed before the response is forwarded, the
+        # connection header itself is then rebuilt for the client
+        parser = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        parser_prx = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        connection = self._make_apply_headers_connection()
+        headers = {
+            "connection": "keep-alive, X-Custom",
+            "x-custom": "value",
+            "x-kept": "value",
+        }
+
+        self.server._apply_headers(parser, connection, parser_prx, headers)
+
+        self.assertEqual("X-Custom" in headers, False)
+        self.assertEqual(headers["X-Kept"], "value")
+        self.assertEqual(headers["Connection"], "keep-alive")
+
     def test_resolve_regex(self):
         regexes = [
             (re.compile(r"https://host\.com/api"), "http://api-backend"),

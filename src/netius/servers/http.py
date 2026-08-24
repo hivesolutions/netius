@@ -1147,6 +1147,7 @@ class HTTPServer(netius.StreamServer):
             headers["Transfer-Encoding"] = "chunked"
         if is_compressed and not has_encoding:
             headers["Content-Encoding"] = connection.encoding_name()
+            self._apply_weak(headers, "Etag")
 
         if not is_measurable and has_length:
             del headers["Content-Length"]
@@ -1158,6 +1159,23 @@ class HTTPServer(netius.StreamServer):
         # vary header must be announced (even if no compression was done)
         if self.compress_vary and not connection.encodings_a == None:
             self._apply_vary(headers, "Accept-Encoding")
+
+    def _apply_weak(self, headers, name):
+        # retrieves the currently defined entity tag normalizing it into a
+        # single string, as repeated headers are stored as a sequence
+        etag = headers.get(name, None)
+        if isinstance(etag, (list, tuple)):
+            etag = etag[-1] if etag else None
+        if not etag:
+            return
+
+        # a payload that has been encoded by the server is no longer the
+        # octet sequence that a strong entity tag identifies, so the tag
+        # must be weakened as defined by RFC 9110
+        etag = etag.strip()
+        if etag.startswith("W/"):
+            return
+        headers[name] = "W/" + etag
 
     def _apply_vary(self, headers, value):
         # retrieves the currently defined vary value normalizing it into
