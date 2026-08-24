@@ -39,6 +39,8 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import re
+
 import netius.common
 import netius.clients
 
@@ -66,6 +68,11 @@ means of the CONNECT method, restricting the usage of the proxy as a
 relay towards an arbitrary service, set it to an empty sequence so
 that the restriction is removed (not recommended) """
 
+PORT_REGEX = re.compile(r"^[0-9]+$")
+""" Regular expression to be used in the validation of the port of the
+target of a tunnel, only the ASCII digits are considered valid ones as
+the unicode aware verification accepts values that are not convertible """
+
 HOP_HEADERS = (
     "connection",
     "keep-alive",
@@ -77,10 +84,10 @@ HOP_HEADERS = (
     "transfer-encoding",
     "upgrade",
 )
-""" The sequence of headers that are specific to a single transport
-level connection and that must never be forwarded to the next hop as
-defined by RFC 9110, note that the non standard proxy connection one
-is also included as it's still in use by some of the clients """
+""" The sequence of headers that must never be forwarded to the next
+hop, the connection specific ones as defined by RFC 9110 plus the non
+standard proxy connection that is still in use by some of the clients,
+the trailer one is also removed as the trailers are not relayed """
 
 COMPRESS_TIMEOUT = 1.0
 """ The maximum amount of time (in seconds) that a response
@@ -737,7 +744,7 @@ class ProxyServer(http2.HTTP2Server):
         # splits the target around the final colon so that an IPv6 literal
         # is properly handled, verifying that both parts are present
         host, _separator, port = path.rpartition(":")
-        if not host or not port.isdigit():
+        if not host or not PORT_REGEX.match(port):
             return (None, None)
 
         # verifies that the port is both a valid one and an allowed target
@@ -1381,7 +1388,9 @@ class ProxyServer(http2.HTTP2Server):
         # gathers the extra hop-by-hop headers that have been named by the
         # connection header, joining its multiple definitions
         connection = names.get("connection", None)
-        connection = self._prx_header(headers, connection) if connection else None
+        connection = (
+            self._prx_header(headers, connection, join=True) if connection else None
+        )
         extra = (
             [value.strip().lower() for value in connection.split(",")]
             if connection
@@ -1389,10 +1398,14 @@ class ProxyServer(http2.HTTP2Server):
         )
 
         # removes both the fixed set of hop-by-hop headers and the extra
-        # ones that the connection header has named
+        # ones that the connection header has named, note that a name may
+        # be part of both of these sequences (eg: keep alive) so the
+        # presence of the header is verified before its removal
         for name in tuple(HOP_HEADERS) + tuple(extra):
             key = names.get(name, None)
             if key == None:
+                continue
+            if not key in headers:
                 continue
             del headers[key]
 

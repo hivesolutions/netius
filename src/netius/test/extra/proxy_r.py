@@ -540,6 +540,31 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertEqual(headers["X-Kept"], "value")
         self.assertEqual(headers["Connection"], "keep-alive")
 
+    def test_apply_headers_hop_connection_repeated(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # a repeated connection header names hop-by-hop tokens on each one of
+        # its definitions, so all of them must be taken into account and not
+        # only the ones named by the last definition
+        parser = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        parser_prx = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        connection = self._make_apply_headers_connection()
+        headers = {
+            "connection": ["keep-alive, X-First", "X-Second"],
+            "keep-alive": "timeout=5",
+            "x-first": "a",
+            "x-second": "b",
+            "x-kept": "c",
+        }
+
+        self.server._apply_headers(parser, connection, parser_prx, headers)
+
+        self.assertEqual("X-First" in headers, False)
+        self.assertEqual("X-Second" in headers, False)
+        self.assertEqual("Keep-Alive" in headers, False)
+        self.assertEqual(headers["X-Kept"], "c")
+
     def test_resolve_regex(self):
         regexes = [
             (re.compile(r"https://host\.com/api"), "http://api-backend"),

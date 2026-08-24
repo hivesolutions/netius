@@ -113,8 +113,11 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             )
 
             # removes the hop-by-hop headers of the request as they describe
-            # the connection with the client and not the one with the back-end
-            self._apply_hop(headers)
+            # the connection with the client and not the one with the back-end,
+            # note that an upgrade request is forwarded untouched as its
+            # negotiation is carried precisely by these headers
+            if not self.is_upgrade(parser):
+                self._apply_hop(headers)
 
             _connection = self.http_client.method(
                 method,

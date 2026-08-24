@@ -395,6 +395,10 @@ class ProxyServerTest(unittest.TestCase):
         self.assertEqual(self.server._prx_authority("host.com:https"), (None, None))
         self.assertEqual(self.server._prx_authority("host.com:99999"), (None, None))
 
+        # only the ASCII digits are valid, a unicode digit must not be taken
+        # as a valid port as it may not be converted into an integer
+        self.assertEqual(self.server._prx_authority("host.com:\xb2"), (None, None))
+
         # an IPv6 literal must be properly handled, as the target is split
         # around the final colon and not around the first one
         self.assertEqual(self.server._prx_authority("[::1]:443"), ("[::1]", 443))
