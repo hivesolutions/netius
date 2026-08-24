@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Responses can no longer be split through a header value - [#74](https://github.com/hivesolutions/netius/issues/74)
 * Interim responses are now relayed to the client instead of breaking the exchange - [#74](https://github.com/hivesolutions/netius/issues/74)
+* Responses that carry no payload no longer announce a framing for one - [#74](https://github.com/hivesolutions/netius/issues/74)
 * Timers of served requests are now released instead of being kept until they expire - [#74](https://github.com/hivesolutions/netius/issues/74)
 * Proxy no longer drops a request that repeats the keep alive header - [#74](https://github.com/hivesolutions/netius/issues/74)
 

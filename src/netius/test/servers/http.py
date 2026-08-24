@@ -187,6 +187,27 @@ class HTTPConnectionTest(unittest.TestCase):
         headers = self._send_response(code=200, data=b"payload")
         self.assertEqual(headers["content-length"], "7")
 
+        # a response that carries no payload must not announce a framing for
+        # it either, as it's terminated by the end of the headers section
+        for code in (100, 204, 304):
+            headers = self._send_response(
+                code=code,
+                data=b"payload",
+                encoding=netius.common.CHUNKED_ENCODING,
+                apply=True,
+            )
+            self.assertEqual("Transfer-Encoding" in headers, False)
+
+        # the framing of a response that does carry a payload must still be
+        # the one resolved for the connection
+        headers = self._send_response(
+            code=200,
+            data=b"payload",
+            encoding=netius.common.CHUNKED_ENCODING,
+            apply=True,
+        )
+        self.assertEqual(headers["Transfer-Encoding"], "chunked")
+
     def test_send_header(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -337,14 +358,24 @@ class HTTPConnectionTest(unittest.TestCase):
             connection.on_data()
             self.assertEqual(connection.parser.keep_alive, True)
 
-    def _send_response(self, code=200, data=None, headers=None, method="GET"):
+    def _send_response(
+        self,
+        code=200,
+        data=None,
+        headers=None,
+        method="GET",
+        encoding=netius.common.PLAIN_ENCODING,
+        apply=False,
+    ):
         # runs the sending of a response over a connection with no socket,
         # returning the headers that have been used in the operation
-        connection = self._make_connection()
+        connection = self._make_connection(encoding=encoding)
         connection.parser = mock.Mock(method=method)
         with mock.patch.object(connection, "send_header") as send_header:
             with mock.patch.object(connection, "send_part"):
-                connection.send_response(code=code, data=data, headers=headers)
+                connection.send_response(
+                    code=code, data=data, headers=headers, apply=apply
+                )
         return send_header.call_args[1]["headers"]
 
     def _send_header(self, headers):

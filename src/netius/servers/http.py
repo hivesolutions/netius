@@ -416,6 +416,18 @@ class HTTPConnection(netius.Connection):
             if "content-length" in headers:
                 del headers["content-length"]
 
+        # a not modified response is also terminated by the end of the headers
+        # so no payload may be sent for it, note that unlike the previous ones
+        # it may still announce the length of the entity it refers to
+        if code == 304:
+            data = b""
+            is_empty = True
+
+        # a response that carries no payload must not announce a framing for
+        # it either, so the encoding is taken back to the plain one
+        if is_empty:
+            self.set_plain()
+
         # runs a series of verifications taking into account the type
         # of the method defined in the current request, for instance if
         # the current request is a HEAD one then no data is sent (as expected)
