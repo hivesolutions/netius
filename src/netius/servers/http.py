@@ -680,7 +680,8 @@ class HTTPConnection(netius.Connection):
         self.gzip_m[stream] = gzip
 
     def _unset_gzip(self, stream):
-        del self.gzip_m[stream]
+        if stream in self.gzip_m:
+            del self.gzip_m[stream]
         if stream in self.gzip_l:
             del self.gzip_l[stream]
 

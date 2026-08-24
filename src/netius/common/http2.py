@@ -1038,6 +1038,11 @@ class HTTP2Stream(netius.Stream):
         # instructions are correctly processed/handled
         netius.Stream.close(self)
 
+        # releases the compressor that may be associated with the stream,
+        # otherwise an aborted (eg: reset) stream would retain it for the
+        # complete lifetime of the underlying connection
+        self.connection._unset_gzip(self.identifier)
+
         # verifies if a stream structure exists in the parser for
         # the provided identifier and if that's not the case returns
         # immediately otherwise removes it from the parent
