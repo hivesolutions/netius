@@ -485,6 +485,59 @@ class HTTP2StreamTest(unittest.TestCase):
         finally:
             parser.clear(force=True)
 
+    def test_assert_headers(self):
+        connection = self._make_connection()
+        parser = connection.parser
+        base = [(":method", "GET"), (":scheme", "https"), (":path", "/")]
+        try:
+            # a valid set of headers carries every mandatory pseudo-header
+            # with all of them positioned before the normal ones
+            stream = self._make_stream(parser, base + [("accept", "*/*")])
+            stream.assert_headers()
+
+            # the headers that are specific to a single transport level
+            # connection must never be present in an HTTP 2 message
+            for name in netius.common.http2.HTTP2_CONNECTION:
+                stream = self._make_stream(parser, base + [(name, "value")])
+                self.assertRaises(netius.ParserError, stream.assert_headers)
+
+            # the TE header is the only exception to the previous rule and
+            # it's only allowed while its value is the trailers one
+            stream = self._make_stream(parser, base + [("te", "trailers")])
+            stream.assert_headers()
+            stream = self._make_stream(parser, base + [("te", "gzip")])
+            self.assertRaises(netius.ParserError, stream.assert_headers)
+
+            # the name of a header must be a lower cased one, as the casing
+            # of it is not preserved by the HTTP 2 specification
+            stream = self._make_stream(parser, base + [("Accept", "*/*")])
+            self.assertRaises(netius.ParserError, stream.assert_headers)
+
+            # an unknown pseudo-header, a duplicated one and a response only
+            # one are all invalid under a request message
+            stream = self._make_stream(parser, base + [(":bogus", "value")])
+            self.assertRaises(netius.ParserError, stream.assert_headers)
+            stream = self._make_stream(parser, base + [(":path", "/other")])
+            self.assertRaises(netius.ParserError, stream.assert_headers)
+            stream = self._make_stream(parser, base + [(":status", "200")])
+            self.assertRaises(netius.ParserError, stream.assert_headers)
+
+            # a pseudo-header must never be positioned after a normal one so
+            # that the message may be processed in a single pass
+            stream = self._make_stream(
+                parser, base[:2] + [("accept", "*/*")] + base[2:]
+            )
+            self.assertRaises(netius.ParserError, stream.assert_headers)
+
+            # every mandatory pseudo-header must be present, otherwise the
+            # target of the request may not be determined
+            for index in range(len(base)):
+                headers = base[:index] + base[index + 1 :]
+                stream = self._make_stream(parser, headers)
+                self.assertRaises(netius.ParserError, stream.assert_headers)
+        finally:
+            parser.clear(force=True)
+
     def test_ctx_request(self):
         connection = self._make_connection()
         parser = connection.parser
@@ -507,6 +560,13 @@ class HTTP2StreamTest(unittest.TestCase):
             self.assertEqual(stream.encoding_c, "deflate")
         finally:
             parser.clear(force=True)
+
+    def _make_stream(self, parser, headers):
+        # builds a stream carrying the provided sequence of headers so that
+        # the assertion of them may be run over it
+        stream = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
+        stream.headers_l = headers
+        return stream
 
     def _make_connection(self, encoding=netius.common.PLAIN_ENCODING):
         # builds a minimal HTTP/2 connection (and parser) that satisfies the

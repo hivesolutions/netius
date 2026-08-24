@@ -116,6 +116,18 @@ HTTP2_PSEUDO = (":method", ":scheme", ":path", ":authority", ":status")
 """ The complete set of HTTP 2 based pseudo-header values
 this list should be inclusive and limited """
 
+HTTP2_CONNECTION = (
+    "connection",
+    "keep-alive",
+    "proxy-connection",
+    "transfer-encoding",
+    "upgrade",
+)
+""" The set of headers that are specific to a single transport level
+connection and that must not be present in an HTTP 2 message, as
+defined by RFC 9113, note that the TE header is verified separately
+as it's allowed as long as its value is the trailers one """
+
 HTTP2_TUPLES = (
     (SETTINGS_HEADER_TABLE_SIZE, "SETTINGS_HEADER_TABLE_SIZE"),
     (SETTINGS_ENABLE_PUSH, "SETTINGS_ENABLE_PUSH"),
@@ -1472,9 +1484,9 @@ class HTTP2Stream(netius.Stream):
                     stream=self.identifier,
                     error_code=PROTOCOL_ERROR,
                 )
-            if name in ("connection",):
+            if name in HTTP2_CONNECTION:
                 raise netius.ParserError(
-                    "Invalid header present",
+                    "Connection specific header present",
                     stream=self.identifier,
                     error_code=PROTOCOL_ERROR,
                 )
