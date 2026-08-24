@@ -634,7 +634,7 @@ class ProxyServer(http2.HTTP2Server):
         # the no-transform cache directive explicitly forbids the changing of
         # the coding of the payload, the same applies to the partial payloads
         # that are identified by the presence of the content range header
-        cache_control = self._prx_header(headers, "cache-control") or ""
+        cache_control = self._prx_header(headers, "cache-control", join=True) or ""
         if "no-transform" in cache_control.lower():
             return None
         if "content-range" in headers:
@@ -663,7 +663,7 @@ class ProxyServer(http2.HTTP2Server):
         # the server and accepted by the client (server preference order)
         return self._prx_codec(encodings)
 
-    def _prx_header(self, headers, name):
+    def _prx_header(self, headers, name, join=False):
         """
         Obtains a single (string) value for the requested header, as a
         repeated header is stored as a sequence of values by the parser
@@ -674,15 +674,21 @@ class ProxyServer(http2.HTTP2Server):
         to be retrieved.
         :type name: String
         :param name: The (lower cased) name of the header to retrieve.
+        :type join: bool
+        :param join: If the multiple definitions of the header should be
+        joined into a single (comma separated) value, as required for the
+        list based fields, instead of using the last definition.
         :rtype: String
         :return: The single value of the requested header or an invalid
         value in case it's not defined.
         """
 
         value = headers.get(name, None)
-        if isinstance(value, (list, tuple)):
-            value = value[-1] if value else None
-        return value
+        if not isinstance(value, (list, tuple)):
+            return value
+        if join:
+            return ",".join(value)
+        return value[-1] if value else None
 
     def _prx_decodable(self, content_encoding):
         return content_encoding.strip().lower() in netius.clients.http.DECODINGS
@@ -970,6 +976,16 @@ class ProxyServer(http2.HTTP2Server):
                 connection.parser.keep_alive = False
             else:
                 connection.set_encoding(http.CHUNKED_ENCODING)
+
+        # an older front-end has no chunked framing available, so the payload
+        # is taken back to the plain encoding and the message delimited by the
+        # closing of the connection, the only strategy left for such a client
+        if (
+            connection.parser.version < netius.common.HTTP_11
+            and connection.current > http.PLAIN_ENCODING
+        ):
+            connection.set_plain()
+            connection.parser.keep_alive = False
 
         # tries to use the content encoding value to determine the minimum encoding
         # that allows the content encoding to be kept (compatibility support), this
