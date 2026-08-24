@@ -28,6 +28,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import time
 import zlib
 import unittest
 
@@ -78,14 +79,17 @@ class HTTPConnectionTest(unittest.TestCase):
             connection.set_idle()
         self.assertEqual(delay.call_args[1]["timeout"], 75)
         self.assertEqual(connection.idle_h, "handle")
+        self.assertNotEqual(connection.idle_t, 0)
 
-        # scheduling a new closing operation must cancel the one that is
-        # still pending, so that only one of them exists at a time
-        with mock.patch.object(connection.owner, "unpend") as unpend:
-            with mock.patch.object(connection.owner, "delay", return_value="other"):
-                connection.set_idle()
-        self.assertEqual(unpend.call_args[0][0], "handle")
-        self.assertEqual(connection.idle_h, "other")
+        # with an operation already scheduled only the moment of the last
+        # activity is updated, so that the scheduling cost is not paid on a
+        # per request basis (the operation re-schedules itself instead)
+        idle_t = connection.idle_t
+        with mock.patch.object(connection.owner, "delay") as delay:
+            connection.set_idle()
+        self.assertEqual(delay.call_count, 0)
+        self.assertEqual(connection.idle_h, "handle")
+        self.assertGreaterEqual(connection.idle_t, idle_t)
 
         # a bound set to zero means that the connection is never closed for
         # being an idle one, so no operation may be scheduled
@@ -139,9 +143,24 @@ class HTTPConnectionTest(unittest.TestCase):
         self.assertEqual(close.call_count, 0)
         self.assertEqual(set_idle.call_count, 1)
 
-        # an open connection with nothing pending is an idle one and so it
-        # must be closed, flushing whatever is still buffered
+        # a connection with recent activity is not an idle one either, so the
+        # operation must be re-scheduled for the time that is still remaining
         connection.pending_s = 0
+        connection.owner.idle_timeout = 75
+        connection.idle_t = time.time()
+        with mock.patch.object(connection, "is_open", return_value=True):
+            with mock.patch.object(connection, "close") as close:
+                with mock.patch.object(
+                    connection.owner, "delay", return_value="handle"
+                ) as delay:
+                    connection.close_idle()
+        self.assertEqual(close.call_count, 0)
+        self.assertEqual(connection.idle_h, "handle")
+        self.assertGreater(delay.call_args[1]["timeout"], 0)
+
+        # an open connection with nothing pending and no recent activity is
+        # an idle one and so it must be closed, flushing what is buffered
+        connection.idle_t = time.time() - 100
         with mock.patch.object(connection, "is_open", return_value=True):
             with mock.patch.object(connection, "close") as close:
                 connection.close_idle()
@@ -404,6 +423,7 @@ class HTTPConnectionTest(unittest.TestCase):
         connection.gzip_l = dict()
         connection.requests = 0
         connection.idle_h = None
+        connection.idle_t = 0
         return connection
 
 

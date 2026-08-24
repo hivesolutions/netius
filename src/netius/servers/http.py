@@ -39,6 +39,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import time
 import zlib
 import base64
 import datetime
@@ -201,6 +202,7 @@ class HTTPConnection(netius.Connection):
         self.legacy = True
         self.requests = 0
         self.idle_h = None
+        self.idle_t = 0
         self.gzip_m = dict()
         self.gzip_l = dict()
 
@@ -231,12 +233,17 @@ class HTTPConnection(netius.Connection):
 
     def set_idle(self):
         """
-        Schedules the closing of the connection for the moment when the
-        idle timeout is reached, cancelling a possible operation that is
-        still pending (only one of them may exist at a time).
+        Marks the connection as an active one, scheduling the closing of
+        it for the moment when the idle timeout is reached.
+
+        Only one closing operation exists at a time and it re-schedules
+        itself while the connection remains an active one, so that the
+        (costly) scheduling is not performed on a per request basis.
         """
 
-        self.unset_idle()
+        self.idle_t = time.time()
+        if self.idle_h:
+            return
         if not self.owner.idle_timeout:
             return
         self.idle_h = self.owner.delay(self.close_idle, timeout=self.owner.idle_timeout)
@@ -264,6 +271,15 @@ class HTTPConnection(netius.Connection):
             return
         if self.pending_s > 0:
             return self.set_idle()
+
+        # verifies that the connection has been an idle one for the complete
+        # period, re-scheduling the operation for the remaining time in case
+        # there has been activity since the operation was scheduled
+        remaining = self.owner.idle_timeout - (time.time() - self.idle_t)
+        if remaining > 0:
+            self.idle_h = self.owner.delay(self.close_idle, timeout=remaining)
+            return
+
         self.close(flush=True)
 
     def info_dict(self, full=False):

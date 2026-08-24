@@ -111,6 +111,28 @@ class BaseTest(unittest.TestCase):
         finally:
             loop.close()
 
+    def test__delays(self):
+        loop = netius.Base()
+        try:
+            fired = []
+            loop.delay(lambda: fired.append("due"), timeout=-1)
+            loop.delay(lambda: fired.append("late"), timeout=30)
+
+            # only the operation that is already due may be run, the one that
+            # is still pending must be kept in the queue untouched
+            loop._delays()
+            self.assertEqual(fired, ["due"])
+            self.assertEqual(len(loop._delayed), 1)
+
+            # a new iteration with nothing due must not run anything, note
+            # that the pending operation must remain in the queue
+            loop._delays()
+            self.assertEqual(fired, ["due"])
+            self.assertEqual(len(loop._delayed), 1)
+            self.assertEqual(len(loop._delayed_o), 1)
+        finally:
+            loop.close()
+
     def test_resolve_hostname(self):
         loop = netius.get_main()
         future = loop.resolve_hostname("gmail.com")

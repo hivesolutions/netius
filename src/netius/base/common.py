@@ -4205,6 +4205,13 @@ class AbstractBase(observer.Observable):
             if self._notifies():
                 continue
 
+            # peeks the earliest item of the delayed list, breaking the
+            # loop in case it's not yet due to be run, this avoids the cost
+            # of popping and restoring it on every iteration of the loop
+            target = self._delayed[0][0]
+            if not target == None and target > current:
+                break
+
             # "pops" the current item from the delayed list to be used
             # in the execution of the current iteration cycle
             callable_t = heapq.heappop(self._delayed)
