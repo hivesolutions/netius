@@ -99,14 +99,14 @@ Accumulating the payload before each flush improves the compression ratio of a c
 
 #### Proxy
 
-| Name                        | Type    | Description                                                                                                                                                                                                                       |
-| --------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **DYNAMIC**                 | `bool`  | In case this value is active dynamic connection encoding is applied, meaning that extra heuristics will be applied on a response basis to determine the proper encoding of the response (eg: plain, chunked, gzip, etc.).         |
-| **THROTTLE**                | `bool`  | If throttling of the connection stream should be applied on both ways to avoid starvation of the producer consumer relation.                                                                                                      |
-| **TRUST_ORIGIN**            | `bool`  | If the origin connection (eg: http client, proxy client, etc.) is meant to be trusted meaning that its information is considered reliable, this value is especially important for proxy to proxy relations (defaults to `False`). |
-| **COMPRESS_FORWARD_ACCEPT** | `bool`  | If the `Accept-Encoding` of the client should be forwarded to the back-end instead of asking it for the `identity` coding, use it when the back-end does better than the proxy (defaults to `False`).                             |
-| **COMPRESS_BUFFER**         | `bool`  | If the encoding decision should be deferred for the back-ends that stream a payload with no declared length, holding the response until the minimum size is crossed (defaults to `True`).                                         |
-| **COMPRESS_TIMEOUT**        | `float` | The maximum amount of time (in seconds) that a response may be held while waiting for enough payload to decide on the compression (defaults to `1.0`).                                                                            |
+| Name                        | Type    | Description                                                                                                                                                                                                                                     |
+| --------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DYNAMIC**                 | `bool`  | In case this value is active dynamic connection encoding is applied, meaning that extra heuristics will be applied on a response basis to determine the proper encoding of the response (eg: plain, chunked, gzip, etc.).                       |
+| **THROTTLE**                | `bool`  | If throttling of the connection stream should be applied on both ways to avoid starvation of the producer consumer relation.                                                                                                                    |
+| **TRUST_ORIGIN**            | `bool`  | If the origin connection (eg: http client, proxy client, etc.) is meant to be trusted meaning that its information is considered reliable, this value is especially important for proxy to proxy relations (defaults to `False`).               |
+| **COMPRESS_FORWARD_ACCEPT** | `bool`  | If the `Accept-Encoding` of the client should be forwarded to the back-end instead of asking it for the `identity` coding, use it when the back-end does better than the proxy (defaults to `False`).                                           |
+| **COMPRESS_BUFFER**         | `bool`  | If the encoding decision should be deferred for the back-ends that stream a payload with no declared length, holding the response until the minimum size is crossed, when disabled such responses are forwarded untouched (defaults to `True`). |
+| **COMPRESS_TIMEOUT**        | `float` | The maximum amount of time (in seconds) that a response may be held while waiting for enough payload to decide on the compression (defaults to `1.0`).                                                                                          |
 
 ##### Compression at the proxy (`ENCODING=auto`)
 
@@ -123,7 +123,7 @@ Under `auto` only the payloads that arrive from the back-end under the `identity
 Two notes worth keeping in mind when enabling it:
 
 - Compressing a response that mixes a secret with attacker influenced content is the pre-condition of the BREACH attack, and a proxy applies it across every back-end at once. `COMPRESS_TYPES` and the support for `Cache-Control: no-transform` are the levers available to exclude the affected responses.
-- Compression runs synchronously in the event loop thread, which at a proxy is shared by every back-end. `COMPRESS_MAX` together with the identity only rule (no decoding leg) is what keeps that cost bounded.
+- Compression runs synchronously in the event loop thread, which at a proxy is shared by every back-end. `COMPRESS_MAX` together with the identity only rule (no decoding leg) is what keeps that cost bounded. Note that a back-end that streams without declaring a length cannot be measured upfront, so `COMPRESS_MAX` does not apply to it, set `COMPRESS_BUFFER` to `0` to leave those responses untouched.
 
 #### Proxy Reverse
 

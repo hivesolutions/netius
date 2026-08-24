@@ -474,7 +474,11 @@ class ProxyServer(http2.HTTP2Server):
     def on_headers(self, connection, parser):
         # resolves the encoding as soon as the request headers are available,
         # this must happen before the sub-classes rewrite the headers of the
-        # request (the header map is the one of the front-end parser)
+        # request (the header map is the one of the front-end parser), note
+        # that the mode is verified upfront to keep the non automatic modes
+        # free from the (per request) resolution cost
+        if not self.is_auto():
+            return
         connection.resolve_encoding(parser)
 
     def on_partial(self, connection, parser, data):
@@ -824,6 +828,12 @@ class ProxyServer(http2.HTTP2Server):
         for data in buffer["data"]:
             connection.send_part(data, final=False, callback=self._prx_throttle)
 
+        # releases the references to both the payload and the headers, as the
+        # flush deadline still holds this structure until it's run and would
+        # otherwise retain the complete payload for that amount of time
+        del buffer["data"][:]
+        buffer["headers"] = None
+
     def _raw_throttle(self, connection):
         if connection == None:
             return
@@ -890,13 +900,16 @@ class ProxyServer(http2.HTTP2Server):
             else None
         )
 
-        # in case the back-end streams the payload with no declared length the
-        # decision is deferred until enough of it has been received, holding
-        # both the headers and the initial payload in the connection
-        if codec and parser.content_l == -1 and self.compress_buffer:
-            return self._prx_hold(
-                connection, parser, headers, codec, version_s, code_s, status_s
-            )
+        # a back-end that streams the payload with no declared length is only
+        # compressed through the deferred decision, as that's what allows the
+        # size of the payload to be verified, otherwise the size limits could
+        # not be enforced and the payload is forwarded as is
+        if codec and parser.content_l == -1:
+            if self.compress_buffer:
+                return self._prx_hold(
+                    connection, parser, headers, codec, version_s, code_s, status_s
+                )
+            codec = None
 
         # in case a content coding has been resolved the connection is set to
         # compress the payload of the response, disabling the pass-through
@@ -1081,6 +1094,11 @@ class ProxyServer(http2.HTTP2Server):
             )
             return
 
+        # in case a response is being held for the deferred encoding decision
+        # it must be released before the connection is closed, otherwise the
+        # client would receive nothing at all for the current response
+        self._prx_release(connection)
+
         # in case the connection is under the waiting state
         # the forbidden response is set to the client otherwise
         # the front-end connection is closed immediately, note
@@ -1136,6 +1154,10 @@ class ProxyServer(http2.HTTP2Server):
         connection = self.conn_map.get(_connection, None)
         if not connection:
             return
+
+        # releases a possible response that is being held for the deferred
+        # encoding decision, so that the payload received so far is not lost
+        self._prx_release(connection)
 
         # constructs the message string that is going to be
         # sent as part of the response from the proxy indicating
