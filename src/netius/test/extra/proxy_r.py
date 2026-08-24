@@ -1521,53 +1521,6 @@ class ReverseProxyCompressionTest(unittest.TestCase):
         cls.backend.stop()
         cls.backend_thread.join(timeout=5)
 
-    @classmethod
-    def _app(cls, environ, start_response):
-        path = environ["PATH_INFO"]
-        if path == "/big":
-            body, headers = cls.BIG, [("Content-Type", "text/plain")]
-        elif path == "/small":
-            body, headers = cls.SMALL, [("Content-Type", "text/plain")]
-        elif path == "/jpeg":
-            body, headers = cls.JPEG, [("Content-Type", "image/jpeg")]
-        elif path == "/encoded":
-            body, headers = cls.ENCODED, [
-                ("Content-Type", "text/plain"),
-                ("Content-Encoding", "deflate"),
-            ]
-        elif path == "/brotli":
-            body, headers = cls.BROTLI, [
-                ("Content-Type", "text/plain"),
-                ("Content-Encoding", "br"),
-            ]
-        elif path == "/no-transform":
-            body, headers = cls.BIG, [
-                ("Content-Type", "text/plain"),
-                ("Cache-Control", "no-transform"),
-            ]
-        elif path == "/stream":
-            start_response("200 OK", [("Content-Type", "text/plain")])
-            return [cls.BIG[:3000], cls.BIG[3000:]]
-        elif path == "/trickle":
-            start_response("200 OK", [("Content-Type", "text/plain")])
-            return [b"tiny"]
-        else:
-            body, headers = b"not found", [("Content-Type", "text/plain")]
-        headers.append(("Content-Length", str(len(body))))
-        start_response("200 OK", headers)
-        return [body]
-
-    @classmethod
-    def _wait(cls, port):
-        for _i in range(50):
-            time.sleep(0.1)
-            try:
-                probe = socket.create_connection(("127.0.0.1", port), timeout=1)
-                probe.close()
-                break
-            except (ConnectionRefusedError, OSError):
-                continue
-
     def setUp(self):
         if http_client == None:
             self.skipTest("Skipping test: http.client unavailable")
@@ -1692,6 +1645,53 @@ class ReverseProxyCompressionTest(unittest.TestCase):
         finally:
             conn.close()
 
+    @classmethod
+    def _app(cls, environ, start_response):
+        path = environ["PATH_INFO"]
+        if path == "/big":
+            body, headers = cls.BIG, [("Content-Type", "text/plain")]
+        elif path == "/small":
+            body, headers = cls.SMALL, [("Content-Type", "text/plain")]
+        elif path == "/jpeg":
+            body, headers = cls.JPEG, [("Content-Type", "image/jpeg")]
+        elif path == "/encoded":
+            body, headers = cls.ENCODED, [
+                ("Content-Type", "text/plain"),
+                ("Content-Encoding", "deflate"),
+            ]
+        elif path == "/brotli":
+            body, headers = cls.BROTLI, [
+                ("Content-Type", "text/plain"),
+                ("Content-Encoding", "br"),
+            ]
+        elif path == "/no-transform":
+            body, headers = cls.BIG, [
+                ("Content-Type", "text/plain"),
+                ("Cache-Control", "no-transform"),
+            ]
+        elif path == "/stream":
+            start_response("200 OK", [("Content-Type", "text/plain")])
+            return [cls.BIG[:3000], cls.BIG[3000:]]
+        elif path == "/trickle":
+            start_response("200 OK", [("Content-Type", "text/plain")])
+            return [b"tiny"]
+        else:
+            body, headers = b"not found", [("Content-Type", "text/plain")]
+        headers.append(("Content-Length", str(len(body))))
+        start_response("200 OK", headers)
+        return [body]
+
+    @classmethod
+    def _wait(cls, port):
+        for _i in range(50):
+            time.sleep(0.1)
+            try:
+                probe = socket.create_connection(("127.0.0.1", port), timeout=1)
+                probe.close()
+                break
+            except (ConnectionRefusedError, OSError):
+                continue
+
 
 class ReverseProxyMatrixTest(unittest.TestCase):
     """
@@ -1760,44 +1760,6 @@ class ReverseProxyMatrixTest(unittest.TestCase):
             thread.join(timeout=5)
         cls.backend.stop()
         cls.backend_thread.join(timeout=5)
-
-    @classmethod
-    def _app(cls, environ, start_response):
-        body, encoding = cls._source(environ["PATH_INFO"].lstrip("/"))
-        headers = [("Content-Type", "text/plain")]
-        if encoding:
-            headers.append(("Content-Encoding", encoding))
-        headers.append(("Content-Length", str(len(body))))
-        start_response("200 OK", headers)
-        return [body]
-
-    @classmethod
-    def _source(cls, source):
-        # builds the back-end payload for the requested coding, note that
-        # the deflate coding is produced both raw (the variant emitted by
-        # a Netius origin) and zlib wrapped (the one of the specification)
-        if source == "gzip":
-            compressor = zlib.compressobj(6, zlib.DEFLATED, zlib.MAX_WBITS | 16)
-            return compressor.compress(cls.PAYLOAD) + compressor.flush(), "gzip"
-        if source == "deflate":
-            compressor = zlib.compressobj(6, zlib.DEFLATED, -zlib.MAX_WBITS)
-            return compressor.compress(cls.PAYLOAD) + compressor.flush(), "deflate"
-        if source == "zlib":
-            return zlib.compress(cls.PAYLOAD), "deflate"
-        if source == "br":
-            return cls.BROTLI, "br"
-        return cls.PAYLOAD, None
-
-    @classmethod
-    def _wait(cls, port):
-        for _i in range(50):
-            time.sleep(0.1)
-            try:
-                probe = socket.create_connection(("127.0.0.1", port), timeout=1)
-                probe.close()
-                break
-            except (ConnectionRefusedError, OSError):
-                continue
 
     def setUp(self):
         if http_client == None:
@@ -1977,3 +1939,41 @@ class ReverseProxyMatrixTest(unittest.TestCase):
             return response.status, response_headers, response_body
         finally:
             conn.close()
+
+    @classmethod
+    def _app(cls, environ, start_response):
+        body, encoding = cls._source(environ["PATH_INFO"].lstrip("/"))
+        headers = [("Content-Type", "text/plain")]
+        if encoding:
+            headers.append(("Content-Encoding", encoding))
+        headers.append(("Content-Length", str(len(body))))
+        start_response("200 OK", headers)
+        return [body]
+
+    @classmethod
+    def _source(cls, source):
+        # builds the back-end payload for the requested coding, note that
+        # the deflate coding is produced both raw (the variant emitted by
+        # a Netius origin) and zlib wrapped (the one of the specification)
+        if source == "gzip":
+            compressor = zlib.compressobj(6, zlib.DEFLATED, zlib.MAX_WBITS | 16)
+            return compressor.compress(cls.PAYLOAD) + compressor.flush(), "gzip"
+        if source == "deflate":
+            compressor = zlib.compressobj(6, zlib.DEFLATED, -zlib.MAX_WBITS)
+            return compressor.compress(cls.PAYLOAD) + compressor.flush(), "deflate"
+        if source == "zlib":
+            return zlib.compress(cls.PAYLOAD), "deflate"
+        if source == "br":
+            return cls.BROTLI, "br"
+        return cls.PAYLOAD, None
+
+    @classmethod
+    def _wait(cls, port):
+        for _i in range(50):
+            time.sleep(0.1)
+            try:
+                probe = socket.create_connection(("127.0.0.1", port), timeout=1)
+                probe.close()
+                break
+            except (ConnectionRefusedError, OSError):
+                continue
