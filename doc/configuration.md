@@ -82,7 +82,17 @@
 | **COMMON_LOG** | `str`  | `None`  | The path to the file to log the HTTP request in "Common Log Format".                                                                                      |
 | **ENCODING**   | `str`  | `plain` | The encoding to be applied to the responses, one of `plain`, `chunked`, `gzip`, `deflate` or `auto`, check the `Compression` section for the `auto` mode. |
 
-#### Compression
+#### HTTP Limits
+
+| Name               | Type  | Default | Description                                                                                                                                  |
+| ------------------ | ----- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **LINE_LIMIT**     | `int` | `8192`  | The maximum size (in bytes) of the initial line of a request, a larger one is rejected with a `414` status code.                             |
+| **HEADERS_LIMIT**  | `int` | `65536` | The maximum size (in bytes) of the headers section of a request, a larger one is rejected with a `431` status code.                          |
+| **HEADERS_COUNT**  | `int` | `128`   | The maximum number of header lines of a request, a larger number is rejected with a `431` status code.                                       |
+| **REQUESTS_LIMIT** | `int` | `1000`  | The maximum number of requests served by a single connection before it stops being a persistent one, set it to `0` to remove the bound.      |
+| **IDLE_TIMEOUT**   | `int` | `75`    | The maximum amount of time (in seconds) that a connection may wait for a new request before being closed, set it to `0` to remove the bound. |
+
+#### HTTP Compression
 
 | Name                   | Type   | Default               | Description                                                                                                                                                               |
 | ---------------------- | ------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -107,6 +117,7 @@ Accumulating the payload before each flush improves the compression ratio of a c
 | **COMPRESS_FORWARD_ACCEPT** | `bool`  | `False` | If the `Accept-Encoding` of the client should be forwarded to the back-end instead of asking it for the `identity` coding, use it when the back-end does better than the proxy.                                            |
 | **COMPRESS_BUFFER**         | `bool`  | `True`  | If the encoding decision should be deferred for the back-ends that stream a payload with no declared length, holding the response until the minimum size is crossed, when disabled such responses are forwarded untouched. |
 | **COMPRESS_TIMEOUT**        | `float` | `1.0`   | The maximum amount of time (in seconds) that a response may be held while waiting for enough payload to decide on the compression.                                                                                         |
+| **CONNECT_PORTS**           | `list`  | `[443]` | The ports to which a tunnel may be established using the `CONNECT` method, set it to an empty list to remove the restriction (not recommended).                                                                            |
 
 ##### Compression at the proxy (`ENCODING=auto`)
 

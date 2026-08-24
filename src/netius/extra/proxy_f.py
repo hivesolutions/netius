@@ -69,6 +69,14 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             if rejected:
                 break
 
+        # a tunnel may only be established towards an allowed target, so the
+        # authority form of it is resolved upfront and an invalid one makes
+        # the request a rejected one (avoids a generic relay)
+        host = port = None
+        if method == "CONNECT":
+            host, port = self._prx_authority(path)
+            rejected = rejected or host == None
+
         if rejected:
             self.debug("This connection is not allowed")
             connection.send_response(
@@ -83,8 +91,6 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             return
 
         if method == "CONNECT":
-            host, port = path.split(":")
-            port = int(port)
             self.tunnel(
                 connection,
                 host,
@@ -100,13 +106,22 @@ class ForwardProxyServer(netius.servers.ProxyServer):
 
             self._apply_accept(headers)
 
-            encoding = headers.get("transfer-encoding", None)
-            is_chunked = encoding == "chunked"
             encoding = (
                 netius.common.CHUNKED_ENCODING
-                if is_chunked
+                if parser.chunked
                 else netius.common.PLAIN_ENCODING
             )
+
+            # removes the hop-by-hop headers of the request as they describe
+            # the connection with the client and not the one with the back-end,
+            # note that an upgrade request keeps the headers that carry its
+            # negotiation, which are restored once the removal is done
+            upgrade = self._prx_header(headers, "upgrade")
+            is_upgrade = self.is_upgrade(parser)
+            self._apply_hop(headers)
+            if is_upgrade and upgrade:
+                headers["connection"] = "Upgrade"
+                headers["upgrade"] = upgrade
 
             _connection = self.http_client.method(
                 method,

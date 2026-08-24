@@ -60,6 +60,12 @@ PING_FRAME = _pack_frame(
     netius.common.PING, payload=b"\x01\x02\x03\x04\x05\x06\x07\x08"
 )
 
+RESERVED_PING_FRAME = _pack_frame(
+    netius.common.PING,
+    stream=0x80000000,
+    payload=b"\x01\x02\x03\x04\x05\x06\x07\x08",
+)
+
 GOAWAY_FRAME = _pack_frame(
     netius.common.GOAWAY, payload=struct.pack("!II", 3, 0x00) + b"bye"
 )
@@ -90,7 +96,11 @@ class HTTP2ParserTest(unittest.TestCase):
                     parser.assert_header,
                 )
             else:
-                self.assertRaises(netius.ParserError, parser.assert_header)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "SETTINGS_MAX_FRAME_SIZE",
+                    parser.assert_header,
+                )
         finally:
             parser.clear(force=True)
 
@@ -106,8 +116,10 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_settings([], False),
                 )
             else:
-                self.assertRaises(
-                    netius.ParserError, lambda: parser.assert_settings([], False)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Stream must be set to 0x00 for SETTINGS",
+                    lambda: parser.assert_settings([], False),
                 )
 
             parser.stream = 0x00
@@ -119,8 +131,10 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_settings([], True),
                 )
             else:
-                self.assertRaises(
-                    netius.ParserError, lambda: parser.assert_settings([], True)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "SETTINGS with ACK must be zero length",
+                    lambda: parser.assert_settings([], True),
                 )
 
             parser.stream = 0x00
@@ -132,8 +146,10 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_settings([], False),
                 )
             else:
-                self.assertRaises(
-                    netius.ParserError, lambda: parser.assert_settings([], False)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Size of SETTINGS frame must be a multiple of 6",
+                    lambda: parser.assert_settings([], False),
                 )
 
             parser.stream = 0x00
@@ -146,8 +162,9 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_settings(settings, False),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "SETTINGS_ENABLE_PUSH different from 0 or 1",
                     lambda: parser.assert_settings(settings, False),
                 )
 
@@ -161,8 +178,9 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_settings(settings, False),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "SETTINGS_MAX_FRAME_SIZE too small",
                     lambda: parser.assert_settings(settings, False),
                 )
 
@@ -176,8 +194,9 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_settings(settings, False),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "SETTINGS_MAX_FRAME_SIZE too large",
                     lambda: parser.assert_settings(settings, False),
                 )
         finally:
@@ -193,8 +212,10 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_push_promise(0x02),
                 )
             else:
-                self.assertRaises(
-                    netius.ParserError, lambda: parser.assert_push_promise(0x02)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "PUSH_PROMISE not allowed for server",
+                    lambda: parser.assert_push_promise(0x02),
                 )
         finally:
             parser.clear(force=True)
@@ -211,7 +232,11 @@ class HTTP2ParserTest(unittest.TestCase):
                     parser.assert_ping,
                 )
             else:
-                self.assertRaises(netius.ParserError, parser.assert_ping)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Stream must be set to 0x00 for PING",
+                    parser.assert_ping,
+                )
 
             parser.stream = 0x00
             parser.length = 4
@@ -222,7 +247,11 @@ class HTTP2ParserTest(unittest.TestCase):
                     parser.assert_ping,
                 )
             else:
-                self.assertRaises(netius.ParserError, parser.assert_ping)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Size of PING frame must be 8",
+                    parser.assert_ping,
+                )
 
             parser.stream = 0x00
             parser.length = 8
@@ -241,7 +270,11 @@ class HTTP2ParserTest(unittest.TestCase):
                     parser.assert_goaway,
                 )
             else:
-                self.assertRaises(netius.ParserError, parser.assert_goaway)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Stream must be set to 0x00 for GOAWAY",
+                    parser.assert_goaway,
+                )
 
             parser.stream = 0x00
             parser.assert_goaway()
@@ -258,8 +291,9 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_window_update(None, 0),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "WINDOW_UPDATE increment must not be zero",
                     lambda: parser.assert_window_update(None, 0),
                 )
 
@@ -270,12 +304,26 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_window_update(None, 2147483647),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "Window value for the connection too large",
                     lambda: parser.assert_window_update(None, 2147483647),
                 )
 
             parser.assert_window_update(None, 4096)
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_header(self):
+        parser = netius.common.HTTP2Parser(self, store=True)
+        try:
+            # the reserved bit of the frame header must be ignored, so that
+            # only the remaining bits are taken as the stream identifier,
+            # note that a ping is only valid for the zero stream
+            count = parser.parse(RESERVED_PING_FRAME)
+            self.assertEqual(count, len(RESERVED_PING_FRAME))
+            self.assertEqual(parser.type, netius.common.PING)
+            self.assertEqual(parser.stream, 0x00)
         finally:
             parser.clear(force=True)
 
@@ -485,6 +533,98 @@ class HTTP2StreamTest(unittest.TestCase):
         finally:
             parser.clear(force=True)
 
+    def test_decode_headers(self):
+        if hpack == None:
+            self.skipTest("Skipping test: hpack unavailable")
+
+        connection = self._make_connection()
+        parser = connection.parser
+        try:
+            # a dynamic table size update beyond the negotiated maximum must
+            # be refused, as the peer would otherwise be able to grow the
+            # table of the decoder without any bound
+            stream = self._make_stream(parser, [])
+            stream.end_headers = True
+            stream.header_b = [b"\x3f\xe1\xff\x03\x82"]
+
+            self.assertRaises(netius.ParserError, stream.decode_headers)
+
+            # the failure in the decoding of a field block is a connection
+            # level error, as the dynamic table becomes unsynchronized
+            stream = self._make_stream(parser, [])
+            stream.end_headers = True
+            stream.header_b = [b"\x3f\xe1\xff\x03\x82"]
+            try:
+                stream.decode_headers()
+            except netius.ParserError as error:
+                self.assertEqual(
+                    error.get_kwarg("error_code"),
+                    netius.common.http2.COMPRESSION_ERROR,
+                )
+                self.assertEqual(error.get_kwarg("stream"), None)
+        finally:
+            parser.clear(force=True)
+
+    def test_assert_headers(self):
+        connection = self._make_connection()
+        parser = connection.parser
+        base = [(":method", "GET"), (":scheme", "https"), (":path", "/")]
+        try:
+            # a valid set of headers carries every mandatory pseudo-header
+            # with all of them positioned before the normal ones
+            stream = self._make_stream(parser, base + [("accept", "*/*")])
+            stream.assert_headers()
+
+            # the headers that are specific to a single transport level
+            # connection must never be present in an HTTP 2 message
+            for name in netius.common.http2.HTTP2_CONNECTION:
+                stream = self._make_stream(parser, base + [(name, "value")])
+                self.assertRaises(netius.ParserError, stream.assert_headers)
+
+            # the TE header is the only exception to the previous rule and
+            # it's only allowed while its value is the trailers one
+            stream = self._make_stream(parser, base + [("te", "trailers")])
+            stream.assert_headers()
+            stream = self._make_stream(parser, base + [("te", "gzip")])
+            self.assertRaises(netius.ParserError, stream.assert_headers)
+
+            # the name of a header must be a lower cased one, as the casing
+            # of it is not preserved by the HTTP 2 specification
+            stream = self._make_stream(parser, base + [("Accept", "*/*")])
+            self.assertRaises(netius.ParserError, stream.assert_headers)
+
+            # an unknown pseudo-header, a duplicated one and a response only
+            # one are all invalid under a request message
+            stream = self._make_stream(parser, base + [(":bogus", "value")])
+            self.assertRaises(netius.ParserError, stream.assert_headers)
+            stream = self._make_stream(parser, base + [(":path", "/other")])
+            self.assertRaises(netius.ParserError, stream.assert_headers)
+            stream = self._make_stream(parser, base + [(":status", "200")])
+            self.assertRaises(netius.ParserError, stream.assert_headers)
+
+            # a pseudo-header must never be positioned after a normal one so
+            # that the message may be processed in a single pass
+            stream = self._make_stream(
+                parser, base[:2] + [("accept", "*/*")] + base[2:]
+            )
+            self.assertRaises(netius.ParserError, stream.assert_headers)
+
+            # every mandatory pseudo-header must be present, otherwise the
+            # target of the request may not be determined
+            for index in range(len(base)):
+                headers = base[:index] + base[index + 1 :]
+                stream = self._make_stream(parser, headers)
+                self.assertRaises(netius.ParserError, stream.assert_headers)
+
+            # the target of the request may never be an empty one, as the
+            # resource being requested would then be an unknown one
+            stream = self._make_stream(
+                parser, [(":method", "GET"), (":scheme", "https"), (":path", "")]
+            )
+            self.assertRaises(netius.ParserError, stream.assert_headers)
+        finally:
+            parser.clear(force=True)
+
     def test_ctx_request(self):
         connection = self._make_connection()
         parser = connection.parser
@@ -507,6 +647,13 @@ class HTTP2StreamTest(unittest.TestCase):
             self.assertEqual(stream.encoding_c, "deflate")
         finally:
             parser.clear(force=True)
+
+    def _make_stream(self, parser, headers):
+        # builds a stream carrying the provided sequence of headers so that
+        # the assertion of them may be run over it
+        stream = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
+        stream.headers_l = headers
+        return stream
 
     def _make_connection(self, encoding=netius.common.PLAIN_ENCODING):
         # builds a minimal HTTP/2 connection (and parser) that satisfies the

@@ -490,6 +490,81 @@ class ReverseProxyServerTest(unittest.TestCase):
 
         self.assertEqual(headers["Connection"], "close")
 
+    def test_apply_headers_hop(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # the headers that describe a single transport level connection must
+        # never reach the client, as they refer to the connection kept with
+        # the back-end and not to the one kept with the client
+        parser = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        parser_prx = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        connection = self._make_apply_headers_connection()
+        headers = {
+            "keep-alive": "timeout=5",
+            "proxy-connection": "keep-alive",
+            "te": "trailers",
+            "trailer": "Expires",
+            "upgrade": "h2c",
+            "x-kept": "value",
+        }
+
+        self.server._apply_headers(parser, connection, parser_prx, headers)
+
+        self.assertEqual("Keep-Alive" in headers, False)
+        self.assertEqual("Proxy-Connection" in headers, False)
+        self.assertEqual("Te" in headers, False)
+        self.assertEqual("Trailer" in headers, False)
+        self.assertEqual("Upgrade" in headers, False)
+        self.assertEqual(headers["X-Kept"], "value")
+
+    def test_apply_headers_hop_connection(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # every token named by the connection header is also a hop-by-hop one
+        # and so it must be removed before the response is forwarded, the
+        # connection header itself is then rebuilt for the client
+        parser = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        parser_prx = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        connection = self._make_apply_headers_connection()
+        headers = {
+            "connection": "keep-alive, X-Custom",
+            "x-custom": "value",
+            "x-kept": "value",
+        }
+
+        self.server._apply_headers(parser, connection, parser_prx, headers)
+
+        self.assertEqual("X-Custom" in headers, False)
+        self.assertEqual(headers["X-Kept"], "value")
+        self.assertEqual(headers["Connection"], "keep-alive")
+
+    def test_apply_headers_hop_connection_repeated(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # a repeated connection header names hop-by-hop tokens on each one of
+        # its definitions, so all of them must be taken into account and not
+        # only the ones named by the last definition
+        parser = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        parser_prx = self._make_apply_headers_parser(version=netius.common.HTTP_11)
+        connection = self._make_apply_headers_connection()
+        headers = {
+            "connection": ["keep-alive, X-First", "X-Second"],
+            "keep-alive": "timeout=5",
+            "x-first": "a",
+            "x-second": "b",
+            "x-kept": "c",
+        }
+
+        self.server._apply_headers(parser, connection, parser_prx, headers)
+
+        self.assertEqual("X-First" in headers, False)
+        self.assertEqual("X-Second" in headers, False)
+        self.assertEqual("Keep-Alive" in headers, False)
+        self.assertEqual(headers["X-Kept"], "c")
+
     def test_resolve_regex(self):
         regexes = [
             (re.compile(r"https://host\.com/api"), "http://api-backend"),
@@ -794,6 +869,87 @@ class ReverseProxyServerTest(unittest.TestCase):
         # _apply_via adds a Via header to the response
         headers = call_kwargs["headers"]
         self.assertIn("Via", headers)
+
+    def test_prx_headers_interim(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        backend = self._make_backend()
+        self.server.conn_map[backend] = frontend
+
+        response_parser = self._make_response_parser(
+            backend, code="100", status="Continue"
+        )
+        response_parser.headers = {"connection": "keep-alive"}
+
+        self.server._on_prx_headers(
+            self.server.http_client, response_parser, response_parser.headers
+        )
+
+        # an informational response is relayed as is, carrying neither the
+        # hop-by-hop headers of the back-end nor any framing decision
+        self.assertEqual(frontend.send_header.call_count, 1)
+        call_kwargs = frontend.send_header.call_args[1]
+        self.assertEqual(call_kwargs["code"], 100)
+        self.assertEqual(call_kwargs["code_s"], "Continue")
+        self.assertEqual("connection" in call_kwargs["headers"], False)
+        self.assertEqual("Transfer-Encoding" in call_kwargs["headers"], False)
+
+    def test_prx_headers_interim_http_10(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        backend = self._make_backend()
+        self.server.conn_map[backend] = frontend
+        frontend.parser.version = netius.common.HTTP_10
+
+        response_parser = self._make_response_parser(
+            backend, code="100", status="Continue"
+        )
+        response_parser.headers = {}
+
+        self.server._on_prx_headers(
+            self.server.http_client, response_parser, response_parser.headers
+        )
+
+        # a client with no support for an interim response must never be
+        # presented with one, as it would take it as the final response
+        self.assertEqual(frontend.send_header.call_count, 0)
+
+    def test_prx_headers_upgrade(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        backend = self._make_backend()
+        self.server.conn_map[backend] = frontend
+
+        response_parser = self._make_response_parser(
+            backend, code="101", status="Switching Protocols"
+        )
+        response_parser.headers = {
+            "connection": "Upgrade",
+            "upgrade": "websocket",
+            "sec-websocket-accept": "key",
+            "keep-alive": "timeout=5",
+        }
+
+        self.server._on_prx_headers(
+            self.server.http_client, response_parser, dict(response_parser.headers)
+        )
+
+        # the negotiation of the handshake must survive the removal of the
+        # hop-by-hop headers, otherwise the upgrade may not be completed
+        self.assertEqual(frontend.send_header.call_count, 1)
+        call_kwargs = frontend.send_header.call_args[1]
+        self.assertEqual(call_kwargs["code"], 101)
+        headers = call_kwargs["headers"]
+        self.assertEqual(headers["connection"], "Upgrade")
+        self.assertEqual(headers["upgrade"], "websocket")
+        self.assertEqual(headers["sec-websocket-accept"], "key")
+        self.assertEqual("keep-alive" in headers, False)
 
     def test_prx_partial_relays_data(self):
         if mock == None:
@@ -1407,6 +1563,11 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
         connection = http_client.HTTPConnection(
             "127.0.0.1", self.proxy_port, timeout=30
         )
+
+        # the shared server routes every host through a default (catch-all)
+        # rule, so it must be unset for the request to be an unmatched one
+        hosts = self.server.hosts
+        self.server.hosts = dict()
         try:
             connection.request(
                 "GET", "/get", headers={"Host": "unknown.host.example.com"}
@@ -1415,6 +1576,7 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
             response.read()
             self.assertEqual(response.status, 404)
         finally:
+            self.server.hosts = hosts
             connection.close()
 
     def test_multiple_requests(self):

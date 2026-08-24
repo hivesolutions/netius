@@ -39,6 +39,8 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import re
+
 import netius.common
 import netius.clients
 
@@ -59,6 +61,33 @@ MAX_PENDING = netius.CHUNK_SIZE * 8
 allowed in the sending buffer, this maximum value
 avoids the starvation of the producer to consumer
 relation that could cause memory problems """
+
+CONNECT_PORTS = (443,)
+""" The sequence of ports to which a tunnel may be established by the
+means of the CONNECT method, restricting the usage of the proxy as a
+relay towards an arbitrary service, set it to an empty sequence so
+that the restriction is removed (not recommended) """
+
+PORT_REGEX = re.compile(r"^[0-9]+$")
+""" Regular expression to be used in the validation of the port of the
+target of a tunnel, only the ASCII digits are considered valid ones as
+the unicode aware verification accepts values that are not convertible """
+
+HOP_HEADERS = (
+    "connection",
+    "keep-alive",
+    "proxy-authenticate",
+    "proxy-authorization",
+    "proxy-connection",
+    "te",
+    "trailer",
+    "transfer-encoding",
+    "upgrade",
+)
+""" The sequence of headers that must never be forwarded to the next
+hop, the connection specific ones as defined by RFC 9110 plus the non
+standard proxy connection that is still in use by some of the clients,
+the trailer one is also removed as the trailers are not relayed """
 
 COMPRESS_TIMEOUT = 1.0
 """ The maximum amount of time (in seconds) that a response
@@ -172,6 +201,7 @@ class ProxyServer(http2.HTTP2Server):
         compress_forward_accept=False,
         compress_buffer=True,
         compress_timeout=COMPRESS_TIMEOUT,
+        connect_ports=CONNECT_PORTS,
         *args,
         **kwargs
     ):
@@ -190,6 +220,7 @@ class ProxyServer(http2.HTTP2Server):
         self.compress_forward_accept = compress_forward_accept
         self.compress_buffer = compress_buffer
         self.compress_timeout = compress_timeout
+        self.connect_ports = connect_ports
         self.conn_map = {}
 
         self.http_client = netius.clients.HTTPClient(
@@ -453,6 +484,11 @@ class ProxyServer(http2.HTTP2Server):
             self.info("Throttling connections in proxy ...")
         else:
             self.info("Not throttling connections in proxy ...")
+        if self.env:
+            self.connect_ports = self.get_env(
+                "CONNECT_PORTS", self.connect_ports, cast=list
+            )
+        self.connect_ports = tuple(int(port) for port in self.connect_ports)
         if self.trust_origin:
             self.info('Origin is considered "trustable" by proxy')
 
@@ -691,6 +727,43 @@ class ProxyServer(http2.HTTP2Server):
             return ",".join(value)
         return value[-1] if value else None
 
+    def _prx_authority(self, path):
+        """
+        Resolves the authority form target of a CONNECT request into its
+        host and port components, validating that both of them are proper
+        ones and that the port is an allowed target for a tunnel.
+
+        :type path: String
+        :param path: The target of the CONNECT request, expected to be in
+        the authority (host and port) form.
+        :rtype: Tuple
+        :return: A tuple containing the host and the port of the target or
+        an invalid value for both in case the target is not a valid one.
+        """
+
+        # splits the target around the final colon so that an IPv6 literal
+        # is properly handled, verifying that both parts are present
+        host, _separator, port = path.rpartition(":")
+        if not host or not PORT_REGEX.match(port):
+            return (None, None)
+
+        # removes the delimiters of an IPv6 literal, as the resolver expects
+        # the address without the brackets that the URI syntax requires
+        if host.startswith("[") and host.endswith("]"):
+            host = host[1:-1]
+            if not host:
+                return (None, None)
+
+        # verifies that the port is both a valid one and an allowed target
+        # for a tunnel, avoiding the usage of the proxy as a generic relay
+        port = int(port)
+        if port < 1 or port > 65535:
+            return (None, None)
+        if self.connect_ports and not port in self.connect_ports:
+            return (None, None)
+
+        return (host, port)
+
     def _prx_decodable(self, content_encoding):
         return content_encoding.strip().lower() in netius.clients.http.DECODINGS
 
@@ -871,6 +944,29 @@ class ProxyServer(http2.HTTP2Server):
         # resolves the client connection into the proper proxy connection
         # to be used to send the headers (and status line) to the client
         connection = self.conn_map[_connection]
+
+        # an informational response is an interim one, it carries no payload
+        # and is terminated by the end of its headers, so it's relayed as is
+        # and none of the framing decisions apply to it, note that a client
+        # with no support for it must never be presented with one
+        code = int(code_s)
+        if code < 200:
+            if connection.parser.version < netius.common.HTTP_11:
+                return
+
+            # the switching protocols response carries its negotiation in the
+            # hop-by-hop headers, so they are restored once the ones that are
+            # not part of the handshake have been removed
+            upgrade = self._prx_header(headers, "upgrade")
+            self._apply_hop(headers)
+            if code == 101 and upgrade:
+                headers["connection"] = "Upgrade"
+                headers["upgrade"] = upgrade
+
+            connection.send_header(
+                headers=headers, version=version_s, code=code, code_s=status_s
+            )
+            return
 
         # determines if the automatic encoding mode is enabled, under this mode
         # the payload of the back-end is never decoded (only the identity ones
@@ -1264,6 +1360,7 @@ class ProxyServer(http2.HTTP2Server):
     def _apply_headers(self, parser, connection, parser_prx, headers, upper=True):
         if upper:
             self._headers_upper(headers)
+        self._apply_hop(headers)
         self._apply_via(parser_prx, headers)
         self._apply_all(parser_prx, connection, headers, replace=True)
 
@@ -1287,6 +1384,46 @@ class ProxyServer(http2.HTTP2Server):
         if self.compress_forward_accept:
             return
         headers["accept-encoding"] = "identity"
+
+    def _apply_hop(self, headers):
+        """
+        Removes the headers that are specific to a single transport level
+        connection from the provided headers, as a proxy must never
+        forward any of them to the next hop (as defined by RFC 9110).
+
+        :type headers: Dictionary
+        :param headers: The headers of the message that is going to be
+        forwarded to the next hop, changed in place.
+        """
+
+        # maps the lower cased name of each of the headers into the name
+        # that is effectively in use, as the casing of it depends on the
+        # point of the pipeline from which this operation is run
+        names = dict((key.lower(), key) for key in netius.legacy.keys(headers))
+
+        # gathers the extra hop-by-hop headers that have been named by the
+        # connection header, joining its multiple definitions
+        connection = names.get("connection", None)
+        connection = (
+            self._prx_header(headers, connection, join=True) if connection else None
+        )
+        extra = (
+            [value.strip().lower() for value in connection.split(",")]
+            if connection
+            else []
+        )
+
+        # removes both the fixed set of hop-by-hop headers and the extra
+        # ones that the connection header has named, note that a name may
+        # be part of both of these sequences (eg: keep alive) so the
+        # presence of the header is verified before its removal
+        for name in tuple(HOP_HEADERS) + tuple(extra):
+            key = names.get(name, None)
+            if key == None:
+                continue
+            if not key in headers:
+                continue
+            del headers[key]
 
     def _apply_via(self, parser_prx, headers):
         # retrieves the various elements of the parser that are going
@@ -1316,6 +1453,8 @@ class ProxyServer(http2.HTTP2Server):
         # and appends the created string to the base string or creates
         # a new one (as defined in the HTTP specification)
         via = headers.get("Via", "")
+        if isinstance(via, (list, tuple)):
+            via = ", ".join(via)
         if via:
             via += ", "
         via += via_s

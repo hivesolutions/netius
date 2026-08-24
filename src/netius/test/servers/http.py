@@ -28,6 +28,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import time
 import zlib
 import unittest
 
@@ -63,6 +64,122 @@ class HTTPCodecsTest(unittest.TestCase):
 
 class HTTPConnectionTest(unittest.TestCase):
 
+    def test_set_idle(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        connection.owner.idle_timeout = 75
+
+        # the closing of the connection must be scheduled for the moment
+        # when the configured idle timeout is reached
+        with mock.patch.object(
+            connection.owner, "delay", return_value="handle"
+        ) as delay:
+            connection.set_idle()
+        self.assertEqual(delay.call_args[1]["timeout"], 75)
+        self.assertEqual(connection.idle_h, "handle")
+        self.assertNotEqual(connection.idle_t, 0)
+
+        # with an operation already scheduled only the moment of the last
+        # activity is updated, so that the scheduling cost is not paid on a
+        # per request basis (the operation re-schedules itself instead)
+        idle_t = connection.idle_t
+        with mock.patch.object(connection.owner, "delay") as delay:
+            connection.set_idle()
+        self.assertEqual(delay.call_count, 0)
+        self.assertEqual(connection.idle_h, "handle")
+        self.assertGreaterEqual(connection.idle_t, idle_t)
+
+        # a bound set to zero means that the connection is never closed for
+        # being an idle one, so no operation may be scheduled
+        connection = self._make_connection()
+        connection.owner.idle_timeout = 0
+        with mock.patch.object(connection.owner, "delay") as delay:
+            connection.set_idle()
+        self.assertEqual(delay.call_count, 0)
+        self.assertEqual(connection.idle_h, None)
+
+    def test_unset_idle(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+
+        # with no closing operation scheduled there's nothing to be
+        # cancelled, so the operation is a no operation one
+        with mock.patch.object(connection.owner, "unpend") as unpend:
+            connection.unset_idle()
+        self.assertEqual(unpend.call_count, 0)
+
+        # the scheduled operation must be cancelled and the reference to it
+        # unset, so that it's not cancelled once again
+        connection.idle_h = "handle"
+        with mock.patch.object(connection.owner, "unpend") as unpend:
+            connection.unset_idle()
+        self.assertEqual(unpend.call_args[0][0], "handle")
+        self.assertEqual(connection.idle_h, None)
+
+    def test_close_idle(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        connection.pending_s = 0
+
+        # a connection that is no longer open must not be closed once again
+        with mock.patch.object(connection, "is_open", return_value=False):
+            with mock.patch.object(connection, "close") as close:
+                connection.close_idle()
+        self.assertEqual(close.call_count, 0)
+
+        # a connection with a payload still pending is not an idle one, so
+        # the closing of it must be re-scheduled instead of performed
+        connection.pending_s = 128
+        with mock.patch.object(connection, "is_open", return_value=True):
+            with mock.patch.object(connection, "close") as close:
+                with mock.patch.object(connection, "set_idle") as set_idle:
+                    connection.close_idle()
+        self.assertEqual(close.call_count, 0)
+        self.assertEqual(set_idle.call_count, 1)
+
+        # a connection with a request still being processed is not an idle
+        # one, no matter how long the processing of it takes
+        connection.pending_s = 0
+        connection.idle_p = True
+        connection.owner.idle_timeout = 75
+        connection.idle_t = time.time() - 100
+        with mock.patch.object(connection, "is_open", return_value=True):
+            with mock.patch.object(connection, "close") as close:
+                with mock.patch.object(connection, "set_idle") as set_idle:
+                    connection.close_idle()
+        self.assertEqual(close.call_count, 0)
+        self.assertEqual(set_idle.call_count, 1)
+        connection.idle_p = False
+
+        # a connection with recent activity is not an idle one either, so the
+        # operation must be re-scheduled for the time that is still remaining
+        connection.pending_s = 0
+        connection.owner.idle_timeout = 75
+        connection.idle_t = time.time()
+        with mock.patch.object(connection, "is_open", return_value=True):
+            with mock.patch.object(connection, "close") as close:
+                with mock.patch.object(
+                    connection.owner, "delay", return_value="handle"
+                ) as delay:
+                    connection.close_idle()
+        self.assertEqual(close.call_count, 0)
+        self.assertEqual(connection.idle_h, "handle")
+        self.assertGreater(delay.call_args[1]["timeout"], 0)
+
+        # an open connection with nothing pending and no recent activity is
+        # an idle one and so it must be closed, flushing what is buffered
+        connection.idle_t = time.time() - 100
+        with mock.patch.object(connection, "is_open", return_value=True):
+            with mock.patch.object(connection, "close") as close:
+                connection.close_idle()
+        self.assertEqual(close.call_count, 1)
+
     def test_send_gzip(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -76,6 +193,127 @@ class HTTPConnectionTest(unittest.TestCase):
         # of it is pending, improving the ratio of a chunked back-end
         sent = self._send_gzip(16384, (b"chunk-1", b"chunk-2", b"chunk-3"))
         self.assertEqual(sent, [0, 0, 0])
+
+    def test_send_response(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # an informational or a no content response may never announce a
+        # length for a payload that it's not allowed to carry
+        headers = self._send_response(code=204, data=b"payload")
+        self.assertEqual("content-length" in headers, False)
+        headers = self._send_response(code=100, data=b"payload")
+        self.assertEqual("content-length" in headers, False)
+
+        # an explicitly provided length must also be dropped for these
+        # responses, as their framing is defined by the status code alone
+        headers = self._send_response(code=204, headers=dict([("content-length", "7")]))
+        self.assertEqual("content-length" in headers, False)
+
+        # the response to a HEAD request must announce the length of the
+        # payload of the equivalent GET while carrying no payload at all
+        headers = self._send_response(code=200, data=b"payload", method="HEAD")
+        self.assertEqual(headers["content-length"], "7")
+
+        # a normal response must announce the exact length of the payload
+        # that is going to be sent to the client
+        headers = self._send_response(code=200, data=b"payload")
+        self.assertEqual(headers["content-length"], "7")
+
+        # a response that carries no payload must not announce a framing for
+        # it either, as it's terminated by the end of the headers section
+        for code in (100, 204, 304):
+            headers = self._send_response(
+                code=code,
+                data=b"payload",
+                encoding=netius.common.CHUNKED_ENCODING,
+                apply=True,
+            )
+            self.assertEqual("Transfer-Encoding" in headers, False)
+
+        # a framing header provided by the caller must also be removed, as
+        # the casing in use for it is not known beforehand
+        for code in (100, 204):
+            headers = self._send_response(
+                code=code, headers={"Transfer-Encoding": "chunked"}
+            )
+            self.assertEqual("Transfer-Encoding" in headers, False)
+            headers = self._send_response(code=code, headers={"Content-Length": "5"})
+            self.assertEqual("Content-Length" in headers, False)
+
+        # a not modified response may still announce the length of the entity
+        # that it refers to, only the transfer encoding is removed
+        headers = self._send_response(
+            code=304, headers={"Transfer-Encoding": "chunked", "Content-Length": "9"}
+        )
+        self.assertEqual("Transfer-Encoding" in headers, False)
+        self.assertEqual(headers["Content-Length"], "9")
+
+        # the framing of a response that does carry a payload must still be
+        # the one resolved for the connection
+        headers = self._send_response(
+            code=200,
+            data=b"payload",
+            encoding=netius.common.CHUNKED_ENCODING,
+            apply=True,
+        )
+        self.assertEqual(headers["Transfer-Encoding"], "chunked")
+
+    def test_send_header(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # a header value that carries a carriage return or a line feed must
+        # be rejected as it would otherwise split the response in two
+        self.assertRaises(
+            netius.GeneratorError,
+            lambda: self._send_header(dict(location="/a\r\nX-Injected: 1")),
+        )
+        self.assertRaises(
+            netius.GeneratorError,
+            lambda: self._send_header(dict(location="/a\nX-Injected: 1")),
+        )
+        self.assertRaises(
+            netius.GeneratorError,
+            lambda: self._send_header(dict(location="/a\rX-Injected: 1")),
+        )
+
+        # a valid set of headers must be serialized using the canonical form
+        # of the name and the complete line terminator sequence
+        data = self._send_header(dict(location="/a"))
+        self.assertEqual("Location: /a\r\n" in data, True)
+
+    def test_send_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        connection.parser = mock.Mock(method="GET")
+
+        with mock.patch.object(connection, "send_response") as send_response:
+            with mock.patch.object(connection, "close") as close:
+                connection.send_error(netius.ParserError("Invalid", code=431))
+
+        # the response must carry the code of the error and announce the
+        # closing of the connection, which must then be performed
+        self.assertEqual(send_response.call_args[1]["code"], 431)
+        self.assertEqual(send_response.call_args[1]["headers"]["connection"], "close")
+        self.assertEqual(close.call_count, 1)
+
+    def test_resolve_encoding(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # the chunked framing may only be used with a client that speaks at
+        # least the HTTP 1.1 version, as the previous ones have no support
+        # for it and would take the framing as part of the payload
+        connection = self._make_connection(encoding=netius.common.CHUNKED_ENCODING)
+        connection.resolve_encoding(mock.Mock(version=netius.common.HTTP_10))
+        self.assertEqual(connection.current, netius.common.PLAIN_ENCODING)
+
+        connection = self._make_connection(encoding=netius.common.CHUNKED_ENCODING)
+        connection.resolve_encoding(mock.Mock(version=netius.common.HTTP_11))
+        self.assertEqual(connection.current, netius.common.CHUNKED_ENCODING)
 
     def test_base_encoding(self):
         connection = self._make_connection(encoding=netius.common.GZIP_ENCODING)
@@ -164,6 +402,60 @@ class HTTPConnectionTest(unittest.TestCase):
         decompressor = zlib.decompressobj(zlib.MAX_WBITS | 16)
         return [len(decompressor.decompress(data or b"")) for data in sent]
 
+    def test_on_data(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # the connection must stop being a persistent one once the number of
+        # served requests reaches the bound that is defined for the server
+        connection = self._make_connection()
+        connection.owner.requests_limit = 2
+        connection.parser = mock.Mock(keep_alive=True)
+        with mock.patch.object(connection.owner, "on_data_http"):
+            connection.on_data()
+            self.assertEqual(connection.parser.keep_alive, True)
+            connection.on_data()
+            self.assertEqual(connection.parser.keep_alive, False)
+
+        # a bound set to zero means that no limit is enforced, so that the
+        # connection may be kept alive for as long as it's required
+        connection = self._make_connection()
+        connection.owner.requests_limit = 0
+        connection.parser = mock.Mock(keep_alive=True)
+        with mock.patch.object(connection.owner, "on_data_http"):
+            connection.on_data()
+            self.assertEqual(connection.parser.keep_alive, True)
+
+    def _send_response(
+        self,
+        code=200,
+        data=None,
+        headers=None,
+        method="GET",
+        encoding=netius.common.PLAIN_ENCODING,
+        apply=False,
+    ):
+        # runs the sending of a response over a connection with no socket,
+        # returning the headers that have been used in the operation
+        connection = self._make_connection(encoding=encoding)
+        connection.parser = mock.Mock(method=method)
+        with mock.patch.object(connection, "send_header") as send_header:
+            with mock.patch.object(connection, "send_part"):
+                connection.send_response(
+                    code=code, data=data, headers=headers, apply=apply
+                )
+        return send_header.call_args[1]["headers"]
+
+    def _send_header(self, headers):
+        # runs the sending of the headers of a response over a connection with
+        # no socket, returning the raw data that would be sent to the client
+        connection = self._make_connection()
+        connection.parser = mock.Mock(method="GET")
+        with mock.patch.object(connection, "send_plain") as send_plain:
+            with mock.patch.object(connection.owner, "on_send_http"):
+                connection.send_header(headers=headers)
+            return send_plain.call_args[0][0]
+
     def _make_connection(self, encoding=netius.common.PLAIN_ENCODING):
         # builds a connection without the underlying socket, replicating the
         # encoding state that the constructor would otherwise initialize
@@ -178,10 +470,30 @@ class HTTPConnectionTest(unittest.TestCase):
         connection.dynamic = None
         connection.gzip_m = dict()
         connection.gzip_l = dict()
+        connection.requests = 0
+        connection.idle_h = None
+        connection.idle_t = 0
+        connection.idle_p = False
         return connection
 
 
 class HTTPServerTest(unittest.TestCase):
+
+    def test_on_data(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = netius.servers.HTTPServer()
+        connection = mock.Mock()
+
+        server.on_data(connection, b"GET / HTTP/1.1\r\n")
+
+        # any inbound activity must re-schedule the closing of the connection
+        # so that a slow but progressing message is not taken as an idle one
+        self.assertEqual(connection.set_idle.call_count, 1)
+        self.assertEqual(connection.parse.call_count, 1)
+
+        server.cleanup()
 
     def test_is_auto(self):
         http_server = netius.servers.HTTPServer()
@@ -275,6 +587,36 @@ class HTTPServerTest(unittest.TestCase):
         headers = {}
         http_server._apply_connection(connection, headers)
         self.assertEqual("Vary" in headers, False)
+
+    def test__apply_weak(self):
+        http_server = netius.servers.HTTPServer()
+        connection = self._make_connection(netius.common.GZIP_ENCODING)
+
+        # a payload that gets encoded by the server is no longer the octet
+        # sequence identified by a strong entity tag, so the tag is weakened
+        headers = {"Etag": '"abc"'}
+        http_server._apply_connection(connection, headers)
+        self.assertEqual(headers["Etag"], 'W/"abc"')
+
+        # an entity tag that is already a weak one must be kept untouched
+        # as there's nothing left to be weakened on it
+        headers = {"Etag": 'W/"abc"'}
+        http_server._apply_connection(connection, headers)
+        self.assertEqual(headers["Etag"], 'W/"abc"')
+
+        # a payload that is not encoded by the server keeps the strong tag
+        # as the octet sequence is exactly the one of the origin
+        connection = self._make_connection(netius.common.PLAIN_ENCODING)
+        headers = {"Etag": '"abc"'}
+        http_server._apply_connection(connection, headers)
+        self.assertEqual(headers["Etag"], '"abc"')
+
+        # a payload that already carries a coding is not encoded once again
+        # by the server, so the entity tag still describes it
+        connection = self._make_connection(netius.common.GZIP_ENCODING)
+        headers = {"Etag": '"abc"', "Content-Encoding": "gzip"}
+        http_server._apply_connection(connection, headers)
+        self.assertEqual(headers["Etag"], '"abc"')
 
     def test__apply_vary(self):
         http_server = netius.servers.HTTPServer()

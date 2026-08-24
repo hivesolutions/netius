@@ -116,6 +116,18 @@ HTTP2_PSEUDO = (":method", ":scheme", ":path", ":authority", ":status")
 """ The complete set of HTTP 2 based pseudo-header values
 this list should be inclusive and limited """
 
+HTTP2_CONNECTION = (
+    "connection",
+    "keep-alive",
+    "proxy-connection",
+    "transfer-encoding",
+    "upgrade",
+)
+""" The set of headers that are specific to a single transport level
+connection and that must not be present in an HTTP 2 message, as
+defined by RFC 9113, note that the TE header is verified separately
+as it's allowed as long as its value is the trailers one """
+
 HTTP2_TUPLES = (
     (SETTINGS_HEADER_TABLE_SIZE, "SETTINGS_HEADER_TABLE_SIZE"),
     (SETTINGS_ENABLE_PUSH, "SETTINGS_ENABLE_PUSH"),
@@ -572,6 +584,10 @@ class HTTP2Parser(parser.Parser):
         header = struct.unpack("!BHBBI", data)
         extra, self.length, self.type, self.flags, self.stream = header
         self.length += extra << 16
+
+        # masks the reserved bit of the identifier, as the value of such
+        # field must be ignored by the receiver (as defined by RFC 9113)
+        self.stream &= 0x7FFFFFFF
 
         self.assert_header()
 
@@ -1213,7 +1229,18 @@ class HTTP2Stream(netius.Stream):
             return
         is_joinable = len(self.header_b) > 1
         block = b"".join(self.header_b) if is_joinable else self.header_b[0]
-        self.headers_l = self.owner.decoder.decode(block)
+
+        # a failure in the decoding of the field block is a connection level
+        # error, as the dynamic table of the peer becomes unsynchronized and
+        # no other block may be decoded from then on (as per RFC 9113)
+        try:
+            self.headers_l = self.owner.decoder.decode(block)
+        except Exception as exception:
+            raise netius.ParserError(
+                "Invalid header block (%s)" % exception,
+                error_code=COMPRESSION_ERROR,
+            )
+
         self.header_b = []
         if assert_h:
             self.assert_headers()
@@ -1472,9 +1499,9 @@ class HTTP2Stream(netius.Stream):
                     stream=self.identifier,
                     error_code=PROTOCOL_ERROR,
                 )
-            if name in ("connection",):
+            if name in HTTP2_CONNECTION:
                 raise netius.ParserError(
-                    "Invalid header present",
+                    "Connection specific header present",
                     stream=self.identifier,
                     error_code=PROTOCOL_ERROR,
                 )
@@ -1503,7 +1530,7 @@ class HTTP2Stream(netius.Stream):
                     error_code=PROTOCOL_ERROR,
                 )
             if is_pseudo:
-                pseudos[name] = True
+                pseudos[name] = value
 
         for name in (":method", ":scheme", ":path"):
             if not name in pseudos:
@@ -1512,6 +1539,15 @@ class HTTP2Stream(netius.Stream):
                     stream=self.identifier,
                     error_code=PROTOCOL_ERROR,
                 )
+
+        # the target of the request may never be an empty one, as it would
+        # not be possible to determine the resource being requested
+        if not pseudos[":path"]:
+            raise netius.ParserError(
+                "Empty pseudo-header in request",
+                stream=self.identifier,
+                error_code=PROTOCOL_ERROR,
+            )
 
     def assert_ready(self):
         if (

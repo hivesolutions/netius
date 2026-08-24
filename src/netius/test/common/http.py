@@ -33,6 +33,7 @@ import unittest
 import netius.common
 
 SIMPLE_REQUEST = b"GET http://localhost HTTP/1.1\r\n\
+Host: localhost\r\n\
 Date: Wed, 1 Jan 2014 00:00:00 GMT\r\n\
 Server: Test Service/1.0.0\r\n\
 Content-Length: 11\r\n\
@@ -40,6 +41,7 @@ Content-Length: 11\r\n\
 Hello World"
 
 CHUNKED_REQUEST = b"GET http://localhost HTTP/1.1\r\n\
+Host: localhost\r\n\
 Date: Wed, 1 Jan 2014 00:00:00 GMT\r\n\
 Server: Test Service/1.0.0\r\n\
 Transfer-Encoding: chunked\r\n\
@@ -50,6 +52,7 @@ Hello World\r\n\
 \r\n"
 
 EXTRA_SPACES_REQUEST = b"GET / HTTP/1.1\r\n\
+Host: localhost\r\n\
 Date: Wed, 1 Jan 2014 00:00:00 GMT   \r\n\
 Server:Test Service/1.0.0  \r\n\
 Content-Length: 11\r\n\
@@ -57,6 +60,7 @@ Content-Length: 11\r\n\
 Hello World"
 
 INVALID_HEADERS_REQUEST = b"GET / HTTP/1.1\r\n\
+Host: localhost\r\n\
 Date: Wed, 1 Jan 2014 00:00:00 GMT   \r\n\
 Server:Test Service/1.0.0  \r\n\
 Content-Length: 11\r\n\
@@ -100,7 +104,23 @@ Server: Test Service/1.0.0\r\n\
 \r\n\
 Hello World"
 
+INTERIM_RESPONSE = b"HTTP/1.1 100 Continue\r\n\
+\r\n\
+HTTP/1.1 200 OK\r\n\
+Content-Length: 2\r\n\
+\r\n\
+hi"
+
+INTERIM_LENGTH_RESPONSE = b"HTTP/1.1 100 Continue\r\n\
+Content-Length: 5\r\n\
+\r\n\
+HTTP/1.1 200 OK\r\n\
+Content-Length: 2\r\n\
+\r\n\
+hi"
+
 ENCODINGS_REQUEST = b"GET / HTTP/1.1\r\n\
+Host: localhost\r\n\
 Accept-Encoding: deflate;q=0.5, gzip;q=1.0\r\n\
 Content-Length: 11\r\n\
 \r\n\
@@ -258,8 +278,9 @@ class HTTPParserTest(unittest.TestCase):
                     lambda: parser.parse(INVALID_HEADERS_TAB_REQUEST),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "Invalid header value",
                     lambda: parser.parse(INVALID_HEADERS_TAB_REQUEST),
                 )
         finally:
@@ -270,12 +291,13 @@ class HTTPParserTest(unittest.TestCase):
             if hasattr(self, "assertRaisesRegexp"):
                 self.assertRaisesRegexp(
                     netius.ParserError,
-                    "Invalid header value",
+                    "Invalid header line",
                     lambda: parser.parse(INVALID_HEADERS_NEWLINE_REQUEST),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "Invalid header line",
                     lambda: parser.parse(INVALID_HEADERS_NEWLINE_REQUEST),
                 )
         finally:
@@ -286,12 +308,14 @@ class HTTPParserTest(unittest.TestCase):
             if hasattr(self, "assertRaisesRegexp"):
                 self.assertRaisesRegexp(
                     netius.ParserError,
-                    "Chunked encoding with content length set",
+                    "Transfer encoding with content length set",
                     lambda: parser.parse(INVALID_CHUNKED_REQUEST),
                 )
             else:
-                self.assertRaises(
-                    netius.ParserError, lambda: parser.parse(INVALID_CHUNKED_REQUEST)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Transfer encoding with content length set",
+                    lambda: parser.parse(INVALID_CHUNKED_REQUEST),
                 )
         finally:
             parser.clear()
@@ -305,8 +329,9 @@ class HTTPParserTest(unittest.TestCase):
                     lambda: parser.parse(INVALID_TRANSFER_ENCODING_REQUEST),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "Invalid transfer encoding",
                     lambda: parser.parse(INVALID_TRANSFER_ENCODING_REQUEST),
                 )
         finally:
@@ -321,11 +346,234 @@ class HTTPParserTest(unittest.TestCase):
                     lambda: parser.parse(INVALID_STATUS_REQUEST),
                 )
             else:
-                self.assertRaises(
-                    netius.ParserError, lambda: parser.parse(INVALID_STATUS_REQUEST)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Invalid status line ",
+                    lambda: parser.parse(INVALID_STATUS_REQUEST),
                 )
         finally:
             parser.clear()
+
+    def test_line(self):
+        # the initial line must be terminated by the complete carriage return
+        # and line feed sequence, as a bare line feed would allow an extra
+        # request to be smuggled through a more permissive intermediary
+        self._assert_error(b"GET / HTTP/1.1\nHost: localhost\r\n\r\n")
+
+        # the method token must respect the syntax that is defined for it
+        # meaning that only the token characters are allowed in it
+        self._assert_error(b"GE T / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        self._assert_error(b"G\x00T / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+
+        # neither a control character nor a carriage return may be part of
+        # the target of the request, as that would allow the injection of
+        # an extra header or even of a complete extra request
+        self._assert_error(b"GET /a\rb HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        self._assert_error(b"GET /a\x00b HTTP/1.1\r\nHost: localhost\r\n\r\n")
+
+        # the version of the protocol must be provided using the single
+        # digit major and minor form, otherwise the line is an invalid one
+        self._assert_error(b"GET / HTTP/9\r\nHost: localhost\r\n\r\n")
+        self._assert_error(b"GET / HTTP/1.1.1\r\nHost: localhost\r\n\r\n")
+
+        # an unknown but syntactically valid version must be accepted and
+        # downgraded to the oldest version of the protocol
+        parser = self._parse(b"GET / HTTP/2.0\r\n\r\n")
+        self.assertEqual(parser.version, netius.common.HTTP_10)
+
+        # the status code of a response must be a sequence of exactly three
+        # digits so that the class of the response may be determined
+        self._assert_error(b"HTTP/1.1 XX OK\r\n\r\n", type=netius.common.RESPONSE)
+        self._assert_error(b"HTTP/1.1 20 OK\r\n\r\n", type=netius.common.RESPONSE)
+
+        # an initial line that goes beyond the allowed bounds must be
+        # rejected with the code that is specific for that situation
+        self._assert_error(
+            b"GET /" + b"a" * 9000 + b" HTTP/1.1\r\nHost: localhost\r\n\r\n",
+            code=414,
+        )
+
+    def test_headers(self):
+        # a bare carriage return or line feed inside the headers section must
+        # be rejected as either of them would allow the injection of an
+        # extra header into the message (response splitting)
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nX-Header: a\nX-Other: b\r\n\r\n"
+        )
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nX-Header: a\rX-Other: b\r\n\r\n"
+        )
+
+        # the obsolete line folding of a header value is not supported and
+        # must be rejected instead of being silently joined together
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nX-Header: a\r\n  folded\r\n\r\n"
+        )
+
+        # the headers section must respect both the size and the count bounds
+        # defined for the parser, otherwise a peer would be able to exhaust
+        # the memory that is available to the server
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nX-Header: "
+            + b"a" * 70000
+            + b"\r\n\r\n",
+            code=431,
+        )
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            + b"X-Header: a\r\n" * 200
+            + b"\r\n",
+            code=431,
+        )
+
+        # the bounds of the parser must be configurable ones so that a more
+        # permissive or a more restrictive posture may be taken
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nX-Header: a\r\n\r\n",
+            code=431,
+            headers_count=1,
+        )
+
+        # the count bound is an inclusive one, a message with exactly the
+        # allowed number of headers must still be accepted
+        parser = self._parse(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nX-Header: a\r\n\r\n",
+            headers_count=2,
+        )
+        self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
+
+    def test_framing(self):
+        # a duplicated content length makes the framing of the message an
+        # ambiguous one and so it must be rejected even if the values agree
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Content-Length: 5\r\nContent-Length: 5\r\n\r\n"
+        )
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Content-Length: 5\r\nContent-Length: 6\r\n\r\n"
+        )
+
+        # only a sequence of digits is a valid content length, both the signed
+        # and the non numeric values must be rejected as a lenient parsing of
+        # them is a well known request smuggling primitive
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nContent-Length: abc\r\n\r\n"
+        )
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nContent-Length: -1\r\n\r\n"
+        )
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nContent-Length: +5\r\n\r\n"
+        )
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nContent-Length: \r\n\r\n"
+        )
+
+        # the codings of the transfer encoding are case insensitive ones and
+        # may be provided as a list, the chunked one must be the final coding
+        # so that the framing of the message may be determined
+        parser = self._parse(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Transfer-Encoding: Chunked\r\n\r\n0\r\n\r\n"
+        )
+        self.assertEqual(parser.chunked, True)
+        parser = self._parse(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Transfer-Encoding: identity, chunked\r\n\r\n0\r\n\r\n"
+        )
+        self.assertEqual(parser.chunked, True)
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Transfer-Encoding: chunked, identity\r\n\r\n"
+        )
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n" b"Transfer-Encoding: gzip\r\n\r\n"
+        )
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n"
+            b"Transfer-Encoding: chunked\r\n\r\n"
+        )
+
+        # the transfer encoding and the content length must never be defined
+        # at the same time, as the framing would then be an ambiguous one
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Content-Length: 6\r\nTransfer-Encoding: chunked\r\n\r\n"
+        )
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Content-Length: 6\r\nTransfer-Encoding: identity\r\n\r\n"
+        )
+
+        # a request compliant with HTTP 1.1 must provide one and only one host
+        # header, otherwise the target of the request is an ambiguous one
+        self._assert_error(b"GET / HTTP/1.1\r\n\r\n")
+        self._assert_error(b"GET / HTTP/1.1\r\nHost: a\r\nHost: b\r\n\r\n")
+
+        # the host header is not a mandatory one for the previous versions of
+        # the protocol, as it has only been introduced with HTTP 1.1
+        parser = self._parse(b"GET / HTTP/1.0\r\n\r\n")
+        self.assertEqual(parser.version, netius.common.HTTP_10)
+
+        # under HTTP 1.1 the connection is a persistent one unless the close
+        # token is present in the connection header, note that the header may
+        # carry multiple tokens and be defined multiple times
+        parser = self._parse(b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        self.assertEqual(parser.keep_alive, True)
+        parser = self._parse(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive, Upgrade\r\n\r\n"
+        )
+        self.assertEqual(parser.keep_alive, True)
+        parser = self._parse(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade, close\r\n\r\n"
+        )
+        self.assertEqual(parser.keep_alive, False)
+        parser = self._parse(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade\r\n"
+            b"Connection: close\r\n\r\n"
+        )
+        self.assertEqual(parser.keep_alive, False)
+
+        # under the previous versions of the protocol the opposite applies and
+        # the connection is only a persistent one if explicitly requested
+        parser = self._parse(b"GET / HTTP/1.0\r\n\r\n")
+        self.assertEqual(parser.keep_alive, False)
+        parser = self._parse(b"GET / HTTP/1.0\r\nConnection: Keep-Alive\r\n\r\n")
+        self.assertEqual(parser.keep_alive, True)
+
+    def test_chunked_malformed(self):
+        # the size of a chunk must be a sequence of hexadecimal digits, the
+        # signed and the prefixed values must be rejected as they would be
+        # interpreted in a different way by a more permissive parser
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Transfer-Encoding: chunked\r\n\r\n-5\r\n"
+        )
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Transfer-Encoding: chunked\r\n\r\n0x5\r\n"
+        )
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Transfer-Encoding: chunked\r\n\r\nzz\r\n"
+        )
+
+        # the size of a chunk must be terminated by the complete carriage
+        # return and line feed sequence, otherwise the last digit of it would
+        # be taken as the terminator (the framing would then be an invalid one)
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Transfer-Encoding: chunked\r\n\r\n12\nAAAAAAAAAAAAAAAAAA\r\n"
+        )
+
+        # the extensions of a chunk must still be accepted as they are a
+        # valid part of the chunked coding (simply ignored)
+        parser = self._parse(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n"
+            b"\r\nb;name=value\r\nHello World\r\n0\r\n\r\n"
+        )
+        self.assertEqual(parser.get_message(), b"Hello World")
 
     def test_file(self):
         parser = netius.common.HTTPParser(
@@ -433,3 +681,44 @@ class HTTPParserTest(unittest.TestCase):
             self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
         finally:
             parser.clear()
+
+    def test_interim_response(self):
+        parser = netius.common.HTTPParser(self, type=netius.common.RESPONSE, store=True)
+        seen = []
+        parser.bind("on_data", lambda: seen.append((parser.code, parser.get_message())))
+        try:
+            # an informational response is always terminated by the empty line
+            # that follows its headers, so the final response that comes after
+            # it must be parsed as a message of its own
+            parser.parse(INTERIM_RESPONSE)
+
+            self.assertEqual(seen, [(100, b""), (200, b"hi")])
+            self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
+        finally:
+            parser.clear()
+
+        parser = netius.common.HTTPParser(self, type=netius.common.RESPONSE, store=True)
+        seen = []
+        parser.bind("on_data", lambda: seen.append((parser.code, parser.get_message())))
+        try:
+            # the length announced by a bodyless response describes the entity
+            # and never the framing, so it must not be taken as a payload
+            parser.parse(INTERIM_LENGTH_RESPONSE)
+
+            self.assertEqual(seen, [(100, b""), (200, b"hi")])
+            self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
+        finally:
+            parser.clear()
+
+    def _parse(self, data, type=netius.common.REQUEST, **kwargs):
+        parser = netius.common.HTTPParser(self, type=type, store=True, **kwargs)
+        parser.parse(data)
+        return parser
+
+    def _assert_error(self, data, code=400, type=netius.common.REQUEST, **kwargs):
+        try:
+            self._parse(data, type=type, **kwargs)
+        except netius.ParserError as error:
+            self.assertEqual(error.code, code)
+        else:
+            self.fail("Parser error not raised for '%s'" % data)

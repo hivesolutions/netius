@@ -164,6 +164,44 @@ class HTTPProtocolTest(unittest.TestCase):
         result = protocol.send_request()
         self.assertEqual(result, None)
 
+    def test_apply_dynamic(self):
+        protocol = netius.clients.HTTPProtocol(
+            "GET", "http://example.com/", asynchronous=True
+        )
+
+        # the codings accepted by the client must be announced in the request
+        # so that the server may compress the payload of the response, note
+        # that this is verified without a request as an intermediary would
+        # otherwise be free to re-write the value announced by the client
+        headers = {}
+        protocol._apply_dynamic(headers)
+        self.assertEqual(headers["accept-encoding"], "gzip, deflate")
+        self.assertEqual(headers["host"], "example.com")
+        self.assertEqual(headers["connection"], "keep-alive")
+        self.assertEqual(headers["content-length"], "0")
+
+        # a coding that has been explicitly defined by the caller must be
+        # preserved, as the client is not the authority for it in that case
+        headers = {"accept-encoding": "identity"}
+        protocol._apply_dynamic(headers)
+        self.assertEqual(headers["accept-encoding"], "identity")
+
+        # with no codings defined nothing may be announced, otherwise the
+        # client would receive a payload that it's not able to decode
+        protocol.encodings = None
+        headers = {}
+        protocol._apply_dynamic(headers)
+        self.assertEqual("accept-encoding" in headers, False)
+
+        # the port of the target is only part of the host header whenever
+        # it's not one of the default ones for the scheme in use
+        protocol = netius.clients.HTTPProtocol(
+            "GET", "http://example.com:8080/", asynchronous=True
+        )
+        headers = {}
+        protocol._apply_dynamic(headers)
+        self.assertEqual(headers["host"], "example.com:8080")
+
 
 class HTTPClientTest(unittest.TestCase):
 
@@ -228,7 +266,6 @@ class HTTPClientTest(unittest.TestCase):
         headers = payload["headers"]
         self.assertEqual(result["code"], 200)
         self.assertEqual(headers["Host"], self.httpbin)
-        self.assertEqual(headers["Accept-Encoding"], "gzip, deflate")
         self.assertEqual(headers.get("Content-Length", "0"), "0")
         self.assertNotEqual(headers.get("User-Agent", ""), "")
 

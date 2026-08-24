@@ -126,6 +126,80 @@ class ForwardProxyServerTest(unittest.TestCase):
         self.assertEqual(frontend.send_response.call_count, 1)
         self.assertEqual(frontend.send_response.call_args[1]["code"], 403)
 
+    def test_on_headers_connect_invalid(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # a tunnel may only be established towards an allowed port and using
+        # a properly formed authority, everything else must be refused so
+        # that the proxy may not be used as a generic relay
+        for path in ("host.com:22", "host.com:\xb2", "host.com", "host.com:44a"):
+            frontend = self._make_frontend()
+            request_parser = self._make_request_parser(method="CONNECT", path=path)
+
+            with mock.patch.object(self.server.raw_client, "connect") as connect:
+                self.server.on_headers(frontend, request_parser)
+
+            self.assertEqual(connect.call_count, 0)
+            self.assertEqual(frontend.send_response.call_args[1]["code"], 403)
+
+    def test_on_headers_hop(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        backend = self._make_backend()
+        headers = {
+            "connection": "keep-alive, X-Custom",
+            "x-custom": "a",
+            "keep-alive": "timeout=5",
+            "x-kept": "b",
+        }
+        request_parser = self._make_request_parser(
+            method="GET", path="http://host.com/", headers=headers
+        )
+
+        with mock.patch.object(
+            self.server.http_client, "method", return_value=backend
+        ) as method:
+            self.server.on_headers(frontend, request_parser)
+
+        # neither the hop-by-hop headers nor the ones named by the connection
+        # header may reach the back-end, as they describe the other connection
+        self.assertEqual(sorted(method.call_args[1]["headers"]), ["x-kept"])
+
+    def test_on_headers_hop_upgrade(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        backend = self._make_backend()
+        headers = {
+            "connection": "Upgrade, X-Custom",
+            "upgrade": "websocket",
+            "proxy-authorization": "Basic secret",
+            "x-custom": "a",
+            "x-kept": "b",
+        }
+        request_parser = self._make_request_parser(
+            method="GET", path="http://host.com/", headers=headers
+        )
+
+        with mock.patch.object(
+            self.server.http_client, "method", return_value=backend
+        ) as method:
+            self.server.on_headers(frontend, request_parser)
+
+        # an upgrade request keeps the headers that carry its negotiation,
+        # every other hop-by-hop one must still be removed so that it does
+        # not reach the origin (the connection header is rebuilt)
+        forwarded = method.call_args[1]["headers"]
+        self.assertEqual(forwarded["connection"], "Upgrade")
+        self.assertEqual(forwarded["upgrade"], "websocket")
+        self.assertEqual("proxy-authorization" in forwarded, False)
+        self.assertEqual("x-custom" in forwarded, False)
+        self.assertEqual(forwarded["x-kept"], "b")
+
     def _make_frontend(self):
         frontend = mock.MagicMock()
         frontend.ssl = False
@@ -141,10 +215,10 @@ class ForwardProxyServerTest(unittest.TestCase):
         backend.waiting = False
         return backend
 
-    def _make_request_parser(self, method="GET", path="/test"):
+    def _make_request_parser(self, method="GET", path="/test", headers=None):
         parser = mock.MagicMock()
         parser.method = method
         parser.path_s = path
         parser.version_s = "HTTP/1.1"
-        parser.headers = {}
+        parser.headers = {} if headers == None else headers
         return parser

@@ -39,6 +39,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import time
 import zlib
 import base64
 import datetime
@@ -48,6 +49,9 @@ import contextlib
 import netius.common
 
 from netius.common import (
+    LINE_LIMIT,
+    HEADERS_LIMIT,
+    HEADERS_COUNT,
     PLAIN_ENCODING,
     CHUNKED_ENCODING,
     GZIP_ENCODING,
@@ -72,6 +76,18 @@ compressor before a partial flush is performed, avoiding one flush
 per payload chunk which would degrade the compression ratio, set it
 to zero to flush every chunk (required for latency sensitive streams
 that are served under an explicit compressed encoding) """
+
+IDLE_TIMEOUT = 75
+""" The maximum amount of time (in seconds) that a connection may be
+kept open waiting for a new request, once this value is reached the
+connection is closed, avoiding it from being held open forever, set
+it to zero to remove the bound (not recommended) """
+
+REQUESTS_LIMIT = 1000
+""" The maximum number of requests that may be served by a single
+connection, once this value is reached the connection stops being
+a persistent one, avoiding it from being held open forever, set it
+to zero to remove the bound (not recommended) """
 
 EMPTY_CODES = (204, 304)
 """ The set of HTTP status codes that according to the HTTP
@@ -184,6 +200,10 @@ class HTTPConnection(netius.Connection):
         self.dynamic = None
         self.parser = None
         self.legacy = True
+        self.requests = 0
+        self.idle_h = None
+        self.idle_t = 0
+        self.idle_p = False
         self.gzip_m = dict()
         self.gzip_l = dict()
 
@@ -192,18 +212,78 @@ class HTTPConnection(netius.Connection):
         if not self.is_open():
             return
         self.parser = netius.common.HTTPParser(
-            self, type=netius.common.REQUEST, store=True
+            self,
+            type=netius.common.REQUEST,
+            store=True,
+            line_limit=self.owner.line_limit,
+            headers_limit=self.owner.headers_limit,
+            headers_count=self.owner.headers_count,
         )
         self.parser.bind("on_data", self.on_data)
+        self.set_idle()
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
         if not self.is_closed():
             return
+        self.unset_idle()
         if self.parser:
             self.parser.destroy()
         if self.gzip_m:
             self._close_gzip(safe=True)
+
+    def set_idle(self):
+        """
+        Marks the connection as an active one, scheduling the closing of
+        it for the moment when the idle timeout is reached.
+
+        Only one closing operation exists at a time and it re-schedules
+        itself while the connection remains an active one, so that the
+        (costly) scheduling is not performed on a per request basis.
+        """
+
+        self.idle_t = time.time()
+        if self.idle_h:
+            return
+        if not self.owner.idle_timeout:
+            return
+        self.idle_h = self.owner.delay(self.close_idle, timeout=self.owner.idle_timeout)
+
+    def unset_idle(self):
+        """
+        Cancels the closing operation that is currently scheduled for the
+        connection, in case there's one.
+        """
+
+        if not self.idle_h:
+            return
+        self.owner.unpend(self.idle_h)
+        self.idle_h = None
+
+    def close_idle(self):
+        """
+        Closes the connection under the assumption that no new request has
+        been received for too long, note that a connection with a payload
+        still pending to be sent is not considered an idle one.
+        """
+
+        self.idle_h = None
+        if not self.is_open():
+            return
+        if self.pending_s > 0:
+            return self.set_idle()
+        if self.idle_p:
+            return self.set_idle()
+
+        # verifies that the connection has been an idle one for the complete
+        # period, re-scheduling the operation for the remaining time in case
+        # there has been activity since the operation was scheduled
+        remaining = self.owner.idle_timeout - (time.time() - self.idle_t)
+        if remaining > 0:
+            self.idle_h = self.owner.delay(self.close_idle, timeout=remaining)
+            return
+
+        self.close(flush=True)
 
     def info_dict(self, full=False):
         info = netius.Connection.info_dict(self, full=full)
@@ -345,6 +425,28 @@ class HTTPConnection(netius.Connection):
         data_l = len(data) if data else 0
         is_empty = code in EMPTY_CODES and data_l == 0
 
+        # in case the response is an informational or a no content one it may
+        # never carry a payload nor announce a length for it, as the message
+        # is terminated by the first empty line after the headers section
+        if code < 200 or code == 204:
+            data = b""
+            data_l = 0
+            is_empty = True
+            self._unset_header(headers, "content-length")
+
+        # a not modified response is also terminated by the end of the headers
+        # so no payload may be sent for it, note that unlike the previous ones
+        # it may still announce the length of the entity it refers to
+        if code == 304:
+            data = b""
+            is_empty = True
+
+        # a response that carries no payload must not announce a framing for
+        # it either, so the encoding is taken back to the plain one
+        if is_empty:
+            self.set_plain()
+            self._unset_header(headers, "transfer-encoding")
+
         # runs a series of verifications taking into account the type
         # of the method defined in the current request, for instance if
         # the current request is a HEAD one then no data is sent (as expected)
@@ -398,6 +500,10 @@ class HTTPConnection(netius.Connection):
         version = version or "HTTP/1.1"
         code_s = code_s or netius.common.CODE_STRINGS.get(code, None)
 
+        # the response has started so the request is no longer in flight and
+        # the idle verification of the connection may be resumed
+        self.idle_p = False
+
         # creates the buffer list that is going to hold the complete set of
         # lines for the headers and then appends the complete set of headers
         # according to the previous construction
@@ -411,6 +517,14 @@ class HTTPConnection(netius.Connection):
                 buffer.append("%s: %s\r\n" % (key, _value))
         buffer.append("\r\n")
         buffer_data = "".join(buffer)
+
+        # ensures that no carriage return or line feed has been injected into
+        # any of the header values, each of the lines accounts for exactly one
+        # of these characters so any extra one splits the response
+        if not buffer_data.count("\r") == len(buffer) or not buffer_data.count(
+            "\n"
+        ) == len(buffer):
+            raise netius.GeneratorError("Invalid header value")
 
         # sends the buffer data to the connection peer so that it gets notified
         # about the headers for the current communication/message
@@ -443,11 +557,30 @@ class HTTPConnection(netius.Connection):
             count = self.send_base(data, delay=delay, callback=callback)
         return count
 
+    def send_error(self, error):
+        """
+        Sends the response associated with the provided parser error and
+        closes the connection afterwards.
+
+        The closing is required as the framing of the connection is no
+        longer a reliable one, meaning that the bytes that follow would be
+        parsed against the state left behind by the invalid message.
+
+        :type error: ParserError
+        :param error: The parser error for which the response is going to
+        be sent to the client.
+        """
+
+        self.send_response(
+            code=error.code, headers=dict(connection="close"), apply=True
+        )
+        self.close(flush=True)
+
     def parse(self, data):
         try:
             return self.parser.parse(data)
         except netius.ParserError as error:
-            self.send_response(code=error.code, apply=True)
+            self.send_error(error)
 
     def resolve_encoding(self, parser):
         # in case the "target" encoding is the plain one nothing
@@ -605,6 +738,17 @@ class HTTPConnection(netius.Connection):
         return True
 
     def on_data(self):
+        # increments the number of requests that have been served by the
+        # current connection and in case the bound has been reached the
+        # connection stops being a persistent one (gets closed afterwards)
+        self.requests += 1
+        if self.owner.requests_limit and self.requests >= self.owner.requests_limit:
+            self.parser.keep_alive = False
+
+        # marks the connection as having a request in flight, so that it's
+        # not taken as an idle one while the request is being processed
+        self.idle_p = True
+
         self.owner.on_data_http(self.connection_ctx, self.parser_ctx)
 
     @contextlib.contextmanager
@@ -618,6 +762,24 @@ class HTTPConnection(netius.Connection):
     @property
     def parser_ctx(self):
         return self.parser
+
+    def _unset_header(self, headers, name):
+        """
+        Removes the header with the provided name from the headers map,
+        taking into account that the casing of the name that is in use is
+        not known beforehand (may have been provided by the caller).
+
+        :type headers: Dictionary
+        :param headers: The map of headers from which the header is going
+        to be removed, changed in place.
+        :type name: String
+        :param name: The (lower cased) name of the header to be removed.
+        """
+
+        for key in list(headers):
+            if not key.lower() == name:
+                continue
+            del headers[key]
 
     def _flush_plain(self, stream=None, callback=None):
         if not callback:
@@ -734,6 +896,11 @@ class HTTPServer(netius.StreamServer):
         compress_level=GZIP_LEVEL,
         compress_flush=COMPRESS_FLUSH,
         compress_vary=True,
+        line_limit=LINE_LIMIT,
+        headers_limit=HEADERS_LIMIT,
+        headers_count=HEADERS_COUNT,
+        requests_limit=REQUESTS_LIMIT,
+        idle_timeout=IDLE_TIMEOUT,
         *args,
         **kwargs
     ):
@@ -748,6 +915,11 @@ class HTTPServer(netius.StreamServer):
         self.compress_level = compress_level
         self.compress_flush = compress_flush
         self.compress_vary = compress_vary
+        self.line_limit = line_limit
+        self.headers_limit = headers_limit
+        self.headers_count = headers_count
+        self.requests_limit = requests_limit
+        self.idle_timeout = idle_timeout
         self.dynamic = False
         self.common_file = None
 
@@ -863,6 +1035,7 @@ class HTTPServer(netius.StreamServer):
 
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
+        connection.set_idle()
         connection.parse(data)
 
     def on_serve(self):
@@ -900,6 +1073,24 @@ class HTTPServer(netius.StreamServer):
         if self.env:
             self.compress_vary = self.get_env(
                 "COMPRESS_VARY", self.compress_vary, cast=bool
+            )
+        if self.env:
+            self.line_limit = self.get_env("LINE_LIMIT", self.line_limit, cast=int)
+        if self.env:
+            self.headers_limit = self.get_env(
+                "HEADERS_LIMIT", self.headers_limit, cast=int
+            )
+        if self.env:
+            self.headers_count = self.get_env(
+                "HEADERS_COUNT", self.headers_count, cast=int
+            )
+        if self.env:
+            self.requests_limit = self.get_env(
+                "REQUESTS_LIMIT", self.requests_limit, cast=int
+            )
+        if self.env:
+            self.idle_timeout = self.get_env(
+                "IDLE_TIMEOUT", self.idle_timeout, cast=int
             )
         if self.common_log:
             self.common_file = open(self.common_log, "wb+")
@@ -1085,6 +1276,7 @@ class HTTPServer(netius.StreamServer):
             headers["Transfer-Encoding"] = "chunked"
         if is_compressed and not has_encoding:
             headers["Content-Encoding"] = connection.encoding_name()
+            self._apply_weak(headers, "Etag")
 
         if not is_measurable and has_length:
             del headers["Content-Length"]
@@ -1096,6 +1288,23 @@ class HTTPServer(netius.StreamServer):
         # vary header must be announced (even if no compression was done)
         if self.compress_vary and not connection.encodings_a == None:
             self._apply_vary(headers, "Accept-Encoding")
+
+    def _apply_weak(self, headers, name):
+        # retrieves the currently defined entity tag normalizing it into a
+        # single string, as repeated headers are stored as a sequence
+        etag = headers.get(name, None)
+        if isinstance(etag, (list, tuple)):
+            etag = etag[-1] if etag else None
+        if not etag:
+            return
+
+        # a payload that has been encoded by the server is no longer the
+        # octet sequence that a strong entity tag identifies, so the tag
+        # must be weakened as defined by RFC 9110
+        etag = etag.strip()
+        if etag.startswith("W/"):
+            return
+        headers[name] = "W/" + etag
 
     def _apply_vary(self, headers, value):
         # retrieves the currently defined vary value normalizing it into
