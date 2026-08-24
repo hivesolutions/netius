@@ -747,6 +747,13 @@ class ProxyServer(http2.HTTP2Server):
         if not host or not PORT_REGEX.match(port):
             return (None, None)
 
+        # removes the delimiters of an IPv6 literal, as the resolver expects
+        # the address without the brackets that the URI syntax requires
+        if host.startswith("[") and host.endswith("]"):
+            host = host[1:-1]
+            if not host:
+                return (None, None)
+
         # verifies that the port is both a valid one and an allowed target
         # for a tunnel, avoiding the usage of the proxy as a generic relay
         port = int(port)
@@ -943,10 +950,19 @@ class ProxyServer(http2.HTTP2Server):
         # and none of the framing decisions apply to it, note that a client
         # with no support for it must never be presented with one
         code = int(code_s)
-        if code < 200 and not code == 101:
+        if code < 200:
             if connection.parser.version < netius.common.HTTP_11:
                 return
+
+            # the switching protocols response carries its negotiation in the
+            # hop-by-hop headers, so they are restored once the ones that are
+            # not part of the handshake have been removed
+            upgrade = self._prx_header(headers, "upgrade")
             self._apply_hop(headers)
+            if code == 101 and upgrade:
+                headers["connection"] = "Upgrade"
+                headers["upgrade"] = upgrade
+
             connection.send_header(
                 headers=headers, version=version_s, code=code, code_s=status_s
             )

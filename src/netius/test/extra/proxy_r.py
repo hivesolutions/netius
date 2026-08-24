@@ -918,6 +918,39 @@ class ReverseProxyServerTest(unittest.TestCase):
         # presented with one, as it would take it as the final response
         self.assertEqual(frontend.send_header.call_count, 0)
 
+    def test_prx_headers_upgrade(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        backend = self._make_backend()
+        self.server.conn_map[backend] = frontend
+
+        response_parser = self._make_response_parser(
+            backend, code="101", status="Switching Protocols"
+        )
+        response_parser.headers = {
+            "connection": "Upgrade",
+            "upgrade": "websocket",
+            "sec-websocket-accept": "key",
+            "keep-alive": "timeout=5",
+        }
+
+        self.server._on_prx_headers(
+            self.server.http_client, response_parser, dict(response_parser.headers)
+        )
+
+        # the negotiation of the handshake must survive the removal of the
+        # hop-by-hop headers, otherwise the upgrade may not be completed
+        self.assertEqual(frontend.send_header.call_count, 1)
+        call_kwargs = frontend.send_header.call_args[1]
+        self.assertEqual(call_kwargs["code"], 101)
+        headers = call_kwargs["headers"]
+        self.assertEqual(headers["connection"], "Upgrade")
+        self.assertEqual(headers["upgrade"], "websocket")
+        self.assertEqual(headers["sec-websocket-accept"], "key")
+        self.assertEqual("keep-alive" in headers, False)
+
     def test_prx_partial_relays_data(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")

@@ -175,8 +175,10 @@ class ForwardProxyServerTest(unittest.TestCase):
         frontend = self._make_frontend()
         backend = self._make_backend()
         headers = {
-            "connection": "Upgrade",
+            "connection": "Upgrade, X-Custom",
             "upgrade": "websocket",
+            "proxy-authorization": "Basic secret",
+            "x-custom": "a",
             "x-kept": "b",
         }
         request_parser = self._make_request_parser(
@@ -188,11 +190,15 @@ class ForwardProxyServerTest(unittest.TestCase):
         ) as method:
             self.server.on_headers(frontend, request_parser)
 
-        # an upgrade request carries its negotiation precisely in these
-        # headers, so they must be forwarded untouched to the back-end
+        # an upgrade request keeps the headers that carry its negotiation,
+        # every other hop-by-hop one must still be removed so that it does
+        # not reach the origin (the connection header is rebuilt)
         forwarded = method.call_args[1]["headers"]
         self.assertEqual(forwarded["connection"], "Upgrade")
         self.assertEqual(forwarded["upgrade"], "websocket")
+        self.assertEqual("proxy-authorization" in forwarded, False)
+        self.assertEqual("x-custom" in forwarded, False)
+        self.assertEqual(forwarded["x-kept"], "b")
 
     def _make_frontend(self):
         frontend = mock.MagicMock()

@@ -203,6 +203,7 @@ class HTTPConnection(netius.Connection):
         self.requests = 0
         self.idle_h = None
         self.idle_t = 0
+        self.idle_p = False
         self.gzip_m = dict()
         self.gzip_l = dict()
 
@@ -270,6 +271,8 @@ class HTTPConnection(netius.Connection):
         if not self.is_open():
             return
         if self.pending_s > 0:
+            return self.set_idle()
+        if self.idle_p:
             return self.set_idle()
 
         # verifies that the connection has been an idle one for the complete
@@ -429,8 +432,7 @@ class HTTPConnection(netius.Connection):
             data = b""
             data_l = 0
             is_empty = True
-            if "content-length" in headers:
-                del headers["content-length"]
+            self._unset_header(headers, "content-length")
 
         # a not modified response is also terminated by the end of the headers
         # so no payload may be sent for it, note that unlike the previous ones
@@ -443,6 +445,7 @@ class HTTPConnection(netius.Connection):
         # it either, so the encoding is taken back to the plain one
         if is_empty:
             self.set_plain()
+            self._unset_header(headers, "transfer-encoding")
 
         # runs a series of verifications taking into account the type
         # of the method defined in the current request, for instance if
@@ -497,6 +500,10 @@ class HTTPConnection(netius.Connection):
         version = version or "HTTP/1.1"
         code_s = code_s or netius.common.CODE_STRINGS.get(code, None)
 
+        # the response has started so the request is no longer in flight and
+        # the idle verification of the connection may be resumed
+        self.idle_p = False
+
         # creates the buffer list that is going to hold the complete set of
         # lines for the headers and then appends the complete set of headers
         # according to the previous construction
@@ -550,11 +557,30 @@ class HTTPConnection(netius.Connection):
             count = self.send_base(data, delay=delay, callback=callback)
         return count
 
+    def send_error(self, error):
+        """
+        Sends the response associated with the provided parser error and
+        closes the connection afterwards.
+
+        The closing is required as the framing of the connection is no
+        longer a reliable one, meaning that the bytes that follow would be
+        parsed against the state left behind by the invalid message.
+
+        :type error: ParserError
+        :param error: The parser error for which the response is going to
+        be sent to the client.
+        """
+
+        self.send_response(
+            code=error.code, headers=dict(connection="close"), apply=True
+        )
+        self.close(flush=True)
+
     def parse(self, data):
         try:
             return self.parser.parse(data)
         except netius.ParserError as error:
-            self.send_response(code=error.code, apply=True)
+            self.send_error(error)
 
     def resolve_encoding(self, parser):
         # in case the "target" encoding is the plain one nothing
@@ -719,9 +745,9 @@ class HTTPConnection(netius.Connection):
         if self.owner.requests_limit and self.requests >= self.owner.requests_limit:
             self.parser.keep_alive = False
 
-        # re-schedules the closing of the connection, so that the idle time
-        # is the one measured between the requests of the connection
-        self.set_idle()
+        # marks the connection as having a request in flight, so that it's
+        # not taken as an idle one while the request is being processed
+        self.idle_p = True
 
         self.owner.on_data_http(self.connection_ctx, self.parser_ctx)
 
@@ -736,6 +762,24 @@ class HTTPConnection(netius.Connection):
     @property
     def parser_ctx(self):
         return self.parser
+
+    def _unset_header(self, headers, name):
+        """
+        Removes the header with the provided name from the headers map,
+        taking into account that the casing of the name that is in use is
+        not known beforehand (may have been provided by the caller).
+
+        :type headers: Dictionary
+        :param headers: The map of headers from which the header is going
+        to be removed, changed in place.
+        :type name: String
+        :param name: The (lower cased) name of the header to be removed.
+        """
+
+        for key in list(headers):
+            if not key.lower() == name:
+                continue
+            del headers[key]
 
     def _flush_plain(self, stream=None, callback=None):
         if not callback:
@@ -991,6 +1035,7 @@ class HTTPServer(netius.StreamServer):
 
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
+        connection.set_idle()
         connection.parse(data)
 
     def on_serve(self):

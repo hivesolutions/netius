@@ -143,6 +143,20 @@ class HTTPConnectionTest(unittest.TestCase):
         self.assertEqual(close.call_count, 0)
         self.assertEqual(set_idle.call_count, 1)
 
+        # a connection with a request still being processed is not an idle
+        # one, no matter how long the processing of it takes
+        connection.pending_s = 0
+        connection.idle_p = True
+        connection.owner.idle_timeout = 75
+        connection.idle_t = time.time() - 100
+        with mock.patch.object(connection, "is_open", return_value=True):
+            with mock.patch.object(connection, "close") as close:
+                with mock.patch.object(connection, "set_idle") as set_idle:
+                    connection.close_idle()
+        self.assertEqual(close.call_count, 0)
+        self.assertEqual(set_idle.call_count, 1)
+        connection.idle_p = False
+
         # a connection with recent activity is not an idle one either, so the
         # operation must be re-scheduled for the time that is still remaining
         connection.pending_s = 0
@@ -217,6 +231,24 @@ class HTTPConnectionTest(unittest.TestCase):
             )
             self.assertEqual("Transfer-Encoding" in headers, False)
 
+        # a framing header provided by the caller must also be removed, as
+        # the casing in use for it is not known beforehand
+        for code in (100, 204):
+            headers = self._send_response(
+                code=code, headers={"Transfer-Encoding": "chunked"}
+            )
+            self.assertEqual("Transfer-Encoding" in headers, False)
+            headers = self._send_response(code=code, headers={"Content-Length": "5"})
+            self.assertEqual("Content-Length" in headers, False)
+
+        # a not modified response may still announce the length of the entity
+        # that it refers to, only the transfer encoding is removed
+        headers = self._send_response(
+            code=304, headers={"Transfer-Encoding": "chunked", "Content-Length": "9"}
+        )
+        self.assertEqual("Transfer-Encoding" in headers, False)
+        self.assertEqual(headers["Content-Length"], "9")
+
         # the framing of a response that does carry a payload must still be
         # the one resolved for the connection
         headers = self._send_response(
@@ -250,6 +282,23 @@ class HTTPConnectionTest(unittest.TestCase):
         # of the name and the complete line terminator sequence
         data = self._send_header(dict(location="/a"))
         self.assertEqual("Location: /a\r\n" in data, True)
+
+    def test_send_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        connection.parser = mock.Mock(method="GET")
+
+        with mock.patch.object(connection, "send_response") as send_response:
+            with mock.patch.object(connection, "close") as close:
+                connection.send_error(netius.ParserError("Invalid", code=431))
+
+        # the response must carry the code of the error and announce the
+        # closing of the connection, which must then be performed
+        self.assertEqual(send_response.call_args[1]["code"], 431)
+        self.assertEqual(send_response.call_args[1]["headers"]["connection"], "close")
+        self.assertEqual(close.call_count, 1)
 
     def test_resolve_encoding(self):
         if mock == None:
@@ -424,10 +473,27 @@ class HTTPConnectionTest(unittest.TestCase):
         connection.requests = 0
         connection.idle_h = None
         connection.idle_t = 0
+        connection.idle_p = False
         return connection
 
 
 class HTTPServerTest(unittest.TestCase):
+
+    def test_on_data(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = netius.servers.HTTPServer()
+        connection = mock.Mock()
+
+        server.on_data(connection, b"GET / HTTP/1.1\r\n")
+
+        # any inbound activity must re-schedule the closing of the connection
+        # so that a slow but progressing message is not taken as an idle one
+        self.assertEqual(connection.set_idle.call_count, 1)
+        self.assertEqual(connection.parse.call_count, 1)
+
+        server.cleanup()
 
     def test_is_auto(self):
         http_server = netius.servers.HTTPServer()

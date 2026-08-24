@@ -111,6 +111,14 @@ Content-Length: 2\r\n\
 \r\n\
 hi"
 
+INTERIM_LENGTH_RESPONSE = b"HTTP/1.1 100 Continue\r\n\
+Content-Length: 5\r\n\
+\r\n\
+HTTP/1.1 200 OK\r\n\
+Content-Length: 2\r\n\
+\r\n\
+hi"
+
 ENCODINGS_REQUEST = b"GET / HTTP/1.1\r\n\
 Host: localhost\r\n\
 Accept-Encoding: deflate;q=0.5, gzip;q=1.0\r\n\
@@ -551,6 +559,14 @@ class HTTPParserTest(unittest.TestCase):
             b"Transfer-Encoding: chunked\r\n\r\nzz\r\n"
         )
 
+        # the size of a chunk must be terminated by the complete carriage
+        # return and line feed sequence, otherwise the last digit of it would
+        # be taken as the terminator (the framing would then be an invalid one)
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Transfer-Encoding: chunked\r\n\r\n12\nAAAAAAAAAAAAAAAAAA\r\n"
+        )
+
         # the extensions of a chunk must still be accepted as they are a
         # valid part of the chunked coding (simply ignored)
         parser = self._parse(
@@ -675,6 +691,19 @@ class HTTPParserTest(unittest.TestCase):
             # that follows its headers, so the final response that comes after
             # it must be parsed as a message of its own
             parser.parse(INTERIM_RESPONSE)
+
+            self.assertEqual(seen, [(100, b""), (200, b"hi")])
+            self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
+        finally:
+            parser.clear()
+
+        parser = netius.common.HTTPParser(self, type=netius.common.RESPONSE, store=True)
+        seen = []
+        parser.bind("on_data", lambda: seen.append((parser.code, parser.get_message())))
+        try:
+            # the length announced by a bodyless response describes the entity
+            # and never the framing, so it must not be taken as a payload
+            parser.parse(INTERIM_LENGTH_RESPONSE)
 
             self.assertEqual(seen, [(100, b""), (200, b"hi")])
             self.assertEqual(parser.state, netius.common.http.FINISH_STATE)

@@ -400,8 +400,10 @@ class ProxyServerTest(unittest.TestCase):
         self.assertEqual(self.server._prx_authority("host.com:\xb2"), (None, None))
 
         # an IPv6 literal must be properly handled, as the target is split
-        # around the final colon and not around the first one
-        self.assertEqual(self.server._prx_authority("[::1]:443"), ("[::1]", 443))
+        # around the final colon and not around the first one, note that the
+        # delimiters are removed as the resolver does not expect them
+        self.assertEqual(self.server._prx_authority("[::1]:443"), ("::1", 443))
+        self.assertEqual(self.server._prx_authority("[]:443"), (None, None))
 
         # with no restriction in place every valid port must be accepted, as
         # the allowed ports sequence is an empty one

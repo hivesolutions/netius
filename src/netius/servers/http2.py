@@ -122,7 +122,7 @@ class HTTP2Connection(http.HTTPConnection):
         except netius.ParserError as error:
             if not self.legacy:
                 raise
-            self.send_response(code=error.code, apply=True)
+            self.send_error(error)
 
     def parse_preface(self, data):
         """

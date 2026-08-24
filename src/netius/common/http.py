@@ -941,11 +941,7 @@ class HTTPParser(parser.Parser):
         # a payload the content length is set to the zero value in case it
         # has not already been populated, note that an informational response
         # is always terminated by the empty line that follows its headers
-        if (
-            self.type == RESPONSE
-            and (self.code < 200 or self.code in (204, 304))
-            and self.content_l == -1
-        ):
+        if self.type == RESPONSE and (self.code < 200 or self.code in (204, 304)):
             self.content_l = 0
 
         # in case the current request is not chunked and the content length
@@ -1107,8 +1103,15 @@ class HTTPParser(parser.Parser):
             # it as the header value, then removes the complete set of
             # contents from the buffer so that it may be re-used
             self.buffer.append(data[:index])
-            header = b"".join(self.buffer)[:-1]
+            header = b"".join(self.buffer)
             del self.buffer[:]
+
+            # ensures that the size of the chunk is terminated by the complete
+            # carriage return and line feed sequence, as a bare line feed would
+            # make the last digit of the size be taken as the terminator
+            if not header.endswith(b"\r"):
+                raise netius.ParserError("Invalid chunk terminator")
+            header = header[:-1]
 
             # sets the new data buffer as the partial buffer of the data
             # except the extra newline character (not required)

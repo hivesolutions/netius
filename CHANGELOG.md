@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Responses can no longer be split through a header value - [#74](https://github.com/hivesolutions/netius/issues/74)
 * Interim responses are now relayed to the client instead of breaking the exchange - [#74](https://github.com/hivesolutions/netius/issues/74)
 * Responses that carry no payload no longer announce a framing for one - [#74](https://github.com/hivesolutions/netius/issues/74)
+* Connection is now closed after a rejected message instead of being reused - [#74](https://github.com/hivesolutions/netius/issues/74)
+* Chunk sizes terminated by a bare line feed are now rejected - [#74](https://github.com/hivesolutions/netius/issues/74)
+* Idle bound no longer closes a connection with a request in progress - [#74](https://github.com/hivesolutions/netius/issues/74)
 * Timers of served requests are now released instead of being kept until they expire - [#74](https://github.com/hivesolutions/netius/issues/74)
 * Proxy no longer drops a request that repeats the keep alive header - [#74](https://github.com/hivesolutions/netius/issues/74)
 
