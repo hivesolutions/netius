@@ -90,7 +90,11 @@ class HTTP2ParserTest(unittest.TestCase):
                     parser.assert_header,
                 )
             else:
-                self.assertRaises(netius.ParserError, parser.assert_header)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "SETTINGS_MAX_FRAME_SIZE",
+                    parser.assert_header,
+                )
         finally:
             parser.clear(force=True)
 
@@ -106,8 +110,10 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_settings([], False),
                 )
             else:
-                self.assertRaises(
-                    netius.ParserError, lambda: parser.assert_settings([], False)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Stream must be set to 0x00 for SETTINGS",
+                    lambda: parser.assert_settings([], False),
                 )
 
             parser.stream = 0x00
@@ -119,8 +125,10 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_settings([], True),
                 )
             else:
-                self.assertRaises(
-                    netius.ParserError, lambda: parser.assert_settings([], True)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "SETTINGS with ACK must be zero length",
+                    lambda: parser.assert_settings([], True),
                 )
 
             parser.stream = 0x00
@@ -132,8 +140,10 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_settings([], False),
                 )
             else:
-                self.assertRaises(
-                    netius.ParserError, lambda: parser.assert_settings([], False)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Size of SETTINGS frame must be a multiple of 6",
+                    lambda: parser.assert_settings([], False),
                 )
 
             parser.stream = 0x00
@@ -146,8 +156,9 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_settings(settings, False),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "SETTINGS_ENABLE_PUSH different from 0 or 1",
                     lambda: parser.assert_settings(settings, False),
                 )
 
@@ -161,8 +172,9 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_settings(settings, False),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "SETTINGS_MAX_FRAME_SIZE too small",
                     lambda: parser.assert_settings(settings, False),
                 )
 
@@ -176,8 +188,9 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_settings(settings, False),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "SETTINGS_MAX_FRAME_SIZE too large",
                     lambda: parser.assert_settings(settings, False),
                 )
         finally:
@@ -193,8 +206,10 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_push_promise(0x02),
                 )
             else:
-                self.assertRaises(
-                    netius.ParserError, lambda: parser.assert_push_promise(0x02)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "PUSH_PROMISE not allowed for server",
+                    lambda: parser.assert_push_promise(0x02),
                 )
         finally:
             parser.clear(force=True)
@@ -211,7 +226,11 @@ class HTTP2ParserTest(unittest.TestCase):
                     parser.assert_ping,
                 )
             else:
-                self.assertRaises(netius.ParserError, parser.assert_ping)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Stream must be set to 0x00 for PING",
+                    parser.assert_ping,
+                )
 
             parser.stream = 0x00
             parser.length = 4
@@ -222,7 +241,11 @@ class HTTP2ParserTest(unittest.TestCase):
                     parser.assert_ping,
                 )
             else:
-                self.assertRaises(netius.ParserError, parser.assert_ping)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Size of PING frame must be 8",
+                    parser.assert_ping,
+                )
 
             parser.stream = 0x00
             parser.length = 8
@@ -241,7 +264,11 @@ class HTTP2ParserTest(unittest.TestCase):
                     parser.assert_goaway,
                 )
             else:
-                self.assertRaises(netius.ParserError, parser.assert_goaway)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Stream must be set to 0x00 for GOAWAY",
+                    parser.assert_goaway,
+                )
 
             parser.stream = 0x00
             parser.assert_goaway()
@@ -258,8 +285,9 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_window_update(None, 0),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "WINDOW_UPDATE increment must not be zero",
                     lambda: parser.assert_window_update(None, 0),
                 )
 
@@ -270,8 +298,9 @@ class HTTP2ParserTest(unittest.TestCase):
                     lambda: parser.assert_window_update(None, 2147483647),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "Window value for the connection too large",
                     lambda: parser.assert_window_update(None, 2147483647),
                 )
 

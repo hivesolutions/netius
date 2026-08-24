@@ -270,8 +270,9 @@ class HTTPParserTest(unittest.TestCase):
                     lambda: parser.parse(INVALID_HEADERS_TAB_REQUEST),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "Invalid header value",
                     lambda: parser.parse(INVALID_HEADERS_TAB_REQUEST),
                 )
         finally:
@@ -282,12 +283,13 @@ class HTTPParserTest(unittest.TestCase):
             if hasattr(self, "assertRaisesRegexp"):
                 self.assertRaisesRegexp(
                     netius.ParserError,
-                    "Invalid header value",
+                    "Invalid header line",
                     lambda: parser.parse(INVALID_HEADERS_NEWLINE_REQUEST),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "Invalid header line",
                     lambda: parser.parse(INVALID_HEADERS_NEWLINE_REQUEST),
                 )
         finally:
@@ -302,8 +304,10 @@ class HTTPParserTest(unittest.TestCase):
                     lambda: parser.parse(INVALID_CHUNKED_REQUEST),
                 )
             else:
-                self.assertRaises(
-                    netius.ParserError, lambda: parser.parse(INVALID_CHUNKED_REQUEST)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Transfer encoding with content length set",
+                    lambda: parser.parse(INVALID_CHUNKED_REQUEST),
                 )
         finally:
             parser.clear()
@@ -317,8 +321,9 @@ class HTTPParserTest(unittest.TestCase):
                     lambda: parser.parse(INVALID_TRANSFER_ENCODING_REQUEST),
                 )
             else:
-                self.assertRaises(
+                self.assertRaisesRegex(
                     netius.ParserError,
+                    "Invalid transfer encoding",
                     lambda: parser.parse(INVALID_TRANSFER_ENCODING_REQUEST),
                 )
         finally:
@@ -333,8 +338,10 @@ class HTTPParserTest(unittest.TestCase):
                     lambda: parser.parse(INVALID_STATUS_REQUEST),
                 )
             else:
-                self.assertRaises(
-                    netius.ParserError, lambda: parser.parse(INVALID_STATUS_REQUEST)
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Invalid status line ",
+                    lambda: parser.parse(INVALID_STATUS_REQUEST),
                 )
         finally:
             parser.clear()
