@@ -63,6 +63,90 @@ class HTTPCodecsTest(unittest.TestCase):
 
 class HTTPConnectionTest(unittest.TestCase):
 
+    def test_set_idle(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        connection.owner.idle_timeout = 75
+
+        # the closing of the connection must be scheduled for the moment
+        # when the configured idle timeout is reached
+        with mock.patch.object(
+            connection.owner, "delay", return_value="handle"
+        ) as delay:
+            connection.set_idle()
+        self.assertEqual(delay.call_args[1]["timeout"], 75)
+        self.assertEqual(connection.idle_h, "handle")
+
+        # scheduling a new closing operation must cancel the one that is
+        # still pending, so that only one of them exists at a time
+        with mock.patch.object(connection.owner, "unpend") as unpend:
+            with mock.patch.object(connection.owner, "delay", return_value="other"):
+                connection.set_idle()
+        self.assertEqual(unpend.call_args[0][0], "handle")
+        self.assertEqual(connection.idle_h, "other")
+
+        # a bound set to zero means that the connection is never closed for
+        # being an idle one, so no operation may be scheduled
+        connection = self._make_connection()
+        connection.owner.idle_timeout = 0
+        with mock.patch.object(connection.owner, "delay") as delay:
+            connection.set_idle()
+        self.assertEqual(delay.call_count, 0)
+        self.assertEqual(connection.idle_h, None)
+
+    def test_unset_idle(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+
+        # with no closing operation scheduled there's nothing to be
+        # cancelled, so the operation is a no operation one
+        with mock.patch.object(connection.owner, "unpend") as unpend:
+            connection.unset_idle()
+        self.assertEqual(unpend.call_count, 0)
+
+        # the scheduled operation must be cancelled and the reference to it
+        # unset, so that it's not cancelled once again
+        connection.idle_h = "handle"
+        with mock.patch.object(connection.owner, "unpend") as unpend:
+            connection.unset_idle()
+        self.assertEqual(unpend.call_args[0][0], "handle")
+        self.assertEqual(connection.idle_h, None)
+
+    def test_close_idle(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        connection.pending_s = 0
+
+        # a connection that is no longer open must not be closed once again
+        with mock.patch.object(connection, "is_open", return_value=False):
+            with mock.patch.object(connection, "close") as close:
+                connection.close_idle()
+        self.assertEqual(close.call_count, 0)
+
+        # a connection with a payload still pending is not an idle one, so
+        # the closing of it must be re-scheduled instead of performed
+        connection.pending_s = 128
+        with mock.patch.object(connection, "is_open", return_value=True):
+            with mock.patch.object(connection, "close") as close:
+                with mock.patch.object(connection, "set_idle") as set_idle:
+                    connection.close_idle()
+        self.assertEqual(close.call_count, 0)
+        self.assertEqual(set_idle.call_count, 1)
+
+        # an open connection with nothing pending is an idle one and so it
+        # must be closed, flushing whatever is still buffered
+        connection.pending_s = 0
+        with mock.patch.object(connection, "is_open", return_value=True):
+            with mock.patch.object(connection, "close") as close:
+                connection.close_idle()
+        self.assertEqual(close.call_count, 1)
+
     def test_send_gzip(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -288,6 +372,7 @@ class HTTPConnectionTest(unittest.TestCase):
         connection.gzip_m = dict()
         connection.gzip_l = dict()
         connection.requests = 0
+        connection.idle_h = None
         return connection
 
 

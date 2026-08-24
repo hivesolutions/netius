@@ -76,6 +76,12 @@ per payload chunk which would degrade the compression ratio, set it
 to zero to flush every chunk (required for latency sensitive streams
 that are served under an explicit compressed encoding) """
 
+IDLE_TIMEOUT = 75
+""" The maximum amount of time (in seconds) that a connection may be
+kept open waiting for a new request, once this value is reached the
+connection is closed, avoiding it from being held open forever, set
+it to zero to remove the bound (not recommended) """
+
 REQUESTS_LIMIT = 1000
 """ The maximum number of requests that may be served by a single
 connection, once this value is reached the connection stops being
@@ -194,6 +200,7 @@ class HTTPConnection(netius.Connection):
         self.parser = None
         self.legacy = True
         self.requests = 0
+        self.idle_h = None
         self.gzip_m = dict()
         self.gzip_l = dict()
 
@@ -210,15 +217,54 @@ class HTTPConnection(netius.Connection):
             headers_count=self.owner.headers_count,
         )
         self.parser.bind("on_data", self.on_data)
+        self.set_idle()
 
     def close(self, *args, **kwargs):
         netius.Connection.close(self, *args, **kwargs)
         if not self.is_closed():
             return
+        self.unset_idle()
         if self.parser:
             self.parser.destroy()
         if self.gzip_m:
             self._close_gzip(safe=True)
+
+    def set_idle(self):
+        """
+        Schedules the closing of the connection for the moment when the
+        idle timeout is reached, cancelling a possible operation that is
+        still pending (only one of them may exist at a time).
+        """
+
+        self.unset_idle()
+        if not self.owner.idle_timeout:
+            return
+        self.idle_h = self.owner.delay(self.close_idle, timeout=self.owner.idle_timeout)
+
+    def unset_idle(self):
+        """
+        Cancels the closing operation that is currently scheduled for the
+        connection, in case there's one.
+        """
+
+        if not self.idle_h:
+            return
+        self.owner.unpend(self.idle_h)
+        self.idle_h = None
+
+    def close_idle(self):
+        """
+        Closes the connection under the assumption that no new request has
+        been received for too long, note that a connection with a payload
+        still pending to be sent is not considered an idle one.
+        """
+
+        self.idle_h = None
+        if not self.is_open():
+            return
+        if self.pending_s > 0:
+            return self.set_idle()
+        self.close(flush=True)
 
     def info_dict(self, full=False):
         info = netius.Connection.info_dict(self, full=full)
@@ -645,6 +691,10 @@ class HTTPConnection(netius.Connection):
         if self.owner.requests_limit and self.requests >= self.owner.requests_limit:
             self.parser.keep_alive = False
 
+        # re-schedules the closing of the connection, so that the idle time
+        # is the one measured between the requests of the connection
+        self.set_idle()
+
         self.owner.on_data_http(self.connection_ctx, self.parser_ctx)
 
     @contextlib.contextmanager
@@ -778,6 +828,7 @@ class HTTPServer(netius.StreamServer):
         headers_limit=HEADERS_LIMIT,
         headers_count=HEADERS_COUNT,
         requests_limit=REQUESTS_LIMIT,
+        idle_timeout=IDLE_TIMEOUT,
         *args,
         **kwargs
     ):
@@ -796,6 +847,7 @@ class HTTPServer(netius.StreamServer):
         self.headers_limit = headers_limit
         self.headers_count = headers_count
         self.requests_limit = requests_limit
+        self.idle_timeout = idle_timeout
         self.dynamic = False
         self.common_file = None
 
@@ -962,6 +1014,10 @@ class HTTPServer(netius.StreamServer):
         if self.env:
             self.requests_limit = self.get_env(
                 "REQUESTS_LIMIT", self.requests_limit, cast=int
+            )
+        if self.env:
+            self.idle_timeout = self.get_env(
+                "IDLE_TIMEOUT", self.idle_timeout, cast=int
             )
         if self.common_log:
             self.common_file = open(self.common_log, "wb+")

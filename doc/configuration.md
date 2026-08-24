@@ -84,12 +84,13 @@
 
 #### Limits
 
-| Name               | Type  | Default | Description                                                                                                                             |
-| ------------------ | ----- | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **LINE_LIMIT**     | `int` | `8192`  | The maximum size (in bytes) of the initial line of a request, a larger one is rejected with a `414` status code.                        |
-| **HEADERS_LIMIT**  | `int` | `65536` | The maximum size (in bytes) of the headers section of a request, a larger one is rejected with a `431` status code.                     |
-| **HEADERS_COUNT**  | `int` | `128`   | The maximum number of header lines of a request, a larger number is rejected with a `431` status code.                                  |
-| **REQUESTS_LIMIT** | `int` | `1000`  | The maximum number of requests served by a single connection before it stops being a persistent one, set it to `0` to remove the bound. |
+| Name               | Type  | Default | Description                                                                                                                                  |
+| ------------------ | ----- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **LINE_LIMIT**     | `int` | `8192`  | The maximum size (in bytes) of the initial line of a request, a larger one is rejected with a `414` status code.                             |
+| **HEADERS_LIMIT**  | `int` | `65536` | The maximum size (in bytes) of the headers section of a request, a larger one is rejected with a `431` status code.                          |
+| **HEADERS_COUNT**  | `int` | `128`   | The maximum number of header lines of a request, a larger number is rejected with a `431` status code.                                       |
+| **REQUESTS_LIMIT** | `int` | `1000`  | The maximum number of requests served by a single connection before it stops being a persistent one, set it to `0` to remove the bound.      |
+| **IDLE_TIMEOUT**   | `int` | `75`    | The maximum amount of time (in seconds) that a connection may wait for a new request before being closed, set it to `0` to remove the bound. |
 
 #### Compression
 
