@@ -291,6 +291,24 @@ class ProxyServerTest(unittest.TestCase):
             self.server_a._prx_encoding(connection, parser, headers, None), None
         )
 
+        # a repeated cache control header is equivalent to a single one with
+        # the directives joined, so the directive must be found in any of them
+        headers = {
+            "content-type": "text/html",
+            "cache-control": ["no-transform", "max-age=60"],
+        }
+        self.assertEqual(
+            self.server_a._prx_encoding(connection, parser, headers, None), None
+        )
+
+        headers = {
+            "content-type": "text/html",
+            "cache-control": ["max-age=60", "no-transform"],
+        }
+        self.assertEqual(
+            self.server_a._prx_encoding(connection, parser, headers, None), None
+        )
+
     def test__prx_encoding_types(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -333,6 +351,31 @@ class ProxyServerTest(unittest.TestCase):
         headers = {"content-type": "text/html"}
         codec = self.server_a._prx_encoding(connection, parser, headers, None)
         self.assertEqual(codec["name"], "gzip")
+
+    def test__prx_header(self):
+        # the last definition of a repeated header is the one that prevails
+        # whenever a single value is requested for it
+        headers = {"content-type": ["text/html", "text/plain"]}
+        self.assertEqual(
+            self.server_a._prx_header(headers, "content-type"), "text/plain"
+        )
+
+        # the list based fields must instead be joined, as a repeated header
+        # is equivalent to a single one with the values comma separated
+        headers = {"cache-control": ["no-transform", "max-age=60"]}
+        self.assertEqual(
+            self.server_a._prx_header(headers, "cache-control", join=True),
+            "no-transform,max-age=60",
+        )
+
+        # a header defined only once must be returned as is and an undefined
+        # one must resolve to an invalid value
+        headers = {"cache-control": "no-transform"}
+        self.assertEqual(
+            self.server_a._prx_header(headers, "cache-control", join=True),
+            "no-transform",
+        )
+        self.assertEqual(self.server_a._prx_header(headers, "content-type"), None)
 
     def test__prx_codec(self):
         # the coding must be resolved using the server preference order out

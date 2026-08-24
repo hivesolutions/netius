@@ -1088,6 +1088,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         frontend.current = 0
         frontend.parser = mock.MagicMock()
         frontend.parser.keep_alive = True
+        frontend.parser.version = netius.common.HTTP_11
         frontend.is_throttleable.return_value = False
         frontend.is_exhausted.return_value = False
         frontend.is_restored.return_value = True
@@ -1816,6 +1817,15 @@ class ReverseProxyMatrixTest(unittest.TestCase):
                     failures += self._verify_framing(encoding, dynamic, source)
         self.assertEqual(failures, [], "\n".join([""] + failures))
 
+    def test_matrix_http_10(self):
+        # the chunked framing requires HTTP/1.1, so an older front-end must
+        # never have it announced and must still receive the complete payload
+        failures = []
+        for encoding in self.ENCODINGS:
+            for dynamic in self.DYNAMICS:
+                failures += self._verify_http_10(encoding, dynamic)
+        self.assertEqual(failures, [], "\n".join([""] + failures))
+
     def test_matrix_vary(self):
         # the vary header must be announced exactly for the responses whose
         # representation depends on the codings accepted by the client
@@ -1952,6 +1962,23 @@ class ReverseProxyMatrixTest(unittest.TestCase):
 
         return failures
 
+    def _verify_http_10(self, encoding, dynamic):
+        label = "ENCODING=%s DYNAMIC=%d" % (encoding, 1 if dynamic else 0)
+        head, body = self._request_10(self.ports[(encoding, dynamic)], "/identity")
+        failures = []
+
+        # the chunked framing is only available from HTTP/1.1 onwards, so it
+        # must never be announced to a client that speaks an older version
+        if "transfer-encoding" in head.lower():
+            failures.append("%s: chunked framing announced to HTTP/1.0" % label)
+
+        # the payload must still arrive complete, delimited by the closing of
+        # the connection whenever no length is available for it
+        if not body == self.PAYLOAD:
+            failures.append("%s: payload does not match the origin" % label)
+
+        return failures
+
     def _verify_vary(self, encoding, dynamic, source, accept):
         label, headers, _body = self._cell(encoding, dynamic, source, accept)
         vary = headers.get("Vary", None)
@@ -2012,6 +2039,28 @@ class ReverseProxyMatrixTest(unittest.TestCase):
             return response.status, response_headers, response_body
         finally:
             conn.close()
+
+    def _request_10(self, port, path):
+        # issues the request at the raw socket level, as the standard client
+        # is not able to downgrade the version of the request being sent
+        sock = socket.create_connection(("127.0.0.1", port), timeout=30)
+        try:
+            sock.sendall(
+                netius.legacy.bytes(
+                    "GET %s HTTP/1.0\r\nHost: matrix.example.com\r\n"
+                    "Accept-Encoding: gzip, deflate\r\n\r\n" % path
+                )
+            )
+            data = b""
+            while True:
+                chunk = sock.recv(65536)
+                if not chunk:
+                    break
+                data += chunk
+        finally:
+            sock.close()
+        head, _separator, body = data.partition(b"\r\n\r\n")
+        return netius.legacy.str(head), body
 
     @classmethod
     def _app(cls, environ, start_response):
