@@ -905,12 +905,15 @@ class ProxyServer(http2.HTTP2Server):
 
         # if either the proxy connection or the back-end one is compressed
         # the length values of the connection are considered unreliable and
-        # some extra operation must be defined, note that in case the dynamic
-        # (no re-encoding) support is enabled the length is always reliable
+        # some extra operation must be defined, the same applies when the
+        # payload of the back-end is decoded by the proxy as its size grows,
+        # note that in case the dynamic (no re-encoding) support is enabled
+        # the length is always reliable (the payload is not changed)
         unreliable_length = (
             _connection.current > http.CHUNKED_ENCODING
             or connection.current > http.CHUNKED_ENCODING
             or parser.content_l == -1
+            or bool(content_encoding)
         )
         unreliable_length &= not connection.is_dynamic()
 
