@@ -269,6 +269,7 @@ class ProxyServer(http2.HTTP2Server):
             min_pending=self.min_pending,
             compress_forward_accept=self.compress_forward_accept,
             compress_buffer=self.compress_buffer,
+            compress_timeout=self.compress_timeout,
             conn_map_size=len(self.conn_map),
             http_client=self.http_client.info_dict(full=full),
             raw_client=self.raw_client.info_dict(full=full),

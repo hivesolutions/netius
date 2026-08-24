@@ -1515,12 +1515,14 @@ class ReverseProxyCompressionTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if not hasattr(cls, "server"):
-            return
-        cls.server.stop()
-        cls.server_thread.join(timeout=5)
-        cls.backend.stop()
-        cls.backend_thread.join(timeout=5)
+        # stops each of the services on its own, as the construction of the
+        # proxy may have failed leaving the back-end still running
+        if hasattr(cls, "server"):
+            cls.server.stop()
+            cls.server_thread.join(timeout=5)
+        if hasattr(cls, "backend"):
+            cls.backend.stop()
+            cls.backend_thread.join(timeout=5)
 
     def setUp(self):
         if http_client == None:
@@ -1767,13 +1769,14 @@ class ReverseProxyMatrixTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if not hasattr(cls, "servers"):
-            return
-        for server, thread in cls.servers:
+        # stops each of the services on its own, as the construction of a
+        # proxy may have failed leaving the back-end still running
+        for server, thread in getattr(cls, "servers", []):
             server.stop()
             thread.join(timeout=5)
-        cls.backend.stop()
-        cls.backend_thread.join(timeout=5)
+        if hasattr(cls, "backend"):
+            cls.backend.stop()
+            cls.backend_thread.join(timeout=5)
 
     def setUp(self):
         if http_client == None:

@@ -79,7 +79,7 @@
 | Name           | Type   | Description                                                                                                                                                                     |
 | -------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **SAFE**       | `bool` | If safe execution should be enforced, (eg: avoiding HTTP2 execution) (defaults to `False`).                                                                                     |
-| **COMMON_LOG** | `str`  | The path to the file to log the HTTP request in "Common Log Format (defaults to `None`).                                                                                        |
+| **COMMON_LOG** | `str`  | The path to the file to log the HTTP request in "Common Log Format" (defaults to `None`).                                                                                       |
 | **ENCODING**   | `str`  | The encoding to be applied to the responses, one of `plain`, `chunked`, `gzip`, `deflate` or `auto` (defaults to `plain`), check the `Compression` section for the `auto` mode. |
 
 #### Compression
@@ -118,7 +118,7 @@ The `auto` encoding makes the proxy the compression authority for the edge, nego
 | `gzip` / `deflate`  | `0`           | The payload of the back-end is decoded and re-encoded unconditionally.             |
 | `auto`              | ignored       | Negotiated, size and content type aware compression, resolved on a response basis. |
 
-Under `auto` only the payloads that arrive from the back-end under the `identity` coding are compressed, so an already encoded response is always forwarded byte-identical and never decoded. A response is compressed only when the client accepts one of the configured codings, the status code carries a payload, no `Cache-Control: no-transform` or `Content-Range` is present, the media type is in `COMPRESS_TYPES` and the size is between `COMPRESS_MIN` and `COMPRESS_MAX`. The `CONNECT` and WebSocket tunnels bypass the encoding layer and are therefore never affected.
+Under `auto` only the payloads that arrive from the back-end under the `identity` coding are compressed, so an already encoded response is always forwarded byte-identical and never decoded. A response is compressed only when the client accepts one of the configured codings, the status code carries a payload, no `Cache-Control: no-transform` or `Content-Range` is present, the media type is in `COMPRESS_TYPES` and the size is between `COMPRESS_MIN` and `COMPRESS_MAX` (when the back-end declares it). The `CONNECT` and WebSocket tunnels bypass the encoding layer and are therefore never affected. Note that a client rejecting the identity coding with `identity;q=0` still receives an uncompressed response whenever none of the configured codings is acceptable to it, as no `406` is produced.
 
 Two notes worth keeping in mind when enabling it:
 

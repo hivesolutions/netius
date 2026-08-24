@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Proxy no longer forwards a redundant identity compression label that some clients reject - [#72](https://github.com/hivesolutions/netius/issues/72)
 * Proxy no longer sends chunked responses to older clients that cannot understand them - [#72](https://github.com/hivesolutions/netius/issues/72)
 * Proxy now respects a request to not transform the response even when it is stated across several lines - [#72](https://github.com/hivesolutions/netius/issues/72)
+* Compression preferences with an out of range weight are now rejected instead of honoured - [#72](https://github.com/hivesolutions/netius/issues/72)
+* Compressed responses are now decoded regardless of how the payload is split in transit - [#72](https://github.com/hivesolutions/netius/issues/72)
+* A response that already arrives compressed is no longer compressed a second time - [#72](https://github.com/hivesolutions/netius/issues/72)
+* Streaming responses are now delivered without delay when the compression buffering is disabled - [#72](https://github.com/hivesolutions/netius/issues/72)
 * DHT client no longer crashes when receiving a response with no matching pending request
 * DHT queries now send a valid node identifier so that peers can actually be discovered
 * DHT client now tolerates malformed responses and skips unroutable nodes instead of raising
