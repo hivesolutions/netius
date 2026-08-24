@@ -194,91 +194,6 @@ value of a coding, only the values between zero and one with at most
 three decimal places are considered valid ones """
 
 
-def parse_encodings(value):
-    """
-    Parses the provided accept encoding header value obtaining the
-    sequence of content codings accepted by the peer, ordered by
-    descending quality value (preference).
-
-    The codings that have been explicitly rejected (quality value of
-    zero) are removed from the sequence and the wildcard coding is
-    expanded into the codings that may be produced by the infra-structure
-    and that have not been explicitly referenced.
-
-    :type value: String
-    :param value: The raw accept encoding header value that is going
-    to be parsed (eg: `gzip;q=1.0, deflate;q=0.5, *;q=0`), a sequence
-    of values is also accepted (repeated header).
-    :rtype: List
-    :return: The sequence of the accepted content codings ordered by
-    descending preference.
-    """
-
-    # in case a sequence of values is provided (repeated header) joins
-    # them into a single value, as if a single header had been sent
-    if isinstance(value, (list, tuple)):
-        value = ",".join(value)
-
-    # creates the list that is going to hold the coding, quality and
-    # index tuples, the index is required to keep the relative order
-    # of the codings that share the same quality value, the named list
-    # keeps every coding referenced by the peer (accepted or rejected)
-    # so that the wildcard never overrides an explicit definition
-    codings = []
-    named = []
-
-    # iterates over the complete set of comma separated codings to
-    # parse each of them into the proper tuple representation
-    for coding_s in value.split(","):
-        # splits the coding around the parameters separator and
-        # normalizes the coding name, skipping the empty ones
-        parts = coding_s.split(";")
-        name = parts[0].strip().lower()
-        if not name:
-            continue
-
-        # tries to determine the quality value associated with the
-        # coding, defaulting to the maximum one in case no valid
-        # quality parameter is defined for it
-        quality = 1.0
-        for part in parts[1:]:
-            part = part.strip().lower()
-            if not part.startswith("q="):
-                continue
-            quality_s = part[2:]
-            if QUALITY_REGEX.match(quality_s):
-                quality = float(quality_s)
-            else:
-                quality = 0.0
-
-        # in case the coding has been explicitly rejected by the peer
-        # it's not added to the sequence of the accepted ones
-        named.append(name)
-        if quality <= 0.0:
-            continue
-
-        codings.append((name, quality, len(codings)))
-
-    # sorts the codings by descending quality value using the original
-    # position as the tie breaker, so that the order defined by the
-    # peer is preserved for codings of equivalent quality
-    codings.sort(key=lambda coding: (-coding[1], coding[2]))
-
-    # unpacks the sorted sequence into the final list of coding names
-    # and returns it immediately in case no wildcard is present
-    names = [coding[0] for coding in codings]
-    if not "*" in names:
-        return names
-
-    # replaces the wildcard coding with the codings that may be produced
-    # and that have not been explicitly referenced, keeping the position
-    # of the wildcard so that the preference order is respected, note that
-    # a coding rejected by the peer is never brought back by the wildcard
-    index = names.index("*")
-    names[index : index + 1] = [name for name in CODINGS if not name in named]
-    return names
-
-
 class HTTPParser(parser.Parser):
     """
     Parser object for the HTTP format, should be able to
@@ -1101,3 +1016,88 @@ class HTTPResponse(object):
 
     def info(self):
         return self.headers
+
+
+def parse_encodings(value):
+    """
+    Parses the provided accept encoding header value obtaining the
+    sequence of content codings accepted by the peer, ordered by
+    descending quality value (preference).
+
+    The codings that have been explicitly rejected (quality value of
+    zero) are removed from the sequence and the wildcard coding is
+    expanded into the codings that may be produced by the infra-structure
+    and that have not been explicitly referenced.
+
+    :type value: String
+    :param value: The raw accept encoding header value that is going
+    to be parsed (eg: `gzip;q=1.0, deflate;q=0.5, *;q=0`), a sequence
+    of values is also accepted (repeated header).
+    :rtype: List
+    :return: The sequence of the accepted content codings ordered by
+    descending preference.
+    """
+
+    # in case a sequence of values is provided (repeated header) joins
+    # them into a single value, as if a single header had been sent
+    if isinstance(value, (list, tuple)):
+        value = ",".join(value)
+
+    # creates the list that is going to hold the coding, quality and
+    # index tuples, the index is required to keep the relative order
+    # of the codings that share the same quality value, the named list
+    # keeps every coding referenced by the peer (accepted or rejected)
+    # so that the wildcard never overrides an explicit definition
+    codings = []
+    named = []
+
+    # iterates over the complete set of comma separated codings to
+    # parse each of them into the proper tuple representation
+    for coding_s in value.split(","):
+        # splits the coding around the parameters separator and
+        # normalizes the coding name, skipping the empty ones
+        parts = coding_s.split(";")
+        name = parts[0].strip().lower()
+        if not name:
+            continue
+
+        # tries to determine the quality value associated with the
+        # coding, defaulting to the maximum one in case no valid
+        # quality parameter is defined for it
+        quality = 1.0
+        for part in parts[1:]:
+            part = part.strip().lower()
+            if not part.startswith("q="):
+                continue
+            quality_s = part[2:]
+            if QUALITY_REGEX.match(quality_s):
+                quality = float(quality_s)
+            else:
+                quality = 0.0
+
+        # in case the coding has been explicitly rejected by the peer
+        # it's not added to the sequence of the accepted ones
+        named.append(name)
+        if quality <= 0.0:
+            continue
+
+        codings.append((name, quality, len(codings)))
+
+    # sorts the codings by descending quality value using the original
+    # position as the tie breaker, so that the order defined by the
+    # peer is preserved for codings of equivalent quality
+    codings.sort(key=lambda coding: (-coding[1], coding[2]))
+
+    # unpacks the sorted sequence into the final list of coding names
+    # and returns it immediately in case no wildcard is present
+    names = [coding[0] for coding in codings]
+    if not "*" in names:
+        return names
+
+    # replaces the wildcard coding with the codings that may be produced
+    # and that have not been explicitly referenced, keeping the position
+    # of the wildcard so that the preference order is respected, note that
+    # a coding rejected by the peer is never brought back by the wildcard
+    index = names.index("*")
+    names[index : index + 1] = [name for name in CODINGS if not name in named]
+    return names
