@@ -32,7 +32,7 @@ import struct
 import unittest
 
 import netius.common
-import netius.servers.http2
+import netius.servers
 
 try:
     import hpack
