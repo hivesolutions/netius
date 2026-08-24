@@ -1457,6 +1457,11 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
         connection = http_client.HTTPConnection(
             "127.0.0.1", self.proxy_port, timeout=30
         )
+
+        # the shared server routes every host through a default (catch-all)
+        # rule, so it must be unset for the request to be an unmatched one
+        hosts = self.server.hosts
+        self.server.hosts = dict()
         try:
             connection.request(
                 "GET", "/get", headers={"Host": "unknown.host.example.com"}
@@ -1465,6 +1470,7 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
             response.read()
             self.assertEqual(response.status, 404)
         finally:
+            self.server.hosts = hosts
             connection.close()
 
     def test_multiple_requests(self):

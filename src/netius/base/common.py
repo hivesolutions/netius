@@ -286,6 +286,11 @@ STATE_STRINGS = (
 the various states for the base service, this may be used to
 create an integer to string resolution mechanism """
 
+COMPACT_MIN = 64
+""" The minimum number of cancelled delayed operations from which
+the compaction of the delayed queues may be triggered, avoiding the
+cost of such operation for a small number of them """
+
 KEEPALIVE_TIMEOUT = 300
 """ The amount of time in seconds that a connection is set as
 idle until a new refresh token is sent to it to make sure that
@@ -417,6 +422,7 @@ class AbstractBase(observer.Observable):
         self._notified = []
         self._delayed = []
         self._delayed_o = []
+        self._cancelled = 0
         self._delayed_n = []
         self._delayed_l = threading.RLock()
         self._extra_handlers = []
@@ -786,6 +792,60 @@ class AbstractBase(observer.Observable):
             verify=verify,
             wakeup=wakeup,
         )
+
+    def unpend(self, callable_t):
+        """
+        Cancels a delayed operation that has been previously created,
+        so that the callable associated with it is no longer called.
+
+        The delayed queues are compacted whenever a relevant amount of
+        the operations in them has been cancelled, otherwise a cancelled
+        operation would occupy the queue until its target time is
+        reached (grows with the rate of the cancelled operations).
+
+        :type callable_t: Tuple
+        :param callable_t: The callable tuple that has been returned by
+        the delay operation that created the delayed operation.
+        """
+
+        # verifies that a valid callable tuple has been provided and that
+        # the operation associated with it is not already a cancelled one
+        if not callable_t:
+            return
+        options = callable_t[4]
+        if not options[0]:
+            return
+
+        # marks the delayed operation as cancelled so that it's ignored
+        # once its target time is reached by the event loop
+        options[0] = False
+        self._cancelled += 1
+
+        # runs the compaction of the delayed queues only in case enough
+        # of the operations in them have been cancelled, keeping the cost
+        # of the operation properly amortized
+        if self._cancelled < COMPACT_MIN:
+            return
+        if self._cancelled * 2 < len(self._delayed):
+            return
+        self.compact()
+
+    def compact(self):
+        """
+        Removes the cancelled operations from the delayed queues,
+        rebuilding both of them from the operations that are still
+        considered to be valid ones.
+        """
+
+        delayed = [callable_t for callable_t in self._delayed if callable_t[4][0]]
+        delayed_o = [
+            legacy.orderable((callable_t[0], callable_t[2])) for callable_t in delayed
+        ]
+        heapq.heapify(delayed)
+        heapq.heapify(delayed_o)
+        self._delayed = delayed
+        self._delayed_o = delayed_o
+        self._cancelled = 0
 
     def delay_m(self):
         """
@@ -1897,7 +1957,8 @@ class AbstractBase(observer.Observable):
         finally:
             # only runs the cleanup operations in case the loop is not
             # in the paused state, as a paused loop is expected to be
-            # resumed later and should not be stopped or finished
+            # resumed later and should not be stopped or finished
+
             if not self.is_paused():
                 self.stop()
                 self.finish()

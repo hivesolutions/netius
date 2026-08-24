@@ -224,6 +224,23 @@ class Protocol(observer.Observable):
         else:
             return self._loop.call_soon(callable)
 
+    def unpend(self, callable_t):
+        # in case there's no event loop defined for the protocol there's
+        # no delayed operation to be cancelled (returns immediately)
+        if not self._loop:
+            return
+
+        # verifies if the assigned loop contains the non-standard unpend
+        # method and if that's the case calls it instead of relying on the
+        # cancel operation of the handle (compatibility)
+        if hasattr(self._loop, "unpend"):
+            return self._loop.unpend(callable_t)
+
+        # falls back to the cancel operation of the handle, as returned by
+        # the base asyncio API for a delayed call
+        if hasattr(callable_t, "cancel"):
+            callable_t.cancel()
+
     def trace(self, object, *args, **kwargs):
         kwargs["stacklevel"] = kwargs.pop("stacklevel", 5)
         if self._loop and hasattr(self._loop, "trace"):

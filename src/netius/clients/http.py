@@ -294,6 +294,8 @@ class HTTPProtocol(netius.StreamProtocol):
         if self.gzip_d:
             self.gzip_d = None
 
+        self.unset_timeout()
+
     def info_dict(self, full=False):
         info = netius.StreamProtocol.info_dict(self, full=full)
         info.update(
@@ -531,6 +533,7 @@ class HTTPProtocol(netius.StreamProtocol):
         self.gzip = None
         self.gzip_c = None
         self.gzip_d = None
+        self.timeout_h = None
 
         # in case the provided data is a unicode string it's converted into
         # a raw set of bytes using the default encoding
@@ -652,6 +655,35 @@ class HTTPProtocol(netius.StreamProtocol):
         # that it may be latter used to send the request through the transport
         self.set_headers(self.headers)
 
+    def set_timeout(self, callable):
+        """
+        Schedules the provided timeout handler, cancelling a possible one
+        that is still pending so that only a single timeout operation
+        exists at a time for the protocol.
+
+        This avoids the unbounded growth of the delayed queue of the event
+        loop, as a finished request would otherwise leave its handler
+        scheduled until the timeout value is reached.
+
+        :type callable: Function
+        :param callable: The timeout handler to be scheduled for the
+        current protocol.
+        """
+
+        self.unset_timeout()
+        self.timeout_h = self.delay(callable, timeout=self.timeout)
+
+    def unset_timeout(self):
+        """
+        Cancels the timeout handler that is currently scheduled for the
+        protocol, in case there's one.
+        """
+
+        if not self.timeout_h:
+            return
+        self.unpend(self.timeout_h)
+        self.timeout_h = None
+
     def set_dynamic(self):
         cls = self.__class__
 
@@ -671,7 +703,7 @@ class HTTPProtocol(netius.StreamProtocol):
         # schedules a delay operation to run the timeout handler for
         # both connect operation (this is considered the initial
         # triggers for the such verifiers)
-        self.delay(connect_timeout, timeout=self.timeout)
+        self.set_timeout(connect_timeout)
 
     def run_request(self):
         # retrieves the reference to the top level class to be used
@@ -719,7 +751,7 @@ class HTTPProtocol(netius.StreamProtocol):
                 or delta < self.timeout
                 or not self.transport().get_write_buffer_size() == 0
             ):
-                self.delay(receive_timeout, timeout=self.timeout)
+                self.set_timeout(receive_timeout)
                 return
 
             # tries to determine the proper message that is going to be
@@ -740,9 +772,7 @@ class HTTPProtocol(netius.StreamProtocol):
 
         # sends the request effectively triggering a chain of event
         # that should end with the complete receiving of the response
-        self.send_request(
-            callback=lambda c: self.delay(receive_timeout, timeout=self.timeout)
-        )
+        self.send_request(callback=lambda c: self.set_timeout(receive_timeout))
 
     def send_request(self, callback=None):
         self.traced("%s %s %s", self.method, self.path, self.version)
@@ -978,6 +1008,7 @@ class HTTPProtocol(netius.StreamProtocol):
         self.parser.parse(data)
 
     def _on_data(self):
+        self.unset_timeout()
         message = self.parser.get_message()
         self.traced("%d %s", self.parser.code, self.parser.status)
         self.trigger("message", self, self.parser, message)
