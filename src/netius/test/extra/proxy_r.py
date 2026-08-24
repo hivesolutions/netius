@@ -1623,6 +1623,17 @@ class ReverseProxyCompressionTest(unittest.TestCase):
         self.assertEqual(headers.get("Content-Length"), "4")
         self.assertEqual(body, b"tiny")
 
+        # with the deferred decision disabled the size of the payload cannot
+        # be verified, so a streamed back-end is forwarded untouched
+        compress_buffer = self.server.compress_buffer
+        self.server.compress_buffer = False
+        try:
+            _code, headers, body = self._request("/stream")
+            self.assertEqual(headers.get("Content-Encoding"), None)
+            self.assertEqual(body, self.BIG)
+        finally:
+            self.server.compress_buffer = compress_buffer
+
     def _decode(self, data, encoding):
         if encoding == "gzip":
             return zlib.decompress(data, zlib.MAX_WBITS | 16)

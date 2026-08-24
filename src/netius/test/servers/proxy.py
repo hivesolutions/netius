@@ -353,6 +353,40 @@ class ProxyServerTest(unittest.TestCase):
             self.server_a._prx_codec(["gzip", "deflate"])["name"], "deflate"
         )
 
+    def test__prx_release(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        buffer = dict(
+            headers={"Content-Type": "text/html"},
+            version="HTTP/1.1",
+            code=200,
+            code_s="OK",
+            codec=netius.servers.http.CODECS["gzip"],
+            data=[b"chunk"],
+            length=5,
+        )
+        connection = self._make_frontend()
+        connection.encoding_b = buffer
+
+        self.server_a._prx_release(connection, length=5)
+
+        # the response that was being held must be sent to the front-end
+        # and the structure unset from the connection
+        self.assertEqual(connection.send_header.call_count, 1)
+        self.assertEqual(connection.send_part.call_count, 1)
+        self.assertEqual(connection.encoding_b, None)
+
+        # the payload must not be retained, as the flush deadline still
+        # holds a reference to the structure until it's run
+        self.assertEqual(buffer["data"], [])
+        self.assertEqual(buffer["headers"], None)
+
+        # a release of an already released response must be a no operation,
+        # so that a pending deadline never sends the response a second time
+        self.server_a._prx_release(connection)
+        self.assertEqual(connection.send_header.call_count, 1)
+
     def test__apply_accept(self):
         # under the automatic mode the back-end is asked for the identity
         # coding, so that the proxy becomes the compression authority
@@ -423,6 +457,10 @@ class ProxyServerTest(unittest.TestCase):
         connection.encoding_c = None
         connection.encodings_a = None
         connection.dynamic = None
+        connection.encoding_b = None
+        connection.encoding_w.return_value = netius.common.PLAIN_ENCODING
+        connection.encoding_name.return_value = None
+        connection.is_measurable.return_value = True
         connection.parser = mock.MagicMock()
         connection.parser.method = method
         connection.parser.version = version
