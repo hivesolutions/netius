@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.60.0] - 2026-08-25
+
+### Added
+
 * Limits for the size of a request line, of the headers and for the number of requests per connection - [#74](https://github.com/hivesolutions/netius/issues/74)
 * Restriction of the ports to which the proxy may open a tunnel - [#74](https://github.com/hivesolutions/netius/issues/74)
 * Closing of a connection that waits too long for a new request - [#74](https://github.com/hivesolutions/netius/issues/74)
