@@ -111,3 +111,59 @@ jobs:
           pytest
         env:
           HTTPBIN: httpbin.bemisc.com
+  coverage:
+    name: Coverage
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - run: python --version
+      - run: |
+          pip install -r requirements.txt
+          pip install -r extra.txt
+      - run: |
+          pip install pytest coverage
+          coverage run -m pytest
+        env:
+          HTTPBIN: httpbin.bemisc.com
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ matrix.os }}
+          path: .coverage.*
+          include-hidden-files: true
+          retention-days: 14
+  coverage-report:
+    name: Coverage Report
+    needs: coverage
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-*
+          merge-multiple: true
+      - run: |
+          pip install coverage
+          coverage combine
+          coverage report --sort=-miss
+      - run: |
+          echo "## Coverage" >> $GITHUB_STEP_SUMMARY
+          echo >> $GITHUB_STEP_SUMMARY
+          coverage report --format=markdown --sort=-miss >> $GITHUB_STEP_SUMMARY
+      - run: coverage html
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage-html
+          path: htmlcov
+          retention-days: 14

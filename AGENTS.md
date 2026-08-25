@@ -116,6 +116,18 @@ pip install pytest
 HTTPBIN=httpbin.bemisc.com pytest
 ```
 
+Produce a coverage report, note that the data files are written in parallel mode so that the runs of the several platforms can be combined:
+
+```bash
+pip install coverage
+HTTPBIN=httpbin.bemisc.com coverage run -m pytest
+coverage combine
+coverage report --sort=-miss
+coverage html
+```
+
+The main workflow runs this under Linux, Windows and macOS, combines the three data files and publishes both a job summary and the HTML report as a build artifact. The three platforms are measured together because the event loop back-ends are mutually exclusive, only one of epoll, kqueue and select is ever exercised on a given machine.
+
 ## Style Guide
 
 - Always update `CHANGELOG.md` according to semantic versioning, mentioning your changes in the unreleased section.
