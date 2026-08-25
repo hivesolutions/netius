@@ -357,6 +357,12 @@ class DiagConnectionTest(unittest.TestCase):
         connection.creation = time.time() - 90000
         self.assertEqual(connection._uptime(), "1d 1h")
 
+        # the resolution of the clocks may place the creation of the
+        # connection after the current time, which must not be reported
+        # as an almost complete day of uptime
+        connection.creation = time.time() + 60
+        self.assertEqual(connection._uptime(), "0s")
+
     def test__resolve(self):
         connection = self._make_connection()
 

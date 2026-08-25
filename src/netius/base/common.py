@@ -5208,6 +5208,14 @@ class AbstractBase(observer.Observable):
         days = time_delta.days
         hours, remainder = divmod(time_delta.seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
+
+        # a negative delta has no valid representation under the current
+        # scheme, as its components are taken from the complement of a day,
+        # so every one of them is reset into the zero value, note that such
+        # a delta may be the result of the resolution of the clocks
+        if days < 0:
+            days = hours = minutes = seconds = 0
+
         delta_s = ""
         if days > 0:
             delta_s += "%dd " % days

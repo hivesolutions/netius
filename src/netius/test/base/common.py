@@ -29,6 +29,7 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import socket
+import datetime
 import unittest
 import collections
 
@@ -277,6 +278,33 @@ class BaseTest(unittest.TestCase):
             self.assertEqual([info["id"] for info in closed], [third.id, second.id])
         finally:
             common.AbstractBase._DIAG_CLOSED = original
+            loop.close()
+
+    def test__format_delta(self):
+        loop = netius.Base()
+        try:
+            # the two most significant components of the delta are the ones
+            # reported, with the seconds used only when there's no other
+            self.assertEqual(loop._format_delta(datetime.timedelta(seconds=0)), "0s")
+            self.assertEqual(loop._format_delta(datetime.timedelta(seconds=1)), "1s")
+            self.assertEqual(
+                loop._format_delta(datetime.timedelta(seconds=3661)), "1h 1m"
+            )
+            self.assertEqual(
+                loop._format_delta(datetime.timedelta(seconds=90000)), "1d 1h"
+            )
+
+            # a negative delta may result from the resolution of the clocks,
+            # in which case no duration at all must be reported for it, as
+            # its components would otherwise come from the complement of a day
+            self.assertEqual(
+                loop._format_delta(datetime.timedelta(seconds=-0.001)), "0s"
+            )
+            self.assertEqual(loop._format_delta(datetime.timedelta(seconds=-60)), "0s")
+            self.assertEqual(
+                loop._format_delta(datetime.timedelta(seconds=-90000)), "0s"
+            )
+        finally:
             loop.close()
 
     def _make_connection(self, loop, diag=False):
