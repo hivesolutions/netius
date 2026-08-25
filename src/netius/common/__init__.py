@@ -103,6 +103,7 @@ from .http import (
     LINE_LIMIT,
     HEADERS_LIMIT,
     HEADERS_COUNT,
+    CHUNK_LIMIT,
     REQUEST,
     RESPONSE,
     PLAIN_ENCODING,

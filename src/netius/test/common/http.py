@@ -575,6 +575,79 @@ class HTTPParserTest(unittest.TestCase):
         )
         self.assertEqual(parser.get_message(), b"Hello World")
 
+        # the announced size of a chunk must be within the allowed bounds, as
+        # a value that no implementation is able to honour would desynchronize
+        # the message stream of a more permissive peer
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Transfer-Encoding: chunked\r\n\r\nffffffffffffffff\r\n"
+        )
+
+        # the bound of the size is a configurable one, a chunk that announces
+        # exactly the limit is accepted while a larger one is rejected
+        parser = self._parse(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n"
+            b"\r\n10\r\n",
+            chunk_limit=16,
+        )
+        self.assertEqual(parser.chunk_d, 16)
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\n"
+            b"Transfer-Encoding: chunked\r\n\r\n11\r\n",
+            chunk_limit=16,
+        )
+
+    def test_chunked_trailer(self):
+        # the trailer section that follows the last chunk must be explicitly
+        # consumed, otherwise its fields would be taken as the initial line
+        # of an extra (smuggled) request
+        parser = self._parse(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n"
+            b"\r\nb\r\nHello World\r\n0\r\nX-Checksum: abc\r\n\r\n"
+        )
+        self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
+        self.assertEqual(parser.get_message(), b"Hello World")
+
+        # a message carrying a trailer section may still be followed by another
+        # one under the same connection, meaning that pipelining is preserved
+        parser = self._parse(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n"
+            b"\r\nb\r\nHello World\r\n0\r\nX-Checksum: abc\r\n\r\n"
+            b"GET /next HTTP/1.1\r\nHost: localhost\r\n\r\n"
+        )
+        self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
+        self.assertEqual(parser.path_s, "/next")
+
+        # the trailer section may be received in multiple parts, in which case
+        # it must be buffered until the end of the section is found
+        parser = netius.common.HTTPParser(self, type=netius.common.REQUEST, store=True)
+        try:
+            data = (
+                b"GET / HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n"
+                b"\r\nb\r\nHello World\r\n0\r\nX-A: 1\r\nX-B: 2\r\n\r\n"
+            )
+            for index in range(len(data)):
+                parser.parse(data[index : index + 1])
+            self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
+            self.assertEqual(parser.get_message(), b"Hello World")
+        finally:
+            parser.clear()
+
+        # a bare carriage return or line feed in the trailer section must be
+        # rejected as either of them would allow the injection of an extra field
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n"
+            b"\r\n0\r\nX-A: 1\nX-B: 2\r\n\r\n"
+        )
+
+        # the size of the trailer section is bound by the same value that bounds
+        # the headers section, avoiding the unbounded buffering of data
+        self._assert_error(
+            b"GET / HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n"
+            b"\r\n0\r\nX-Pad: " + b"a" * 70000 + b"\r\n\r\n",
+            code=431,
+        )
+
     def test_file(self):
         parser = netius.common.HTTPParser(
             self, type=netius.common.REQUEST, store=True, file_limit=-1

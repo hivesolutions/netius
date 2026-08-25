@@ -76,6 +76,13 @@ number of small headers is sent, this is a default value for the
 parser and may be overridden using the dedicated parameter value
 in the constructor """
 
+CHUNK_LIMIT = 1073741824
+""" The maximum size (in bytes) that a single chunk of a chunked
+message may announce, an unbounded value would otherwise be taken
+by each implementation in a different way, desynchronizing the
+message stream, this is a default value for the parser and may be
+overridden using the dedicated parameter value in the constructor """
+
 REQUEST = 1
 """ The HTTP request message indicator, should be
 used when identifying the HTTP request messages """
@@ -264,6 +271,7 @@ class HTTPParser(parser.Parser):
         "line_limit",
         "headers_limit",
         "headers_count",
+        "chunk_limit",
         "state",
         "buffer",
         "headers",
@@ -291,6 +299,7 @@ class HTTPParser(parser.Parser):
         "chunk_l",
         "chunk_s",
         "chunk_e",
+        "chunk_t",
     )
 
     def __init__(
@@ -302,6 +311,7 @@ class HTTPParser(parser.Parser):
         line_limit=LINE_LIMIT,
         headers_limit=HEADERS_LIMIT,
         headers_count=HEADERS_COUNT,
+        chunk_limit=CHUNK_LIMIT,
     ):
         parser.Parser.__init__(self, owner)
 
@@ -313,6 +323,7 @@ class HTTPParser(parser.Parser):
             line_limit=line_limit,
             headers_limit=headers_limit,
             headers_count=headers_count,
+            chunk_limit=chunk_limit,
         )
 
     def build(self):
@@ -353,6 +364,7 @@ class HTTPParser(parser.Parser):
         line_limit=LINE_LIMIT,
         headers_limit=HEADERS_LIMIT,
         headers_count=HEADERS_COUNT,
+        chunk_limit=CHUNK_LIMIT,
     ):
         """
         Initializes the state of the parser setting the values
@@ -379,6 +391,9 @@ class HTTPParser(parser.Parser):
         :type headers_count: int
         :param headers_count: The maximum number of header lines that the
         message may contain.
+        :type chunk_limit: int
+        :param chunk_limit: The maximum size (in bytes) that a single chunk
+        of a chunked message may announce.
         """
 
         self.close()
@@ -388,6 +403,7 @@ class HTTPParser(parser.Parser):
         self.line_limit = line_limit
         self.headers_limit = headers_limit
         self.headers_count = headers_count
+        self.chunk_limit = chunk_limit
         self.state = LINE_STATE
         self.buffer = []
         self.headers = {}
@@ -415,6 +431,7 @@ class HTTPParser(parser.Parser):
         self.chunk_l = 0
         self.chunk_s = 0
         self.chunk_e = 0
+        self.chunk_t = False
 
     def clear(self, force=False):
         if not force and self.state == LINE_STATE:
@@ -426,6 +443,7 @@ class HTTPParser(parser.Parser):
             line_limit=self.line_limit,
             headers_limit=self.headers_limit,
             headers_count=self.headers_count,
+            chunk_limit=self.chunk_limit,
         )
 
     def close(self):
@@ -1032,6 +1050,12 @@ class HTTPParser(parser.Parser):
         # value this will be increment as bytes are parsed
         count = 0
 
+        # in case the trailer section is the one pending to be parsed
+        # delegates the operation to the proper method, as such section
+        # must be consumed before the message may be considered complete
+        if self.chunk_t:
+            return self._parse_trailer(data)
+
         # verifies if the end of chunk state has been reached
         # that happens when only the last two characters remain
         # to be parsed from the chunk
@@ -1056,20 +1080,12 @@ class HTTPParser(parser.Parser):
             count += self.chunk_l
             self.chunk_l = 0
 
-            # in case the current chunk dimension (size) is
-            # zero this is the last chunk and so the state
-            # must be set to the finish and the on data event
-            # must be triggered to indicate the end of message
-            if self.chunk_d == 0:
-                self.state = FINISH_STATE
-                self.trigger("on_data")
-
-            # otherwise this is the end of a "normal" chunk and
-            # and so the end of chunk index must be calculated
-            # and the chunk event must be triggered
-            else:
-                self.chunk_e = len(self.message)
-                self.trigger("on_chunk", (self.chunk_s, self.chunk_e))
+            # this is the end of a "normal" chunk and so the end of
+            # chunk index must be calculated and the chunk event must
+            # be triggered, note that the last chunk never reaches this
+            # state as it's the one that starts the trailer section
+            self.chunk_e = len(self.message)
+            self.trigger("on_chunk", (self.chunk_s, self.chunk_e))
 
             # in case the message is not meant to be stored or in
             # case the file storage mode is active (spares memory),
@@ -1127,6 +1143,13 @@ class HTTPParser(parser.Parser):
             if not CHUNK_REGEX.match(netius.legacy.str(size)):
                 raise netius.ParserError("Invalid chunk size")
             self.chunk_d = int(size, base=16)
+
+            # verifies that the announced size of the chunk is within the
+            # allowed bounds, as a value that no implementation is able to
+            # honour would otherwise desynchronize the message stream
+            if self.chunk_d > self.chunk_limit:
+                raise netius.ParserError("Chunk size too large")
+
             self.chunk_l = self.chunk_d + 2
             self.chunk_s = len(self.message)
 
@@ -1134,6 +1157,15 @@ class HTTPParser(parser.Parser):
             # provided data by the index of the newline character position
             # plus one byte respecting to the newline character
             count += index + 1
+
+            # in case this is the last chunk the trailer section becomes the
+            # one to be parsed, note that the end of line sequence is restored
+            # to the buffer so that an empty section is detected the same way
+            # as a populated one (required for compliance)
+            if self.chunk_d == 0:
+                self.chunk_t = True
+                self.buffer.append(b"\r\n")
+                return count + self._parse_trailer(data)
 
         # retrieves the partial data that is valid according to the
         # calculated chunk length and then calculates the size of
@@ -1162,6 +1194,74 @@ class HTTPParser(parser.Parser):
         # and then returns the same counter to the caller method
         count += data_s
         return count
+
+    def _parse_trailer(self, data):
+        # creates a temporary buffer with the contents of the current
+        # buffer plus the current data and then joins it to retrieve
+        # the current complete buffer string to be used in the finding
+        # of the end of trailer sequence (required for complete parsing)
+        buffer_t = self.buffer + [data]
+        buffer_s = b"".join(buffer_t)
+
+        # tries to find the end of trailer sequence in case it's not
+        # found returns the zero value meaning that no bytes have been
+        # processed (delays parsing), note that the bounds of the section
+        # are verified so that a peer may not exhaust the memory with it
+        index = buffer_s.find(b"\r\n\r\n")
+        if index == -1:
+            if len(buffer_s) > self.headers_limit:
+                raise netius.ParserError("Trailer too long", code=431)
+            return 0
+
+        # retrieves the partial trailer string from the buffer string
+        # and then deletes the current buffer so that it may be reused
+        # for other partial parsings, note that the fields of the section
+        # are discarded as no handling exists for any of them
+        trailer_s = buffer_s[:index]
+        del self.buffer[:]
+
+        # calculates the base length as the difference between the buffer
+        # string and the length of the currently provided data value and
+        # then uses this value to calculate the base index for the process
+        # data count value
+        base_length = len(buffer_s) - len(data)
+        base_index = index - base_length
+
+        # verifies that the trailer section respects the allowed bounds,
+        # this is the verification for the situation where the complete
+        # section is received at once (the partial one is done above)
+        if len(trailer_s) > self.headers_limit:
+            raise netius.ParserError("Trailer too long", code=431)
+
+        # ensures that no bare carriage return or line feed is present in
+        # the trailer section, either of them would allow the injection of
+        # an extra field, note that each separator accounts for exactly one
+        # of each of these characters so any extra one is a bare (invalid) one
+        lines = trailer_s.split(b"\r\n")
+        separators = len(lines) - 1
+        if (
+            not trailer_s.count(b"\r") == separators
+            or not trailer_s.count(b"\n") == separators
+        ):
+            raise netius.ParserError("Invalid trailer line")
+
+        # the complete trailer section has been received meaning that the
+        # message is now complete, so the state is set to the finish one
+        # and the data event triggered to indicate the end of message
+        self.chunk_t = False
+        self.state = FINISH_STATE
+        self.trigger("on_data")
+
+        # in case the message is not meant to be stored or in case the
+        # file storage mode is active (spares memory), deletes the contents
+        # of the message buffer as they're not going to be used to access
+        # request's data as a whole
+        if not self.store or self.message_f:
+            del self.message[:]
+
+        # returns the number of bytes that have been parsed from the provided
+        # data, note that the end of trailer sequence is consumed by it
+        return base_index + 4
 
     def _store_data(self, data, memory=True):
         if not self.store:
