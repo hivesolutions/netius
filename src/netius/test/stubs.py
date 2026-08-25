@@ -61,8 +61,10 @@ class StubsTest(unittest.TestCase):
         self.assertEqual(missing, [])
 
     def test_stubs_syntax(self):
-        if sys.version_info[0] < 3:
-            self.skipTest("Skipping test: stub syntax requires Python 3")
+        # the stubs declare the type of the attributes using the variable
+        # annotation syntax, which is only understood from Python 3.6 onwards
+        if sys.version_info < (3, 6):
+            self.skipTest("Skipping test: stub syntax requires Python 3.6")
 
         for path in self._stubs():
             ast.parse(self._read(path), path)
