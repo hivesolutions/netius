@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* HTTP/2 responses no longer stall when the client offers a small flow control window - [#74](https://github.com/hivesolutions/netius/issues/74)
+* HTTP/2 window size changes requested after a request has started are now honoured - [#74](https://github.com/hivesolutions/netius/issues/74)
+* An oversized HTTP/2 window update now resets only the affected stream instead of the connection - [#74](https://github.com/hivesolutions/netius/issues/74)
 
 ## [1.60.0] - 2026-08-25
 
