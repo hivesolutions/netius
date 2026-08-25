@@ -1,0 +1,3 @@
+from typing import Any, Mapping
+
+def sh_call(globals: Mapping[str, Any] = ..., locals: Mapping[str, Any] = ...): ...
