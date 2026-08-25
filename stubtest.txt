@@ -3,3 +3,8 @@
 # aliases that only exist for annotation purposes
 netius\..*__license__
 netius\.auth\.base\.HashType
+
+# the diagnostics application is built on top of appier, an optional
+# dependency, so both its metaclass and the shape of its route methods
+# depend on whether appier is installed
+netius\.base\.diag\.DiagApp
