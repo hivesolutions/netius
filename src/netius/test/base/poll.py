@@ -37,6 +37,71 @@ from netius.base import poll
 
 class PollTest(unittest.TestCase):
 
+    def test_test(self):
+        # the abstract implementation carries no platform requirement and
+        # so it's reported as available under every environment
+        self.assertEqual(poll.Poll.test(), True)
+
+    def test_open(self):
+        instance = poll.Poll()
+        socket = self._make_socket()
+
+        instance.sub_read(socket)
+        instance.open(timeout=1.5)
+
+        # the opening of a poll sets the requested timeout and starts from
+        # a clean state, dropping any previous subscription
+        self.assertEqual(instance.is_open(), True)
+        self.assertEqual(instance.timeout, 1.5)
+        self.assertEqual(instance.is_empty(), True)
+
+        # the opening of an already open poll must be a no operation, so
+        # that the timeout in use is not replaced by a new one
+        instance.open(timeout=3.0)
+        self.assertEqual(instance.timeout, 1.5)
+
+    def test_close(self):
+        instance = poll.Poll()
+        socket = self._make_socket()
+
+        instance.open()
+        instance.sub_read(socket)
+        instance.close()
+
+        # the closing of a poll releases every subscription, so that no
+        # socket is retained by it after the operation
+        self.assertEqual(instance.is_open(), False)
+        self.assertEqual(instance.is_empty(), True)
+
+        # the closing of an already closed poll must be a no operation
+        instance.close()
+        self.assertEqual(instance.is_open(), False)
+
+    def test_poll(self):
+        instance = poll.Poll()
+
+        # the base implementation has no underlying structure to be polled
+        # so an empty result is reported for every one of the operations
+        self.assertEqual(instance.poll(), ([], [], []))
+
+    def test_poll_owner(self):
+        instance = poll.Poll()
+        first = self._make_socket("first")
+        second = self._make_socket("second")
+
+        instance.sub_read(first, owner="owner")
+        instance.sub_write(first, owner="owner")
+        instance.sub_read(second, owner="other")
+        instance.sub_error(second, owner="other")
+
+        instance.poll = lambda: ([first, second], [first], [second])
+
+        # the results must be grouped by the owner of each socket, so that
+        # an owner is only handed the sockets that belong to it
+        result = instance.poll_owner()
+        self.assertEqual(result["owner"], ([first], [first], []))
+        self.assertEqual(result["other"], ([second], [], [second]))
+
     def test_is_open(self):
         instance = poll.Poll()
 
@@ -103,11 +168,42 @@ class PollTest(unittest.TestCase):
         instance.unsub_read(socket)
         self.assertEqual(instance.is_sub_read(socket), False)
 
-    def _make_socket(self, fileno=1):
+    def test_unsub_all(self):
+        instance = poll.Poll()
+        socket = self._make_socket()
+
+        # the removal of the subscriptions of a socket that was never
+        # subscribed must be a no operation instead of raising an error
+        instance.unsub_all(socket)
+        self.assertEqual(instance.is_empty(), True)
+
+    def test_sub_write(self):
+        instance = poll.Poll()
+        socket = self._make_socket()
+
+        instance.sub_write(socket, owner="owner")
+
+        # a write subscription must not imply any of the other ones, as
+        # each of the operations is tracked on its own
+        self.assertEqual(instance.is_sub_write(socket), True)
+        self.assertEqual(instance.is_sub_read(socket), False)
+        self.assertEqual(instance.is_sub_error(socket), False)
+
+    def test_sub_error(self):
+        instance = poll.Poll()
+        socket = self._make_socket()
+
+        instance.sub_error(socket, owner="owner")
+
+        self.assertEqual(instance.is_sub_error(socket), True)
+        self.assertEqual(instance.is_sub_read(socket), False)
+        self.assertEqual(instance.is_sub_write(socket), False)
+
+    def _make_socket(self, name="socket"):
         # builds a socket stand-in, the base poll only uses it as a key so
         # no file descriptor operations are required for it
         Socket = collections.namedtuple("Socket", "name")
-        return Socket(name="socket-%d" % fileno)
+        return Socket(name=name)
 
 
 class EpollPollTest(unittest.TestCase):
@@ -117,6 +213,37 @@ class EpollPollTest(unittest.TestCase):
 
     def test_test(self):
         self.assertEqual(poll.EpollPoll.test() in (True, False), True)
+
+    def test_open(self):
+        if not poll.EpollPoll.test():
+            self.skipTest("Skipping test: epoll unavailable")
+
+        instance = poll.EpollPoll()
+        instance.open(timeout=1.5)
+        try:
+            # the opening must create the underlying structure and start
+            # from a state with no subscription at all
+            self.assertEqual(instance.is_open(), True)
+            self.assertEqual(instance.timeout, 1.5)
+            self.assertEqual(instance.is_empty(), True)
+        finally:
+            instance.close()
+
+    def test_close(self):
+        if not poll.EpollPoll.test():
+            self.skipTest("Skipping test: epoll unavailable")
+
+        instance = poll.EpollPoll()
+        instance.open()
+        instance.close()
+
+        # the closing releases the underlying structure, leaving the poll
+        # ready to be open once again
+        self.assertEqual(instance.is_open(), False)
+
+        instance.open()
+        self.assertEqual(instance.is_open(), True)
+        instance.close()
 
     def test_poll(self):
         if not poll.EpollPoll.test():
@@ -138,6 +265,11 @@ class EpollPollTest(unittest.TestCase):
             self._poll(instance, select.EPOLLIN | select.EPOLLHUP),
             ([socket], [], [socket]),
         )
+
+    def test_is_edge(self):
+        # the epoll based poll is registered in the edge triggered mode, so
+        # an event is only reported when the state of the socket changes
+        self.assertEqual(poll.EpollPoll().is_edge(), True)
 
     def _poll(self, instance, event):
         instance.epoll = self._make_epoll([(1, event)])
@@ -165,6 +297,37 @@ class KqueuePollTest(unittest.TestCase):
 
     def test_test(self):
         self.assertEqual(poll.KqueuePoll.test() in (True, False), True)
+
+    def test_open(self):
+        if not poll.KqueuePoll.test():
+            self.skipTest("Skipping test: kqueue unavailable")
+
+        instance = poll.KqueuePoll()
+        instance.open(timeout=1.5)
+        try:
+            # the opening must create the underlying structure and start
+            # from a state with no subscription at all
+            self.assertEqual(instance.is_open(), True)
+            self.assertEqual(instance.timeout, 1.5)
+            self.assertEqual(instance.is_empty(), True)
+        finally:
+            instance.close()
+
+    def test_close(self):
+        if not poll.KqueuePoll.test():
+            self.skipTest("Skipping test: kqueue unavailable")
+
+        instance = poll.KqueuePoll()
+        instance.open()
+        instance.close()
+
+        # the closing releases the underlying structure, leaving the poll
+        # ready to be open once again
+        self.assertEqual(instance.is_open(), False)
+
+        instance.open()
+        self.assertEqual(instance.is_open(), True)
+        instance.close()
 
     def test_poll(self):
         if not poll.KqueuePoll.test():
@@ -204,6 +367,11 @@ class KqueuePollTest(unittest.TestCase):
             ([], [], [socket]),
         )
 
+    def test_is_edge(self):
+        # the kqueue based poll is also an edge triggered one, matching the
+        # behaviour of the epoll based implementation
+        self.assertEqual(poll.KqueuePoll().is_edge(), True)
+
     def _poll(self, instance, filter, flags):
         Event = collections.namedtuple("Event", "filter flags udata")
         event = Event(filter=filter, flags=flags, udata=1)
@@ -233,6 +401,37 @@ class PollPollTest(unittest.TestCase):
     def test_test(self):
         self.assertEqual(poll.PollPoll.test() in (True, False), True)
 
+    def test_open(self):
+        if not poll.PollPoll.test():
+            self.skipTest("Skipping test: poll unavailable")
+
+        instance = poll.PollPoll()
+        instance.open(timeout=1.5)
+        try:
+            # the opening must create the underlying structure and start
+            # from a state with no subscription at all
+            self.assertEqual(instance.is_open(), True)
+            self.assertEqual(instance.timeout, 1.5)
+            self.assertEqual(instance.is_empty(), True)
+        finally:
+            instance.close()
+
+    def test_close(self):
+        if not poll.PollPoll.test():
+            self.skipTest("Skipping test: poll unavailable")
+
+        instance = poll.PollPoll()
+        instance.open()
+        instance.close()
+
+        # the closing releases the underlying structure, leaving the poll
+        # ready to be open once again
+        self.assertEqual(instance.is_open(), False)
+
+        instance.open()
+        self.assertEqual(instance.is_open(), True)
+        instance.close()
+
     def test_poll(self):
         if not poll.PollPoll.test():
             self.skipTest("Skipping test: poll unavailable")
@@ -249,6 +448,11 @@ class PollPollTest(unittest.TestCase):
         # keeping the behaviour aligned with the remaining polls
         self.assertEqual(self._poll(instance, select.POLLERR), ([], [], [socket]))
         self.assertEqual(self._poll(instance, select.POLLHUP), ([], [], [socket]))
+
+    def test_is_edge(self):
+        # the poll based implementation is a level triggered one, so an
+        # event is reported for as long as the condition holds
+        self.assertEqual(poll.PollPoll().is_edge(), False)
 
     def _poll(self, instance, event):
         instance._poll = self._make_poll([(1, event)])
@@ -279,6 +483,32 @@ class SelectPollTest(unittest.TestCase):
         # available under every supported platform
         self.assertEqual(poll.SelectPoll.test(), True)
 
+    def test_open(self):
+        instance = poll.SelectPoll()
+        instance.open(timeout=1.5)
+        try:
+            self.assertEqual(instance.is_open(), True)
+            self.assertEqual(instance.timeout, 1.5)
+            self.assertEqual(instance.is_empty(), True)
+        finally:
+            instance.close()
+
+        # a negative timeout is normalized into an unset one, so that the
+        # select call blocks until there's at least one event
+        instance = poll.SelectPoll()
+        instance.open(timeout=-1)
+        try:
+            self.assertEqual(instance.timeout, None)
+        finally:
+            instance.close()
+
+    def test_close(self):
+        instance = poll.SelectPoll()
+        instance.open()
+        instance.close()
+
+        self.assertEqual(instance.is_open(), False)
+
     def test_poll(self):
         instance = poll.SelectPoll()
         instance.timeout = 0.01
@@ -286,3 +516,8 @@ class SelectPollTest(unittest.TestCase):
         # an empty selection must not reach the select call, returning the
         # three empty sequences after a small sleep instead
         self.assertEqual(instance.poll(), ([], [], []))
+
+    def test_is_edge(self):
+        # the select based implementation is a level triggered one, as the
+        # complete set of sockets is verified on every call
+        self.assertEqual(poll.SelectPoll().is_edge(), False)
