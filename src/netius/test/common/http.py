@@ -648,6 +648,37 @@ class HTTPParserTest(unittest.TestCase):
             code=431,
         )
 
+    def test_chunked_trailer_response(self):
+        # a response carries the trailer section under the same rules as a
+        # request, this is the direction used by both the client and the proxy
+        parser = self._parse(
+            b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTrailer: X-Checksum\r\n"
+            b"\r\nb\r\nHello World\r\n0\r\nX-Checksum: abc\r\n\r\n",
+            type=netius.common.RESPONSE,
+        )
+        self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
+        self.assertEqual(parser.code, 200)
+        self.assertEqual(parser.get_message(), b"Hello World")
+
+        # a connection that is kept alive may carry another response right
+        # after one that ends with a trailer section, so the section must not
+        # be left in the stream to be taken as the status line of the next one
+        messages = []
+        parser = netius.common.HTTPParser(self, type=netius.common.RESPONSE, store=True)
+        try:
+            parser.bind(
+                "on_data",
+                lambda: messages.append((parser.code, parser.get_message())),
+            )
+            parser.parse(
+                b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n"
+                b"\r\nb\r\nHello World\r\n0\r\nX-Checksum: abc\r\n\r\n"
+                b"HTTP/1.1 201 Created\r\nContent-Length: 6\r\n\r\nsecond"
+            )
+            self.assertEqual(messages, [(200, b"Hello World"), (201, b"second")])
+        finally:
+            parser.clear()
+
     def test_file(self):
         parser = netius.common.HTTPParser(
             self, type=netius.common.REQUEST, store=True, file_limit=-1
