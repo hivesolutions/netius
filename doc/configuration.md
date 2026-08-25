@@ -42,6 +42,7 @@
 | **DIAG_SERVER** | `str`  | `netius`    | The server that is going to be used for serving the diagnostics system infrastructure.                                                                      |
 | **DIAG_HOST**   | `str`  | `127.0.0.1` | The hostname that is going to be used when launching the diagnostics system.                                                                                |
 | **DIAG_PORT**   | `int`  | `5050`      | The TCP port that is going to be used when launching the diagnostics system.                                                                                |
+| **DIAG_CLOSED_MAX** | `int` | `512`   | The maximum number of recently closed connections kept for inspection under the diagnostics, exposed by the `/connections/closed` endpoint.                 |
 
 #### SSL
 

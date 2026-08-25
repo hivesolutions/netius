@@ -3486,7 +3486,10 @@ class AbstractBase(observer.Observable):
         that is going to be recorded in the ring buffer.
         """
 
-        info = connection.info_dict(full=True)
+        # the snapshot is a shallow one so that no reference to the internal
+        # structures of the connection (eg: the parser and its buffers) is
+        # retained by the ring buffer for the lifetime of the entry
+        info = connection.info_dict()
 
         # calculates the total duration of the connection, note that such
         # value is only available for the connections that keep track of
