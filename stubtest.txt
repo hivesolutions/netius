@@ -1,0 +1,5 @@
+# the module level license dunder is present in every netius module but
+# is not part of the public typed surface, the same applying to the type
+# aliases that only exist for annotation purposes
+netius\..*__license__
+netius\.auth\.base\.HashType

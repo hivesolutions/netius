@@ -1,3 +1,5 @@
 include README.rst
+include src/netius/py.typed
+recursive-include src/netius *.pyi
 recursive-include src/netius/base/extras *
 recursive-include src/netius/servers/extras *
