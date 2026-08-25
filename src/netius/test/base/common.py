@@ -29,13 +29,13 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import socket
-import collections
 import unittest
+import collections
 
 import netius
 
-from netius.base import common
 from netius.base import conn
+from netius.base import common
 
 
 class BaseTest(unittest.TestCase):
@@ -156,6 +156,11 @@ class BaseTest(unittest.TestCase):
             connection = self._make_connection(loop, diag=True)
             connection.creation = connection.close_timestamp - 2.0
             connection.close_paired = "other"
+            connection.recvs = 3
+            connection.sends = 2
+            connection.in_bytes = 512
+            connection.out_bytes = 1024
+            connection.last_recv_ts = connection.close_timestamp - 1.0
             loop.record_closed(connection)
 
             self.assertEqual(len(buffer), 1)
@@ -164,6 +169,33 @@ class BaseTest(unittest.TestCase):
             self.assertEqual(buffer[0]["close_error"], "idle")
             self.assertEqual(buffer[0]["close_paired"], "other")
             self.assertEqual(buffer[0]["duration"], 2.0)
+
+            # the record must reflect the values of the connection at the
+            # moment it was taken, so they are verified one by one
+            self.assertEqual(buffer[0]["status"], connection.status)
+            self.assertEqual(buffer[0]["recvs"], connection.recvs)
+            self.assertEqual(buffer[0]["sends"], connection.sends)
+            self.assertEqual(buffer[0]["in_bytes"], connection.in_bytes)
+            self.assertEqual(buffer[0]["out_bytes"], connection.out_bytes)
+            self.assertEqual(buffer[0]["close_timestamp"], connection.close_timestamp)
+            self.assertEqual(
+                buffer[0]["last_activity_timestamp"], connection._last_activity()
+            )
+
+            # the duration must be the exact distance between the creation
+            # and the closing of the connection
+            self.assertEqual(
+                buffer[0]["duration"],
+                connection.close_timestamp - connection.creation,
+            )
+
+            # the record is detached from the connection, so a change in the
+            # latter must never be reflected in the value already stored
+            connection.close_reason = netius.REASON_ERROR
+            connection.in_bytes = 0
+
+            self.assertEqual(buffer[0]["close_reason"], netius.REASON_TIMEOUT)
+            self.assertEqual(buffer[0]["in_bytes"], 512)
 
             # a connection with no creation time has no duration associated
             # with it, as there's no value from which to measure it
