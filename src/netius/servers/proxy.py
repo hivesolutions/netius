@@ -364,27 +364,56 @@ class ProxyServer(http2.HTTP2Server):
         _connection.tunnel_d = data
         _connection.tunnel_r = response
         connection.tunnel_c = _connection
-        self.map_connection(_connection, connection)
+        self.conn_map[_connection] = connection
         return _connection
 
-    def map_connection(self, _connection, connection):
+    def reason_connection(self, _connection, reason):
         """
-        Associates the back-end connection with the front-end one, so that
-        the relation between both of them may be resolved latter on.
+        Sets the provided close reason in the back-end connection, taking
+        into account that the value may be a protocol instead of a proper
+        connection, in which case the underlying connection is the one to
+        be marked, as that's the object known by the diagnostics.
 
-        The identifier of each of the connections is kept in the other one
+        :type _connection: Connection/HTTPProtocol
+        :param _connection: The back-end connection (or protocol) that is
+        going to have its close reason set.
+        :type reason: String
+        :param reason: The reason to be associated with the closing of the
+        connection, should be one of the close reason constants.
+        """
+
+        _connection = getattr(_connection, "connection", _connection)
+        if not _connection:
+            return
+        _connection.close_reason = reason
+
+    def pair_connection(self, _connection):
+        """
+        Associates the identifier of the back-end connection with the one
+        of the front-end connection mapped to it (and the other way around)
         so that the two sides of the exchange may be correlated even after
-        they have been closed (as required by the diagnostics).
+        both of them have been closed.
 
-        :type _connection: Connection
-        :param _connection: The back-end connection that is going to be
-        associated with the front-end one.
-        :type connection: Connection
-        :param connection: The front-end connection that is going to be
-        associated with the back-end one.
+        Note that the back-end value may be a protocol instead of a proper
+        connection, in which case the underlying connection is the one to
+        be used, as that's the object known by the diagnostics.
+
+        :type _connection: Connection/HTTPProtocol
+        :param _connection: The back-end connection (or protocol) that is
+        going to be associated with its front-end counterpart.
         """
 
-        self.conn_map[_connection] = connection
+        connection = self.conn_map.get(_connection, None)
+        if not connection:
+            return
+
+        # resolves the back-end value into the underlying connection, note
+        # that a plain connection has no such attribute and so it's the
+        # value itself that is used for the association
+        _connection = getattr(_connection, "connection", _connection)
+        if not _connection:
+            return
+
         _connection.close_paired = connection.id
         connection.close_paired = _connection.id
 
@@ -452,10 +481,10 @@ class ProxyServer(http2.HTTP2Server):
         proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
 
         if tunnel_c:
-            tunnel_c.close_reason = netius.REASON_EXPLICIT
+            self.reason_connection(tunnel_c, netius.REASON_EXPLICIT)
             tunnel_c.close()
         if proxy_c:
-            proxy_c.close_reason = netius.REASON_EXPLICIT
+            self.reason_connection(proxy_c, netius.REASON_EXPLICIT)
             proxy_c.close()
 
         setattr(connection, "tunnel_c", None)
@@ -469,10 +498,10 @@ class ProxyServer(http2.HTTP2Server):
         proxy_c = hasattr(stream, "proxy_c") and stream.proxy_c
 
         if tunnel_c:
-            tunnel_c.close_reason = netius.REASON_EXPLICIT
+            self.reason_connection(tunnel_c, netius.REASON_EXPLICIT)
             tunnel_c.close()
         if proxy_c:
-            proxy_c.close_reason = netius.REASON_EXPLICIT
+            self.reason_connection(proxy_c, netius.REASON_EXPLICIT)
             proxy_c.close()
 
         setattr(stream, "tunnel_c", None)
@@ -1219,9 +1248,11 @@ class ProxyServer(http2.HTTP2Server):
 
     def _on_prx_connect(self, client, _connection):
         _connection.waiting = False
+        self.pair_connection(_connection)
 
     def _on_prx_acquire(self, client, _connection):
         _connection.waiting = False
+        self.pair_connection(_connection)
 
     def _on_prx_close(self, client, _connection):
         """
@@ -1351,6 +1382,7 @@ class ProxyServer(http2.HTTP2Server):
 
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
+        self.pair_connection(_connection)
 
         # retrieves the optional response and data values that may have
         # been associated with the tunnel connection, the response is

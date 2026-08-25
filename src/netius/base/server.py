@@ -852,6 +852,7 @@ class StreamServer(Server):
                 if data:
                     self.on_data(connection, data)
                 else:
+                    connection.close_reason = REASON_CLIENT_EOF
                     connection.close()
                     break
                 if not connection.status == OPEN:
@@ -952,11 +953,14 @@ class StreamServer(Server):
         if not connection.status == OPEN:
             return
 
+        connection.close_reason = REASON_ERROR
         connection.close()
 
     def on_exception(self, exception, connection):
         self.warning(exception, stack=True)
         self.log_stack()
+        connection.close_reason = REASON_ERROR
+        connection.close_error = str(exception)
         connection.close()
 
     def on_exception_s(self, exception):
@@ -965,6 +969,8 @@ class StreamServer(Server):
 
     def on_expected(self, exception, connection):
         self.debug(exception)
+        connection.close_reason = REASON_ERROR
+        connection.close_error = str(exception)
         connection.close()
 
     def on_expected_s(self, exception):
@@ -1070,7 +1076,9 @@ class StreamServer(Server):
         # is raises the connection is closed (avoids possible errors)
         try:
             connection.run_starter()
-        except Exception:
+        except Exception as exception:
+            connection.close_reason = REASON_ERROR
+            connection.close_error = str(exception)
             connection.close()
             raise
 

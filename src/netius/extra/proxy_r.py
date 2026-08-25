@@ -540,7 +540,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         connection.proxy_c = _connection
         connection.prefix = prefix
         connection.state = state
-        self.map_connection(_connection, connection)
+        self.conn_map[_connection] = connection
 
     def rules(self, url, parser):
         resolved = self.rules_regex(url, parser)

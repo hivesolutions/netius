@@ -139,7 +139,7 @@ class ForwardProxyServer(netius.servers.ProxyServer):
             _connection.max_pending = self.max_pending
             _connection.min_pending = self.min_pending
             connection.proxy_c = _connection
-            self.map_connection(_connection, connection)
+            self.conn_map[_connection] = connection
 
     def compile(self):
         for key, rule in netius.legacy.items(self.rules):
