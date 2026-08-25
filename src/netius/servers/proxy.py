@@ -367,6 +367,56 @@ class ProxyServer(http2.HTTP2Server):
         self.conn_map[_connection] = connection
         return _connection
 
+    def reason_connection(self, _connection, reason):
+        """
+        Sets the provided close reason in the back-end connection, taking
+        into account that the value may be a protocol instead of a proper
+        connection, in which case the underlying connection is the one to
+        be marked, as that's the object known by the diagnostics.
+
+        :type _connection: Connection/HTTPProtocol
+        :param _connection: The back-end connection (or protocol) that is
+        going to have its close reason set.
+        :type reason: String
+        :param reason: The reason to be associated with the closing of the
+        connection, should be one of the close reason constants.
+        """
+
+        _connection = getattr(_connection, "connection", _connection)
+        if not _connection:
+            return
+        _connection.close_reason = reason
+
+    def pair_connection(self, _connection):
+        """
+        Associates the identifier of the back-end connection with the one
+        of the front-end connection mapped to it (and the other way around)
+        so that the two sides of the exchange may be correlated even after
+        both of them have been closed.
+
+        Note that the back-end value may be a protocol instead of a proper
+        connection, in which case the underlying connection is the one to
+        be used, as that's the object known by the diagnostics.
+
+        :type _connection: Connection/HTTPProtocol
+        :param _connection: The back-end connection (or protocol) that is
+        going to be associated with its front-end counterpart.
+        """
+
+        connection = self.conn_map.get(_connection, None)
+        if not connection:
+            return
+
+        # resolves the back-end value into the underlying connection, note
+        # that a plain connection has no such attribute and so it's the
+        # value itself that is used for the association
+        _connection = getattr(_connection, "connection", _connection)
+        if not _connection:
+            return
+
+        _connection.close_paired = connection.id
+        connection.close_paired = _connection.id
+
     def is_upgrade(self, parser):
         """
         Determines if the request associated with the provided parser
@@ -431,8 +481,10 @@ class ProxyServer(http2.HTTP2Server):
         proxy_c = hasattr(connection, "proxy_c") and connection.proxy_c
 
         if tunnel_c:
+            self.reason_connection(tunnel_c, netius.REASON_EXPLICIT)
             tunnel_c.close()
         if proxy_c:
+            self.reason_connection(proxy_c, netius.REASON_EXPLICIT)
             proxy_c.close()
 
         setattr(connection, "tunnel_c", None)
@@ -446,8 +498,10 @@ class ProxyServer(http2.HTTP2Server):
         proxy_c = hasattr(stream, "proxy_c") and stream.proxy_c
 
         if tunnel_c:
+            self.reason_connection(tunnel_c, netius.REASON_EXPLICIT)
             tunnel_c.close()
         if proxy_c:
+            self.reason_connection(proxy_c, netius.REASON_EXPLICIT)
             proxy_c.close()
 
         setattr(stream, "tunnel_c", None)
@@ -1133,7 +1187,7 @@ class ProxyServer(http2.HTTP2Server):
         # current client connection and that may or may not close the
         # corresponding back-end connection (as defined in specification)
         def close(connection):
-            connection.close(flush=True)
+            connection.close(flush=True, reason=netius.REASON_EXPLICIT)
 
         # verifies that the connection is meant to be kept alive, the
         # connection is meant to be kept alive when both the client and
@@ -1193,9 +1247,11 @@ class ProxyServer(http2.HTTP2Server):
 
     def _on_prx_connect(self, client, _connection):
         _connection.waiting = False
+        self.pair_connection(_connection)
 
     def _on_prx_acquire(self, client, _connection):
         _connection.waiting = False
+        self.pair_connection(_connection)
 
     def _on_prx_close(self, client, _connection):
         """
@@ -1228,6 +1284,11 @@ class ProxyServer(http2.HTTP2Server):
                 _connection.id,
             )
             return
+
+        # the front-end connection is going to be closed as a consequence of
+        # the back-end one having been closed, so the reason for it is set
+        # before any of the closing operations is started
+        connection.close_reason = netius.REASON_UPSTREAM_ERROR
 
         # in case a response is being held for the deferred encoding decision
         # it must be released before the connection is closed, otherwise the
@@ -1303,6 +1364,8 @@ class ProxyServer(http2.HTTP2Server):
         # be handled by the error manager, and that should imply
         # a closing operation on the original/proxy connection)
         error_m = str(error) or "Unknown proxy relay error"
+        connection.close_reason = netius.REASON_UPSTREAM_ERROR
+        connection.close_error = error_m
         if _connection.waiting:
             connection.send_response(
                 data=cls.build_text(error_m),
@@ -1318,6 +1381,7 @@ class ProxyServer(http2.HTTP2Server):
 
     def _on_raw_connect(self, client, _connection):
         connection = self.conn_map[_connection]
+        self.pair_connection(_connection)
 
         # retrieves the optional response and data values that may have
         # been associated with the tunnel connection, the response is
@@ -1354,7 +1418,7 @@ class ProxyServer(http2.HTTP2Server):
 
     def _on_raw_close(self, client, _connection):
         connection = self.conn_map[_connection]
-        connection.close(flush=True)
+        connection.close(flush=True, reason=netius.REASON_UPSTREAM_ERROR)
         del self.conn_map[_connection]
 
     def _apply_headers(self, parser, connection, parser_prx, headers, upper=True):

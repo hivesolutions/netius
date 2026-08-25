@@ -285,7 +285,7 @@ class HTTPConnection(netius.Connection):
             self.idle_h = self.owner.delay(self.close_idle, timeout=remaining)
             return
 
-        self.close(flush=True)
+        self.close(flush=True, reason=netius.REASON_TIMEOUT)
 
     def info_dict(self, full=False):
         info = netius.Connection.info_dict(self, full=full)

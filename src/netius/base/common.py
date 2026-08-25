@@ -291,6 +291,12 @@ COMPACT_MIN = 64
 the compaction of the delayed queues may be triggered, avoiding the
 cost of such operation for a small number of them """
 
+DIAG_CLOSED_MAX = max(config.conf("DIAG_CLOSED_MAX", 512, cast=int), 0)
+""" The maximum number of closed connections that are kept by the
+diagnostics ring buffer, once such value is reached the oldest of
+the entries are dropped so that the memory usage remains bound, note
+that a negative value is clamped as it's not a valid bound """
+
 KEEPALIVE_TIMEOUT = 300
 """ The amount of time in seconds that a connection is set as
 idle until a new refresh token is sent to it to make sure that
@@ -364,6 +370,11 @@ class AbstractBase(observer.Observable):
     """ Reference to the instance currently holding the diagnostics
     server for the process, ensures only one diag server binds per
     process even when multiple base instances coexist """
+
+    _DIAG_CLOSED = collections.deque(maxlen=DIAG_CLOSED_MAX)
+    """ Ring buffer with the snapshots of the connections that have
+    been recently closed, shared by every instance of the process so
+    that both sides of a proxied exchange are kept together """
 
     def __init__(self, name=None, handlers=None, *args, **kwargs):
         observer.Observable.__init__(self, *args, **kwargs)
@@ -2075,7 +2086,7 @@ class AbstractBase(observer.Observable):
         # registered in the base structure and closes them so that
         # can no longer be used and are gracefully disconnected
         for connection in connections:
-            connection.close()
+            connection.close(reason=REASON_EXPLICIT)
 
         # iterates over the complete set of sockets in the connections
         # map to properly close them (avoids any leak of resources)
@@ -3098,6 +3109,13 @@ class AbstractBase(observer.Observable):
             connection.owner.name,
         )
 
+        # records the connection in the ring buffer of closed connections
+        # so that it may still be inspected after its destruction, note that
+        # this is only performed while running under diagnostics, either the
+        # ones set by configuration or the ones started by an instance
+        if is_diag or AbstractBase._DIAG_INSTANCE:
+            self.record_closed(connection)
+
         # triggers the event notifying any listener about the
         # deletion/destruction f the connection
         self.trigger("connection_d", self, connection)
@@ -3221,7 +3239,7 @@ class AbstractBase(observer.Observable):
                 if data:
                     self.on_data_base(connection, data)
                 else:
-                    connection.close()
+                    connection.close(reason=REASON_CLIENT_EOF)
                     break
                 if not connection.status == OPEN:
                     break
@@ -3320,7 +3338,7 @@ class AbstractBase(observer.Observable):
         if not connection.status == OPEN:
             return
 
-        connection.close()
+        connection.close(reason=REASON_ERROR)
 
     def on_read_s(self, _socket, service):
         try:
@@ -3360,7 +3378,7 @@ class AbstractBase(observer.Observable):
     def on_exception(self, exception, connection):
         self.warning(exception, stack=True)
         self.log_stack()
-        connection.close()
+        connection.close(reason=REASON_ERROR, error=str(exception))
 
     def on_exception_s(self, exception):
         self.warning(exception)
@@ -3368,7 +3386,7 @@ class AbstractBase(observer.Observable):
 
     def on_expected(self, exception, connection):
         self.debug(exception)
-        connection.close()
+        connection.close(reason=REASON_ERROR, error=str(exception))
 
     def on_expected_s(self, exception):
         self.debug(exception)
@@ -3448,6 +3466,46 @@ class AbstractBase(observer.Observable):
         )
         return info_s
 
+    def record_closed(self, connection):
+        """
+        Records the provided (already closed) connection in the ring buffer
+        of closed connections, taking a snapshot of its information together
+        with the metadata that describes the closing of it.
+
+        The buffer is shared by the complete set of instances running under
+        the process, so that the two sides of a proxied exchange may be
+        correlated through the paired connection identifier.
+
+        :type connection: BaseConnection
+        :param connection: The connection that has just been closed and
+        that is going to be recorded in the ring buffer.
+        """
+
+        # the snapshot is a shallow one so that no reference to the internal
+        # structures of the connection (eg: the parser and its buffers) is
+        # retained by the ring buffer for the lifetime of the entry
+        info = connection.info_dict()
+
+        # calculates the total duration of the connection, note that such
+        # value is only available for the connections that keep track of
+        # their creation time (the diagnostics oriented ones)
+        creation = getattr(connection, "creation", None)
+        duration = (
+            connection.close_timestamp - creation
+            if creation and connection.close_timestamp
+            else None
+        )
+
+        # adds the metadata that is only meaningful once the connection has
+        # been closed, the paired identifier allows the correlation of the
+        # front-end and the back-end sides of a proxied exchange
+        info.update(
+            duration=duration,
+            close_paired=getattr(connection, "close_paired", None),
+        )
+
+        AbstractBase._DIAG_CLOSED.append(info)
+
     def connections_dict(self, full=False):
         connections = []
         for connection in self.connections:
@@ -3465,6 +3523,14 @@ class AbstractBase(observer.Observable):
         if not connection:
             return None
         return connection.info_dict(full=full)
+
+    def connections_closed_dict(self):
+        # the snapshot is taken through a list conversion instead of a
+        # reversed iteration, as the latter is not safe against the append
+        # of a new entry from one of the event loop threads
+        closed = list(AbstractBase._DIAG_CLOSED)
+        closed.reverse()
+        return closed
 
     def build_connection(self, socket, address=None, datagram=False, ssl=False):
         """
@@ -3544,8 +3610,8 @@ class AbstractBase(observer.Observable):
         # is raises the connection is closed (avoids possible errors)
         try:
             connection.run_starter()
-        except Exception:
-            connection.close()
+        except Exception as exception:
+            connection.close(reason=REASON_ERROR, error=str(exception))
             raise
 
         # in case there's extraneous data pending to be read from the
@@ -4337,7 +4403,7 @@ class AbstractBase(observer.Observable):
                 self.warning(error, stack=True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
-                connection.close()
+                connection.close(reason=REASON_ERROR, error=str(error))
                 return
         except socket.error as error:
             error_v = error.args[0] if error.args else None
@@ -4345,7 +4411,7 @@ class AbstractBase(observer.Observable):
                 self.warning(error, stack=True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
-                connection.close()
+                connection.close(reason=REASON_ERROR, error=str(error))
                 return
         except (KeyboardInterrupt, SystemExit):
             raise
@@ -4353,7 +4419,7 @@ class AbstractBase(observer.Observable):
             self.warning(exception, stack=True)
             self.log_stack()
             self.trigger("error", self, connection, exception)
-            connection.close()
+            connection.close(reason=REASON_ERROR, error=str(exception))
             raise
 
         # otherwise the connect operation has finished correctly

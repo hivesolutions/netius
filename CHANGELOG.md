@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Inspection of the recently closed connections and of the reason for their closing under the diagnostics - [#55](https://github.com/hivesolutions/netius/issues/55)
 
 ### Changed
 

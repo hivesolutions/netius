@@ -179,6 +179,11 @@ class HTTPConnectionTest(unittest.TestCase):
             with mock.patch.object(connection, "close") as close:
                 connection.close_idle()
         self.assertEqual(close.call_count, 1)
+        self.assertEqual(close.call_args[1]["flush"], True)
+
+        # the closing must be identified as a timeout driven one, as that's
+        # the reason that is going to be reported by the diagnostics
+        self.assertEqual(close.call_args[1]["reason"], netius.REASON_TIMEOUT)
 
     def test_send_gzip(self):
         if mock == None:

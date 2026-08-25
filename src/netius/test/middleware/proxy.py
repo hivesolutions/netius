@@ -202,6 +202,10 @@ class ProxyMiddlewareTest(unittest.TestCase):
         self.assertEqual(connection.status, netius.CLOSED)
         self.assertNotIn(connection, self.server.connections)
 
+        # the closing must be identified as a timeout driven one, so that
+        # the diagnostics are able to report the cause for it
+        self.assertEqual(connection.close_reason, netius.REASON_TIMEOUT)
+
     def test_timeout_completed(self):
         instance = self.server.register_middleware(
             netius.middleware.ProxyMiddleware, handshake_timeout=1

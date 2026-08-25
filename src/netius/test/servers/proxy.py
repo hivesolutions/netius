@@ -173,6 +173,61 @@ class ProxyServerTest(unittest.TestCase):
         self.assertEqual(backend.tunnel_d, b"data")
         self.assertEqual(backend.tunnel_r, None)
 
+    def test_reason_connection(self):
+        class Connection(object):
+            pass
+
+        # a plain connection is the one to be marked, as there's no
+        # protocol wrapping it under the old architecture
+        connection = Connection()
+        self.server.reason_connection(connection, netius.REASON_EXPLICIT)
+        self.assertEqual(connection.close_reason, netius.REASON_EXPLICIT)
+
+        # under the new architecture the value is a protocol, so it's the
+        # underlying connection that must be marked, as that's the object
+        # known by the diagnostics
+        protocol = Connection()
+        protocol.connection = Connection()
+        self.server.reason_connection(protocol, netius.REASON_UPSTREAM_ERROR)
+        self.assertEqual(protocol.connection.close_reason, netius.REASON_UPSTREAM_ERROR)
+        self.assertEqual(hasattr(protocol, "close_reason"), False)
+
+        # a protocol with no underlying connection must be gracefully
+        # handled, as the connection may not have been established yet
+        protocol = Connection()
+        protocol.connection = None
+        self.server.reason_connection(protocol, netius.REASON_ERROR)
+        self.assertEqual(hasattr(protocol, "close_reason"), False)
+
+    def test_pair_connection(self):
+        class Connection(object):
+
+            def __init__(self, id):
+                self.id = id
+
+        # a back-end connection that is not mapped must be ignored, as
+        # there's no front-end counterpart to be associated with it
+        backend = Connection("backend")
+        self.server.pair_connection(backend)
+        self.assertEqual(hasattr(backend, "close_paired"), False)
+
+        # both sides of a mapped exchange must end up knowing about the
+        # identifier of the other one, so that they may be correlated
+        frontend = Connection("frontend")
+        self.server.conn_map[backend] = frontend
+        self.server.pair_connection(backend)
+        self.assertEqual(backend.close_paired, "frontend")
+        self.assertEqual(frontend.close_paired, "backend")
+
+        # a protocol is resolved into its connection, so that it's the
+        # identifier of such connection that is used for the pairing
+        protocol = Connection("protocol")
+        protocol.connection = Connection("underlying")
+        self.server.conn_map[protocol] = frontend
+        self.server.pair_connection(protocol)
+        self.assertEqual(protocol.connection.close_paired, "frontend")
+        self.assertEqual(frontend.close_paired, "underlying")
+
     def test__prx_encoding(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")

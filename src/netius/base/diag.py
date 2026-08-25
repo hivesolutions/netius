@@ -100,6 +100,11 @@ class DiagApp(appier.APIApp):
         info = self.system.connections_dict(full=full)
         return self.json(info, sort_keys=True, cls=DiagEncoder)
 
+    @appier.route("/connections/closed", "GET")
+    def list_connections_closed(self):
+        info = self.system.connections_closed_dict()
+        return self.json(info, sort_keys=True, cls=DiagEncoder)
+
     @appier.route("/connections/<str:id>", "GET")
     def show_connection(self, id):
         full = self.field("full", True, cast=bool)

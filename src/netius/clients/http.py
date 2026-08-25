@@ -699,6 +699,8 @@ class HTTPProtocol(netius.StreamProtocol):
                 cls.set_error(
                     "timeout", message="Timeout on connect", request=self.request
                 )
+            if self.connection:
+                self.connection.close_reason = netius.REASON_TIMEOUT
             self.close()
 
         # schedules a delay operation to run the timeout handler for
@@ -772,7 +774,11 @@ class HTTPProtocol(netius.StreamProtocol):
             cls.set_error("timeout", message=message, request=self.request)
 
             # closes the protocol (it's no longer considered valid)
-            # and then verifies the various auto closing values
+            # and then verifies the various auto closing values, note
+            # that the reason is set in the underlying connection as
+            # it's the one that is going to be recorded
+            if self.connection:
+                self.connection.close_reason = netius.REASON_TIMEOUT
             self.close()
 
         # sends the request effectively triggering a chain of event

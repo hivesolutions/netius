@@ -28,10 +28,13 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import socket
 import unittest
+import collections
 
 import netius
 
+from netius.base import conn
 from netius.base import common
 
 
@@ -141,3 +144,151 @@ class BaseTest(unittest.TestCase):
 
         self.assertNotEqual(result, None)
         self.assertEqual(isinstance(result, str), True)
+
+    def test_diag_closed_max(self):
+        # the bound of the ring buffer must never be a negative value, as
+        # the construction of the deque would otherwise fail at import
+        self.assertEqual(common.DIAG_CLOSED_MAX >= 0, True)
+        self.assertEqual(
+            common.AbstractBase._DIAG_CLOSED.maxlen, common.DIAG_CLOSED_MAX
+        )
+
+    def test_on_connection_d(self):
+        loop = netius.Base()
+        buffer = common.AbstractBase._DIAG_CLOSED
+        instance = common.AbstractBase._DIAG_INSTANCE
+        try:
+            buffer.clear()
+
+            # with no diagnostics running the closing of a connection must
+            # not be recorded, sparing the regular execution from its cost
+            self._make_connection(loop)
+
+            self.assertEqual(len(buffer), 0)
+
+            # a diagnostics application started from an instance is enough
+            # for the recording to happen, even with the configuration unset
+            common.AbstractBase._DIAG_INSTANCE = loop
+            connection = self._make_connection(loop)
+
+            self.assertEqual(len(buffer), 1)
+            self.assertEqual(buffer[0]["id"], connection.id)
+        finally:
+            common.AbstractBase._DIAG_INSTANCE = instance
+            buffer.clear()
+            loop.close()
+
+    def test_record_closed(self):
+        loop = netius.Base()
+        buffer = common.AbstractBase._DIAG_CLOSED
+        try:
+            buffer.clear()
+
+            # a connection that keeps track of its creation must have the
+            # duration of it calculated from the closing timestamp
+            connection = self._make_connection(loop, diag=True)
+            connection.creation = connection.close_timestamp - 2.0
+            connection.close_paired = "other"
+            connection.recvs = 3
+            connection.sends = 2
+            connection.in_bytes = 512
+            connection.out_bytes = 1024
+            connection.last_recv_ts = connection.close_timestamp - 1.0
+            loop.record_closed(connection)
+
+            self.assertEqual(len(buffer), 1)
+            self.assertEqual(buffer[0]["id"], connection.id)
+            self.assertEqual(buffer[0]["close_reason"], netius.REASON_TIMEOUT)
+            self.assertEqual(buffer[0]["close_error"], "idle")
+            self.assertEqual(buffer[0]["close_paired"], "other")
+            self.assertEqual(buffer[0]["duration"], 2.0)
+
+            # the record must reflect the values of the connection at the
+            # moment it was taken, so they are verified one by one
+            self.assertEqual(buffer[0]["status"], connection.status)
+            self.assertEqual(buffer[0]["recvs"], connection.recvs)
+            self.assertEqual(buffer[0]["sends"], connection.sends)
+            self.assertEqual(buffer[0]["in_bytes"], connection.in_bytes)
+            self.assertEqual(buffer[0]["out_bytes"], connection.out_bytes)
+            self.assertEqual(buffer[0]["close_timestamp"], connection.close_timestamp)
+            self.assertEqual(
+                buffer[0]["last_activity_timestamp"], connection._last_activity()
+            )
+
+            # the duration must be the exact distance between the creation
+            # and the closing of the connection
+            self.assertEqual(
+                buffer[0]["duration"],
+                connection.close_timestamp - connection.creation,
+            )
+
+            # the record is detached from the connection, so a change in the
+            # latter must never be reflected in the value already stored
+            connection.close_reason = netius.REASON_ERROR
+            connection.in_bytes = 0
+
+            self.assertEqual(buffer[0]["close_reason"], netius.REASON_TIMEOUT)
+            self.assertEqual(buffer[0]["in_bytes"], 512)
+
+            # a connection with no creation time has no duration associated
+            # with it, as there's no value from which to measure it
+            connection = self._make_connection(loop)
+            loop.record_closed(connection)
+
+            self.assertEqual(len(buffer), 2)
+            self.assertEqual(buffer[1]["duration"], None)
+            self.assertEqual(buffer[1]["close_paired"], None)
+        finally:
+            buffer.clear()
+            loop.close()
+
+    def test_connections_closed_dict(self):
+        loop = netius.Base()
+        original = common.AbstractBase._DIAG_CLOSED
+        try:
+            # replaces the ring buffer by a smaller one so that the bound
+            # of it may be verified without a large number of entries
+            common.AbstractBase._DIAG_CLOSED = collections.deque(maxlen=2)
+
+            first = self._make_connection(loop)
+            second = self._make_connection(loop)
+            loop.record_closed(first)
+            loop.record_closed(second)
+
+            # the most recently closed connection must be the first one to
+            # be reported, so that the latest events are the visible ones
+            closed = loop.connections_closed_dict()
+            self.assertEqual([info["id"] for info in closed], [second.id, first.id])
+
+            # once the maximum number of entries is reached the oldest of
+            # them must be dropped, keeping the memory usage bounded
+            third = self._make_connection(loop)
+            loop.record_closed(third)
+
+            closed = loop.connections_closed_dict()
+            self.assertEqual(len(closed), 2)
+            self.assertEqual([info["id"] for info in closed], [third.id, second.id])
+
+            # the listing is a snapshot detached from the ring buffer, so a
+            # new record must not change a listing that was already taken
+            loop.record_closed(self._make_connection(loop))
+
+            self.assertEqual(len(closed), 2)
+            self.assertEqual([info["id"] for info in closed], [third.id, second.id])
+        finally:
+            common.AbstractBase._DIAG_CLOSED = original
+            loop.close()
+
+    def _make_connection(self, loop, diag=False):
+        # builds a closed connection registered in the loop, so that it may
+        # be recorded in the ring buffer of closed connections
+        _socket = socket.socket()
+        cls = conn.DiagConnection if diag else conn.BaseConnection
+        connection = cls(owner=loop, socket=_socket)
+        connection.status = conn.OPEN
+        loop.connections.append(connection)
+        loop.connections_m[_socket] = connection
+        connection.close_reason = netius.REASON_TIMEOUT
+        connection.close_error = "idle"
+        connection.close()
+        return connection

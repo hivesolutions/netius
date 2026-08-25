@@ -68,6 +68,30 @@ CHUNK_SIZE = 16384
 """ The size of the chunk to be used while received
 data from the service socket """
 
+REASON_TIMEOUT = "timeout"
+""" Close reason for a connection that has been closed because
+it remained idle for longer than the allowed period of time """
+
+REASON_CLIENT_EOF = "client_eof"
+""" Close reason for the situation where the other peer has closed
+the connection gracefully, meaning that no more data is available """
+
+REASON_UPSTREAM_ERROR = "upstream_error"
+""" Close reason for a connection closed as a consequence of a
+failure in the upstream (back-end) connection associated with it """
+
+REASON_ERROR = "error"
+""" Close reason for a connection that has been closed because of
+an error raised while handling either its data or its socket """
+
+REASON_EXPLICIT = "explicit"
+""" Close reason for a connection closed by an explicit request of
+the upper layers, meaning that the closing was protocol driven """
+
+REASON_UNKNOWN = "unknown"
+""" Fallback close reason set whenever no other one has been
+associated with the connection before it has been closed """
+
 
 class BaseConnection(observer.Observable):
     """
@@ -112,6 +136,9 @@ class BaseConnection(observer.Observable):
         self.wready = False
         self.pending_s = 0
         self.restored_s = 0
+        self.close_reason = None
+        self.close_error = None
+        self.close_timestamp = None
         self.starters = collections.deque()
         self.pending = collections.deque()
         self.restored = collections.deque()
@@ -169,12 +196,20 @@ class BaseConnection(observer.Observable):
         # the current netius specification and strategy
         self.trigger("open", self)
 
-    def close(self, flush=False, destroy=True):
+    def close(self, flush=False, destroy=True, reason=None, error=None):
         # in case the current status of the connection is closed it does
         # nor make sense to proceed with the closing as the connection
         # is already in the closed state (nothing to be done)
         if self.status == CLOSED:
             return
+
+        # associates the provided reason (and error) with the connection,
+        # note that this is done before the flushing so that the values
+        # survive a closing that is deferred until the buffer is empty
+        if reason:
+            self.close_reason = reason
+        if error:
+            self.close_error = error
 
         # in case the flush flag is set, a different approach is taken
         # where all the pending data is flushed (as possible) before
@@ -187,6 +222,13 @@ class BaseConnection(observer.Observable):
         # so that no one else changes the current connection status
         # this is relevant to avoid any erroneous situation
         self.status = CLOSED
+
+        # marks the timestamp for the closing of the connection and makes
+        # sure that a reason is associated with it, so that a connection
+        # closed with no explicit reason is still properly identified
+        self.close_timestamp = time.time()
+        if not self.close_reason:
+            self.close_reason = REASON_UNKNOWN
 
         # unsets the connecting flag this is for connections that
         # are under the connecting state, and that must be reverted
@@ -685,6 +727,9 @@ class BaseConnection(observer.Observable):
             owner=getattr(self.owner, "name", None) if self.owner else None,
             waiting=getattr(self, "waiting", None),
             busy=getattr(self, "busy", None),
+            close_reason=self.close_reason,
+            close_error=self.close_error,
+            close_timestamp=self.close_timestamp,
         )
         return info
 
@@ -1074,11 +1119,24 @@ class DiagConnection(BaseConnection):
             out_bytes=self.out_bytes,
             last_recv_ts=self.last_recv_ts,
             last_send_ts=self.last_send_ts,
+            last_activity_timestamp=self._last_activity(),
         )
-        geo = self._resolve(self.address)
-        if geo:
-            info["geo"] = geo
+        # the geographical resolution of the address is an expensive
+        # operation, so it's only performed for the full version of the
+        # information, sparing the uses that are run per connection
+        if full:
+            geo = self._resolve(self.address)
+            if geo:
+                info["geo"] = geo
         return info
+
+    def _last_activity(self):
+        timestamps = [
+            timestamp
+            for timestamp in (self.last_recv_ts, self.last_send_ts)
+            if timestamp
+        ]
+        return max(timestamps) if timestamps else None
 
     def _uptime(self):
         creation_d = datetime.datetime.utcfromtimestamp(self.creation)
