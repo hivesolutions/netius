@@ -311,6 +311,41 @@ class HTTP2ParserTest(unittest.TestCase):
                 )
 
             parser.assert_window_update(None, 4096)
+
+            # the connection window may only be changed by an update sent
+            # for the zero stream, so an update sent for a "normal" stream
+            # must not be verified against the value of such window
+            parser.stream = 0x01
+            parser.assert_window_update(None, 2147483647)
+
+            # an update that overflows the window of the stream is a stream
+            # level error, meaning that only such stream is reset by it
+            stream = netius.common.http2.HTTP2Stream.__new__(
+                netius.common.http2.HTTP2Stream
+            )
+            stream.window = 1
+
+            if hasattr(self, "assertRaisesRegexp"):
+                self.assertRaisesRegexp(
+                    netius.ParserError,
+                    "Window value for the stream too large",
+                    lambda: parser.assert_window_update(stream, 2147483647),
+                )
+            else:
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Window value for the stream too large",
+                    lambda: parser.assert_window_update(stream, 2147483647),
+                )
+
+            try:
+                parser.assert_window_update(stream, 2147483647)
+            except netius.ParserError as error:
+                self.assertEqual(error.get_kwarg("stream"), 0x01)
+                self.assertEqual(
+                    error.get_kwarg("error_code"),
+                    netius.common.http2.FLOW_CONTROL_ERROR,
+                )
         finally:
             parser.clear(force=True)
 
