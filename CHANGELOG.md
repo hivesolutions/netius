@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Responses are no longer truncated or dropped under macOS when a connection ends
 
 ## [1.62.0] - 2026-08-25
 
