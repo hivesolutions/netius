@@ -1826,7 +1826,7 @@ class AbstractBase(observer.Observable):
         # may be used for runtime debugging purposes (debug only data)
         cthread = threading.current_thread()
         self.tid = cthread.ident or 0
-        self.tname = cthread.getName()
+        self.tname = cthread.name
         self._main = self.tname == "MainThread"
 
         # re-builds the polling structure with the new name this
