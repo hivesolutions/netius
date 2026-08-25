@@ -123,8 +123,8 @@ class EpollPollTest(unittest.TestCase):
             self.skipTest("Skipping test: epoll unavailable")
 
         instance = poll.EpollPoll()
-        socket = _Socket()
-        instance.fd_m = {socket.fileno(): socket}
+        socket = self._make_socket()
+        instance.fd_m = {1: socket}
 
         # a readable event is reported as a read operation, the same being
         # true for a writable one and for an error one
@@ -140,8 +140,22 @@ class EpollPollTest(unittest.TestCase):
         )
 
     def _poll(self, instance, event):
-        instance.epoll = _Epoll([(1, event)])
+        instance.epoll = self._make_epoll([(1, event)])
         return instance.poll()
+
+    def _make_socket(self):
+        Socket = collections.namedtuple("Socket", "name")
+        return Socket(name="socket")
+
+    def _make_epoll(self, events):
+        # builds an epoll stand-in that reports a fixed sequence of events,
+        # so that the classification of them may be verified
+        class Epoll(object):
+
+            def poll(self, *args, **kwargs):
+                return events
+
+        return Epoll()
 
 
 class KqueuePollTest(unittest.TestCase):
@@ -157,8 +171,8 @@ class KqueuePollTest(unittest.TestCase):
             self.skipTest("Skipping test: kqueue unavailable")
 
         instance = poll.KqueuePoll()
-        socket = _Socket()
-        instance.fd_m = {socket.fileno(): socket}
+        socket = self._make_socket()
+        instance.fd_m = {1: socket}
 
         # a plain read event is reported as a read operation
         self.assertEqual(
@@ -192,8 +206,23 @@ class KqueuePollTest(unittest.TestCase):
 
     def _poll(self, instance, filter, flags):
         Event = collections.namedtuple("Event", "filter flags udata")
-        instance.kqueue = _Kqueue([Event(filter=filter, flags=flags, udata=1)])
+        event = Event(filter=filter, flags=flags, udata=1)
+        instance.kqueue = self._make_kqueue([event])
         return instance.poll()
+
+    def _make_socket(self):
+        Socket = collections.namedtuple("Socket", "name")
+        return Socket(name="socket")
+
+    def _make_kqueue(self, events):
+        # builds a kqueue stand-in that reports a fixed sequence of events,
+        # so that the classification of them may be verified
+        class Kqueue(object):
+
+            def control(self, *args, **kwargs):
+                return events
+
+        return Kqueue()
 
 
 class PollPollTest(unittest.TestCase):
@@ -209,9 +238,9 @@ class PollPollTest(unittest.TestCase):
             self.skipTest("Skipping test: poll unavailable")
 
         instance = poll.PollPoll()
-        socket = _Socket()
-        instance.read_fd = {socket.fileno(): socket}
-        instance.write_fd = {socket.fileno(): socket}
+        socket = self._make_socket()
+        instance.read_fd = {1: socket}
+        instance.write_fd = {1: socket}
 
         self.assertEqual(self._poll(instance, select.POLLIN), ([socket], [], []))
         self.assertEqual(self._poll(instance, select.POLLOUT), ([], [socket], []))
@@ -222,8 +251,22 @@ class PollPollTest(unittest.TestCase):
         self.assertEqual(self._poll(instance, select.POLLHUP), ([], [], [socket]))
 
     def _poll(self, instance, event):
-        instance._poll = _Epoll([(1, event)])
+        instance._poll = self._make_poll([(1, event)])
         return instance.poll()
+
+    def _make_socket(self):
+        Socket = collections.namedtuple("Socket", "name")
+        return Socket(name="socket")
+
+    def _make_poll(self, events):
+        # builds a poll stand-in that reports a fixed sequence of events, so
+        # that the classification of them may be verified
+        class Poll(object):
+
+            def poll(self, *args, **kwargs):
+                return events
+
+        return Poll()
 
 
 class SelectPollTest(unittest.TestCase):
@@ -243,39 +286,3 @@ class SelectPollTest(unittest.TestCase):
         # an empty selection must not reach the select call, returning the
         # three empty sequences after a small sleep instead
         self.assertEqual(instance.poll(), ([], [], []))
-
-
-class _Socket(object):
-    """
-    Socket stand-in that reports a fixed file descriptor, so that the
-    mapping performed by the polls may be exercised.
-    """
-
-    def fileno(self):
-        return 1
-
-
-class _Epoll(object):
-    """
-    Stand-in for the epoll (and poll) objects, reporting a fixed sequence
-    of events so that their classification may be verified.
-    """
-
-    def __init__(self, events):
-        self.events = events
-
-    def poll(self, *args, **kwargs):
-        return self.events
-
-
-class _Kqueue(object):
-    """
-    Stand-in for the kqueue object, reporting a fixed sequence of events
-    so that their classification may be verified.
-    """
-
-    def __init__(self, events):
-        self.events = events
-
-    def control(self, *args, **kwargs):
-        return self.events
