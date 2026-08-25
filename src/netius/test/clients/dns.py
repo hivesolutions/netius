@@ -123,6 +123,20 @@ class DNSResponseParserTest(unittest.TestCase):
         self.assertEqual(netius.clients.dns.DNS_TYPES["HTTPS"], 0x41)
         self.assertEqual(netius.clients.dns.DNS_TYPES["CAA"], 0x101)
 
+    def test_parse_an(self):
+        name = b"\x03svc\x07example\x03com\x00"
+        params = b"\x00\x01\x00\x02h3"
+        rdata = struct.pack("!H", 1) + name + params
+        record = name + struct.pack("!HHLH", 0x40, 0x01, 300, len(rdata)) + rdata
+        index, answer = self.response.parse_an(record, 0)
+        # the record size is the only way of knowing where the parameters of
+        # the record end, without it they would be reported as empty
+        self.assertEqual(index, len(record))
+        self.assertEqual(
+            answer,
+            (b"svc.example.com", "SVCB", "IN", 300, (1, b"svc.example.com", params)),
+        )
+
     def test_parse_srv(self):
         rdata = struct.pack("!HHH", 10, 20, 443)
         rdata += b"\x04_sip\x07example\x03com\x00"
@@ -137,6 +151,15 @@ class DNSResponseParserTest(unittest.TestCase):
         index, payload = self.response.parse_svcb(rdata, 0, size=len(rdata))
         self.assertEqual(index, len(rdata))
         self.assertEqual(payload, (1, b"svc.example.com", params))
+
+    def test_parse_svcb_invalid_size(self):
+        target = b"\x03svc\x07example\x03com\x00"
+        rdata = struct.pack("!H", 1) + target
+        # a record size smaller than the data that has already been read would
+        # move the index backwards, corrupting the records that follow it
+        self.assertRaises(
+            netius.ParserError, lambda: self.response.parse_svcb(rdata, 0, size=4)
+        )
 
     def test_parse_https_matches_svcb(self):
         target = b"\x03svc\x07example\x03com\x00"
@@ -153,6 +176,14 @@ class DNSResponseParserTest(unittest.TestCase):
         index, payload = self.response.parse_caa(rdata, 0, size=len(rdata))
         self.assertEqual(index, len(rdata))
         self.assertEqual(payload, (0x80, b"issue", b"letsencrypt.org"))
+
+    def test_parse_caa_invalid_size(self):
+        rdata = struct.pack("!BB", 0x00, 200) + b"issue" + b"letsencrypt.org"
+        # the length of the tag overflows the advertised record size, so the
+        # value would be read from outside of the record
+        self.assertRaises(
+            netius.ParserError, lambda: self.response.parse_caa(rdata, 0, size=7)
+        )
 
 
 class _MockTransport(object):
