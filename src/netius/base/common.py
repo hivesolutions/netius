@@ -2085,6 +2085,7 @@ class AbstractBase(observer.Observable):
         # registered in the base structure and closes them so that
         # can no longer be used and are gracefully disconnected
         for connection in connections:
+            connection.close_reason = REASON_EXPLICIT
             connection.close()
 
         # iterates over the complete set of sockets in the connections
@@ -3237,6 +3238,7 @@ class AbstractBase(observer.Observable):
                 if data:
                     self.on_data_base(connection, data)
                 else:
+                    connection.close_reason = REASON_CLIENT_EOF
                     connection.close()
                     break
                 if not connection.status == OPEN:
@@ -3336,6 +3338,7 @@ class AbstractBase(observer.Observable):
         if not connection.status == OPEN:
             return
 
+        connection.close_reason = REASON_ERROR
         connection.close()
 
     def on_read_s(self, _socket, service):
@@ -3376,6 +3379,8 @@ class AbstractBase(observer.Observable):
     def on_exception(self, exception, connection):
         self.warning(exception, stack=True)
         self.log_stack()
+        connection.close_reason = REASON_ERROR
+        connection.close_error = str(exception)
         connection.close()
 
     def on_exception_s(self, exception):
@@ -3384,6 +3389,8 @@ class AbstractBase(observer.Observable):
 
     def on_expected(self, exception, connection):
         self.debug(exception)
+        connection.close_reason = REASON_ERROR
+        connection.close_error = str(exception)
         connection.close()
 
     def on_expected_s(self, exception):
@@ -3600,7 +3607,9 @@ class AbstractBase(observer.Observable):
         # is raises the connection is closed (avoids possible errors)
         try:
             connection.run_starter()
-        except Exception:
+        except Exception as exception:
+            connection.close_reason = REASON_ERROR
+            connection.close_error = str(exception)
             connection.close()
             raise
 
@@ -4393,6 +4402,8 @@ class AbstractBase(observer.Observable):
                 self.warning(error, stack=True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
+                connection.close_reason = REASON_ERROR
+                connection.close_error = str(error)
                 connection.close()
                 return
         except socket.error as error:
@@ -4401,6 +4412,8 @@ class AbstractBase(observer.Observable):
                 self.warning(error, stack=True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
+                connection.close_reason = REASON_ERROR
+                connection.close_error = str(error)
                 connection.close()
                 return
         except (KeyboardInterrupt, SystemExit):
@@ -4409,6 +4422,8 @@ class AbstractBase(observer.Observable):
             self.warning(exception, stack=True)
             self.log_stack()
             self.trigger("error", self, connection, exception)
+            connection.close_reason = REASON_ERROR
+            connection.close_error = str(exception)
             connection.close()
             raise
 
