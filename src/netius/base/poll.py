@@ -231,15 +231,18 @@ class EpollPoll(Poll):
         for fd, event in events:
             if event & select.EPOLLIN:  # @UndefinedVariable pylint: disable=E1101
                 socket = self.fd_m.get(fd, None)
-                socket and result[0].append(socket)
+                if socket:
+                    result[0].append(socket)
             if event & select.EPOLLOUT:  # @UndefinedVariable pylint: disable=E1101
                 socket = self.fd_m.get(fd, None)
-                socket and result[1].append(socket)
+                if socket:
+                    result[1].append(socket)
             if (
                 event & select.EPOLLERR or event & select.EPOLLHUP
             ):  # @UndefinedVariable pylint: disable=E1101
                 socket = self.fd_m.get(fd, None)
-                socket and result[2].append(socket)
+                if socket:
+                    result[2].append(socket)
 
         return result
 
@@ -465,15 +468,18 @@ class PollPoll(Poll):
         for fd, event in events:
             if event & select.POLLIN:  # @UndefinedVariable pylint: disable=E1101
                 socket = self.read_fd.get(fd, None)
-                socket and result[0].append(socket)
+                if socket:
+                    result[0].append(socket)
             if event & select.POLLOUT:  # @UndefinedVariable pylint: disable=E1101
                 socket = self.write_fd.get(fd, None)
-                socket and result[1].append(socket)
+                if socket:
+                    result[1].append(socket)
             if (
                 event & select.POLLERR or event & select.POLLHUP
             ):  # @UndefinedVariable pylint: disable=E1101
                 socket = self.read_fd.get(fd, None)
-                socket and result[2].append(socket)
+                if socket:
+                    result[2].append(socket)
 
         return result
 
