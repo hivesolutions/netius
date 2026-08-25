@@ -43,8 +43,7 @@ def _on_prx_partial(self, client, parser, data):
     connection = self.conn_map.get(parser.owner, None)
     buffer = connection and getattr(connection, "encoding_b", None)
     EVENTS.append(
-        "partial len=%d buffered=%s" % (
-            len(data), buffer["length"] if buffer else None)
+        "partial len=%d buffered=%s" % (len(data), buffer["length"] if buffer else None)
     )
     return _partial(self, client, parser, data)
 
@@ -53,8 +52,8 @@ def _on_prx_message(self, client, parser, message):
     connection = self.conn_map.get(parser.owner, None)
     buffer = connection and getattr(connection, "encoding_b", None)
     EVENTS.append(
-        "message len=%d buffered=%s" % (
-            len(message or b""), buffer["length"] if buffer else None)
+        "message len=%d buffered=%s"
+        % (len(message or b""), buffer["length"] if buffer else None)
     )
     return _message(self, client, parser, message)
 
@@ -62,8 +61,8 @@ def _on_prx_message(self, client, parser, message):
 def _prx_release(self, connection, codec=None, length=None):
     buffer = getattr(connection, "encoding_b", None)
     EVENTS.append(
-        "release codec=%s length=%s buffered=%s" % (
-            bool(codec), length, buffer["length"] if buffer else None)
+        "release codec=%s length=%s buffered=%s"
+        % (bool(codec), length, buffer["length"] if buffer else None)
     )
     return _release(self, connection, codec=codec, length=length)
 
@@ -181,8 +180,10 @@ for index in range(COUNT):
         decoded = zlib.decompress(body, zlib.MAX_WBITS | 16)
         if not decoded == BIG:
             failures += 1
-            dump("iteration %d, body %d bytes (expected %d)" % (
-                index, len(decoded), len(BIG)))
+            dump(
+                "iteration %d, body %d bytes (expected %d)"
+                % (index, len(decoded), len(BIG))
+            )
             break
     except Exception as exception:
         failures += 1
