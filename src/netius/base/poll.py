@@ -335,7 +335,8 @@ class KqueuePoll(Poll):
                 event.flags & select.KQ_EV_ERROR
             ):  # @UndefinedVariable pylint: disable=E1101
                 socket = self.fd_m.get(event.udata, None)
-                socket and result[2].append(socket)
+                if socket:
+                    result[2].append(socket)
             elif (
                 event.filter == select.KQ_FILTER_READ
             ):  # @UndefinedVariable pylint: disable=E1101
@@ -344,7 +345,8 @@ class KqueuePoll(Poll):
                 # a readable one (as the other pollers do) instead of an
                 # errored one, otherwise such data would be discarded
                 socket = self.fd_m.get(event.udata, None)
-                socket and result[0].append(socket)
+                if socket:
+                    result[0].append(socket)
             elif (
                 event.filter == select.KQ_FILTER_WRITE
             ):  # @UndefinedVariable pylint: disable=E1101
@@ -352,7 +354,8 @@ class KqueuePoll(Poll):
                 index = (
                     2 if event.flags & select.KQ_EV_EOF else 1
                 )  # @UndefinedVariable pylint: disable=E1101
-                socket and result[index].append(socket)
+                if socket:
+                    result[index].append(socket)
 
         return result
 
