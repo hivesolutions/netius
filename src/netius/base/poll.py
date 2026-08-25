@@ -340,10 +340,6 @@ class KqueuePoll(Poll):
             elif (
                 event.filter == select.KQ_FILTER_READ
             ):  # @UndefinedVariable pylint: disable=E1101
-                # an end of file in the read filter still implies that the
-                # data already buffered may be read, so the socket is set as
-                # a readable one (as the other pollers do) instead of an
-                # errored one, otherwise such data would be discarded
                 socket = self.fd_m.get(event.udata, None)
                 if socket:
                     result[0].append(socket)
