@@ -350,11 +350,13 @@ class DiagConnectionTest(unittest.TestCase):
         self.assertEqual(connection._uptime(), "0s")
 
         # only the two most significant components are reported, meaning
-        # that the seconds are dropped once there are larger ones
-        connection.creation = time.time() - 3661
+        # that the seconds are dropped once there are larger ones, note that
+        # the offsets are kept away from the boundary of the component so
+        # that the resolution of the clocks does not change the result
+        connection.creation = time.time() - 3690
         self.assertEqual(connection._uptime(), "1h 1m")
 
-        connection.creation = time.time() - 90000
+        connection.creation = time.time() - 91800
         self.assertEqual(connection._uptime(), "1d 1h")
 
         # the resolution of the clocks may place the creation of the
