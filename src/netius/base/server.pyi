@@ -27,7 +27,6 @@ class Server(AbstractBase):
     ca_file: str | None
     env: bool
     allowed: list[str]
-    _concrete: bool
 
     def __init__(self, *args, **kwargs): ...
     def welcome(self): ...

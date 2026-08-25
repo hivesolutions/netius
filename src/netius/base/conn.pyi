@@ -52,7 +52,6 @@ class BaseConnection(Observable):
     restored: deque[bytes]
     pending_lock: RLock
     restored_lock: RLock
-    _starter: Callable[[BaseConnection], Any] | None
 
     def __init__(
         self,

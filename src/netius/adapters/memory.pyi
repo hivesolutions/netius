@@ -3,8 +3,8 @@ from typing import Any, BinaryIO, Callable, Mapping
 from netius import BaseAdapter
 
 class MemoryAdapter(BaseAdapter):
-    map: dict[str, bytes]
-    owners: dict[str, list[str]]
+    map: Mapping[str, Mapping[str, Any]]
+    owners: Mapping[str, Mapping[str, Any]]
 
     def __init__(self): ...
     def _ensure(self, owner: str) -> Mapping[str, Any]: ...

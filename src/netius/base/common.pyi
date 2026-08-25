@@ -123,30 +123,6 @@ class AbstractBase(Observable):
     callbacks_m: dict[
         socket | EventFile, list[Callable[[str, socket | EventFile], Any]]
     ]
-    _uuid: UUID
-    _compat: CompatLoop
-    _lid: int
-    _did: int
-    _main: bool
-    _slave: bool
-    _running: bool
-    _pausing: bool
-    _loaded: bool
-    _forked: bool
-    _child: bool
-    _concrete: bool
-    _logging: bool
-    _services: dict[socket, Service]
-    _childs: list[int]
-    _events: dict[str | None, list[Callable[[Any], Any]]]
-    _notified: list[tuple[str, Any]]
-    _delayed: list[tuple[float, int, Callable[[], Any], int, list[bool]]]
-    _delayed_o: list[tuple[float, Callable[[], Any]]]
-    _cancelled: int
-    _delayed_n: list[tuple[Callable[[], Any], float | None, bool, bool]]
-    _delayed_l: RLock
-    _extra_handlers: list[Handler]
-    _expanded: list[str]
 
     def __init__(
         self,

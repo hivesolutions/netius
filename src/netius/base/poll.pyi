@@ -5,7 +5,6 @@ from netius import Base
 POLL_TIMEOUT: float
 
 class Poll:
-    _open: bool
     timeout: float | None
     read_o: dict[socket, Base | None]
     write_o: dict[socket, Base | None]
@@ -38,8 +37,6 @@ class Poll:
     def unsub_error(self, socket: socket): ...
 
 class EpollPoll(Poll):
-    _open: bool
-
     def __init__(self, *args, **kwargs): ...
     @classmethod
     def test(cls) -> bool: ...
@@ -55,8 +52,6 @@ class EpollPoll(Poll):
     def unsub_error(self, socket: socket): ...
 
 class KqueuePoll(Poll):
-    _open: bool
-
     def __init__(self, *args, **kwargs): ...
     @classmethod
     def test(cls) -> bool: ...
@@ -72,8 +67,6 @@ class KqueuePoll(Poll):
     def unsub_error(self, socket: socket): ...
 
 class PollPoll(Poll):
-    _open: bool
-
     def __init__(self, *args, **kwargs): ...
     @classmethod
     def test(cls) -> bool: ...
@@ -89,8 +82,6 @@ class PollPoll(Poll):
     def unsub_error(self, socket: socket): ...
 
 class SelectPoll(Poll):
-    _open: bool
-
     def __init__(self, *args, **kwargs): ...
     def open(self, timeout: float = ...): ...
     def close(self): ...

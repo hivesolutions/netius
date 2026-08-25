@@ -6,7 +6,6 @@ class NetiusError(Exception):
     message: str
     code: int
     details: Sequence[Any]
-    _uid: UUID | None
 
     def __init__(self, *args, **kwargs): ...
     def get_kwarg(self, name: str, default: Any = ...) -> Any: ...

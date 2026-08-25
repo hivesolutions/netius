@@ -18,7 +18,6 @@ class Client(AbstractBase):
     send_buffer: int | None
     thread: bool
     daemon: bool
-    _thread: BaseThread | None
 
     def __init__(self, thread: bool = ..., daemon: bool = ..., *args, **kwargs): ...
     @classmethod
@@ -71,7 +70,6 @@ class DatagramClient(Client):
 class StreamClient(Client):
     pendings: list[Connection]
     free_map: dict[tuple[Any, ...], list[Connection]]
-    _pending_lock: RLock | None
 
     def __init__(self, *args, **kwargs): ...
     def cleanup(self): ...
