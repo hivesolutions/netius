@@ -1187,8 +1187,7 @@ class ProxyServer(http2.HTTP2Server):
         # current client connection and that may or may not close the
         # corresponding back-end connection (as defined in specification)
         def close(connection):
-            connection.close_reason = netius.REASON_EXPLICIT
-            connection.close(flush=True)
+            connection.close(flush=True, reason=netius.REASON_EXPLICIT)
 
         # verifies that the connection is meant to be kept alive, the
         # connection is meant to be kept alive when both the client and
@@ -1419,8 +1418,7 @@ class ProxyServer(http2.HTTP2Server):
 
     def _on_raw_close(self, client, _connection):
         connection = self.conn_map[_connection]
-        connection.close_reason = netius.REASON_UPSTREAM_ERROR
-        connection.close(flush=True)
+        connection.close(flush=True, reason=netius.REASON_UPSTREAM_ERROR)
         del self.conn_map[_connection]
 
     def _apply_headers(self, parser, connection, parser_prx, headers, upper=True):

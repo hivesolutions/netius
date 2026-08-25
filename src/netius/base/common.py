@@ -2085,8 +2085,7 @@ class AbstractBase(observer.Observable):
         # registered in the base structure and closes them so that
         # can no longer be used and are gracefully disconnected
         for connection in connections:
-            connection.close_reason = REASON_EXPLICIT
-            connection.close()
+            connection.close(reason=REASON_EXPLICIT)
 
         # iterates over the complete set of sockets in the connections
         # map to properly close them (avoids any leak of resources)
@@ -3238,8 +3237,7 @@ class AbstractBase(observer.Observable):
                 if data:
                     self.on_data_base(connection, data)
                 else:
-                    connection.close_reason = REASON_CLIENT_EOF
-                    connection.close()
+                    connection.close(reason=REASON_CLIENT_EOF)
                     break
                 if not connection.status == OPEN:
                     break
@@ -3338,8 +3336,7 @@ class AbstractBase(observer.Observable):
         if not connection.status == OPEN:
             return
 
-        connection.close_reason = REASON_ERROR
-        connection.close()
+        connection.close(reason=REASON_ERROR)
 
     def on_read_s(self, _socket, service):
         try:
@@ -3379,9 +3376,7 @@ class AbstractBase(observer.Observable):
     def on_exception(self, exception, connection):
         self.warning(exception, stack=True)
         self.log_stack()
-        connection.close_reason = REASON_ERROR
-        connection.close_error = str(exception)
-        connection.close()
+        connection.close(reason=REASON_ERROR, error=str(exception))
 
     def on_exception_s(self, exception):
         self.warning(exception)
@@ -3389,9 +3384,7 @@ class AbstractBase(observer.Observable):
 
     def on_expected(self, exception, connection):
         self.debug(exception)
-        connection.close_reason = REASON_ERROR
-        connection.close_error = str(exception)
-        connection.close()
+        connection.close(reason=REASON_ERROR, error=str(exception))
 
     def on_expected_s(self, exception):
         self.debug(exception)
@@ -3611,9 +3604,7 @@ class AbstractBase(observer.Observable):
         try:
             connection.run_starter()
         except Exception as exception:
-            connection.close_reason = REASON_ERROR
-            connection.close_error = str(exception)
-            connection.close()
+            connection.close(reason=REASON_ERROR, error=str(exception))
             raise
 
         # in case there's extraneous data pending to be read from the
@@ -4405,9 +4396,7 @@ class AbstractBase(observer.Observable):
                 self.warning(error, stack=True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
-                connection.close_reason = REASON_ERROR
-                connection.close_error = str(error)
-                connection.close()
+                connection.close(reason=REASON_ERROR, error=str(error))
                 return
         except socket.error as error:
             error_v = error.args[0] if error.args else None
@@ -4415,9 +4404,7 @@ class AbstractBase(observer.Observable):
                 self.warning(error, stack=True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
-                connection.close_reason = REASON_ERROR
-                connection.close_error = str(error)
-                connection.close()
+                connection.close(reason=REASON_ERROR, error=str(error))
                 return
         except (KeyboardInterrupt, SystemExit):
             raise
@@ -4425,9 +4412,7 @@ class AbstractBase(observer.Observable):
             self.warning(exception, stack=True)
             self.log_stack()
             self.trigger("error", self, connection, exception)
-            connection.close_reason = REASON_ERROR
-            connection.close_error = str(exception)
-            connection.close()
+            connection.close(reason=REASON_ERROR, error=str(exception))
             raise
 
         # otherwise the connect operation has finished correctly

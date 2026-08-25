@@ -196,12 +196,20 @@ class BaseConnection(observer.Observable):
         # the current netius specification and strategy
         self.trigger("open", self)
 
-    def close(self, flush=False, destroy=True):
+    def close(self, flush=False, destroy=True, reason=None, error=None):
         # in case the current status of the connection is closed it does
         # nor make sense to proceed with the closing as the connection
         # is already in the closed state (nothing to be done)
         if self.status == CLOSED:
             return
+
+        # associates the provided reason (and error) with the connection,
+        # note that this is done before the flushing so that the values
+        # survive a closing that is deferred until the buffer is empty
+        if reason:
+            self.close_reason = reason
+        if error:
+            self.close_error = error
 
         # in case the flush flag is set, a different approach is taken
         # where all the pending data is flushed (as possible) before

@@ -100,6 +100,43 @@ class BaseConnectionTest(unittest.TestCase):
         self.assertEqual(connection.close_reason, netius.REASON_TIMEOUT)
         self.assertEqual(connection.close_timestamp, timestamp)
 
+    def test_close_reason_param(self):
+        connection = self._make_connection()
+        connection.close(reason=netius.REASON_ERROR, error="broken pipe")
+
+        # the values provided to the closing must be associated with the
+        # connection, sparing the caller from setting them before hand
+        self.assertEqual(connection.close_reason, netius.REASON_ERROR)
+        self.assertEqual(connection.close_error, "broken pipe")
+
+        # a reason provided to the closing takes precedence over one that
+        # was set before it, as it's the more immediate of the two
+        connection = self._make_connection()
+        connection.close_reason = netius.REASON_TIMEOUT
+        connection.close(reason=netius.REASON_EXPLICIT)
+
+        self.assertEqual(connection.close_reason, netius.REASON_EXPLICIT)
+
+        # the closing of an already closed connection must not replace the
+        # values that describe the original closing of it
+        connection.close(reason=netius.REASON_ERROR)
+
+        self.assertEqual(connection.close_reason, netius.REASON_EXPLICIT)
+
+    def test_close_reason_flush(self):
+        connection = self._make_connection()
+        connection.close(flush=True, reason=netius.REASON_TIMEOUT)
+
+        # the closing is deferred until the pending data is flushed, but the
+        # reason must be kept so that it's available once it does happen
+        self.assertEqual(connection.status, conn.OPEN)
+        self.assertEqual(connection.close_reason, netius.REASON_TIMEOUT)
+
+        connection.close()
+
+        self.assertEqual(connection.status, conn.CLOSED)
+        self.assertEqual(connection.close_reason, netius.REASON_TIMEOUT)
+
     def test_info_dict(self):
         connection = self._make_connection()
         info = connection.info_dict()
