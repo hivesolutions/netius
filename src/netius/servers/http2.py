@@ -619,6 +619,51 @@ class HTTP2Connection(http.HTTPConnection):
         # "immediately" by this method
         return 0
 
+    def split_frame(self, frame, size):
+        """
+        Splits the provided (delayed) frame so that only the first size
+        bytes of its payload are sent immediately, keeping the remaining
+        payload in the frame for a latter flush operation.
+
+        This operation is required whenever the flow control window that
+        is available for a stream is smaller than the payload pending to
+        be sent, as the sender must still make partial progress on it.
+
+        :type frame: Tuple
+        :param frame: The tuple describing the delayed frame that is going
+        to be split, note that its payload is changed in place.
+        :type size: int
+        :param size: The number of bytes of the payload that are going to
+        be sent by the current (partial) send operation.
+        :rtype: int
+        :return: The final number of bytes that have been sent by the
+        current partial send operation.
+        """
+
+        # retrieves the keyword arguments of the frame and uses them to
+        # obtain both the payload and the stream for which the frame is
+        # meant to be sent, then keeps only the remaining payload delayed
+        kwargs = frame[1]
+        payload = kwargs["payload"]
+        stream = kwargs["stream"]
+        kwargs["payload"] = payload[size:]
+
+        # builds the flags value to be used in the partial frame, unsetting
+        # the end stream flag as the stream is not going to be closed by it
+        flags = kwargs["flags"] & 0xFE
+
+        # decrements both the connection and the stream windows by the size
+        # of the part that is going to be sent and then sends such part, note
+        # that the callback is not registered as the frame is not yet complete
+        self.increment_remote(stream, size * -1, all=True)
+        return self.send_frame(
+            type=kwargs["type"],
+            flags=flags,
+            payload=payload[:size],
+            stream=stream,
+            delay=kwargs["delay"],
+        )
+
     def flush_frames(self, all=True):
         """
         Runs the flush operation on the delayed/pending frames, meaning
@@ -697,9 +742,18 @@ class HTTP2Connection(http.HTTPConnection):
             # as starved and the current iteration is skipped trying to
             # flush frames from different streams
             available = self.available_stream(stream, payload_l, strict=False)
-            if not available and not all:
-                return False
-            if not available and all:
+            if not available:
+                # tries to determine if at least a part of the payload may be
+                # sent and if that's the case splits the frame sending such
+                # part and keeping the remaining one delayed, this is required
+                # so that a peer announcing a window smaller than the payload
+                # is still able to receive the data
+                partial = self.partial_stream(stream, payload_l)
+                if partial:
+                    self.split_frame(frame, partial)
+                    continue
+                if not all:
+                    return False
                 starved[stream] = True
                 offset += 1
                 continue
@@ -735,6 +789,16 @@ class HTTP2Connection(http.HTTPConnection):
             self.try_available(stream)
 
     def set_settings(self, settings):
+        # determines the delta to be applied to the (remote) window of the
+        # streams that are already open, as a change to the initial window
+        # size must be applied to them as well (as per RFC 9113)
+        delta = 0
+        if netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE in settings:
+            delta = (
+                settings[netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE]
+                - self.settings_r[netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE]
+            )
+
         self.settings_r.update(settings)
 
         # propagates a peer-driven `SETTINGS_HEADER_TABLE_SIZE` change
@@ -753,6 +817,28 @@ class HTTP2Connection(http.HTTPConnection):
                 netius.common.http2.SETTINGS_HEADER_TABLE_SIZE
             ]
 
+        # applies the initial window size delta to the complete set of open
+        # streams and then flushes the frames that may have become sendable,
+        # note that the resulting window value may become negative, in which
+        # case no data is sent for the stream until it's positive again
+        if delta and self.parser and not self.legacy:
+            streams = netius.legacy.values(self.parser.streams)
+
+            # verifies that the resulting window of every open stream is still
+            # within the allowed bounds, as a change that makes any of them too
+            # large is a connection level error (as per RFC 9113)
+            for stream in streams:
+                if stream.window + delta > 2147483647:
+                    raise netius.ParserError(
+                        "Value of SETTINGS_INITIAL_WINDOW_SIZE makes a window too large",
+                        error_code=netius.common.http2.FLOW_CONTROL_ERROR,
+                    )
+
+            for stream in streams:
+                stream.remote_update(delta)
+            self.flush_frames()
+            self.flush_available()
+
     def close_stream(self, stream, final=False, flush=False, reset=False):
         if not self.parser._has_stream(stream):
             return
@@ -763,20 +849,46 @@ class HTTP2Connection(http.HTTPConnection):
         stream.close(flush=flush, reset=reset)
 
     def available_stream(self, stream, length, strict=True):
-        if self.window == 0:
-            return False
-        if self.window < length:
+        # a zero length payload does not consume any of the flow control
+        # windows and as such is always considered to be available, note
+        # that the ordering constraints are still going to be verified
+        if length > 0 and self.window < length:
             return False
         stream = self.parser._get_stream(stream)
         if not stream:
             return True
-        if stream.window == 0:
-            return False
-        if stream.window < length:
+        if length > 0 and stream.window < length:
             return False
         if strict and stream.frames:
             return False
         return True
+
+    def partial_stream(self, stream, length):
+        """
+        Determines the amount of bytes of the provided length that may be
+        immediately sent for the stream with the provided identifier, taking
+        into account both the connection and the stream windows.
+
+        This value is used to split a delayed data frame whenever the window
+        available is smaller than the payload pending to be sent, and is also
+        bound by the maximum payload that a frame is allowed to carry.
+
+        :type stream: int
+        :param stream: The identifier of the stream that is going to be
+        tested for the amount of bytes available for sending.
+        :type length: int
+        :param length: The length (in bytes) of the payload that is currently
+        pending to be sent for the stream.
+        :rtype: int
+        :return: The number of bytes that may be immediately sent, note that
+        this value may be zero meaning that nothing may be sent.
+        """
+
+        length = min(length, self.window)
+        stream = self.parser._get_stream(stream)
+        if stream:
+            length = min(length, stream.window, stream.window_m)
+        return max(length, 0)
 
     def fragment_stream(self, stream, data):
         stream = self.parser._get_stream(stream)
@@ -942,6 +1054,14 @@ class HTTP2Connection(http.HTTPConnection):
         close=True,
         callback=None,
     ):
+        # an error that is meant to be scoped to the stream resets only such
+        # stream, so that the connection (and the remaining streams) stays
+        # usable, otherwise the connection is terminated right after the reset
+        if error_code in netius.common.http2.HTTP2_STREAM_ERRORS:
+            return self.send_rst_stream(
+                error_code=error_code, stream=stream, callback=callback
+            )
+
         self.send_rst_stream(
             error_code=error_code,
             stream=stream,

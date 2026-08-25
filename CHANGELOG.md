@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Bound for the size that a single chunk of a chunked request may announce - [#74](https://github.com/hivesolutions/netius/issues/74)
 
 ### Changed
 
@@ -17,7 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* HTTP/2 responses no longer stall when the client offers a small flow control window - [#74](https://github.com/hivesolutions/netius/issues/74)
+* HTTP/2 window size changes requested after a request has started are now honoured - [#74](https://github.com/hivesolutions/netius/issues/74)
+* An HTTP/2 flow control error on a stream now resets only that stream instead of closing the connection - [#74](https://github.com/hivesolutions/netius/issues/74)
+* A chunked request that carries a trailer section is now handled instead of being answered twice - [#74](https://github.com/hivesolutions/netius/issues/74)
 
 ## [1.60.0] - 2026-08-25
 

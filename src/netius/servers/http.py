@@ -52,6 +52,7 @@ from netius.common import (
     LINE_LIMIT,
     HEADERS_LIMIT,
     HEADERS_COUNT,
+    CHUNK_LIMIT,
     PLAIN_ENCODING,
     CHUNKED_ENCODING,
     GZIP_ENCODING,
@@ -218,6 +219,7 @@ class HTTPConnection(netius.Connection):
             line_limit=self.owner.line_limit,
             headers_limit=self.owner.headers_limit,
             headers_count=self.owner.headers_count,
+            chunk_limit=self.owner.chunk_limit,
         )
         self.parser.bind("on_data", self.on_data)
         self.set_idle()
@@ -899,6 +901,7 @@ class HTTPServer(netius.StreamServer):
         line_limit=LINE_LIMIT,
         headers_limit=HEADERS_LIMIT,
         headers_count=HEADERS_COUNT,
+        chunk_limit=CHUNK_LIMIT,
         requests_limit=REQUESTS_LIMIT,
         idle_timeout=IDLE_TIMEOUT,
         *args,
@@ -918,6 +921,7 @@ class HTTPServer(netius.StreamServer):
         self.line_limit = line_limit
         self.headers_limit = headers_limit
         self.headers_count = headers_count
+        self.chunk_limit = chunk_limit
         self.requests_limit = requests_limit
         self.idle_timeout = idle_timeout
         self.dynamic = False
@@ -1084,6 +1088,8 @@ class HTTPServer(netius.StreamServer):
             self.headers_count = self.get_env(
                 "HEADERS_COUNT", self.headers_count, cast=int
             )
+        if self.env:
+            self.chunk_limit = self.get_env("CHUNK_LIMIT", self.chunk_limit, cast=int)
         if self.env:
             self.requests_limit = self.get_env(
                 "REQUESTS_LIMIT", self.requests_limit, cast=int

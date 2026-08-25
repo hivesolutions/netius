@@ -164,6 +164,34 @@ class HTTPProtocolTest(unittest.TestCase):
         result = protocol.send_request()
         self.assertEqual(result, None)
 
+    def test_on_data_chunked_trailer(self):
+        protocol = netius.clients.HTTPProtocol(
+            "GET", "http://example.com/", asynchronous=True
+        )
+        protocol.parser = netius.common.HTTPParser(
+            protocol, type=netius.common.RESPONSE, store=True
+        )
+
+        messages = []
+        protocol.parser.bind(
+            "on_data",
+            lambda: messages.append(
+                (protocol.parser.code, protocol.parser.get_message())
+            ),
+        )
+
+        # a chunked response that ends with a trailer section must be parsed
+        # as a single message, with the fields of the section discarded, and
+        # the connection left ready for the response that follows it, otherwise
+        # the reuse of a keep alive connection would be desynchronized
+        protocol.on_data(
+            b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n"
+            b"\r\nb\r\nHello World\r\n0\r\nX-Checksum: abc\r\n\r\n"
+            b"HTTP/1.1 201 Created\r\nContent-Length: 6\r\n\r\nsecond"
+        )
+
+        self.assertEqual(messages, [(200, b"Hello World"), (201, b"second")])
+
     def test_apply_dynamic(self):
         protocol = netius.clients.HTTPProtocol(
             "GET", "http://example.com/", asynchronous=True

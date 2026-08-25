@@ -311,6 +311,41 @@ class HTTP2ParserTest(unittest.TestCase):
                 )
 
             parser.assert_window_update(None, 4096)
+
+            # the connection window may only be changed by an update sent
+            # for the zero stream, so an update sent for a "normal" stream
+            # must not be verified against the value of such window
+            parser.stream = 0x01
+            parser.assert_window_update(None, 2147483647)
+
+            # an update that overflows the window of the stream is a stream
+            # level error, meaning that only such stream is reset by it
+            stream = netius.common.http2.HTTP2Stream.__new__(
+                netius.common.http2.HTTP2Stream
+            )
+            stream.window = 1
+
+            if hasattr(self, "assertRaisesRegexp"):
+                self.assertRaisesRegexp(
+                    netius.ParserError,
+                    "Window value for the stream too large",
+                    lambda: parser.assert_window_update(stream, 2147483647),
+                )
+            else:
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "Window value for the stream too large",
+                    lambda: parser.assert_window_update(stream, 2147483647),
+                )
+
+            try:
+                parser.assert_window_update(stream, 2147483647)
+            except netius.ParserError as error:
+                self.assertEqual(error.get_kwarg("stream"), 0x01)
+                self.assertEqual(
+                    error.get_kwarg("error_code"),
+                    netius.common.http2.FLOW_CONTROL_ERROR,
+                )
         finally:
             parser.clear(force=True)
 
@@ -565,6 +600,41 @@ class HTTP2StreamTest(unittest.TestCase):
         finally:
             parser.clear(force=True)
 
+    def test_fragment(self):
+        connection = self._make_connection()
+        parser = connection.parser
+        try:
+            # the maximum payload of a frame is bound by the maximum frame size
+            # of the peer and not by the window, so that a stream opened under
+            # an exhausted window is still able to fragment its payload
+            stream = netius.common.http2.HTTP2Stream(
+                identifier=1, owner=parser, window=0, frame_size=16384
+            )
+
+            self.assertEqual(stream.window_m, 16384 - netius.common.http2.HEADER_SIZE)
+            self.assertEqual(stream.fragmentable(b"x" * 20000), True)
+
+            # with an exhausted window no initial fragment is produced, as an
+            # empty data frame would otherwise be sent for it
+            fragments = list(stream.fragment(b"x" * 20000))
+            self.assertEqual([len(fragment) for fragment in fragments], [16375, 3625])
+
+            # the initial fragment is the one that fits the current window while
+            # the remaining ones are bound by the maximum payload of a frame
+            stream.remote_update(1000)
+            fragments = list(stream.fragment(b"x" * 20000))
+            self.assertEqual(
+                [len(fragment) for fragment in fragments], [1000, 16375, 2625]
+            )
+
+            # a negative window (eg: a reduction of the initial window size)
+            # must not produce an initial fragment either
+            stream.remote_update(-1001)
+            fragments = list(stream.fragment(b"x" * 20000))
+            self.assertEqual([len(fragment) for fragment in fragments], [16375, 3625])
+        finally:
+            parser.clear(force=True)
+
     def test_assert_headers(self):
         connection = self._make_connection()
         parser = connection.parser
@@ -668,6 +738,7 @@ class HTTP2StreamTest(unittest.TestCase):
         connection.encoding_c = None
         connection.encodings_a = None
         connection.dynamic = None
+        connection.window = netius.common.HTTP2_WINDOW
         connection.window_o = netius.common.HTTP2_WINDOW
         connection.parser = netius.common.HTTP2Parser(connection, store=True)
         return connection
