@@ -124,7 +124,19 @@ from .config import (
     conf_ctx,
     conf_override,
 )
-from .conn import OPEN, CLOSED, PENDING, CHUNK_SIZE, Connection
+from .conn import (
+    OPEN,
+    CLOSED,
+    PENDING,
+    CHUNK_SIZE,
+    REASON_TIMEOUT,
+    REASON_CLIENT_EOF,
+    REASON_UPSTREAM_ERROR,
+    REASON_ERROR,
+    REASON_EXPLICIT,
+    REASON_UNKNOWN,
+    Connection,
+)
 from .container import Container, ContainerServer
 from .errors import (
     NetiusError,
