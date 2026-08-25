@@ -116,6 +116,11 @@ HTTP2_PSEUDO = (":method", ":scheme", ":path", ":authority", ":status")
 """ The complete set of HTTP 2 based pseudo-header values
 this list should be inclusive and limited """
 
+HTTP2_STREAM_ERRORS = (FLOW_CONTROL_ERROR,)
+""" The sequence of error codes that must remain scoped to the stream
+that has originated them, meaning that only such stream is reset while
+the connection stays usable, as defined by RFC 9113 """
+
 HTTP2_CONNECTION = (
     "connection",
     "keep-alive",
@@ -996,7 +1001,7 @@ class HTTP2Stream(netius.Stream):
         self.store = store
         self.file_limit = file_limit
         self.window = window
-        self.window_m = min(self.window, frame_size - HEADER_SIZE)
+        self.window_m = frame_size - HEADER_SIZE
         self.window_o = self.connection.window_o
         self.window_l = self.window_o
         self.window_t = self.window_o // 2
@@ -1432,9 +1437,14 @@ class HTTP2Stream(netius.Stream):
         return self.encodings
 
     def fragment(self, data):
-        reference = min(self.connection.window, self.window, self.window_m)
-        yield data[:reference]
-        data = data[reference:]
+        # the window of the stream may be a negative value (eg: a reduction of
+        # the initial window size) so the reference is clamped, note that a
+        # zero reference implies no initial fragment as an empty data frame
+        # would otherwise be sent for it
+        reference = max(min(self.connection.window, self.window, self.window_m), 0)
+        if reference:
+            yield data[:reference]
+            data = data[reference:]
         while data:
             yield data[: self.window_m]
             data = data[self.window_m :]

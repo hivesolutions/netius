@@ -822,7 +822,19 @@ class HTTP2Connection(http.HTTPConnection):
         # note that the resulting window value may become negative, in which
         # case no data is sent for the stream until it's positive again
         if delta and self.parser and not self.legacy:
-            for stream in netius.legacy.values(self.parser.streams):
+            streams = netius.legacy.values(self.parser.streams)
+
+            # verifies that the resulting window of every open stream is still
+            # within the allowed bounds, as a change that makes any of them too
+            # large is a connection level error (as per RFC 9113)
+            for stream in streams:
+                if stream.window + delta > 2147483647:
+                    raise netius.ParserError(
+                        "Value of SETTINGS_INITIAL_WINDOW_SIZE makes a window too large",
+                        error_code=netius.common.http2.FLOW_CONTROL_ERROR,
+                    )
+
+            for stream in streams:
                 stream.remote_update(delta)
             self.flush_frames()
             self.flush_available()
@@ -858,7 +870,8 @@ class HTTP2Connection(http.HTTPConnection):
         into account both the connection and the stream windows.
 
         This value is used to split a delayed data frame whenever the window
-        available is smaller than the payload pending to be sent.
+        available is smaller than the payload pending to be sent, and is also
+        bound by the maximum payload that a frame is allowed to carry.
 
         :type stream: int
         :param stream: The identifier of the stream that is going to be
@@ -874,7 +887,7 @@ class HTTP2Connection(http.HTTPConnection):
         length = min(length, self.window)
         stream = self.parser._get_stream(stream)
         if stream:
-            length = min(length, stream.window)
+            length = min(length, stream.window, stream.window_m)
         return max(length, 0)
 
     def fragment_stream(self, stream, data):
@@ -1041,6 +1054,14 @@ class HTTP2Connection(http.HTTPConnection):
         close=True,
         callback=None,
     ):
+        # an error that is meant to be scoped to the stream resets only such
+        # stream, so that the connection (and the remaining streams) stays
+        # usable, otherwise the connection is terminated right after the reset
+        if error_code in netius.common.http2.HTTP2_STREAM_ERRORS:
+            return self.send_rst_stream(
+                error_code=error_code, stream=stream, callback=callback
+            )
+
         self.send_rst_stream(
             error_code=error_code,
             stream=stream,

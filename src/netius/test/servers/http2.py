@@ -216,6 +216,18 @@ class HTTP2ConnectionTest(unittest.TestCase):
 
             self.assertEqual(stream.window, -1)
             self.assertEqual(len(connection.sent), 1)
+
+            # a change that takes the window of an open stream above the maximum
+            # allowed value is a connection level error (as per RFC 9113)
+            connection.increment_remote(stream.identifier, 2147483647 - stream.window)
+            self.assertEqual(stream.window, 2147483647)
+            self.assertRaises(
+                netius.ParserError,
+                lambda: connection.set_settings(
+                    {netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE: 4}
+                ),
+            )
+            self.assertEqual(stream.window, 2147483647)
         finally:
             connection.parser.clear(force=True)
 
@@ -265,6 +277,45 @@ class HTTP2ConnectionTest(unittest.TestCase):
             connection.window = 4
 
             self.assertEqual(connection.partial_stream(stream.identifier, 5), 4)
+
+            # the maximum payload that a frame may carry is also an upper bound
+            # for the value, so that no oversized frame is ever produced
+            stream.remote_update(1024 * 1024)
+            connection.window = 1024 * 1024
+
+            self.assertEqual(
+                connection.partial_stream(stream.identifier, 1024 * 1024),
+                stream.window_m,
+            )
+        finally:
+            connection.parser.clear(force=True)
+
+    def test_error_stream(self):
+        connection = self._make_connection()
+        try:
+            stream = self._make_stream(connection)
+
+            # an error that is scoped to the stream resets only such stream,
+            # keeping the connection usable for the remaining ones
+            connection.error_stream(
+                stream.identifier, error_code=netius.common.http2.FLOW_CONTROL_ERROR
+            )
+
+            self.assertEqual(len(connection.sent), 1)
+            self.assertEqual(connection.sent[0][3:4], b"\x03")
+
+            # an error that is not scoped to the stream terminates the
+            # connection right after the reset of the stream
+            del connection.sent[:]
+            connection.error_stream(
+                stream.identifier,
+                error_code=netius.common.http2.PROTOCOL_ERROR,
+                close=False,
+            )
+
+            self.assertEqual(len(connection.sent), 2)
+            self.assertEqual(connection.sent[0][3:4], b"\x03")
+            self.assertEqual(connection.sent[1][3:4], b"\x07")
         finally:
             connection.parser.clear(force=True)
 
@@ -291,7 +342,14 @@ class HTTP2ConnectionTest(unittest.TestCase):
         connection.frames = []
         connection.unavailable = {}
         connection.sent = []
-        connection.send = lambda data, **kwargs: connection.sent.append(data)
+
+        def send(data, callback=None, **kwargs):
+            connection.sent.append(data)
+            if callback:
+                callback(connection)
+            return len(data)
+
+        connection.send = send
         connection.parser = netius.common.HTTP2Parser(connection, store=True)
         return connection
 
