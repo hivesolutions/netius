@@ -145,6 +145,39 @@ class BaseTest(unittest.TestCase):
         self.assertNotEqual(result, None)
         self.assertEqual(isinstance(result, str), True)
 
+    def test_diag_closed_max(self):
+        # the bound of the ring buffer must never be a negative value, as
+        # the construction of the deque would otherwise fail at import
+        self.assertEqual(common.DIAG_CLOSED_MAX >= 0, True)
+        self.assertEqual(
+            common.AbstractBase._DIAG_CLOSED.maxlen, common.DIAG_CLOSED_MAX
+        )
+
+    def test_on_connection_d(self):
+        loop = netius.Base()
+        buffer = common.AbstractBase._DIAG_CLOSED
+        instance = common.AbstractBase._DIAG_INSTANCE
+        try:
+            buffer.clear()
+
+            # with no diagnostics running the closing of a connection must
+            # not be recorded, sparing the regular execution from its cost
+            self._make_connection(loop)
+
+            self.assertEqual(len(buffer), 0)
+
+            # a diagnostics application started from an instance is enough
+            # for the recording to happen, even with the configuration unset
+            common.AbstractBase._DIAG_INSTANCE = loop
+            connection = self._make_connection(loop)
+
+            self.assertEqual(len(buffer), 1)
+            self.assertEqual(buffer[0]["id"], connection.id)
+        finally:
+            common.AbstractBase._DIAG_INSTANCE = instance
+            buffer.clear()
+            loop.close()
+
     def test_record_closed(self):
         loop = netius.Base()
         buffer = common.AbstractBase._DIAG_CLOSED
@@ -233,6 +266,13 @@ class BaseTest(unittest.TestCase):
             loop.record_closed(third)
 
             closed = loop.connections_closed_dict()
+            self.assertEqual(len(closed), 2)
+            self.assertEqual([info["id"] for info in closed], [third.id, second.id])
+
+            # the listing is a snapshot detached from the ring buffer, so a
+            # new record must not change a listing that was already taken
+            loop.record_closed(self._make_connection(loop))
+
             self.assertEqual(len(closed), 2)
             self.assertEqual([info["id"] for info in closed], [third.id, second.id])
         finally:

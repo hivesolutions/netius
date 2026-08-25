@@ -291,10 +291,11 @@ COMPACT_MIN = 64
 the compaction of the delayed queues may be triggered, avoiding the
 cost of such operation for a small number of them """
 
-DIAG_CLOSED_MAX = config.conf("DIAG_CLOSED_MAX", 512, cast=int)
+DIAG_CLOSED_MAX = max(config.conf("DIAG_CLOSED_MAX", 512, cast=int), 0)
 """ The maximum number of closed connections that are kept by the
 diagnostics ring buffer, once such value is reached the oldest of
-the entries are dropped so that the memory usage remains bound """
+the entries are dropped so that the memory usage remains bound, note
+that a negative value is clamped as it's not a valid bound """
 
 KEEPALIVE_TIMEOUT = 300
 """ The amount of time in seconds that a connection is set as
@@ -3110,8 +3111,9 @@ class AbstractBase(observer.Observable):
 
         # records the connection in the ring buffer of closed connections
         # so that it may still be inspected after its destruction, note that
-        # this is only performed while running under diagnostics
-        if is_diag:
+        # this is only performed while running under diagnostics, either the
+        # ones set by configuration or the ones started by an instance
+        if is_diag or AbstractBase._DIAG_INSTANCE:
             self.record_closed(connection)
 
         # triggers the event notifying any listener about the
@@ -3523,7 +3525,12 @@ class AbstractBase(observer.Observable):
         return connection.info_dict(full=full)
 
     def connections_closed_dict(self):
-        return list(reversed(AbstractBase._DIAG_CLOSED))
+        # the snapshot is taken through a list conversion instead of a
+        # reversed iteration, as the latter is not safe against the append
+        # of a new entry from one of the event loop threads
+        closed = list(AbstractBase._DIAG_CLOSED)
+        closed.reverse()
+        return closed
 
     def build_connection(self, socket, address=None, datagram=False, ssl=False):
         """
