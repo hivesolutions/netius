@@ -1,0 +1,19 @@
+[run]
+branch = True
+parallel = True
+relative_files = True
+source = src/netius
+omit =
+    src/netius/test/*
+
+# the coverage data is produced under Linux, Windows and macOS and then
+# combined into a single report, so the paths of the three platforms have
+# to be recognised as being the very same source tree
+[paths]
+source =
+    src/
+    */src/
+    *\src\
+
+[report]
+precision = 1
