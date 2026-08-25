@@ -24,7 +24,53 @@ import netius
 import netius.extra
 import netius.servers
 
+import importlib
+
 import http.client as http_client
+
+common = importlib.import_module("netius.base.common")
+
+# records the sequence of the relevant proxy events so that the ordering
+# that leads to the loss of the payload may be observed
+EVENTS = []
+
+_partial = netius.extra.ReverseProxyServer._on_prx_partial
+_message = netius.extra.ReverseProxyServer._on_prx_message
+_release = netius.extra.ReverseProxyServer._prx_release
+
+
+def _on_prx_partial(self, client, parser, data):
+    connection = self.conn_map.get(parser.owner, None)
+    buffer = connection and getattr(connection, "encoding_b", None)
+    EVENTS.append(
+        "partial len=%d buffered=%s" % (
+            len(data), buffer["length"] if buffer else None)
+    )
+    return _partial(self, client, parser, data)
+
+
+def _on_prx_message(self, client, parser, message):
+    connection = self.conn_map.get(parser.owner, None)
+    buffer = connection and getattr(connection, "encoding_b", None)
+    EVENTS.append(
+        "message len=%d buffered=%s" % (
+            len(message or b""), buffer["length"] if buffer else None)
+    )
+    return _message(self, client, parser, message)
+
+
+def _prx_release(self, connection, codec=None, length=None):
+    buffer = getattr(connection, "encoding_b", None)
+    EVENTS.append(
+        "release codec=%s length=%s buffered=%s" % (
+            bool(codec), length, buffer["length"] if buffer else None)
+    )
+    return _release(self, connection, codec=codec, length=length)
+
+
+netius.extra.ReverseProxyServer._on_prx_partial = _on_prx_partial
+netius.extra.ReverseProxyServer._on_prx_message = _on_prx_message
+netius.extra.ReverseProxyServer._prx_release = _prx_release
 
 BIG = b"netius " * 900
 
@@ -61,7 +107,11 @@ def dump(reason):
     print("=" * 70)
     print("FAILURE: %s" % reason)
     print("=" * 70)
-    records = netius.base.common.AbstractBase._DIAG_CLOSED
+    print("--- events ---")
+    for event in EVENTS[-14:]:
+        print("  %s" % event)
+    print("--- closed connections ---")
+    records = common.AbstractBase._DIAG_CLOSED
     print("closed connections recorded: %d" % len(records))
     for info in list(records)[-12:]:
         print(
@@ -110,6 +160,7 @@ sys.stdout.flush()
 failures = 0
 
 for index in range(COUNT):
+    del EVENTS[:]
     connection = http_client.HTTPConnection("127.0.0.1", proxy_port, timeout=30)
     try:
         connection.request(
