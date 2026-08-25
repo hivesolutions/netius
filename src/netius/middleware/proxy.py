@@ -138,7 +138,7 @@ class ProxyMiddleware(Middleware):
         self.owner.debug(
             "PROXY handshake timeout for '%s', closing connection" % connection.id
         )
-        connection.close()
+        connection.close(reason=netius.REASON_TIMEOUT)
 
     def _proxy_handshake_v1(self, connection):
         cls = self.__class__

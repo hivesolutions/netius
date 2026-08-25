@@ -677,20 +677,20 @@ class StreamClient(Client):
                 if error_v in SSL_VALID_ERRORS:
                     break
                 if close:
-                    connection.close()
+                    connection.close(reason=REASON_ERROR, error=str(error))
                 valid = False
             except socket.error as error:
                 error_v = error.args[0] if error.args else None
                 if error_v in VALID_ERRORS:
                     break
                 if close:
-                    connection.close()
+                    connection.close(reason=REASON_ERROR, error=str(error))
                 valid = False
             except (KeyboardInterrupt, SystemExit):
                 raise
             except:
                 if close:
-                    connection.close()
+                    connection.close(reason=REASON_ERROR)
                 valid = False
 
         # returns the final value on the connection validity test
@@ -869,7 +869,7 @@ class StreamClient(Client):
                 if data:
                     self.on_data(connection, data)
                 else:
-                    connection.close()
+                    connection.close(reason=REASON_CLIENT_EOF)
                     break
                 if not connection.status == OPEN:
                     break
@@ -968,17 +968,17 @@ class StreamClient(Client):
         if not connection.status == OPEN:
             return
 
-        connection.close()
+        connection.close(reason=REASON_ERROR)
 
     def on_exception(self, exception, connection):
         self.warning(exception, stack=True)
         self.log_stack()
         connection.set_exception(exception)
-        connection.close()
+        connection.close(reason=REASON_ERROR, error=str(exception))
 
     def on_expected(self, exception, connection):
         self.debug(exception)
-        connection.close()
+        connection.close(reason=REASON_ERROR, error=str(exception))
 
     def on_connect(self, connection):
         self.debug(
@@ -1105,7 +1105,7 @@ class StreamClient(Client):
                 self.warning(error, stack=True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
-                connection.close()
+                connection.close(reason=REASON_ERROR, error=str(error))
                 return
         except socket.error as error:
             error_v = error.args[0] if error.args else None
@@ -1113,7 +1113,7 @@ class StreamClient(Client):
                 self.warning(error, stack=True)
                 self.log_stack()
                 self.trigger("error", self, connection, error)
-                connection.close()
+                connection.close(reason=REASON_ERROR, error=str(error))
                 return
         except (KeyboardInterrupt, SystemExit):
             raise
@@ -1121,7 +1121,7 @@ class StreamClient(Client):
             self.warning(exception, stack=True)
             self.log_stack()
             self.trigger("error", self, connection, exception)
-            connection.close()
+            connection.close(reason=REASON_ERROR, error=str(exception))
             raise
 
         # otherwise the connect operation has finished correctly
