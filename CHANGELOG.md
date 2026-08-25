@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Type hints for the complete public interface - [#36](https://github.com/hivesolutions/netius/issues/36)
 
 ### Changed
 

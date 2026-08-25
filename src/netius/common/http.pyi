@@ -1,0 +1,106 @@
+from re import Pattern
+from typing import IO, Any, Mapping, Sequence
+
+from netius.common import Parser
+
+FILE_LIMIT: int
+LINE_LIMIT: int
+HEADERS_LIMIT: int
+HEADERS_COUNT: int
+CHUNK_LIMIT: int
+REQUEST: int
+RESPONSE: int
+LINE_STATE: int
+HEADERS_STATE: int
+MESSAGE_STATE: int
+FINISH_STATE: int
+PLAIN_ENCODING: int
+CHUNKED_ENCODING: int
+GZIP_ENCODING: int
+DEFLATE_ENCODING: int
+AUTO_ENCODING: int
+CODINGS: Sequence[str]
+HTTP_09: int
+HTTP_10: int
+HTTP_11: int
+VERSIONS_MAP: Mapping[str, int]
+CODE_STRINGS: Mapping[int, str]
+HEADER_NAME_REGEX: Pattern[str]
+METHOD_REGEX: Pattern[str]
+VERSION_REGEX: Pattern[str]
+TARGET_REGEX: Pattern[str]
+CODE_REGEX: Pattern[str]
+LENGTH_REGEX: Pattern[str]
+CHUNK_REGEX: Pattern[str]
+QUALITY_REGEX: Pattern[str]
+
+class HTTPParser(Parser):
+    FIELDS: tuple[str, ...]
+
+    def __init__(
+        self,
+        owner: Any,
+        type: int = ...,
+        store: bool = ...,
+        file_limit: int = ...,
+        line_limit: int = ...,
+        headers_limit: int = ...,
+        headers_count: int = ...,
+        chunk_limit: int = ...,
+    ): ...
+    def build(self): ...
+    def destroy(self): ...
+    def reset(
+        self,
+        type: int = ...,
+        store: bool = ...,
+        file_limit: int = ...,
+        line_limit: int = ...,
+        headers_limit: int = ...,
+        headers_count: int = ...,
+        chunk_limit: int = ...,
+    ): ...
+    def clear(self, force: bool = ...): ...
+    def close(self): ...
+    def get_path(self, normalize: bool = ...) -> str: ...
+    def get_query(self) -> str: ...
+    def get_message(self) -> bytes: ...
+    def get_message_f(self) -> bytes: ...
+    def get_message_b(self, copy: bool = ..., size: int = ...) -> IO[bytes]: ...
+    def get_headers(self) -> Mapping[str, str | Sequence[str]]: ...
+    def get_encodings(self) -> Sequence[str]: ...
+    def parse_closed(self): ...
+    def parse(self, data: bytes) -> int: ...
+    def _parse_line(self, data: bytes) -> int: ...
+    def _parse_headers(self, data: bytes) -> int: ...
+    def _parse_message(self, data: bytes) -> int: ...
+    def _parse_normal(self, data: bytes) -> int: ...
+    def _parse_chunked(self, data: bytes) -> int: ...
+    def _parse_trailer(self, data: bytes) -> int: ...
+    def _store_data(self, data: bytes, memory: bool = ...): ...
+    def _parse_version(self, version_s: str) -> int: ...
+    def _parse_query(self, query: str) -> Mapping[str, Sequence[str]]: ...
+    def _decode_params(
+        self, params: Mapping[str | bytes, Sequence[str | bytes]]
+    ) -> Mapping[str, Sequence[str]]: ...
+
+class HTTPResponse:
+    data: Any
+    code: int
+    status: str | None
+    headers: Mapping[str, str | Sequence[str]] | None
+
+    def __init__(
+        self,
+        data: Any = ...,
+        code: int = ...,
+        status: str | None = ...,
+        headers: Mapping[str, str | Sequence[str]] | None = ...,
+    ): ...
+    def read(self) -> Any: ...
+    def readline(self) -> Any: ...
+    def close(self): ...
+    def getcode(self) -> int: ...
+    def info(self) -> Mapping[str, str | Sequence[str]] | None: ...
+
+def parse_encodings(value: str | Sequence[str]) -> Sequence[str]: ...

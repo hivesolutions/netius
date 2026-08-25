@@ -1,0 +1,13 @@
+from datetime import datetime
+from threading import Thread
+
+from netius.base.common import AbstractBase
+from netius.middleware import Middleware
+
+class AnnoyerMiddleware(Middleware):
+    period: float
+
+    def __init__(self, owner: AbstractBase, period: float = ...): ...
+    def start(self): ...
+    def stop(self): ...
+    def _run(self): ...

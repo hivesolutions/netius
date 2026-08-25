@@ -1,8 +1,9 @@
-from typing import Sequence
-
 from netius import Auth
 
 class SimpleAuth(Auth):
+    username: str | None
+    password: str | None
+
     def __init__(
         self, username: str | None = ..., password: str | None = ..., *args, **kwargs
     ): ...
@@ -11,7 +12,7 @@ class SimpleAuth(Auth):
         cls,
         username: str,
         password: str,
-        target: Sequence[str, str] | None = ...,
+        target: tuple[str, str] | None = ...,
         *args,
         **kwargs
     ) -> bool: ...

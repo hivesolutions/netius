@@ -1,0 +1,3 @@
+from netius.auth.base import HashType
+
+def generate(password: str, type: HashType = ..., salt: str = ...): ...

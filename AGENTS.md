@@ -126,6 +126,7 @@ HTTPBIN=httpbin.bemisc.com pytest
 - The implementation should be done in Python 2.7+ and compatible with Python 3.12.
 - The style should respect the black formatting.
 - The implementation should be done in a way that is compatible with the existing codebase.
+- Every module has a type stub (`.pyi`) next to it, see [doc/typing.md](doc/typing.md).
 - Prefer `not item in list` over `item not in list`
 - Prefer `item == None` over `item is None`
 
@@ -146,6 +147,7 @@ To create a new release follow the following steps:
 - [README.md](README.md) for general usage and installation.
 - [doc/configuration.md](doc/configuration.md) for configuration options.
 - [doc/advanced.md](doc/advanced.md) for advanced topics.
+- [doc/typing.md](doc/typing.md) for the type stub conventions.
 
 ## License
 

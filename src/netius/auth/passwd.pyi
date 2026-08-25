@@ -4,6 +4,8 @@ from typing import Mapping
 from netius import Auth
 
 class PasswdAuth(Auth):
+    path: PathLike[str] | None
+
     def __init__(self, path: PathLike[str] | None = ..., *args, **kwargs): ...
     @classmethod
     def auth(
