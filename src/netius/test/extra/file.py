@@ -59,9 +59,11 @@ class FileServerTest(unittest.TestCase):
         )
         self.server = netius.extra.FileServer(base_path=self.base_path)
         self.server.on_serve()
+        self.connections = []
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
+        self._close_files()
         self.server.cleanup()
         shutil.rmtree(self.base_path)
 
@@ -903,6 +905,7 @@ class FileServerTest(unittest.TestCase):
         # hasattr, otherwise they would always be reported as present
         del connection.file
         del connection.queue
+        self.connections.append(connection)
         return connection
 
     def _make_file_connection(self, path, range):
@@ -930,6 +933,16 @@ class FileServerTest(unittest.TestCase):
 
     def _names(self, items):
         return [item["name"] for item in items]
+
+    def _close_files(self):
+        # the file of a connection is only released once the sending of the
+        # response is finished, so an interrupted one has to be closed by
+        # hand, otherwise the removal of the directory fails under Windows
+        for connection in self.connections:
+            file = getattr(connection, "file", None)
+            if not file:
+                continue
+            file.close()
 
     def _write(self, path, data):
         file = open(path, "wb")
