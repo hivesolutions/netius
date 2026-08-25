@@ -102,6 +102,7 @@ The servers that come with netius out-of-the-box, can be tested through the comm
 
 * [Configuration](doc/configuration.md) - how to configure your server/client
 * [Diagnostics](doc/diag.md) - built-in HTTP diagnostics server for runtime introspection
+* [Type Hinting](doc/typing.md) - type stubs bundled with the package
 
 ### Advanced topics
 
