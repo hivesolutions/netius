@@ -34,6 +34,14 @@ jobs:
           black . --check
         if: matrix.python-version == '3.14'
       - run: |
+          pip install mypy
+          PYTHONPATH=src python -m mypy.stubtest --allowlist stubtest.txt \
+            --ignore-unused-allowlist \
+            netius.adapters netius.auth netius.base netius.clients \
+            netius.common netius.extra netius.middleware netius.mock \
+            netius.pool netius.servers netius.sh
+        if: matrix.python-version == '3.14'
+      - run: |
           pip install pytest
           HTTPBIN=httpbin.bemisc.com pytest
       - run: HTTPBIN=httpbin.bemisc.com python setup.py test
