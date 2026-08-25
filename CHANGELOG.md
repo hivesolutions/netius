@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.61.0] - 2026-08-25
+
+### Added
+
 * Bound for the size that a single chunk of a chunked request may announce - [#74](https://github.com/hivesolutions/netius/issues/74)
 
 ### Changed
