@@ -1113,9 +1113,13 @@ class DiagConnection(BaseConnection):
             last_send_ts=self.last_send_ts,
             last_activity_timestamp=self._last_activity(),
         )
-        geo = self._resolve(self.address)
-        if geo:
-            info["geo"] = geo
+        # the geographical resolution of the address is an expensive
+        # operation, so it's only performed for the full version of the
+        # information, sparing the uses that are run per connection
+        if full:
+            geo = self._resolve(self.address)
+            if geo:
+                info["geo"] = geo
         return info
 
     def _last_activity(self):

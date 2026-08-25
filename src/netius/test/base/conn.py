@@ -146,6 +146,16 @@ class DiagConnectionTest(unittest.TestCase):
 
         self.assertEqual(info["last_activity_timestamp"], 200.0)
 
+        # the geographical resolution is an expensive operation, so it must
+        # only be performed for the full version of the information
+        connection._resolve = lambda address: dict(country="PT")
+
+        info = connection.info_dict()
+        self.assertEqual("geo" in info, False)
+
+        info = connection.info_dict(full=True)
+        self.assertEqual(info["geo"], dict(country="PT"))
+
     def test__last_activity(self):
         connection = self._make_connection()
 
