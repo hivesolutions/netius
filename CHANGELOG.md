@@ -25,10 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Bound for the size that a single chunk of a chunked request may announce - [#74](https://github.com/hivesolutions/netius/issues/74)
 
-### Changed
-
-*
-
 ### Fixed
 
 * HTTP/2 responses no longer stall when the client offers a small flow control window - [#74](https://github.com/hivesolutions/netius/issues/74)
