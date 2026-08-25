@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Inspection of the recently closed connections and of the reason for their closing under the diagnostics - [#55](https://github.com/hivesolutions/netius/issues/55)
+*
 
 ### Changed
 
@@ -17,7 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+*
+
+## [1.62.0] - 2026-08-25
+
+### Added
+
+* Inspection of the recently closed connections and of the reason for their closing under the diagnostics - [#55](https://github.com/hivesolutions/netius/issues/55)
+
+### Fixed
+
 * Starting a server no longer emits a deprecation warning about the thread name
+* Uptime of a connection is no longer reported as almost a full day when the clocks disagree
 
 ## [1.61.0] - 2026-08-25
 
