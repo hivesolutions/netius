@@ -546,7 +546,7 @@ class AbstractBase(observer.Observable):
             return
         if hasattr(asyncio, "_patched"):
             return
-        if hasattr(asyncio.tasks, "_PyTask"):
+        if hasattr(asyncio.tasks, "_PyTask") and cls.is_py_task():
             asyncio.Task = asyncio.tasks._PyTask  # @UndefinedVariable
             asyncio.tasks.Task = asyncio.tasks._PyTask  # @UndefinedVariable
         asyncio._patched = True
@@ -564,6 +564,30 @@ class AbstractBase(observer.Observable):
                 if error.errno == 4:
                     continue
                 raise
+
+    @classmethod
+    def is_py_task(cls):
+        """
+        Determines if the pure Python implementation of the asyncio task
+        may be safely used as the global task class of the interpreter.
+
+        From Python 3.14 onwards such implementation keeps its own record
+        of the task that is currently running, one that the accelerated
+        version of the current task function is not able to read, meaning
+        that using it would make the running task an invisible one, which
+        would break most of the libraries built on top of asyncio.
+
+        :rtype: bool
+        :return: If the pure Python implementation of the task may be used
+        as the global asyncio task class.
+        """
+
+        asyncio = asynchronous.get_asyncio()
+        if not asyncio:
+            return False
+        if not hasattr(asyncio.tasks, "_c_current_task"):
+            return True
+        return sys.version_info < (3, 14)
 
     def destroy(self):
         observer.Observable.destroy(self)
