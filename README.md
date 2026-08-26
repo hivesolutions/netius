@@ -52,6 +52,28 @@ server = netius.servers.WSGIServer(app = app)
 server.serve(port = 8080)
 ```
 
+### ASGI Server
+
+```python
+import netius.servers
+
+async def app(scope, receive, send):
+    await send(
+        dict(
+            type = "http.response.start",
+            status = 200,
+            headers = [
+                (b"content-length", b"11"),
+                (b"content-type", b"text/plain")
+            ]
+        )
+    )
+    await send(dict(type = "http.response.body", body = b"Hello World"))
+
+server = netius.servers.ASGIServer(app = app)
+server.serve(port = 8080)
+```
+
 ### HTTP Client
 
 #### Synchronous usage
@@ -90,6 +112,7 @@ The servers that come with netius out-of-the-box, can be tested through the comm
 | Class           | Example                                               |
 | --------------- | ----------------------------------------------------- |
 | WSGIServer      | `python -m netius.servers.wsgi`                       |
+| ASGIServer      | `python -m netius.servers.asgi`                       |
 | FTPServer       | `python -m netius.servers.ftp`                        |
 | HelloServer     | `MESSAGE="Hello Netius" python -m netius.extra.hello` |
 | FileServer      | `BASE_PATH=/ python -m netius.extra.file`             |
@@ -101,6 +124,7 @@ The servers that come with netius out-of-the-box, can be tested through the comm
 ### Basic
 
 * [Configuration](doc/configuration.md) - how to configure your server/client
+* [ASGI](doc/asgi.md) - how to serve ASGI applications (eg: Starlette, FastAPI)
 * [Diagnostics](doc/diag.md) - built-in HTTP diagnostics server for runtime introspection
 * [Type Hinting](doc/typing.md) - type stubs bundled with the package
 

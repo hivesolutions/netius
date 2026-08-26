@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Type hints for the complete public interface - [#36](https://github.com/hivesolutions/netius/issues/36)
 * Support for the SRV, SVCB, HTTPS and CAA DNS record types
+* Support for serving ASGI applications, such as the ones written with Starlette or FastAPI - [#85](https://github.com/hivesolutions/netius/issues/85)
 
 ### Changed
 
@@ -18,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Introspection of the currently running task is no longer broken under the most recent interpreters
 
 ## [1.62.1] - 2026-08-25
 
