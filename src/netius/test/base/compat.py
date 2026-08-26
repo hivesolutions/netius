@@ -132,8 +132,21 @@ class CompatLoopTest(unittest.TestCase):
         self.assertEqual(isinstance(task, asynchronous.Task), True)
 
     def test_getaddrinfo(self):
-        future = self.compat.getaddrinfo("127.0.0.1", 80)
-        result = self.loop.run_coroutine(future)
+        # the coroutine is driven by hand instead of through the loop, as
+        # the driving helper binds a future of its own to the global loop,
+        # which is not the one being run and would never complete it
+        coroutine = self.compat.getaddrinfo("127.0.0.1", 80)
+        future = next(coroutine)
+
+        self.assertEqual(future.done(), False)
+
+        # the resolution is already done by then, the result of it only
+        # reaches the future once the delayed operation is run
+        self.loop._delays()
+
+        self.assertEqual(future.done(), True)
+
+        result = future.result()
 
         self.assertEqual(len(result) > 0, True)
         self.assertEqual(result[0][0], socket.AF_INET)
