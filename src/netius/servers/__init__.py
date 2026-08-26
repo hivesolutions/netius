@@ -25,6 +25,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+from . import asgi
 from . import dhcp
 from . import echo_ws
 from . import echo
@@ -41,6 +42,7 @@ from . import torrent
 from . import ws
 from . import wsgi
 
+from .asgi import ASGIServer
 from .dhcp import DHCPRequest, DHCPServer
 from .echo_ws import EchoWSServer
 from .echo import EchoProtocol, EchoServer

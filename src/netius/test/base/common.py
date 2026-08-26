@@ -28,6 +28,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import sys
 import socket
 import datetime
 import unittest
@@ -40,6 +41,49 @@ from netius.base import common
 
 
 class BaseTest(unittest.TestCase):
+
+    def test_patch_asyncio(self):
+        asyncio = netius.get_asyncio()
+        if asyncio == None:
+            self.skipTest("Skipping test: asyncio unavailable")
+
+        netius.Base.patch_asyncio()
+
+        # the patching of the infra-structure is a one time operation and
+        # the flag is the one that guards it from being run once again
+        self.assertEqual(hasattr(asyncio, "_patched"), True)
+
+        # an interpreter that does not provide the pure Python task has
+        # nothing to be patched, so there's nothing to be verified
+        if not hasattr(asyncio.tasks, "_PyTask"):
+            return
+
+        if netius.Base.is_py_task():
+            self.assertEqual(asyncio.Task, asyncio.tasks._PyTask)
+        else:
+            # the global task class must be kept untouched, otherwise the
+            # currently running task would no longer be reported by the
+            # current task function, breaking the libraries that use it
+            self.assertNotEqual(asyncio.Task, asyncio.tasks._PyTask)
+
+    def test_is_py_task(self):
+        asyncio = netius.get_asyncio()
+        result = netius.Base.is_py_task()
+
+        self.assertEqual(result in (True, False), True)
+
+        if asyncio == None:
+            self.assertEqual(result, False)
+            return
+
+        # the pure Python implementation of the task may only be used
+        # while its bookkeeping of the currently running task is shared
+        # with the accelerated one, which stops being the case under the
+        # more recent versions of the interpreter
+        if hasattr(asyncio.tasks, "_c_current_task"):
+            self.assertEqual(result, sys.version_info < (3, 14))
+        else:
+            self.assertEqual(result, True)
 
     def test_unpend(self):
         loop = netius.Base()

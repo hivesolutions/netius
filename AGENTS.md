@@ -21,6 +21,7 @@ All agents inherit from `Observable`, allowing dynamic event binding and trigger
 Netius comes with several built-in server agents, available in `src/netius/servers`:
 
 - **WSGIServer**: Production-ready WSGI server.
+- **ASGIServer**: ASGI server, with support for the HTTP, WebSocket and lifespan scopes.
 - **FTPServer**: FTP protocol server.
 - **HTTPServer**: HTTP/1.1 server.
 - **HTTP2Server**: HTTP/2 server.
