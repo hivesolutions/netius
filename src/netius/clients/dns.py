@@ -258,9 +258,10 @@ class DNSResponse(netius.Response):
         end = start + size if size else index
 
         # verifies that the size of the record is consistent with the data
-        # that has just been read, otherwise the index would move backwards
-        # corrupting the parsing of the records that follow this one
-        if end < index:
+        # that has just been read and that it does not go beyond the message,
+        # otherwise the index would be moved to an invalid position corrupting
+        # the parsing of the records that follow this one
+        if end < index or end > len(data):
             raise netius.ParserError("Invalid SVCB record size")
 
         params = data[index:end]
@@ -279,8 +280,8 @@ class DNSResponse(netius.Response):
 
         # the length of the tag is controlled by the remote peer, so the very
         # same size verification is required to avoid reading the value from
-        # outside of the record and moving the index backwards
-        if end < index:
+        # outside of the record or of the message itself
+        if end < index or end > len(data):
             raise netius.ParserError("Invalid CAA record size")
 
         value = data[index:end]

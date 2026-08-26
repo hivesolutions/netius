@@ -161,6 +161,16 @@ class DNSResponseParserTest(unittest.TestCase):
             netius.ParserError, lambda: self.response.parse_svcb(rdata, 0, size=4)
         )
 
+    def test_parse_svcb_overflow_size(self):
+        target = b"\x03svc\x07example\x03com\x00"
+        rdata = struct.pack("!H", 1) + target + b"\x00\x01"
+        # a record size that goes beyond the end of the message would truncate
+        # the parameters and leave the index outside of the buffer
+        self.assertRaises(
+            netius.ParserError,
+            lambda: self.response.parse_svcb(rdata, 0, size=len(rdata) + 1),
+        )
+
     def test_parse_https_matches_svcb(self):
         target = b"\x03svc\x07example\x03com\x00"
         params = b"\x00\x01\x00\x02h3"
@@ -183,6 +193,16 @@ class DNSResponseParserTest(unittest.TestCase):
         # value would be read from outside of the record
         self.assertRaises(
             netius.ParserError, lambda: self.response.parse_caa(rdata, 0, size=7)
+        )
+
+    def test_parse_caa_overflow_size(self):
+        tag = b"issue"
+        rdata = struct.pack("!BB", 0x80, len(tag)) + tag + b"lets"
+        # a record size that goes beyond the end of the message would truncate
+        # the value and leave the index outside of the buffer
+        self.assertRaises(
+            netius.ParserError,
+            lambda: self.response.parse_caa(rdata, 0, size=len(rdata) + 1),
         )
 
 
