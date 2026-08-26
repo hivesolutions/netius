@@ -116,6 +116,7 @@ class DatagramServerTest(unittest.TestCase):
     def setUp(self):
         unittest.TestCase.setUp(self)
         self.server = netius.DatagramServer(level=logging.CRITICAL)
+        self.server.socket = self.server.socket_udp()
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
@@ -136,7 +137,7 @@ class DatagramServerTest(unittest.TestCase):
 
         # every ready socket is handed over to the read handler, as a
         # datagram server has a single socket for the complete service
-        self.assertEqual(on_read.call_count, 2)
+        self.assertEqual(self._sockets(on_read), [1, 2])
 
     def test_writes(self):
         if mock == None:
@@ -145,7 +146,7 @@ class DatagramServerTest(unittest.TestCase):
         with mock.patch.object(self.server, "on_write") as on_write:
             self.server.writes((1, 2), state=False)
 
-        self.assertEqual(on_write.call_count, 2)
+        self.assertEqual(self._sockets(on_write), [1, 2])
 
     def test_errors(self):
         if mock == None:
@@ -154,7 +155,7 @@ class DatagramServerTest(unittest.TestCase):
         with mock.patch.object(self.server, "on_error") as on_error:
             self.server.errors((1, 2), state=False)
 
-        self.assertEqual(on_error.call_count, 2)
+        self.assertEqual(self._sockets(on_error), [1, 2])
 
     def test_serve(self):
         if mock == None:
@@ -187,7 +188,10 @@ class DatagramServerTest(unittest.TestCase):
         with mock.patch.object(self.server, "sub_write") as sub_write:
             self.server.ensure_write()
 
+        # the socket of the server is the one that gets subscribed, as a
+        # datagram server has a single socket for the complete service
         self.assertEqual(sub_write.call_count, 1)
+        self.assertEqual(sub_write.call_args[0][0], self.server.socket)
 
     def test_ensure_write_unsafe(self):
         if mock == None:
@@ -209,6 +213,7 @@ class DatagramServerTest(unittest.TestCase):
             self.server.remove_write()
 
         self.assertEqual(unsub_write.call_count, 1)
+        self.assertEqual(unsub_write.call_args[0][0], self.server.socket)
 
     def test_enable_read(self):
         if mock == None:
@@ -221,6 +226,7 @@ class DatagramServerTest(unittest.TestCase):
 
         self.assertEqual(self.server.renable, True)
         self.assertEqual(sub_read.call_count, 1)
+        self.assertEqual(sub_read.call_args[0][0], self.server.socket)
 
     def test_enable_read_enabled(self):
         if mock == None:
@@ -242,6 +248,7 @@ class DatagramServerTest(unittest.TestCase):
 
         self.assertEqual(self.server.renable, False)
         self.assertEqual(unsub_read.call_count, 1)
+        self.assertEqual(unsub_read.call_args[0][0], self.server.socket)
 
     def test_disable_read_disabled(self):
         if mock == None:
@@ -319,6 +326,11 @@ class DatagramServerTest(unittest.TestCase):
         self.assertEqual(writes.call_args[0][0], (self.server.socket,))
         self.assertEqual(writes.call_args[1]["state"], False)
 
+    def _sockets(self, handler):
+        # gathers the sockets that have been handed over to the handler, so
+        # that both the count and the identity of them may be verified
+        return [call[0][0] for call in handler.call_args_list]
+
 
 class StreamServerTest(unittest.TestCase):
 
@@ -344,9 +356,10 @@ class StreamServerTest(unittest.TestCase):
             _socket.close()
 
         # the service socket announces a new connection while any other one
-        # announces data, so the two are routed to different handlers
-        self.assertEqual(on_read_s.call_count, 1)
-        self.assertEqual(on_read.call_count, 1)
+        # announces data, so each of them must reach its own handler and
+        # never the one of the other, which would accept instead of read
+        self.assertEqual(on_read_s.call_args[0][0], self.server.socket)
+        self.assertEqual(on_read.call_args[0][0], _socket)
 
     def test_writes(self):
         if mock == None:
@@ -360,8 +373,8 @@ class StreamServerTest(unittest.TestCase):
         finally:
             _socket.close()
 
-        self.assertEqual(on_write_s.call_count, 1)
-        self.assertEqual(on_write.call_count, 1)
+        self.assertEqual(on_write_s.call_args[0][0], self.server.socket)
+        self.assertEqual(on_write.call_args[0][0], _socket)
 
     def test_errors(self):
         if mock == None:
@@ -375,8 +388,8 @@ class StreamServerTest(unittest.TestCase):
         finally:
             _socket.close()
 
-        self.assertEqual(on_error_s.call_count, 1)
-        self.assertEqual(on_error.call_count, 1)
+        self.assertEqual(on_error_s.call_args[0][0], self.server.socket)
+        self.assertEqual(on_error.call_args[0][0], _socket)
 
     def test_on_write_s(self):
         # the service socket handlers for writing and for errors are
