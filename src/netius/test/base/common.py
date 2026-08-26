@@ -53,6 +53,11 @@ class BaseTest(unittest.TestCase):
         # the flag is the one that guards it from being run once again
         self.assertEqual(hasattr(asyncio, "_patched"), True)
 
+        # an interpreter that does not provide the pure Python task has
+        # nothing to be patched, so there's nothing to be verified
+        if not hasattr(asyncio.tasks, "_PyTask"):
+            return
+
         if netius.Base.is_py_task():
             self.assertEqual(asyncio.Task, asyncio.tasks._PyTask)
         else:
