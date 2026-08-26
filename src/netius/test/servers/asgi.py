@@ -105,6 +105,17 @@ class ASGIServerTest(unittest.TestCase):
         self.assertEqual(loop.is_closed(), True)
         self.assertEqual(server.loop_asyncio, None)
 
+    def test_on_connection_c(self):
+        server = self._make_server(max_pending=1024)
+        connection = self._make_connection(server)
+        connection.max_pending = -1
+
+        server.on_connection_c(connection)
+
+        # the limit of the sending buffer of the server must be applied to
+        # the connection, as it's the one that bounds the back pressure
+        self.assertEqual(connection.max_pending, 1024)
+
     def test_on_connection_d(self):
         server = self._make_server(app=self._app_receive)
         connection = self._make_connection(server)
@@ -228,6 +239,34 @@ class ASGIServerTest(unittest.TestCase):
         # appended to the one that already exists
         self.assertEqual(len(connection.queue), 2)
 
+    def test_on_data_http_pending(self):
+        server = self._make_server(app=netius.servers.asgi.hello_app)
+        connection = self._make_connection(server, deliver=False)
+
+        connection.parse(REQUEST)
+        self._run(server)
+
+        # the application has completed the response but the flushing of it
+        # is still pending, so the connection is not yet a free one
+        self.assertEqual(connection.finished, True)
+        self.assertNotEqual(connection.task, None)
+
+        connection.parse(REQUEST)
+
+        # a request that arrives while the response of the previous one has
+        # not been released must be queued, as the releasing of it would
+        # otherwise cancel the application that is handling the new one
+        self.assertEqual(len(connection.queue), 1)
+
+        self._deliver(connection)
+        self._run(server)
+        self._deliver(connection)
+
+        # the releasing of the response dispatches the queued request, whose
+        # response must reach the client as well (no request is lost)
+        self.assertEqual(connection.queue, [])
+        self.assertEqual(self._data(connection).count(b"Hello World"), 2)
+
     def test_on_data_http_ws(self):
         server = self._make_server(app=self._app_receive)
         connection = self._make_connection(server)
@@ -299,16 +338,58 @@ class ASGIServerTest(unittest.TestCase):
         connection = self._make_connection(server)
         connection.messages = []
         connection.receive_f = None
+        connection.finished = False
 
         server.on_data_ws(
             connection, netius.servers.asgi.CLOSE_OPCODE, struct.pack("!H", 1001)
         )
+
+        # the closing handshake requires a close frame to be sent back to
+        # the client, echoing the code that has been provided by it
+        decoded, _remaining = netius.common.decode_ws(self._data(connection))
+        self.assertEqual(struct.unpack("!H", decoded[:2])[0], 1001)
 
         # the close code of the frame must be reported to the application
         # and the connection closed, as the other end is gone
         self.assertEqual(
             connection.messages, [dict(type="websocket.disconnect", code=1001)]
         )
+        self.assertEqual(connection.finished, True)
+        self.assertEqual(connection.closed, True)
+
+    def test_on_data_ws_close_empty(self):
+        server = self._make_server()
+        connection = self._make_connection(server)
+        connection.messages = []
+        connection.receive_f = None
+        connection.finished = False
+
+        server.on_data_ws(connection, netius.servers.asgi.CLOSE_OPCODE, b"")
+
+        # a client that provides no close code is reported to the application
+        # with the reserved one, that may never be sent in a frame, so the
+        # frame that is echoed back carries no payload at all
+        decoded, _remaining = netius.common.decode_ws(self._data(connection))
+        self.assertEqual(decoded, b"")
+        self.assertEqual(
+            connection.messages,
+            [dict(type="websocket.disconnect", code=netius.servers.asgi.CLOSE_NONE)],
+        )
+
+    def test_on_data_ws_close_sent(self):
+        server = self._make_server()
+        connection = self._make_connection(server)
+        connection.messages = []
+        connection.receive_f = None
+        connection.finished = True
+
+        server.on_data_ws(
+            connection, netius.servers.asgi.CLOSE_OPCODE, struct.pack("!H", 1000)
+        )
+
+        # with a close frame already sent by the server the handshake is
+        # complete, so no extra frame may be sent
+        self.assertEqual(self._data(connection), b"")
         self.assertEqual(connection.closed, True)
 
     def test_on_data_ws_fragmented(self):
@@ -505,6 +586,28 @@ class ASGIServerTest(unittest.TestCase):
 
         self.assertEqual(connection.started, True)
 
+    def test__build_send_pressure(self):
+        server = self._make_server()
+        connection = self._make_connection(server, deliver=False)
+        connection.parse(REQUEST)
+        connection.started = True
+        connection.finished = False
+        connection.empty = False
+        connection.pending_s = server.max_pending + 1
+
+        send = server._build_send(connection)
+
+        # a partial payload suspends the application until it reaches the
+        # connection, so the awaitable may not be completed right away
+        coroutine = send(dict(type="http.response.body", body=b"x", more_body=True))
+        future = self._suspend(coroutine)
+
+        self.assertEqual(future.done(), False)
+
+        self._deliver(connection)
+
+        self.assertEqual(self._resolve(coroutine), None)
+
     def test__send(self):
         server = self._make_server()
         connection = self._make_connection(server)
@@ -571,11 +674,37 @@ class ASGIServerTest(unittest.TestCase):
         )
         connection.parse(REQUEST)
 
-        server._send_start(connection, dict(status=204, headers=[]))
+        server._send_start(
+            connection, dict(status=204, headers=[(b"content-length", b"11")])
+        )
 
         # a response that may not carry a payload must never be sent using
         # the chunked encoding, as there's nothing to be framed
         self.assertEqual(connection.current, netius.common.PLAIN_ENCODING)
+
+        # neither may it announce a length for a payload that is not going
+        # to be sent, as the client would wait for it forever
+        self.assertEqual(b"Content-Length" in self._data(connection), False)
+        self.assertEqual(connection.empty, True)
+
+    def test__send_start_head(self):
+        server = self._make_server()
+        connection = self._make_connection(server)
+        connection.parse(b"HEAD / HTTP/1.1\r\nHost: netius.hive.pt\r\n\r\n")
+
+        server._send_start(
+            connection, dict(status=200, headers=[(b"content-length", b"11")])
+        )
+
+        # the response to a HEAD request announces the length of the payload
+        # that it would carry, but never the payload itself
+        self.assertIn(b"Content-Length: 11\r\n", self._data(connection))
+        self.assertEqual(connection.empty, True)
+
+        connection.data = []
+        server._send_body(connection, dict(body=b"Hello World"))
+
+        self.assertEqual(self._data(connection), b"")
 
     def test__send_start_uncompressed(self):
         server = self._make_server(compressed_limit=8)
@@ -637,12 +766,16 @@ class ASGIServerTest(unittest.TestCase):
 
         connection.started = True
 
-        server._send_body(connection, dict(body=b"partial", more_body=True))
+        future = server._send_body(connection, dict(body=b"partial", more_body=True))
 
         # while more payload is expected the response is not a finished
         # one, so no flushing of the connection may be performed
         self.assertEqual(self._data(connection), b"partial")
         self.assertEqual(connection.finished, False)
+
+        # a connection that is still able to take more payload never
+        # suspends the application that is producing it
+        self.assertEqual(future, None)
 
         server._send_body(connection, dict(body=b"final"))
 
@@ -654,6 +787,34 @@ class ASGIServerTest(unittest.TestCase):
         self.assertRaises(
             netius.NetiusError, server._send_body, connection, dict(body=b"late")
         )
+
+    def test__send_body_pressure(self):
+        server = self._make_server()
+        connection = self._make_connection(server, deliver=False)
+        connection.parse(REQUEST)
+        connection.started = True
+        connection.finished = False
+        connection.empty = False
+
+        # exhausts the sending buffer of the connection so that it's no
+        # longer able to take more payload
+        connection.pending_s = server.max_pending + 1
+
+        future = server._send_body(connection, dict(body=b"partial", more_body=True))
+
+        # while the payload has not reached the connection the application
+        # remains suspended, no more payload may be produced by it
+        self.assertEqual(future.done(), False)
+
+        self._deliver(connection)
+
+        self.assertEqual(future.done(), True)
+
+        # a partial event that carries no payload has nothing to wait for,
+        # so the application is never suspended by it
+        future = server._send_body(connection, dict(more_body=True))
+
+        self.assertEqual(future, None)
 
     def test__send_body_empty(self):
         server = self._make_server()
@@ -721,11 +882,24 @@ class ASGIServerTest(unittest.TestCase):
 
         connection.ws_handshake = True
 
-        server._send_ws(connection, dict(text="hello"))
+        future = server._send_ws(connection, dict(text="hello"))
 
         decoded, _remaining = netius.common.decode_ws(self._data(connection))
         self.assertEqual(decoded, b"hello")
 
+        # a connection that is still able to take more payload never
+        # suspends the application that is producing the frames
+        self.assertEqual(future, None)
+
+        # once the sending buffer of the connection is exhausted the
+        # application is suspended until the frame reaches it
+        connection.pending_s = server.max_pending + 1
+
+        future = server._send_ws(connection, dict(text="hello"))
+
+        self.assertEqual(future.done(), True)
+
+        connection.pending_s = 0
         connection.data = []
         server._send_ws(connection, dict(bytes=b"raw"))
 
@@ -764,6 +938,22 @@ class ASGIServerTest(unittest.TestCase):
         # the rejection of it, so a "normal" response is sent instead
         self.assertIn(b"HTTP/1.1 403 Forbidden\r\n", self._data(connection))
         self.assertEqual(connection.closed, True)
+
+    def test__resolve(self):
+        server = self._make_server()
+        future = server._future()
+
+        server._resolve(future)
+
+        self.assertEqual(future.done(), True)
+
+        # a future that is no longer running means that the application has
+        # been canceled, so there's no result to be set on it
+        future = self._make_future(server, cancel=True)
+
+        server._resolve(future)
+
+        self.assertEqual(future.cancelled(), True)
 
     def test__push(self):
         server = self._make_server()
@@ -814,12 +1004,30 @@ class ASGIServerTest(unittest.TestCase):
         connection = self._make_connection(server)
         connection.parse(REQUEST)
         connection.finished = True
+        connection.task = self._make_future(server)
+
+        server._on_task(connection, connection.task)
+
+        # an application that completed the response has nothing pending to
+        # be done, note that the task is kept in the connection so that it's
+        # only considered a free one once the response has been released
+        self.assertNotEqual(connection.task, None)
+        self.assertEqual(connection.closed, False)
+
+    def test__on_task_stale(self):
+        server = self._make_server()
+        connection = self._make_connection(server)
+        connection.parse(REQUEST)
+        connection.started = False
+        connection.finished = False
+        connection.task = self._make_future(server)
 
         server._on_task(connection, self._make_future(server))
 
-        # an application that completed the response has nothing pending
-        # to be done, so the connection must be left untouched
-        self.assertEqual(connection.task, None)
+        # a task that is no longer the one of the connection is a stale one,
+        # meaning that the connection has already been re-used by another
+        # request, so no response may be sent on behalf of it
+        self.assertEqual(self._data(connection), b"")
         self.assertEqual(connection.closed, False)
 
     def test__on_task_canceled(self):
@@ -829,6 +1037,7 @@ class ASGIServerTest(unittest.TestCase):
         connection.finished = False
 
         future = self._make_future(server, cancel=True)
+        connection.task = future
         server._on_task(connection, future)
 
         # a canceled task means that the connection is gone, so no response
@@ -843,6 +1052,7 @@ class ASGIServerTest(unittest.TestCase):
         connection.finished = False
 
         future = self._make_future(server, exception=RuntimeError("boom"))
+        connection.task = future
         server._on_task(connection, future)
 
         # a failure of the application must be reported to the client as
@@ -857,8 +1067,9 @@ class ASGIServerTest(unittest.TestCase):
         connection.scope = dict(type="websocket")
         connection.finished = False
         connection.ws_handshake = True
+        connection.task = self._make_future(server)
 
-        server._on_task(connection, self._make_future(server))
+        server._on_task(connection, connection.task)
 
         # an application that returns while the connection is still open
         # closes it, using the framing that matches the kind of scope
@@ -1008,11 +1219,12 @@ class ASGIServerTest(unittest.TestCase):
     def test__start_lifespan_failed(self):
         server = self._make_server(app=self._app_lifespan_failed)
 
-        server._start_lifespan()
+        # an application that fails to start may not be served, as the
+        # requests would be handled by a partially initialized one
+        self.assertRaises(netius.NetiusError, server._start_lifespan)
 
-        # a failure reported by the application is not an impediment for
-        # the server to proceed with the serving of the requests
         self.assertEqual(server.lifespan_v, "lifespan.startup.failed")
+        self.assertEqual(server.lifespan_m, "boom")
 
     def test__start_lifespan_unsupported(self):
         server = self._make_server(app=self._app_lifespan_unsupported)
@@ -1441,7 +1653,7 @@ class ASGIServerTest(unittest.TestCase):
         return server
 
     def _make_connection(
-        self, server, encoding=netius.common.PLAIN_ENCODING, ssl=False
+        self, server, encoding=netius.common.PLAIN_ENCODING, ssl=False, deliver=True
     ):
         # builds a connection without the underlying socket, creating by
         # hand the parser that the opening of it would otherwise create
@@ -1452,6 +1664,7 @@ class ASGIServerTest(unittest.TestCase):
             ssl=ssl,
             encoding=encoding,
         )
+        connection.max_pending = server.max_pending
         connection.parser = netius.common.HTTPParser(
             connection, type=netius.common.REQUEST, store=True
         )
@@ -1460,8 +1673,11 @@ class ASGIServerTest(unittest.TestCase):
         # replaces both the sending and the closing operations by ones
         # that record their usage, as there's no socket to be used
         connection.data = []
+        connection.callbacks = []
         connection.closed = False
-        connection.send = lambda data, **kwargs: self._send(connection, data, **kwargs)
+        connection.send = lambda data, **kwargs: self._send(
+            connection, data, deliver, **kwargs
+        )
         connection.close = lambda **kwargs: self._close_c(connection)
 
         self.connections.append(connection)
@@ -1477,13 +1693,25 @@ class ASGIServerTest(unittest.TestCase):
             future.set_result(None)
         return future
 
-    def _send(self, connection, data, delay=True, callback=None, **kwargs):
+    def _send(self, connection, data, deliver, delay=True, callback=None, **kwargs):
         # accumulates the data that would otherwise be sent through the
-        # socket, running the callback as if it had been delivered
+        # socket, running the callback as if it had been delivered, unless
+        # the connection is meant to hold the delivery of it
         connection.data.append(netius.legacy.bytes(data))
         if callback:
-            callback(connection)
+            if deliver:
+                callback(connection)
+            else:
+                connection.callbacks.append(callback)
         return len(data) if data else 0
+
+    def _deliver(self, connection):
+        # runs the callbacks that were being held by the connection, as if
+        # the data associated with them had just reached the client
+        callbacks = list(connection.callbacks)
+        del connection.callbacks[:]
+        for callback in callbacks:
+            callback(connection)
 
     def _close_c(self, connection):
         connection.closed = True

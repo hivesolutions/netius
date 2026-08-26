@@ -69,24 +69,29 @@ Measured on a single core, with keep-alive enabled, serving an 11 byte plain tex
 
 | Server                                 | Requests per second | 95% latency |
 | -------------------------------------- | ------------------- | ----------- |
-| Netius WSGI                            | 23242               | 3 ms        |
-| Netius ASGI (native)                   | 17475               | 3 ms        |
-| uvicorn                                | 15428               | 3 ms        |
-| Netius ASGI (asyncio)                  | 10991               | 6 ms        |
-| Netius ASGI (asyncio) with Starlette   | 5037                | 12 ms       |
-| uvicorn with Starlette                 | 9259                | 6 ms        |
+| Netius WSGI                            | 21208               | 3 ms        |
+| Netius ASGI (native)                   | 15904               | 4 ms        |
+| uvicorn                                | 14537               | 4 ms        |
+| Netius ASGI (asyncio)                  | 10755               | 6 ms        |
+| uvicorn with Starlette                 | 9249                | 6 ms        |
+| Netius ASGI (asyncio) with Starlette   | 4977                | 12 ms       |
 
 The synchronous WSGI interface remains the fastest one, as an ASGI request pays for the driving of a coroutine. For a raw ASGI application the native mode is faster than uvicorn, while the asyncio mode trades throughput for the compatibility with the asyncio ecosystem.
 
+## Back pressure
+
+An application that produces the payload of a response faster than the client is able to read it would otherwise accumulate the complete response in the buffer of the connection. To avoid it the sending of a partial payload (`more_body`) or of a WebSocket frame suspends the application whenever the connection is exhausted, meaning that either the payload pending in it has reached `MAX_PENDING` bytes or that the flow control window of the HTTP/2 stream has been closed. The application is resumed once the payload reaches the connection, so the memory used by a response is bounded by the limit and not by its size.
+
+The limit may be changed with the `max_pending` parameter of the constructor or with the `MAX_PENDING` environment variable, note that the suspension only happens once the limit is reached, so a response that fits in the buffer is never delayed by it (streaming a 20 KB response in chunks of 1 KB runs at the same rate with and without the mechanism).
+
 ## Lifespan
 
-The startup event is sent before the event loop starts accepting connections and the shutdown one while the server is stopping, in both cases the server waits for the acknowledgment of the application, bound by `LIFESPAN_TIMEOUT`. An application that raises when handed a lifespan scope is taken as one that does not support the protocol, so the server proceeds without it, as required by the specification. The support may also be disabled explicitly with `lifespan=False` or with the `LIFESPAN` environment variable.
+The startup event is sent before the event loop starts accepting connections and the shutdown one while the server is stopping, in both cases the server waits for the acknowledgment of the application, bound by `LIFESPAN_TIMEOUT`. An application that reports `lifespan.startup.failed` aborts the serving, as required by the specification, so that the requests are never handled by a partially initialized application. An application that raises when handed a lifespan scope is instead taken as one that does not support the protocol, so the server proceeds without it. The support may also be disabled explicitly with `lifespan=False` or with the `LIFESPAN` environment variable.
 
 Note that the waiting is performed outside of the polling cycle, so an application whose startup depends on network operations of its own is not able to complete it before the timeout is reached.
 
 ## Limitations
 
-- The response payload is not subject to back pressure, an application that sends faster than the client reads accumulates the payload in the buffer of the connection.
 - WebSocket connections are only accepted over HTTP/1.1, as the upgrade mechanism is not part of the HTTP/2 specification.
 - The `http.disconnect` and `websocket.disconnect` events are delivered on a best effort basis, as the application is cancelled together with the connection that it's handling.
 - Under Python 2.7, and any other interpreter without support for the async/await syntax, the server is a stub that raises an error when instantiated.

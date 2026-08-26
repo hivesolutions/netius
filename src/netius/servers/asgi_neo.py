@@ -76,6 +76,12 @@ COMPRESSED_LIMIT = 5242880
 content, this should ensure proper resource usage avoiding extreme
 high levels of resource usage for compression of large files """
 
+MAX_PENDING = 65536
+""" The size in bytes considered to be the maximum allowed in the
+sending buffer of a connection, once this value is reached the
+application is suspended until the payload is flushed, avoiding the
+starvation of the producer to consumer relation """
+
 BUFFER_SIZE = 40960
 """ The size (in bytes) of the chunks in which the payload of a
 request is handed to the application, avoiding the complete loading
@@ -153,6 +159,7 @@ class ASGIServer(http2.HTTP2Server):
         app,
         mount="",
         compressed_limit=COMPRESSED_LIMIT,
+        max_pending=MAX_PENDING,
         lifespan=True,
         asyncio=None,
         *args,
@@ -163,6 +170,7 @@ class ASGIServer(http2.HTTP2Server):
         self.mount = mount
         self.mount_l = len(mount)
         self.compressed_limit = compressed_limit
+        self.max_pending = max_pending
         self.lifespan = lifespan
         self.asyncio = netius.is_asyncio() if asyncio == None else asyncio
         self.loop_asyncio = netius.new_loop_asyncio() if self.asyncio else None
@@ -170,6 +178,7 @@ class ASGIServer(http2.HTTP2Server):
         self.legacy_app = self._is_legacy(app)
         self.lifespan_t = None
         self.lifespan_v = None
+        self.lifespan_m = None
         self.lifespan_f = None
         self.lifespan_q = []
 
@@ -190,6 +199,13 @@ class ASGIServer(http2.HTTP2Server):
         # so that both the timers and the callbacks scheduled by them are
         # able to make progress while the server is running
         self._pump()
+
+    def on_connection_c(self, connection):
+        http2.HTTP2Server.on_connection_c(self, connection)
+
+        # applies the limit of the sending buffer to the connection so that
+        # the payload produced by an application is properly bounded
+        connection.max_pending = self.max_pending
 
     def on_connection_d(self, connection):
         http2.HTTP2Server.on_connection_d(self, connection)
@@ -213,6 +229,8 @@ class ASGIServer(http2.HTTP2Server):
             self.compressed_limit = self.get_env(
                 "COMPRESSED_LIMIT", self.compressed_limit, cast=int
             )
+        if self.env:
+            self.max_pending = self.get_env("MAX_PENDING", self.max_pending, cast=int)
         if self.env:
             self.lifespan = self.get_env("LIFESPAN", self.lifespan, cast=bool)
         self.info(
@@ -294,6 +312,7 @@ class ASGIServer(http2.HTTP2Server):
         connection.receive_f = None
         connection.started = False
         connection.finished = False
+        connection.empty = False
 
         # in case the scope is a websocket one the connect event is queued
         # so that it's the first one to be received by the application, as
@@ -322,6 +341,17 @@ class ASGIServer(http2.HTTP2Server):
         # application whenever the client does not provide it
         if opcode == CLOSE_OPCODE:
             code = self._close_code(data)
+
+            # a close frame must be sent back to the client so that the
+            # closing handshake is completed, note that the code is only
+            # echoed in case a valid one has been provided by the client
+            if not connection.finished:
+                payload = b"" if code == CLOSE_NONE else struct.pack("!H", code)
+                connection.send(
+                    netius.common.encode_ws(payload, opcode=CLOSE_OPCODE, mask=False)
+                )
+                connection.finished = True
+
             self._push(connection, dict(type="websocket.disconnect", code=code))
             connection.close(flush=True)
             return
@@ -472,22 +502,27 @@ class ASGIServer(http2.HTTP2Server):
 
     def _build_send(self, connection):
         async def send(message):
-            return self._send(connection, message)
+            # the sending of a message may require the application to wait
+            # for the connection to have capacity for more payload, for such
+            # situations a future is returned by the send operation
+            future = self._send(connection, message)
+            if future:
+                await future
 
         return send
 
     def _send(self, connection, message):
         message_t = message.get("type", None)
         if message_t == "http.response.start":
-            self._send_start(connection, message)
+            return self._send_start(connection, message)
         elif message_t == "http.response.body":
-            self._send_body(connection, message)
+            return self._send_body(connection, message)
         elif message_t == "websocket.accept":
-            self._send_accept(connection, message)
+            return self._send_accept(connection, message)
         elif message_t == "websocket.send":
-            self._send_ws(connection, message)
+            return self._send_ws(connection, message)
         elif message_t == "websocket.close":
-            self._send_close(connection, message)
+            return self._send_close(connection, message)
         else:
             raise netius.NetiusError("Invalid message type '%s'" % message_t)
 
@@ -553,6 +588,18 @@ class ASGIServer(http2.HTTP2Server):
         if not has_length:
             parser.keep_alive = is_chunked
 
+        # determines if the response may carry a payload, as neither a HEAD
+        # request nor some of the status codes allow one, for such situations
+        # the payload produced by the application is discarded
+        is_head = parser.method and parser.method.upper() == "HEAD"
+        connection.empty = is_head or status_c < 200 or status_c in http.EMPTY_CODES
+
+        # an informational or a no content response may never announce a
+        # length for a payload that is not going to be sent, as the message
+        # is terminated by the first empty line after the headers section
+        if status_c < 200 or status_c == 204:
+            connection._unset_header(headers, "content-length")
+
         # applies the base (static) headers to the headers map and then
         # applies the parser based values to the headers map, these
         # values should be dynamic and based in the current state
@@ -584,16 +631,25 @@ class ASGIServer(http2.HTTP2Server):
         body = message.get("body", b"")
         more_body = message.get("more_body", False)
 
-        # sends the payload of the event through the connection, note
-        # that the sending is not a final one as the flushing of the
-        # response is only performed by the end of the message
+        # a response that may not carry a payload must never write one to
+        # the wire, even though the application is free to produce it, as
+        # the client would take it as the start of the next response
+        if connection.empty:
+            body = b""
+
+        # in case more payload is still expected the sending is a partial
+        # one, so the application may be suspended in case the connection
+        # is no longer able to take more payload (back pressure)
+        if more_body:
+            if not body:
+                return None
+            return self._send_pressure(connection, body)
+
+        # sends the last payload of the response through the connection,
+        # note that the sending is not a final one as the flushing of the
+        # response is the operation that completes it
         if body:
             connection.send_part(body, final=False)
-
-        # in case more payload is still expected returns the control flow
-        # immediately as the response is not yet complete
-        if more_body:
-            return
 
         # marks the response as finished and runs the flush operation in
         # the connection setting the proper callback method for it so that
@@ -673,8 +729,9 @@ class ASGIServer(http2.HTTP2Server):
             raise netius.NetiusError("No payload defined for send")
 
         # sends the frame through the connection, note that the raw send
-        # operation is used as the payload is already framed
-        connection.send(encoded)
+        # operation is used as the payload is already framed, the application
+        # may be suspended in case the connection is exhausted (back pressure)
+        return self._send_pressure(connection, encoded, raw=True)
 
     def _send_close(self, connection, message):
         # a connection may only be closed once, as both the framing and
@@ -702,6 +759,63 @@ class ASGIServer(http2.HTTP2Server):
         connection.send(encoded)
         connection.finished = True
         self._close(connection)
+
+    def _send_pressure(self, connection, data, raw=False):
+        """
+        Sends the provided data through the connection, suspending the
+        application in case the connection is no longer able to take more
+        payload, so that a fast producer is not able to outrun a slow
+        consumer (back pressure).
+
+        :type connection: Connection
+        :param connection: The connection through which the data is going
+        to be sent to the client.
+        :type data: bytes
+        :param data: The buffer of data that is going to be sent.
+        :type raw: bool
+        :param raw: If the data is already framed, meaning that it must be
+        sent without any extra encoding applied to it.
+        :rtype: Future
+        :return: The future that the application must wait for before more
+        payload is produced, or an invalid value in case the connection is
+        still able to take more of it.
+        """
+
+        # verifies if the connection is exhausted, meaning that either the
+        # payload pending in it has reached the limit or that the flow
+        # control window of the stream has been closed
+        exhausted = connection.is_exhausted()
+
+        # in case the connection is still able to take more payload the
+        # data is sent without any kind of waiting (no back pressure)
+        if not exhausted:
+            if raw:
+                connection.send(data)
+            else:
+                connection.send_part(data, final=False)
+            return None
+
+        # otherwise the application is suspended until the data that has
+        # just been sent reaches the connection (drains the buffer)
+        future = self._future()
+        callback = lambda _connection: self._resolve(future)
+        if raw:
+            connection.send(data, callback=callback)
+        else:
+            connection.send_part(data, final=False, callback=callback)
+        return future
+
+    def _resolve(self, future):
+        # in case the future has been canceled in the mean time (eg: the
+        # connection has been closed) there's nothing to be done, as the
+        # application is no longer running
+        if future.done():
+            return
+
+        # sets the result of the future resuming the application and runs
+        # the pending work of it, so that no extra latency is introduced
+        future.set_result(None)
+        self._pump()
 
     def _push(self, connection, message):
         # in case there's an application waiting for a message the future
@@ -735,12 +849,16 @@ class ASGIServer(http2.HTTP2Server):
         return dict(type="http.request", body=data, more_body=more_body)
 
     def _on_task(self, connection, future):
-        # unsets the task from the connection as it has been completely
-        # processed, not going to be used anymore
-        connection.task = None
+        # in case the task is no longer the one associated with the connection
+        # then it's a stale one, meaning that the connection has already been
+        # released and re-used by another request (nothing to be done)
+        if not connection.task == future:
+            return
 
         # in case the task has been canceled in the mean time (eg: the
-        # connection has been closed) there's nothing to be done
+        # connection has been closed) there's nothing to be done, note that
+        # the task is kept in the connection so that it's only considered
+        # a free one once the response has been completely released
         if future.cancelled():
             return
 
@@ -916,6 +1034,7 @@ class ASGIServer(http2.HTTP2Server):
             asgi=dict(version=ASGI_VERSION, spec_version=LIFESPAN_VERSION),
         )
         self.lifespan_v = None
+        self.lifespan_m = None
         self.lifespan_f = None
         self.lifespan_q = []
 
@@ -933,6 +1052,12 @@ class ASGIServer(http2.HTTP2Server):
         # application is ready to handle it
         self._push_lifespan(dict(type="lifespan.startup"))
         self._wait_lifespan("lifespan.startup")
+
+        # in case the application reported a failure in the startup the
+        # serving of the requests may not proceed, as it would be performed
+        # against a partially initialized application (as defined)
+        if self.lifespan_v == "lifespan.startup.failed":
+            raise netius.NetiusError("Lifespan startup failed: %s" % self._lifespan_m())
 
     def _stop_lifespan(self):
         # in case there's no application running under the lifespan scope
@@ -969,9 +1094,12 @@ class ASGIServer(http2.HTTP2Server):
             time.sleep(LIFESPAN_INTERVAL)
 
         # in case the application reported a failure for the event the
-        # proper warning message is logged (the server proceeds anyway)
+        # message provided by it is logged, as required by the specification
         if self.lifespan_v == name + ".failed":
-            self.warning("Received '%s' from the application" % self.lifespan_v)
+            self.warning(
+                "Received '%s' from the application: %s"
+                % (self.lifespan_v, self._lifespan_m())
+            )
 
     def _build_receive_lifespan(self):
         async def receive():
@@ -997,6 +1125,7 @@ class ASGIServer(http2.HTTP2Server):
     def _build_send_lifespan(self):
         async def send(message):
             self.lifespan_v = message.get("type", None)
+            self.lifespan_m = message.get("message", None)
             self.debug("Received '%s' from the application" % self.lifespan_v)
 
         return send
@@ -1015,6 +1144,11 @@ class ASGIServer(http2.HTTP2Server):
         # otherwise the message is queued so that it's delivered by the
         # next call to the receive awaitable
         self.lifespan_q.append(message)
+
+    def _lifespan_m(self):
+        # retrieves the message that the application associated with the
+        # last of the lifespan events, defaulting to a placeholder one
+        return self.lifespan_m if self.lifespan_m else "no message"
 
     def _on_lifespan(self, future):
         # unsets the task of the lifespan protocol as it's no longer
