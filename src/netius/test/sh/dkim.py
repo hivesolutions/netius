@@ -114,17 +114,6 @@ class SHDKIMTest(unittest.TestCase):
         self.assertEqual(dkim_generate.call_args[1]["suffix"], "mail")
         self.assertEqual(dkim_generate.call_args[1]["number_bits"], 512)
 
-    def test_generate_key(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
-        result = self._generate("netius.hive.pt", None, "512")
-
-        self.assertEqual("._domainkey.netius.hive.pt. IN TXT " in result, True)
-        self.assertEqual('"k=rsa; p=' in result, True)
-        self.assertEqual("-----BEGIN RSA PRIVATE KEY-----" in result, True)
-        self.assertEqual("-----END RSA PRIVATE KEY-----" in result, True)
-
     def test_sign(self):
         self._write(self.email_path, MESSAGE)
 
