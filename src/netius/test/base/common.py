@@ -39,6 +39,7 @@ import netius
 from netius.base import conn
 from netius.base import common
 from netius.base import errors
+from netius.base import asynchronous
 
 try:
     import unittest.mock as mock
@@ -543,7 +544,11 @@ class BaseTest(unittest.TestCase):
     def test_wait_timeout(self):
         loop = netius.Base()
         try:
-            future = loop.wait("event", timeout=60)
+            # the future is built with no loop bound to it so that the done
+            # callbacks are run inline, a future bound to a loop would have
+            # the releasing of the bind delayed to one of its next ticks
+            future = asynchronous.Future()
+            loop.wait("event", timeout=60, future=future)
 
             # the canceler is scheduled together with the waiting so that a
             # notification that never arrives does not block forever
@@ -573,11 +578,19 @@ class BaseTest(unittest.TestCase):
             loop.close()
 
     def test_notify(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
         loop = netius.Base()
         try:
-            loop.notify("event", data="payload")
+            with mock.patch.object(loop, "wakeup") as wakeup:
+                loop.notify("event", data="payload")
 
             self.assertEqual(loop._notified, [("event", "payload")])
+
+            # a notification issued from the main thread is picked up by the
+            # very same loop iteration, so there's nothing to be awaken
+            self.assertEqual(wakeup.call_count, 0)
 
             # an event that no one is waiting for is still processed, being
             # discarded once there's no bind to hand it over to
@@ -589,14 +602,20 @@ class BaseTest(unittest.TestCase):
             loop.close()
 
     def test_notify_wakeup(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
         loop = netius.Base()
         try:
             # a notification issued from a thread other than the main one has
             # to wake the event loop, so that it's processed as soon as possible
             loop.tid = -1
-            loop.notify("event", data="payload")
+
+            with mock.patch.object(loop, "wakeup") as wakeup:
+                loop.notify("event", data="payload")
 
             self.assertEqual(loop._notified, [("event", "payload")])
+            self.assertEqual(wakeup.call_count, 1)
         finally:
             loop.close()
 
