@@ -35,6 +35,7 @@ import unittest
 import netius
 
 from netius.base import conn
+from netius.base import legacy
 from netius.base import request
 from netius.base import client as client_c
 
@@ -110,9 +111,11 @@ class DatagramClientTest(unittest.TestCase):
     def setUp(self):
         unittest.TestCase.setUp(self)
         self.client = netius.DatagramClient(level=logging.CRITICAL)
+        self.client.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
+        self.client.socket.close()
         self.client.close()
 
     def test_keep_gc(self):
@@ -219,7 +222,10 @@ class DatagramClientTest(unittest.TestCase):
         with mock.patch.object(self.client, "unsub_write") as unsub_write:
             self.client.remove_write()
 
+        # the socket of the client is the one that gets unsubscribed, as a
+        # datagram client has a single socket for the complete service
         self.assertEqual(unsub_write.call_count, 1)
+        self.assertEqual(unsub_write.call_args[0][0], self.client.socket)
 
     def test_enable_read(self):
         if mock == None:
@@ -232,6 +238,7 @@ class DatagramClientTest(unittest.TestCase):
 
         self.assertEqual(self.client.renable, True)
         self.assertEqual(sub_read.call_count, 1)
+        self.assertEqual(sub_read.call_args[0][0], self.client.socket)
 
     def test_enable_read_enabled(self):
         if mock == None:
@@ -254,6 +261,7 @@ class DatagramClientTest(unittest.TestCase):
 
         self.assertEqual(self.client.renable, False)
         self.assertEqual(unsub_read.call_count, 1)
+        self.assertEqual(unsub_read.call_args[0][0], self.client.socket)
 
     def test_disable_read_disabled(self):
         if mock == None:
@@ -276,6 +284,7 @@ class StreamClientTest(unittest.TestCase):
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
+        self._close_connections()
         self.client.close()
 
     def test_acquire_c(self):
@@ -417,6 +426,13 @@ class StreamClientTest(unittest.TestCase):
         self.client.connections.append(connection)
         self.client.connections_m[_socket] = connection
         return connection
+
+    def _close_connections(self):
+        # the closing of a client that has never been started is a no
+        # operation, so the socket of a connection that the path under test
+        # did not close by itself has to be released by hand
+        for _socket in legacy.keys(self.client.connections_m):
+            _socket.close()
 
 
 class _MockResponse(request.Response):
