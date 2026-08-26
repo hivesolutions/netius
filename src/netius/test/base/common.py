@@ -38,6 +38,12 @@ import netius
 
 from netius.base import conn
 from netius.base import common
+from netius.base import errors
+
+try:
+    import unittest.mock as mock
+except ImportError:
+    mock = None
 
 
 class BaseTest(unittest.TestCase):
@@ -84,6 +90,191 @@ class BaseTest(unittest.TestCase):
             self.assertEqual(result, sys.version_info < (3, 14))
         else:
             self.assertEqual(result, True)
+
+    def test_call_safe(self):
+        loop = netius.Base()
+        try:
+            result = loop.call_safe(
+                lambda first, second=0: first + second, args=[1], kwargs=dict(second=2)
+            )
+
+            self.assertEqual(result, 3)
+        finally:
+            loop.close()
+
+    def test_call_safe_error(self):
+        loop = netius.Base()
+        try:
+
+            def raiser():
+                raise RuntimeError("Safe error")
+
+            # the exception raised by the callable is caught and logged, so
+            # that the caller is never interrupted by it
+            result = loop.call_safe(raiser)
+
+            self.assertEqual(result, None)
+        finally:
+            loop.close()
+
+    def test_wait_event(self):
+        loop = netius.Base()
+        try:
+            received = []
+            callable = lambda data: received.append(data)
+
+            loop.wait_event(callable, name="event")
+
+            self.assertEqual(loop._events["event"], [callable])
+
+            # the notification of the event runs the complete set of binds
+            # registered for it, handing them the payload of the event
+            loop.notify("event", data="payload")
+            loop._notifies()
+
+            self.assertEqual(received, ["payload"])
+        finally:
+            loop.close()
+
+    def test_wait_event_duplicate(self):
+        loop = netius.Base()
+        try:
+            callable = lambda data: None
+
+            # the same callable may only be bound once to an event, so that
+            # a repeated wait operation is not accounted for twice
+            loop.wait_event(callable, name="event")
+            loop.wait_event(callable, name="event")
+
+            self.assertEqual(len(loop._events["event"]), 1)
+        finally:
+            loop.close()
+
+    def test_unwait_event(self):
+        loop = netius.Base()
+        try:
+            callable = lambda data: None
+            loop.wait_event(callable, name="event")
+
+            loop.unwait_event(callable, name="event")
+
+            # the event is dropped from the map once its last bind has been
+            # removed, so that no empty sequences are kept around
+            self.assertEqual("event" in loop._events, False)
+        finally:
+            loop.close()
+
+    def test_unwait_event_remaining(self):
+        loop = netius.Base()
+        try:
+            first = lambda data: None
+            second = lambda data: None
+            loop.wait_event(first, name="event")
+            loop.wait_event(second, name="event")
+
+            loop.unwait_event(first, name="event")
+
+            self.assertEqual(loop._events["event"], [second])
+        finally:
+            loop.close()
+
+    def test_unwait_event_unknown(self):
+        loop = netius.Base()
+        try:
+            callable = lambda data: None
+            loop.wait_event(callable, name="event")
+
+            # neither an unknown event nor a callable that has never been
+            # bound to it may raise, the operation is simply ignored
+            loop.unwait_event(callable, name="unknown")
+            loop.unwait_event(lambda data: None, name="event")
+
+            self.assertEqual(loop._events["event"], [callable])
+        finally:
+            loop.close()
+
+    def test_delay_immediately(self):
+        loop = netius.Base()
+        try:
+            callable_t = loop.delay(lambda: None, immediately=True)
+
+            # an immediate operation takes priority over the ones scheduled
+            # for the next tick, by using a negative target time
+            self.assertEqual(callable_t[0], -1)
+
+            callable_t = loop.delay(lambda: None)
+
+            self.assertEqual(callable_t[0], 0)
+        finally:
+            loop.close()
+
+    def test_delay_verify(self):
+        loop = netius.Base()
+        try:
+            callable = lambda: None
+            loop.delay(callable, verify=True)
+
+            # the verification of duplicates skips the insertion of a callable
+            # that is already part of the delayed queue for the same target
+            result = loop.delay(callable, verify=True)
+
+            self.assertEqual(result, None)
+            self.assertEqual(len(loop._delayed), 1)
+        finally:
+            loop.close()
+
+    def test_delay_safe(self):
+        loop = netius.Base()
+        try:
+            # a delay requested from a thread other than the main one must be
+            # routed through the safe operation, landing in the next list
+            loop.tid = -1
+            result = loop.delay(lambda: None, timeout=60, safe=True)
+
+            self.assertEqual(result, None)
+            self.assertEqual(len(loop._delayed_n), 1)
+            self.assertEqual(len(loop._delayed), 0)
+
+            loop.delay_m()
+
+            self.assertEqual(len(loop._delayed_n), 0)
+            self.assertEqual(len(loop._delayed), 1)
+        finally:
+            loop.close()
+
+    def test_delay_legacy(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            # at exit time the legacy module may already have been collected
+            # and the operation must be abandoned instead of raising
+            with mock.patch.object(common, "legacy", None):
+                result = loop.delay(lambda: None)
+
+            self.assertEqual(result, None)
+            self.assertEqual(len(loop._delayed), 0)
+        finally:
+            loop.close()
+
+    def test_interval_s(self):
+        loop = netius.Base()
+        try:
+            fired = []
+            loop.interval_s(lambda: fired.append("tick"), timeout=60, wakeup=False)
+            loop.delay_m()
+
+            self.assertEqual(len(loop._delayed), 1)
+
+            # the wrapper schedules itself once again after every call, so
+            # that the callable keeps being run at the requested interval
+            loop._delayed[0][2]()
+
+            self.assertEqual(fired, ["tick"])
+            self.assertEqual(len(loop._delayed_n), 1)
+        finally:
+            loop.close()
 
     def test_unpend(self):
         loop = netius.Base()
@@ -159,6 +350,24 @@ class BaseTest(unittest.TestCase):
         finally:
             loop.close()
 
+    def test_unpend_amortized(self):
+        loop = netius.Base()
+        try:
+            # the compaction only pays off once the cancelled operations are
+            # a relevant part of the queue, so a queue that is mostly made of
+            # valid operations must be left untouched by the cancelling
+            callables = [
+                loop.delay(lambda: None, timeout=60)
+                for _index in range(common.COMPACT_MIN * 4)
+            ]
+            for callable_t in callables[: common.COMPACT_MIN]:
+                loop.unpend(callable_t)
+
+            self.assertEqual(len(loop._delayed), common.COMPACT_MIN * 4)
+            self.assertEqual(loop._cancelled, common.COMPACT_MIN)
+        finally:
+            loop.close()
+
     def test__delays(self):
         loop = netius.Base()
         try:
@@ -181,6 +390,98 @@ class BaseTest(unittest.TestCase):
         finally:
             loop.close()
 
+    def test__delays_lid(self):
+        loop = netius.Base()
+        try:
+            fired = []
+            loop.delay(lambda: fired.append("next"))
+
+            # an operation scheduled for the next tick may not be run in the
+            # very same iteration that created it, otherwise a callable that
+            # re-schedules itself would loop forever within a single tick
+            loop._delays()
+
+            self.assertEqual(fired, [])
+            self.assertEqual(len(loop._delayed), 1)
+
+            loop._lid = (loop._lid + 1) % 2147483647
+            loop._delays()
+
+            self.assertEqual(fired, ["next"])
+            self.assertEqual(len(loop._delayed), 0)
+        finally:
+            loop.close()
+
+    def test__delays_cancelled(self):
+        loop = netius.Base()
+        try:
+            fired = []
+            callable_t = loop.delay(lambda: fired.append("cancelled"), timeout=-1)
+            loop.unpend(callable_t)
+
+            self.assertEqual(loop._cancelled, 1)
+
+            # the cancelled operation is dropped once its target time is
+            # reached, releasing the slot it was taking in the counter
+            loop._delays()
+
+            self.assertEqual(fired, [])
+            self.assertEqual(loop._cancelled, 0)
+            self.assertEqual(len(loop._delayed), 0)
+        finally:
+            loop.close()
+
+    def test__delays_error(self):
+        loop = netius.Base()
+        try:
+
+            def raiser():
+                raise RuntimeError("Delayed error")
+
+            fired = []
+            loop.delay(raiser, timeout=-1)
+            loop.delay(lambda: fired.append("after"), timeout=-1)
+
+            # an exception raised by a delayed operation is logged and does
+            # not stop the remaining operations from being run
+            loop._delays()
+
+            self.assertEqual(fired, ["after"])
+            self.assertEqual(len(loop._delayed), 0)
+        finally:
+            loop.close()
+
+    def test__delays_stop(self):
+        loop = netius.Base()
+        try:
+
+            def stopper():
+                raise errors.StopError("Delayed stop")
+
+            loop.delay(stopper, timeout=-1)
+
+            # the errors that control the life cycle of the loop are not to
+            # be swallowed, being propagated to the caller instead
+            self.assertRaises(errors.StopError, loop._delays)
+        finally:
+            loop.close()
+
+    def test__delays_notifies(self):
+        loop = netius.Base()
+        try:
+            received = []
+            loop.wait_event(lambda data: received.append(data), name="event")
+            loop.notify("event", data="payload")
+
+            # the pending notifications are processed as part of the delays
+            # cycle, even though there's no delayed operation to be run
+            loop._delays()
+
+            self.assertEqual(received, ["payload"])
+            self.assertEqual(loop._notified, [])
+        finally:
+            loop.close()
+
     def test_resolve_hostname(self):
         loop = netius.get_main()
         future = loop.resolve_hostname("gmail.com")
@@ -189,6 +490,137 @@ class BaseTest(unittest.TestCase):
 
         self.assertNotEqual(result, None)
         self.assertEqual(isinstance(result, str), True)
+
+    def test_sleep(self):
+        loop = netius.Base()
+        try:
+            future = loop.sleep(1.5)
+
+            self.assertEqual(future.done(), False)
+            self.assertEqual(len(loop._delayed), 1)
+
+            # the future is only completed once the delayed operation is run
+            # and the result it carries is the requested timeout
+            loop._delayed[0][2]()
+
+            self.assertEqual(future.done(), True)
+            self.assertEqual(future.result(), 1.5)
+        finally:
+            loop.close()
+
+    def test_wait(self):
+        loop = netius.Base()
+        try:
+            future = loop.wait("event")
+
+            self.assertEqual(len(loop._events["event"]), 1)
+
+            loop.notify("event", data="payload")
+            loop._notifies()
+
+            # the payload of the event becomes the result of the future and
+            # the bind is released once the future has been completed
+            self.assertEqual(future.result(), "payload")
+            self.assertEqual("event" in loop._events, False)
+        finally:
+            loop.close()
+
+    def test_wait_cancelled(self):
+        loop = netius.Base()
+        try:
+            future = loop.wait("event")
+            future.cancel()
+
+            # a notification that arrives once the future has been cancelled
+            # must be dropped, as setting a result on it would raise
+            loop.notify("event", data="payload")
+            loop._notifies()
+
+            self.assertEqual(future.cancelled(), True)
+        finally:
+            loop.close()
+
+    def test_wait_timeout(self):
+        loop = netius.Base()
+        try:
+            future = loop.wait("event", timeout=60)
+
+            # the canceler is scheduled together with the waiting so that a
+            # notification that never arrives does not block forever
+            self.assertEqual(len(loop._delayed), 1)
+
+            loop._delayed[0][2]()
+
+            self.assertEqual(future.cancelled(), True)
+            self.assertEqual("event" in loop._events, False)
+        finally:
+            loop.close()
+
+    def test_wait_timeout_notified(self):
+        loop = netius.Base()
+        try:
+            future = loop.wait("event", timeout=60)
+            loop.notify("event", data="payload")
+            loop._notifies()
+
+            # the canceler is still run once the timeout is reached, but an
+            # already completed future may no longer be cancelled by it
+            loop._delayed[0][2]()
+
+            self.assertEqual(future.cancelled(), False)
+            self.assertEqual(future.result(), "payload")
+        finally:
+            loop.close()
+
+    def test_notify(self):
+        loop = netius.Base()
+        try:
+            loop.notify("event", data="payload")
+
+            self.assertEqual(loop._notified, [("event", "payload")])
+
+            # an event that no one is waiting for is still processed, being
+            # discarded once there's no bind to hand it over to
+            count = loop._notifies()
+
+            self.assertEqual(count, 1)
+            self.assertEqual(loop._notified, [])
+        finally:
+            loop.close()
+
+    def test_notify_wakeup(self):
+        loop = netius.Base()
+        try:
+            # a notification issued from a thread other than the main one has
+            # to wake the event loop, so that it's processed as soon as possible
+            loop.tid = -1
+            loop.notify("event", data="payload")
+
+            self.assertEqual(loop._notified, [("event", "payload")])
+        finally:
+            loop.close()
+
+    def test__notifies(self):
+        loop = netius.Base()
+        try:
+            received = []
+            loop.wait_event(lambda data: received.append(data), name="first")
+            loop.wait_event(lambda data: received.append(data), name="second")
+            loop.notify("first", data=1)
+            loop.notify("second", data=2)
+
+            count = loop._notifies()
+
+            # every pending notification is processed in a single cycle, in
+            # the very same order by which they have been notified
+            self.assertEqual(count, 2)
+            self.assertEqual(received, [1, 2])
+
+            # a cycle with nothing pending must be a no operation, so that
+            # the delays cycle is able to tell that there's nothing to do
+            self.assertEqual(loop._notifies(), 0)
+        finally:
+            loop.close()
 
     def test_diag_closed_max(self):
         # the bound of the ring buffer must never be a negative value, as
