@@ -80,6 +80,10 @@ DNS_TYPES = dict(
     MX=0x0F,
     TXT=0x10,
     AAAA=0x1C,
+    SRV=0x21,
+    SVCB=0x40,
+    HTTPS=0x41,
+    CAA=0x101,
 )
 
 DNS_CLASSES = dict(IN=0x01)
@@ -205,40 +209,83 @@ class DNSResponse(netius.Response):
         index, type = self.parse_short(data, index)
         index, cls = self.parse_short(data, index)
         index, ttl = self.parse_long(data, index)
-        index, _size = self.parse_short(data, index)
+        index, size = self.parse_short(data, index)
         type_s = DNS_TYPES_R.get(type, "undefined")
         cls_s = DNS_CLASSES_R.get(cls, "undefined")
-        index, payload = self.parse_payload(data, index, type_s)
+        index, payload = self.parse_payload(data, index, type_s, size=size)
         return (index, (name, type_s, cls_s, ttl, payload))
 
-    def parse_payload(self, data, index, type_s):
+    def parse_payload(self, data, index, type_s, size=None):
         type_s = type_s.lower()
         method_name = "parse_" + type_s
         method = getattr(self, method_name)
-        return method(data, index)
+        return method(data, index, size=size)
 
-    def parse_a(self, data, index):
+    def parse_a(self, data, index, size=None):
         index, address = self.parse_ip4(data, index)
         return (index, address)
 
-    def parse_aaaa(self, data, index):
+    def parse_aaaa(self, data, index, size=None):
         index, address = self.parse_ip6(data, index)
         return (index, address)
 
-    def parse_mx(self, data, index):
+    def parse_mx(self, data, index, size=None):
         index, preference = self.parse_short(data, index)
         index, address = self.parse_label(data, index)
         return (index, (preference, address))
 
-    def parse_cname(self, data, index):
+    def parse_cname(self, data, index, size=None):
         index, address = self.parse_label(data, index)
         return (index, address)
 
-    def parse_ns(self, data, index):
+    def parse_ns(self, data, index, size=None):
         pass
 
-    def parse_ar(self, data, index):
+    def parse_ar(self, data, index, size=None):
         pass
+
+    def parse_srv(self, data, index, size=None):
+        index, priority = self.parse_short(data, index)
+        index, weight = self.parse_short(data, index)
+        index, port = self.parse_short(data, index)
+        index, target = self.parse_label(data, index)
+        return (index, (priority, weight, port, target))
+
+    def parse_svcb(self, data, index, size=None):
+        start = index
+        index, priority = self.parse_short(data, index)
+        index, target = self.parse_label(data, index)
+        end = start + size if size else index
+
+        # verifies that the size of the record is consistent with the data
+        # that has just been read and that it does not go beyond the message,
+        # otherwise the index would be moved to an invalid position corrupting
+        # the parsing of the records that follow this one
+        if end < index or end > len(data):
+            raise netius.ParserError("Invalid SVCB record size")
+
+        params = data[index:end]
+        return (end, (priority, target, params))
+
+    def parse_https(self, data, index, size=None):
+        return self.parse_svcb(data, index, size=size)
+
+    def parse_caa(self, data, index, size=None):
+        start = index
+        index, flags = self.parse_byte(data, index)
+        index, tag_l = self.parse_byte(data, index)
+        tag = data[index : index + tag_l]
+        index += tag_l
+        end = start + size if size else index
+
+        # the length of the tag is controlled by the remote peer, so the very
+        # same size verification is required to avoid reading the value from
+        # outside of the record or of the message itself
+        if end < index or end > len(data):
+            raise netius.ParserError("Invalid CAA record size")
+
+        value = data[index:end]
+        return (end, (flags, tag, value))
 
     def parse_label(self, data, index):
         buffer = []
