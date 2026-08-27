@@ -38,10 +38,15 @@ class LegacyTest(unittest.TestCase):
     def test_eager(self):
         result = legacy.eager(iter([1, 2, 3]))
 
-        # the operation only has to materialize under the runtimes whose
-        # views are lazy, so only the contents may be relied upon
         self.assertEqual(list(result), [1, 2, 3])
-        self.assertEqual(list(legacy.eager([1, 2, 3])), [1, 2, 3])
+
+        # the materialization is only required under the newer runtimes,
+        # where the views are lazy, the older ones are already eager
+        if legacy.PYTHON_3:
+            self.assertEqual(legacy.eager([1, 2, 3]), [1, 2, 3])
+            self.assertEqual(type(legacy.eager(iter([1]))), list)
+        else:
+            self.assertEqual(legacy.eager([1, 2, 3]), [1, 2, 3])
 
     def test_items(self):
         result = legacy.items(dict(first=1))
@@ -96,13 +101,18 @@ class LegacyTest(unittest.TestCase):
         self.assertEqual(legacy.str("value"), "value")
 
     def test_u(self):
-        # the decoding is a no operation under the newer runtimes, where a
-        # native string is already a unicode one, unless it's forced
         result = legacy.u(b"value", force=True)
 
         self.assertEqual(result, "value")
         self.assertEqual(legacy.u(None, force=True), None)
         self.assertEqual(legacy.u("value", force=True), "value")
+
+        # the decoding is a no operation under the newer runtimes, where a
+        # native string is already a unicode one, unless it's forced
+        if legacy.PYTHON_3:
+            self.assertEqual(legacy.u(b"value"), b"value")
+        else:
+            self.assertEqual(legacy.u(b"value"), "value")
 
     def test_ascii(self):
         # a byte sequence that is not representable under the target
@@ -118,18 +128,33 @@ class LegacyTest(unittest.TestCase):
         self.assertEqual(result[0], 1)
 
     def test_is_str(self):
-        # only the native string is asserted, as under the older runtimes
-        # a byte sequence is a native string as well
         self.assertEqual(legacy.is_str("value"), True)
         self.assertEqual(legacy.is_str(1), False)
+
+        # a byte sequence is only told apart from a native string under the
+        # newer runtimes, as under the older ones they are the same type
+        if legacy.PYTHON_3:
+            self.assertEqual(legacy.is_str(b"value"), False)
+        else:
+            self.assertEqual(legacy.is_str(b"value"), True)
 
     def test_is_bytes(self):
         self.assertEqual(legacy.is_bytes(b"value"), True)
         self.assertEqual(legacy.is_bytes(1), False)
 
+        if legacy.PYTHON_3:
+            self.assertEqual(legacy.is_bytes("value"), False)
+        else:
+            self.assertEqual(legacy.is_bytes("value"), True)
+
     def test_is_string(self):
         self.assertEqual(legacy.is_string("value"), True)
         self.assertEqual(legacy.is_string(1), False)
+
+        if legacy.PYTHON_3:
+            self.assertEqual(legacy.is_string(b"value"), False)
+        else:
+            self.assertEqual(legacy.is_string(b"value"), True)
 
         # the complete verification also accepts the byte based sequences
         # as strings, which is required for the data coming from a socket

@@ -663,13 +663,8 @@ def StringIO(*args, **kwargs):
 def BytesIO(*args, **kwargs):
     if PYTHON_3:
         return cStringIO.BytesIO(*args, **kwargs)
-    # the accelerated buffer only yields a writable object while it's
-    # built empty, so the pure one is used when there's a value to
-    # start from, keeping the accelerated one for the common case
-    elif args or kwargs:
-        return _StringIO.StringIO(*args, **kwargs)
     else:
-        return cStringIO.StringIO()
+        return cStringIO.StringIO(*args, **kwargs)
 
 
 class Orderable(tuple):

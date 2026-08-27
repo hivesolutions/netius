@@ -12,6 +12,7 @@ USERNAME_STATE: int
 PASSWORD_STATE: int
 TERMINATION_SIZE: int
 CAPABILITIES: tuple[str, ...]
+COMMANDS: tuple[str, ...]
 
 class SMTPConnection(Connection):
     parser: SMTPParser | None
