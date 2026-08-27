@@ -62,7 +62,7 @@ class MemoryAdapter(base.BaseAdapter):
             netius.NetiusError("Key not found")
         item = self.map[key]
         value = item["value"]
-        file = netius.legacy.StringIO(value)
+        file = netius.legacy.BytesIO(value)
         close = self._build_close(file, key)
         file._close = file.close
         file.close = close
@@ -99,7 +99,7 @@ class MemoryAdapter(base.BaseAdapter):
 
     def list(self, owner=None):
         map = self._ensure(owner) if owner else self.map
-        return map.keys()
+        return netius.legacy.keys(map)
 
     def _ensure(self, owner):
         map = self.owners.get(owner, {})

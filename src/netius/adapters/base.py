@@ -104,7 +104,10 @@ class BaseAdapter(object):
         return total
 
     def reserve(self, owner="nobody"):
-        return self.set("", owner=owner)
+        # the value is seeded as an empty byte sequence, as the data that
+        # is going to be appended to it comes from a connection and the
+        # file based adapter serves its values in binary mode as well
+        return self.set(b"", owner=owner)
 
     def count(self, owner=None):
         return 0
