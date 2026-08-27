@@ -10,6 +10,7 @@ AUTH_STATE: int
 SESSION_STATE: int
 CHUNK_SIZE: int
 CAPABILITIES: tuple[str, ...]
+COMMANDS: tuple[str, ...]
 AUTH_METHODS: tuple[str, ...]
 
 class POPConnection(Connection):

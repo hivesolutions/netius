@@ -9,6 +9,7 @@ BUFFER_SIZE: int
 CAPABILITIES: tuple[str, ...]
 PERMISSIONS: Mapping[int, str]
 TYPES: Mapping[str, str]
+COMMANDS: tuple[str, ...]
 
 class FTPConnection(Connection):
     parser: FTPParser | None

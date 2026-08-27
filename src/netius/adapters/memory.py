@@ -52,6 +52,7 @@ class MemoryAdapter(base.BaseAdapter):
     def set(self, value, owner="nobody"):
         map_o = self._ensure(owner)
         key = self.generate()
+        value = netius.legacy.bytes(value)
         item = dict(value=value, owner=owner)
         self.map[key] = item
         map_o[key] = item
@@ -62,7 +63,15 @@ class MemoryAdapter(base.BaseAdapter):
             netius.NetiusError("Key not found")
         item = self.map[key]
         value = item["value"]
-        file = netius.legacy.StringIO(value)
+        # the buffer has to be a writable one, as the closing of the file
+        # writes its contents back, and has to match the way the runtime
+        # represents a byte sequence, which under the oldest ones is the
+        # very same type that backs a native string
+        file = (
+            netius.legacy.BytesIO(value)
+            if netius.legacy.PYTHON_3
+            else netius.legacy.StringIO(value)
+        )
         close = self._build_close(file, key)
         file._close = file.close
         file.close = close
@@ -78,7 +87,7 @@ class MemoryAdapter(base.BaseAdapter):
     def append(self, key, value):
         item = self.map[key]
         _value = item["value"]
-        _value += value
+        _value += netius.legacy.bytes(value)
         item["value"] = _value
 
     def truncate(self, key, count):
@@ -99,7 +108,7 @@ class MemoryAdapter(base.BaseAdapter):
 
     def list(self, owner=None):
         map = self._ensure(owner) if owner else self.map
-        return map.keys()
+        return netius.legacy.keys(map)
 
     def _ensure(self, owner):
         map = self.owners.get(owner, {})

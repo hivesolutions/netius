@@ -180,7 +180,10 @@ class DHCPRequest(object):
 
     def get_mac(self):
         addr = self.chaddr[0]
-        addr_s = "%012x" % addr
+        # the hardware address is the first half of a sixteen byte field
+        # so the complete width of it must be rendered before the six
+        # octets of the address are taken from the start of the value
+        addr_s = "%016x" % addr
         addr_s = addr_s[:12]
         addr_l = re.findall("..", addr_s)
         mac_addr = ":".join(addr_l)
@@ -205,7 +208,7 @@ class DHCPRequest(object):
         ciaddr = self.ciaddr
         yiaddr = netius.common.ip4_to_addr(yiaddr)
         siaddr = netius.common.ip4_to_addr(host)
-        giaddr = self.siaddr
+        giaddr = self.giaddr
         chaddr = self.chaddr
         sname = b""
         file = b""
