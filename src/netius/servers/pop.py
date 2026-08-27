@@ -58,10 +58,25 @@ CHUNK_SIZE = 16384
 of the message to the client, this value will affect the
 memory used by the server and its network performance """
 
-CAPABILITIES = ("TOP", "USER", "STLS")
+CAPABILITIES = ("STLS",)
 """ The capabilities that are going to be exposed to the client
 as the ones handled by the server, should only expose the ones
 that are properly handled by the server """
+
+COMMANDS = (
+    "stls",
+    "capa",
+    "auth",
+    "stat",
+    "list",
+    "uidl",
+    "retr",
+    "dele",
+    "quit",
+)
+""" The sequence of commands that the server is able to handle,
+used to resolve the handler of a line, so that only a command
+is able to reach a method of the connection """
 
 AUTH_METHODS = ("PLAIN",)
 """ Authentication methods that are available to be "used" by
@@ -156,9 +171,14 @@ class POPConnection(netius.Connection):
 
     def list(self):
         self.owner.on_list_pop(self)
-        message = "%d messages (%d octets)" % (self.count, self.byte_c)
+        # the listing is built from the sizes that have just been gathered
+        # and not from the counters, as those are only populated by the
+        # status command, which a client is not required to have issued
+        count = len(self.sizes)
+        byte_c = sum(self.sizes)
+        message = "%d messages (%d octets)" % (count, byte_c)
         lines = []
-        for index in range(self.count):
+        for index in range(count):
             size = self.sizes[index]
             line = "%d %d" % (index, size)
             lines.append(line)
@@ -166,9 +186,10 @@ class POPConnection(netius.Connection):
 
     def uidl(self):
         self.owner.on_uidl_pop(self)
-        message = "%d messages (%d octets)" % (self.count, self.byte_c)
+        count = len(self.keys)
+        message = "%d messages (%d octets)" % (count, self.byte_c)
         lines = []
-        for index in range(self.count):
+        for index in range(count):
             key = self.keys[index]
             line = "%d %s" % (index, key)
             lines.append(line)
@@ -225,10 +246,10 @@ class POPConnection(netius.Connection):
         code_l = code.lower()
         method_n = "on_" + code_l
 
-        # verifies if the method for the current code exists in case it
-        # does not raises an exception indicating the problem with the
-        # code that has just been received (probably erroneous)
-        exists = hasattr(self, method_n)
+        # verifies that the code is one of the commands that the server
+        # handles, as testing for the existence of the method alone would
+        # allow a client to reach any other method whose name matches
+        exists = code_l in COMMANDS and hasattr(self, method_n)
         if not exists:
             raise netius.ParserError("Invalid code '%s'" % code)
 
