@@ -852,8 +852,9 @@ class HTTP2ParserTest(unittest.TestCase):
         connection = self._make_connection()
         parser = connection.parser
         try:
-            # the priority is announced by a leading dependency and weight,
-            # the highest bit of the dependency being the exclusive flag
+            # the priority is announced by a leading dependency and (wire)
+            # weight, the highest bit of the dependency being the exclusive
+            # flag
             payload = struct.pack("!IB", 0x80000003, 42) + b"fragment"
             frame = _pack_frame(
                 netius.common.HEADERS, flags=0x20, stream=0x01, payload=payload
@@ -923,8 +924,10 @@ class HTTP2ParserTest(unittest.TestCase):
             )
             parser.parse(frame)
 
-            # the dependency and the weight are recorded in the stream, so
-            # that the tree of priorities may be rebuilt from them
+            # the dependency and the weight are recorded in the stream so
+            # that the tree of priorities may be rebuilt from them, the
+            # weight being the one of the wire, which the RFC defines as
+            # one below the effective weight of the stream
             self.assertEqual(events, [(3, 16)])
             self.assertEqual(stream.dependency, 3)
             self.assertEqual(stream.weight, 16)
