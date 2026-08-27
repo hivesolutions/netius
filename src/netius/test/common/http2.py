@@ -436,6 +436,29 @@ class HTTP2ParserTest(unittest.TestCase):
                     "SETTINGS_MAX_FRAME_SIZE too large",
                     lambda: parser.assert_settings(settings, False),
                 )
+
+            parser.stream = 0x00
+            parser.length = 6
+            settings = [(netius.common.http2.SETTINGS_INITIAL_WINDOW_SIZE, 2147483648)]
+            if hasattr(self, "assertRaisesRegexp"):
+                self.assertRaisesRegexp(
+                    netius.ParserError,
+                    "SETTINGS_INITIAL_WINDOW_SIZE too large",
+                    lambda: parser.assert_settings(settings, False),
+                )
+            else:
+                self.assertRaisesRegex(
+                    netius.ParserError,
+                    "SETTINGS_INITIAL_WINDOW_SIZE too large",
+                    lambda: parser.assert_settings(settings, False),
+                )
+
+            # only the values of the settings are verified by the extended
+            # mode, so that the framing of the frame may be verified alone
+            parser.stream = 0x00
+            parser.length = 6
+            settings = [(netius.common.http2.SETTINGS_ENABLE_PUSH, 2)]
+            parser.assert_settings(settings, False, extended=False)
         finally:
             parser.clear(force=True)
 
@@ -718,6 +741,253 @@ class HTTP2ParserTest(unittest.TestCase):
             stream, increment = events[0]
             self.assertEqual(stream, None)
             self.assertEqual(increment, 4096)
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_data(self):
+        connection = _build_connection()
+        parser = connection.parser
+        try:
+            stream = _build_stream(parser, identifier=1, end_headers=True)
+            parser.streams[1] = stream
+
+            events = []
+            parser.bind("on_data_h2", lambda stream, contents: events.append(contents))
+
+            frame = _pack_frame(
+                netius.common.DATA, flags=0x01, stream=0x01, payload=b"Hello World"
+            )
+            parser.parse(frame)
+
+            # the payload of the frame reaches the stream untouched and the
+            # end of stream flag closes the remote side of it
+            self.assertEqual(events, [b"Hello World"])
+            self.assertEqual(stream.end_stream, True)
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_data_padded(self):
+        connection = _build_connection()
+        parser = connection.parser
+        try:
+            stream = _build_stream(parser, identifier=1, end_headers=True)
+            parser.streams[1] = stream
+
+            events = []
+            parser.bind("on_data_h2", lambda stream, contents: events.append(contents))
+
+            # the padding is announced by a leading byte and is removed from
+            # the tail, so that neither of them reaches the stream
+            payload = struct.pack("!B", 4) + b"Hello World" + b"\0" * 4
+            frame = _pack_frame(
+                netius.common.DATA, flags=0x08, stream=0x01, payload=payload
+            )
+            parser.parse(frame)
+
+            self.assertEqual(events, [b"Hello World"])
+            self.assertEqual(stream.end_stream, False)
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_data_ready(self):
+        if hpack == None:
+            self.skipTest("Skipping test: hpack unavailable")
+
+        connection = _build_connection()
+        parser = connection.parser
+        try:
+            events = []
+            parser.bind("on_data", lambda: events.append("data"))
+
+            block = hpack.Encoder().encode(
+                [
+                    (":method", "POST"),
+                    (":scheme", "https"),
+                    (":path", "/"),
+                    ("content-length", "11"),
+                ]
+            )
+            frame = _pack_frame(
+                netius.common.HEADERS, flags=0x04, stream=0x01, payload=block
+            )
+            parser.parse(frame)
+
+            # the end of the header block alone is not enough to make the
+            # stream ready, as the payload of the request is still pending
+            self.assertEqual(events, [])
+
+            frame = _pack_frame(
+                netius.common.DATA, flags=0x01, stream=0x01, payload=b"Hello World"
+            )
+            parser.parse(frame)
+
+            # the end of stream completes the request and so the message is
+            # handed over to the upper layers as a complete one
+            stream = parser.streams[1]
+            self.assertEqual(events, ["data"])
+            self.assertEqual(stream.method, "POST")
+            self.assertEqual(stream.content_l, 11)
+            self.assertEqual(stream.get_message_b().read(), b"Hello World")
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_priority(self):
+        connection = _build_connection()
+        parser = connection.parser
+        try:
+            stream = _build_stream(parser, identifier=1)
+            parser.streams[1] = stream
+
+            events = []
+            parser.bind(
+                "on_priority",
+                lambda stream, dependency, weight: events.append((dependency, weight)),
+            )
+
+            frame = _pack_frame(
+                netius.common.PRIORITY,
+                stream=0x01,
+                payload=struct.pack("!IB", 3, 16),
+            )
+            parser.parse(frame)
+
+            # the dependency and the weight are recorded in the stream, so
+            # that the tree of priorities may be rebuilt from them
+            self.assertEqual(events, [(3, 16)])
+            self.assertEqual(stream.dependency, 3)
+            self.assertEqual(stream.weight, 16)
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_rst_stream(self):
+        connection = _build_connection()
+        parser = connection.parser
+        try:
+            stream = _build_stream(parser, identifier=1)
+            parser.streams[1] = stream
+            parser._max_stream = 0x01
+
+            events = []
+            parser.bind(
+                "on_rst_stream",
+                lambda stream, error_code: events.append(error_code),
+            )
+
+            frame = _pack_frame(
+                netius.common.RST_STREAM,
+                stream=0x01,
+                payload=struct.pack("!I", netius.common.http2.CANCEL),
+            )
+            parser.parse(frame)
+
+            self.assertEqual(events, [netius.common.http2.CANCEL])
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_push_promise(self):
+        connection = _build_connection()
+        parser = connection.parser
+        try:
+            # a promise may only travel from a server towards a client, so
+            # one that arrives at the server is always a protocol error
+            frame = _pack_frame(
+                netius.common.PUSH_PROMISE,
+                flags=0x04,
+                stream=0x01,
+                payload=struct.pack("!I", 2) + b"fragment",
+            )
+
+            self.assertRaises(netius.ParserError, parser.parse, frame)
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_push_promise_padded(self):
+        connection = _build_connection()
+        parser = connection.parser
+        try:
+            # the padding of the promise is stripped before the direction of
+            # it is verified, so that a padded one is refused just the same
+            payload = (
+                struct.pack("!B", 4) + struct.pack("!I", 2) + b"fragment" + b"\0" * 4
+            )
+            frame = _pack_frame(
+                netius.common.PUSH_PROMISE,
+                flags=0x0C,
+                stream=0x01,
+                payload=payload,
+            )
+
+            self.assertRaises(netius.ParserError, parser.parse, frame)
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_continuation(self):
+        connection = _build_connection()
+        parser = connection.parser
+        try:
+            events = []
+            parser.bind("on_continuation", lambda stream: events.append(stream))
+
+            # a continuation only ever follows a block of headers that was
+            # left open on the very same stream
+            frame = _pack_frame(
+                netius.common.HEADERS, flags=0x01, stream=0x01, payload=b"frag"
+            )
+            parser.parse(frame)
+
+            # without the end of headers flag the fragment is only buffered,
+            # as the block of headers is not yet complete to be decoded
+            frame = _pack_frame(
+                netius.common.CONTINUATION, stream=0x01, payload=b"ment"
+            )
+            parser.parse(frame)
+
+            stream = parser.streams[1]
+            self.assertEqual(events, [stream])
+            self.assertEqual(stream.end_headers, False)
+            self.assertEqual(stream.header_b, [b"frag", b"ment"])
+            self.assertEqual(stream.headers_l, None)
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_continuation_end_headers(self):
+        if hpack == None:
+            self.skipTest("Skipping test: hpack unavailable")
+
+        connection = _build_connection()
+        parser = connection.parser
+        try:
+            events = []
+            parser.bind("on_headers", lambda: events.append("headers"))
+            parser.bind("on_data", lambda: events.append("data"))
+
+            # the block of headers is split around the two frames, so that
+            # only the joining of both of them may be decoded
+            block = hpack.Encoder().encode(
+                [(":method", "GET"), (":scheme", "https"), (":path", "/")]
+            )
+            frame = _pack_frame(
+                netius.common.HEADERS, flags=0x01, stream=0x01, payload=block[:1]
+            )
+            parser.parse(frame)
+
+            self.assertEqual(events, [])
+
+            frame = _pack_frame(
+                netius.common.CONTINUATION,
+                flags=0x04,
+                stream=0x01,
+                payload=block[1:],
+            )
+            parser.parse(frame)
+
+            # the end of the header block completes a request that carried
+            # the end of stream flag and so no payload is expected for it
+            stream = parser.streams[1]
+            self.assertEqual(events, ["headers", "data"])
+            self.assertEqual(stream.method, "GET")
+            self.assertEqual(stream.path_s, "/")
+            self.assertEqual(stream.is_ready, True)
         finally:
             parser.clear(force=True)
 
