@@ -64,6 +64,34 @@ TYPES = {"A": "ascii", "E": "ebcdic", "I": "binary", "L": "local"}
 """ The map that associated the various type command arguments
 with the more rich data mode transfer types """
 
+COMMANDS = (
+    "user",
+    "syst",
+    "feat",
+    "opts",
+    "pwd",
+    "type",
+    "pasv",
+    "port",
+    "dele",
+    "mkd",
+    "rmd",
+    "rnfr",
+    "rnto",
+    "cdup",
+    "cwd",
+    "size",
+    "mdtm",
+    "noop",
+    "quit",
+    "list",
+    "retr",
+    "stor",
+)
+""" The sequence of commands that the server is able to handle,
+used to resolve the handler of a line, so that only a command
+is able to reach a method of the connection """
+
 
 class FTPConnection(netius.Connection):
 
@@ -221,10 +249,10 @@ class FTPConnection(netius.Connection):
         code_l = code.lower()
         method_n = "on_" + code_l
 
-        # verifies if the method for the current code exists in case it
-        # does not raises an exception indicating the problem with the
-        # code that has just been received (probably erroneous)
-        exists = hasattr(self, method_n)
+        # verifies that the code is one of the commands that the server
+        # handles, as testing for the existence of the method alone would
+        # allow a client to reach any other method whose name matches
+        exists = code_l in COMMANDS and hasattr(self, method_n)
         if not exists:
             raise netius.ParserError("Invalid code '%s'" % code)
 
@@ -251,7 +279,7 @@ class FTPConnection(netius.Connection):
         self.send_ftp(257, '"%s"' % self.cwd)
 
     def on_type(self, message):
-        self.mode = TYPES.get("message", "ascii")
+        self.mode = TYPES.get(message, "ascii")
         self.ok()
 
     def on_pasv(self, message):
