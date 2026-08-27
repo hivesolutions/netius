@@ -48,41 +48,6 @@ def _pack_frame(type, flags=0x00, stream=0x00, payload=b""):
     return header + payload
 
 
-def _build_connection(encoding=netius.common.PLAIN_ENCODING):
-    # builds a minimal HTTP/2 connection (and parser) that satisfies the
-    # encoding and window probes performed on the creation of a stream
-    connection = netius.servers.http2.HTTP2Connection.__new__(
-        netius.servers.http2.HTTP2Connection
-    )
-    connection.legacy = False
-    connection.owner = netius.servers.HTTPServer()
-    connection.settings = dict(netius.common.HTTP2_SETTINGS_OPTIMAL)
-    connection.settings_r = dict(netius.common.HTTP2_SETTINGS)
-    connection.encoding = encoding
-    connection.current = connection.base_encoding()
-    connection.encoding_c = None
-    connection.encodings_a = None
-    connection.dynamic = None
-    connection.window = netius.common.HTTP2_WINDOW
-    connection.window_o = netius.common.HTTP2_WINDOW
-    connection.parser = netius.common.HTTP2Parser(connection, store=True)
-    return connection
-
-
-def _build_stream(
-    parser, identifier=1, dependency=0x00, end_headers=False, end_stream=False
-):
-    # builds a stream bound to the provided parser, carrying only the state
-    # that the assertions of the parser are going to look at
-    return netius.common.http2.HTTP2Stream(
-        owner=parser,
-        identifier=identifier,
-        dependency=dependency,
-        end_headers=end_headers,
-        end_stream=end_stream,
-    )
-
-
 SETTINGS_FRAME = _pack_frame(
     netius.common.SETTINGS,
     payload=struct.pack("!HI", netius.common.http2.SETTINGS_MAX_CONCURRENT_STREAMS, 64)
@@ -1015,7 +980,7 @@ class HTTP2ParserTest(unittest.TestCase):
 class HTTP2StreamTest(unittest.TestCase):
 
     def test_resolve_encoding(self):
-        connection = self._make_connection(encoding=netius.common.GZIP_ENCODING)
+        connection = _build_connection(encoding=netius.common.GZIP_ENCODING)
         parser = connection.parser
         try:
             stream_1 = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
@@ -1042,7 +1007,7 @@ class HTTP2StreamTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_encoding_w(self):
-        connection = self._make_connection(encoding=netius.common.GZIP_ENCODING)
+        connection = _build_connection(encoding=netius.common.GZIP_ENCODING)
         parser = connection.parser
         try:
             stream = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
@@ -1062,7 +1027,7 @@ class HTTP2StreamTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_get_encodings(self):
-        connection = self._make_connection()
+        connection = _build_connection()
         parser = connection.parser
         try:
             stream = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
@@ -1079,13 +1044,13 @@ class HTTP2StreamTest(unittest.TestCase):
         if hpack == None:
             self.skipTest("Skipping test: hpack unavailable")
 
-        connection = self._make_connection()
+        connection = _build_connection()
         parser = connection.parser
         try:
             # a dynamic table size update beyond the negotiated maximum must
             # be refused, as the peer would otherwise be able to grow the
             # table of the decoder without any bound
-            stream = self._make_stream(parser, [])
+            stream = _build_stream(parser, headers=[])
             stream.end_headers = True
             stream.header_b = [b"\x3f\xe1\xff\x03\x82"]
 
@@ -1093,7 +1058,7 @@ class HTTP2StreamTest(unittest.TestCase):
 
             # the failure in the decoding of a field block is a connection
             # level error, as the dynamic table becomes unsynchronized
-            stream = self._make_stream(parser, [])
+            stream = _build_stream(parser, headers=[])
             stream.end_headers = True
             stream.header_b = [b"\x3f\xe1\xff\x03\x82"]
             try:
@@ -1108,7 +1073,7 @@ class HTTP2StreamTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_fragment(self):
-        connection = self._make_connection()
+        connection = _build_connection()
         parser = connection.parser
         try:
             # the maximum payload of a frame is bound by the maximum frame size
@@ -1143,46 +1108,46 @@ class HTTP2StreamTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_assert_headers(self):
-        connection = self._make_connection()
+        connection = _build_connection()
         parser = connection.parser
         base = [(":method", "GET"), (":scheme", "https"), (":path", "/")]
         try:
             # a valid set of headers carries every mandatory pseudo-header
             # with all of them positioned before the normal ones
-            stream = self._make_stream(parser, base + [("accept", "*/*")])
+            stream = _build_stream(parser, headers=base + [("accept", "*/*")])
             stream.assert_headers()
 
             # the headers that are specific to a single transport level
             # connection must never be present in an HTTP 2 message
             for name in netius.common.http2.HTTP2_CONNECTION:
-                stream = self._make_stream(parser, base + [(name, "value")])
+                stream = _build_stream(parser, headers=base + [(name, "value")])
                 self.assertRaises(netius.ParserError, stream.assert_headers)
 
             # the TE header is the only exception to the previous rule and
             # it's only allowed while its value is the trailers one
-            stream = self._make_stream(parser, base + [("te", "trailers")])
+            stream = _build_stream(parser, headers=base + [("te", "trailers")])
             stream.assert_headers()
-            stream = self._make_stream(parser, base + [("te", "gzip")])
+            stream = _build_stream(parser, headers=base + [("te", "gzip")])
             self.assertRaises(netius.ParserError, stream.assert_headers)
 
             # the name of a header must be a lower cased one, as the casing
             # of it is not preserved by the HTTP 2 specification
-            stream = self._make_stream(parser, base + [("Accept", "*/*")])
+            stream = _build_stream(parser, headers=base + [("Accept", "*/*")])
             self.assertRaises(netius.ParserError, stream.assert_headers)
 
             # an unknown pseudo-header, a duplicated one and a response only
             # one are all invalid under a request message
-            stream = self._make_stream(parser, base + [(":bogus", "value")])
+            stream = _build_stream(parser, headers=base + [(":bogus", "value")])
             self.assertRaises(netius.ParserError, stream.assert_headers)
-            stream = self._make_stream(parser, base + [(":path", "/other")])
+            stream = _build_stream(parser, headers=base + [(":path", "/other")])
             self.assertRaises(netius.ParserError, stream.assert_headers)
-            stream = self._make_stream(parser, base + [(":status", "200")])
+            stream = _build_stream(parser, headers=base + [(":status", "200")])
             self.assertRaises(netius.ParserError, stream.assert_headers)
 
             # a pseudo-header must never be positioned after a normal one so
             # that the message may be processed in a single pass
-            stream = self._make_stream(
-                parser, base[:2] + [("accept", "*/*")] + base[2:]
+            stream = _build_stream(
+                parser, headers=base[:2] + [("accept", "*/*")] + base[2:]
             )
             self.assertRaises(netius.ParserError, stream.assert_headers)
 
@@ -1190,20 +1155,21 @@ class HTTP2StreamTest(unittest.TestCase):
             # target of the request may not be determined
             for index in range(len(base)):
                 headers = base[:index] + base[index + 1 :]
-                stream = self._make_stream(parser, headers)
+                stream = _build_stream(parser, headers=headers)
                 self.assertRaises(netius.ParserError, stream.assert_headers)
 
             # the target of the request may never be an empty one, as the
             # resource being requested would then be an unknown one
-            stream = self._make_stream(
-                parser, [(":method", "GET"), (":scheme", "https"), (":path", "")]
+            stream = _build_stream(
+                parser,
+                headers=[(":method", "GET"), (":scheme", "https"), (":path", "")],
             )
             self.assertRaises(netius.ParserError, stream.assert_headers)
         finally:
             parser.clear(force=True)
 
     def test_ctx_request(self):
-        connection = self._make_connection()
+        connection = _build_connection()
         parser = connection.parser
         try:
             stream = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
@@ -1225,12 +1191,44 @@ class HTTP2StreamTest(unittest.TestCase):
         finally:
             parser.clear(force=True)
 
-    def _make_stream(self, parser, headers):
-        # builds a stream carrying the provided sequence of headers so that
-        # the assertion of them may be run over it
-        stream = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
-        stream.headers_l = headers
-        return stream
 
-    def _make_connection(self, encoding=netius.common.PLAIN_ENCODING):
-        return _build_connection(encoding=encoding)
+def _build_connection(encoding=netius.common.PLAIN_ENCODING):
+    # builds a minimal HTTP/2 connection (and parser) that satisfies the
+    # encoding and window probes performed on the creation of a stream
+    connection = netius.servers.http2.HTTP2Connection.__new__(
+        netius.servers.http2.HTTP2Connection
+    )
+    connection.legacy = False
+    connection.owner = netius.servers.HTTPServer()
+    connection.settings = dict(netius.common.HTTP2_SETTINGS_OPTIMAL)
+    connection.settings_r = dict(netius.common.HTTP2_SETTINGS)
+    connection.encoding = encoding
+    connection.current = connection.base_encoding()
+    connection.encoding_c = None
+    connection.encodings_a = None
+    connection.dynamic = None
+    connection.window = netius.common.HTTP2_WINDOW
+    connection.window_o = netius.common.HTTP2_WINDOW
+    connection.parser = netius.common.HTTP2Parser(connection, store=True)
+    return connection
+
+
+def _build_stream(
+    parser,
+    identifier=1,
+    dependency=0x00,
+    end_headers=False,
+    end_stream=False,
+    headers=None,
+):
+    # builds a stream bound to the provided parser, carrying only the state
+    # that the assertions of the parser are going to look at
+    stream = netius.common.http2.HTTP2Stream(
+        owner=parser,
+        identifier=identifier,
+        dependency=dependency,
+        end_headers=end_headers,
+        end_stream=end_stream,
+    )
+    stream.headers_l = headers
+    return stream
