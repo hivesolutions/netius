@@ -664,7 +664,10 @@ def BytesIO(*args, **kwargs):
     if PYTHON_3:
         return cStringIO.BytesIO(*args, **kwargs)
     else:
-        return cStringIO.StringIO(*args, **kwargs)
+        # the accelerated buffer yields a read only object whenever it's
+        # built around a value, and one that takes no extra attributes,
+        # so the pure implementation is the one that is used instead
+        return _StringIO.StringIO(*args, **kwargs)
 
 
 class Orderable(tuple):

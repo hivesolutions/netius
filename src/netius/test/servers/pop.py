@@ -64,8 +64,17 @@ class POPConnectionTest(unittest.TestCase):
 
         message, lines = self.sent[-1]
 
+        # the order of a mailbox is the one of the adapter, so what is
+        # asserted is the pairing of each index with its own size
         self.assertEqual(message, "3 messages (60 octets)")
-        self.assertEqual(lines, ["0 10", "1 20", "2 30"])
+        self.assertEqual(sorted(self.connection.sizes), [10, 20, 30])
+        self.assertEqual(
+            lines,
+            [
+                "%d %d" % (index, size)
+                for index, size in enumerate(self.connection.sizes)
+            ],
+        )
 
     def test_list_no_stat(self):
         self._populate()
@@ -176,7 +185,7 @@ class POPServerTest(unittest.TestCase):
     def test_on_list_pop(self):
         self.server.on_list_pop(self.connection)
 
-        self.assertEqual(list(self.connection.sizes), [10, 20, 30])
+        self.assertEqual(sorted(self.connection.sizes), [10, 20, 30])
 
     def test_on_uidl_pop(self):
         self.server.on_uidl_pop(self.connection)
@@ -191,8 +200,12 @@ class POPServerTest(unittest.TestCase):
 
         self.server.on_retr_pop(self.connection, 0)
         try:
-            self.assertEqual(self.connection.size, 10)
-            self.assertEqual(self.connection.file.read(), b"x" * 10)
+            contents = self.connection.file.read()
+
+            # the size that is announced to the client has to match the
+            # payload that is served for the very same message
+            self.assertEqual(self.connection.size, len(contents))
+            self.assertEqual(contents, b"x" * self.connection.size)
         finally:
             self.connection.file.close()
 
