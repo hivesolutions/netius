@@ -24,16 +24,21 @@ jobs:
     runs-on: ubuntu-latest
     container: python:${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v7
-      - run: python --version
-      - run: |
+      - name: Checkout code from repository
+        uses: actions/checkout@v7
+      - name: Print Python version
+        run: python --version
+      - name: Install runtime dependencies
+        run: |
           pip install -r requirements.txt
           pip install -r extra.txt
-      - run: |
+      - name: Check code formatting with black
+        run: |
           pip install black
           black . --check
         if: matrix.python-version == '3.14'
-      - run: |
+      - name: Check type stubs with mypy
+        run: |
           pip install mypy
           PYTHONPATH=src python -m mypy.stubtest --allowlist stubtest.txt \
             --ignore-unused-allowlist \
@@ -41,10 +46,12 @@ jobs:
             netius.common netius.extra netius.middleware netius.mock \
             netius.pool netius.servers netius.sh
         if: matrix.python-version == '3.14'
-      - run: |
+      - name: Run unit tests
+        run: |
           pip install pytest
           HTTPBIN=httpbin.bemisc.com pytest
-      - run: HTTPBIN=httpbin.bemisc.com python setup.py test
+      - name: Run unit tests with setuptools
+        run: HTTPBIN=httpbin.bemisc.com python setup.py test
         if: ${{ !contains(fromJson('["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "latest"]'), matrix.python-version) }}
   build-pypy:
     name: Build PyPy
@@ -55,19 +62,25 @@ jobs:
     runs-on: ubuntu-latest
     container: pypy:${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v7
-      - run: pypy --version
-      - run: |
+      - name: Checkout code from repository
+        uses: actions/checkout@v7
+      - name: Print PyPy version
+        run: pypy --version
+      - name: Install runtime dependencies
+        run: |
           pip install -r requirements.txt
           pip install -r extra.txt
-      - run: |
+      - name: Check code formatting with black
+        run: |
           pip install black
           black . --check
         if: matrix.python-version == '3.14'
-      - run: |
+      - name: Run unit tests
+        run: |
           pip install pytest
           HTTPBIN=httpbin.bemisc.com pytest
-      - run: HTTPBIN=httpbin.bemisc.com pypy setup.py test
+      - name: Run unit tests with setuptools
+        run: HTTPBIN=httpbin.bemisc.com pypy setup.py test
         if: ${{ !contains(fromJson('["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "latest"]'), matrix.python-version) }}
   build-windows:
     name: Build Windows
@@ -77,15 +90,20 @@ jobs:
         python-version: [3.9, "3.11", "3.13", "3.14"]
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - name: Checkout code from repository
+        uses: actions/checkout@v7
+      - name: Setup Python
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-      - run: python --version
-      - run: |
+      - name: Print Python version
+        run: python --version
+      - name: Install runtime dependencies
+        run: |
           pip install -r requirements.txt
           pip install -r extra.txt
-      - run: |
+      - name: Run unit tests
+        run: |
           pip install pytest
           pytest
         env:
@@ -98,15 +116,20 @@ jobs:
         python-version: [3.9, "3.11", "3.13", "3.14"]
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - name: Checkout code from repository
+        uses: actions/checkout@v7
+      - name: Setup Python
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-      - run: python --version
-      - run: |
+      - name: Print Python version
+        run: python --version
+      - name: Install runtime dependencies
+        run: |
           pip install -r requirements.txt
           pip install -r extra.txt
-      - run: |
+      - name: Run unit tests
+        run: |
           pip install pytest
           pytest
         env:
@@ -120,20 +143,26 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - name: Checkout code from repository
+        uses: actions/checkout@v7
+      - name: Setup Python
+        uses: actions/setup-python@v7
         with:
           python-version: "3.14"
-      - run: python --version
-      - run: |
+      - name: Print Python version
+        run: python --version
+      - name: Install runtime dependencies
+        run: |
           pip install -r requirements.txt
           pip install -r extra.txt
-      - run: |
+      - name: Run unit tests with coverage
+        run: |
           pip install pytest coverage
           coverage run -m pytest
         env:
           HTTPBIN: httpbin.bemisc.com
-      - uses: actions/upload-artifact@v7
+      - name: Upload coverage data
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ matrix.os }}
           path: .coverage.*
@@ -145,24 +174,31 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - name: Checkout code from repository
+        uses: actions/checkout@v7
+      - name: Setup Python
+        uses: actions/setup-python@v7
         with:
           python-version: "3.14"
-      - uses: actions/download-artifact@v8
+      - name: Download coverage data
+        uses: actions/download-artifact@v8
         with:
           pattern: coverage-*
           merge-multiple: true
-      - run: |
+      - name: Combine coverage data
+        run: |
           pip install coverage
           coverage combine
           coverage report --sort=-miss
-      - run: |
+      - name: Publish coverage summary
+        run: |
           echo "## Coverage" >> $GITHUB_STEP_SUMMARY
           echo >> $GITHUB_STEP_SUMMARY
           coverage report --format=markdown --sort=-miss >> $GITHUB_STEP_SUMMARY
-      - run: coverage html
-      - uses: actions/upload-artifact@v7
+      - name: Generate HTML coverage report
+        run: coverage html
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-html
           path: htmlcov

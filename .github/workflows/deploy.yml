@@ -13,19 +13,25 @@ jobs:
     runs-on: ubuntu-latest
     container: python:${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v7
-      - run: python --version
-      - run: |
+      - name: Checkout code from repository
+        uses: actions/checkout@v7
+      - name: Print Python version
+        run: python --version
+      - name: Install runtime dependencies
+        run: |
           pip install -r requirements.txt
           pip install -r extra.txt
-      - run: |
+      - name: Check code formatting with black
+        run: |
           pip install black
           black . --check
         if: matrix.python-version == '3.14'
-      - run: |
+      - name: Run unit tests
+        run: |
           pip install pytest
           HTTPBIN=httpbin.bemisc.com pytest
-      - run: |
+      - name: Build and publish package to PyPI
+        run: |
           pip install twine build
           python -m build
           python -m twine upload -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD} dist/*
