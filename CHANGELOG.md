@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Introspection of the currently running task is no longer broken under the most recent interpreters
+* Resolving an address through the asyncio compatibility layer no longer fails under the oldest interpreters
 
 ## [1.62.1] - 2026-08-25
 
