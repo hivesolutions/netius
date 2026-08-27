@@ -95,7 +95,7 @@ class ServerTest(unittest.TestCase):
             # is driven by the poll instead of by a blocking call, note that
             # the timeout is the way of telling it under the oldest runtimes
             self.assertEqual(_socket.family, socket.AF_INET)
-            self.assertEqual(_socket.type, socket.SOCK_DGRAM)
+            self.assertEqual(self._type(_socket), socket.SOCK_DGRAM)
             self.assertEqual(_socket.gettimeout(), 0)
             self.assertNotEqual(
                 _socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR), 0
@@ -110,6 +110,12 @@ class ServerTest(unittest.TestCase):
         # the serve notification is an extension point with no default
         # behaviour, so that a sub class may hook into it
         self.server.on_serve()
+
+    def _type(self, _socket):
+        # under Linux the non blocking flag is part of the type of the
+        # socket until Python 3.7, where it started being masked out, so
+        # it has to be removed for the type to be comparable
+        return _socket.type & ~getattr(socket, "SOCK_NONBLOCK", 0)
 
 
 class DatagramServerTest(unittest.TestCase):
