@@ -92,10 +92,11 @@ class ServerTest(unittest.TestCase):
         _socket = self.server.socket_udp()
         try:
             # the service socket is a non blocking one, as the reading of it
-            # is driven by the poll instead of by a blocking call
+            # is driven by the poll instead of by a blocking call, note that
+            # the timeout is the way of telling it under the oldest runtimes
             self.assertEqual(_socket.family, socket.AF_INET)
             self.assertEqual(_socket.type, socket.SOCK_DGRAM)
-            self.assertEqual(_socket.getblocking(), False)
+            self.assertEqual(_socket.gettimeout(), 0)
             self.assertNotEqual(
                 _socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR), 0
             )
