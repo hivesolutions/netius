@@ -45,6 +45,19 @@ class MemoryAdapterTest(unittest.TestCase):
         self.assertEqual(self.adapter.get(key), b"Hello World")
         self.assertEqual(self.adapter.count(owner="joe"), 1)
 
+    def test_set_text(self):
+        key = self.adapter.set("Hello World", owner="joe")
+
+        # a textual value is normalized on the way in, so that the adapters
+        # remain interchangeable with the file based one, which does the same
+        self.assertEqual(self.adapter.get(key), b"Hello World")
+
+        file = self.adapter.get_file(key)
+        try:
+            self.assertEqual(file.read(), b"Hello World")
+        finally:
+            file.close()
+
     def test_get_file(self):
         key = self.adapter.set(b"Hello World", owner="joe")
 
@@ -74,6 +87,16 @@ class MemoryAdapterTest(unittest.TestCase):
 
         self.assertEqual(self.adapter.get(key), b"Hello World")
         self.assertEqual(self.adapter.size(key), 11)
+
+    def test_append_text(self):
+        key = self.adapter.reserve(owner="joe")
+
+        # a textual chunk is normalized the same way as a stored value, so
+        # that either kind of caller is able to build up a value
+        self.adapter.append(key, "Hello")
+        self.adapter.append(key, b" World")
+
+        self.assertEqual(self.adapter.get(key), b"Hello World")
 
     def test_truncate(self):
         key = self.adapter.set(b"Hello World\r\n", owner="joe")

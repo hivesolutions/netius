@@ -97,9 +97,24 @@ class POPConnectionTest(unittest.TestCase):
 
         message, lines = self.sent[-1]
 
-        self.assertEqual(message.startswith("3 messages"), True)
+        # only the number of messages is announced, as the command gathers
+        # the identifiers and never the sizes that a total would need
+        self.assertEqual(message, "3 messages")
         self.assertEqual(len(lines), 3)
         self.assertEqual(lines[0].startswith("0 "), True)
+
+    def test_uidl_no_stat(self):
+        self._populate()
+
+        # a listing that was never preceded by a status must neither be
+        # empty nor announce a total that has not been measured
+        self.connection.uidl()
+
+        message, lines = self.sent[-1]
+
+        self.assertEqual(self.connection.byte_c, 0)
+        self.assertEqual(message, "3 messages")
+        self.assertEqual(len(lines), 3)
 
     def test_dele(self):
         self._populate()

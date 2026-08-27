@@ -52,6 +52,7 @@ class MemoryAdapter(base.BaseAdapter):
     def set(self, value, owner="nobody"):
         map_o = self._ensure(owner)
         key = self.generate()
+        value = netius.legacy.bytes(value)
         item = dict(value=value, owner=owner)
         self.map[key] = item
         map_o[key] = item
@@ -86,7 +87,7 @@ class MemoryAdapter(base.BaseAdapter):
     def append(self, key, value):
         item = self.map[key]
         _value = item["value"]
-        _value += value
+        _value += netius.legacy.bytes(value)
         item["value"] = _value
 
     def truncate(self, key, count):

@@ -187,7 +187,7 @@ class POPConnection(netius.Connection):
     def uidl(self):
         self.owner.on_uidl_pop(self)
         count = len(self.keys)
-        message = "%d messages (%d octets)" % (count, self.byte_c)
+        message = "%d messages" % count
         lines = []
         for index in range(count):
             key = self.keys[index]

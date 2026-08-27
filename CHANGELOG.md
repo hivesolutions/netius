@@ -21,6 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Introspection of the currently running task is no longer broken under the most recent interpreters
 * Resolving an address through the asyncio compatibility layer no longer fails under the oldest interpreters
+* A SOCKS request that arrives split across several reads is now handled instead of dropping the connection
+* A SOCKS proxy is now able to answer a request that names a domain or an IPv6 address
+* The hardware address of a DHCP request is no longer rendered rotated when it starts with a zero
+* A DHCP response now carries the address of the relay agent that sent the request
+* Retrieving a message and storing the body of one no longer fail under the most recent interpreters
+* A POP mailbox is now listed even when no status was asked for beforehand
+* A line that names an internal state is no longer taken as a command by the POP, SMTP and FTP servers
+* An email address without angle brackets no longer loses its first and last characters
+* An email address without a domain no longer breaks the delivery of a message
+* The type command of the FTP server now switches the transfer mode that it names
+* Counting down to zero with the compatibility range helpers now yields the expected sequence
 
 ## [1.62.1] - 2026-08-25
 
