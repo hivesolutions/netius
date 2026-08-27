@@ -60,7 +60,7 @@ class MemoryAdapter(base.BaseAdapter):
 
     def get_file(self, key, mode="rb"):
         if not key in self.map:
-            netius.NetiusError("Key not found")
+            raise netius.NetiusError("Key not found")
         item = self.map[key]
         value = item["value"]
         # the buffer has to be a writable one, as the closing of the file

@@ -30,6 +30,7 @@ __license__ = "Apache License, Version 2.0"
 
 import unittest
 
+import netius
 import netius.adapters
 
 
@@ -68,6 +69,12 @@ class MemoryAdapterTest(unittest.TestCase):
             self.assertEqual(file.read(), b"Hello World")
         finally:
             file.close()
+
+    def test_get_file_missing(self):
+        # a key that names no value is reported through the error of the
+        # library instead of leaking the one of the underlying structure
+        self.assertRaises(netius.NetiusError, self.adapter.get_file, "missing")
+        self.assertRaises(netius.NetiusError, self.adapter.get, "missing")
 
     def test_delete(self):
         key = self.adapter.set(b"Hello World", owner="joe")
