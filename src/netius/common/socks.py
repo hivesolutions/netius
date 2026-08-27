@@ -161,8 +161,17 @@ class SOCKSParser(parser.Parser):
 
         # retrieves the size of the data that has been sent for parsing
         # and saves it under the size original variable
+        size_o = len(data)
+
+        # joins the data that may have been left buffered by a previous
+        # parsing with the one that has just arrived, so that the states
+        # that require a fixed amount of bytes are able to look at the
+        # complete sequence instead of only at the tail of it
+        if self.buffer:
+            data = b"".join(self.buffer) + data
+            del self.buffer[:]
+
         size = len(data)
-        size_o = size
 
         # iterates continuously to try to process all that
         # data that has been sent for processing
@@ -191,9 +200,10 @@ class SOCKSParser(parser.Parser):
         if size > 0:
             self.buffer.append(data)
 
-        # returns the number of read (processed) bytes of the
-        # data that has been sent to the parser
-        return size_o - size
+        # returns the number of read (processed) bytes of the data that
+        # has been sent to the parser, note that the bytes that were not
+        # processed have been buffered and so they are considered read
+        return size_o
 
     def get_host(self):
         return self.domain or self.address_s
@@ -205,9 +215,11 @@ class SOCKSParser(parser.Parser):
         if self.type == IPV4:
             address = struct.pack("!I", self.address)
         elif self.type == IPV6:
-            address = struct.pack("!QQ", self.address)
+            address = struct.pack(
+                "!QQ", self.address >> 64, self.address & 0xFFFFFFFFFFFFFFFF
+            )
         else:
-            address = struct.pack("!B", self.size) + self.address
+            address = struct.pack("!B", self.size) + netius.legacy.bytes(self.address)
 
         return address
 
@@ -229,7 +241,7 @@ class SOCKSParser(parser.Parser):
 
     def _parse_header(self, data):
         if len(data) < 7:
-            raise netius.ParserError("Invalid request (too short)")
+            return 0
 
         request = data[:7]
         self.command, self.port, self.address = struct.unpack("!BHI", request)
@@ -306,7 +318,7 @@ class SOCKSParser(parser.Parser):
 
     def _parse_header_extra(self, data):
         if len(data) < 4:
-            raise netius.ParserError("Invalid request (too short)")
+            return 0
 
         request = data[:4]
         self.version, self.command, _reserved, self.type = struct.unpack(
@@ -344,6 +356,7 @@ class SOCKSParser(parser.Parser):
         remaining = self.size - len(self.buffer)
         self.buffer.append(data[:remaining])
         data = b"".join(self.buffer)
+        del self.buffer[:]
 
         if self.type == IPV4:
             (self.address,) = struct.unpack("!I", data)
@@ -362,7 +375,7 @@ class SOCKSParser(parser.Parser):
 
     def _parse_port(self, data):
         if len(data) < 2:
-            raise netius.ParserError("Invalid request (too short)")
+            return 0
 
         request = data[:2]
         (self.port,) = struct.unpack("!H", request)

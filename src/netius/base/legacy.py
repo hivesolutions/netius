@@ -336,14 +336,18 @@ def values(associative):
 
 def xrange(start, stop=None, step=1):
     if PYTHON_3:
-        return _range(start, stop, step) if stop else _range(start)
-    return _xrange(start, stop, step) if stop else _range(start)
+        return _range(start, stop, step) if not stop == None else _range(start)
+    return _xrange(start, stop, step) if not stop == None else _range(start)
 
 
-def range(start, stop=None, step=None):
+def range(start, stop=None, step=1):
     if PYTHON_3:
-        return eager(_range(start, stop, step)) if stop else eager(_range(start))
-    return _range(start, stop, step) if stop else _range(start)
+        return (
+            eager(_range(start, stop, step))
+            if not stop == None
+            else eager(_range(start))
+        )
+    return _range(start, stop, step) if not stop == None else _range(start)
 
 
 def ord(value):
