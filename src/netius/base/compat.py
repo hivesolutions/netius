@@ -191,7 +191,9 @@ class CompatLoop(BaseLoop):
 
     def _getaddrinfo(self, host, port, family=0, type=0, proto=0, flags=0):
         future = self.create_future()
-        result = socket.getaddrinfo(host, port, family, type, proto, flags=flags)
+        result = socket.getaddrinfo(
+            host, port, family=family, type=type, proto=proto, flags=flags
+        )
         self._loop.delay(lambda: future.set_result(result), immediately=True)
         yield future
 
