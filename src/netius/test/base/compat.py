@@ -160,6 +160,8 @@ class CompatLoopTest(unittest.TestCase):
     def test_run_until_complete(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
+        if compat.asyncio == None:
+            self.skipTest("Skipping test: asyncio unavailable")
 
         current = []
         coroutine = self._coroutine()
@@ -187,8 +189,13 @@ class CompatLoopTest(unittest.TestCase):
         self.assertEqual(run_forever.call_count, 1)
 
     def test_run_in_executor(self):
+        if compat.asyncio == None:
+            self.skipTest("Skipping test: asyncio unavailable")
+
         result = self.compat.run_in_executor(None, lambda: None)
 
+        # the wrapper that makes the coroutine awaitable is only part of the
+        # newer implementation, the older one yields a plain generator
         self.assertEqual(isinstance(result, asynchronous.AwaitWrapper), True)
 
     def test_stop(self):
@@ -286,6 +293,9 @@ class CompatLoopTest(unittest.TestCase):
         self.assertEqual(self.compat.is_closed(), self.loop.is_stopped())
 
     def test__set_current_task(self):
+        if compat.asyncio == None:
+            self.skipTest("Skipping test: asyncio unavailable")
+
         task = object()
         self.compat._set_current_task(task)
 
@@ -298,6 +308,8 @@ class CompatLoopTest(unittest.TestCase):
     def test__set_current_task_no_asyncio(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
+        if compat.asyncio == None:
+            self.skipTest("Skipping test: asyncio unavailable")
 
         # the tracking of the running task only makes sense while asyncio
         # is around, as it's the global state of asyncio that is updated
@@ -308,6 +320,9 @@ class CompatLoopTest(unittest.TestCase):
         self.assertEqual(self.compat._current_tasks.get(self.compat, None), None)
 
     def test__unset_current_task_unset(self):
+        if compat.asyncio == None:
+            self.skipTest("Skipping test: asyncio unavailable")
+
         # the releasing of a task that was never registered must be a no
         # operation, as the registration is a best effort one
         self.compat._unset_current_task()
