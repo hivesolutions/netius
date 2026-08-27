@@ -62,15 +62,7 @@ class MemoryAdapter(base.BaseAdapter):
             netius.NetiusError("Key not found")
         item = self.map[key]
         value = item["value"]
-        # the buffer has to be a writable one, as the closing of the file
-        # writes its contents back, and has to match the way the runtime
-        # represents a byte sequence, which under the oldest ones is the
-        # very same type that backs a native string
-        file = (
-            netius.legacy.BytesIO(value)
-            if netius.legacy.PYTHON_3
-            else netius.legacy.StringIO(value)
-        )
+        file = netius.legacy.BytesIO(value)
         close = self._build_close(file, key)
         file._close = file.close
         file.close = close
