@@ -191,9 +191,10 @@ class CompatLoop(BaseLoop):
 
     def _getaddrinfo(self, host, port, family=0, type=0, proto=0, flags=0):
         future = self.create_future()
-        result = socket.getaddrinfo(
-            host, port, family=family, type=type, proto=proto, flags=flags
-        )
+        # the arguments are passed by position on purpose, under the oldest
+        # interpreters the resolver is a native function that takes no
+        # keyword arguments at all, naming them raises a type error
+        result = socket.getaddrinfo(host, port, family, type, proto, flags)
         self._loop.delay(lambda: future.set_result(result), immediately=True)
         yield future
 
