@@ -86,6 +86,20 @@ CAPABILITIES = ("AUTH PLAIN LOGIN", "STARTTLS")
 available under the current SMTP server implementation, the
 description of these capabilities should conform with the rfp """
 
+COMMANDS = (
+    "helo",
+    "ehlo",
+    "starttls",
+    "auth",
+    "mail",
+    "rcpt",
+    "data",
+    "quit",
+)
+""" The sequence of commands that the server is able to handle,
+used to resolve the handler of a line, so that only a command
+is able to reach a method of the connection """
+
 
 class SMTPConnection(netius.Connection):
 
@@ -308,10 +322,10 @@ class SMTPConnection(netius.Connection):
         code_l = code.lower()
         method_n = "on_" + code_l
 
-        # verifies if the method for the current code exists in case it
-        # does not raises an exception indicating the problem with the
-        # code that has just been received (probably erroneous)
-        exists = hasattr(self, method_n)
+        # verifies that the code is one of the commands that the server
+        # handles, as testing for the existence of the method alone would
+        # allow a client to reach the handlers of the internal states
+        exists = code_l in COMMANDS and hasattr(self, method_n)
         if not exists:
             raise netius.ParserError("Invalid code '%s'" % code)
 
@@ -480,7 +494,14 @@ class SMTPServer(netius.StreamServer):
     def _emails(self, sequence, prefix="to"):
         prefix_l = len(prefix)
         base = prefix_l + 1
-        emails = [item[base:].strip()[1:-1] for item in sequence]
+        emails = [item[base:].strip() for item in sequence]
+        # the path of an address is optionally surrounded by angle brackets
+        # so they are only removed when they are really there, otherwise the
+        # first and the last characters of the address would be eaten
+        emails = [
+            email[1:-1] if email.startswith("<") and email.endswith(">") else email
+            for email in emails
+        ]
         return emails
 
     def _users(self, emails):
@@ -488,6 +509,11 @@ class SMTPServer(netius.StreamServer):
         return users
 
     def _is_local(self, email):
+        # an address that carries no domain may not be matched against the
+        # local ones, so it's taken as a remote one, which is the safe
+        # reading as it's never delivered to a local mailbox by mistake
+        if not "@" in email:
+            return False
         domain = email.split("@", 1)[1]
         return domain in self.locals
 
