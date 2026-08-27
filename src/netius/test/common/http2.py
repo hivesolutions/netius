@@ -106,15 +106,15 @@ class HTTP2ParserTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_assert_stream(self):
-        parser = _build_connection().parser
+        parser = self._make_connection().parser
         try:
             # a stream that has been opened by the client carries an odd
             # identifier, an even one belongs to the server
-            parser.assert_stream(_build_stream(parser, identifier=1))
+            parser.assert_stream(self._make_stream(parser, identifier=1))
             self.assertRaises(
                 netius.ParserError,
                 parser.assert_stream,
-                _build_stream(parser, identifier=2),
+                self._make_stream(parser, identifier=2),
             )
 
             # a stream that depends on itself would form a cycle in the
@@ -122,32 +122,32 @@ class HTTP2ParserTest(unittest.TestCase):
             self.assertRaises(
                 netius.ParserError,
                 parser.assert_stream,
-                _build_stream(parser, identifier=1, dependency=1),
+                self._make_stream(parser, identifier=1, dependency=1),
             )
         finally:
             parser.clear(force=True)
 
     def test_assert_stream_concurrent(self):
-        parser = _build_connection().parser
+        parser = self._make_connection().parser
         try:
             # the number of streams that may be open at the same time is
             # bounded by the setting that has been announced to the client
             maximum = self.settings[netius.common.http2.SETTINGS_MAX_CONCURRENT_STREAMS]
             for identifier in range(maximum):
-                parser.streams[identifier] = _build_stream(
+                parser.streams[identifier] = self._make_stream(
                     parser, identifier=identifier
                 )
 
             self.assertRaises(
                 netius.ParserError,
                 parser.assert_stream,
-                _build_stream(parser, identifier=1),
+                self._make_stream(parser, identifier=1),
             )
         finally:
             parser.clear(force=True)
 
     def test_assert_data(self):
-        parser = _build_connection().parser
+        parser = self._make_connection().parser
         try:
             parser.stream = 0x01
 
@@ -156,25 +156,25 @@ class HTTP2ParserTest(unittest.TestCase):
             self.assertRaises(
                 netius.ParserError,
                 parser.assert_data,
-                _build_stream(parser, end_headers=False),
+                self._make_stream(parser, end_headers=False),
                 False,
             )
 
-            parser.assert_data(_build_stream(parser, end_headers=True), False)
+            parser.assert_data(self._make_stream(parser, end_headers=True), False)
 
             # a stream that the client has already half closed may no
             # longer carry any data towards the server
             self.assertRaises(
                 netius.ParserError,
                 parser.assert_data,
-                _build_stream(parser, end_headers=True, end_stream=True),
+                self._make_stream(parser, end_headers=True, end_stream=True),
                 False,
             )
         finally:
             parser.clear(force=True)
 
     def test_assert_data_stream(self):
-        parser = _build_connection().parser
+        parser = self._make_connection().parser
         try:
             # the connection level stream never carries data, as a data
             # frame is always bound to a request
@@ -183,22 +183,25 @@ class HTTP2ParserTest(unittest.TestCase):
             self.assertRaises(
                 netius.ParserError,
                 parser.assert_data,
-                _build_stream(parser, end_headers=True),
+                self._make_stream(parser, end_headers=True),
                 False,
             )
         finally:
             parser.clear(force=True)
 
     def test_assert_headers(self):
-        parser = _build_connection().parser
+        parser = self._make_connection().parser
         try:
             parser.stream = 0x01
 
             # a second headers frame is only allowed as the trailers of a
             # message, so it has to carry the end of the stream
-            parser.assert_headers(_build_stream(parser), True)
+            parser.assert_headers(self._make_stream(parser), True)
             self.assertRaises(
-                netius.ParserError, parser.assert_headers, _build_stream(parser), False
+                netius.ParserError,
+                parser.assert_headers,
+                self._make_stream(parser),
+                False,
             )
 
             # a stream that the client has already half closed may not be
@@ -206,32 +209,32 @@ class HTTP2ParserTest(unittest.TestCase):
             self.assertRaises(
                 netius.ParserError,
                 parser.assert_headers,
-                _build_stream(parser, end_headers=True, end_stream=True),
+                self._make_stream(parser, end_headers=True, end_stream=True),
                 True,
             )
         finally:
             parser.clear(force=True)
 
     def test_assert_priority(self):
-        parser = _build_connection().parser
+        parser = self._make_connection().parser
         try:
             parser.stream = 0x01
 
-            parser.assert_priority(_build_stream(parser, identifier=1), 3)
+            parser.assert_priority(self._make_stream(parser, identifier=1), 3)
 
             # a stream that depends on itself would form a cycle, either
             # named through the frame or through the stream itself
             self.assertRaises(
                 netius.ParserError,
                 parser.assert_priority,
-                _build_stream(parser, identifier=1),
+                self._make_stream(parser, identifier=1),
                 1,
             )
         finally:
             parser.clear(force=True)
 
     def test_assert_priority_stream(self):
-        parser = _build_connection().parser
+        parser = self._make_connection().parser
         try:
             # a priority frame always names the stream it reorders, so it
             # is never bound to the connection level one
@@ -242,12 +245,12 @@ class HTTP2ParserTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_assert_rst_stream(self):
-        parser = _build_connection().parser
+        parser = self._make_connection().parser
         try:
             parser.stream = 0x01
             parser._max_stream = 0x01
 
-            parser.assert_rst_stream(_build_stream(parser, identifier=1))
+            parser.assert_rst_stream(self._make_stream(parser, identifier=1))
 
             # a stream that was never opened may not be reset, as there is
             # nothing on the server to be torn down
@@ -256,13 +259,13 @@ class HTTP2ParserTest(unittest.TestCase):
             self.assertRaises(
                 netius.ParserError,
                 parser.assert_rst_stream,
-                _build_stream(parser, identifier=3),
+                self._make_stream(parser, identifier=3),
             )
         finally:
             parser.clear(force=True)
 
     def test_assert_rst_stream_connection(self):
-        parser = _build_connection().parser
+        parser = self._make_connection().parser
         try:
             # the connection level stream is not a stream that may be
             # reset, so the frame is rejected outright
@@ -273,25 +276,27 @@ class HTTP2ParserTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_assert_continuation(self):
-        parser = _build_connection().parser
+        parser = self._make_connection().parser
         try:
             parser.stream = 0x01
             parser.last_type = netius.common.HEADERS
 
-            parser.assert_continuation(_build_stream(parser))
+            parser.assert_continuation(self._make_stream(parser))
 
             # a continuation only ever follows a frame that opened a block
             # of headers, so anything else before it is a protocol error
             parser.last_type = netius.common.DATA
 
             self.assertRaises(
-                netius.ParserError, parser.assert_continuation, _build_stream(parser)
+                netius.ParserError,
+                parser.assert_continuation,
+                self._make_stream(parser),
             )
         finally:
             parser.clear(force=True)
 
     def test_assert_continuation_closed(self):
-        parser = _build_connection().parser
+        parser = self._make_connection().parser
         try:
             parser.stream = 0x01
             parser.last_type = netius.common.HEADERS
@@ -301,7 +306,7 @@ class HTTP2ParserTest(unittest.TestCase):
             self.assertRaises(
                 netius.ParserError,
                 parser.assert_continuation,
-                _build_stream(parser, end_headers=True, end_stream=True),
+                self._make_stream(parser, end_headers=True, end_stream=True),
             )
         finally:
             parser.clear(force=True)
@@ -710,10 +715,10 @@ class HTTP2ParserTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_parse_data(self):
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         try:
-            stream = _build_stream(parser, identifier=1, end_headers=True)
+            stream = self._make_stream(parser, identifier=1, end_headers=True)
             parser.streams[1] = stream
 
             events = []
@@ -732,10 +737,10 @@ class HTTP2ParserTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_parse_data_padded(self):
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         try:
-            stream = _build_stream(parser, identifier=1, end_headers=True)
+            stream = self._make_stream(parser, identifier=1, end_headers=True)
             parser.streams[1] = stream
 
             events = []
@@ -758,7 +763,7 @@ class HTTP2ParserTest(unittest.TestCase):
         if hpack == None:
             self.skipTest("Skipping test: hpack unavailable")
 
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         try:
             events = []
@@ -797,10 +802,10 @@ class HTTP2ParserTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_parse_priority(self):
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         try:
-            stream = _build_stream(parser, identifier=1)
+            stream = self._make_stream(parser, identifier=1)
             parser.streams[1] = stream
 
             events = []
@@ -825,10 +830,10 @@ class HTTP2ParserTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_parse_rst_stream(self):
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         try:
-            stream = _build_stream(parser, identifier=1)
+            stream = self._make_stream(parser, identifier=1)
             parser.streams[1] = stream
             parser._max_stream = 0x01
 
@@ -850,7 +855,7 @@ class HTTP2ParserTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_parse_push_promise(self):
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         try:
             # a promise may only travel from a server towards a client, so
@@ -867,7 +872,7 @@ class HTTP2ParserTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_parse_push_promise_padded(self):
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         try:
             # the padding of the promise is stripped before the direction of
@@ -887,7 +892,7 @@ class HTTP2ParserTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_parse_continuation(self):
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         try:
             events = []
@@ -919,7 +924,7 @@ class HTTP2ParserTest(unittest.TestCase):
         if hpack == None:
             self.skipTest("Skipping test: hpack unavailable")
 
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         try:
             events = []
@@ -976,11 +981,44 @@ class HTTP2ParserTest(unittest.TestCase):
         finally:
             parser.clear(force=True)
 
+    def _make_connection(self, encoding=netius.common.PLAIN_ENCODING):
+        # builds a minimal HTTP/2 connection (and parser) that satisfies the
+        # encoding, settings and window probes performed by the assertions
+        connection = netius.servers.http2.HTTP2Connection.__new__(
+            netius.servers.http2.HTTP2Connection
+        )
+        connection.legacy = False
+        connection.owner = netius.servers.HTTPServer()
+        connection.settings = dict(netius.common.HTTP2_SETTINGS_OPTIMAL)
+        connection.settings_r = dict(netius.common.HTTP2_SETTINGS)
+        connection.encoding = encoding
+        connection.current = connection.base_encoding()
+        connection.encoding_c = None
+        connection.encodings_a = None
+        connection.dynamic = None
+        connection.window = netius.common.HTTP2_WINDOW
+        connection.window_o = netius.common.HTTP2_WINDOW
+        connection.parser = netius.common.HTTP2Parser(connection, store=True)
+        return connection
+
+    def _make_stream(
+        self, parser, identifier=1, dependency=0x00, end_headers=False, end_stream=False
+    ):
+        # builds a stream bound to the provided parser, carrying only the state
+        # that the assertions of the parser are going to look at
+        return netius.common.http2.HTTP2Stream(
+            owner=parser,
+            identifier=identifier,
+            dependency=dependency,
+            end_headers=end_headers,
+            end_stream=end_stream,
+        )
+
 
 class HTTP2StreamTest(unittest.TestCase):
 
     def test_resolve_encoding(self):
-        connection = _build_connection(encoding=netius.common.GZIP_ENCODING)
+        connection = self._make_connection(encoding=netius.common.GZIP_ENCODING)
         parser = connection.parser
         try:
             stream_1 = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
@@ -1007,7 +1045,7 @@ class HTTP2StreamTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_encoding_w(self):
-        connection = _build_connection(encoding=netius.common.GZIP_ENCODING)
+        connection = self._make_connection(encoding=netius.common.GZIP_ENCODING)
         parser = connection.parser
         try:
             stream = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
@@ -1027,7 +1065,7 @@ class HTTP2StreamTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_get_encodings(self):
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         try:
             stream = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
@@ -1044,13 +1082,13 @@ class HTTP2StreamTest(unittest.TestCase):
         if hpack == None:
             self.skipTest("Skipping test: hpack unavailable")
 
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         try:
             # a dynamic table size update beyond the negotiated maximum must
             # be refused, as the peer would otherwise be able to grow the
             # table of the decoder without any bound
-            stream = _build_stream(parser, headers=[])
+            stream = self._make_stream(parser, [])
             stream.end_headers = True
             stream.header_b = [b"\x3f\xe1\xff\x03\x82"]
 
@@ -1058,7 +1096,7 @@ class HTTP2StreamTest(unittest.TestCase):
 
             # the failure in the decoding of a field block is a connection
             # level error, as the dynamic table becomes unsynchronized
-            stream = _build_stream(parser, headers=[])
+            stream = self._make_stream(parser, [])
             stream.end_headers = True
             stream.header_b = [b"\x3f\xe1\xff\x03\x82"]
             try:
@@ -1073,7 +1111,7 @@ class HTTP2StreamTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_fragment(self):
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         try:
             # the maximum payload of a frame is bound by the maximum frame size
@@ -1108,46 +1146,46 @@ class HTTP2StreamTest(unittest.TestCase):
             parser.clear(force=True)
 
     def test_assert_headers(self):
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         base = [(":method", "GET"), (":scheme", "https"), (":path", "/")]
         try:
             # a valid set of headers carries every mandatory pseudo-header
             # with all of them positioned before the normal ones
-            stream = _build_stream(parser, headers=base + [("accept", "*/*")])
+            stream = self._make_stream(parser, base + [("accept", "*/*")])
             stream.assert_headers()
 
             # the headers that are specific to a single transport level
             # connection must never be present in an HTTP 2 message
             for name in netius.common.http2.HTTP2_CONNECTION:
-                stream = _build_stream(parser, headers=base + [(name, "value")])
+                stream = self._make_stream(parser, base + [(name, "value")])
                 self.assertRaises(netius.ParserError, stream.assert_headers)
 
             # the TE header is the only exception to the previous rule and
             # it's only allowed while its value is the trailers one
-            stream = _build_stream(parser, headers=base + [("te", "trailers")])
+            stream = self._make_stream(parser, base + [("te", "trailers")])
             stream.assert_headers()
-            stream = _build_stream(parser, headers=base + [("te", "gzip")])
+            stream = self._make_stream(parser, base + [("te", "gzip")])
             self.assertRaises(netius.ParserError, stream.assert_headers)
 
             # the name of a header must be a lower cased one, as the casing
             # of it is not preserved by the HTTP 2 specification
-            stream = _build_stream(parser, headers=base + [("Accept", "*/*")])
+            stream = self._make_stream(parser, base + [("Accept", "*/*")])
             self.assertRaises(netius.ParserError, stream.assert_headers)
 
             # an unknown pseudo-header, a duplicated one and a response only
             # one are all invalid under a request message
-            stream = _build_stream(parser, headers=base + [(":bogus", "value")])
+            stream = self._make_stream(parser, base + [(":bogus", "value")])
             self.assertRaises(netius.ParserError, stream.assert_headers)
-            stream = _build_stream(parser, headers=base + [(":path", "/other")])
+            stream = self._make_stream(parser, base + [(":path", "/other")])
             self.assertRaises(netius.ParserError, stream.assert_headers)
-            stream = _build_stream(parser, headers=base + [(":status", "200")])
+            stream = self._make_stream(parser, base + [(":status", "200")])
             self.assertRaises(netius.ParserError, stream.assert_headers)
 
             # a pseudo-header must never be positioned after a normal one so
             # that the message may be processed in a single pass
-            stream = _build_stream(
-                parser, headers=base[:2] + [("accept", "*/*")] + base[2:]
+            stream = self._make_stream(
+                parser, base[:2] + [("accept", "*/*")] + base[2:]
             )
             self.assertRaises(netius.ParserError, stream.assert_headers)
 
@@ -1155,21 +1193,20 @@ class HTTP2StreamTest(unittest.TestCase):
             # target of the request may not be determined
             for index in range(len(base)):
                 headers = base[:index] + base[index + 1 :]
-                stream = _build_stream(parser, headers=headers)
+                stream = self._make_stream(parser, headers)
                 self.assertRaises(netius.ParserError, stream.assert_headers)
 
             # the target of the request may never be an empty one, as the
             # resource being requested would then be an unknown one
-            stream = _build_stream(
-                parser,
-                headers=[(":method", "GET"), (":scheme", "https"), (":path", "")],
+            stream = self._make_stream(
+                parser, [(":method", "GET"), (":scheme", "https"), (":path", "")]
             )
             self.assertRaises(netius.ParserError, stream.assert_headers)
         finally:
             parser.clear(force=True)
 
     def test_ctx_request(self):
-        connection = _build_connection()
+        connection = self._make_connection()
         parser = connection.parser
         try:
             stream = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
@@ -1191,44 +1228,27 @@ class HTTP2StreamTest(unittest.TestCase):
         finally:
             parser.clear(force=True)
 
+    def _make_stream(self, parser, headers):
+        # builds a stream carrying the provided sequence of headers so that
+        # the assertion of them may be run over it
+        stream = netius.common.http2.HTTP2Stream(identifier=1, owner=parser)
+        stream.headers_l = headers
+        return stream
 
-def _build_connection(encoding=netius.common.PLAIN_ENCODING):
-    # builds a minimal HTTP/2 connection (and parser) that satisfies the
-    # encoding and window probes performed on the creation of a stream
-    connection = netius.servers.http2.HTTP2Connection.__new__(
-        netius.servers.http2.HTTP2Connection
-    )
-    connection.legacy = False
-    connection.owner = netius.servers.HTTPServer()
-    connection.settings = dict(netius.common.HTTP2_SETTINGS_OPTIMAL)
-    connection.settings_r = dict(netius.common.HTTP2_SETTINGS)
-    connection.encoding = encoding
-    connection.current = connection.base_encoding()
-    connection.encoding_c = None
-    connection.encodings_a = None
-    connection.dynamic = None
-    connection.window = netius.common.HTTP2_WINDOW
-    connection.window_o = netius.common.HTTP2_WINDOW
-    connection.parser = netius.common.HTTP2Parser(connection, store=True)
-    return connection
-
-
-def _build_stream(
-    parser,
-    identifier=1,
-    dependency=0x00,
-    end_headers=False,
-    end_stream=False,
-    headers=None,
-):
-    # builds a stream bound to the provided parser, carrying only the state
-    # that the assertions of the parser are going to look at
-    stream = netius.common.http2.HTTP2Stream(
-        owner=parser,
-        identifier=identifier,
-        dependency=dependency,
-        end_headers=end_headers,
-        end_stream=end_stream,
-    )
-    stream.headers_l = headers
-    return stream
+    def _make_connection(self, encoding=netius.common.PLAIN_ENCODING):
+        # builds a minimal HTTP/2 connection (and parser) that satisfies the
+        # encoding and window probes performed on the creation of a stream
+        connection = netius.servers.http2.HTTP2Connection.__new__(
+            netius.servers.http2.HTTP2Connection
+        )
+        connection.legacy = False
+        connection.owner = netius.servers.HTTPServer()
+        connection.encoding = encoding
+        connection.current = connection.base_encoding()
+        connection.encoding_c = None
+        connection.encodings_a = None
+        connection.dynamic = None
+        connection.window = netius.common.HTTP2_WINDOW
+        connection.window_o = netius.common.HTTP2_WINDOW
+        connection.parser = netius.common.HTTP2Parser(connection, store=True)
+        return connection
