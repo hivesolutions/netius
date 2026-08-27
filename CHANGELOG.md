@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * An email address without a domain no longer breaks the delivery of a message
 * The type command of the FTP server now switches the transfer mode that it names
 * Counting down to zero with the compatibility range helpers now yields the expected sequence
+* Asking the memory adapter for a value that does not exist now reports a proper error
 
 ## [1.62.1] - 2026-08-25
 
