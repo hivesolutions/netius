@@ -85,6 +85,7 @@ class SMTPConnection(Connection):
     def reset_message(self): ...
 
 class SMTPServer(StreamServer):
+    host_g: str | None
     adapter_s: str
     auth_s: str
     locals: Sequence[str]

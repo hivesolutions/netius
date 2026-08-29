@@ -67,6 +67,7 @@ class POPConnection(Connection):
     def assert_s(self, expected: int): ...
 
 class POPServer(StreamServer):
+    host_g: str | None
     adapter_s: str
     auth_s: str
 
