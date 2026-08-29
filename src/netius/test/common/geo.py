@@ -66,7 +66,7 @@ class GeoResolverTest(unittest.TestCase):
 
     def test_resolve_no_db(self):
         geo.GeoResolver._db = None
-        self._patch_download()
+        self._patch_try(found=False)
 
         # with no database available at all the resolution reports no value
         # rather than raising, as the feature is an optional one
