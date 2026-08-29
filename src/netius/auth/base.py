@@ -104,13 +104,13 @@ class Auth(object):
     @classmethod
     def unpack(cls, password):
         count = password.count(":")
+        plain = password
         if count == 2:
             type, salt, digest = password.split(":")
         elif count == 1:
             type, digest = password.split(":")
             salt = None
         else:
-            plain = password
             type = "plain"
             salt = None
             digest = None
