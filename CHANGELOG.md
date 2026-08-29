@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* The priority weight of an HTTP/2 stream is now the effective one instead of the value that travels in the wire - [#101](https://github.com/hivesolutions/netius/issues/101)
 
 ### Fixed
 

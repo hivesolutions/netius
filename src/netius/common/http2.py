@@ -661,7 +661,7 @@ class HTTP2Parser(parser.Parser):
         index = 0
         padded_l = 0
         dependency = 0
-        weight = 0
+        weight = 16
         exclusive = 0
 
         if padded:
@@ -672,6 +672,7 @@ class HTTP2Parser(parser.Parser):
             dependency, weight = struct.unpack("!IB", data[index : index + 5])
             exclusive = True if dependency & 0x80000000 else False
             dependency = dependency & 0x7FFFFFFF
+            weight += 1
             index += 5
 
         # retrieves the (headers) fragment part of the payload, this is
@@ -697,7 +698,7 @@ class HTTP2Parser(parser.Parser):
             stream.extend_headers(fragment)
             if dependency:
                 stream.dependency = dependency
-            if weight:
+            if priority:
                 stream.weight = weight
             if exclusive:
                 stream.exclusive = exclusive
@@ -752,6 +753,7 @@ class HTTP2Parser(parser.Parser):
 
     def _parse_priority(self, data):
         dependency, weight = struct.unpack("!IB", data)
+        weight += 1
         stream = self._get_stream(self.stream, strict=False)
         if stream:
             stream.dependency = dependency
@@ -950,7 +952,7 @@ class HTTP2Stream(netius.Stream):
         identifier=None,
         header_b=None,
         dependency=0x00,
-        weight=1,
+        weight=16,
         exclusive=False,
         end_headers=False,
         end_stream=False,
