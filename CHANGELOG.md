@@ -14,10 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * The priority weight of an HTTP/2 stream is now the effective one instead of the value that travels in the wire - [#101](https://github.com/hivesolutions/netius/issues/101)
+* The coverage job now fails when the package falls below the floor that it has reached - [#102](https://github.com/hivesolutions/netius/issues/102)
 
 ### Fixed
 
-*
+* A GeoIP database that is downloaded on demand is now used instead of being discarded
+* A POP command with no argument no longer reports its message as a byte sequence
 
 ## [1.63.0] - 2026-08-29
 
