@@ -56,7 +56,7 @@ class FileThread(common.Thread):
     def execute(self, work):
         type = work[0]
         if not type == FILE_WORK:
-            netius.NotImplemented("Cannot execute type '%d'" % type)
+            raise netius.NotImplemented("Cannot execute type '%d'" % type)
 
         try:
             self._execute(work)
@@ -64,7 +64,7 @@ class FileThread(common.Thread):
             self.owner.push_event((ERROR_ACTION, exception, work[-1]))
 
     def open(self, path, mode, data):
-        file = open(path)
+        file = open(path, mode)
         self.owner.push_event((OPEN_ACTION, file, data))
 
     def close(self, file, data):
@@ -88,9 +88,9 @@ class FileThread(common.Thread):
         elif action == READ_ACTION:
             self.read(*work[2:])
         elif action == WRITE_ACTION:
-            self.read(*work[2:])
+            self.write(*work[2:])
         else:
-            netius.NotImplemented("Undefined file action '%d'" % action)
+            raise netius.NotImplemented("Undefined file action '%d'" % action)
 
 
 class FilePool(common.EventPool):
