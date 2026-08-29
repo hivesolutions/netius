@@ -130,7 +130,7 @@ class GeoResolver(object):
         if not download:
             return None
         cls._download_db(path=path)
-        exists = not os.path.exists(path)
+        exists = os.path.exists(path)
         if not exists:
             return None
         return path
