@@ -46,6 +46,7 @@ class SMTPConnectionTest(unittest.TestCase):
         self.connection = smtp.SMTPConnection.__new__(smtp.SMTPConnection)
         self.connection.owner = self.server
         self.connection.state = smtp.HELO_STATE
+        self.connection.tail = b"\r\n"
         self.sent = []
         self.connection.send_smtp = lambda code, message="", **kwargs: self.sent.append(
             (code, message)
@@ -54,6 +55,61 @@ class SMTPConnectionTest(unittest.TestCase):
     def tearDown(self):
         unittest.TestCase.tearDown(self)
         self.server.cleanup()
+
+    def test_init(self):
+        connection = smtp.SMTPConnection(
+            owner=self.server, socket=None, address=("127.0.0.1", 25)
+        )
+
+        # a connection starts with the tail set to a newline, so that the
+        # first line of the body of the message that is delivered is taken
+        # as being at the start of a line
+        self.assertEqual(connection.state, smtp.INITIAL_STATE)
+        self.assertEqual(connection.tail, b"\r\n")
+
+    def test_data(self):
+        self.connection.state = smtp.HEADER_STATE
+        self.connection.from_l = []
+        self.connection.to_l = []
+        self.connection.tail = b"ab"
+
+        self.connection.data()
+
+        # the start of a message resets the context of the unstuffing, so
+        # that the body of the one that precedes it does not leak into the
+        # detection of the lines of the new one
+        self.assertEqual(self.connection.state, smtp.DATA_STATE)
+        self.assertEqual(self.connection.tail, b"\r\n")
+
+    def test_unstuff(self):
+        # the body starts at the beginning of a line, so the extra dot of a
+        # line that opens with one is removed, the same being true for the
+        # lines that follow a newline
+        self.assertEqual(self.connection.unstuff(b"..a\r\n..b\r\n"), b".a\r\n.b\r\n")
+
+    def test_unstuff_inner(self):
+        # a pair of dots that is not at the start of a line was never stuffed
+        # by the client, so it has to be left untouched
+        self.assertEqual(self.connection.unstuff(b"a..b\r\n"), b"a..b\r\n")
+
+    def test_unstuff_boundary(self):
+        # the stuffed dots open the chunk that follows the one ending with
+        # the newline, so it's the context of the previous read that allows
+        # them to be detected
+        self.assertEqual(self.connection.unstuff(b"ab\r\n"), b"ab\r\n")
+        self.assertEqual(self.connection.unstuff(b"..x\r\n"), b".x\r\n")
+
+    def test_unstuff_boundary_split(self):
+        # the stuffed sequence is itself split between the two chunks, the
+        # first of the dots ending one and the second opening the next
+        self.assertEqual(self.connection.unstuff(b"ab\r\n."), b"ab\r\n.")
+        self.assertEqual(self.connection.unstuff(b".x\r\n"), b"x\r\n")
+
+    def test_unstuff_boundary_newline(self):
+        # the newline that precedes the stuffed dots is split between the
+        # chunks, a case that a shorter context would not be able to detect
+        self.assertEqual(self.connection.unstuff(b"abc\r"), b"abc\r")
+        self.assertEqual(self.connection.unstuff(b"\n..x\r\n"), b"\n.x\r\n")
 
     def test_on_line(self):
         self.connection.on_line("HELO", "client.localhost")
@@ -75,6 +131,19 @@ class SMTPConnectionTest(unittest.TestCase):
         self.assertEqual(hasattr(self.connection, "_username"), False)
         self.assertEqual(self.connection.state, smtp.HELO_STATE)
 
+    def test_reset_message(self):
+        self.connection.from_l = ["joe@example.com"]
+        self.connection.to_l = ["mary@example.com"]
+        self.connection.tail = b"ab"
+
+        self.connection.reset_message()
+
+        # the context of the unstuffing is cleared together with the rest of
+        # the state of the message, so that it does not outlive it
+        self.assertEqual(self.connection.from_l, [])
+        self.assertEqual(self.connection.to_l, [])
+        self.assertEqual(self.connection.tail, b"\r\n")
+
 
 class SMTPServerTest(unittest.TestCase):
 
@@ -92,6 +161,7 @@ class SMTPServerTest(unittest.TestCase):
         connection = smtp.SMTPConnection.__new__(smtp.SMTPConnection)
         connection.owner = self.server
         connection.keys = [self.server.adapter.reserve(owner="joe")]
+        connection.tail = b"\r\n"
 
         # the body arrives from the connection as a byte sequence and so
         # the reserved value must be able to take it
@@ -99,6 +169,22 @@ class SMTPServerTest(unittest.TestCase):
 
         self.assertEqual(
             self.server.adapter.get(connection.keys[0]), b"Hello World\r\n"
+        )
+
+    def test_on_data_smtp_stuffed(self):
+        connection = smtp.SMTPConnection.__new__(smtp.SMTPConnection)
+        connection.owner = self.server
+        connection.keys = [self.server.adapter.reserve(owner="joe")]
+        connection.tail = b"\r\n"
+
+        # the client stuffs the line of the body that starts with a dot, so
+        # the message is stored with that extra dot removed, otherwise the
+        # stuffing that the POP server applies to it would double it
+        self.server.on_data_smtp(connection, b"normal line\r\n..hidden\r\n")
+
+        self.assertEqual(
+            self.server.adapter.get(connection.keys[0]),
+            b"normal line\r\n.hidden\r\n",
         )
 
     def test__emails(self):

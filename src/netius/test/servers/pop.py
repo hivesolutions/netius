@@ -50,6 +50,18 @@ class POPConnectionTest(unittest.TestCase):
         unittest.TestCase.tearDown(self)
         self.server.cleanup()
 
+    def test_init(self):
+        connection = pop.POPConnection(
+            owner=self.server, socket=None, address=("127.0.0.1", 110)
+        )
+
+        # a connection starts with no message being served and with the tail
+        # set to a newline, so that the first line of the body of a message
+        # that is retrieved is taken as being at the start of a line
+        self.assertEqual(connection.state, pop.INITIAL_STATE)
+        self.assertEqual(connection.file, None)
+        self.assertEqual(connection.tail, b"\r\n")
+
     def test_stat(self):
         self._populate()
 
@@ -116,6 +128,93 @@ class POPConnectionTest(unittest.TestCase):
         self.assertEqual(message, "3 messages")
         self.assertEqual(len(lines), 3)
 
+    def test_retr(self):
+        self._store(b"hello")
+        self.connection.uidl()
+
+        self.connection.retr(0)
+
+        # a body that does not end with a newline gains one before the
+        # terminator, so that the dot is alone in its own line
+        self.assertEqual(self._data(), b"hello\r\n.\r\n")
+
+    def test_retr_line(self):
+        self._store(b"hello\r\n")
+        self.connection.uidl()
+
+        self.connection.retr(0)
+
+        # a body that already ends with a newline must not gain an empty
+        # line before the terminator of the message
+        self.assertEqual(self._data(), b"hello\r\n.\r\n")
+
+    def test_retr_stuffed(self):
+        self._store(b"normal line\r\n.hidden\r\n")
+        self.connection.uidl()
+
+        self.connection.retr(0)
+
+        # a line of the body that starts with a dot is stuffed with a second
+        # one, otherwise the client would take it for the end of the message
+        self.assertEqual(self._data(), b"normal line\r\n..hidden\r\n.\r\n")
+
+    def test_retr_stuffed_first(self):
+        self._store(b".hidden\r\n")
+        self.connection.uidl()
+
+        self.connection.retr(0)
+
+        # the first line of the body is at the start of a line as well, so a
+        # dot that opens it has to be stuffed the very same way
+        self.assertEqual(self._data(), b"..hidden\r\n.\r\n")
+
+    def test_retr_empty(self):
+        self._store(b"")
+        self.connection.uidl()
+
+        self.connection.retr(0)
+
+        # an empty body is served as the terminator alone, with no empty
+        # line preceding it
+        self.assertEqual(self._data(), b".\r\n")
+
+    def test_retr_chunked(self):
+        self._store(b"abc\r\n.x\r\n")
+        self.connection.uidl()
+
+        chunk_size = pop.CHUNK_SIZE
+        pop.CHUNK_SIZE = 4
+        try:
+            self.connection.retr(0)
+        finally:
+            pop.CHUNK_SIZE = chunk_size
+
+        # the newline that precedes the dot is split between two of the
+        # reads, so the stuffing has to survive the boundary of the chunks
+        self.assertEqual(self._data(), b"abc\r\n..x\r\n.\r\n")
+
+    def test_stuff(self):
+        # the body starts at the beginning of a line, so a dot that opens it
+        # is stuffed, the same being true for the ones that follow a newline
+        self.assertEqual(self.connection.stuff(b".a\r\n.b\r\n"), b"..a\r\n..b\r\n")
+
+    def test_stuff_inner(self):
+        # a dot that is not at the start of a line is left untouched, as it
+        # cannot be taken for the terminator of the message
+        self.assertEqual(self.connection.stuff(b"a.b\r\n"), b"a.b\r\n")
+
+    def test_stuff_boundary(self):
+        # the dot opens the chunk that follows the one ending with the
+        # newline, so it's the context of the previous read that detects it
+        self.assertEqual(self.connection.stuff(b"ab\r\n"), b"ab\r\n")
+        self.assertEqual(self.connection.stuff(b".x\r\n"), b"..x\r\n")
+
+    def test_stuff_boundary_split(self):
+        # the newline itself is split between the two chunks, a case that a
+        # single byte of context would not be able to detect
+        self.assertEqual(self.connection.stuff(b"abc\r"), b"abc\r")
+        self.assertEqual(self.connection.stuff(b"\n.x\r\n"), b"\n..x\r\n")
+
     def test_dele(self):
         self._populate()
         self.connection.uidl()
@@ -164,11 +263,30 @@ class POPConnectionTest(unittest.TestCase):
         connection.keys = ()
         connection.size = 0
         connection.file = None
+        connection.tail = b"\r\n"
         self.sent = []
+        self.data = []
         connection.send_pop = lambda message="", lines=(), **kwargs: self.sent.append(
             (message, list(lines))
         )
+        connection.send = lambda value, callback=None, **kwargs: self._send(
+            connection, value, callback
+        )
         return connection
+
+    def _send(self, connection, value, callback):
+        # accumulates the payload that would otherwise reach the socket and
+        # runs the callback as if it had been delivered, which is what
+        # drives the reading of the chunk that follows
+        self.data.append(netius.legacy.bytes(value))
+        if callback:
+            callback(connection)
+
+    def _data(self):
+        return b"".join(self.data)
+
+    def _store(self, contents):
+        self.server.adapter.set(contents, owner="joe")
 
     def _populate(self):
         for index in range(3):
