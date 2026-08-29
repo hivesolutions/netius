@@ -661,7 +661,7 @@ class HTTP2Parser(parser.Parser):
         index = 0
         padded_l = 0
         dependency = 0
-        weight = 0
+        weight = 16
         exclusive = 0
 
         if padded:
@@ -698,7 +698,7 @@ class HTTP2Parser(parser.Parser):
             stream.extend_headers(fragment)
             if dependency:
                 stream.dependency = dependency
-            if weight:
+            if priority:
                 stream.weight = weight
             if exclusive:
                 stream.exclusive = exclusive
