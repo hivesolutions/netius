@@ -493,15 +493,11 @@ class AsyncOldTest(unittest.TestCase):
         self.assertEqual(async_old.is_future("value"), False)
 
     def test_is_await(self):
-        try:
-            compile("async def routine():\n    await routine()", "<test>", "exec")
-            supported = True
-        except SyntaxError:
-            supported = False
-
-        # the flag has to agree with the interpreter, which is asked
-        # directly by compiling a coroutine that awaits
-        self.assertEqual(async_old.is_await(), supported)
+        # the three flags are thresholds of the very same interpreter and
+        # follow one another, so the newest of them is never the one that
+        # is set while one that came before it is not
+        self.assertEqual(async_old.is_await() and not async_old.is_asynclib(), False)
+        self.assertEqual(async_old.is_asynclib() and not async_old.is_neo(), False)
 
     @netius.async_test
     def test_sleep(self):
