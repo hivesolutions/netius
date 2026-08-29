@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Setting up the package no longer fails when the certificate bundle cannot be downloaded
 * A retrieved message whose body has a line starting with a dot is no longer cut short - [#96](https://github.com/hivesolutions/netius/issues/96)
 * A delivered message is now stored as it was written instead of as it was sent - [#96](https://github.com/hivesolutions/netius/issues/96)
+* The POP and SMTP greetings now announce the configured hostname instead of the bound address - [#95](https://github.com/hivesolutions/netius/issues/95)
 
 ## [1.62.1] - 2026-08-25
 
