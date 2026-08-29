@@ -78,7 +78,8 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
     protocol selection (`proxy.protocol=http|https`), domain
     aliasing (`proxy.alias=<domain1>,<domain2>,...`), and
     regex-based auth rules
-    (`proxy.auth-regex=<pattern>;<type>,...`).
+    (`proxy.auth-regex=<pattern>;<type>,...`) and regex-based
+    upstream routing (`proxy.regex=<pattern>;<target>,...`).
     """
 
     def __init__(
@@ -106,6 +107,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         self._consul_tag_aliases = set()
         self._consul_auth_regex = []
         self._consul_redirect_regex = []
+        self._consul_regex = []
 
     def on_serve(self):
         proxy_r.ReverseProxyServer.on_serve(self)
@@ -160,12 +162,18 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 self.redirect_regex.remove(entry)
             except ValueError:
                 pass
+        for entry in self._consul_regex:
+            try:
+                self.regex.remove(entry)
+            except ValueError:
+                pass
         for alias in self._consul_aliases:
             self.redirect.pop(alias, None)
         self._consul_hosts = set()
         self._consul_tag_aliases = set()
         self._consul_auth_regex = []
         self._consul_redirect_regex = []
+        self._consul_regex = []
 
         # iterates over the fetched entries registering each one
         # in the hosts map and applying per-service configuration
@@ -529,6 +537,31 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             result.append((regex, str(target)))
         return result if result else None
 
+    def _resolve_regex_rules(self, tags):
+        value = None
+        for tag in tags:
+            if tag.startswith("proxy.regex=") and value == None:
+                value = tag[len("proxy.regex=") :]
+        if not value:
+            return None
+        result = []
+        for part in value.split(","):
+            part = part.strip()
+            if not part:
+                continue
+            if ";" not in part:
+                continue
+            pattern, target = part.split(";", 1)
+            pattern = pattern.strip()
+            target = target.strip()
+            if not pattern:
+                continue
+            if not target:
+                continue
+            regex = re.compile(pattern)
+            result.append((regex, str(target)))
+        return result if result else None
+
     def _resolve_auth_type(self, auth_type, tags):
         if auth_type == "none":
             return None
@@ -631,6 +664,12 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             self.redirect_regex = list(self.redirect_regex) + redirect_regex
             self._consul_redirect_regex.extend(redirect_regex)
             self._debug_redirect_regex(domain, redirect_regex)
+
+        regex = self._resolve_regex_rules(tags)
+        if regex:
+            self.regex = list(self.regex) + regex
+            self._consul_regex.extend(regex)
+            self._debug_regex(domain, regex)
 
     def _build_urls(self, instances, address=None, ports=None, protocol="http"):
         urls = []
@@ -761,6 +800,15 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             self.debug(
                 "Registered redirect regex '%s' for '%s' with target '%s'",
                 regex.pattern,
+                domain,
+                target,
+            )
+
+    def _debug_regex(self, domain, regex):
+        for _regex, target in regex:
+            self.debug(
+                "Registered regex '%s' for '%s' with target '%s'",
+                _regex.pattern,
                 domain,
                 target,
             )

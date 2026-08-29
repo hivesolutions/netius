@@ -714,6 +714,53 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertEqual(frontend.proxy_c, backend)
         self.assertEqual(frontend.prefix, "http://localhost")
 
+    def test_on_headers_regex_requested_host(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = netius.extra.ReverseProxyServer(
+            regex=[
+                (
+                    re.compile(r"http://appier\.hive\.pt/"),
+                    "http://localhost/render/appier",
+                )
+            ],
+            alias={"appier.hive.pt": "host.com"},
+            hosts={"host.com": "http://localhost"},
+        )
+
+        frontend = self._make_frontend()
+        request_parser = self._make_request_parser(host="appier.hive.pt")
+        backend = self._make_backend()
+
+        with mock.patch.object(
+            server.http_client, "method", return_value=(None, backend)
+        ):
+            server.on_headers(frontend, request_parser)
+
+        # the regex rules are matched against the originally requested
+        # host, so the alias must not hide the hostname from them
+        self.assertEqual(frontend.prefix, "http://localhost/render/appier")
+
+        server.cleanup()
+
+    def test_on_headers_alias_still_resolves(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        request_parser = self._make_request_parser(host="alias.host.com")
+        backend = self._make_backend()
+
+        with mock.patch.object(
+            self.server.http_client, "method", return_value=(None, backend)
+        ):
+            self.server.on_headers(frontend, request_parser)
+
+        # the host based resolution keeps using the alias, as it performs
+        # its own resolution using the headers of the request
+        self.assertEqual(frontend.prefix, "http://localhost")
+
     def test_on_headers_upgrade_tunnels_to_backend(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")

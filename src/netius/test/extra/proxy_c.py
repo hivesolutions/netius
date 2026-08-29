@@ -28,6 +28,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import re
 import unittest
 import collections
 
@@ -697,6 +698,61 @@ class ConsulProxyServerTest(unittest.TestCase):
         result = self.server._resolve_redirect_regex(tags)
         self.assertEqual(result, None)
 
+    def test_resolve_regex_rules(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.regex=^https://appier\\.hive\\.pt/;/render/appier,^https://uxf\\.hive\\.pt/;/render/uxf",
+        ]
+        result = self.server._resolve_regex_rules(tags)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0][0].pattern, "^https://appier\\.hive\\.pt/")
+        self.assertEqual(result[0][1], "/render/appier")
+        self.assertEqual(result[1][0].pattern, "^https://uxf\\.hive\\.pt/")
+        self.assertEqual(result[1][1], "/render/uxf")
+
+    def test_resolve_regex_rules_none(self):
+        tags = ["proxy.enable=true"]
+        result = self.server._resolve_regex_rules(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_regex_rules_empty(self):
+        tags = ["proxy.enable=true", "proxy.regex="]
+        result = self.server._resolve_regex_rules(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_regex_rules_priority(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.regex=/first;/a",
+            "proxy.regex=/second;/b",
+        ]
+        result = self.server._resolve_regex_rules(tags)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][0].pattern, "/first")
+        self.assertEqual(result[0][1], "/a")
+
+    def test_resolve_regex_rules_no_separator(self):
+        tags = ["proxy.enable=true", "proxy.regex=/api/*"]
+        result = self.server._resolve_regex_rules(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_regex_rules_empty_pattern(self):
+        tags = ["proxy.enable=true", "proxy.regex=;/render/appier"]
+        result = self.server._resolve_regex_rules(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_regex_rules_empty_target(self):
+        tags = ["proxy.enable=true", "proxy.regex=/api/*;"]
+        result = self.server._resolve_regex_rules(tags)
+        self.assertEqual(result, None)
+
+    def test_resolve_regex_rules_blank_parts(self):
+        tags = ["proxy.enable=true", "proxy.regex=,/api;/render, ,"]
+        result = self.server._resolve_regex_rules(tags)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][0].pattern, "/api")
+        self.assertEqual(result[0][1], "/render")
+
     def test_resolve_auth_type_none(self):
         result = self.server._resolve_auth_type("none", [])
         self.assertEqual(result, None)
@@ -1224,6 +1280,91 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.server._build_hosts([])
 
         self.assertEqual(len(self.server.redirect_regex), 0)
+
+    def test_apply_tags_regex(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.regex=^https://appier\\.hive\\.pt/;/render/appier,^https://uxf\\.hive\\.pt/;/render/uxf",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(len(self.server.regex), 2)
+        self.assertEqual(
+            self.server.regex[0][0].pattern, "^https://appier\\.hive\\.pt/"
+        )
+        self.assertEqual(self.server.regex[0][1], "/render/appier")
+        self.assertEqual(self.server.regex[1][0].pattern, "^https://uxf\\.hive\\.pt/")
+        self.assertEqual(self.server.regex[1][1], "/render/uxf")
+
+    def test_apply_tags_regex_cleanup(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.regex=^https://appier\\.hive\\.pt/;/render/appier",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(len(self.server.regex), 1)
+
+        # simulates second rebuild with the service removed from
+        # consul, rewrite entries should be properly cleaned up
+        self.server._build_hosts([])
+
+        self.assertEqual(len(self.server.regex), 0)
+
+    def test_apply_tags_regex_no_accumulation(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.regex=^https://appier\\.hive\\.pt/;/render/appier",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+
+        # simulates the consecutive rebuilds that the polling of consul
+        # triggers, the rules should not be accumulated over time
+        self.server._build_hosts(entries)
+        self.server._build_hosts(entries)
+        self.server._build_hosts(entries)
+
+        self.assertEqual(len(self.server.regex), 1)
+
+    def test_apply_tags_regex_external_removal(self):
+        tags = [
+            "proxy.enable=true",
+            "proxy.regex=^https://appier\\.hive\\.pt/;http://backend/render/appier",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(len(self.server.regex), 1)
+
+        # simulates the rule being dropped by an external agent, the
+        # cleanup of the next rebuild should tolerate the missing entry
+        del self.server.regex[0]
+        self.server._build_hosts([])
+
+        self.assertEqual(len(self.server.regex), 0)
+
+    def test_apply_tags_regex_preserves_priority(self):
+        priority = (re.compile(r".+/.well-known/acme-challenge/.+"), "/acme")
+        self.server.regex.insert(0, priority)
+
+        tags = [
+            "proxy.enable=true",
+            "proxy.regex=^https://appier\\.hive\\.pt/;/render/appier",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        # the externally registered rule must be kept as the first one
+        # so that its priority over the consul ones is not lost
+        self.assertEqual(len(self.server.regex), 2)
+        self.assertEqual(self.server.regex[0], priority)
+
+        self.server._build_hosts([])
+
+        self.assertEqual(len(self.server.regex), 1)
+        self.assertEqual(self.server.regex[0], priority)
 
     def test_build_urls(self):
         instances = [
