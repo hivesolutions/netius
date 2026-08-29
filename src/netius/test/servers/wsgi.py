@@ -62,6 +62,30 @@ class ReturnIterator(object):
     next = __next__
 
 
+class LengthIterator(object):
+    """
+    Iterator that is its own iterable and reports the number of
+    values that it still holds, the shape of a response wrapper
+    that becomes a falsy value once it has been exhausted.
+    """
+
+    def __init__(self, values):
+        self.values = list(values)
+
+    def __iter__(self):
+        return self
+
+    def __len__(self):
+        return len(self.values)
+
+    def __next__(self):
+        if not self.values:
+            raise StopIteration()
+        return self.values.pop(0)
+
+    next = __next__
+
+
 class WSGIServerTest(unittest.TestCase):
 
     def setUp(self):
@@ -231,6 +255,27 @@ class WSGIServerTest(unittest.TestCase):
         # took its place, no extra data reaching the client
         self.assertEqual(len(connection.data), count)
 
+    def test__send_part_stale_empty(self):
+        server = self._make_server(app=self._app_length)
+        connection = self._make_connection(server, deliver=False)
+        connection.parse(REQUEST)
+
+        # retains the callback of the request that is in flight and then
+        # releases the connection, note that the iterator of it has been
+        # exhausted, which makes a wrapper that reports its length falsy
+        stale = connection.callbacks.pop()
+        server._release(connection)
+
+        connection.parse(REQUEST)
+        count = len(connection.data)
+
+        stale(connection)
+
+        # the emptiness of a response is unrelated to the ownership of the
+        # connection, so the stale callback must be stopped by the guard
+        # even though its iterator no longer evaluates to true
+        self.assertEqual(len(connection.data), count)
+
     def test__final(self):
         server = self._make_server()
         connection = self._make_connection(server, deliver=False)
@@ -277,6 +322,28 @@ class WSGIServerTest(unittest.TestCase):
 
         # the stale callback belongs to a request that has already been
         # released, so the one that took its place must survive it
+        self.assertEqual(connection.iterator, iterator)
+        self.assertNotEqual(connection.environ, None)
+
+    def test__final_stale_empty(self):
+        server = self._make_server(app=self._app_length)
+        connection = self._make_connection(server, deliver=False)
+        connection.parse(REQUEST)
+        self._deliver(connection)
+
+        # retains the flush callback of the request that is in flight, whose
+        # iterator has been exhausted and is therefore a falsy value
+        stale = connection.callbacks.pop()
+        server._release(connection)
+
+        connection.parse(REQUEST)
+        iterator = connection.iterator
+
+        stale(connection)
+
+        # the request that took the place of the previous one must survive
+        # the stale callback, the guard not being skipped by an iterator
+        # that no longer evaluates to true
         self.assertEqual(connection.iterator, iterator)
         self.assertNotEqual(connection.environ, None)
 
@@ -379,6 +446,15 @@ class WSGIServerTest(unittest.TestCase):
 
     def _data(self, connection):
         return b"".join(connection.data)
+
+    def _app_length(self, environ, start_response):
+        contents = "Hello World"
+        headers = (
+            ("Content-Length", len(contents)),
+            ("Content-Type", "text/plain"),
+        )
+        start_response("200 OK", headers)
+        return LengthIterator([contents])
 
     def _app_return(self, environ, start_response):
         contents = "Hello World"
