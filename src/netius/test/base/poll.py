@@ -719,6 +719,21 @@ class PollPollTest(unittest.TestCase):
         self.assertEqual(self._poll(instance, select.POLLERR), ([], [], [socket]))
         self.assertEqual(self._poll(instance, select.POLLHUP), ([], [], [socket]))
 
+    def test_poll_write_only(self):
+        if not poll.PollPoll.test():
+            self.skipTest("Skipping test: poll unavailable")
+
+        instance = poll.PollPoll()
+        socket = self._make_socket()
+        instance.read_fd = {}
+        instance.write_fd = {1: socket}
+
+        # a descriptor that is subscribed for the write interest alone still
+        # has both the error and the hang up conditions reported, otherwise a
+        # connection under backpressure would never learn about the peer
+        self.assertEqual(self._poll(instance, select.POLLERR), ([], [], [socket]))
+        self.assertEqual(self._poll(instance, select.POLLHUP), ([], [], [socket]))
+
     def test_is_edge(self):
         # the poll based implementation is a level triggered one, so an
         # event is reported for as long as the condition holds

@@ -509,7 +509,7 @@ class PollPoll(Poll):
             if (
                 event & select.POLLERR or event & select.POLLHUP
             ):  # @UndefinedVariable pylint: disable=E1101
-                socket = self.read_fd.get(fd, None)
+                socket = self.read_fd.get(fd, None) or self.write_fd.get(fd, None)
                 if socket:
                     result[2].append(socket)
 
