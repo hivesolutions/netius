@@ -114,6 +114,7 @@ class SMTPConnection(netius.Connection):
         self.from_l = []
         self.to_l = []
         self.previous = bytes()
+        self.tail = b"\r\n"
         self.state = INITIAL_STATE
 
     def open(self, *args, **kwargs):
@@ -234,6 +235,7 @@ class SMTPConnection(netius.Connection):
         message = "go ahead"
         self.send_smtp(354, message)
         self.previous = bytes()
+        self.tail = b"\r\n"
         self.state = DATA_STATE
 
     def queued(self, index=-1):
@@ -305,6 +307,28 @@ class SMTPConnection(netius.Connection):
         # been queued for sending and that the connection may now
         # be closed if there's nothing remaining to be done
         self.queued()
+
+    def unstuff(self, data):
+        # prepends the tail of the previous chunk to the current one so that
+        # a sequence that has been split between two reads is still detected,
+        # the tail starts as a newline so that the first line of the body is
+        # considered to be at the start of a line
+        tail = self.tail
+        buffer = tail + data
+
+        # stores the last bytes of the (stuffed) body so that they may be
+        # used as the context of the next chunk, note that this is done
+        # before the unstuffing as the next chunk follows the original body
+        self.tail = buffer[-3:]
+
+        # removes the extra dot of every line that the client has stuffed, so
+        # that the message is stored as it was written and not as it was
+        # sent, the reverse of what the POP server does when serving it
+        buffer = buffer.replace(b"\r\n..", b"\r\n.")
+
+        # removes the context that has been prepended, as it has already
+        # been handled as part of the chunk that precedes the current one
+        return buffer[len(tail) :]
 
     def on_line(self, code, message, is_final=True):
         # "joins" the code and the message part of the message into the base
@@ -396,6 +420,7 @@ class SMTPConnection(netius.Connection):
         self.from_l = []
         self.to_l = []
         self.previous = bytes()
+        self.tail = b"\r\n"
 
 
 class SMTPServer(netius.StreamServer):
@@ -474,6 +499,11 @@ class SMTPServer(netius.StreamServer):
         connection.identifier = self._generate(hashed=False)
 
     def on_data_smtp(self, connection, data):
+        # removes the byte stuffing that the client has applied to the body
+        # so that the message is stored as it was written, note that the
+        # data that reaches a relay is the original one, still stuffed, as
+        # it's sent verbatim to the next server
+        data = connection.unstuff(data)
         for key in connection.keys:
             self.adapter.append(key, data)
 
