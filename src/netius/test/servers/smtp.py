@@ -157,6 +157,67 @@ class SMTPServerTest(unittest.TestCase):
         unittest.TestCase.tearDown(self)
         self.server.cleanup()
 
+    def test_serve(self):
+        observed = []
+        original = netius.StreamServer.__dict__["serve"]
+
+        def serve(self, *args, **kwargs):
+            observed.append(self.host_g)
+
+        netius.StreamServer.serve = serve
+        try:
+            self.server.serve(host="smtp.localhost")
+        finally:
+            netius.StreamServer.serve = original
+
+        # the greeting hostname is kept before the base implementation runs,
+        # as the serving blocks in it and the value has to be available to
+        # the on serve callback that gets called from there
+        self.assertEqual(observed, ["smtp.localhost"])
+
+    def test_serve_env(self):
+        original = netius.StreamServer.__dict__["serve"]
+
+        def serve(self, *args, **kwargs):
+            self.host = "127.0.0.1"
+            self.env = True
+            self.on_serve()
+
+        netius.StreamServer.serve = serve
+        try:
+            with netius.conf_override("SMTP_HOST", "mail.example.com"):
+                self.server.serve(host="smtp.localhost")
+        finally:
+            netius.StreamServer.serve = original
+
+        # the base is replaced by one that reproduces its ordering, setting
+        # the bind address and only then reaching the on serve callback, so
+        # that the value the environment names survives the serving instead
+        # of being replaced by the default once the loop returns
+        self.assertEqual(self.server.host, "mail.example.com")
+
+    def test_on_serve(self):
+        self.server.host_g = "smtp.localhost"
+        self.server.host = "127.0.0.1"
+
+        self.server.on_serve()
+
+        # the greeting hostname replaces the bind address that the base has
+        # set, so that it's the one announced to a client that connects
+        self.assertEqual(self.server.host, "smtp.localhost")
+
+    def test_on_serve_env(self):
+        self.server.host_g = "smtp.localhost"
+        self.server.host = "127.0.0.1"
+        self.server.env = True
+
+        with netius.conf_override("SMTP_HOST", "mail.example.com"):
+            self.server.on_serve()
+
+        # the environment is able to override the greeting hostname, which
+        # was not possible while the value it resolved to was discarded
+        self.assertEqual(self.server.host, "mail.example.com")
+
     def test_on_data_smtp(self):
         connection = smtp.SMTPConnection.__new__(smtp.SMTPConnection)
         connection.owner = self.server
