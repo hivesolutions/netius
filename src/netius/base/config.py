@@ -167,7 +167,7 @@ def conf_d(ctx=None):
 
 
 def conf_ctx():
-    return dict(configs=dict(), config_f=dict())
+    return dict(configs=dict(), config_f=list())
 
 
 @contextlib.contextmanager
@@ -247,7 +247,7 @@ def load_file(name=FILE_NAME, path=None, encoding="utf-8", ctx=None):
     data = data.decode(encoding)
     data_j = json.loads(data)
 
-    _load_includes(base_path, data_j, encoding=encoding)
+    _load_includes(base_path, data_j, encoding=encoding, ctx=ctx)
 
     for key, value in data_j.items():
         if not _is_valid(key):
@@ -310,7 +310,7 @@ def load_env(ctx=None):
     homes = get_homes()
 
     for home in homes:
-        _load_includes(home, config)
+        _load_includes(home, config, ctx=ctx)
 
     for key, value in legacy.iteritems(config):
         if not _is_valid(key):
@@ -385,7 +385,7 @@ def _cast_r(cast):
     return CASTS.get(cast, cast)
 
 
-def _load_includes(base_path, config, encoding="utf-8"):
+def _load_includes(base_path, config, encoding="utf-8", ctx=None):
     includes = ()
 
     for alias in IMPORT_NAMES:
@@ -395,7 +395,7 @@ def _load_includes(base_path, config, encoding="utf-8"):
         includes = includes.split(";")
 
     for include in includes:
-        load_file(name=include, path=base_path, encoding=encoding)
+        load_file(name=include, path=base_path, encoding=encoding, ctx=ctx)
 
 
 def _is_valid(key):
