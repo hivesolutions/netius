@@ -56,6 +56,31 @@ class SMTPConnectionTest(unittest.TestCase):
         unittest.TestCase.tearDown(self)
         self.server.cleanup()
 
+    def test_init(self):
+        connection = smtp.SMTPConnection(
+            owner=self.server, socket=None, address=("127.0.0.1", 25)
+        )
+
+        # a connection starts with the tail set to a newline, so that the
+        # first line of the body of the message that is delivered is taken
+        # as being at the start of a line
+        self.assertEqual(connection.state, smtp.INITIAL_STATE)
+        self.assertEqual(connection.tail, b"\r\n")
+
+    def test_data(self):
+        self.connection.state = smtp.HEADER_STATE
+        self.connection.from_l = []
+        self.connection.to_l = []
+        self.connection.tail = b"ab"
+
+        self.connection.data()
+
+        # the start of a message resets the context of the unstuffing, so
+        # that the body of the one that precedes it does not leak into the
+        # detection of the lines of the new one
+        self.assertEqual(self.connection.state, smtp.DATA_STATE)
+        self.assertEqual(self.connection.tail, b"\r\n")
+
     def test_unstuff(self):
         # the body starts at the beginning of a line, so the extra dot of a
         # line that opens with one is removed, the same being true for the
@@ -105,6 +130,19 @@ class SMTPConnectionTest(unittest.TestCase):
 
         self.assertEqual(hasattr(self.connection, "_username"), False)
         self.assertEqual(self.connection.state, smtp.HELO_STATE)
+
+    def test_reset_message(self):
+        self.connection.from_l = ["joe@example.com"]
+        self.connection.to_l = ["mary@example.com"]
+        self.connection.tail = b"ab"
+
+        self.connection.reset_message()
+
+        # the context of the unstuffing is cleared together with the rest of
+        # the state of the message, so that it does not outlive it
+        self.assertEqual(self.connection.from_l, [])
+        self.assertEqual(self.connection.to_l, [])
+        self.assertEqual(self.connection.tail, b"\r\n")
 
 
 class SMTPServerTest(unittest.TestCase):
