@@ -304,7 +304,7 @@ class WSGIServer(http2.HTTP2Server):
         # connection then it's a stale callback, meaning that the connection
         # has already been released and re-used by another request (nothing
         # to be done)
-        if iterator and not connection.iterator == iterator:
+        if not iterator == None and not connection.iterator == iterator:
             return
 
         # invalidates the data object to the original unset value,
@@ -425,7 +425,7 @@ class WSGIServer(http2.HTTP2Server):
         # connection then it's a stale callback, meaning that the connection
         # has already been released and re-used by another request (nothing
         # to be done)
-        if iterator and not connection.iterator == iterator:
+        if not iterator == None and not connection.iterator == iterator:
             return
 
         # retrieves the parser of the current connection and then determines
