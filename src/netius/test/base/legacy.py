@@ -335,7 +335,13 @@ class LegacyTest(unittest.TestCase):
 
     def test_reload(self):
         self._store("sample_reload.py", "value = 1\n")
+        dont_write = sys.dont_write_bytecode
         sys.path.insert(0, self.base)
+
+        # keeps the bytecode out of the way, as the oldest of the runtimes
+        # tells a cached one apart by its date alone, which the rewriting
+        # of the source right after is not guaranteed to move
+        sys.dont_write_bytecode = True
 
         try:
             import sample_reload
@@ -352,6 +358,7 @@ class LegacyTest(unittest.TestCase):
             self.assertEqual(sample_reload.value, 2)
             self.assertEqual(sample_reload.other, 3)
         finally:
+            sys.dont_write_bytecode = dont_write
             sys.path.remove(self.base)
             sys.modules.pop("sample_reload", None)
 
