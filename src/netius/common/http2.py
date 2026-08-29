@@ -475,10 +475,6 @@ class HTTP2Parser(parser.Parser):
             raise netius.ParserError(
                 "Stream cannot depend on current stream", error_code=PROTOCOL_ERROR
             )
-        if stream and dependency == stream.identifier:
-            raise netius.ParserError(
-                "Stream cannot depend on itself", error_code=PROTOCOL_ERROR
-            )
 
     def assert_rst_stream(self, stream):
         if self.stream == 0x00:
@@ -786,25 +782,19 @@ class HTTP2Parser(parser.Parser):
         self.trigger("on_settings", settings, ack)
 
     def _parse_push_promise(self, data):
-        data_l = len(data)
-
-        end_headers = True if self.flags & 0x04 else False
         padded = self.flags & 0x08
 
         index = 0
-        padded_l = 0
 
         if padded:
-            (padded_l,) = struct.unpack("!B", data[index : index + 1])
             index += 1
 
         (promised_stream,) = struct.unpack("!I", data[index : index + 4])
 
-        fragment = data[index : data_l - padded_l]
-
+        # a promise may only travel from a server towards a client, so the
+        # one that reaches this parser is always refused, note that no event
+        # is triggered for it as the assertion never returns
         self.assert_push_promise(promised_stream)
-
-        self.trigger("on_push_promise", promised_stream, fragment, end_headers)
 
     def _parse_ping(self, data):
         ack = self.flags & 0x01

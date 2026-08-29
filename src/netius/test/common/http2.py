@@ -222,8 +222,8 @@ class HTTP2ParserTest(unittest.TestCase):
 
             parser.assert_priority(self._make_stream(parser, identifier=1), 3)
 
-            # a stream that depends on itself would form a cycle, either
-            # named through the frame or through the stream itself
+            # a stream that depends on itself would form a cycle, the
+            # dependency of the frame naming the very stream that it reorders
             self.assertRaises(
                 netius.ParserError,
                 parser.assert_priority,
@@ -962,6 +962,8 @@ class HTTP2ParserTest(unittest.TestCase):
     def test_parse_push_promise(self):
         connection = self._make_connection()
         parser = connection.parser
+        seen = []
+        parser.bind("on_push_promise", lambda *args: seen.append(args))
         try:
             # a promise may only travel from a server towards a client, so
             # one that arrives at the server is always a protocol error
@@ -973,6 +975,10 @@ class HTTP2ParserTest(unittest.TestCase):
             )
 
             self.assertRaises(netius.ParserError, parser.parse, frame)
+
+            # the refusal happens before any event, so a promise never
+            # reaches a listener that is bound to the parser
+            self.assertEqual(seen, [])
         finally:
             parser.clear(force=True)
 
