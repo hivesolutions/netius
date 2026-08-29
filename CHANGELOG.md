@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* The HTTP/2 frame parser no longer carries checks that no message is able to reach - [#100](https://github.com/hivesolutions/netius/issues/100)
 
 ### Fixed
 
