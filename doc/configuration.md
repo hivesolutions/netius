@@ -36,13 +36,13 @@
 
 #### Diagnostics
 
-| Name            | Type   | Default     | Description                                                                                                                                                 |
-| --------------- | ------ | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **DIAG**        | `bool` | `False`     | If the diagnostics system should be launched for the current system, if launched the system will be running as an HTTP server on localhost under port 5050. |
-| **DIAG_SERVER** | `str`  | `netius`    | The server that is going to be used for serving the diagnostics system infrastructure.                                                                      |
-| **DIAG_HOST**   | `str`  | `127.0.0.1` | The hostname that is going to be used when launching the diagnostics system.                                                                                |
-| **DIAG_PORT**   | `int`  | `5050`      | The TCP port that is going to be used when launching the diagnostics system.                                                                                |
-| **DIAG_CLOSED_MAX** | `int` | `512`   | The maximum number of recently closed connections kept for inspection under the diagnostics, exposed by the `/connections/closed` endpoint.                 |
+| Name                | Type   | Default     | Description                                                                                                                                                 |
+| ------------------- | ------ | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DIAG**            | `bool` | `False`     | If the diagnostics system should be launched for the current system, if launched the system will be running as an HTTP server on localhost under port 5050. |
+| **DIAG_SERVER**     | `str`  | `netius`    | The server that is going to be used for serving the diagnostics system infrastructure.                                                                      |
+| **DIAG_HOST**       | `str`  | `127.0.0.1` | The hostname that is going to be used when launching the diagnostics system.                                                                                |
+| **DIAG_PORT**       | `int`  | `5050`      | The TCP port that is going to be used when launching the diagnostics system.                                                                                |
+| **DIAG_CLOSED_MAX** | `int`  | `512`       | The maximum number of recently closed connections kept for inspection under the diagnostics, exposed by the `/connections/closed` endpoint.                 |
 
 #### SSL
 
@@ -85,14 +85,14 @@
 
 #### HTTP Limits
 
-| Name               | Type  | Default | Description                                                                                                                                  |
-| ------------------ | ----- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **LINE_LIMIT**     | `int` | `8192`  | The maximum size (in bytes) of the initial line of a request, a larger one is rejected with a `414` status code.                             |
-| **HEADERS_LIMIT**  | `int` | `65536` | The maximum size (in bytes) of the headers section of a request, a larger one is rejected with a `431` status code.                          |
-| **HEADERS_COUNT**  | `int` | `128`   | The maximum number of header lines of a request, a larger number is rejected with a `431` status code.                                       |
-| **CHUNK_LIMIT**    | `int` | `1073741824` | The maximum size (in bytes) that a single chunk of a chunked request may announce, a larger one is rejected with a `400` status code.   |
-| **REQUESTS_LIMIT** | `int` | `1000`  | The maximum number of requests served by a single connection before it stops being a persistent one, set it to `0` to remove the bound.      |
-| **IDLE_TIMEOUT**   | `int` | `75`    | The maximum amount of time (in seconds) that a connection may wait for a new request before being closed, set it to `0` to remove the bound. |
+| Name               | Type  | Default      | Description                                                                                                                                  |
+| ------------------ | ----- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **LINE_LIMIT**     | `int` | `8192`       | The maximum size (in bytes) of the initial line of a request, a larger one is rejected with a `414` status code.                             |
+| **HEADERS_LIMIT**  | `int` | `65536`      | The maximum size (in bytes) of the headers section of a request, a larger one is rejected with a `431` status code.                          |
+| **HEADERS_COUNT**  | `int` | `128`        | The maximum number of header lines of a request, a larger number is rejected with a `431` status code.                                       |
+| **CHUNK_LIMIT**    | `int` | `1073741824` | The maximum size (in bytes) that a single chunk of a chunked request may announce, a larger one is rejected with a `400` status code.        |
+| **REQUESTS_LIMIT** | `int` | `1000`       | The maximum number of requests served by a single connection before it stops being a persistent one, set it to `0` to remove the bound.      |
+| **IDLE_TIMEOUT**   | `int` | `75`         | The maximum amount of time (in seconds) that a connection may wait for a new request before being closed, set it to `0` to remove the bound. |
 
 #### HTTP Compression
 
@@ -177,6 +177,7 @@ Services may also use the following Consul tags to control routing behavior:
 | **proxy.ports=\<ports\>**      | Alias for `proxy.port` with the same behavior including port range support, first match wins when both are present.                                             |
 | **proxy.alias=\<domains\>**    | Comma-separated list of domain aliases that should route to the same backend service (eg: `proxy.alias=api,api-v2` registers both as aliases for the service).  |
 | **proxy.auth-regex=\<rules\>** | Comma-separated regex auth rules as `<pattern>;<type>` with types `none`, `password`, `simple:<user>:<pass>`, `address:<ip+cidr>`, `\|` for OR.                 |
+| **proxy.regex=\<rules\>**      | Comma-separated regex routing rules as `<pattern>;<target>`, matched before the host rules, `{0}` is the first capture group, patterns may not contain commas.  |
 | **proxy.redirect-ssl=true**    | Enables automatic HTTP to HTTPS redirection for the service, all HTTP requests are redirected to the equivalent HTTPS URL.                                      |
 
 #### DNS Client

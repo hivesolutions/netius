@@ -249,6 +249,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # other internal resolution process as the canonical URL of the request
         url = "%s://%s%s" % (protocol, host, path)
 
+        # constructs the equivalent URL using the originally requested host,
+        # meaning the one that has not gone through alias resolution, this is
+        # handed to the rule engine as a fallback so that regex rules may also
+        # match the hostname that the end user has effectively requested, note
+        # that with no alias in place this value matches the canonical one
+        url_o = "%s://%s%s" % (protocol, host_o, path)
+
         # tries to determine if a proper (client side) redirection operation
         # should be applied to the current request, if that's the case (match) an
         # immediate response is returned with proper redirection instructions
@@ -320,7 +327,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # a state value is also retrieved, this value will be used latter for
         # the acquiring and releasing parts of the balancing strategy operation
         if not self.reuse or not reusable:
-            prefix, state = self.rules(url, parser)
+            prefix, state = self.rules(url, parser, url_o=url_o)
 
         # in case no prefix is defined at this stage there's no matching
         # against the currently defined rules and so an error must be raised
@@ -542,10 +549,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         connection.state = state
         self.conn_map[_connection] = connection
 
-    def rules(self, url, parser):
+    def rules(self, url, parser, url_o=None):
         resolved = self.rules_regex(url, parser)
         if resolved[0]:
             return resolved
+        if url_o and not url_o == url:
+            resolved = self.rules_regex(url_o, parser)
+            if resolved[0]:
+                return resolved
         resolved = self.rules_host(url, parser)
         if resolved[0]:
             return resolved

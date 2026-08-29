@@ -56,7 +56,10 @@ class ReverseProxyServer(ProxyServer):
         parser: HTTPParser | HTTP2Parser | HTTP2Stream | None,
     ): ...
     def rules(
-        self, url: str, parser: HTTPParser | HTTP2Stream
+        self,
+        url: str,
+        parser: HTTPParser | HTTP2Stream,
+        url_o: str | None = ...,
     ) -> tuple[str | None, tuple[str, PriorityDict] | None]: ...
     def rules_regex(
         self, url: str, parser: HTTPParser | HTTP2Stream

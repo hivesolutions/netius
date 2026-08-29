@@ -268,6 +268,79 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertIsNone(prefix)
         self.assertIsNone(state)
 
+    def test_rules_fallback(self):
+        server = netius.extra.ReverseProxyServer(
+            regex=[(re.compile(r"https://alias\.host\.com"), "http://alias-backend")]
+        )
+
+        Parser = collections.namedtuple("Parser", "headers")
+        parser = Parser(headers=dict(host="alias.host.com"))
+
+        # the canonical URL does not match any rule, so the originally
+        # requested one is used as the fallback of the regex resolution
+        prefix, state = server.rules(
+            "https://host.com/path", parser, url_o="https://alias.host.com/path"
+        )
+        self.assertEqual(prefix, "http://alias-backend")
+
+        server.cleanup()
+
+    def test_rules_fallback_canonical_priority(self):
+        server = netius.extra.ReverseProxyServer(
+            regex=[
+                (re.compile(r"https://host\.com"), "http://canonical-backend"),
+                (
+                    re.compile(r"https://([a-zA-Z]*)\.host\.com"),
+                    "http://localhost/{0}",
+                ),
+            ]
+        )
+
+        Parser = collections.namedtuple("Parser", "headers")
+        parser = Parser(headers=dict(host="alias.host.com"))
+
+        # the canonical URL is matched first, so an alias that resolves into
+        # a host with a rule keeps being routed the way it was before
+        prefix, state = server.rules(
+            "https://host.com/path", parser, url_o="https://alias.host.com/path"
+        )
+        self.assertEqual(prefix, "http://canonical-backend")
+
+        server.cleanup()
+
+    def test_rules_fallback_same_url(self):
+        server = netius.extra.ReverseProxyServer(
+            regex=[(re.compile(r"https://host\.com"), "http://host-backend")],
+            forward="http://forward-backend",
+        )
+
+        Parser = collections.namedtuple("Parser", "headers")
+        parser = Parser(headers=dict(host="other.com"))
+
+        # with no alias in place both URLs are the same one, the fallback
+        # resolution is skipped and the chain proceeds as usual
+        prefix, state = server.rules(
+            "https://other.com/path", parser, url_o="https://other.com/path"
+        )
+        self.assertEqual(prefix, "http://forward-backend")
+
+        server.cleanup()
+
+    def test_rules_fallback_unset(self):
+        server = netius.extra.ReverseProxyServer(
+            regex=[(re.compile(r"https://alias\.host\.com"), "http://alias-backend")]
+        )
+
+        Parser = collections.namedtuple("Parser", "headers")
+        parser = Parser(headers=dict(host="alias.host.com"))
+
+        # without the fallback URL the resolution is limited to the
+        # canonical one, keeping the previous calling convention valid
+        prefix, state = server.rules("https://host.com/path", parser)
+        self.assertIsNone(prefix)
+
+        server.cleanup()
+
     def test_balancer_single(self):
         prefix, state = self.server.balancer("http://localhost")
         self.assertEqual(prefix, "http://localhost")
@@ -712,6 +785,52 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertEqual(backend.busy, 1)
         self.assertEqual(self.server.busy_conn, 1)
         self.assertEqual(frontend.proxy_c, backend)
+        self.assertEqual(frontend.prefix, "http://localhost")
+
+    def test_on_headers_regex_requested_host(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = netius.extra.ReverseProxyServer(
+            regex=[
+                (
+                    re.compile(r"http://appier\.hive\.pt/"),
+                    "http://localhost/render/appier",
+                )
+            ],
+            alias={"appier.hive.pt": "other.com"},
+        )
+
+        frontend = self._make_frontend()
+        request_parser = self._make_request_parser(host="appier.hive.pt")
+        backend = self._make_backend()
+
+        with mock.patch.object(
+            server.http_client, "method", return_value=(None, backend)
+        ):
+            server.on_headers(frontend, request_parser)
+
+        # the regex rules fall back to the originally requested host, so
+        # that the alias does not hide the hostname from them
+        self.assertEqual(frontend.prefix, "http://localhost/render/appier")
+
+        server.cleanup()
+
+    def test_on_headers_alias_still_resolves(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        request_parser = self._make_request_parser(host="alias.host.com")
+        backend = self._make_backend()
+
+        with mock.patch.object(
+            self.server.http_client, "method", return_value=(None, backend)
+        ):
+            self.server.on_headers(frontend, request_parser)
+
+        # the host based resolution keeps using the alias, as it performs
+        # its own resolution using the headers of the request
         self.assertEqual(frontend.prefix, "http://localhost")
 
     def test_on_headers_upgrade_tunnels_to_backend(self):
