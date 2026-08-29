@@ -95,6 +95,7 @@ class POPConnection(netius.Connection):
         self.byte_c = 0
         self.size = 0
         self.file = None
+        self.tail = b"\r\n"
         self.sizes = ()
         self.keys = ()
         self.state = INITIAL_STATE
@@ -202,16 +203,43 @@ class POPConnection(netius.Connection):
             file = connection.file
             contents = file.read(CHUNK_SIZE)
             if contents:
-                self.send(contents, callback=callback)
+                self.send(connection.stuff(contents), callback=callback)
             else:
-                self.send("\r\n.\r\n")
+                # the terminator is only preceded by a newline in case the
+                # body does not end with one, otherwise an empty line would
+                # be added to the message that is served
+                is_line = connection.tail == b"\r\n"
+                self.send(".\r\n" if is_line else "\r\n.\r\n")
                 file.close()
                 connection.file = None
 
         self.owner.on_retr_pop(self, index)
         message = "%d octets" % self.size
+        self.tail = b"\r\n"
         self.send_pop(message, callback=callback)
         callback(self)
+
+    def stuff(self, data):
+        # prepends the tail of the previous chunk to the current one so that
+        # a line that has been split between two reads is still detected as
+        # the start of one, the tail starts as a newline so that the first
+        # line of the body is considered to be at the start of a line
+        tail = self.tail
+        buffer = tail + data
+
+        # stores the last bytes of the (unstuffed) body so that they may be
+        # used as the context of the next chunk, note that this is done
+        # before the stuffing as the next chunk follows the original body
+        self.tail = buffer[-2:]
+
+        # duplicates the dot of every line that starts with one, as required
+        # by the RFC 1939 specification, so that such a line is not taken
+        # for the terminator of the message by the client
+        buffer = buffer.replace(b"\r\n.", b"\r\n..")
+
+        # removes the context that has been prepended, as it has already
+        # been sent as part of the chunk that precedes the current one
+        return buffer[len(tail) :]
 
     def dele(self, index):
         self.owner.on_dele_pop(self, index)
