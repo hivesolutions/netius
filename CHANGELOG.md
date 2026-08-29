@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * A GeoIP database that is downloaded on demand is now used instead of being discarded
 * A POP command with no argument no longer reports its message as a byte sequence
+* Two WebSocket frames that arrive together are now both handled instead of the second being swallowed
 
 ## [1.63.0] - 2026-08-29
 
