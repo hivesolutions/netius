@@ -426,16 +426,22 @@ class SMTPConnection(netius.Connection):
 class SMTPServer(netius.StreamServer):
 
     def __init__(
-        self, adapter_s="memory", auth_s="dummy", locals=("localhost",), *args, **kwargs
+        self,
+        adapter_s="memory",
+        auth_s="dummy",
+        locals=("localhost",),
+        host="smtp.localhost",
+        *args,
+        **kwargs
     ):
         netius.StreamServer.__init__(self, *args, **kwargs)
         self.adapter_s = adapter_s
         self.auth_s = auth_s
         self.locals = locals
+        self.host_g = host
 
-    def serve(self, host="smtp.localhost", port=25, *args, **kwargs):
+    def serve(self, port=25, *args, **kwargs):
         netius.StreamServer.serve(self, port=port, *args, **kwargs)
-        self.host = host
 
     def on_connection_c(self, connection):
         netius.StreamServer.on_connection_c(self, connection)
@@ -447,6 +453,10 @@ class SMTPServer(netius.StreamServer):
 
     def on_serve(self):
         netius.StreamServer.on_serve(self)
+        # replaces the bind address that the base has set with the greeting
+        # hostname, so that it's the one announced to a client and the one
+        # that the environment is then able to override
+        self.host = self.host_g
         if self.env:
             self.host = self.get_env("SMTP_HOST", self.host)
         if self.env:

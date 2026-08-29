@@ -85,6 +85,7 @@ class SMTPConnection(Connection):
     def reset_message(self): ...
 
 class SMTPServer(StreamServer):
+    host_g: str | None
     adapter_s: str
     auth_s: str
     locals: Sequence[str]
@@ -94,12 +95,11 @@ class SMTPServer(StreamServer):
         adapter_s: str = ...,
         auth_s: str = ...,
         locals: Sequence[str] = ...,
+        host: str = ...,
         *args,
         **kwargs
     ): ...
-    def serve(  # type: ignore[override]
-        self, host: str = ..., port: int = ..., *args, **kwargs
-    ): ...
+    def serve(self, port: int = ..., *args, **kwargs): ...  # type: ignore[override]
     def on_connection_c(self, connection: Connection): ...
     def on_data(self, connection: Connection, data: bytes): ...
     def on_serve(self): ...
