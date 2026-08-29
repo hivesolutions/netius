@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * A GeoIP database that is downloaded on demand is now used instead of being discarded
 * A POP command with no argument no longer reports its message as a byte sequence
+* A file opened through the asynchronous file pool now honours the mode that was asked for
+* A file written through the asynchronous file pool now reaches the disk instead of failing
+* A stored password that carries a separator no longer breaks the authentication
+* An asynchronous file operation that is not a known one is now refused instead of being ignored
 * Two WebSocket frames that arrive together are now both handled instead of the second being swallowed
 
 ## [1.63.0] - 2026-08-29
