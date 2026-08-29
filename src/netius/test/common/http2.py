@@ -891,6 +891,44 @@ class HTTP2ParserTest(unittest.TestCase):
         finally:
             parser.clear(force=True)
 
+    def test_parse_headers_priority_absent(self):
+        connection = self._make_connection()
+        parser = connection.parser
+        try:
+            frame = _pack_frame(
+                netius.common.HEADERS, flags=0x00, stream=0x01, payload=b"fragment"
+            )
+            parser.parse(frame)
+
+            # a frame that announces no priority opens the stream with the
+            # default weight that the RFC names for it, and not with a value
+            # that falls outside of the range of an effective weight
+            stream = parser.streams[1]
+            self.assertEqual(stream.weight, 16)
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_headers_priority_kept(self):
+        connection = self._make_connection()
+        parser = connection.parser
+        try:
+            stream = netius.common.http2.HTTP2Stream(
+                owner=parser, identifier=1, weight=42
+            )
+            parser.streams[1] = stream
+
+            frame = _pack_frame(
+                netius.common.HEADERS, flags=0x01, stream=0x01, payload=b"fragment"
+            )
+            parser.parse(frame)
+
+            # a frame that announces no priority leaves the weight of a
+            # stream that is already open untouched, rather than resetting
+            # it to the default of a new one
+            self.assertEqual(stream.weight, 42)
+        finally:
+            parser.clear(force=True)
+
     def test_parse_headers_trailers(self):
         if hpack == None:
             self.skipTest("Skipping test: hpack unavailable")
