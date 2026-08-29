@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.63.0] - 2026-08-29
+
+### Added
+
 * Type hints for the complete public interface - [#36](https://github.com/hivesolutions/netius/issues/36)
 * Support for the SRV, SVCB, HTTPS and CAA DNS record types
 * Support for serving ASGI applications, such as the ones written with Starlette or FastAPI - [#85](https://github.com/hivesolutions/netius/issues/85)
