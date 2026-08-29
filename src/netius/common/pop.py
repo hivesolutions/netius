@@ -119,7 +119,7 @@ class POPParser(parser.Parser):
         # value is added to the sequence of values for compatibility
         values = self.line_s.split(" ", 1)
         if not len(values) > 1:
-            values.append(b"")
+            values.append("")
 
         # unpacks the set of values that have just been parsed into the code
         # and the message items as expected by the pop specification
