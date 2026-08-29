@@ -39,53 +39,6 @@ REQUEST = b"GET /hello?name=world HTTP/1.1\r\nHost: netius.hive.pt\r\n\r\n"
 base one for the majority of the tests """
 
 
-class ReturnIterator(object):
-    """
-    Iterator that delivers its payload through the return value
-    of the stop iteration exception, the same way that a generator
-    that returns a value does under the Python 3 infra-structure.
-    """
-
-    def __init__(self, value):
-        self.value = value
-        self.raised = False
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.raised:
-            raise StopIteration()
-        self.raised = True
-        raise StopIteration(self.value)
-
-    next = __next__
-
-
-class LengthIterator(object):
-    """
-    Iterator that is its own iterable and reports the number of
-    values that it still holds, the shape of a response wrapper
-    that becomes a falsy value once it has been exhausted.
-    """
-
-    def __init__(self, values):
-        self.values = list(values)
-
-    def __iter__(self):
-        return self
-
-    def __len__(self):
-        return len(self.values)
-
-    def __next__(self):
-        if not self.values:
-            raise StopIteration()
-        return self.values.pop(0)
-
-    next = __next__
-
-
 class WSGIServerTest(unittest.TestCase):
 
     def setUp(self):
@@ -473,3 +426,50 @@ class WSGIServerTest(unittest.TestCase):
         )
         start_response("200 OK", headers)
         yield contents
+
+
+class ReturnIterator(object):
+    """
+    Iterator that delivers its payload through the return value
+    of the stop iteration exception, the same way that a generator
+    that returns a value does under the Python 3 infra-structure.
+    """
+
+    def __init__(self, value):
+        self.value = value
+        self.raised = False
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.raised:
+            raise StopIteration()
+        self.raised = True
+        raise StopIteration(self.value)
+
+    next = __next__
+
+
+class LengthIterator(object):
+    """
+    Iterator that is its own iterable and reports the number of
+    values that it still holds, the shape of a response wrapper
+    that becomes a falsy value once it has been exhausted.
+    """
+
+    def __init__(self, values):
+        self.values = list(values)
+
+    def __iter__(self):
+        return self
+
+    def __len__(self):
+        return len(self.values)
+
+    def __next__(self):
+        if not self.values:
+            raise StopIteration()
+        return self.values.pop(0)
+
+    next = __next__
