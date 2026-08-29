@@ -148,11 +148,16 @@ def decode_ws(data):
     if raw_size < length:
         raise netius.DataError("Not enough data")
 
-    # in case the frame data is not masked the complete set of contents
-    # may be returned immediately to the caller as there's no issue with
-    # avoiding the unmasking operation (as the data is not masked)
+    # in case the frame data is not masked the payload may be returned
+    # immediately to the caller as there's no issue with avoiding the
+    # unmasking operation, note that the payload is bounded by the length
+    # that the frame announces so that the bytes of the frame that follows
+    # it are left pending instead of being taken as part of this one
     if not has_mask:
-        return data[index_mask_f:], b""
+        return (
+            data[index_mask_f : index_mask_f + length],
+            data[index_mask_f + length :],
+        )
 
     # retrieves the mask part of the data that are going to be
     # used in the decoding part of the process
