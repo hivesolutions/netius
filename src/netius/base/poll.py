@@ -249,15 +249,30 @@ class EpollPoll(Poll):
     def is_edge(self):
         return True
 
+    def unsub_all(self, socket):
+        if not socket in self.write_o:
+            return
+        socket_fd = socket.fileno()
+        self.epoll.unregister(socket_fd)  # @UndefinedVariable pylint: disable=E1101
+        del self.fd_m[socket_fd]
+        if socket in self.read_o:
+            del self.read_o[socket]
+        del self.write_o[socket]
+        del self.error_o[socket]
+
     def sub_read(self, socket, owner=None):
         if socket in self.read_o:
             return
         socket_fd = socket.fileno()
+        is_sub = socket in self.write_o
         self.fd_m[socket_fd] = socket
         self.read_o[socket] = owner
         self.write_o[socket] = owner
         self.error_o[socket] = owner
-        self.epoll.register(  # @UndefinedVariable pylint: disable=E1101
+        method = (
+            self.epoll.modify if is_sub else self.epoll.register
+        )  # @UndefinedVariable pylint: disable=E1101
+        method(
             socket_fd,
             select.EPOLLIN
             | select.EPOLLOUT
@@ -276,11 +291,14 @@ class EpollPoll(Poll):
         if not socket in self.read_o:
             return
         socket_fd = socket.fileno()
-        self.epoll.unregister(socket_fd)  # @UndefinedVariable pylint: disable=E1101
-        del self.fd_m[socket_fd]
+        self.epoll.modify(  # @UndefinedVariable pylint: disable=E1101
+            socket_fd,
+            select.EPOLLOUT
+            | select.EPOLLERR
+            | select.EPOLLHUP
+            | select.EPOLLET,  # @UndefinedVariable pylint: disable=E1101
+        )
         del self.read_o[socket]
-        del self.write_o[socket]
-        del self.error_o[socket]
 
     def unsub_write(self, socket):
         pass
@@ -361,6 +379,29 @@ class KqueuePoll(Poll):
     def is_edge(self):
         return True
 
+    def unsub_all(self, socket):
+        if not socket in self.write_o:
+            return
+        socket_fd = socket.fileno()
+        if socket in self.read_o:
+            event = select.kevent(  # @UndefinedVariable pylint: disable=E1101
+                socket_fd,
+                filter=select.KQ_FILTER_READ,  # @UndefinedVariable pylint: disable=E1101
+                flags=select.KQ_EV_DELETE,  # @UndefinedVariable pylint: disable=E1101
+            )
+            self.kqueue.control([event], 0)
+        event = select.kevent(  # @UndefinedVariable pylint: disable=E1101
+            socket_fd,
+            filter=select.KQ_FILTER_WRITE,  # @UndefinedVariable pylint: disable=E1101
+            flags=select.KQ_EV_DELETE,  # @UndefinedVariable pylint: disable=E1101
+        )
+        self.kqueue.control([event], 0)
+        del self.fd_m[socket_fd]
+        if socket in self.read_o:
+            del self.read_o[socket]
+        del self.write_o[socket]
+        del self.error_o[socket]
+
     def sub_read(self, socket, owner=None):
         if socket in self.read_o:
             return
@@ -402,16 +443,7 @@ class KqueuePoll(Poll):
             flags=select.KQ_EV_DELETE,  # @UndefinedVariable pylint: disable=E1101
         )
         self.kqueue.control([event], 0)
-        event = select.kevent(  # @UndefinedVariable pylint: disable=E1101
-            socket_fd,
-            filter=select.KQ_FILTER_WRITE,  # @UndefinedVariable pylint: disable=E1101
-            flags=select.KQ_EV_DELETE,  # @UndefinedVariable pylint: disable=E1101
-        )
-        self.kqueue.control([event], 0)
-        del self.fd_m[socket_fd]
         del self.read_o[socket]
-        del self.write_o[socket]
-        del self.error_o[socket]
 
     def unsub_write(self, socket):
         pass
@@ -490,22 +522,31 @@ class PollPoll(Poll):
         if socket in self.read_o:
             return
         socket_fd = socket.fileno()
+        is_sub = socket in self.write_o
         self.read_fd[socket_fd] = socket
         self.read_o[socket] = owner
-        self._poll.register(  # @UndefinedVariable pylint: disable=E1101
-            socket_fd, select.POLLIN  # @UndefinedVariable pylint: disable=E1101
-        )
+        method = (
+            self._poll.modify if is_sub else self._poll.register
+        )  # @UndefinedVariable pylint: disable=E1101
+        mask = (
+            select.POLLIN | select.POLLOUT if is_sub else select.POLLIN
+        )  # @UndefinedVariable pylint: disable=E1101
+        method(socket_fd, mask)
 
     def sub_write(self, socket, owner=None):
         if socket in self.write_o:
             return
         socket_fd = socket.fileno()
+        is_sub = socket in self.read_o
         self.write_fd[socket_fd] = socket
         self.write_o[socket] = owner
-        self._poll.modify(  # @UndefinedVariable pylint: disable=E1101
-            socket_fd,
-            select.POLLIN | select.POLLOUT,  # @UndefinedVariable pylint: disable=E1101
-        )
+        method = (
+            self._poll.modify if is_sub else self._poll.register
+        )  # @UndefinedVariable pylint: disable=E1101
+        mask = (
+            select.POLLIN | select.POLLOUT if is_sub else select.POLLOUT
+        )  # @UndefinedVariable pylint: disable=E1101
+        method(socket_fd, mask)
 
     def sub_error(self, socket, owner=None):
         if socket in self.error_o:
@@ -516,7 +557,13 @@ class PollPoll(Poll):
         if not socket in self.read_o:
             return
         socket_fd = socket.fileno()
-        self._poll.unregister(socket_fd)  # @UndefinedVariable pylint: disable=E1101
+        is_sub = socket in self.write_o
+        if is_sub:
+            self._poll.modify(  # @UndefinedVariable pylint: disable=E1101
+                socket_fd, select.POLLOUT  # @UndefinedVariable pylint: disable=E1101
+            )
+        else:
+            self._poll.unregister(socket_fd)  # @UndefinedVariable pylint: disable=E1101
         del self.read_fd[socket_fd]
         del self.read_o[socket]
 
@@ -524,9 +571,13 @@ class PollPoll(Poll):
         if not socket in self.write_o:
             return
         socket_fd = socket.fileno()
-        self._poll.modify(  # @UndefinedVariable pylint: disable=E1101
-            socket_fd, select.POLLIN  # @UndefinedVariable pylint: disable=E1101
-        )
+        is_sub = socket in self.read_o
+        if is_sub:
+            self._poll.modify(  # @UndefinedVariable pylint: disable=E1101
+                socket_fd, select.POLLIN  # @UndefinedVariable pylint: disable=E1101
+            )
+        else:
+            self._poll.unregister(socket_fd)  # @UndefinedVariable pylint: disable=E1101
         del self.write_fd[socket_fd]
         del self.write_o[socket]
 
