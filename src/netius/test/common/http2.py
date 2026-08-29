@@ -852,9 +852,9 @@ class HTTP2ParserTest(unittest.TestCase):
         connection = self._make_connection()
         parser = connection.parser
         try:
-            # the priority is announced by a leading dependency and (wire)
-            # weight, the highest bit of the dependency being the exclusive
-            # flag
+            # the priority is announced by a leading dependency and weight,
+            # the highest bit of the dependency being the exclusive flag and
+            # the weight of the wire being one below the effective one
             payload = struct.pack("!IB", 0x80000003, 42) + b"fragment"
             frame = _pack_frame(
                 netius.common.HEADERS, flags=0x20, stream=0x01, payload=payload
@@ -863,9 +863,31 @@ class HTTP2ParserTest(unittest.TestCase):
 
             stream = parser.streams[1]
             self.assertEqual(stream.dependency, 3)
-            self.assertEqual(stream.weight, 42)
+            self.assertEqual(stream.weight, 43)
             self.assertEqual(stream.exclusive, True)
             self.assertEqual(stream.header_b, [b"fragment"])
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_headers_priority_lowest(self):
+        connection = self._make_connection()
+        parser = connection.parser
+        try:
+            stream = netius.common.http2.HTTP2Stream(
+                owner=parser, identifier=1, weight=16
+            )
+            parser.streams[1] = stream
+
+            payload = struct.pack("!IB", 3, 0) + b"fragment"
+            frame = _pack_frame(
+                netius.common.HEADERS, flags=0x21, stream=0x01, payload=payload
+            )
+            parser.parse(frame)
+
+            # the lowest weight of the wire names the effective weight of
+            # one, a value of its own that is no longer confused with the
+            # absence of a priority in the frame
+            self.assertEqual(stream.weight, 1)
         finally:
             parser.clear(force=True)
 
@@ -897,7 +919,7 @@ class HTTP2ParserTest(unittest.TestCase):
 
             stream = parser.streams[1]
             self.assertEqual(stream.dependency, 5)
-            self.assertEqual(stream.weight, 7)
+            self.assertEqual(stream.weight, 8)
             self.assertEqual(stream.exclusive, True)
             self.assertEqual(stream.end_stream, True)
             self.assertEqual(stream.end_headers, True)
@@ -926,11 +948,31 @@ class HTTP2ParserTest(unittest.TestCase):
 
             # the dependency and the weight are recorded in the stream so
             # that the tree of priorities may be rebuilt from them, the
-            # weight being the one of the wire, which the RFC defines as
-            # one below the effective weight of the stream
-            self.assertEqual(events, [(3, 16)])
+            # weight being the effective one, which the RFC defines as the
+            # value that travels in the wire plus one
+            self.assertEqual(events, [(3, 17)])
             self.assertEqual(stream.dependency, 3)
-            self.assertEqual(stream.weight, 16)
+            self.assertEqual(stream.weight, 17)
+        finally:
+            parser.clear(force=True)
+
+    def test_parse_priority_lowest(self):
+        connection = self._make_connection()
+        parser = connection.parser
+        try:
+            stream = self._make_stream(parser, identifier=1)
+            parser.streams[1] = stream
+
+            frame = _pack_frame(
+                netius.common.PRIORITY,
+                stream=0x01,
+                payload=struct.pack("!IB", 3, 0),
+            )
+            parser.parse(frame)
+
+            # the lowest weight of the wire names the effective weight of
+            # one, which is the smallest that the RFC allows for a stream
+            self.assertEqual(stream.weight, 1)
         finally:
             parser.clear(force=True)
 
