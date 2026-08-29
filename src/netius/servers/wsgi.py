@@ -299,7 +299,14 @@ class WSGIServer(http2.HTTP2Server):
             headers=headers, version=version_s, code=status_c, code_s=status_m
         )
 
-    def _send_part(self, connection):
+    def _send_part(self, connection, iterator=None):
+        # in case the iterator is no longer the one associated with the
+        # connection then it's a stale callback, meaning that the connection
+        # has already been released and re-used by another request (nothing
+        # to be done)
+        if not iterator == None and not connection.iterator == iterator:
+            return
+
         # invalidates the data object to the original unset value,
         # this is considered the default value
         data = None
@@ -324,10 +331,6 @@ class WSGIServer(http2.HTTP2Server):
                 data = exception.args[0]
             else:
                 is_final = True
-
-            # releases the iterator from the connection as it's no longer
-            # considered to be valid for the current connection context
-            self._release_iterator(connection)
 
         # verifies if the current value in iteration is a future element
         # and if that's the case creates the proper callback to be used
@@ -407,11 +410,24 @@ class WSGIServer(http2.HTTP2Server):
         # kept untouched) otherwise sends the retrieved data setting the
         # callback to the current method so that more that is sent
         if is_final:
-            connection.flush_s(callback=self._final)
+            connection.flush_s(
+                callback=lambda connection: self._final(connection, iterator)
+            )
         else:
-            connection.send_part(data, final=False, callback=self._send_part)
+            connection.send_part(
+                data,
+                final=False,
+                callback=lambda connection: self._send_part(connection, iterator),
+            )
 
-    def _final(self, connection):
+    def _final(self, connection, iterator=None):
+        # in case the iterator is no longer the one associated with the
+        # connection then it's a stale callback, meaning that the connection
+        # has already been released and re-used by another request (nothing
+        # to be done)
+        if not iterator == None and not connection.iterator == iterator:
+            return
+
         # retrieves the parser of the current connection and then determines
         # if the current connection is meant to be kept alive
         parser = connection.parser

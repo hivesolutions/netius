@@ -48,13 +48,16 @@ SSL_CA_PATH = os.path.join(EXTRAS_PATH, "net.ca")
 
 
 def ensure_setup():
-    ensure_ca()
+    # the setup of the package must not be broken by a download that fails,
+    # as the CA file is an optional resource, the infra-structure falls back
+    # to the trust store of the system whenever it's not present
+    ensure_ca(raise_e=False)
 
 
-def ensure_ca(path=SSL_CA_PATH):
+def ensure_ca(path=SSL_CA_PATH, raise_e=True):
     if os.path.exists(path):
         return
-    _download_ca(path=path)
+    _download_ca(path=path, raise_e=raise_e)
 
 
 def _download_ca(path=SSL_CA_PATH, raise_e=True):
@@ -73,9 +76,13 @@ def _download_ca(path=SSL_CA_PATH, raise_e=True):
     if not result["code"] == 200:
         if not raise_e:
             return
+
+        # a request that never reached a response carries no status code, so
+        # the reason for the failure is the one that has to be reported
+        message = result.get("message", None)
         raise Exception(
-            "Error while downloading CA file from '%s' (code: %d)"
-            % (CA_URL, result["code"])
+            "Error while downloading CA file from '%s' (code: %s, message: %s)"
+            % (CA_URL, result["code"], message)
         )
     response = netius.clients.HTTPClient.to_response(result)
     contents = response.read()
