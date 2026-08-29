@@ -76,6 +76,23 @@ class WSGIServerTest(unittest.TestCase):
         for server in self.servers:
             server.cleanup()
 
+    def test_on_connection_d(self):
+        server = self._make_server()
+        connection = self._make_connection(server, deliver=False)
+        connection.parse(REQUEST)
+        connection.parse(REQUEST)
+        iterator = connection.iterator
+
+        server.on_connection_d(connection)
+
+        # the destruction of a connection releases the request that it was
+        # handling together with the queue of the ones that were pending,
+        # so that nothing is kept alive by a connection that is gone
+        self.assertEqual(connection.iterator, None)
+        self.assertEqual(connection.environ, None)
+        self.assertEqual(connection.queue, [])
+        self.assertRaises(StopIteration, next, iterator)
+
     def test_on_data_http(self):
         server = self._make_server()
         connection = self._make_connection(server)
