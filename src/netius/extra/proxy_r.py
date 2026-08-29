@@ -251,9 +251,9 @@ class ReverseProxyServer(netius.servers.ProxyServer):
 
         # constructs the equivalent URL using the originally requested host,
         # meaning the one that has not gone through alias resolution, this is
-        # the value handed to the rule engine so that regex rules may match the
-        # hostname that the end user has effectively requested, note that for
-        # a request with no alias in place this value matches the canonical one
+        # handed to the rule engine as a fallback so that regex rules may also
+        # match the hostname that the end user has effectively requested, note
+        # that with no alias in place this value matches the canonical one
         url_o = "%s://%s%s" % (protocol, host_o, path)
 
         # tries to determine if a proper (client side) redirection operation
@@ -327,7 +327,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # a state value is also retrieved, this value will be used latter for
         # the acquiring and releasing parts of the balancing strategy operation
         if not self.reuse or not reusable:
-            prefix, state = self.rules(url_o, parser)
+            prefix, state = self.rules(url, parser, url_o=url_o)
 
         # in case no prefix is defined at this stage there's no matching
         # against the currently defined rules and so an error must be raised
@@ -549,10 +549,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         connection.state = state
         self.conn_map[_connection] = connection
 
-    def rules(self, url, parser):
+    def rules(self, url, parser, url_o=None):
         resolved = self.rules_regex(url, parser)
         if resolved[0]:
             return resolved
+        if url_o and not url_o == url:
+            resolved = self.rules_regex(url_o, parser)
+            if resolved[0]:
+                return resolved
         resolved = self.rules_host(url, parser)
         if resolved[0]:
             return resolved
