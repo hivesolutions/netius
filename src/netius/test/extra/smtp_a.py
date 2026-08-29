@@ -33,6 +33,11 @@ import unittest
 import netius
 import netius.extra
 
+DECODED = b"Ol\xc3\xa1 Mundo".decode("utf-8")
+""" The text that the encoded words of the tests carry, built from
+the byte sequence of it so that the value is a unicode one under
+both of the interpreters that are supported """
+
 
 class ActivityRelaySMTPServerTest(unittest.TestCase):
 
@@ -71,10 +76,10 @@ class ActivityRelaySMTPServerTest(unittest.TestCase):
         # an encoded word is decoded into the text that it names, both for
         # the base 64 and for the quoted printable of the specification
         self.assertEqual(
-            self.server._decode_header("=?utf-8?B?T2zDoSBNdW5kbw==?="), "Olá Mundo"
+            self.server._decode_header("=?utf-8?B?T2zDoSBNdW5kbw==?="), DECODED
         )
         self.assertEqual(
-            self.server._decode_header("=?utf-8?Q?Ol=C3=A1_Mundo?="), "Olá Mundo"
+            self.server._decode_header("=?utf-8?Q?Ol=C3=A1_Mundo?="), DECODED
         )
 
     def test__decode_header_invalid(self):
