@@ -184,14 +184,17 @@ class DHCPServerSTest(unittest.TestCase):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
 
-        addr = self.pool.reserve(owner="00:00:00:00:00:01", lease=1)
+        # the lease of the reserve is a short one when set against the one
+        # of the server, but still long enough for the address to be valid
+        # by the time that the confirmation reaches it
+        addr = self.pool.reserve(owner="00:00:00:00:00:01", lease=60)
         target = self.pool.map[addr]
         request = self._make_request(type=0x03, mac="00:00:00:00:00:01")
 
         self.assertEqual(self.server._confirm(request), addr)
 
         # the confirmation renews the lease of the address, extending it
-        # from the single second of the reserve to the one of the server
+        # from the short one of the reserve to the one of the server
         self.assertEqual(self.pool.map[addr] > target, True)
         self.assertEqual(self.pool.is_valid(addr), True)
 
