@@ -1014,10 +1014,24 @@ class HTTPParser(parser.Parser):
 
     def _parse_normal(self, data):
         # retrieves the size of the data that has just been
-        # received and then in case the store flag is set
-        # stores the data in the proper buffer and increments
-        # the message length counter with the size of the data
+        # received, to be used as the amount of bytes that are
+        # going to be consumed by the current parsing operation
         data_l = len(data)
+
+        # clamps the data to the number of bytes that are still
+        # missing for the message to be complete, so that the ones
+        # that follow the body are left for the message that comes
+        # after it, this is critical both for the pipelining of
+        # requests and for the detection of a framing violation
+        if not self.content_l == -1:
+            remaining = self.content_l - self.message_l
+            if data_l > remaining:
+                data = data[:remaining]
+                data_l = remaining
+
+        # in case the store flag is set stores the data in the
+        # proper buffer and then increments the message length
+        # counter with the size of the data that was consumed
         if self.store:
             self._store_data(data)
         self.message_l += data_l
