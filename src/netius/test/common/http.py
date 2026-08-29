@@ -542,6 +542,84 @@ class HTTPParserTest(unittest.TestCase):
         parser = self._parse(b"GET / HTTP/1.0\r\nConnection: Keep-Alive\r\n\r\n")
         self.assertEqual(parser.keep_alive, True)
 
+    def test_overshoot(self):
+        parser = netius.common.HTTPParser(self, type=netius.common.REQUEST, store=True)
+        seen = []
+        partials = []
+        parser.bind("on_data", lambda: seen.append(parser.get_message()))
+        parser.bind("on_partial", lambda data: partials.append(data))
+        try:
+            # a body that carries more octets than the length announces is
+            # consumed up to the boundary alone, so that the message is able
+            # to complete and the surplus is left for the one that follows
+            parser.parse(
+                b"POST /x HTTP/1.1\r\nHost: localhost\r\n"
+                b"Content-Length: 4\r\n\r\nAAAAAAAAAAAA"
+            )
+
+            self.assertEqual(seen, [b"AAAA"])
+
+            # the surplus never reaches the handler of the partial data, which
+            # would otherwise be given more payload than the message declares
+            self.assertEqual(partials, [b"AAAA"])
+        finally:
+            parser.clear()
+
+    def test_overshoot_invalid(self):
+        # the surplus of the body is parsed as the message that follows it, so
+        # a sequence that is not a valid request line is rejected instead of
+        # being absorbed as payload of the message that precedes it
+        self._assert_error(
+            b"POST /x HTTP/1.1\r\nHost: localhost\r\n"
+            b"Content-Length: 4\r\n\r\nAAAAAAAAAAAA\r\n\r\n"
+        )
+
+    def test_partial_body(self):
+        parser = netius.common.HTTPParser(self, type=netius.common.REQUEST, store=True)
+        seen = []
+        parser.bind("on_data", lambda: seen.append(parser.get_message()))
+        try:
+            # the length that is still missing is tracked across the reads, so
+            # a body that arrives split over several of them only completes
+            # once the boundary that was announced is reached
+            parser.parse(
+                b"POST /x HTTP/1.1\r\nHost: localhost\r\nContent-Length: 4\r\n\r\n"
+            )
+            self.assertEqual(seen, [])
+
+            parser.parse(b"AA")
+            self.assertEqual(seen, [])
+
+            parser.parse(b"AABBBB")
+
+            # the surplus of the final read is left for the message that comes
+            # after it, rather than being taken as payload of this one
+            self.assertEqual(seen, [b"AAAA"])
+        finally:
+            parser.clear()
+
+    def test_pipelining(self):
+        parser = netius.common.HTTPParser(self, type=netius.common.REQUEST, store=True)
+        seen = []
+        parser.bind(
+            "on_data", lambda: seen.append((parser.path_s, parser.get_message()))
+        )
+        try:
+            # two requests that share the same segment are parsed as two
+            # messages, the body of the first one being bounded by the length
+            # that it announces instead of absorbing the one that follows
+            parser.parse(
+                b"POST /a HTTP/1.1\r\nHost: localhost\r\n"
+                b"Content-Length: 4\r\n\r\nAAAA"
+                b"POST /b HTTP/1.1\r\nHost: localhost\r\n"
+                b"Content-Length: 4\r\n\r\nBBBB"
+            )
+
+            self.assertEqual(seen, [("/a", b"AAAA"), ("/b", b"BBBB")])
+            self.assertEqual(parser.state, netius.common.http.FINISH_STATE)
+        finally:
+            parser.clear()
+
     def test_chunked_malformed(self):
         # the size of a chunk must be a sequence of hexadecimal digits, the
         # signed and the prefixed values must be rejected as they would be
