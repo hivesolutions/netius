@@ -271,13 +271,120 @@ class EpollPollTest(unittest.TestCase):
         # an event is only reported when the state of the socket changes
         self.assertEqual(poll.EpollPoll().is_edge(), True)
 
+    def test_unsub_all(self):
+        if not poll.EpollPoll.test():
+            self.skipTest("Skipping test: epoll unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket)
+        instance.unsub_all(socket)
+
+        # the complete unsubscription is the only operation that takes the
+        # descriptor out of the poll, releasing every interest at once
+        self.assertEqual(instance.epoll.calls[-1], ("unregister", 1))
+        self.assertEqual(instance.is_empty(), True)
+        self.assertEqual(1 in instance.fd_m, False)
+
+        # the complete unsubscription of a socket that is not subscribed is
+        # a no operation, so that no error is raised for it
+        instance.unsub_all(socket)
+        self.assertEqual(len(instance.epoll.calls), 2)
+
+    def test_unsub_all_read_dropped(self):
+        if not poll.EpollPoll.test():
+            self.skipTest("Skipping test: epoll unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket)
+        instance.unsub_read(socket)
+        instance.unsub_all(socket)
+
+        # the remaining interests are released even when the read one has
+        # already been dropped, leaving no bookkeeping behind
+        self.assertEqual(instance.epoll.calls[-1], ("unregister", 1))
+        self.assertEqual(instance.is_empty(), True)
+        self.assertEqual(1 in instance.fd_m, False)
+
+    def test_sub_read(self):
+        if not poll.EpollPoll.test():
+            self.skipTest("Skipping test: epoll unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket, owner="owner")
+
+        # the first subscription registers the complete set of interests, as
+        # the back-end is not able to separate them at poll time
+        self.assertEqual(instance.epoll.calls, [("register", 1, self._mask_all())])
+        self.assertEqual(instance.is_sub_read(socket), True)
+        self.assertEqual(instance.is_sub_write(socket), True)
+        self.assertEqual(instance.is_sub_error(socket), True)
+
+        # a repeated subscription must not reach the poll again, avoiding an
+        # already registered error being raised by it
+        instance.sub_read(socket)
+        self.assertEqual(len(instance.epoll.calls), 1)
+
+    def test_sub_read_restored(self):
+        if not poll.EpollPoll.test():
+            self.skipTest("Skipping test: epoll unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket)
+        instance.unsub_read(socket)
+        instance.sub_read(socket)
+
+        # restoring the read interest of a descriptor that is still
+        # registered modifies it, a new registration would be rejected
+        self.assertEqual(instance.epoll.calls[-1], ("modify", 1, self._mask_all()))
+        self.assertEqual(instance.is_sub_read(socket), True)
+
+    def test_unsub_read(self):
+        if not poll.EpollPoll.test():
+            self.skipTest("Skipping test: epoll unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket)
+        instance.unsub_read(socket)
+
+        # dropping the read interest keeps both the write and the error ones
+        # alive, so that a pending write may still be flushed
+        self.assertEqual(instance.epoll.calls[-1], ("modify", 1, self._mask_write()))
+        self.assertEqual(instance.is_sub_read(socket), False)
+        self.assertEqual(instance.is_sub_write(socket), True)
+        self.assertEqual(instance.is_sub_error(socket), True)
+
+        # the descriptor stays resolvable so that the events that are still
+        # subscribed may be routed back to the proper socket
+        self.assertEqual(instance.fd_m[1], socket)
+
+        # dropping the read interest of a socket that is not subscribed is a
+        # no operation, leaving the poll untouched
+        instance.unsub_read(socket)
+        self.assertEqual(len(instance.epoll.calls), 2)
+
     def _poll(self, instance, event):
         instance.epoll = self._make_epoll([(1, event)])
         return instance.poll()
 
-    def _make_socket(self):
-        Socket = collections.namedtuple("Socket", "name")
-        return Socket(name="socket")
+    def _make_socket(self, fileno=1):
+        # builds a socket stand-in that exposes the file descriptor under
+        # which the interest operations are going to be registered
+        class Socket(object):
+
+            def fileno(self):
+                return fileno
+
+        return Socket()
 
     def _make_epoll(self, events):
         # builds an epoll stand-in that reports a fixed sequence of events,
@@ -288,6 +395,45 @@ class EpollPollTest(unittest.TestCase):
                 return events
 
         return Epoll()
+
+    def _make_instance(self):
+        # builds a poll that is backed by a recording stand-in, so that no
+        # real descriptor is required to verify the interest changes
+        instance = poll.EpollPoll()
+        instance.fd_m = {}
+        instance.epoll = self._make_registry()
+        return instance
+
+    def _make_registry(self):
+        # builds an epoll stand-in that records the registration operations
+        # performed on it, so that the interest changes may be verified
+        class Epoll(object):
+
+            def __init__(self):
+                self.calls = []
+
+            def register(self, fd, mask):
+                self.calls.append(("register", fd, mask))
+
+            def modify(self, fd, mask):
+                self.calls.append(("modify", fd, mask))
+
+            def unregister(self, fd):
+                self.calls.append(("unregister", fd))
+
+        return Epoll()
+
+    def _mask_all(self):
+        return (
+            select.EPOLLIN
+            | select.EPOLLOUT
+            | select.EPOLLERR
+            | select.EPOLLHUP
+            | select.EPOLLET
+        )
+
+    def _mask_write(self):
+        return select.EPOLLOUT | select.EPOLLERR | select.EPOLLHUP | select.EPOLLET
 
 
 class KqueuePollTest(unittest.TestCase):
@@ -372,15 +518,116 @@ class KqueuePollTest(unittest.TestCase):
         # behaviour of the epoll based implementation
         self.assertEqual(poll.KqueuePoll().is_edge(), True)
 
+    def test_unsub_all(self):
+        if not poll.KqueuePoll.test():
+            self.skipTest("Skipping test: kqueue unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket)
+        instance.unsub_all(socket)
+
+        # the complete unsubscription deletes both of the filters that the
+        # subscription of the read interest has added
+        self.assertEqual(
+            instance.kqueue.calls[-2:],
+            [
+                (1, select.KQ_FILTER_READ, select.KQ_EV_DELETE),
+                (1, select.KQ_FILTER_WRITE, select.KQ_EV_DELETE),
+            ],
+        )
+        self.assertEqual(instance.is_empty(), True)
+        self.assertEqual(1 in instance.fd_m, False)
+
+        # the complete unsubscription of a socket that is not subscribed is
+        # a no operation, so that no error is raised for it
+        instance.unsub_all(socket)
+        self.assertEqual(len(instance.kqueue.calls), 4)
+
+    def test_unsub_all_read_dropped(self):
+        if not poll.KqueuePoll.test():
+            self.skipTest("Skipping test: kqueue unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket)
+        instance.unsub_read(socket)
+        instance.unsub_all(socket)
+
+        # only the write filter is deleted by the complete unsubscription, as
+        # deleting an already deleted filter would be rejected
+        self.assertEqual(
+            instance.kqueue.calls[-1],
+            (1, select.KQ_FILTER_WRITE, select.KQ_EV_DELETE),
+        )
+        self.assertEqual(instance.is_empty(), True)
+        self.assertEqual(1 in instance.fd_m, False)
+
+    def test_unsub_read(self):
+        if not poll.KqueuePoll.test():
+            self.skipTest("Skipping test: kqueue unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket)
+        instance.unsub_read(socket)
+
+        # only the read filter is deleted, the write one is kept alive so
+        # that a pending write may still be flushed
+        self.assertEqual(
+            instance.kqueue.calls[-1],
+            (1, select.KQ_FILTER_READ, select.KQ_EV_DELETE),
+        )
+        self.assertEqual(instance.is_sub_read(socket), False)
+        self.assertEqual(instance.is_sub_write(socket), True)
+        self.assertEqual(instance.is_sub_error(socket), True)
+
+        # the descriptor stays resolvable so that the events that are still
+        # subscribed may be routed back to the proper socket
+        self.assertEqual(instance.fd_m[1], socket)
+
+        # dropping the read interest of a socket that is not subscribed is a
+        # no operation, leaving the poll untouched
+        instance.unsub_read(socket)
+        self.assertEqual(len(instance.kqueue.calls), 3)
+
+    def test_sub_read_restored(self):
+        if not poll.KqueuePoll.test():
+            self.skipTest("Skipping test: kqueue unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket)
+        instance.unsub_read(socket)
+        instance.sub_read(socket)
+
+        # restoring the read interest adds the filter once again, the write
+        # one being re-added is tolerated by the back-end
+        self.assertEqual(
+            instance.kqueue.calls[-2],
+            (1, select.KQ_FILTER_READ, select.KQ_EV_ADD | select.KQ_EV_CLEAR),
+        )
+        self.assertEqual(instance.is_sub_read(socket), True)
+
     def _poll(self, instance, filter, flags):
         Event = collections.namedtuple("Event", "filter flags udata")
         event = Event(filter=filter, flags=flags, udata=1)
         instance.kqueue = self._make_kqueue([event])
         return instance.poll()
 
-    def _make_socket(self):
-        Socket = collections.namedtuple("Socket", "name")
-        return Socket(name="socket")
+    def _make_socket(self, fileno=1):
+        # builds a socket stand-in that exposes the file descriptor under
+        # which the interest operations are going to be registered
+        class Socket(object):
+
+            def fileno(self):
+                return fileno
+
+        return Socket()
 
     def _make_kqueue(self, events):
         # builds a kqueue stand-in that reports a fixed sequence of events,
@@ -389,6 +636,29 @@ class KqueuePollTest(unittest.TestCase):
 
             def control(self, *args, **kwargs):
                 return events
+
+        return Kqueue()
+
+    def _make_instance(self):
+        # builds a poll that is backed by a recording stand-in, so that no
+        # real descriptor is required to verify the interest changes
+        instance = poll.KqueuePoll()
+        instance.fd_m = {}
+        instance.kqueue = self._make_registry()
+        return instance
+
+    def _make_registry(self):
+        # builds a kqueue stand-in that records the control operations
+        # performed on it, so that the interest changes may be verified
+        class Kqueue(object):
+
+            def __init__(self):
+                self.calls = []
+
+            def control(self, events, *args, **kwargs):
+                for event in events:
+                    self.calls.append((event.ident, event.filter, event.flags))
+                return []
 
         return Kqueue()
 
@@ -449,18 +719,170 @@ class PollPollTest(unittest.TestCase):
         self.assertEqual(self._poll(instance, select.POLLERR), ([], [], [socket]))
         self.assertEqual(self._poll(instance, select.POLLHUP), ([], [], [socket]))
 
+    def test_poll_write_only(self):
+        if not poll.PollPoll.test():
+            self.skipTest("Skipping test: poll unavailable")
+
+        instance = poll.PollPoll()
+        socket = self._make_socket()
+        instance.read_fd = {}
+        instance.write_fd = {1: socket}
+
+        # a descriptor that is subscribed for the write interest alone still
+        # has both the error and the hang up conditions reported, otherwise a
+        # connection under backpressure would never learn about the peer
+        self.assertEqual(self._poll(instance, select.POLLERR), ([], [], [socket]))
+        self.assertEqual(self._poll(instance, select.POLLHUP), ([], [], [socket]))
+
     def test_is_edge(self):
         # the poll based implementation is a level triggered one, so an
         # event is reported for as long as the condition holds
         self.assertEqual(poll.PollPoll().is_edge(), False)
 
+    def test_sub_read(self):
+        if not poll.PollPoll.test():
+            self.skipTest("Skipping test: poll unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket, owner="owner")
+
+        # the first subscription registers the descriptor for the read
+        # interest alone, as no other one has been asked for
+        self.assertEqual(instance._poll.calls, [("register", 1, select.POLLIN)])
+        self.assertEqual(instance.is_sub_read(socket), True)
+
+        # a repeated subscription must not reach the poll again, avoiding an
+        # already registered error being raised by it
+        instance.sub_read(socket)
+        self.assertEqual(len(instance._poll.calls), 1)
+
+    def test_sub_read_write_subscribed(self):
+        if not poll.PollPoll.test():
+            self.skipTest("Skipping test: poll unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_write(socket)
+        instance.sub_read(socket)
+
+        # the descriptor is already registered for the write interest, so the
+        # read one is added to it through a modification
+        self.assertEqual(
+            instance._poll.calls[-1],
+            ("modify", 1, select.POLLIN | select.POLLOUT),
+        )
+
+    def test_sub_write(self):
+        if not poll.PollPoll.test():
+            self.skipTest("Skipping test: poll unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        # the write interest of a descriptor that is not registered has to
+        # register it, instead of modifying a registration that is missing
+        instance.sub_write(socket)
+        self.assertEqual(instance._poll.calls, [("register", 1, select.POLLOUT)])
+        self.assertEqual(instance.is_sub_write(socket), True)
+
+        # a repeated subscription must not reach the poll again, avoiding an
+        # already registered error being raised by it
+        instance.sub_write(socket)
+        self.assertEqual(len(instance._poll.calls), 1)
+
+    def test_unsub_read(self):
+        if not poll.PollPoll.test():
+            self.skipTest("Skipping test: poll unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket)
+        instance.sub_write(socket)
+        instance.unsub_read(socket)
+
+        # dropping the read interest keeps the write one alive, so that a
+        # pending write may still be flushed
+        self.assertEqual(instance._poll.calls[-1], ("modify", 1, select.POLLOUT))
+        self.assertEqual(instance.is_sub_read(socket), False)
+        self.assertEqual(instance.is_sub_write(socket), True)
+
+        # dropping the read interest of a socket that is not subscribed is a
+        # no operation, leaving the poll untouched
+        instance.unsub_read(socket)
+        self.assertEqual(len(instance._poll.calls), 3)
+
+    def test_unsub_read_only(self):
+        if not poll.PollPoll.test():
+            self.skipTest("Skipping test: poll unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket)
+        instance.unsub_read(socket)
+
+        # with no other interest left the descriptor is taken out of the
+        # poll, as an empty interest mask is not a valid registration
+        self.assertEqual(instance._poll.calls[-1], ("unregister", 1))
+        self.assertEqual(instance.is_empty(), True)
+        self.assertEqual(1 in instance.read_fd, False)
+
+    def test_unsub_write(self):
+        if not poll.PollPoll.test():
+            self.skipTest("Skipping test: poll unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket)
+        instance.sub_write(socket)
+        instance.unsub_write(socket)
+
+        # dropping the write interest keeps the read one alive, the poll
+        # being modified rather than having the descriptor removed
+        self.assertEqual(instance._poll.calls[-1], ("modify", 1, select.POLLIN))
+        self.assertEqual(instance.is_sub_read(socket), True)
+        self.assertEqual(instance.is_sub_write(socket), False)
+        self.assertEqual(1 in instance.write_fd, False)
+
+    def test_unsub_write_read_dropped(self):
+        if not poll.PollPoll.test():
+            self.skipTest("Skipping test: poll unavailable")
+
+        instance = self._make_instance()
+        socket = self._make_socket()
+
+        instance.sub_read(socket)
+        instance.sub_write(socket)
+        instance.unsub_read(socket)
+        instance.unsub_write(socket)
+
+        # with the read interest already dropped the descriptor is taken out
+        # of the poll instead of being modified, which would be rejected
+        self.assertEqual(instance._poll.calls[-1], ("unregister", 1))
+        self.assertEqual(instance.is_empty(), True)
+
+        # the bookkeeping of the write interest is released even though the
+        # descriptor was no longer registered for the read one
+        self.assertEqual(1 in instance.write_fd, False)
+
     def _poll(self, instance, event):
         instance._poll = self._make_poll([(1, event)])
         return instance.poll()
 
-    def _make_socket(self):
-        Socket = collections.namedtuple("Socket", "name")
-        return Socket(name="socket")
+    def _make_socket(self, fileno=1):
+        # builds a socket stand-in that exposes the file descriptor under
+        # which the interest operations are going to be registered
+        class Socket(object):
+
+            def fileno(self):
+                return fileno
+
+        return Socket()
 
     def _make_poll(self, events):
         # builds a poll stand-in that reports a fixed sequence of events, so
@@ -469,6 +891,34 @@ class PollPollTest(unittest.TestCase):
 
             def poll(self, *args, **kwargs):
                 return events
+
+        return Poll()
+
+    def _make_instance(self):
+        # builds a poll that is backed by a recording stand-in, so that no
+        # real descriptor is required to verify the interest changes
+        instance = poll.PollPoll()
+        instance.read_fd = {}
+        instance.write_fd = {}
+        instance._poll = self._make_registry()
+        return instance
+
+    def _make_registry(self):
+        # builds a poll stand-in that records the registration operations
+        # performed on it, so that the interest changes may be verified
+        class Poll(object):
+
+            def __init__(self):
+                self.calls = []
+
+            def register(self, fd, mask):
+                self.calls.append(("register", fd, mask))
+
+            def modify(self, fd, mask):
+                self.calls.append(("modify", fd, mask))
+
+            def unregister(self, fd):
+                self.calls.append(("unregister", fd))
 
         return Poll()
 

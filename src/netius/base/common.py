@@ -2975,7 +2975,7 @@ class AbstractBase(observer.Observable):
             return
         if not self.poll:
             return
-        self.unsub_read(eventfd)
+        self.unsub_all(eventfd)
 
         # verifies if the callback operation in the event fd is defined
         # for the pool and if that's not the case returns immediately

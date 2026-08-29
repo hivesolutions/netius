@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * The type command of the FTP server now switches the transfer mode that it names
 * Counting down to zero with the compatibility range helpers now yields the expected sequence
 * Asking the memory adapter for a value that does not exist now reports a proper error
+* Suspending the reading of a connection no longer stops its pending data from being sent - [#82](https://github.com/hivesolutions/netius/issues/82)
 
 ## [1.62.1] - 2026-08-25
 
