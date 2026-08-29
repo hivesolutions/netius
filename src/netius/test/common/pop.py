@@ -76,11 +76,13 @@ class POPParserTest(unittest.TestCase):
 
     def test_parse_line_bare(self):
         self.parser.parse(b"NOOP\r\n")
+        self.parser.parse(b"+OK ready\r\n")
 
         # a line that carries no argument reports an empty message, of the
-        # same string type as the one of a line that carries one
-        self.assertEqual(self.lines, [("NOOP", "")])
-        self.assertEqual(netius.legacy.is_bytes(self.lines[0][1]), False)
+        # same string type as the one that a line carrying an argument
+        # reports, instead of a byte sequence of its own
+        self.assertEqual(self.lines[0], ("NOOP", ""))
+        self.assertEqual(type(self.lines[0][1]), type(self.lines[1][1]))
 
     def _on_line(self, code, message):
         self.lines.append((code, message))
