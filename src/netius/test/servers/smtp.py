@@ -157,23 +157,24 @@ class SMTPServerTest(unittest.TestCase):
         unittest.TestCase.tearDown(self)
         self.server.cleanup()
 
-    def test_serve(self):
-        observed = []
-        original = netius.StreamServer.__dict__["serve"]
-
-        def serve(self, *args, **kwargs):
-            observed.append(self.host_g)
-
-        netius.StreamServer.serve = serve
+    def test_init(self):
+        server = netius.servers.SMTPServer(level=logging.CRITICAL)
         try:
-            self.server.serve(host="smtp.localhost")
+            # the greeting hostname is part of the state of the server and
+            # not of the serving, so that it's already available once the
+            # on serve callback is reached from within the base
+            self.assertEqual(server.host_g, "smtp.localhost")
         finally:
-            netius.StreamServer.serve = original
+            server.cleanup()
 
-        # the greeting hostname is kept before the base implementation runs,
-        # as the serving blocks in it and the value has to be available to
-        # the on serve callback that gets called from there
-        self.assertEqual(observed, ["smtp.localhost"])
+        server = netius.servers.SMTPServer(
+            host="mail.example.com", level=logging.CRITICAL
+        )
+        try:
+            # the hostname that a caller names replaces the default one
+            self.assertEqual(server.host_g, "mail.example.com")
+        finally:
+            server.cleanup()
 
     def test_serve_env(self):
         original = netius.StreamServer.__dict__["serve"]
@@ -186,7 +187,7 @@ class SMTPServerTest(unittest.TestCase):
         netius.StreamServer.serve = serve
         try:
             with netius.conf_override("SMTP_HOST", "mail.example.com"):
-                self.server.serve(host="smtp.localhost")
+                self.server.serve()
         finally:
             netius.StreamServer.serve = original
 
@@ -197,7 +198,6 @@ class SMTPServerTest(unittest.TestCase):
         self.assertEqual(self.server.host, "mail.example.com")
 
     def test_on_serve(self):
-        self.server.host_g = "smtp.localhost"
         self.server.host = "127.0.0.1"
 
         self.server.on_serve()
@@ -207,7 +207,6 @@ class SMTPServerTest(unittest.TestCase):
         self.assertEqual(self.server.host, "smtp.localhost")
 
     def test_on_serve_env(self):
-        self.server.host_g = "smtp.localhost"
         self.server.host = "127.0.0.1"
         self.server.env = True
 

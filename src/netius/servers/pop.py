@@ -361,17 +361,15 @@ class POPConnection(netius.Connection):
 
 class POPServer(netius.StreamServer):
 
-    def __init__(self, adapter_s="memory", auth_s="dummy", *args, **kwargs):
+    def __init__(
+        self, adapter_s="memory", auth_s="dummy", host="pop.localhost", *args, **kwargs
+    ):
         netius.StreamServer.__init__(self, *args, **kwargs)
-        self.host_g = None
         self.adapter_s = adapter_s
         self.auth_s = auth_s
-
-    def serve(self, host="pop.localhost", port=110, *args, **kwargs):
-        # keeps the greeting hostname before the base implementation is
-        # reached, as the serving blocks in it and the value has to already
-        # be available to the on serve callback that it calls
         self.host_g = host
+
+    def serve(self, port=110, *args, **kwargs):
         netius.StreamServer.serve(self, port=port, *args, **kwargs)
 
     def on_connection_c(self, connection):
