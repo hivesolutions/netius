@@ -201,7 +201,7 @@ class TorrentConnection(netius.Connection):
         self.trigger("piece", self, data, index, begin)
 
     def port_t(self, data):
-        (port,) = struct.unpack("!H", data[:8])
+        (port,) = struct.unpack("!H", data[:2])
         self.task.set_dht(self.address, port)
 
     def extended_t(self, data):
