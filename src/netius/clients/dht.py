@@ -315,7 +315,7 @@ class DHTClient(netius.DatagramClient):
     """
 
     def ping(self, host, port, peer_id, *args, **kwargs):
-        return self.query(type="ping", *args, **kwargs)
+        return self.query(host, port, peer_id, "ping", *args, **kwargs)
 
     def find_node(self, *args, **kwargs):
         return self.query(type="find_node", *args, **kwargs)

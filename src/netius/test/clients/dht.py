@@ -28,11 +28,18 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import socket
 import struct
 import unittest
 
+import netius
 import netius.common
 import netius.clients
+
+try:
+    import unittest.mock as mock
+except ImportError:
+    mock = None
 
 
 class DHTRequestTest(unittest.TestCase):
@@ -48,6 +55,60 @@ class DHTRequestTest(unittest.TestCase):
         self.assertEqual(info["y"], "q")
         self.assertEqual(info["q"], "get_peers")
         self.assertEqual(info["a"]["info_hash"], "b" * 20)
+
+    def test_contact(self):
+        contact = netius.clients.DHTRequest.contact("1.2.3.4", 6881)
+
+        # a contact is the address and the port of a node packed into the
+        # six bytes that the specification names
+        self.assertEqual(len(contact), 6)
+        self.assertEqual(contact, struct.pack("!LH", 0x01020304, 6881))
+
+    def test_request_invalid(self):
+        request = netius.clients.DHTRequest(
+            b"a" * 20, host="1.2.3.4", port=6881, type="invalid"
+        )
+
+        # a type that names no query of the protocol is refused, as there
+        # is no payload that may be built for it
+        self.assertRaises(netius.ParserError, request.request)
+
+    def test_find_node(self):
+        request = netius.clients.DHTRequest(
+            b"a" * 20, host="1.2.3.4", port=6881, type="find_node", target=b"b" * 20
+        )
+
+        self.assertEqual(request.find_node(), dict(id=b"a" * 20, target=b"b" * 20))
+
+    def test_get_peers(self):
+        request = netius.clients.DHTRequest(
+            b"a" * 20, host="1.2.3.4", port=6881, type="get_peers", info_hash=b"b" * 20
+        )
+
+        self.assertEqual(request.get_peers(), dict(id=b"a" * 20, info_hash=b"b" * 20))
+
+    def test_announce_peer(self):
+        request = netius.clients.DHTRequest(
+            b"a" * 20,
+            host="1.2.3.4",
+            port=6881,
+            type="announce_peer",
+            implied_port=1,
+            info_hash=b"b" * 20,
+            port_v=6881,
+            token=b"token",
+        )
+        request.kwargs["port"] = 6881
+
+        payload = request.announce_peer()
+
+        # the announcement carries the token that the peers query gave
+        # back, which is what the node uses to accept it
+        self.assertEqual(payload["id"], b"a" * 20)
+        self.assertEqual(payload["info_hash"], b"b" * 20)
+        self.assertEqual(payload["implied_port"], 1)
+        self.assertEqual(payload["port"], 6881)
+        self.assertEqual(payload["token"], b"token")
 
     def test_peer_id_length(self):
         request = netius.clients.DHTRequest(
@@ -215,6 +276,16 @@ class DHTRoutingTableTest(unittest.TestCase):
         self.assertEqual(result[0].host, "2.2.2.2")
         self.assertEqual(result[1].host, "1.1.1.1")
 
+    def test_add_self(self):
+        routing = netius.clients.DHTRoutingTable(b"\x00" * 20)
+        node = netius.clients.DHTNode(b"\x00" * 20, host="1.2.3.4", port=6881)
+
+        routing.add(node)
+
+        # a node whose identifier is the one of the table itself is at no
+        # distance from it, which is the first of the buckets
+        self.assertEqual(routing.closest(b"\x00" * 20), [node])
+
     def test_closest_count(self):
         routing = netius.clients.DHTRoutingTable(b"\x00" * 20)
 
@@ -234,6 +305,42 @@ class DHTClientTest(unittest.TestCase):
     def setUp(self):
         unittest.TestCase.setUp(self)
         self.client = _MockDHTClient()
+
+    def test_ping(self):
+        self.client.ping("1.2.3.4", 6881, b"a" * 20)
+
+        # the contact that is given is the one that is queried, instead of
+        # the defaults of the query being used in its place
+        self.assertEqual(self.client.queries[0]["host"], "1.2.3.4")
+        self.assertEqual(self.client.queries[0]["port"], 6881)
+        self.assertEqual(self.client.queries[0]["peer_id"], b"a" * 20)
+        self.assertEqual(self.client.queries[0]["type"], "ping")
+
+    def test_ping_callback(self):
+        def handler(response):
+            pass
+
+        self.client.ping("1.2.3.4", 6881, b"a" * 20, handler)
+
+        # the callback may be given right after the contact, the values
+        # that follow it reaching the query in the very same order
+        self.assertEqual(self.client.queries[0]["host"], "1.2.3.4")
+        self.assertEqual(self.client.queries[0]["port"], 6881)
+        self.assertEqual(self.client.queries[0]["peer_id"], b"a" * 20)
+        self.assertEqual(self.client.queries[0]["type"], "ping")
+        self.assertEqual(self.client.queries[0]["callback"], handler)
+
+    def test_find_node(self):
+        self.client.find_node(host="1.2.3.4", port=6881, target=b"b" * 20)
+
+        self.assertEqual(self.client.queries[0]["type"], "find_node")
+        self.assertEqual(self.client.queries[0]["target"], b"b" * 20)
+
+    def test_get_peers(self):
+        self.client.get_peers(host="1.2.3.4", port=6881, info_hash=b"b" * 20)
+
+        self.assertEqual(self.client.queries[0]["type"], "get_peers")
+        self.assertEqual(self.client.queries[0]["info_hash"], b"b" * 20)
 
     def test_routing(self):
         routing = self.client.routing(b"\x00" * 20)
@@ -273,6 +380,75 @@ class DHTClientTest(unittest.TestCase):
         self.assertEqual(self.client.queries[0]["type"], "get_peers")
         self.assertEqual(self.client.queries[0]["info_hash"], b"\x01" * 20)
 
+    def test_lookup_response(self):
+        peers = self.client.lookup(
+            b"\x00" * 20, b"\x01" * 20, nodes=(("1.2.3.4", 6881),)
+        )
+        callback = self.client.queries[0]["callback"]
+
+        response = netius.clients.DHTResponse(b"")
+        response.info = dict(
+            r=dict(nodes=_contact(b"b" * 20, "5.6.7.8", 1234), values=["peer"])
+        )
+        response.request = netius.clients.DHTRequest(
+            b"\x00" * 20, host="1.2.3.4", port=6881, type="find_node"
+        )
+
+        callback(response)
+
+        # the peers of the answer are gathered and the nodes that came
+        # with it are queried in turn, which is what drives the lookup
+        self.assertEqual(peers, ["peer"])
+        self.assertEqual(len(self.client.queries), 2)
+        self.assertEqual(self.client.queries[1]["host"], "5.6.7.8")
+
+        # the node of the answer is folded into the routing table, so
+        # that it may be reached again without another lookup
+        routing = self.client.routing(b"\x00" * 20)
+        self.assertEqual(len(routing.closest(b"\x01" * 20)), 1)
+
+    def test_lookup_response_invalid(self):
+        self.client.lookup(b"\x00" * 20, b"\x01" * 20, nodes=(("1.2.3.4", 6881),))
+        callback = self.client.queries[0]["callback"]
+
+        callback(None)
+
+        # an answer that never came carries nothing to be gathered, so
+        # no further node is queried for it
+        self.assertEqual(len(self.client.queries), 1)
+
+    def test_lookup_response_callback(self):
+        received = []
+
+        self.client.lookup(
+            b"\x00" * 20,
+            b"\x01" * 20,
+            nodes=(("1.2.3.4", 6881),),
+            callback=lambda response: received.append(response),
+        )
+        callback = self.client.queries[0]["callback"]
+
+        response = netius.clients.DHTResponse(b"")
+        response.info = dict(r=dict())
+        response.request = netius.clients.DHTRequest(
+            b"\x00" * 20, host="1.2.3.4", port=6881, type="find_node"
+        )
+
+        callback(response)
+
+        # the callback of the caller is handed every answer, so that the
+        # progress of the lookup may be followed by it
+        self.assertEqual(received, [response])
+
+    def test_lookup_invalid(self):
+        nodes = (("0.0.0.0", 6881), ("1.2.3.4", 0))
+
+        self.client.lookup(b"\x00" * 20, b"\x01" * 20, nodes=nodes)
+
+        # neither the unspecified address nor a port outside of the range
+        # names a contact that a datagram may be sent to
+        self.assertEqual(self.client.queries, [])
+
     def test_lookup_unique(self):
         nodes = (("1.2.3.4", 6881), ("1.2.3.4", 6881))
 
@@ -283,14 +459,126 @@ class DHTClientTest(unittest.TestCase):
         self.assertEqual(len(self.client.queries), 1)
 
 
+class DHTClientDataTest(unittest.TestCase):
+
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        self.client = _SendDHTClient(poll=netius.Poll, auto_close=False)
+
+    def tearDown(self):
+        unittest.TestCase.tearDown(self)
+        self.client.cleanup()
+
+    def test_query(self):
+        self.client.query(host="1.2.3.4", port=6881, peer_id=b"a" * 20, type="ping")
+
+        data, address = self.client.sent[0]
+        info = netius.common.bdecode(data)
+
+        # the query travels towards the contact that was named and is kept
+        # as pending, so that the answer to it may be matched later on
+        self.assertEqual(address, ("1.2.3.4", 6881))
+        self.assertEqual(info["q"], "ping")
+        self.assertEqual(len(self.client.requests), 1)
+
+    def test_on_data(self):
+        self.client.query(host="1.2.3.4", port=6881, peer_id=b"a" * 20, type="ping")
+
+        request = self.client.requests[0]
+        received = []
+        request.callback = lambda response: received.append(response)
+
+        message = dict(t=str(request.id), y="r", r=dict(id=b"b" * 20))
+        self.client.on_data(("1.2.3.4", 6881), netius.common.bencode(message))
+
+        # the answer is matched against the request that it answers, whose
+        # callback is then handed the response
+        self.assertEqual(len(received), 1)
+        self.assertEqual(len(self.client.requests), 0)
+
+    def test_on_data_malformed(self):
+        self.client.on_data(("1.2.3.4", 6881), b"d1:ad2:id20:")
+
+        # a datagram that cannot be read is dropped in silence, as it may
+        # be a foreign one that reached the socket by chance
+        self.assertEqual(len(self.client.requests), 0)
+
+    def test__bootstrap_nodes(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        def gethostbyname(host):
+            if host == netius.clients.dht.BOOTSTRAP_NODES[0][0]:
+                raise socket.error("unable to resolve")
+            return "1.2.3.4"
+
+        with mock.patch("socket.gethostbyname", gethostbyname):
+            nodes = self.client._bootstrap_nodes()
+
+        # the well known nodes are named by host and have to be resolved,
+        # the ones that cannot be are skipped instead of breaking the rest
+        self.assertEqual(len(nodes), len(netius.clients.dht.BOOTSTRAP_NODES) - 1)
+        self.assertEqual(nodes[0][0], "1.2.3.4")
+
+    def test_on_data_dht_unknown(self):
+        response = netius.clients.DHTResponse(b"")
+        response.info = dict(t="42")
+
+        self.client.on_data_dht(("1.2.3.4", 6881), response)
+
+        # an answer that matches no request of the client is dropped, as
+        # there is nobody waiting to be told about it
+        self.assertEqual(len(self.client.requests), 0)
+
+    def test_on_data_dht_silent(self):
+        self.client.query(host="1.2.3.4", port=6881, peer_id=b"a" * 20, type="ping")
+
+        request = self.client.requests[0]
+        request.callback = None
+
+        response = netius.clients.DHTResponse(b"")
+        response.info = dict(t=str(request.id))
+
+        self.client.on_data_dht(("1.2.3.4", 6881), response)
+
+        # a request that carries no callback is still cleared, so that the
+        # answer to it is never handled a second time
+        self.assertEqual(len(self.client.requests), 0)
+
+
+class _SendDHTClient(netius.clients.DHTClient):
+    """
+    Variant of the client that keeps the datagrams that it
+    sends instead of handing them to a socket.
+    """
+
+    def __init__(self, *args, **kwargs):
+        netius.clients.DHTClient.__init__(self, *args, **kwargs)
+        self.sent = []
+
+    def send(self, data, address, *args, **kwargs):
+        self.sent.append((data, address))
+
+
 class _MockDHTClient(netius.clients.DHTClient):
 
     def __init__(self):
         self.queries = []
         self._routing = None
 
-    def query(self, host="127.0.0.1", port=9090, peer_id=None, type="ping", **kwargs):
-        query = dict(host=host, port=port, peer_id=peer_id, type=type)
+    def query(
+        self,
+        host="127.0.0.1",
+        port=9090,
+        peer_id=None,
+        type="ping",
+        callback=None,
+        *args,
+        **kwargs
+    ):
+        query = dict(
+            host=host, port=port, peer_id=peer_id, type=type, callback=callback
+        )
         query.update(kwargs)
         self.queries.append(query)
 
