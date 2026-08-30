@@ -65,6 +65,122 @@ class ReverseProxyServerTest(unittest.TestCase):
         unittest.TestCase.tearDown(self)
         self.server.cleanup()
 
+    def test_dns_callback(self):
+        server = netius.extra.ReverseProxyServer(hosts=dict(host="http://host.com"))
+
+        try:
+            parsed = netius.legacy.urlparse("http://host.com:8080/path")
+            resolved = [[]]
+            callback = server.dns_callback(
+                "host.com", "http://host.com:8080/path", parsed, resolved=resolved
+            )
+
+            Response = collections.namedtuple("Response", "answers")
+
+            callback(
+                Response(
+                    answers=[
+                        (None, "A", None, None, "1.1.1.1"),
+                        (None, "AAAA", None, None, "2.2.2.2"),
+                        (None, "MX", None, None, "mail.host.com"),
+                    ]
+                )
+            )
+
+            # only the answers that carry an address take part in the
+            # resolution, the port and the path of the origin being kept
+            self.assertEqual(
+                server.hosts["host.com"],
+                ("http://1.1.1.1:8080/path", "http://2.2.2.2:8080/path"),
+            )
+        finally:
+            server.cleanup()
+
+    def test_dns_callback_empty(self):
+        server = netius.extra.ReverseProxyServer(hosts=dict(host="http://host.com"))
+
+        try:
+            parsed = netius.legacy.urlparse("http://host.com")
+            callback = server.dns_callback(
+                "host.com", "http://host.com", parsed, resolved=[[]]
+            )
+
+            Response = collections.namedtuple("Response", "answers")
+
+            callback(None)
+            callback(Response(answers=[]))
+
+            # neither a resolution that failed nor one that carries no
+            # answer changes the hosts that are registered
+            self.assertEqual("host.com" in server.hosts, False)
+            self.assertEqual(server.hosts["host"], "http://host.com")
+        finally:
+            server.cleanup()
+
+    def test__echo(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = netius.extra.ReverseProxyServer(
+            regex=[(re.compile("^/first$"), "http://first")],
+            hosts=dict(second="http://second", first="http://first"),
+            alias=dict(alias="first"),
+            redirect=dict(old="new"),
+            error_urls=dict(first="http://first/error"),
+        )
+
+        try:
+            with mock.patch.object(server, "info") as info:
+                server._echo()
+        finally:
+            server.cleanup()
+
+        pairs = self._pairs(info)
+
+        # every one of the registrations is named by the dump, so that
+        # the running configuration may be read from the log alone
+        self.assertEqual(("http://second", None) in pairs, False)
+        self.assertEqual(("second", "http://second") in pairs, True)
+        self.assertEqual(("first", "http://first") in pairs, True)
+        self.assertEqual(("alias", "first") in pairs, True)
+        self.assertEqual(("old", "new") in pairs, True)
+        self.assertEqual(("first", "http://first/error") in pairs, True)
+
+        # the hosts are dumped in order, so that the same configuration
+        # always reads the same way whatever the order of the map
+        hosts = [pair for pair in pairs if pair[1] in ("http://first", "http://second")]
+        self.assertEqual(
+            hosts.index(("first", "http://first"))
+            < hosts.index(("second", "http://second")),
+            True,
+        )
+
+    def test__echo_sort(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = netius.extra.ReverseProxyServer(
+            hosts=dict(second="http://second", first="http://first")
+        )
+
+        try:
+            with mock.patch.object(server, "info") as info:
+                server._echo(sort=False)
+        finally:
+            server.cleanup()
+
+        pairs = self._pairs(info)
+
+        # without the sorting every registration is still named, only the
+        # order in which they are walked is no longer settled
+        self.assertEqual(("first", "http://first") in pairs, True)
+        self.assertEqual(("second", "http://second") in pairs, True)
+
+    def _pairs(self, info):
+        # gathers the pairs of the registration lines that were dumped,
+        # leaving out the headers that carry no value of their own
+        return [tuple(call[0][1:]) for call in info.call_args_list if len(call[0]) == 3]
+
     def test_alias(self):
         Parser = collections.namedtuple("Parser", "headers")
         parser = Parser(headers=dict(host="alias.host.com"))

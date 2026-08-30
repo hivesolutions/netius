@@ -34,6 +34,11 @@ import unittest
 import netius.common
 import netius.middleware
 
+try:
+    import unittest.mock as mock
+except ImportError:
+    mock = None
+
 
 class ProxyMiddlewareTest(unittest.TestCase):
 
@@ -45,6 +50,53 @@ class ProxyMiddlewareTest(unittest.TestCase):
     def tearDown(self):
         unittest.TestCase.tearDown(self)
         self.server.cleanup()
+
+    def test_stop(self):
+        instance = self.server.register_middleware(netius.middleware.ProxyMiddleware)
+
+        instance.stop()
+
+        # the stopping releases the handler, so that a connection that is
+        # created afterwards is no longer handed a starter
+        self.assertEqual(
+            instance.on_connection_c in self.server.events["connection_c"], False
+        )
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        self.assertEqual(hasattr(connection, "_proxy_pending"), False)
+
+    def test_on_connection_c_base(self):
+        self.server.register_middleware(netius.middleware.ProxyMiddleware)
+
+        connection = netius.Connection(owner=self.server)
+        connection._base = True
+        connection.open()
+
+        # a connection that stands for the base of another one carries no
+        # header of its own, so no starter is added to it
+        self.assertEqual(hasattr(connection, "_proxy_pending"), False)
+
+    def test_on_connection_c_skip(self):
+        self.server.register_middleware(netius.middleware.ProxyMiddleware)
+
+        connection = netius.Connection(owner=self.server)
+        connection._skip_proxy = True
+        connection.open()
+
+        # the skipping is asked for by the connection itself, which is
+        # enough for the handshake never to be scheduled
+        self.assertEqual(hasattr(connection, "_proxy_pending"), False)
+
+    def test_on_connection_c_version(self):
+        self.server.register_middleware(netius.middleware.ProxyMiddleware, version=3)
+
+        connection = netius.Connection(owner=self.server)
+
+        # only the two versions of the protocol are known, so a value
+        # that names neither of them is refused
+        self.assertRaises(netius.RuntimeError, connection.open)
 
     def test_ipv4_v1(self):
         instance = self.server.register_middleware(netius.middleware.ProxyMiddleware)
@@ -108,6 +160,53 @@ class ProxyMiddlewareTest(unittest.TestCase):
         self.assertEqual(connection.restored_s, 18)
         self.assertEqual(len(connection.restored), 2)
 
+    def test_starter_v1_eof(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        instance = self.server.register_middleware(netius.middleware.ProxyMiddleware)
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        with mock.patch.object(self.server, "exec_safe", return_value=b""):
+            instance._proxy_handshake_v1(connection)
+
+        # an empty read is the peer that is gone, so the connection is
+        # closed instead of being waited for any longer
+        self.assertEqual(connection.is_closed(), True)
+
+    def test_starter_v1_buffer(self):
+        instance = self.server.register_middleware(netius.middleware.ProxyMiddleware)
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        # the part of the header that was already read is kept in the
+        # buffer of the connection, which the next run takes up again
+        connection._proxy_buffer = bytearray(b"PROXY TCP4 192.168.1.1 ")
+        connection.restore(b"192.168.1.2 32598 8080\r\n")
+        connection.run_starter()
+
+        self.assertEqual(connection.address, ("192.168.1.1", 32598))
+
+    def test_starter_v1_blocked(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        instance = self.server.register_middleware(netius.middleware.ProxyMiddleware)
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        with mock.patch.object(self.server, "exec_safe", return_value=False):
+            instance._proxy_handshake_v1(connection)
+
+        # a read that was blocked gives neither data nor failure, so the
+        # handshake steps back and waits to be run again
+        self.assertEqual(connection.is_closed(), False)
+        self.assertEqual(connection._proxy_pending, True)
+
     def test_starter_v2(self):
         self.server.register_middleware(netius.middleware.ProxyMiddleware, version=2)
 
@@ -138,6 +237,87 @@ class ProxyMiddlewareTest(unittest.TestCase):
         self.assertEqual(connection.address, ("192.168.1.1", 32598))
         self.assertEqual(connection.restored_s, 0)
         self.assertEqual(len(connection.restored), 0)
+
+    def test_starter_v2_eof(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        instance = self.server.register_middleware(
+            netius.middleware.ProxyMiddleware, version=2
+        )
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        with mock.patch.object(self.server, "exec_safe", return_value=b""):
+            instance._proxy_handshake_v2(connection)
+
+        # the reading of the header ends the very same way, the peer
+        # being gone before it was ever complete
+        self.assertEqual(connection.is_closed(), True)
+
+    def test_starter_v2_ipv6(self):
+        self.server.register_middleware(netius.middleware.ProxyMiddleware, version=2)
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        body = struct.pack(
+            "!QQQQHH",
+            0xFE80000000000000,
+            0x787FF63F3176D61B,
+            0xFE80000000000000,
+            0x787FF63F3176D61C,
+            32598,
+            8080,
+        )
+
+        connection.restore(self._header_v2(len(body), address=self._AF_INET6))
+        connection.restore(body)
+        connection.run_starter()
+
+        # the address of the six family travels as four words, which are
+        # joined back into the two addresses that the message carries
+        self.assertEqual(
+            connection.address, ("fe80:0000:0000:0000:787f:f63f:3176:d61b", 32598)
+        )
+        self.assertEqual(len(connection.restored), 0)
+
+    def test_starter_v2_family(self):
+        instance = self.server.register_middleware(
+            netius.middleware.ProxyMiddleware, version=2
+        )
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        connection.restore(self._header_v2(12, address=0x0F))
+        connection.restore(b"x" * 12)
+
+        # a family that is neither of the two known ones names an address
+        # that cannot be read, so the message is refused
+        self.assertRaises(
+            netius.RuntimeError, lambda: instance._proxy_handshake_v2(connection)
+        )
+
+    def test_starter_v2_blocked(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        instance = self.server.register_middleware(
+            netius.middleware.ProxyMiddleware, version=2
+        )
+
+        connection = netius.Connection(owner=self.server)
+        connection.open()
+
+        with mock.patch.object(self.server, "exec_safe", return_value=False):
+            instance._proxy_handshake_v2(connection)
+
+        # the header is never read in full, so neither the buffer nor the
+        # header of the connection carry anything yet
+        self.assertEqual(connection.is_closed(), False)
+        self.assertEqual(hasattr(connection, "_proxy_header"), False)
 
     def test_pending_flag_v1(self):
         self.server.register_middleware(netius.middleware.ProxyMiddleware)
@@ -250,3 +430,18 @@ class ProxyMiddlewareTest(unittest.TestCase):
         connection.open()
 
         self.assertFalse(hasattr(connection, "_proxy_pending"))
+
+    _AF_INET6 = netius.middleware.ProxyMiddleware.AF_INET6_v2
+
+    def _header_v2(self, body_size, address=None):
+        # builds the header of a version two message for the provided body
+        # size, defaulting the family to the four based one
+        cls = netius.middleware.ProxyMiddleware
+        address = cls.AF_INET_v2 if address == None else address
+        return struct.pack(
+            "!12sBBH",
+            cls.HEADER_MAGIC_V2,
+            (2 << 4) + cls.TYPE_PROXY_V2,
+            (address << 4) + cls.PROTO_STREAM_v2,
+            body_size,
+        )

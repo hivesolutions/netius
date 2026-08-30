@@ -53,7 +53,7 @@ class FloodMiddleware(Middleware):
 
     def __init__(self, owner, conns_per_min=600, whitelist=None):
         Middleware.__init__(self, owner)
-        self.blacklist = conns_per_min
+        self.conns_per_min = conns_per_min
         self.whitelist = whitelist or []
 
     def start(self):
@@ -81,7 +81,7 @@ class FloodMiddleware(Middleware):
 
     def _update_flood(self, host):
         minute = int(time.time() // 60)
-        if minute == self.minute:
+        if not minute == self.minute:
             self.conn_map.clear()
         self.minute = minute
         count = self.conn_map.get(host, 0)

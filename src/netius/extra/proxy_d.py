@@ -218,8 +218,8 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
     def _build_suffixes(self, alias=True, redirect=True):
         for host_suffix in self.host_suffixes:
             self.info("Registering %s host suffix", host_suffix)
-            for alias, value in netius.legacy.items(self.alias):
-                fqn = alias + "." + str(host_suffix)
+            for key, value in netius.legacy.items(self.alias):
+                fqn = key + "." + str(host_suffix)
                 self.alias[fqn] = value
             for name, value in netius.legacy.items(self.hosts):
                 fqn = name + "." + str(host_suffix)
