@@ -29,11 +29,18 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import os
+import ssl
 import shutil
 import tempfile
 import unittest
 
 import netius.common
+
+HOSTNAME_ERRORS = (netius.SecurityError, ssl.CertificateError)
+""" The errors that the matching of a hostname is able to raise,
+the first one coming from the fall back of the package and the
+second from the runtime, which answers for the match under the
+versions of it that still provide one """
 
 
 class TLSTest(unittest.TestCase):
@@ -120,7 +127,7 @@ class TLSTest(unittest.TestCase):
         )
         netius.match_hostname(certificate, "domain.com")
         self.assertRaises(
-            BaseException,
+            HOSTNAME_ERRORS,
             lambda: netius.match_hostname(certificate, "other.domain.com"),
         )
 
@@ -135,7 +142,7 @@ class TLSTest(unittest.TestCase):
         # of it that are not a common name being skipped
         self.assertEqual(netius.match_hostname(certificate, "domain.com"), None)
         self.assertRaises(
-            BaseException, lambda: netius.match_hostname(certificate, "other.com")
+            HOSTNAME_ERRORS, lambda: netius.match_hostname(certificate, "other.com")
         )
 
     def test_match_hostname_entry(self):
@@ -152,7 +159,8 @@ class TLSTest(unittest.TestCase):
         # a certificate that carries no name at all is never able to answer
         # for a host, whatever the host that is asked for
         self.assertRaises(
-            BaseException, lambda: netius.match_hostname(dict(version=3), "domain.com")
+            HOSTNAME_ERRORS,
+            lambda: netius.match_hostname(dict(version=3), "domain.com"),
         )
 
     def test_dnsname_match(self):
