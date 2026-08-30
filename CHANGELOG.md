@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * A GeoIP database that is downloaded on demand is now used instead of being discarded
 * A POP command with no argument no longer reports its message as a byte sequence
+* A configuration context can now be used to load a file, instead of failing on it
+* A configuration file that is imported by another is now loaded into the context that asked for it
 * A file opened through the asynchronous file pool now honours the mode that was asked for
 * A file written through the asynchronous file pool now reaches the disk instead of failing
 * A stored password that carries a separator no longer breaks the authentication
