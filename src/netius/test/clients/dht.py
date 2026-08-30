@@ -316,6 +316,20 @@ class DHTClientTest(unittest.TestCase):
         self.assertEqual(self.client.queries[0]["peer_id"], b"a" * 20)
         self.assertEqual(self.client.queries[0]["type"], "ping")
 
+    def test_ping_callback(self):
+        def handler(response):
+            pass
+
+        self.client.ping("1.2.3.4", 6881, b"a" * 20, handler)
+
+        # the callback may be given right after the contact, the values
+        # that follow it reaching the query in the very same order
+        self.assertEqual(self.client.queries[0]["host"], "1.2.3.4")
+        self.assertEqual(self.client.queries[0]["port"], 6881)
+        self.assertEqual(self.client.queries[0]["peer_id"], b"a" * 20)
+        self.assertEqual(self.client.queries[0]["type"], "ping")
+        self.assertEqual(self.client.queries[0]["callback"], handler)
+
     def test_find_node(self):
         self.client.find_node(host="1.2.3.4", port=6881, target=b"b" * 20)
 
@@ -552,8 +566,19 @@ class _MockDHTClient(netius.clients.DHTClient):
         self.queries = []
         self._routing = None
 
-    def query(self, host="127.0.0.1", port=9090, peer_id=None, type="ping", **kwargs):
-        query = dict(host=host, port=port, peer_id=peer_id, type=type)
+    def query(
+        self,
+        host="127.0.0.1",
+        port=9090,
+        peer_id=None,
+        type="ping",
+        callback=None,
+        *args,
+        **kwargs
+    ):
+        query = dict(
+            host=host, port=port, peer_id=peer_id, type=type, callback=callback
+        )
         query.update(kwargs)
         self.queries.append(query)
 
