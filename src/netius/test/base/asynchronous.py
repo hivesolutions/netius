@@ -493,6 +493,17 @@ class AsyncOldTest(unittest.TestCase):
         self.assertEqual(async_old.is_future("value"), False)
 
     def test_is_await(self):
+        try:
+            compile("async def routine():\n    yield 1", "<test>", "exec")
+            supported = True
+        except SyntaxError:
+            supported = False
+
+        # the asynchronous generator is what the release that the flag
+        # stands for adds over the one that introduced the syntax, so the
+        # interpreter is asked for it instead of the flag being trusted
+        self.assertEqual(async_old.is_await(), supported)
+
         # the three flags are thresholds of the very same interpreter and
         # follow one another, so the newest of them is never the one that
         # is set while one that came before it is not
