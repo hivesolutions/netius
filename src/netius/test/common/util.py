@@ -35,12 +35,29 @@ import netius.common
 
 class UtilTest(unittest.TestCase):
 
+    def test_cstring(self):
+        # the value is cut at the first of the null bytes, which is what
+        # ends a string under the C conventions
+        self.assertEqual(netius.common.cstring("value\0rest"), "value")
+
+        # a value that carries no null byte at all is already a complete
+        # one, so it is given back as it is
+        self.assertEqual(netius.common.cstring("value"), "value")
+        self.assertEqual(netius.common.cstring(""), "")
+
     def test_is_ip4(self):
         result = netius.common.is_ip4("127.0.0.1")
         self.assertEqual(result, True)
 
         result = netius.common.is_ip4("172.16.0.0/16")
         self.assertEqual(result, False)
+
+    def test_is_ip4_invalid(self):
+        # every one of the four parts of an address stands for a single
+        # byte, so neither a negative nor a larger value names one
+        self.assertEqual(netius.common.is_ip4("192.168.1.-1"), False)
+        self.assertEqual(netius.common.is_ip4("192.168.1.256"), False)
+        self.assertEqual(netius.common.is_ip4("192.168.1.value"), False)
 
     def test_is_ip6(self):
         result = netius.common.is_ip6("::1")
@@ -114,6 +131,42 @@ class UtilTest(unittest.TestCase):
         result = netius.common.integer_to_bytes(87521618088882533792115812)
         self.assertEqual(result, b"Hello World")
 
+    def test_integer_to_bytes_length(self):
+        result = netius.common.integer_to_bytes(1, length=4)
+
+        # the length that is asked for is filled with the bytes that are
+        # missing, which are placed in front of the value
+        self.assertEqual(result, b"\x00\x00\x00\x01")
+
+        # a length that is smaller than the one of the value changes
+        # nothing, as no byte of it may be dropped
+        self.assertEqual(netius.common.integer_to_bytes(256, length=1), b"\x01\x00")
+
+    def test_integer_to_bytes_invalid(self):
+        # only an integer carries the bytes that the conversion reads,
+        # so a value of another kind is refused
+        self.assertRaises(netius.DataError, lambda: netius.common.integer_to_bytes("1"))
+
+    def test_bytes_to_integer_invalid(self):
+        # only a byte sequence carries the value that the conversion
+        # reads, so one of another kind is refused
+        self.assertRaises(netius.DataError, lambda: netius.common.bytes_to_integer(1))
+
+        # a text value is not a byte one either, whichever of the two
+        # runtimes is the one that runs the case
+        self.assertRaises(
+            netius.DataError,
+            lambda: netius.common.bytes_to_integer(netius.legacy.u("value")),
+        )
+
+    def test_hostname(self):
+        result = netius.common.hostname()
+
+        # the name of the machine is a string of its own, whatever the
+        # value that the runtime gives for it
+        self.assertEqual(netius.legacy.is_string(result), True)
+        self.assertEqual(len(result) > 0, True)
+
     def test_size_round_unit(self):
         result = netius.common.size_round_unit(209715200, space=True)
         self.assertEqual(result, "200 MB")
@@ -144,6 +197,18 @@ class UtilTest(unittest.TestCase):
 
         result = netius.common.size_round_unit(2049, places=0, reduce=False)
         self.assertEqual(result, "2KB")
+
+    def test_size_round_unit_justify(self):
+        result = netius.common.size_round_unit(2048, justify=True)
+
+        # the justification pads the value so that a column of them may
+        # be aligned, the unit coming right after the padded value
+        self.assertEqual(result.startswith(" "), True)
+        self.assertEqual(result.strip(), "2KB")
+
+        # without it the value carries no padding at all, which is the
+        # whole of the difference that the flag makes
+        self.assertEqual(netius.common.size_round_unit(2048), "2KB")
 
     def test_verify(self):
         result = netius.common.verify(1 == 1)

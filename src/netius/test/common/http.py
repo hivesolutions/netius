@@ -195,6 +195,38 @@ class HTTPEncodingsTest(unittest.TestCase):
         self.assertEqual(netius.common.parse_encodings("gzip;q=0.5"), ["gzip"])
 
 
+class HTTPResponseTest(unittest.TestCase):
+
+    def test_response(self):
+        response = netius.common.http.HTTPResponse(
+            data=b"Hello World",
+            code=404,
+            status="Not Found",
+            headers=dict(Server="Test Service/1.0.0"),
+        )
+
+        # the response stands for the shape that the standard library
+        # gives, so that it may be used in the place of one
+        self.assertEqual(response.read(), b"Hello World")
+        self.assertEqual(response.readline(), b"Hello World")
+        self.assertEqual(response.getcode(), 404)
+        self.assertEqual(response.info(), dict(Server="Test Service/1.0.0"))
+        self.assertEqual(response.status, "Not Found")
+
+        # the closing carries no behaviour of its own, as there is no
+        # resource of the response left to be released
+        self.assertEqual(response.close(), None)
+
+    def test_response_defaults(self):
+        response = netius.common.http.HTTPResponse()
+
+        # a response that carries nothing is a successful one with no
+        # body and no headers of its own
+        self.assertEqual(response.read(), None)
+        self.assertEqual(response.getcode(), 200)
+        self.assertEqual(response.info(), None)
+
+
 class HTTPParserTest(unittest.TestCase):
 
     def test_simple(self):
@@ -807,6 +839,41 @@ class HTTPParserTest(unittest.TestCase):
             # a request with no accept encoding header must not accept any
             # of the codings, so that no unexpected coding is ever sent
             self.assertEqual(parser.get_encodings(), [])
+        finally:
+            parser.clear()
+
+    def test__parse_query(self):
+        parser = netius.common.HTTPParser(self, type=netius.common.REQUEST)
+
+        try:
+            result = parser._parse_query("first=1&second=2&second=3&empty=")
+
+            # a name that shows up more than once carries every one of
+            # its values, which is why each of them is a sequence
+            self.assertEqual(result["first"], ["1"])
+            self.assertEqual(result["second"], ["2", "3"])
+
+            # a value that is empty is kept as one, instead of the name
+            # of it being dropped from the result
+            self.assertEqual(result["empty"], [""])
+        finally:
+            parser.clear()
+
+    def test__decode_params(self):
+        parser = netius.common.HTTPParser(self, type=netius.common.REQUEST)
+
+        try:
+            result = parser._decode_params({b"name": [b"value"]})
+
+            # both the names and the values are decoded, so that what
+            # comes out of the parsing is text and not bytes
+            self.assertEqual(result, dict(name=["value"]))
+
+            # a value that is already text is kept as it is, as there is
+            # nothing of it left to be decoded
+            self.assertEqual(
+                parser._decode_params(dict(name=["value"])), dict(name=["value"])
+            )
         finally:
             parser.clear()
 

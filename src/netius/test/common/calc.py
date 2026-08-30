@@ -35,9 +35,132 @@ import netius.common
 
 class CalcTest(unittest.TestCase):
 
+    def test_prime(self):
+        result = netius.common.calc.prime(16)
+
+        # the number that is generated is as wide as it was asked for
+        # and is one that passes the test of primality
+        self.assertEqual(result.bit_length(), 16)
+        self.assertEqual(netius.common.calc.is_prime(result), True)
+
+        # the generated value is always an odd one, as an even number
+        # is never a prime beyond the two
+        self.assertEqual(result & 1, 1)
+
+    def test_is_prime(self):
+        for number in (3, 7, 13, 97, 1009):
+            self.assertEqual(netius.common.calc.is_prime(number), True)
+
+        # a number that carries a factor of its own is never a prime,
+        # the carmichael one being the case that fools the naive tests
+        for number in (9, 15, 21, 561):
+            self.assertEqual(netius.common.calc.is_prime(number), False)
+
+    def test_relatively_prime(self):
+        self.assertEqual(netius.common.calc.relatively_prime(9, 28), True)
+
+        # the two values share a factor of three, so there is a divisor
+        # of them that is greater than the one
+        self.assertEqual(netius.common.calc.relatively_prime(12, 18), False)
+
+    def test_gcd(self):
+        self.assertEqual(netius.common.calc.gcd(48, 18), 6)
+
+        # the order of the values does not change the divisor, as the
+        # smaller of them is moved to the front before the reduction
+        self.assertEqual(netius.common.calc.gcd(18, 48), 6)
+
+        # a zero has no divisor of its own, so the other value is the
+        # one that answers for the pair
+        self.assertEqual(netius.common.calc.gcd(7, 0), 7)
+        self.assertEqual(netius.common.calc.gcd(0, 7), 7)
+
+    def test_egcd(self):
+        d, x, y = netius.common.calc.egcd(240, 46)
+
+        # the divisor is the one of the plain algorithm and the two
+        # coefficients answer the identity that gives them their name
+        self.assertEqual(d, netius.common.calc.gcd(240, 46))
+        self.assertEqual(240 * x + 46 * y, d)
+
+        d, x, y = netius.common.calc.egcd(17, 5)
+
+        self.assertEqual(d, 1)
+        self.assertEqual(17 * x + 5 * y, 1)
+
+        # with a zero there is nothing left to reduce, so the value
+        # itself is the divisor and the coefficients are settled
+        self.assertEqual(netius.common.calc.egcd(7, 0), (7, 1, 0))
+
+    def test_modinv(self):
+        result = netius.common.calc.modinv(3, 11)
+
+        # the inverse is the value that brings the product back to the
+        # one under the modulus that was asked for
+        self.assertEqual((3 * result) % 11, 1)
+
+        result = netius.common.calc.modinv(17, 43)
+
+        self.assertEqual((17 * result) % 43, 1)
+
+    def test_modinv_missing(self):
+        # the two values share a factor, so there is no value that
+        # inverts one of them under the other
+        self.assertRaises(netius.DataError, lambda: netius.common.calc.modinv(4, 8))
+
+    def test_random_integer_interval(self):
+        for _index in range(16):
+            result = netius.common.calc.random_integer_interval(10, 100)
+
+            # the value that is generated never leaves the interval that
+            # was named, whatever the number of bits that built it
+            self.assertEqual(result >= 10, True)
+            self.assertEqual(result < 100, True)
+
+    def test_random_primality(self):
+        self.assertEqual(netius.common.calc.random_primality(97, 6), True)
+
+        # a witness of the non primality is found for a value that is
+        # not a prime, which ends the test right away
+        self.assertEqual(netius.common.calc.random_primality(561, 6), False)
+
     def test_jacobi_witness(self):
         result = netius.common.jacobi_witness(12, 2)
         self.assertEqual(result, True)
 
         result = netius.common.jacobi_witness(3, 2)
         self.assertEqual(result, False)
+
+    def test_jacobi(self):
+        # the residues of three and of five, which are the values that
+        # the definition of the symbol gives for them
+        self.assertEqual(netius.common.calc.jacobi(1, 3), 1)
+        self.assertEqual(netius.common.calc.jacobi(2, 3), -1)
+        self.assertEqual(netius.common.calc.jacobi(4, 5), 1)
+        self.assertEqual(netius.common.calc.jacobi(3, 5), -1)
+        self.assertEqual(netius.common.calc.jacobi(2, 7), 1)
+
+    def test_jacobi_shared(self):
+        # a value that is a multiple of the other leaves no residue at
+        # all, which is the zero of the symbol
+        self.assertEqual(netius.common.calc.jacobi(9, 3), 0)
+
+        # the two values share a factor without one being a multiple of
+        # the other, which is a zero of the symbol as well
+        self.assertEqual(netius.common.calc.jacobi(3, 9), 0)
+        self.assertEqual(netius.common.calc.jacobi(6, 9), 0)
+        self.assertEqual(netius.common.calc.jacobi(10, 15), 0)
+
+    def test_ceil_integer(self):
+        result = netius.common.calc.ceil_integer(1.2)
+
+        # the value is rounded up and given back as an integer, so that
+        # it may be used where only one of them is taken
+        self.assertEqual(result, 2)
+        self.assertEqual(netius.legacy.is_string(result), False)
+        self.assertEqual(type(result) in netius.legacy.INTEGERS, True)
+
+        # a value that is already a round one is kept as it is, instead
+        # of being pushed to the one that follows it
+        self.assertEqual(netius.common.calc.ceil_integer(2.0), 2)
+        self.assertEqual(netius.common.calc.ceil_integer(-1.2), -1)
