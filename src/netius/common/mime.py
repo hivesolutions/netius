@@ -97,11 +97,11 @@ class Headers(list):
         raise KeyError("not found")
 
     def __setitem__(self, key, value):
-        key = self._normalize(key)
-        value = self._normalize(value)
         is_integer = isinstance(key, int)
         if is_integer:
             return list.__setitem__(self, key, value)
+        key = self._normalize(key)
+        value = self._normalize(value)
         self.append([key, value])
 
     def __delitem__(self, key):

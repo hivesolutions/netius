@@ -306,6 +306,12 @@ def jacobi(a, b):
                 result = -result
             a >>= 1
 
+    # in case the reduction ended in a zero then the two values
+    # share a factor, meaning that the symbol of them is a zero
+    # one, as no residue exists for such a pair
+    if a == 0:
+        return 0
+
     return result
 
 
