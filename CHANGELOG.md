@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * A configuration file that is imported by another is now loaded into the context that asked for it
 * A file opened through the asynchronous file pool now honours the mode that was asked for
 * A file written through the asynchronous file pool now reaches the disk instead of failing
+* A flood avoidance middleware can now be started, instead of failing on the limit of a minute
+* A host that floods is now blocked, as the count of a minute is no longer reset by every connection
+* A host suffix of the Docker proxy is now registered where it was asked to be
 * A stored password that carries a separator no longer breaks the authentication
 * An asynchronous file operation that is not a known one is now refused instead of being ignored
 * Two WebSocket frames that arrive together are now both handled instead of the second being swallowed
