@@ -13,8 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+*
+
+### Fixed
+
+* A header that is set by its position now replaces the one that is there
+* A string that carries no null byte is now given back whole instead of raising
+* The test of primality no longer takes a base that shares a factor for a prime one
+
+## [1.63.1] - 2026-08-31
+
+### Changed
+
 * The priority weight of an HTTP/2 stream is now the effective one instead of the value that travels in the wire - [#101](https://github.com/hivesolutions/netius/issues/101)
 * The coverage job now fails when the package falls below the floor that it has reached - [#102](https://github.com/hivesolutions/netius/issues/102)
+* A connection that waits for a new request is no longer closed after a while, unless a bound is configured
 
 ### Fixed
 
@@ -27,13 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * A flood avoidance middleware can now be started, instead of failing on the limit of a minute
 * A host that floods is now blocked, as the count of a minute is no longer reset by every connection
 * A host suffix of the Docker proxy is now registered where it was asked to be
-* A header that is set by its position now replaces the one that is there
 * A ping of a DHT node now reaches the node that was named instead of the local default
 * A stored password that carries a separator no longer breaks the authentication
-* A string that carries no null byte is now given back whole instead of raising
 * An asynchronous file operation that is not a known one is now refused instead of being ignored
 * The port that a torrent peer announces is now read whatever the size of the message
-* The test of primality no longer misses two values that share a factor
 * Two WebSocket frames that arrive together are now both handled instead of the second being swallowed
 
 ## [1.63.0] - 2026-08-29
