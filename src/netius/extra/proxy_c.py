@@ -392,6 +392,9 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
                 self.info("Consul returned %d for %s", result["code"], url)
                 return None
             data = result.get("data", b"")
+            # the payload is decoded before being parsed as the loading of
+            # a byte sequence is only supported from Python 3.6 onwards
+            data = netius.legacy.str(data, encoding="utf-8")
             return json.loads(data)
         except Exception as exception:
             self.info("Failed to retrieve Consul data from %s: %s", url, exception)

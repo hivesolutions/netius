@@ -78,6 +78,81 @@ class ProxyConnectionTest(unittest.TestCase):
         self.assertEqual(connection.current, netius.common.GZIP_ENCODING)
         self.assertEqual(connection.encodings_a, None)
 
+    def test_set_h2(self):
+        connection = self._make_relay()
+        connection.set_h2()
+
+        # the switch to the binary protocol rebuilds the parser, so the events
+        # that drive the proxy must be bound again or they would be lost
+        for name in ("on_headers", "on_partial", "on_available", "on_unavailable"):
+            self.assertEqual(name in connection.parser.events, True)
+
+    def test_on_headers(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_relay(legacy=True)
+
+        with mock.patch.object(self.server, "on_headers") as on_headers:
+            connection.on_headers()
+
+        # under the legacy protocol the connection and the parser of it are
+        # what reaches the server, there being no stream to stand for them
+        self.assertEqual(on_headers.call_args[0][0], connection)
+        self.assertEqual(on_headers.call_args[0][1], connection.parser)
+
+    def test_on_partial(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_relay(legacy=True)
+
+        with mock.patch.object(self.server, "on_partial") as on_partial:
+            connection.on_partial(b"hello")
+
+        # the payload travels together with the contexts, as it is the server
+        # that decides what is to be done with it
+        self.assertEqual(on_partial.call_args[0][0], connection)
+        self.assertEqual(on_partial.call_args[0][2], b"hello")
+
+    def test_on_available(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_relay()
+        stream = self._make_stream(connection)
+
+        with mock.patch.object(self.server, "on_available") as on_available:
+            connection.on_available()
+
+        # with a stream under way it is the stream that stands for both of the
+        # contexts, so that the throttling is applied to it and not to the
+        # connection that multiplexes it
+        self.assertEqual(on_available.call_args[0][0], stream)
+        self.assertEqual(on_available.call_args[0][1], stream)
+
+    def test_on_unavailable(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_relay()
+        stream = self._make_stream(connection)
+
+        with mock.patch.object(self.server, "on_unavailable") as on_unavailable:
+            connection.on_unavailable()
+
+        self.assertEqual(on_unavailable.call_args[0][0], stream)
+
+        # once the stream is gone the connection takes its place again, which
+        # is what keeps the events of a spent parser from being dropped
+        connection.parser._del_stream(stream.identifier)
+
+        with mock.patch.object(self.server, "on_unavailable") as on_unavailable:
+            connection.on_unavailable()
+
+        self.assertEqual(on_unavailable.call_args[0][0], connection)
+        self.assertEqual(on_unavailable.call_args[0][1], connection.parser)
+
     def _make_connection(self, encoding):
         # builds a proxy connection without the underlying socket, replicating
         # the encoding state that the constructor would otherwise initialize
@@ -91,6 +166,33 @@ class ProxyConnectionTest(unittest.TestCase):
         connection.encodings_a = None
         connection.dynamic = None
         return connection
+
+    def _make_relay(self, legacy=False):
+        # builds a proxy connection without the underlying socket, in the state
+        # that the relaying of the events of the parser reads
+        connection = netius.servers.proxy.ProxyConnection.__new__(
+            netius.servers.proxy.ProxyConnection
+        )
+        connection.owner = self.server
+        connection.legacy = legacy
+        connection.parser = None
+        connection.encoding = netius.common.PLAIN_ENCODING
+        connection.window_o = netius.common.HTTP2_WINDOW
+        if legacy:
+            connection.parser = netius.common.HTTPParser(
+                connection, type=netius.common.REQUEST
+            )
+        else:
+            connection.set_h2()
+        return connection
+
+    def _make_stream(self, connection):
+        # builds an open stream and registers it in the parser, so that it
+        # becomes the context under which the events are relayed
+        stream = netius.common.http2.HTTP2Stream(identifier=1, owner=connection.parser)
+        stream.open()
+        connection.parser._set_stream(stream)
+        return stream
 
     def _make_parser(self, accept_encoding):
         parser = netius.common.HTTPParser(self, type=netius.common.REQUEST)
@@ -110,6 +212,44 @@ class ProxyServerTest(unittest.TestCase):
         unittest.TestCase.tearDown(self)
         self.server.cleanup()
         self.server_a.cleanup()
+
+    def test_stop(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        with mock.patch.object(self.server.container, "stop") as stop:
+            self.server.stop()
+
+        # the loop is the one of the container, so the stopping of the proxy
+        # is the stopping of the container that holds the three of the bases
+        self.assertEqual(stop.called, True)
+
+        # a proxy that has been cleaned up has no container left to be stopped,
+        # and asking for it again must not raise
+        self.server_a.cleanup()
+        self.assertEqual(self.server_a.stop(), None)
+
+    def test_connections_dict(self):
+        # a container that is not running the proxy would delegate the
+        # operation back into it, so the local connections are the ones
+        # reported instead (avoids an infinite recursion)
+        self.assertEqual(self.server.connections_dict(), [])
+        self.assertEqual(self.server.connections_dict(parent=True), [])
+
+        self.server.container.owner = self.server
+
+        # under a running container the connections of every base are reported,
+        # the proxy itself and the two clients that back it
+        result = self.server.connections_dict()
+        self.assertEqual(
+            sorted(result.keys()), ["HTTPClient", "ProxyServer", "RawClient"]
+        )
+        self.assertEqual(result["ProxyServer"], [])
+
+    def test_connection_dict(self):
+        # the lookup spans every base of the container, an identifier that
+        # names none of their connections giving nothing back
+        self.assertEqual(self.server.connection_dict(999), None)
 
     def test_is_upgrade(self):
         Parser = collections.namedtuple("Parser", "headers")
@@ -537,6 +677,313 @@ class ProxyServerTest(unittest.TestCase):
         self.server._apply_accept(headers)
         self.assertEqual(headers["accept-encoding"], "gzip, deflate")
 
+    def test_on_data(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = mock.MagicMock()
+        connection.tunnel_c = None
+        self.server.on_data(connection, b"hello")
+
+        # with no tunnel in place the data belongs to the proxy itself (the
+        # handshake or a plain client proxy), so it is handed to the parser
+        self.assertEqual(connection.parse.call_args[0][0], b"hello")
+
+        connection = self._make_tunnelled()
+        connection.tunnel_c.is_exhausted.return_value = False
+        self.server.on_data(connection, b"hello")
+
+        # once the tunnel is up the data is relayed to the other end of it,
+        # under a callback that resumes this one as the buffer drains
+        self.assertEqual(connection.tunnel_c.send.call_args[0][0], b"hello")
+        self.assertEqual(
+            connection.tunnel_c.send.call_args[1]["callback"], self.server._throttle
+        )
+        self.assertEqual(connection.parse.called, False)
+        self.assertEqual(connection.disable_read.called, False)
+
+        connection = self._make_tunnelled()
+        connection.tunnel_c.is_exhausted.return_value = True
+        self.server.on_data(connection, b"hello")
+
+        # with the buffer of the other end full the reading of this one is
+        # turned off, which is what keeps the two in step
+        self.assertEqual(connection.disable_read.called, True)
+
+    def test_on_connection_d(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = mock.MagicMock()
+        tunnel_c = connection.tunnel_c
+        proxy_c = connection.proxy_c
+
+        self.server.on_connection_d(connection)
+
+        # both of the ends that the connection was paired with are closed and
+        # marked as such, so that the diagnostics may tell them apart from the
+        # ones that were closed by their own peer
+        self.assertEqual(tunnel_c.connection.close_reason, netius.REASON_EXPLICIT)
+        self.assertEqual(tunnel_c.close.called, True)
+        self.assertEqual(proxy_c.connection.close_reason, netius.REASON_EXPLICIT)
+        self.assertEqual(proxy_c.close.called, True)
+
+        # the references are released, as holding them would keep both of the
+        # ends (and their buffers) alive for as long as the connection is
+        self.assertEqual(connection.tunnel_c, None)
+        self.assertEqual(connection.proxy_c, None)
+        self.assertEqual(connection.encoding_b, None)
+
+    def test_on_stream_d(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        stream = mock.MagicMock()
+        proxy_c = stream.proxy_c
+
+        self.server.on_stream_d(stream)
+
+        # under the binary protocol it's the stream that owns the exchange, so
+        # the release must happen for it and not for the connection that
+        # multiplexes it (which outlives the stream)
+        self.assertEqual(proxy_c.connection.close_reason, netius.REASON_EXPLICIT)
+        self.assertEqual(proxy_c.close.called, True)
+        self.assertEqual(stream.tunnel_c, None)
+        self.assertEqual(stream.proxy_c, None)
+        self.assertEqual(stream.encoding_b, None)
+
+    def test_on_headers(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = mock.MagicMock()
+        self.server.on_headers(connection, None)
+
+        # outside of the automatic mode nothing is negotiated with the client,
+        # so the (per request) resolution cost is not paid at all
+        self.assertEqual(connection.resolve_encoding.called, False)
+
+        self.server_a.on_headers(connection, None)
+
+        # under the automatic mode the encoding is resolved as soon as the
+        # request headers are known, ahead of any rewriting of them
+        self.assertEqual(connection.resolve_encoding.called, True)
+
+    def test_on_partial(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_throttled()
+        connection.proxy_c = None
+
+        # a connection with no back-end (a raw tunnel or a proxy that is not
+        # yet established) has nowhere to forward the payload to
+        self.assertEqual(self.server.on_partial(connection, None, b"hello"), None)
+
+        connection = self._make_throttled()
+        self.server.on_partial(connection, None, b"hello")
+
+        # the payload is forced into the back-end, the reading of the front-end
+        # being left on as the buffer of the back-end has room for it
+        self.assertEqual(connection.proxy_c.send_base.call_args[0][0], b"hello")
+        self.assertEqual(connection.disable_read.called, False)
+
+        connection = self._make_throttled(exhausted=True)
+        self.server.on_partial(connection, None, b"hello")
+
+        # with the buffer of the back-end full the reading of the front-end is
+        # turned off, which is what stops the payload from piling up
+        self.assertEqual(connection.disable_read.called, True)
+
+    def test_on_available(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_throttled()
+
+        with mock.patch.object(self.server, "reads") as reads:
+            self.server.on_available(connection, None)
+
+        # the reading of the back-end is turned back on once the buffer of
+        # the front-end has drained, and the poll is told about it
+        self.assertEqual(connection.proxy_c.enable_read.called, True)
+        self.assertEqual(reads.call_args[1]["state"], False)
+
+    def test_on_available_enabled(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_throttled(renable=True)
+
+        self.server.on_available(connection, None)
+
+        # a back-end whose reading was never turned off has nothing to be
+        # turned back on, so it is left as it is
+        self.assertEqual(connection.proxy_c.enable_read.called, False)
+
+    def test_on_available_pending(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_throttled(restored=False)
+
+        self.server.on_available(connection, None)
+
+        # with the buffer of the front-end still holding data the back-end
+        # is kept quiet, as reading more would only add to it
+        self.assertEqual(connection.proxy_c.enable_read.called, False)
+
+    def test_on_unavailable(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_throttled(renable=True, exhausted=True)
+
+        self.server.on_unavailable(connection, None)
+
+        # the buffer of the front-end is full, so the reading of the
+        # back-end is turned off until it drains again
+        self.assertEqual(connection.proxy_c.disable_read.called, True)
+
+    def test_on_unavailable_disabled(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_throttled(exhausted=True)
+
+        self.server.on_unavailable(connection, None)
+
+        # a back-end that is already quiet is left alone, instead of being
+        # turned off a second time
+        self.assertEqual(connection.proxy_c.disable_read.called, False)
+
+    def test_on_unavailable_room(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_throttled(renable=True)
+
+        self.server.on_unavailable(connection, None)
+
+        # with room left in the buffer of the front-end there is nothing to
+        # defend against, so the back-end keeps reading
+        self.assertEqual(connection.proxy_c.disable_read.called, False)
+
+    def test__throttle(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # a back-end that is already gone asks for nothing of the front-end
+        # that it was mapped to
+        self.assertEqual(self.server._throttle(None), None)
+
+        backend = mock.MagicMock()
+        backend.is_restored.return_value = False
+
+        # a back-end whose buffer still holds data is under back-pressure, so
+        # the throttling of the front-end must remain in place
+        self.assertEqual(self.server._throttle(backend), None)
+
+        backend = mock.MagicMock()
+        backend.is_restored.return_value = True
+
+        # a back-end that is no longer mapped (eg: a connection under a
+        # graceful close) has no front-end left to be resumed
+        self.assertEqual(self.server._throttle(backend), None)
+
+        frontend = mock.MagicMock()
+        frontend.renable = False
+        self.server.conn_map[backend._protocol] = frontend
+
+        with mock.patch.object(self.server, "reads") as reads:
+            self.server._throttle(backend)
+
+        # the protocol is what stands for the back-end under the new
+        # architecture, so it's the key under which the front-end is found
+        self.assertEqual(frontend.enable_read.called, True)
+        self.assertEqual(reads.call_args[1]["state"], False)
+
+        frontend.enable_read.reset_mock()
+        frontend.renable = True
+        self.server._throttle(backend)
+
+        # a front-end whose reading was never turned off has nothing to be
+        # turned back on, so it is left as it is
+        self.assertEqual(frontend.enable_read.called, False)
+
+    def test__prx_throttle(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # neither a connection that is gone nor one that still holds data asks
+        # for anything of the back-end that faces it
+        self.assertEqual(self.server._prx_throttle(None), None)
+
+        connection = self._make_throttled(restored=False)
+        self.server._prx_throttle(connection)
+
+        self.assertEqual(connection.proxy_c.enable_read.called, False)
+
+        connection = self._make_throttled()
+        connection.proxy_c = None
+
+        # a connection with no back-end has nothing to be resumed, which is
+        # the case of a raw tunnel or of a proxy that is not established
+        self.assertEqual(self.server._prx_throttle(connection), None)
+
+        connection = self._make_throttled()
+
+        with mock.patch.object(self.server, "reads") as reads:
+            self.server._prx_throttle(connection)
+
+        # the reading of the back-end is turned back on once the buffer of the
+        # front-end has drained, and the poll is told about it
+        self.assertEqual(connection.proxy_c.enable_read.called, True)
+        self.assertEqual(reads.call_args[1]["state"], False)
+
+    def test__raw_throttle(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_tunnelled()
+
+        with mock.patch.object(self.server, "reads") as reads:
+            self.server._raw_throttle(connection)
+
+        # the reading of the other side of the tunnel is turned back on
+        # once this one has drained, which is what keeps the two in step
+        self.assertEqual(connection.tunnel_c.enable_read.called, True)
+        self.assertEqual(reads.call_args[1]["state"], False)
+
+    def test__raw_throttle_missing(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # neither a connection that is gone nor one that still holds data
+        # asks for anything of the side that faces it
+        self.assertEqual(self.server._raw_throttle(None), None)
+
+        connection = self._make_tunnelled(restored=False)
+        self.server._raw_throttle(connection)
+
+        self.assertEqual(connection.tunnel_c.enable_read.called, False)
+
+    def test__raw_throttle_untunnelled(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_tunnelled()
+        connection.tunnel_c = None
+
+        # a connection that faces no tunnel has no other side to be told
+        # about it, so nothing is done for it
+        self.assertEqual(self.server._raw_throttle(connection), None)
+
+        connection = self._make_tunnelled(renable=True)
+        self.server._raw_throttle(connection)
+
+        self.assertEqual(connection.tunnel_c.enable_read.called, False)
+
     def test_on_raw_connect_data(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -576,6 +1023,53 @@ class ProxyServerTest(unittest.TestCase):
         self.assertEqual(connection.send_response.call_args[1]["code"], 200)
         self.assertEqual(backend.send.call_count, 0)
 
+    def test_on_raw_data(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = mock.MagicMock()
+        connection.is_exhausted.return_value = False
+        backend = mock.MagicMock()
+        self.server.conn_map[backend] = connection
+
+        self.server._on_raw_data(self.server.raw_client, backend, b"hello")
+
+        # the data of the back-end is relayed to the front-end under a callback
+        # that resumes the back-end as the buffer of the front-end drains
+        self.assertEqual(connection.send.call_args[0][0], b"hello")
+        self.assertEqual(
+            connection.send.call_args[1]["callback"], self.server._raw_throttle
+        )
+        self.assertEqual(backend.disable_read.called, False)
+
+        connection.is_exhausted.return_value = True
+        self.server._on_raw_data(self.server.raw_client, backend, b"hello")
+
+        # with the buffer of the front-end full the reading of the back-end is
+        # turned off, which is what stops the data from piling up
+        self.assertEqual(backend.disable_read.called, True)
+
+    def test_on_raw_close(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = mock.MagicMock()
+        backend = mock.MagicMock()
+        self.server.conn_map[backend] = connection
+
+        self.server._on_raw_close(self.server.raw_client, backend)
+
+        # the front-end is closed with the pending data flushed and under a
+        # reason that names the back-end as the origin of the closing
+        self.assertEqual(connection.close.call_args[1]["flush"], True)
+        self.assertEqual(
+            connection.close.call_args[1]["reason"], netius.REASON_UPSTREAM_ERROR
+        )
+
+        # the mapping is released, as holding it would keep both of the ends
+        # (and their buffers) alive for the lifetime of the proxy
+        self.assertEqual(backend in self.server.conn_map, False)
+
     def _make_frontend(
         self,
         accept_encoding="gzip, deflate",
@@ -607,3 +1101,21 @@ class ProxyServerTest(unittest.TestCase):
         parser.code_s = code_s
         parser.content_l = content_l
         return parser
+
+    def _make_throttled(self, renable=False, restored=True, exhausted=False):
+        # builds a front-end connection stand-in together with the back-end
+        # one that faces it, in the state that the throttling gates read
+        connection = mock.MagicMock()
+        connection.is_restored.return_value = restored
+        connection.is_exhausted.return_value = exhausted
+        connection.proxy_c.renable = renable
+        connection.proxy_c.is_exhausted.return_value = exhausted
+        return connection
+
+    def _make_tunnelled(self, renable=False, restored=True):
+        # builds a connection stand-in together with the other end of the
+        # tunnel that it is paired with, under the same terms
+        connection = mock.MagicMock()
+        connection.is_restored.return_value = restored
+        connection.tunnel_c.renable = renable
+        return connection

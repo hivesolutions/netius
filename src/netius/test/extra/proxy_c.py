@@ -33,6 +33,7 @@ import unittest
 import collections
 
 import netius.extra
+import netius.clients
 
 try:
     import unittest.mock as mock
@@ -83,6 +84,58 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.assertEqual(server.consul_poll_interval, 60.0)
         self.assertEqual(server.host_suffixes, ["example.com"])
         server.cleanup()
+
+    def test_on_serve(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.server.env = False
+
+        with mock.patch.object(self.server, "_consul_tick") as consul_tick:
+            self.server.on_serve()
+
+        # the serving is what starts the polling of the catalogue, at the
+        # interval that the server carries for it
+        self.assertEqual(consul_tick.call_args[1]["timeout"], 30.0)
+
+    def test_on_serve_env(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.server.env = True
+
+        with netius.conf_override(
+            "CONSUL_URL", "http://consul.local:8500"
+        ), netius.conf_override("CONSUL_TOKEN", "my-token"), netius.conf_override(
+            "CONSUL_TAG", "web.proxy=true"
+        ), netius.conf_override(
+            "CONSUL_POLL_INTERVAL", "60.0"
+        ), netius.conf_override(
+            "HOST_SUFFIXES", "example.com"
+        ), mock.patch.object(
+            self.server, "_consul_tick"
+        ) as consul_tick:
+            self.server.on_serve()
+
+        # the environment answers for the catalogue that is polled, for
+        # the credential of it and for the shape of what is discovered
+        self.assertEqual(self.server.consul_url, "http://consul.local:8500")
+        self.assertEqual(self.server.consul_token, "my-token")
+        self.assertEqual(self.server.consul_tag, "web.proxy=true")
+        self.assertEqual(self.server.consul_poll_interval, 60.0)
+        self.assertEqual(self.server.host_suffixes, ["example.com"])
+        self.assertEqual(consul_tick.call_args[1]["timeout"], 60.0)
+
+    def test_on_config(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        with mock.patch.object(self.server, "_consul_tick") as consul_tick:
+            self.server.on_config()
+
+        # the configuring asks for a single gathering, so that the hosts
+        # are known before anything is served, and books no tick after it
+        self.assertEqual(consul_tick.call_args[1]["timeout"], 0)
 
     def test_build_hosts(self):
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
@@ -347,6 +400,226 @@ class ConsulProxyServerTest(unittest.TestCase):
 
         self.assertEqual(len(entries), 1)
         self.assertEqual(entries[0][2], ["http://10.99.0.1:8080"])
+
+    def test_consul_tick(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
+
+        with mock.patch.object(
+            self.server, "_consul_fetch", return_value=entries
+        ), mock.patch.object(self.server, "ensure") as ensure, mock.patch.object(
+            self.server, "delay_s"
+        ) as delay_s, mock.patch.object(
+            self.server, "delay"
+        ) as delay:
+            self.server._consul_tick(timeout=30.0)
+
+            # the gathering of the entries reaches the network, so it is
+            # handed to a thread instead of being run in the loop
+            self.assertEqual(ensure.call_args[1]["thread"], True)
+
+            ensure.call_args[0][0]()
+
+            # what comes back is applied in the loop, so that the changing
+            # of the configuration needs no lock of its own
+            delay_s.call_args[0][0]()
+
+        # the entries reach the hosts and the tick that follows is booked
+        # for the interval that was asked for
+        self.assertEqual(self.server.hosts["myapp"], "http://10.0.0.1:8080")
+        self.assertEqual(delay.call_args[1]["timeout"], 30.0)
+
+    def test_consul_tick_failed(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.server.hosts["myapp"] = "http://10.0.0.1:8080"
+
+        def _fetch():
+            raise netius.NetiusError("Unable to reach the catalogue")
+
+        with mock.patch.object(self.server, "_consul_fetch", _fetch), mock.patch.object(
+            self.server, "ensure"
+        ) as ensure, mock.patch.object(
+            self.server, "delay_s"
+        ) as delay_s, mock.patch.object(
+            self.server, "delay"
+        ) as delay:
+            self.server._consul_tick(timeout=30.0)
+            ensure.call_args[0][0]()
+            delay_s.call_args[0][0]()
+
+        # a gathering that failed keeps the configuration that is in place
+        # rather than emptying it, and the next tick is still booked
+        self.assertEqual(self.server.hosts["myapp"], "http://10.0.0.1:8080")
+        self.assertEqual(delay.called, True)
+
+    def test_consul_tick_once(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        with mock.patch.object(
+            self.server, "_consul_fetch", return_value=[]
+        ), mock.patch.object(self.server, "ensure") as ensure, mock.patch.object(
+            self.server, "delay_s"
+        ) as delay_s, mock.patch.object(
+            self.server, "delay"
+        ) as delay:
+            self.server._consul_tick(timeout=0)
+            ensure.call_args[0][0]()
+            delay_s.call_args[0][0]()
+
+        # a timeout of zero asks for a single gathering, so no tick that
+        # follows it is ever booked
+        self.assertEqual(delay.called, False)
+
+    def test_consul_services(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        with mock.patch.object(
+            self.server, "_consul_get", return_value=dict(myapp=["proxy.enable=true"])
+        ) as consul_get:
+            result = self.server._consul_services()
+
+        # the catalogue of the services is the one that is asked for,
+        # under the address that the server was given
+        self.assertEqual(
+            consul_get.call_args[0][0], "http://localhost:8500/v1/catalog/services"
+        )
+        self.assertEqual(result, dict(myapp=["proxy.enable=true"]))
+
+    def test_consul_services_missing(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        with mock.patch.object(self.server, "_consul_get", return_value=None):
+            result = self.server._consul_services()
+
+        # a request that gave nothing back leaves no service at all,
+        # instead of the absence of one reaching the caller
+        self.assertEqual(result, dict())
+
+    def test_consul_health(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        with mock.patch.object(
+            self.server, "_consul_get", return_value=[dict(Node=dict())]
+        ) as consul_get:
+            result = self.server._consul_health("my app")
+
+        # the health of the instances is skipped by default, so every one
+        # of them is asked for, and the name travels quoted in the address
+        self.assertEqual(
+            consul_get.call_args[0][0],
+            "http://localhost:8500/v1/health/service/my%20app",
+        )
+        self.assertEqual(len(result), 1)
+
+    def test_consul_health_passing(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.server.consul_skip_health = False
+
+        with mock.patch.object(
+            self.server, "_consul_get", return_value=[]
+        ) as consul_get:
+            self.server._consul_health("myapp")
+
+        # with the health of them taken into account only the instances
+        # that pass their checks are the ones that are asked for
+        self.assertEqual(
+            consul_get.call_args[0][0],
+            "http://localhost:8500/v1/health/service/myapp?passing=true",
+        )
+
+    def test_consul_health_missing(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        with mock.patch.object(self.server, "_consul_get", return_value=None):
+            result = self.server._consul_health("myapp")
+
+        self.assertEqual(result, [])
+
+    def test_consul_get(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.server.consul_token = "my-token"
+        result = dict(error=False, code=200, data=b'{"myapp": ["proxy.enable=true"]}')
+
+        with mock.patch.object(
+            netius.clients.HTTPClient, "get_s", return_value=result
+        ) as get_s:
+            value = self.server._consul_get("http://localhost:8500/v1/catalog/services")
+
+        # the token of the catalogue travels as a header of the request,
+        # which is what a secured one asks for
+        self.assertEqual(get_s.call_args[1]["headers"]["X-Consul-Token"], "my-token")
+
+        # the request is a blocking one, as the gathering runs in a thread
+        # of its own rather than in the loop
+        self.assertEqual(get_s.call_args[1]["asynchronous"], False)
+        self.assertEqual(value, dict(myapp=["proxy.enable=true"]))
+
+    def test_consul_get_anonymous(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        result = dict(error=False, code=200, data=b"{}")
+
+        with mock.patch.object(
+            netius.clients.HTTPClient, "get_s", return_value=result
+        ) as get_s:
+            self.server._consul_get("http://localhost:8500/v1/catalog/services")
+
+        # without a token there is no header of one, so that a catalogue
+        # that is open is not sent an empty credential
+        self.assertEqual("X-Consul-Token" in get_s.call_args[1]["headers"], False)
+
+    def test_consul_get_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        result = dict(error=True, message="connection refused")
+
+        with mock.patch.object(netius.clients.HTTPClient, "get_s", return_value=result):
+            value = self.server._consul_get("http://localhost:8500/v1/catalog/services")
+
+        # a request that failed names no service, the absence of a value
+        # being what the caller of it reads
+        self.assertEqual(value, None)
+
+    def test_consul_get_code(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        result = dict(error=False, code=500, data=b"{}")
+
+        with mock.patch.object(netius.clients.HTTPClient, "get_s", return_value=result):
+            value = self.server._consul_get("http://localhost:8500/v1/catalog/services")
+
+        # an answer that is not a successful one carries no catalogue,
+        # whatever the body of it happens to hold
+        self.assertEqual(value, None)
+
+    def test_consul_get_malformed(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        result = dict(error=False, code=200, data=b"not json at all")
+
+        with mock.patch.object(netius.clients.HTTPClient, "get_s", return_value=result):
+            value = self.server._consul_get("http://localhost:8500/v1/catalog/services")
+
+        # a body that cannot be read is caught rather than left to break
+        # the gathering that asked for it
+        self.assertEqual(value, None)
 
     def test_resolve_domain(self):
         tags = ["proxy.enable=true", "proxy.domain=myapp.local"]
