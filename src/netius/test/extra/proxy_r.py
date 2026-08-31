@@ -53,25 +53,6 @@ except ImportError:
     mock = None
 
 
-def _wait(port, host="127.0.0.1", timeout=5.0):
-    # probes the service with a complete request instead of a plain
-    # connection, as the socket is bound (and listening) before the event
-    # loop is running, so a connection that the backlog of the kernel
-    # accepts says nothing about the readiness of the service
-    initial = time.time()
-    while time.time() - initial < timeout:
-        connection = http_client.HTTPConnection(host, port, timeout=1)
-        try:
-            connection.request("GET", "/", headers={"Host": host})
-            connection.getresponse().read()
-            return True
-        except Exception:
-            time.sleep(0.05)
-        finally:
-            connection.close()
-    return False
-
-
 class ReverseProxyServerTest(unittest.TestCase):
 
     def setUp(self):
@@ -2623,3 +2604,22 @@ class ReverseProxyMatrixTest(unittest.TestCase):
         if source == "explicit":
             return cls.PAYLOAD, "identity"
         return cls.PAYLOAD, None
+
+
+def _wait(port, host="127.0.0.1", timeout=5.0):
+    # probes the service with a complete request instead of a plain
+    # connection, as the socket is bound (and listening) before the event
+    # loop is running, so a connection that the backlog of the kernel
+    # accepts says nothing about the readiness of the service
+    initial = time.time()
+    while time.time() - initial < timeout:
+        connection = http_client.HTTPConnection(host, port, timeout=1)
+        try:
+            connection.request("GET", "/", headers={"Host": host})
+            connection.getresponse().read()
+            return True
+        except Exception:
+            time.sleep(0.05)
+        finally:
+            connection.close()
+    return False
