@@ -308,7 +308,10 @@ class ProxyServer(http2.HTTP2Server):
         return info
 
     def connections_dict(self, full=False, parent=False):
-        if parent:
+        # the container delegates this operation back into the base that owns
+        # it, so a container that is not yet running (no owner set) would
+        # otherwise send the two of them into an infinite recursion
+        if parent or not self.container.owner:
             return http2.HTTP2Server.connections_dict(self, full=full)
         return self.container.connections_dict(full=full)
 
