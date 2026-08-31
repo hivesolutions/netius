@@ -135,6 +135,27 @@ class TorrentTaskTest(unittest.TestCase):
         self.assertEqual(task.peers[0]["ip"], "1.2.3.4")
 
 
+class _MockOwner(object):
+
+    def __init__(self):
+        self.max_peers = netius.servers.torrent.MAX_PEERS
+
+    def warning(self, *args, **kwargs):
+        pass
+
+    def debug(self, *args, **kwargs):
+        pass
+
+
+class _MockResponse(object):
+
+    def __init__(self, payload):
+        self.payload = payload
+
+    def get_payload(self):
+        return self.payload
+
+
 def _build_task(info_hash=None):
     task = netius.servers.TorrentTask.__new__(netius.servers.TorrentTask)
     task.owner = _MockOwner()
@@ -155,24 +176,3 @@ def _build_task(info_hash=None):
     task.trigger = lambda *args, **kwargs: None
 
     return task
-
-
-class _MockOwner(object):
-
-    def __init__(self):
-        self.max_peers = netius.servers.torrent.MAX_PEERS
-
-    def warning(self, *args, **kwargs):
-        pass
-
-    def debug(self, *args, **kwargs):
-        pass
-
-
-class _MockResponse(object):
-
-    def __init__(self, payload):
-        self.payload = payload
-
-    def get_payload(self):
-        return self.payload
