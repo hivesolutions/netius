@@ -1686,22 +1686,93 @@ class ReverseProxyServerTest(unittest.TestCase):
         return connection
 
 
+class ReverseProxyWaitTest(unittest.TestCase):
+    """
+    Tests for the probe that waits for a service that runs in
+    a thread of its own to become able to answer.
+
+    The socket of a service is bound (and listening) before its
+    event loop is running, so a probe that only opens a
+    connection is answered by the backlog of the kernel and says
+    nothing about the readiness of the service.
+    """
+
+    def setUp(self):
+        if http_client == None:
+            self.skipTest("Skipping test: http.client unavailable")
+
+    def test_wait(self):
+        server = netius.servers.WSGIServer(app=self._app, env=False)
+        server.serve(host="127.0.0.1", port=0, start=False)
+        thread = threading.Thread(target=server.start, daemon=True)
+        try:
+            # a plain connection is accepted by the backlog of the kernel even
+            # with the loop stopped, so it proves nothing about the service
+            probe = socket.create_connection(("127.0.0.1", server.port), timeout=1)
+            probe.close()
+
+            # a request is not answered while the loop is not running, which is
+            # the state that the wait must not take for a ready one
+            self.assertEqual(_wait(server.port, timeout=0.5), False)
+
+            thread.start()
+
+            # once the loop is running the request is answered, and only then
+            # is the service taken for a ready one
+            self.assertEqual(_wait(server.port), True)
+        finally:
+            server.stop()
+            if thread.is_alive():
+                thread.join(timeout=5)
+
+    def test_wait_bounded(self):
+        server = netius.servers.WSGIServer(app=self._app, env=False)
+        server.serve(host="127.0.0.1", port=0, start=False)
+        try:
+            # the attempt against a bound socket whose loop is stopped only
+            # gives up once its own timeout runs out, so a budget shorter than
+            # that one must bound the attempt rather than the other way around
+            initial = time.time()
+            self.assertEqual(_wait(server.port, timeout=0.2), False)
+            self.assertLess(time.time() - initial, 1.0)
+        finally:
+            server.cleanup()
+
+    def test_wait_unbound(self):
+        # a port that nothing is listening on refuses every connection, so the
+        # wait gives up on it once the timeout has run out
+        server = netius.servers.WSGIServer(app=self._app, env=False)
+        server.serve(host="127.0.0.1", port=0, start=False)
+        port = server.port
+        server.cleanup()
+
+        self.assertEqual(_wait(port, timeout=0.5), False)
+
+    @classmethod
+    def _app(cls, environ, start_response):
+        body = b"ready"
+        start_response(
+            "200 OK",
+            [("Content-Type", "text/plain"), ("Content-Length", str(len(body)))],
+        )
+        return [body]
+
+
 class ReverseProxyIntegrationTest(unittest.TestCase):
     """
     End-to-end integration tests for the reverse proxy.
 
     Starts a real ReverseProxyServer in a background thread
-    and makes HTTP requests through it to an httpbin
-    backend. Verifies the complete data flow including
-    routing, header forwarding (Via, X-Forwarded-*),
-    response relay, body integrity, and error handling
-    for unmatched hosts.
+    and makes HTTP requests through it to a WSGI back-end
+    that answers in the shape of httpbin, both of them bound
+    to the loopback interface. Verifies the complete data
+    flow including routing, header forwarding (Via,
+    X-Forwarded-*), response relay, body integrity, and
+    error handling for unmatched hosts.
 
     These tests exercise the protocol-level address
     attribute and other backward-compatibility properties
-    that are only reachable through actual network I/O.
-
-    Requires network; skipped when NO_NETWORK is set.
+    that are only reachable through actual socket I/O.
     """
 
     @classmethod
@@ -1709,14 +1780,16 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
         if http_client == None:
             return
 
-        if netius.conf("NO_NETWORK", False, cast=bool):
-            return
+        cls.backend = netius.servers.WSGIServer(app=cls._app, env=False)
+        cls.backend.serve(host="127.0.0.1", port=0, start=False)
+        cls.backend_port = cls.backend.port
+        cls.backend_thread = threading.Thread(target=cls.backend.start, daemon=True)
+        cls.backend_thread.start()
+        cls.ready = _wait(cls.backend_port)
 
-        cls.httpbin = netius.conf("HTTPBIN", "httpbin.org")
-
-        # create a reverse proxy that forwards all requests to httpbin
+        # create a reverse proxy that forwards all requests to the back-end
         cls.server = netius.extra.ReverseProxyServer(
-            hosts={"default": "http://%s" % cls.httpbin},
+            hosts={"default": "http://127.0.0.1:%d" % cls.backend_port},
             env=False,
             resolve=False,
         )
@@ -1732,31 +1805,24 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
         # start the proxy server event loop in a background thread
         cls.server_thread = threading.Thread(target=cls.server.start, daemon=True)
         cls.server_thread.start()
-
-        # wait for the server to be ready (accepting connections)
-        for _i in range(50):
-            time.sleep(0.1)
-            try:
-                probe = socket.create_connection(
-                    ("127.0.0.1", cls.proxy_port), timeout=1
-                )
-                probe.close()
-                break
-            except (ConnectionRefusedError, OSError):
-                continue
+        cls.ready = cls.ready and _wait(cls.proxy_port)
 
     @classmethod
     def tearDownClass(cls):
-        if not hasattr(cls, "server"):
-            return
-        cls.server.stop()
-        cls.server_thread.join(timeout=5)
+        # stops each of the services on its own, as the construction of the
+        # proxy may have failed leaving the back-end still running
+        if hasattr(cls, "server"):
+            cls.server.stop()
+            cls.server_thread.join(timeout=5)
+        if hasattr(cls, "backend"):
+            cls.backend.stop()
+            cls.backend_thread.join(timeout=5)
 
     def setUp(self):
         if http_client == None:
             self.skipTest("Skipping test: http.client unavailable")
-        if netius.conf("NO_NETWORK", False, cast=bool):
-            self.skipTest("Network access is disabled")
+        if not self.ready:
+            self.fail("The proxy (or its back-end) did not become ready")
 
     def test_simple_get(self):
         code, _headers, body = self._request("/get")
@@ -1852,7 +1918,7 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
     def _request(self, path, method="GET", headers=None, body=None):
         conn = http_client.HTTPConnection("127.0.0.1", self.proxy_port, timeout=30)
         try:
-            _headers = {"Host": self.httpbin}
+            _headers = {"Host": "127.0.0.1"}
             if headers:
                 _headers.update(headers)
             conn.request(method, path, body=body, headers=_headers)
@@ -1862,6 +1928,54 @@ class ReverseProxyIntegrationTest(unittest.TestCase):
             return response.status, response_headers, response_body
         finally:
             conn.close()
+
+    @classmethod
+    def _app(cls, environ, start_response):
+        # echoes the request in the shape of the httpbin service, which is
+        # the payload that the cases read to verify the relaying of the proxy
+        path = environ["PATH_INFO"]
+        if not path in ("/get", "/post", "/put", "/delete"):
+            body = b"not found"
+            start_response(
+                "404 Not Found",
+                [
+                    ("Content-Type", "text/plain"),
+                    ("Content-Length", str(len(body))),
+                ],
+            )
+            return [body]
+
+        length = int(environ.get("CONTENT_LENGTH", 0) or 0)
+        data = environ["wsgi.input"].read(length) if length else b""
+        data_s = data.decode("utf-8")
+
+        # rebuilds the headers of the request from the environment, so that
+        # the ones injected by the proxy may be verified by the caller
+        headers = dict()
+        for name, value in netius.legacy.items(environ):
+            if not name.startswith("HTTP_"):
+                continue
+            headers[name[5:].replace("_", "-").title()] = value
+
+        result = dict(
+            headers=headers,
+            url="http://%s%s" % (headers.get("Host", ""), path),
+            data=data_s,
+        )
+        try:
+            result["json"] = json.loads(data_s)
+        except ValueError:
+            result["json"] = dict()
+
+        body = json.dumps(result).encode("utf-8")
+        start_response(
+            "200 OK",
+            [
+                ("Content-Type", "application/json"),
+                ("Content-Length", str(len(body))),
+            ],
+        )
+        return [body]
 
 
 class ReverseProxyCompressionTest(unittest.TestCase):
@@ -1896,7 +2010,7 @@ class ReverseProxyCompressionTest(unittest.TestCase):
         cls.backend_port = cls.backend.port
         cls.backend_thread = threading.Thread(target=cls.backend.start, daemon=True)
         cls.backend_thread.start()
-        cls._wait(cls.backend_port)
+        cls.ready = _wait(cls.backend_port)
 
         cls.server = netius.extra.ReverseProxyServer(
             hosts={"default": "http://127.0.0.1:%d" % cls.backend_port},
@@ -1908,7 +2022,7 @@ class ReverseProxyCompressionTest(unittest.TestCase):
         cls.proxy_port = cls.server.port
         cls.server_thread = threading.Thread(target=cls.server.start, daemon=True)
         cls.server_thread.start()
-        cls._wait(cls.proxy_port)
+        cls.ready = cls.ready and _wait(cls.proxy_port)
 
     @classmethod
     def tearDownClass(cls):
@@ -1924,6 +2038,8 @@ class ReverseProxyCompressionTest(unittest.TestCase):
     def setUp(self):
         if http_client == None:
             self.skipTest("Skipping test: http.client unavailable")
+        if not self.ready:
+            self.fail("The proxy (or its back-end) did not become ready")
 
     def test_compress_identity(self):
         _code, headers, body = self._request("/big")
@@ -2092,17 +2208,6 @@ class ReverseProxyCompressionTest(unittest.TestCase):
         start_response("200 OK", headers)
         return [body]
 
-    @classmethod
-    def _wait(cls, port):
-        for _i in range(50):
-            time.sleep(0.1)
-            try:
-                probe = socket.create_connection(("127.0.0.1", port), timeout=1)
-                probe.close()
-                break
-            except (ConnectionRefusedError, OSError):
-                continue
-
 
 class ReverseProxyMatrixTest(unittest.TestCase):
     """
@@ -2143,7 +2248,7 @@ class ReverseProxyMatrixTest(unittest.TestCase):
         cls.backend_port = cls.backend.port
         cls.backend_thread = threading.Thread(target=cls.backend.start, daemon=True)
         cls.backend_thread.start()
-        cls._wait(cls.backend_port)
+        cls.ready = _wait(cls.backend_port)
 
         # builds one proxy per combination of the encoding and dynamic
         # options, so that every cell of the matrix has its own server
@@ -2160,7 +2265,7 @@ class ReverseProxyMatrixTest(unittest.TestCase):
                 server.serve(host="127.0.0.1", port=0, start=False)
                 thread = threading.Thread(target=server.start, daemon=True)
                 thread.start()
-                cls._wait(server.port)
+                cls.ready = cls.ready and _wait(server.port)
                 cls.ports[(encoding, dynamic)] = server.port
                 cls.servers.append((server, thread))
 
@@ -2178,6 +2283,8 @@ class ReverseProxyMatrixTest(unittest.TestCase):
     def setUp(self):
         if http_client == None:
             self.skipTest("Skipping test: http.client unavailable")
+        if not self.ready:
+            self.fail("The proxy (or its back-end) did not become ready")
 
     def test_matrix_integrity(self):
         # the payload received by the client must always be recoverable
@@ -2511,13 +2618,25 @@ class ReverseProxyMatrixTest(unittest.TestCase):
             return cls.PAYLOAD, "identity"
         return cls.PAYLOAD, None
 
-    @classmethod
-    def _wait(cls, port):
-        for _i in range(50):
-            time.sleep(0.1)
-            try:
-                probe = socket.create_connection(("127.0.0.1", port), timeout=1)
-                probe.close()
-                break
-            except (ConnectionRefusedError, OSError):
-                continue
+
+def _wait(port, host="127.0.0.1", timeout=5.0):
+    # probes the service with a complete request instead of a plain
+    # connection, as the socket is bound (and listening) before the event
+    # loop is running, so a connection that the backlog of the kernel
+    # accepts says nothing about the readiness of the service
+    initial = time.time()
+    while True:
+        # the budget that is left bounds both the attempt and the pause that
+        # follows it, so that neither of them overruns the wait
+        remaining = timeout - (time.time() - initial)
+        if remaining <= 0:
+            return False
+        connection = http_client.HTTPConnection(host, port, timeout=min(1, remaining))
+        try:
+            connection.request("GET", "/", headers={"Host": host})
+            connection.getresponse().read()
+            return True
+        except Exception:
+            time.sleep(min(0.05, remaining))
+        finally:
+            connection.close()
