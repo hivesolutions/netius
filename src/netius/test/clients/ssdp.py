@@ -148,28 +148,42 @@ class SSDPProtocolTest(unittest.TestCase):
 class SSDPClientTest(unittest.TestCase):
 
     def test_discover_s(self):
-        loop, protocol = netius.clients.SSDPClient.discover_s(
-            "urn:schemas-upnp-org:device:InternetGatewayDevice:1"
-        )
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
 
-        try:
-            # the discovery builds both the loop that is going to carry it
-            # and the protocol that speaks for it
-            self.assertNotEqual(loop, None)
-            self.assertEqual(isinstance(protocol, netius.clients.SSDPProtocol), True)
-        finally:
-            loop.close()
+        with mock.patch("netius.build_datagram") as build_datagram:
+            loop, protocol = netius.clients.SSDPClient.discover_s(
+                "urn:schemas-upnp-org:device:InternetGatewayDevice:1"
+            )
+
+        # the discovery answers with the loop that is going to carry it
+        # and with the protocol that speaks for it
+        self.assertEqual(loop, build_datagram.return_value)
+        self.assertEqual(isinstance(protocol, netius.clients.SSDPProtocol), True)
+
+        # the endpoint is built towards the address that the specification
+        # reserves for the discovery of a device
+        self.assertEqual(
+            build_datagram.call_args[1]["remote_addr"], ("239.255.255.250", 1900)
+        )
 
     def test_method_s(self):
-        loop, protocol = netius.clients.SSDPClient.method_s(
-            "NOTIFY", "urn:target", "ssdp:alive", host="127.0.0.1", port=1901
-        )
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
 
-        try:
-            self.assertNotEqual(loop, None)
-            self.assertEqual(isinstance(protocol, netius.clients.SSDPProtocol), True)
-        finally:
-            loop.close()
+        with mock.patch("netius.build_datagram") as build_datagram:
+            loop, protocol = netius.clients.SSDPClient.method_s(
+                "NOTIFY", "urn:target", "ssdp:alive", host="127.0.0.1", port=1901
+            )
+
+        self.assertEqual(loop, build_datagram.return_value)
+        self.assertEqual(isinstance(protocol, netius.clients.SSDPProtocol), True)
+
+        # the endpoint is built towards the contact that the caller named,
+        # instead of the one that a discovery would use
+        self.assertEqual(
+            build_datagram.call_args[1]["remote_addr"], ("127.0.0.1", 1901)
+        )
 
     def test_method_s_connect(self):
         if mock == None:
