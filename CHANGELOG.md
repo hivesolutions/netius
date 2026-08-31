@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-*
+* The tests of the reverse proxy no longer reach the network - [#119](https://github.com/hivesolutions/netius/issues/119)
 
 ### Fixed
 
