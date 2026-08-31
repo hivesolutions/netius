@@ -484,6 +484,24 @@ class HTTPConnectionTest(unittest.TestCase):
 
 class HTTPServerTest(unittest.TestCase):
 
+    def test_init(self):
+        server = netius.servers.HTTPServer()
+        try:
+            # the idle bound is not set by default, so that a connection
+            # is kept open for as long as it was before the bound existed
+            self.assertEqual(netius.servers.http.IDLE_TIMEOUT, 0)
+            self.assertEqual(server.idle_timeout, 0)
+        finally:
+            server.cleanup()
+
+        server = netius.servers.HTTPServer(idle_timeout=75)
+        try:
+            # the bound that a caller names replaces the default one, so
+            # that an idle connection may still be closed on demand
+            self.assertEqual(server.idle_timeout, 75)
+        finally:
+            server.cleanup()
+
     def test_on_data(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -499,6 +517,20 @@ class HTTPServerTest(unittest.TestCase):
         self.assertEqual(connection.parse.call_count, 1)
 
         server.cleanup()
+
+    def test_on_serve_env(self):
+        server = netius.servers.HTTPServer()
+        server.env = True
+
+        try:
+            with netius.conf_override("IDLE_TIMEOUT", "75"):
+                server.on_serve()
+
+            # the environment is able to set the bound that the default
+            # value removed, naming it as the string that a variable holds
+            self.assertEqual(server.idle_timeout, 75)
+        finally:
+            server.cleanup()
 
     def test_is_auto(self):
         http_server = netius.servers.HTTPServer()

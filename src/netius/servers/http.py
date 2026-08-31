@@ -78,11 +78,13 @@ per payload chunk which would degrade the compression ratio, set it
 to zero to flush every chunk (required for latency sensitive streams
 that are served under an explicit compressed encoding) """
 
-IDLE_TIMEOUT = 75
+IDLE_TIMEOUT = 0
 """ The maximum amount of time (in seconds) that a connection may be
 kept open waiting for a new request, once this value is reached the
-connection is closed, avoiding it from being held open forever, set
-it to zero to remove the bound (not recommended) """
+connection is closed, avoiding it from being held open forever, the
+default value removes the bound, so that the behaviour matches the
+one of the versions that came before it, set it to a positive value
+(eg: 75) to have an idle connection closed """
 
 REQUESTS_LIMIT = 1000
 """ The maximum number of requests that may be served by a single
