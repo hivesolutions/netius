@@ -32,6 +32,11 @@ import unittest
 
 import netius.common
 
+try:
+    import unittest.mock as mock
+except ImportError:
+    mock = None
+
 
 class CalcTest(unittest.TestCase):
 
@@ -48,13 +53,25 @@ class CalcTest(unittest.TestCase):
         self.assertEqual(result & 1, 1)
 
     def test_is_prime(self):
+        # a prime is never turned away, as every base of it agrees with
+        # the symbol, so this side of the test carries no chance at all
         for number in (3, 7, 13, 97, 1009):
             self.assertEqual(netius.common.calc.is_prime(number), True)
 
-        # a number that carries a factor of its own is never a prime,
-        # the carmichael one being the case that fools the naive tests
-        for number in (9, 15, 21, 561):
-            self.assertEqual(netius.common.calc.is_prime(number), False)
+    def test_is_prime_composite(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # the base that the test draws is what decides it, so it is held
+        # at one that witnesses each of the values rather than left to
+        # the chance of a draw, which no run should ever depend on
+        with mock.patch.object(
+            netius.common.calc, "random_integer_interval", self._base
+        ):
+            # a number that carries a factor of its own is never a prime,
+            # the carmichael one being the case that fools the naive tests
+            for number in (9, 15, 21, 561):
+                self.assertEqual(netius.common.calc.is_prime(number), False)
 
     def test_relatively_prime(self):
         self.assertEqual(netius.common.calc.relatively_prime(9, 28), True)
@@ -120,9 +137,16 @@ class CalcTest(unittest.TestCase):
     def test_random_primality(self):
         self.assertEqual(netius.common.calc.random_primality(97, 6), True)
 
-        # a witness of the non primality is found for a value that is
-        # not a prime, which ends the test right away
-        self.assertEqual(netius.common.calc.random_primality(561, 6), False)
+    def test_random_primality_composite(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        with mock.patch.object(
+            netius.common.calc, "random_integer_interval", self._base
+        ):
+            # a witness of the non primality is found for a value that is
+            # not a prime, which ends the test right away
+            self.assertEqual(netius.common.calc.random_primality(561, 6), False)
 
     def test_jacobi_witness(self):
         result = netius.common.jacobi_witness(12, 2)
@@ -130,6 +154,13 @@ class CalcTest(unittest.TestCase):
 
         result = netius.common.jacobi_witness(3, 2)
         self.assertEqual(result, False)
+
+    def test_jacobi_witness_shared(self):
+        # a base that shares a factor with the value under test leaves no
+        # residue at all, which is a proof of its own that the value is
+        # not a prime, so such a base is a witness and never a liar
+        for number in (9, 15, 21, 561):
+            self.assertEqual(netius.common.jacobi_witness(3, number), True)
 
     def test_jacobi(self):
         # the residues of three and of five, which are the values that
@@ -150,6 +181,11 @@ class CalcTest(unittest.TestCase):
         self.assertEqual(netius.common.calc.jacobi(3, 9), 0)
         self.assertEqual(netius.common.calc.jacobi(6, 9), 0)
         self.assertEqual(netius.common.calc.jacobi(10, 15), 0)
+
+    def _base(self, minimum, maximum):
+        # stands in for the drawing of a base, giving the one that
+        # witnesses every value that the cases put under test
+        return 3
 
     def test_ceil_integer(self):
         result = netius.common.calc.ceil_integer(1.2)
