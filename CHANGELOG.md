@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+*
+
+### Fixed
+
+*
+
+## [1.63.1] - 2026-08-31
+
+### Changed
+
 * The priority weight of an HTTP/2 stream is now the effective one instead of the value that travels in the wire - [#101](https://github.com/hivesolutions/netius/issues/101)
 * The coverage job now fails when the package falls below the floor that it has reached - [#102](https://github.com/hivesolutions/netius/issues/102)
 * A connection that waits for a new request is no longer closed after a while, unless a bound is configured
