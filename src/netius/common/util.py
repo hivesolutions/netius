@@ -73,7 +73,7 @@ get host by name call, as it is a blocking call """
 
 
 def cstring(value):
-    index = value.index("\0")
+    index = value.find("\0")
     if index == -1:
         return value
     return value[:index]

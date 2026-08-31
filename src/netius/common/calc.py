@@ -264,7 +264,15 @@ def jacobi_witness(x, n):
     the test or not (is witness or not).
     """
 
-    j = jacobi(x, n) % n
+    symbol = jacobi(x, n)
+
+    # a symbol of zero says that the two values share a factor, which is
+    # by itself a proof that the value under test is not a prime one, so
+    # the base is a witness of it whatever the power turns out to be
+    if symbol == 0:
+        return True
+
+    j = symbol % n
     f = pow(x, (n - 1) // 2, n)
 
     if j == f:
@@ -305,6 +313,12 @@ def jacobi(a, b):
             if ((b**2 - 1) >> 3) & 1:
                 result = -result
             a >>= 1
+
+    # in case the reduction ended in a zero then the two values
+    # share a factor, meaning that the symbol of them is a zero
+    # one, as no residue exists for such a pair
+    if a == 0:
+        return 0
 
     return result
 

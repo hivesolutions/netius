@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* A header that is set by its position now replaces the one that is there
+* A string that carries no null byte is now given back whole instead of raising
+* The test of primality no longer takes a base that shares a factor for a prime one
 
 ## [1.63.1] - 2026-08-31
 
