@@ -1725,6 +1725,19 @@ class ReverseProxyWaitTest(unittest.TestCase):
             if thread.is_alive():
                 thread.join(timeout=5)
 
+    def test_wait_bounded(self):
+        server = netius.servers.WSGIServer(app=self._app, env=False)
+        server.serve(host="127.0.0.1", port=0, start=False)
+        try:
+            # the attempt against a bound socket whose loop is stopped only
+            # gives up once its own timeout runs out, so a budget shorter than
+            # that one must bound the attempt rather than the other way around
+            initial = time.time()
+            self.assertEqual(_wait(server.port, timeout=0.2), False)
+            self.assertLess(time.time() - initial, 1.0)
+        finally:
+            server.cleanup()
+
     def test_wait_unbound(self):
         # a port that nothing is listening on refuses every connection, so the
         # wait gives up on it once the timeout has run out
@@ -2612,14 +2625,18 @@ def _wait(port, host="127.0.0.1", timeout=5.0):
     # loop is running, so a connection that the backlog of the kernel
     # accepts says nothing about the readiness of the service
     initial = time.time()
-    while time.time() - initial < timeout:
-        connection = http_client.HTTPConnection(host, port, timeout=1)
+    while True:
+        # the budget that is left bounds both the attempt and the pause that
+        # follows it, so that neither of them overruns the wait
+        remaining = timeout - (time.time() - initial)
+        if remaining <= 0:
+            return False
+        connection = http_client.HTTPConnection(host, port, timeout=min(1, remaining))
         try:
             connection.request("GET", "/", headers={"Host": host})
             connection.getresponse().read()
             return True
         except Exception:
-            time.sleep(0.05)
+            time.sleep(min(0.05, remaining))
         finally:
             connection.close()
-    return False
