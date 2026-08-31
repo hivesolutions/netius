@@ -1799,29 +1799,6 @@ class ASGIServerTest(unittest.TestCase):
         return app
 
 
-class LegacyApp(object):
-    """
-    Application that complies with the legacy (double callable)
-    interface of the specification, used to verify the detection
-    of the interface version of an application.
-    """
-
-    def __init__(self, scope):
-        self.scope = scope
-
-
-class ModernApp(object):
-    """
-    Application that complies with the current (single callable)
-    interface of the specification, used to verify the detection
-    of the interface version of an application.
-    """
-
-    @netius.coroutine
-    def __call__(self, scope, receive, send):
-        yield
-
-
 class ASGIStubTest(unittest.TestCase):
 
     def test_unsupported(self):
@@ -1870,3 +1847,26 @@ class LoadAppTest(unittest.TestCase):
             netius.servers.asgi.load_app,
             "netius.servers.asgi:invalid",
         )
+
+
+class LegacyApp(object):
+    """
+    Application that complies with the legacy (double callable)
+    interface of the specification, used to verify the detection
+    of the interface version of an application.
+    """
+
+    def __init__(self, scope):
+        self.scope = scope
+
+
+class ModernApp(object):
+    """
+    Application that complies with the current (single callable)
+    interface of the specification, used to verify the detection
+    of the interface version of an application.
+    """
+
+    @netius.coroutine
+    def __call__(self, scope, receive, send):
+        yield

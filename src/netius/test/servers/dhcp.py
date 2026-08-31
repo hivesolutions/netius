@@ -47,32 +47,6 @@ SIADDR = "11.11.11.2"
 GIADDR = "10.10.10.1"
 
 
-def build_request(mac=MAC, type=0x01):
-    # builds a discover request as it would arrive from the wire, with the
-    # relay address set so that the echoing of it may be verified
-    chaddr = struct.unpack("!QQ", mac + b"\0" * 10)
-    header = struct.pack(
-        HEADER_FORMAT,
-        0x01,
-        0x01,
-        0x06,
-        0x00,
-        0x12345678,
-        0x0000,
-        0x0000,
-        0,
-        0,
-        netius.common.ip4_to_addr(SIADDR),
-        netius.common.ip4_to_addr(GIADDR),
-        chaddr[0],
-        chaddr[1],
-        b"",
-        b"",
-    )
-    options = struct.pack("!BBB", 53, 1, type) + b"\xff"
-    return header + struct.pack("!I", MAGIC) + options
-
-
 class DHCPRequestTest(unittest.TestCase):
 
     def test_parse(self):
@@ -150,3 +124,29 @@ class DHCPRequestTest(unittest.TestCase):
         # the hardware address is echoed untouched, as it's the value that
         # identifies the client that the response is meant for
         self.assertEqual((result[11], result[12]), request.chaddr)
+
+
+def build_request(mac=MAC, type=0x01):
+    # builds a discover request as it would arrive from the wire, with the
+    # relay address set so that the echoing of it may be verified
+    chaddr = struct.unpack("!QQ", mac + b"\0" * 10)
+    header = struct.pack(
+        HEADER_FORMAT,
+        0x01,
+        0x01,
+        0x06,
+        0x00,
+        0x12345678,
+        0x0000,
+        0x0000,
+        0,
+        0,
+        netius.common.ip4_to_addr(SIADDR),
+        netius.common.ip4_to_addr(GIADDR),
+        chaddr[0],
+        chaddr[1],
+        b"",
+        b"",
+    )
+    options = struct.pack("!BBB", 53, 1, type) + b"\xff"
+    return header + struct.pack("!I", MAGIC) + options
