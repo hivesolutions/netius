@@ -1026,6 +1026,192 @@ class StreamClientTest(unittest.TestCase):
 
         self.assertEqual(received, [b"Hello World"])
 
+    def test__connectf(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_probed()
+
+        with mock.patch.object(self.client, "on_connect") as on_connect:
+            self.client._connectf(connection)
+
+        # a connection that reached its peer is announced as connected and the
+        # starters of it are run, there being none for a plain one
+        self.assertEqual(on_connect.call_args[0][0], connection)
+
+    def test__connectf_handshaking(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_probed()
+        connection.ssl_connecting = True
+
+        with mock.patch.object(self.client, "on_connect") as on_connect:
+            self.client._connectf(connection)
+
+        # one that is already running the handshake has been through here
+        # before, so nothing is done for it a second time
+        self.assertEqual(on_connect.called, False)
+
+    def test__connectf_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_probed(error=errno.ECONNREFUSED)
+
+        with mock.patch.object(self.client, "on_error") as on_error:
+            with mock.patch.object(self.client, "on_connect") as on_connect:
+                self.client._connectf(connection)
+
+        # a socket that carries an error never reached its peer, so it is
+        # handled as a failed one instead of being announced as connected
+        self.assertEqual(on_error.call_args[0][0], connection.socket)
+        self.assertEqual(on_connect.called, False)
+
+    def test__connectf_ssl(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_probed()
+        connection.ssl = True
+
+        with mock.patch.object(connection, "add_starter") as add_starter:
+            with mock.patch.object(self.client, "on_connect") as on_connect:
+                self.client._connectf(connection)
+
+        # a secure connection is only usable once the handshake has run, so it
+        # is registered as the starter instead of being announced right away
+        self.assertEqual(add_starter.call_args[0][0], self.client._ssl_handshake)
+        self.assertEqual(on_connect.called, False)
+
+    def test__connects(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        first, second = mock.MagicMock(), mock.MagicMock()
+        self.client.pendings.extend((first, second))
+
+        with mock.patch.object(self.client, "_connect") as _connect:
+            self.client._connects()
+
+        # every connection that was waiting is established and the queue is
+        # left empty, so that a later tick does not reach them again
+        self.assertEqual(_connect.call_count, 2)
+        self.assertEqual(self.client.pendings, [])
+
+    def test__connect(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_probed()
+        connection.address = ("1.2.3.4", 1234)
+
+        with mock.patch.object(self.client, "_connectf") as connectf:
+            self.client._connect(connection)
+
+        # the connection is opened before the reaching of the peer, and the
+        # establishment is finished as soon as that one returns
+        self.assertEqual(connection.socket.connect.call_args[0][0], connection.address)
+        self.assertEqual(connectf.call_args[0][0], connection)
+
+    def test__connect_closed(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_probed()
+        connection.status = conn.CLOSED
+
+        # a connection that was closed while it waited for its turn is left
+        # alone, instead of a peer being reached for it
+        self.client._connect(connection)
+
+        self.assertEqual(connection.socket.connect.called, False)
+
+    def test__connect_pending(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # an error that merely says that the establishment is under way leaves
+        # the connection open, the poll being the one that says when it has
+        # finished
+        for error in (
+            ssl.SSLError(ssl.SSL_ERROR_WANT_WRITE),
+            socket.error(errno.EINPROGRESS, "error"),
+        ):
+            connection = self._make_probed()
+            connection.socket.connect.side_effect = error
+
+            with mock.patch.object(self.client, "_connectf") as connectf:
+                self.client._connect(connection)
+
+            self.assertEqual(connection.status, conn.OPEN)
+            self.assertEqual(connectf.called, False)
+
+    def test__connect_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # one that says that the peer cannot be reached drops the connection,
+        # naming the reason so that the caller may tell it apart
+        for error in (
+            ssl.SSLError(ssl.SSL_ERROR_SSL),
+            socket.error(errno.ECONNREFUSED, "error"),
+        ):
+            connection = self._make_probed()
+            connection.socket.connect.side_effect = error
+
+            self.client._connect(connection)
+
+            self.assertEqual(connection.status, conn.CLOSED)
+            self.assertEqual(connection.close_reason, netius.REASON_ERROR)
+
+    def test__connect_exception(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_probed()
+        connection.socket.connect.side_effect = ValueError("broken")
+
+        # a failure that is none of the expected ones drops the connection and
+        # still reaches the caller, as it names a defect and not a state of
+        # the network
+        self.assertRaises(ValueError, self.client._connect, connection)
+        self.assertEqual(connection.status, conn.CLOSED)
+
+        connection = self._make_probed()
+        connection.socket.connect.side_effect = KeyboardInterrupt()
+
+        self.assertRaises(KeyboardInterrupt, self.client._connect, connection)
+        self.assertEqual(connection.status, conn.OPEN)
+
+    def test__ssl_handshake(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_probed()
+
+        with mock.patch.object(self.client, "on_ssl") as on_ssl:
+            self.client._ssl_handshake(connection)
+
+        # a handshake that completed makes the connection secure, which is
+        # what the verification of the peer is run over
+        self.assertEqual(connection.ssl_handshake, True)
+        self.assertEqual(on_ssl.call_args[0][0], connection)
+
+        connection = self._make_probed()
+        connection.socket.do_handshake.side_effect = ssl.SSLError(
+            ssl.SSL_ERROR_WANT_READ
+        )
+
+        with mock.patch.object(self.client, "is_sub_write", return_value=False):
+            with mock.patch.object(self.client, "on_ssl") as on_ssl:
+                self.client._ssl_handshake(connection)
+
+        # one that is still under way is resumed by the poll, and nothing is
+        # announced until it completes
+        self.assertEqual(connection.ssl_handshake, False)
+        self.assertEqual(on_ssl.called, False)
+
     def _make_connection(self):
         # builds an open connection registered in the client, so that the
         # closing of it may be run over the complete set of structures
