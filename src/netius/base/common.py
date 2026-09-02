@@ -3714,9 +3714,13 @@ class AbstractBase(observer.Observable):
         kwargs = copy.copy(kwargs)
         file = open(path, "rb")
         try:
-            contents = json.load(file)
+            contents = file.read()
         finally:
             file.close()
+
+        # the payload is decoded before being parsed as the loading of a byte
+        # sequence is only supported from Python 3.6 onwards
+        contents = json.loads(legacy.str(contents, encoding="utf-8"))
 
         for key, value in legacy.iteritems(contents):
             kwargs[key] = value
@@ -4091,6 +4095,9 @@ class AbstractBase(observer.Observable):
 
         if not value and not force:
             return value
+        # a value that is unset is taken as an empty one, so that the forcing
+        # of the expansion produces an (empty) file instead of raising
+        value = value or b""
         is_bytes = legacy.is_bytes(value)
         if not is_bytes:
             value = value.encode(encoding)

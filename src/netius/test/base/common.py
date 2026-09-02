@@ -33,6 +33,7 @@ import ssl
 import sys
 import errno
 import socket
+import tempfile
 import datetime
 import unittest
 import collections
@@ -1353,6 +1354,284 @@ class BaseTest(unittest.TestCase):
             common.AbstractBase._DIAG_CLOSED = original
             loop.close()
 
+    def test_connection_dict(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            first, second = mock.MagicMock(), mock.MagicMock()
+            first.id, second.id = "first", "second"
+            loop.connections.extend((first, second))
+
+            result = loop.connection_dict("second", full=True)
+
+            # the connection that carries the identifier is the one described,
+            # and the depth of the description travels with the request
+            self.assertEqual(result, second.info_dict.return_value)
+            self.assertEqual(second.info_dict.call_args[1]["full"], True)
+            self.assertEqual(first.info_dict.called, False)
+
+            # an identifier that names no connection gives nothing back, so
+            # that the caller may tell it apart from an empty description
+            self.assertEqual(loop.connection_dict("third"), None)
+        finally:
+            del loop.connections[:]
+            loop.close()
+
+    def test_build_connection_client(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            socket_c = self._make_client_socket()
+            connection = mock.MagicMock()
+            connection.is_pending_data.return_value = False
+
+            with mock.patch.object(loop, "build_connection", return_value=connection):
+                result = loop.build_connection_client(
+                    socket_c, ("1.2.3.4", 1234), receive_buffer_c=4096
+                )
+
+            # the socket of a client never blocks and is told to keep itself
+            # alive, the connection being opened right after
+            self.assertEqual(socket_c.setblocking.call_args[0][0], 0)
+            self.assertEqual(connection.open.called, True)
+            self.assertEqual(result, connection)
+
+            # the size that was asked for reaches the buffer of the reading,
+            # the one of the writing being left as it is
+            options = [call[0] for call in socket_c.setsockopt.call_args_list]
+            self.assertEqual(
+                (socket.SOL_SOCKET, socket.SO_RCVBUF, 4096) in options, True
+            )
+            self.assertEqual(
+                (socket.IPPROTO_TCP, socket.TCP_NODELAY, 1) in options, True
+            )
+        finally:
+            loop.close()
+
+    def test_build_connection_client_ssl(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            socket_c = self._make_client_socket()
+            connection = mock.MagicMock()
+            connection.is_pending_data.return_value = False
+
+            with mock.patch.object(loop, "build_connection", return_value=connection):
+                loop.build_connection_client(socket_c, ("1.2.3.4", 1234), ssl=True)
+
+            # a secure connection only becomes usable once the handshake has
+            # run, so it is registered as the starter of it
+            self.assertEqual(
+                connection.add_starter.call_args[0][0], loop._ssl_handshake
+            )
+            self.assertEqual(connection.run_starter.called, True)
+
+            # a socket that names no secure layer cannot be spoken to, so it
+            # is closed and no connection is built for it
+            socket_c = self._make_client_socket()
+            socket_c._sslobj = None
+
+            self.assertEqual(
+                loop.build_connection_client(socket_c, ("1.2.3.4", 1234), ssl=True),
+                None,
+            )
+            self.assertEqual(socket_c.close.called, True)
+        finally:
+            loop.close()
+
+    def test_build_connection_client_pending(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            socket_c = self._make_client_socket()
+            connection = mock.MagicMock()
+            connection.is_pending_data.return_value = True
+
+            with mock.patch.object(loop, "build_connection", return_value=connection):
+                with mock.patch.object(loop, "on_read") as on_read:
+                    loop.build_connection_client(socket_c, ("1.2.3.4", 1234))
+
+            # data that arrived together with the handshake is already in the
+            # buffer of the secure layer, so the poll would never report it and
+            # the reading has to be started by hand
+            self.assertEqual(on_read.call_args[0][0], connection.socket)
+        finally:
+            loop.close()
+
+    def test_build_connection_client_failed(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            socket_c = self._make_client_socket()
+            connection = mock.MagicMock()
+            connection.run_starter.side_effect = ValueError("broken")
+
+            with mock.patch.object(loop, "build_connection", return_value=connection):
+                self.assertRaises(
+                    ValueError,
+                    loop.build_connection_client,
+                    socket_c,
+                    ("1.2.3.4", 1234),
+                )
+
+            # a starter that failed leaves the connection unusable, so it is
+            # dropped before the failure reaches the caller
+            self.assertEqual(
+                connection.close.call_args[1]["reason"], netius.REASON_ERROR
+            )
+        finally:
+            loop.close()
+
+    def test_apply_config(self):
+        loop = netius.Base()
+        try:
+            kwargs = dict(host="127.0.0.1")
+
+            # a path that names no file leaves the values as they were, the
+            # configuration being an optional one
+            self.assertEqual(loop.apply_config("nonexistent.json", kwargs), kwargs)
+
+            fd, path = tempfile.mkstemp()
+            os.close(fd)
+            file = open(path, "wb")
+            try:
+                file.write(b'{"port": 8080, "host": "0.0.0.0"}')
+            finally:
+                file.close()
+
+            try:
+                result = loop.apply_config(path, kwargs)
+            finally:
+                os.remove(path)
+
+            # the values of the file take precedence over the ones that were
+            # given, and the ones that it does not name are kept
+            self.assertEqual(result["port"], 8080)
+            self.assertEqual(result["host"], "0.0.0.0")
+
+            # the values that were given are not changed, as the caller may
+            # still be using them
+            self.assertEqual(kwargs, dict(host="127.0.0.1"))
+        finally:
+            loop.close()
+
+    def test_exec_safe(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            connection = mock.MagicMock()
+
+            result = loop.exec_safe(connection, lambda value: value * 2, 21)
+
+            # what the callable gives back is what reaches the caller, the
+            # guarding of it being transparent for the successful case
+            self.assertEqual(result, 42)
+        finally:
+            loop.close()
+
+    def test_exec_safe_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            # the failures are classified as they are everywhere else, and a
+            # run that did not complete is reported as such to the caller
+            for error, expected, exception in (
+                (ssl.SSLError(ssl.SSL_ERROR_EOF), True, False),
+                (ssl.SSLError(ssl.SSL_ERROR_WANT_READ), False, False),
+                (ssl.SSLError(ssl.SSL_ERROR_SSL), False, True),
+                (socket.error(errno.EPIPE, "error"), True, False),
+                (socket.error(errno.EAGAIN, "error"), False, False),
+                (socket.error(errno.EBADF, "error"), False, True),
+                (ValueError("broken"), False, True),
+            ):
+
+                def callable():
+                    raise error
+
+                connection = mock.MagicMock()
+
+                with mock.patch.object(loop, "on_expected") as on_expected:
+                    with mock.patch.object(loop, "on_exception") as on_exception:
+                        result = loop.exec_safe(connection, callable)
+
+                self.assertEqual(result, False)
+                self.assertEqual(on_expected.called, expected)
+                self.assertEqual(on_exception.called, exception)
+
+            def interrupt():
+                raise KeyboardInterrupt()
+
+            # the ones that ask for the process to end are never guarded, as
+            # swallowing them would keep the process alive
+            self.assertRaises(
+                KeyboardInterrupt, loop.exec_safe, mock.MagicMock(), interrupt
+            )
+        finally:
+            loop.close()
+
+    def test_expand(self):
+        loop = netius.Base()
+        try:
+            # a value that names nothing is given back as it is, there being
+            # nothing to be written to a file for it
+            self.assertEqual(loop.expand(None), None)
+            self.assertEqual(loop.expand(""), "")
+
+            path = loop.expand("line\\nother")
+
+            # the escaped newlines are the ones of a value that travelled in an
+            # environment variable, so they are restored on the way out
+            file = open(path, "rb")
+            try:
+                self.assertEqual(file.read(), b"line\nother")
+            finally:
+                file.close()
+
+            # a value that is already a sequence of bytes is written as it is,
+            # instead of being encoded a second time
+            other = loop.expand(b"bytes")
+            file = open(other, "rb")
+            try:
+                self.assertEqual(file.read(), b"bytes")
+            finally:
+                file.close()
+
+            # the files are remembered so that they may be removed once the
+            # infra-structure is no longer running
+            self.assertEqual(path in loop._expanded, True)
+            self.assertEqual(other in loop._expanded, True)
+
+            loop._expand_destroy()
+
+            # and the destruction removes every one of them, leaving nothing
+            # of the expansion behind
+            self.assertEqual(os.path.exists(path), False)
+            self.assertEqual(loop._expanded, [])
+
+            # a value that names nothing may still be expanded when it is
+            # asked for, which is what a forced one stands for
+            forced = loop.expand(None, force=True)
+            try:
+                self.assertEqual(os.path.exists(forced), True)
+            finally:
+                loop._expand_destroy()
+        finally:
+            loop.close()
+
     def test__connect(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -2191,6 +2470,13 @@ class BaseTest(unittest.TestCase):
             )
         finally:
             loop.close()
+
+    def _make_client_socket(self):
+        # builds a socket stand-in of a client, in the state that the building
+        # of a connection for it requires
+        socket_c = mock.MagicMock()
+        socket_c.family = socket.AF_INET
+        return socket_c
 
     def _make_connecting(self):
         # builds a connection stand-in in the state that the establishment of
