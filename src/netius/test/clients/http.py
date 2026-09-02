@@ -35,6 +35,11 @@ import unittest
 import netius.common
 import netius.clients
 
+try:
+    import unittest.mock as mock
+except ImportError:
+    mock = None
+
 RAW_MESSAGE = b"Hello World" * 32
 
 
@@ -119,6 +124,292 @@ class HTTPProtocolTest(unittest.TestCase):
             for index in range(len(data)):
                 message += protocol.raw_data(data[index : index + 1])
             self.assertEqual(message, RAW_MESSAGE)
+
+    def test___repr__(self):
+        protocol = self._make_protocol()
+        protocol.host = "example.com"
+        protocol.port = 80
+
+        # a protocol that was neither opened nor closed is a pending one,
+        # which is the state it is built in
+        self.assertEqual("pending" in repr(protocol), True)
+        self.assertEqual("example.com:80" in repr(protocol), True)
+
+        # the remaining states are each named as they are reached, so that a
+        # log carries the one the protocol was in
+        protocol._closed = False
+        protocol._open = True
+        self.assertEqual("open" in repr(protocol), True)
+
+        protocol._closing = True
+        self.assertEqual("closing" in repr(protocol), True)
+
+        protocol._closed = True
+        self.assertEqual("closed" in repr(protocol), True)
+
+    def test_set_request_file(self):
+        parser = self._make_response_parser()
+        input = netius.legacy.BytesIO(RAW_MESSAGE)
+
+        request = netius.clients.HTTPProtocol.set_request_file(parser, input)
+
+        # a payload under no coding at all is handed over as it is, the file
+        # being left at its start for whoever reads it
+        self.assertEqual(request["code"], 200)
+        self.assertEqual(request["data"].read(), RAW_MESSAGE)
+
+    def test_set_request_file_encoded(self):
+        compressor = zlib.compressobj(6, zlib.DEFLATED, zlib.MAX_WBITS | 16)
+        data = compressor.compress(RAW_MESSAGE) + compressor.flush()
+
+        parser = self._make_response_parser(headers={"Content-Encoding": "gzip"})
+        input = netius.legacy.BytesIO(data)
+        output = netius.legacy.BytesIO()
+
+        request = netius.clients.HTTPProtocol.set_request_file(
+            parser, input, output=output
+        )
+
+        # one that names a coding is decoded into the file that was given,
+        # which is what keeps a large payload out of memory
+        self.assertEqual(request["data"], output)
+        self.assertEqual(request["data"].read(), RAW_MESSAGE)
+
+        # the file that carried the encoded payload is released, as it is no
+        # longer of any use once it has been decoded
+        self.assertEqual(input.closed, True)
+
+    def test_set_request_file_existing(self):
+        parser = self._make_response_parser()
+        input = netius.legacy.BytesIO(RAW_MESSAGE)
+        request = dict(extra="value")
+
+        result = netius.clients.HTTPProtocol.set_request_file(
+            parser, input, request=request
+        )
+
+        # the description that was given is the one filled in, so that what it
+        # already carried is not lost
+        self.assertEqual(result, request)
+        self.assertEqual(result["extra"], "value")
+        self.assertEqual(result["status"], parser.status)
+
+    def test_set_static(self):
+        protocol = netius.clients.HTTPProtocol(
+            "GET",
+            "https://user:pass@example.com/path",
+            params=dict(key="value"),
+            asynchronous=True,
+        )
+        protocol.set_static()
+
+        # the parts of the address are taken apart into the values that the
+        # request is built from, the port being the one of the scheme
+        self.assertEqual(protocol.ssl, True)
+        self.assertEqual(protocol.host, "example.com")
+        self.assertEqual(protocol.port, 443)
+        self.assertEqual(protocol.path, "/path")
+
+        # the parameters travel in the query of the address, as a request of
+        # this kind carries no payload of its own
+        self.assertEqual("key=value" in protocol.url, True)
+
+        # the credentials of the address become the header that carries them,
+        # under the scheme that the specification names
+        self.assertEqual(protocol.headers["authorization"], "Basic dXNlcjpwYXNz")
+
+    def test_set_static_plain(self):
+        protocol = netius.clients.HTTPProtocol(
+            "GET", "http://example.com", asynchronous=True
+        )
+        protocol.set_static()
+
+        # an address that names neither a path nor a port is served by the
+        # defaults of the scheme
+        self.assertEqual(protocol.ssl, False)
+        self.assertEqual(protocol.port, 80)
+        self.assertEqual(protocol.path, "/")
+        self.assertEqual("authorization" in protocol.headers, False)
+
+    def test_set_timeout(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        protocol = self._make_protocol()
+        callable = lambda: None
+
+        with mock.patch.object(protocol, "delay", return_value="handle") as delay:
+            protocol.set_timeout(callable)
+
+        # the handler is scheduled for the timeout of the protocol and is kept
+        # so that it may be cancelled later on
+        self.assertEqual(delay.call_args[1]["timeout"], protocol.timeout)
+        self.assertEqual(protocol.timeout_h, "handle")
+
+        with mock.patch.object(protocol, "unpend") as unpend:
+            with mock.patch.object(protocol, "delay", return_value="other"):
+                protocol.set_timeout(callable)
+
+        # scheduling another one cancels the one that was still pending, as a
+        # request that finished would otherwise leave it in the queue
+        self.assertEqual(unpend.call_args[0][0], "handle")
+        self.assertEqual(protocol.timeout_h, "other")
+
+        with mock.patch.object(protocol, "unpend") as unpend:
+            protocol.unset_timeout()
+            protocol.unset_timeout()
+
+        # and cancelling it a second time is a no operation, there being none
+        # left to be cancelled
+        self.assertEqual(unpend.call_count, 1)
+        self.assertEqual(protocol.timeout_h, None)
+
+    def test_decode_zlib_file(self):
+        compressor = zlib.compressobj(6, zlib.DEFLATED, zlib.MAX_WBITS | 16)
+        data = compressor.compress(RAW_MESSAGE) + compressor.flush()
+
+        input = netius.legacy.BytesIO(data)
+        output = netius.legacy.BytesIO()
+
+        netius.clients.HTTPProtocol.decode_zlib_file(input, output, buffer_size=8)
+
+        # the payload is decoded in chunks of the size that was asked for, so
+        # that a large one never has to be held whole in memory
+        output.seek(0)
+        self.assertEqual(output.read(), RAW_MESSAGE)
+
+        # a window that was named takes the place of the default one, which is
+        # what tells the two of the codings apart
+        compressor = zlib.compressobj(6, zlib.DEFLATED, -zlib.MAX_WBITS)
+        data = compressor.compress(RAW_MESSAGE) + compressor.flush()
+
+        input = netius.legacy.BytesIO(data)
+        output = netius.legacy.BytesIO()
+
+        netius.clients.HTTPProtocol.decode_deflate_file(input, output)
+
+        output.seek(0)
+        self.assertEqual(output.read(), RAW_MESSAGE)
+
+    def test_send_chunked(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        protocol = self._make_protocol()
+
+        with mock.patch.object(protocol, "send") as send:
+            protocol.send_chunked(b"hello")
+
+        # a chunk travels behind the size of it in hexadecimal, both of them
+        # closed by the pair that the framing asks for
+        self.assertEqual(send.call_args[0][0], b"5\r\nhello\r\n")
+
+        with mock.patch.object(protocol, "send") as send:
+            protocol.send_chunked(b"")
+
+        # an empty payload carries no chunk of its own, as a zero sized one
+        # would be read as the end of the framing
+        self.assertEqual(send.call_args[0][0], b"")
+
+    def test_send_gzip(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        protocol = self._make_protocol(encoding=netius.clients.http.GZIP_ENCODING)
+
+        sent = []
+
+        with mock.patch.object(
+            protocol, "send", lambda data, **kwargs: sent.append(data)
+        ):
+            protocol.send_gzip(RAW_MESSAGE)
+            protocol._flush_gzip()
+
+        # every chunk of the framing carries a part of the compressed payload,
+        # which put together is the one that was handed over
+        payload = b"".join(sent)
+        chunks = self._unchunk(payload)
+        self.assertEqual(zlib.decompress(chunks, zlib.MAX_WBITS | 16), RAW_MESSAGE)
+
+        # the compressor is released once it is flushed, so that a request
+        # that follows starts one of its own
+        self.assertEqual(protocol.gzip, None)
+
+    def test_send_gzip_deflate(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        protocol = self._make_protocol(encoding=netius.clients.http.DEFLATE_ENCODING)
+
+        sent = []
+
+        with mock.patch.object(
+            protocol, "send", lambda data, **kwargs: sent.append(data)
+        ):
+            protocol.send_gzip(RAW_MESSAGE)
+            protocol._flush_gzip()
+
+        # the deflate coding carries no container of its own, which is what
+        # the negative window of the compressor stands for
+        chunks = self._unchunk(b"".join(sent))
+        self.assertEqual(zlib.decompress(chunks, -zlib.MAX_WBITS), RAW_MESSAGE)
+
+    def test_send_gzip_empty(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        protocol = self._make_protocol()
+
+        with mock.patch.object(protocol, "send") as send:
+            protocol.send_gzip(b"")
+
+        # an empty payload never reaches the compressor, as starting one for
+        # it would emit a container with nothing in it
+        self.assertEqual(send.call_args[0][0], b"")
+        self.assertEqual(protocol.gzip, None)
+
+    def test__flush_gzip_unset(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        protocol = self._make_protocol()
+
+        with mock.patch.object(protocol, "send") as send:
+            protocol._flush_gzip()
+
+        # with no compressor to be flushed only the end of the framing is
+        # sent, which is what closes the payload
+        self.assertEqual(send.call_args[0][0], b"0\r\n\r\n")
+
+    def test__close_gzip(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        protocol = self._make_protocol()
+
+        # a protocol that started no compressor has none to be closed, and
+        # asking for it must not raise
+        self.assertEqual(protocol._close_gzip(), None)
+
+        protocol.gzip = mock.MagicMock()
+        protocol._close_gzip()
+
+        self.assertEqual(protocol.gzip, None)
+
+        # a compressor that cannot be flushed keeps the failure to itself, as
+        # the closing of a connection must not be broken by it, the compressor
+        # being left as it is for the caller to decide upon
+        protocol.gzip = mock.MagicMock()
+        protocol.gzip.flush.side_effect = ValueError("broken")
+
+        self.assertEqual(protocol._close_gzip(), None)
+        self.assertNotEqual(protocol.gzip, None)
+
+        # unless the caller asked for the failure, in which case it reaches it
+        protocol.gzip = mock.MagicMock()
+        protocol.gzip.flush.side_effect = ValueError("broken")
+
+        self.assertRaises(ValueError, protocol._close_gzip, safe=False)
 
     def test_send_request_parsed_none(self):
         protocol = netius.clients.HTTPProtocol(
@@ -229,6 +520,41 @@ class HTTPProtocolTest(unittest.TestCase):
         headers = {}
         protocol._apply_dynamic(headers)
         self.assertEqual(headers["host"], "example.com:8080")
+
+    def _make_protocol(self, encoding=None):
+        # builds a protocol with a parser of its own, in the state that the
+        # framing of a payload requires
+        protocol = netius.clients.HTTPProtocol(
+            "GET", "http://example.com/", asynchronous=True
+        )
+        protocol.parser = netius.common.HTTPParser(
+            protocol, type=netius.common.RESPONSE
+        )
+        if not encoding == None:
+            protocol.current = encoding
+        return protocol
+
+    def _make_response_parser(self, headers=None):
+        # builds a parser of a response carrying the values that the building
+        # of the description of a request reads
+        parser = netius.common.HTTPParser(self, type=netius.common.RESPONSE)
+        parser.code = 200
+        parser.status = "OK"
+        parser.headers = headers or {}
+        return parser
+
+    def _unchunk(self, data):
+        # takes the payload out of the framing, so that what was compressed
+        # may be verified against what was handed over
+        buffer = []
+        while data:
+            header, data = data.split(b"\r\n", 1)
+            size = int(header, 16)
+            if not size:
+                break
+            buffer.append(data[:size])
+            data = data[size + 2 :]
+        return b"".join(buffer)
 
 
 class HTTPClientTest(unittest.TestCase):

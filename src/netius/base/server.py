@@ -1012,6 +1012,8 @@ class StreamServer(Server):
         connection.set_data(data)
 
     def on_socket_c(self, socket_c, address):
+        import netius.common
+
         # verifies if the current address (host value) is present in
         # the currently defined allowed list and in case that's not
         # the case raises an exception indicating the issue

@@ -427,7 +427,12 @@ class CompatLoop(BaseLoop):
     def _current_tasks(self):
         if hasattr(asyncio.tasks, "_current_tasks"):
             return asyncio.tasks._current_tasks
-        return asyncio.Task._current_tasks
+        if hasattr(asyncio.Task, "_current_tasks"):
+            return asyncio.Task._current_tasks
+        # the task of the native implementation keeps the map of the running
+        # ones to itself, so the one of the task written in pure Python is
+        # the only one that can be reached, as happens under Python 3.6
+        return asyncio.tasks._PyTask._current_tasks
 
 
 def is_compat():

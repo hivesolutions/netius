@@ -3714,9 +3714,15 @@ class AbstractBase(observer.Observable):
         kwargs = copy.copy(kwargs)
         file = open(path, "rb")
         try:
-            contents = json.load(file)
+            contents = file.read()
         finally:
             file.close()
+
+        # the payload is decoded before being parsed as the loading of a byte
+        # sequence is only supported from Python 3.6 onwards, the encoding
+        # takes the mark of the order of the bytes off the front of it as the
+        # loading of a binary file used to do so by itself
+        contents = json.loads(contents.decode("utf-8-sig"))
 
         for key, value in legacy.iteritems(contents):
             kwargs[key] = value
@@ -4091,6 +4097,9 @@ class AbstractBase(observer.Observable):
 
         if not value and not force:
             return value
+        # a value that is unset is taken as an empty one, so that the forcing
+        # of the expansion produces an (empty) file instead of raising
+        value = value or b""
         is_bytes = legacy.is_bytes(value)
         if not is_bytes:
             value = value.encode(encoding)
@@ -4549,30 +4558,62 @@ class AbstractBase(observer.Observable):
         if count == None:
             count = self.keepalive_count
         is_inet = _socket.family in (socket.AF_INET, socket.AF_INET6)
-        if is_inet and hasattr(_socket, "TCP_KEEPIDLE"):
-            _socket.setsockopt(
+        if is_inet:
+            # the option that sets the idle time before the first probe is
+            # named differently under the systems derived from BSD, so the
+            # one that the runtime carries is the one that gets used
+            idle = getattr(socket, "TCP_KEEPIDLE", None)
+            idle = getattr(socket, "TCP_KEEPALIVE", None) if idle == None else idle
+            self._socket_option(_socket, socket.IPPROTO_TCP, idle, timeout)
+            self._socket_option(
+                _socket,
                 socket.IPPROTO_TCP,
-                socket.TCP_KEEPIDLE,  # @UndefinedVariable pylint: disable=E1101
-                timeout,
-            )
-        if is_inet and hasattr(_socket, "TCP_KEEPINTVL"):
-            _socket.setsockopt(
-                socket.IPPROTO_TCP,
-                socket.TCP_KEEPINTVL,  # @UndefinedVariable pylint: disable=E1101
+                getattr(socket, "TCP_KEEPINTVL", None),
                 interval,
             )
-        if is_inet and hasattr(_socket, "TCP_KEEPCNT"):
-            _socket.setsockopt(
+            self._socket_option(
+                _socket,
                 socket.IPPROTO_TCP,
-                socket.TCP_KEEPCNT,  # @UndefinedVariable pylint: disable=E1101
+                getattr(socket, "TCP_KEEPCNT", None),
                 count,
             )
-        if hasattr(_socket, "SO_REUSEPORT"):
-            _socket.setsockopt(
+            self._socket_option(
+                _socket,
                 socket.SOL_SOCKET,
-                socket.SO_REUSEPORT,  # @UndefinedVariable pylint: disable=E1101
+                getattr(socket, "SO_REUSEPORT", None),
                 1,
             )
+
+    def _socket_option(self, _socket, level, option, value):
+        """
+        Sets an optional option in the provided socket, tolerating both the
+        absence of it in the runtime and the refusal of it by the kernel.
+
+        These options are meant to tune a socket and not to make it usable,
+        so one that cannot be set must not take the creation of the socket
+        down with it.
+
+        :type _socket: Socket
+        :param _socket: The socket that is going to have the option set.
+        :type level: int
+        :param level: The level of the protocol that the option belongs to.
+        :type option: int
+        :param option: The option that is going to be set, an unset value
+        meaning that the runtime does not carry it.
+        :type value: int
+        :param value: The value that the option is going to be set to.
+        :rtype: bool
+        :return: If the option was effectively set in the socket.
+        """
+
+        if option == None:
+            return False
+        try:
+            _socket.setsockopt(level, option, value)
+        except (OSError, socket.error) as error:
+            self.debug("Cannot set socket option %d: %s" % (option, error))
+            return False
+        return True
 
     def _ssl_init(self, strict=True, env=True):
         # initializes the values of both the "main" context for SSL

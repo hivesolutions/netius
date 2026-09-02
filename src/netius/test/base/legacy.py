@@ -262,6 +262,15 @@ class LegacyTest(unittest.TestCase):
         # is part of this very call is always found
         self.assertEqual(legacy.is_unittest(name="is_unittest"), True)
 
+        code = compile("result = legacy.is_unittest(name='invalid')", "<test>", "exec")
+        global_vars = dict(legacy=legacy)
+
+        exec(code, global_vars)
+
+        # the frame of an evaluated caller has no source on the disk to be
+        # looked at, so it should be skipped over instead of raising
+        self.assertEqual(global_vars["result"], False)
+
     def test_execfile(self):
         path = self._store("module.py", "value = 1\nother = value + 1\n")
         global_vars = dict()

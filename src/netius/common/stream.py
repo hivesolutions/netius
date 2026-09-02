@@ -59,7 +59,7 @@ class Stream(object):
     def write(self, data):
         raise netius.NotImplemented("Missing implementation")
 
-    def flish(self):
+    def flush(self):
         raise netius.NotImplemented("Missing implementation")
 
 

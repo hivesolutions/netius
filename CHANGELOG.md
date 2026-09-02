@@ -17,9 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* A configuration file is now read under Python 3.5, instead of failing on it
 * A header that is set by its position now replaces the one that is there
 * A string that carries no null byte is now given back whole instead of raising
+* An environment value that is unset can now be forced into a file, instead of raising
+* The allowed addresses of a service are now honoured, instead of every peer being refused
+* The asyncio compatibility of the event loop no longer fails under Python 3.6
+* The check for a test run no longer raises when a caller carries no source
 * The connections of a proxy can now be listed before it is started, instead of failing
+* The keep alive tuning of a connection now reaches the socket, instead of being dropped
 * The service catalogue of a Consul proxy is now read under Python 3.5, instead of being dropped
 * The test of primality no longer takes a base that shares a factor for a prime one
 

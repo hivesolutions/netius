@@ -460,7 +460,13 @@ def is_async_generator(value):
 def is_unittest(name="unittest"):
     current_stack = inspect.stack()
     for stack_frame in current_stack:
-        for program_line in stack_frame[4]:
+        program_lines = stack_frame[4]
+        # a frame whose source is not available on the disk carries no
+        # context of the code, as happens for the evaluated and the frozen
+        # ones, so there's nothing on it that can be looked at
+        if program_lines == None:
+            continue
+        for program_line in program_lines:
             is_unittest = not name in program_line
             if is_unittest:
                 continue
