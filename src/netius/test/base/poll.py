@@ -28,6 +28,7 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import socket
 import select
 import unittest
 import collections
@@ -971,3 +972,122 @@ class SelectPollTest(unittest.TestCase):
         # the select based implementation is a level triggered one, as the
         # complete set of sockets is verified on every call
         self.assertEqual(poll.SelectPoll().is_edge(), False)
+
+    def test_sub_read(self):
+        instance = poll.SelectPoll()
+        instance.open()
+        try:
+            _socket = socket.socket()
+            try:
+                instance.sub_read(_socket, owner=self)
+
+                # the socket joins both the sequence handed to the selection
+                # and the map that names the owner of it
+                self.assertEqual(instance.read_l, [_socket])
+                self.assertEqual(instance.read_o[_socket], self)
+                self.assertEqual(instance.is_empty(), False)
+
+                instance.sub_read(_socket)
+
+                # subscribing it a second time is a no operation, as it would
+                # otherwise be reported twice by every selection
+                self.assertEqual(instance.read_l, [_socket])
+                self.assertEqual(instance.read_o[_socket], self)
+            finally:
+                _socket.close()
+        finally:
+            instance.close()
+
+    def test_sub_write(self):
+        instance = poll.SelectPoll()
+        instance.open()
+        try:
+            _socket = socket.socket()
+            try:
+                instance.sub_write(_socket, owner=self)
+
+                self.assertEqual(instance.write_l, [_socket])
+                self.assertEqual(instance.write_o[_socket], self)
+
+                instance.sub_write(_socket)
+
+                self.assertEqual(instance.write_l, [_socket])
+            finally:
+                _socket.close()
+        finally:
+            instance.close()
+
+    def test_sub_error(self):
+        instance = poll.SelectPoll()
+        instance.open()
+        try:
+            _socket = socket.socket()
+            try:
+                instance.sub_error(_socket, owner=self)
+
+                self.assertEqual(instance.error_l, [_socket])
+                self.assertEqual(instance.error_o[_socket], self)
+
+                instance.sub_error(_socket)
+
+                self.assertEqual(instance.error_l, [_socket])
+            finally:
+                _socket.close()
+        finally:
+            instance.close()
+
+    def test_unsub_read(self):
+        instance = poll.SelectPoll()
+        instance.open()
+        try:
+            _socket = socket.socket()
+            try:
+                instance.sub_read(_socket)
+                instance.unsub_read(_socket)
+
+                # the sequence and the map are left in step with each other,
+                # as a socket in only one of them would break the selection
+                self.assertEqual(instance.read_l, [])
+                self.assertEqual(_socket in instance.read_o, False)
+
+                # a socket that was never subscribed has nothing to be dropped
+                # and asking for it must not raise
+                self.assertEqual(instance.unsub_read(_socket), None)
+            finally:
+                _socket.close()
+        finally:
+            instance.close()
+
+    def test_unsub_write(self):
+        instance = poll.SelectPoll()
+        instance.open()
+        try:
+            _socket = socket.socket()
+            try:
+                instance.sub_write(_socket)
+                instance.unsub_write(_socket)
+
+                self.assertEqual(instance.write_l, [])
+                self.assertEqual(_socket in instance.write_o, False)
+                self.assertEqual(instance.unsub_write(_socket), None)
+            finally:
+                _socket.close()
+        finally:
+            instance.close()
+
+    def test_unsub_error(self):
+        instance = poll.SelectPoll()
+        instance.open()
+        try:
+            _socket = socket.socket()
+            try:
+                instance.sub_error(_socket)
+                instance.unsub_error(_socket)
+
+                self.assertEqual(instance.error_l, [])
+                self.assertEqual(_socket in instance.error_o, False)
+                self.assertEqual(instance.unsub_error(_socket), None)
+            finally:
+                _socket.close()
+        finally:
+            instance.close()
