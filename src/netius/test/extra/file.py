@@ -478,15 +478,16 @@ class FileServerTest(unittest.TestCase):
             self.skipTest("Skipping test: mock unavailable")
 
         outside = tempfile.mkdtemp()
-        self._write(os.path.join(outside, "secret.txt"), b"secret")
-        self._link(
-            os.path.join(outside, "secret.txt"),
-            os.path.join(self.base_path, "link.txt"),
-        )
-
-        connection = self._make_connection()
 
         try:
+            self._write(os.path.join(outside, "secret.txt"), b"secret")
+            self._link(
+                os.path.join(outside, "secret.txt"),
+                os.path.join(self.base_path, "link.txt"),
+            )
+
+            connection = self._make_connection()
+
             self.server.on_data_http(connection, self._make_parser("/link.txt"))
 
             # a link that sits under the base path but points out of it is a

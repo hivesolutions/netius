@@ -232,6 +232,15 @@ class FTPConnectionPathTest(unittest.TestCase):
         finally:
             file.close()
 
+    def test_on_line_refused(self):
+        self.connection.on_line("CWD", "..")
+
+        # a path that walks out of the root is a command that failed rather
+        # than a reason to drop the connection of the peer, which is what an
+        # ordinary client asks for when it walks up from the root
+        self.assertEqual(self.sent[-1], (500, "not ok"))
+        self.assertEqual(self.connection.cwd, "/")
+
     def test_on_syst(self):
         self.connection.on_syst("")
 
@@ -508,15 +517,16 @@ class FTPConnectionPathTest(unittest.TestCase):
 
     def test__get_path_link(self):
         outside = tempfile.mkdtemp()
-        secret = os.path.join(outside, "secret.txt")
-        file = open(secret, "wb")
-        try:
-            file.write(b"secret")
-        finally:
-            file.close()
-        self._link(secret, os.path.join(self.base, "link.txt"))
 
         try:
+            secret = os.path.join(outside, "secret.txt")
+            file = open(secret, "wb")
+            try:
+                file.write(b"secret")
+            finally:
+                file.close()
+            self._link(secret, os.path.join(self.base, "link.txt"))
+
             # a link that sits under the root but points out of it is a way
             # around the containment, so the target of it is what counts
             self.assertRaises(

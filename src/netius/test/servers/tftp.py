@@ -248,17 +248,18 @@ class TFTPSessionTest(unittest.TestCase):
 
     def test__get_file_link(self):
         outside = tempfile.mkdtemp()
-        secret = os.path.join(outside, "secret.txt")
-        file = open(secret, "wb")
-        try:
-            file.write(b"secret")
-        finally:
-            file.close()
-        self._link(secret, os.path.join(self.base, "link.txt"))
-
-        session = self._make_session("link.txt")
+        session = None
 
         try:
+            secret = os.path.join(outside, "secret.txt")
+            file = open(secret, "wb")
+            try:
+                file.write(b"secret")
+            finally:
+                file.close()
+            self._link(secret, os.path.join(self.base, "link.txt"))
+
+            session = self._make_session("link.txt")
             # a link that sits under the root but points out of it is a way
             # around the containment, so the target of it is what counts
             self.assertRaises(netius.SecurityError, session._get_file)
@@ -269,7 +270,8 @@ class TFTPSessionTest(unittest.TestCase):
             self.assertEqual(session._get_file().read(), b"secret")
         finally:
             self.server.follow_links = False
-            session.close()
+            if session:
+                session.close()
             shutil.rmtree(outside)
 
     def test__get_file_link_inside(self):

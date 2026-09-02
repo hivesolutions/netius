@@ -265,9 +265,14 @@ class FTPConnection(netius.Connection):
 
         # retrieves the reference to the method that is going to be called
         # for the handling of the current line from the current instance and
-        # then calls it with the provided message
+        # then calls it with the provided message, note that a path that is
+        # refused is reported back as a failed command instead of being
+        # raised, as dropping the connection for it would be too much
         method = getattr(self, method_n)
-        method(message)
+        try:
+            method(message)
+        except netius.SecurityError:
+            self.not_ok()
 
     def on_user(self, message):
         self.username = message

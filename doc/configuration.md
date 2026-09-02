@@ -74,6 +74,7 @@
 | **PATH_REGEX**  | `list` | `[]`    | The list of regex to path values (separated by the `:` character) that provide a simple way of URL re-writing like behaviour under the file serving extension (eg: `.*:index.html`). |
 | **LIST_DIRS**   | `bool` | `True`  | If directory listing is enabled (may pose a security issue).                                                                                                                         |
 | **LIST_ENGINE** | `str`  | `base`  | The name of the HTML generation engine to be used while listing files (eg: base, apache, legacy, etc.).                                                                              |
+| **FOLLOW_LINKS** | `bool` | `False` | If a symbolic link under the base path whose target lies outside of it should be followed, by default such a link is refused (may pose a security issue).                            |
 
 #### HTTP
 
