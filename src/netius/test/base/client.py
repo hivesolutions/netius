@@ -472,6 +472,121 @@ class DatagramClientTest(unittest.TestCase):
         self.assertEqual(self.client.renable, False)
         self.assertEqual(unsub_read.call_count, 0)
 
+    def test_send(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.client.wready = False
+
+        with mock.patch.object(self.client, "ensure_write") as ensure_write:
+            self.client.send(b"hello", ("1.2.3.4", 1234), ensure_loop=False)
+
+        # a datagram is queued rather than written, the socket being asked to
+        # report when it may take it
+        self.assertEqual(len(self.client.pending), 1)
+        self.assertEqual(self.client.pending_s, 5)
+        self.assertEqual(ensure_write.called, True)
+
+    def test_send_ready(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.client.wready = True
+        self.client.tid = threading.current_thread().ident
+
+        with mock.patch.object(self.client, "_flush_write") as flush_write:
+            self.client.send(
+                b"hello", ("1.2.3.4", 1234), delay=False, ensure_loop=False
+            )
+
+        # a socket that is known to be writable takes the datagram right away,
+        # as long as the request came from the thread of the loop
+        self.assertEqual(flush_write.called, True)
+
+    def test_send_delayed(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.client.wready = True
+
+        with mock.patch.object(self.client, "delay") as delay:
+            self.client.send(b"hello", ("1.2.3.4", 1234), ensure_loop=False)
+
+        # otherwise the flushing is deferred into the loop, so that it is
+        # never run in the middle of the queuing
+        self.assertEqual(delay.call_args[0][0], self.client._flush_write)
+        self.assertEqual(delay.call_args[1]["safe"], True)
+
+    def test__send(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        callback = mock.MagicMock()
+        _socket = mock.MagicMock()
+        _socket.sendto.return_value = 5
+        self.client.pending.appendleft(((b"hello", callback), ("1.2.3.4", 1234)))
+        self.client.pending_s = 5
+
+        with mock.patch.object(self.client, "remove_write"):
+            self.client._send(_socket)
+
+        # the datagram reaches the address that was named with it, and the
+        # callback of it is run once the whole of it has been taken
+        self.assertEqual(_socket.sendto.call_args[0], (b"hello", ("1.2.3.4", 1234)))
+        self.assertEqual(callback.call_args[0][0], self.client)
+        self.assertEqual(self.client.pending_s, 0)
+        self.assertEqual(len(self.client.pending), 0)
+
+    def test__send_partial(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        callback = mock.MagicMock()
+        _socket = mock.MagicMock()
+        _socket.sendto.side_effect = [2, 3]
+        self.client.pending.appendleft(((b"hello", callback), ("1.2.3.4", 1234)))
+        self.client.pending_s = 5
+
+        with mock.patch.object(self.client, "remove_write"):
+            self.client._send(_socket)
+
+        # what was not taken is queued again, so that the rest of it goes out
+        # under the next writing, and only then is the callback run
+        self.assertEqual(_socket.sendto.call_args_list[1][0][0], b"llo")
+        self.assertEqual(callback.call_count, 1)
+        self.assertEqual(self.client.pending_s, 0)
+
+    def test__send_blocked(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        _socket = mock.MagicMock()
+        _socket.sendto.side_effect = socket.error(errno.EWOULDBLOCK, "error")
+        self.client.pending.appendleft((b"hello", ("1.2.3.4", 1234)))
+
+        with mock.patch.object(self.client, "ensure_write") as ensure_write:
+            self.assertRaises(socket.error, self.client._send, _socket)
+
+        # a socket that could not take the datagram is no longer known to be
+        # writable, the datagram being queued again for when it is
+        self.assertEqual(self.client.wready, False)
+        self.assertEqual(len(self.client.pending), 1)
+        self.assertEqual(ensure_write.called, True)
+
+    def test__send_empty(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        _socket = mock.MagicMock()
+
+        with mock.patch.object(self.client, "remove_write") as remove_write:
+            self.client._send(_socket)
+
+        # with nothing queued the socket is no longer watched for the writing,
+        # as it would otherwise wake the poll up for nothing
+        self.assertEqual(_socket.sendto.called, False)
+        self.assertEqual(remove_write.called, True)
+
 
 class StreamClientTest(unittest.TestCase):
 
