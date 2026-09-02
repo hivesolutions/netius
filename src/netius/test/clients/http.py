@@ -125,6 +125,145 @@ class HTTPProtocolTest(unittest.TestCase):
                 message += protocol.raw_data(data[index : index + 1])
             self.assertEqual(message, RAW_MESSAGE)
 
+    def test___repr__(self):
+        protocol = self._make_protocol()
+        protocol.host = "example.com"
+        protocol.port = 80
+
+        # a protocol that was neither opened nor closed is a pending one,
+        # which is the state it is built in
+        self.assertEqual("pending" in repr(protocol), True)
+        self.assertEqual("example.com:80" in repr(protocol), True)
+
+        # the remaining states are each named as they are reached, so that a
+        # log carries the one the protocol was in
+        protocol._closed = False
+        protocol._open = True
+        self.assertEqual("open" in repr(protocol), True)
+
+        protocol._closing = True
+        self.assertEqual("closing" in repr(protocol), True)
+
+        protocol._closed = True
+        self.assertEqual("closed" in repr(protocol), True)
+
+    def test_set_request_file(self):
+        parser = self._make_response_parser()
+        input = netius.legacy.BytesIO(RAW_MESSAGE)
+
+        request = netius.clients.HTTPProtocol.set_request_file(parser, input)
+
+        # a payload under no coding at all is handed over as it is, the file
+        # being left at its start for whoever reads it
+        self.assertEqual(request["code"], 200)
+        self.assertEqual(request["data"].read(), RAW_MESSAGE)
+
+    def test_set_request_file_encoded(self):
+        compressor = zlib.compressobj(6, zlib.DEFLATED, zlib.MAX_WBITS | 16)
+        data = compressor.compress(RAW_MESSAGE) + compressor.flush()
+
+        parser = self._make_response_parser(headers={"Content-Encoding": "gzip"})
+        input = netius.legacy.BytesIO(data)
+        output = netius.legacy.BytesIO()
+
+        request = netius.clients.HTTPProtocol.set_request_file(
+            parser, input, output=output
+        )
+
+        # one that names a coding is decoded into the file that was given,
+        # which is what keeps a large payload out of memory
+        self.assertEqual(request["data"], output)
+        self.assertEqual(request["data"].read(), RAW_MESSAGE)
+
+        # the file that carried the encoded payload is released, as it is no
+        # longer of any use once it has been decoded
+        self.assertEqual(input.closed, True)
+
+    def test_set_request_file_existing(self):
+        parser = self._make_response_parser()
+        input = netius.legacy.BytesIO(RAW_MESSAGE)
+        request = dict(extra="value")
+
+        result = netius.clients.HTTPProtocol.set_request_file(
+            parser, input, request=request
+        )
+
+        # the description that was given is the one filled in, so that what it
+        # already carried is not lost
+        self.assertEqual(result, request)
+        self.assertEqual(result["extra"], "value")
+        self.assertEqual(result["status"], parser.status)
+
+    def test_set_static(self):
+        protocol = netius.clients.HTTPProtocol(
+            "GET",
+            "https://user:pass@example.com/path",
+            params=dict(key="value"),
+            asynchronous=True,
+        )
+        protocol.set_static()
+
+        # the parts of the address are taken apart into the values that the
+        # request is built from, the port being the one of the scheme
+        self.assertEqual(protocol.ssl, True)
+        self.assertEqual(protocol.host, "example.com")
+        self.assertEqual(protocol.port, 443)
+        self.assertEqual(protocol.path, "/path")
+
+        # the parameters travel in the query of the address, as a request of
+        # this kind carries no payload of its own
+        self.assertEqual("key=value" in protocol.url, True)
+
+        # the credentials of the address become the header that carries them,
+        # under the scheme that the specification names
+        self.assertEqual(protocol.headers["authorization"], "Basic dXNlcjpwYXNz")
+
+    def test_set_static_plain(self):
+        protocol = netius.clients.HTTPProtocol(
+            "GET", "http://example.com", asynchronous=True
+        )
+        protocol.set_static()
+
+        # an address that names neither a path nor a port is served by the
+        # defaults of the scheme
+        self.assertEqual(protocol.ssl, False)
+        self.assertEqual(protocol.port, 80)
+        self.assertEqual(protocol.path, "/")
+        self.assertEqual("authorization" in protocol.headers, False)
+
+    def test_set_timeout(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        protocol = self._make_protocol()
+        callable = lambda: None
+
+        with mock.patch.object(protocol, "delay", return_value="handle") as delay:
+            protocol.set_timeout(callable)
+
+        # the handler is scheduled for the timeout of the protocol and is kept
+        # so that it may be cancelled later on
+        self.assertEqual(delay.call_args[1]["timeout"], protocol.timeout)
+        self.assertEqual(protocol.timeout_h, "handle")
+
+        with mock.patch.object(protocol, "unpend") as unpend:
+            with mock.patch.object(protocol, "delay", return_value="other"):
+                protocol.set_timeout(callable)
+
+        # scheduling another one cancels the one that was still pending, as a
+        # request that finished would otherwise leave it in the queue
+        self.assertEqual(unpend.call_args[0][0], "handle")
+        self.assertEqual(protocol.timeout_h, "other")
+
+        with mock.patch.object(protocol, "unpend") as unpend:
+            protocol.unset_timeout()
+            protocol.unset_timeout()
+
+        # and cancelling it a second time is a no operation, there being none
+        # left to be cancelled
+        self.assertEqual(unpend.call_count, 1)
+        self.assertEqual(protocol.timeout_h, None)
+
     def test_decode_zlib_file(self):
         compressor = zlib.compressobj(6, zlib.DEFLATED, zlib.MAX_WBITS | 16)
         data = compressor.compress(RAW_MESSAGE) + compressor.flush()
@@ -392,6 +531,15 @@ class HTTPProtocolTest(unittest.TestCase):
         if not encoding == None:
             protocol.current = encoding
         return protocol
+
+    def _make_response_parser(self, headers=None):
+        # builds a parser of a response carrying the values that the building
+        # of the description of a request reads
+        parser = netius.common.HTTPParser(self, type=netius.common.RESPONSE)
+        parser.code = 200
+        parser.status = "OK"
+        parser.headers = headers or {}
+        return parser
 
     def _unchunk(self, data):
         # takes the payload out of the framing, so that what was compressed
