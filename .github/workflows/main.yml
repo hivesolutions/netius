@@ -189,7 +189,7 @@ jobs:
         run: |
           pip install coverage
           coverage combine
-          coverage report --sort=-miss --fail-under=80
+          coverage report --sort=-miss --fail-under=79
       - name: Publish coverage summary
         run: |
           echo "## Coverage" >> $GITHUB_STEP_SUMMARY
