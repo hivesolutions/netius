@@ -149,6 +149,9 @@ class FTPConnectionPathTest(unittest.TestCase):
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
+        file = hasattr(self.connection, "file") and self.connection.file
+        if file:
+            file.close()
         self.server.cleanup()
         shutil.rmtree(self.base)
 

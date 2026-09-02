@@ -59,15 +59,18 @@ class TFTPSessionTest(unittest.TestCase):
         self.server = netius.servers.TFTPServer(
             base_path=self.base, level=logging.CRITICAL
         )
+        self.sessions = []
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
+        for session in self.sessions:
+            session.close()
         self.server.cleanup()
         shutil.rmtree(self.base)
 
     def test_close(self):
         self._store(NAME, b"contents")
-        session = netius.servers.tftp.TFTPSession(self.server, name=NAME, mode=MODE)
+        session = self._make_session(NAME)
         session.next()
         file = session.file
 
@@ -79,7 +82,7 @@ class TFTPSessionTest(unittest.TestCase):
         self.assertEqual(session.file, None)
 
     def test_reset(self):
-        session = netius.servers.tftp.TFTPSession(self.server, name=NAME, mode=MODE)
+        session = self._make_session(NAME)
         session.completed = True
         session.sequence = 3
 
@@ -95,7 +98,7 @@ class TFTPSessionTest(unittest.TestCase):
 
     def test_next(self):
         self._store(NAME, b"0" * 1024)
-        session = netius.servers.tftp.TFTPSession(self.server, name=NAME, mode=MODE)
+        session = self._make_session(NAME)
 
         data = session.next()
         type, sequence = struct.unpack("!HH", data[:4])
@@ -127,7 +130,7 @@ class TFTPSessionTest(unittest.TestCase):
 
     def test_next_increment(self):
         self._store(NAME, b"0" * 16)
-        session = netius.servers.tftp.TFTPSession(self.server, name=NAME, mode=MODE)
+        session = self._make_session(NAME)
 
         data = session.next(increment=False)
 
@@ -138,7 +141,7 @@ class TFTPSessionTest(unittest.TestCase):
 
     def test_ack(self):
         self._store(NAME, b"0" * 1024)
-        session = netius.servers.tftp.TFTPSession(self.server, name=NAME, mode=MODE)
+        session = self._make_session(NAME)
 
         # an acknowledge that arrives before anything was sent has no block
         # of its own to answer with
@@ -152,7 +155,7 @@ class TFTPSessionTest(unittest.TestCase):
         self.assertEqual(struct.unpack("!H", data[2:4])[0], 2)
 
     def test_increment(self):
-        session = netius.servers.tftp.TFTPSession(self.server, name=NAME, mode=MODE)
+        session = self._make_session(NAME)
 
         session.increment()
         session.increment()
@@ -162,7 +165,7 @@ class TFTPSessionTest(unittest.TestCase):
         self.assertEqual(session.sequence, 2)
 
     def test_get_info(self):
-        session = netius.servers.tftp.TFTPSession(self.server, name=NAME, mode=MODE)
+        session = self._make_session(NAME)
         session.sequence = 2
 
         info = session.get_info()
@@ -178,7 +181,7 @@ class TFTPSessionTest(unittest.TestCase):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
 
-        session = netius.servers.tftp.TFTPSession(self.server, name=NAME, mode=MODE)
+        session = self._make_session(NAME)
 
         with mock.patch("sys.stdout", netius.legacy.StringIO()) as stdout:
             session.print_info()
@@ -189,9 +192,7 @@ class TFTPSessionTest(unittest.TestCase):
 
     def test__get_file(self):
         self._store(NAME, b"contents")
-        session = netius.servers.tftp.TFTPSession(
-            self.server, name="/" + NAME, mode=MODE
-        )
+        session = self._make_session("/" + NAME)
 
         file = session._get_file()
 
@@ -205,13 +206,20 @@ class TFTPSessionTest(unittest.TestCase):
 
     def test__get_file_absolute(self):
         path = self._store(NAME, b"contents")
-        session = netius.servers.tftp.TFTPSession(self.server, name=path, mode=MODE)
+        session = self._make_session(path)
 
         file = session._get_file(allow_absolute=True)
 
         # under an absolute name the one of the session is taken whole, which
         # used to leave the name unbound and raise
         self.assertEqual(file.read(), b"contents")
+
+    def _make_session(self, name):
+        # builds a session of the service and keeps it, so that the file it
+        # reads is released once the case is over
+        session = netius.servers.tftp.TFTPSession(self.server, name=name, mode=MODE)
+        self.sessions.append(session)
+        return session
 
     def _store(self, name, contents):
         path = os.path.join(self.base, name)
@@ -235,6 +243,7 @@ class TFTPRequestTest(unittest.TestCase):
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
+        self.session.close()
         self.server.cleanup()
         shutil.rmtree(self.base)
 
@@ -373,6 +382,8 @@ class TFTPServerTest(unittest.TestCase):
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
+        for session in netius.legacy.itervalues(self.server.sessions):
+            session.close()
         self.server.cleanup()
         shutil.rmtree(self.base)
 
