@@ -36,6 +36,7 @@ import netius
 
 from netius.base import compat
 from netius.base import errors
+from netius.base import transport
 from netius.base import legacy
 from netius.base import asynchronous
 
@@ -130,6 +131,129 @@ class CompatLoopTest(unittest.TestCase):
         # the task is built by the currently configured factory, so that
         # it may be replaced by a compatible implementation
         self.assertEqual(isinstance(task, asynchronous.Task), True)
+
+    def test_create_server(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        service = mock.MagicMock()
+        serve_c = mock.MagicMock()
+
+        with mock.patch.object(self.loop, "serve") as serve:
+            coroutine = self.compat.create_server(lambda: None, "127.0.0.1", 8080)
+            future = next(coroutine)
+
+        # the serving is asked of the loop that is wrapped, the family being
+        # settled ahead of it as the specification allows for none
+        self.assertEqual(serve.call_args[0], ("127.0.0.1", 8080))
+        self.assertEqual(serve.call_args[1]["family"], socket.AF_INET)
+        self.assertEqual(future.done(), False)
+
+        serve.call_args[1]["callback"](service, serve_c, True)
+
+        # a service that came up is handed over as a transport of a server,
+        # which is what the caller of the specification expects, the serving
+        # of it being started right away
+        self.assertEqual(future.done(), True)
+        self.assertEqual(isinstance(future.result(), transport.ServerTransport), True)
+        self.assertEqual(serve_c.called, True)
+
+    def test_create_server_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        with mock.patch.object(self.loop, "serve") as serve:
+            coroutine = self.compat.create_server(lambda: None, "127.0.0.1", 8080)
+            future = next(coroutine)
+
+        serve.call_args[1]["callback"](mock.MagicMock(), None, False)
+
+        # one that did not come up settles the future with the failure, so
+        # that whoever waits on it is told about it
+        self.assertEqual(future.done(), True)
+        self.assertEqual(isinstance(future.exception(), errors.RuntimeError), True)
+
+    def test_create_connection(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        protocol = mock.MagicMock()
+
+        with mock.patch.object(self.loop, "connect") as connect:
+            coroutine = self.compat.create_connection(
+                lambda: protocol, "127.0.0.1", 8080
+            )
+            future = next(coroutine)
+
+        self.assertEqual(connect.call_args[0], ("127.0.0.1", 8080))
+        self.assertEqual(connect.call_args[1]["family"], socket.AF_INET)
+
+        connect.call_args[1]["callback"](mock.MagicMock(), True)
+
+        # the pair of the transport and the protocol is what the caller is
+        # given, as the specification asks for
+        _transport, _protocol = future.result()
+        self.assertEqual(isinstance(_transport, transport.TransportStream), True)
+        self.assertEqual(_protocol, protocol)
+
+    def test_create_connection_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        with mock.patch.object(self.loop, "connect") as connect:
+            coroutine = self.compat.create_connection(lambda: None, "127.0.0.1", 8080)
+            future = next(coroutine)
+
+        connect.call_args[1]["callback"](mock.MagicMock(), False)
+
+        self.assertEqual(future.done(), True)
+        self.assertEqual(isinstance(future.exception(), errors.RuntimeError), True)
+
+    def test_create_datagram_endpoint(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        protocol = mock.MagicMock()
+
+        with mock.patch.object(self.loop, "datagram") as datagram:
+            coroutine = self.compat.create_datagram_endpoint(
+                lambda: protocol,
+                local_addr=("127.0.0.1", 8080),
+                remote_addr=("1.2.3.4", 1234),
+            )
+            future = next(coroutine)
+
+        # both of the addresses are taken apart into the host and the port
+        # that the loop asks for
+        self.assertEqual(datagram.call_args[1]["local_host"], "127.0.0.1")
+        self.assertEqual(datagram.call_args[1]["local_port"], 8080)
+        self.assertEqual(datagram.call_args[1]["remote_host"], "1.2.3.4")
+        self.assertEqual(datagram.call_args[1]["remote_port"], 1234)
+        self.assertEqual(datagram.call_args[1]["type"], socket.SOCK_DGRAM)
+
+        # the connection of a datagram is built right away, so the settling
+        # of the future is only delayed into the next tick of the loop
+        self.assertEqual(future.done(), False)
+
+        self.loop.ticks()
+        self.loop._delays()
+
+        _transport, _protocol = future.result()
+        self.assertEqual(isinstance(_transport, transport.TransportDatagram), True)
+        self.assertEqual(_protocol, protocol)
+
+    def test_create_datagram_endpoint_unbound(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        with mock.patch.object(self.loop, "datagram") as datagram:
+            coroutine = self.compat.create_datagram_endpoint(lambda: None)
+            next(coroutine)
+
+        # an endpoint that names neither of the addresses is bound to none of
+        # them, instead of the taking apart of them raising
+        self.assertEqual(datagram.call_args[1]["local_host"], None)
+        self.assertEqual(datagram.call_args[1]["remote_port"], None)
 
     def test_getaddrinfo(self):
         # the coroutine is driven by hand instead of through the loop, as
