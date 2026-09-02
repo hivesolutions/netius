@@ -269,6 +269,7 @@ class TFTPSessionTest(unittest.TestCase):
             self.assertEqual(session._get_file().read(), b"secret")
         finally:
             self.server.follow_links = False
+            session.close()
             shutil.rmtree(outside)
 
     def test__get_file_link_inside(self):

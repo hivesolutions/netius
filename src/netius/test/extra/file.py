@@ -502,6 +502,7 @@ class FileServerTest(unittest.TestCase):
             self.assertNotEqual(connection.send_response.call_args[1]["code"], 500)
         finally:
             self.server.follow_links = False
+            self._close_files()
             shutil.rmtree(outside)
 
     def test_on_data_http_link_inside(self):
