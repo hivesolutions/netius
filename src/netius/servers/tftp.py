@@ -105,8 +105,9 @@ class TFTPSession(object):
     def _get_file(self, allow_absolute=False):
         if self.file:
             return self.file
+        name = self.name
         if not allow_absolute:
-            name = self.name.lstrip("/")
+            name = name.lstrip("/")
         path = os.path.join(self.owner.base_path, name)
         self.file = open(path, "rb")
         return self.file
@@ -261,7 +262,7 @@ class TFTPServer(netius.DatagramServer):
         self.debug("Received %s message from '%s'", type_s, address)
 
         if not type in cls.ALLOWED_OPERATIONS:
-            raise netius.NetiusError("Invalid operation type '%d'", type)
+            raise netius.NetiusError("Invalid operation type '%d'" % type)
 
         response = request.response()
         if not response:
