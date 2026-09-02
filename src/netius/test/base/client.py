@@ -115,10 +115,17 @@ class DatagramClientTest(unittest.TestCase):
         unittest.TestCase.setUp(self)
         self.client = netius.DatagramClient(level=logging.CRITICAL)
         self.client.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._socket = self.client.socket
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
-        self.client.socket.close()
+
+        # the socket that the setup built is released whatever the case did
+        # with the one of the client, as some of them replace it by a stand-in
+        # and would otherwise leave the descriptor of it behind
+        self._socket.close()
+        if not self.client.socket == None:
+            self.client.socket.close()
         self.client.close()
 
     def test_on_read(self):
@@ -1352,6 +1359,11 @@ class StreamClientTest(unittest.TestCase):
         # did not close by itself has to be released by hand
         for _socket in legacy.keys(self.client.connections_m):
             _socket.close()
+
+        # the ones that are still waiting to be established belong to no map
+        # of the client, so they are released on their own
+        for connection in self.client.pendings:
+            connection.socket.close()
 
 
 class _MockResponse(request.Response):

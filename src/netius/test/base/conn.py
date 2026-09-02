@@ -132,7 +132,7 @@ class BaseConnectionTest(unittest.TestCase):
         with mock.patch.object(self.loop, "_ssl_upgrade", return_value=upgraded):
             with mock.patch.object(self.loop, "unsub_all") as unsub_all:
                 with mock.patch.object(self.loop, "sub_read") as sub_read:
-                    with mock.patch.object(self.loop, "sub_error"):
+                    with mock.patch.object(self.loop, "sub_error") as sub_error:
                         with mock.patch.object(
                             connection, "add_starter"
                         ) as add_starter:
@@ -146,6 +146,7 @@ class BaseConnectionTest(unittest.TestCase):
         self.assertEqual(connection.socket, upgraded)
         self.assertEqual(unsub_all.call_args[0][0], _socket)
         self.assertEqual(sub_read.call_args[0][0], upgraded)
+        self.assertEqual(sub_error.call_args[0][0], upgraded)
 
         # the new socket is the one that names the connection, so that the
         # events of the poll may still be routed to it
@@ -254,13 +255,18 @@ class BaseConnectionTest(unittest.TestCase):
         # read, as there is nothing to be written with it
         self.assertEqual(ssl_certificate.called, False)
 
+        def ssl_certificate(binary=False):
+            return b"binary" if binary else "text"
+
         with mock.patch.object(conn.tls, "dump_certificate") as dump_certificate:
-            with mock.patch.object(connection, "ssl_certificate", return_value="cert"):
+            with mock.patch.object(connection, "ssl_certificate", ssl_certificate):
                 connection.ssl_dump_certificate(dump=True)
 
         # once it is asked for both of the forms of the certificate are read
-        # and handed over to the dumping
-        self.assertEqual(dump_certificate.call_args[0][0], "cert")
+        # and handed over to the dumping, the binary one being the one that
+        # the writing of it needs
+        self.assertEqual(dump_certificate.call_args[0][0], "text")
+        self.assertEqual(dump_certificate.call_args[0][1], b"binary")
 
     def test_ssl_protocol(self):
         if mock == None:

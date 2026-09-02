@@ -396,12 +396,14 @@ class HTTPProtocolTest(unittest.TestCase):
 
         self.assertEqual(protocol.gzip, None)
 
-        # a compressor that fails to be closed is dropped quietly, as the
-        # closing of a connection must not be broken by it
+        # a compressor that cannot be flushed keeps the failure to itself, as
+        # the closing of a connection must not be broken by it, the compressor
+        # being left as it is for the caller to decide upon
         protocol.gzip = mock.MagicMock()
         protocol.gzip.flush.side_effect = ValueError("broken")
 
         self.assertEqual(protocol._close_gzip(), None)
+        self.assertNotEqual(protocol.gzip, None)
 
         # unless the caller asked for the failure, in which case it reaches it
         protocol.gzip = mock.MagicMock()

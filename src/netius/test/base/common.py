@@ -1701,6 +1701,28 @@ class BaseTest(unittest.TestCase):
         finally:
             loop.close()
 
+    def test_apply_config_mark(self):
+        loop = netius.Base()
+        try:
+            fd, path = tempfile.mkstemp()
+            os.close(fd)
+            file = open(path, "wb")
+            try:
+                file.write(b'\xef\xbb\xbf{"port": 8080}')
+            finally:
+                file.close()
+
+            try:
+                result = loop.apply_config(path, dict())
+            finally:
+                os.remove(path)
+
+            # a file that leads with the mark of the order of the bytes is
+            # read as any other, the mark being taken off with the decoding
+            self.assertEqual(result["port"], 8080)
+        finally:
+            loop.close()
+
     def test_exec_safe(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -1972,6 +1994,80 @@ class BaseTest(unittest.TestCase):
         finally:
             loop.close()
 
+    def test__socket_keepalive_named(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket = mock.MagicMock()
+            _socket.family = socket.AF_INET
+
+            # the option that names the idle time is the one of the runtime
+            # when it carries it, which is the case of the Linux based ones
+            with mock.patch.object(common.socket, "TCP_KEEPIDLE", 0x04, create=True):
+                with mock.patch.object(
+                    common.socket, "TCP_KEEPALIVE", 0x10, create=True
+                ):
+                    with mock.patch.object(loop, "_socket_option") as option:
+                        loop._socket_keepalive(_socket, timeout=120)
+
+            self.assertEqual(option.call_args_list[0][0][2], 0x04)
+            self.assertEqual(option.call_args_list[0][0][3], 120)
+
+            # and the one that the systems derived from BSD name instead when
+            # the first of them is not carried at all
+            with mock.patch.object(common.socket, "TCP_KEEPIDLE", None, create=True):
+                with mock.patch.object(
+                    common.socket, "TCP_KEEPALIVE", 0x10, create=True
+                ):
+                    with mock.patch.object(loop, "_socket_option") as option:
+                        loop._socket_keepalive(_socket, timeout=120)
+
+            self.assertEqual(option.call_args_list[0][0][2], 0x10)
+        finally:
+            loop.close()
+
+    def test__socket_option(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                # an option that the runtime does not carry is skipped, the
+                # absence of it being named by an unset value
+                self.assertEqual(
+                    loop._socket_option(_socket, socket.SOL_SOCKET, None, 1), False
+                )
+
+                # one that it does carry is set, and the setting of it is
+                # reported back to the caller
+                self.assertEqual(
+                    loop._socket_option(
+                        _socket, socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1
+                    ),
+                    True,
+                )
+                self.assertNotEqual(
+                    _socket.getsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE), 0
+                )
+            finally:
+                _socket.close()
+
+            # one that the kernel refuses is tolerated, as these options tune
+            # a socket and do not make it usable, the setting of them running
+            # against a stand-in as it cannot be replaced on a real socket
+            _socket = mock.MagicMock()
+            _socket.setsockopt.side_effect = socket.error(errno.ENOPROTOOPT, "error")
+
+            self.assertEqual(
+                loop._socket_option(_socket, socket.SOL_SOCKET, 0x10, 1), False
+            )
+        finally:
+            loop.close()
+
     def test__socket_keepalive_unix(self):
         if not hasattr(socket, "AF_UNIX"):
             self.skipTest("Skipping test: Unix domain sockets unavailable")
@@ -1992,7 +2088,7 @@ class BaseTest(unittest.TestCase):
     def test__ssl_init(self):
         loop = netius.Base()
         try:
-            loop._ssl_init(env=False)
+            loop._ssl_init(strict=False, env=False)
 
             # with the environment ignored the context is still built, under
             # the least strict of the security levels and with no option
@@ -2030,7 +2126,8 @@ class BaseTest(unittest.TestCase):
 
             # the security level and the options of the environment reach both
             # the main context and the ones of the host names
-            self.assertEqual(bool(context.options & ssl.OP_NO_TLSv1_1), True)
+            if getattr(ssl, "OP_NO_TLSv1_1", 0):
+                self.assertEqual(bool(context.options & ssl.OP_NO_TLSv1_1), True)
             if hasattr(ssl, "OP_NO_TICKET"):
                 self.assertEqual(bool(context.options & ssl.OP_NO_TICKET), True)
         finally:
@@ -2183,23 +2280,31 @@ class BaseTest(unittest.TestCase):
     def test__ssl_ctx_base(self):
         loop = netius.Base()
         try:
+            # the options are only verified where the runtime carries them and
+            # gives them a value of its own, which is the same condition that
+            # the building of the context is guarded by
+            no_tlsv1 = getattr(ssl, "OP_NO_TLSv1", 0)
+            no_tlsv1_1 = getattr(ssl, "OP_NO_TLSv1_1", 0)
+
             # the lowest of the levels leaves the old protocols in place, as
             # it exists for the peers that cannot speak anything newer
             context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
             loop._ssl_ctx_base(context, secure=0)
-            self.assertEqual(bool(context.options & ssl.OP_NO_TLSv1), False)
-            self.assertEqual(bool(context.options & ssl.OP_NO_TLSv1_1), False)
+            self.assertEqual(bool(context.options & no_tlsv1), False)
+            self.assertEqual(bool(context.options & no_tlsv1_1), False)
 
             # the default level keeps TLSv1 and TLSv1.1 available while the
             # strict one disables both of them
             context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
             loop._ssl_ctx_base(context, secure=1)
-            self.assertEqual(bool(context.options & ssl.OP_NO_TLSv1), False)
+            self.assertEqual(bool(context.options & no_tlsv1), False)
 
             context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
             loop._ssl_ctx_base(context, secure=2)
-            self.assertEqual(bool(context.options & ssl.OP_NO_TLSv1), True)
-            self.assertEqual(bool(context.options & ssl.OP_NO_TLSv1_1), True)
+            if no_tlsv1:
+                self.assertEqual(bool(context.options & no_tlsv1), True)
+            if no_tlsv1_1:
+                self.assertEqual(bool(context.options & no_tlsv1_1), True)
 
             # the minimum version follows the level, when the runtime is able
             # to express it (only from Python 3.7 onwards)
