@@ -88,6 +88,7 @@ class FileServer(netius.servers.HTTP2Server):
         list_engine="base",
         cors=False,
         cache=0,
+        follow_links=False,
         *args,
         **kwargs
     ):
@@ -100,6 +101,7 @@ class FileServer(netius.servers.HTTP2Server):
         self.list_engine = list_engine
         self.cors = cors
         self.cache = cache
+        self.follow_links = follow_links
 
     @classmethod
     def _sorter_build(cls, name=None):
@@ -497,6 +499,10 @@ class FileServer(netius.servers.HTTP2Server):
             self.cors = self.get_env("CORS", self.cors, cast=bool)
         if self.env:
             self.cache = self.get_env("CACHE", self.cache, cast=int)
+        if self.env:
+            self.follow_links = self.get_env(
+                "FOLLOW_LINKS", self.follow_links, cast=bool
+            )
         self._build_regex()
         self.base_path = os.path.abspath(self.base_path)
         self.cache_d = datetime.timedelta(seconds=self.cache)
@@ -547,7 +553,14 @@ class FileServer(netius.servers.HTTP2Server):
             # verifies if the provided path starts with the contents of the
             # base path in case it does not it's a security issue and a proper
             # exception must be raised indicating the issue
-            is_sub = path_f.startswith(self.base_path)
+            base_path_r = self.base_path
+            path_r = path_f
+            if not self.follow_links:
+                base_path_r = os.path.realpath(base_path_r)
+                path_r = os.path.realpath(path_f)
+            is_sub = path_r == base_path_r or path_r.startswith(
+                os.path.join(base_path_r, "")
+            )
             if not is_sub:
                 raise netius.SecurityError("Invalid path")
 

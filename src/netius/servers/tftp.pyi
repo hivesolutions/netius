@@ -53,9 +53,12 @@ class TFTPRequest:
 class TFTPServer(DatagramServer):
     ALLOWED_OPERATIONS: tuple[int, ...]
     base_path: str
+    follow_links: bool
     sessions: dict[Any, TFTPSession]
 
-    def __init__(self, base_path: str = ..., *args, **kwargs): ...
+    def __init__(
+        self, base_path: str = ..., follow_links: bool = ..., *args, **kwargs
+    ): ...
     def serve(self, port: int = ..., *args, **kwargs): ...  # type: ignore[override]
     def on_data(self, address: Any, data: bytes): ...
     def on_serve(self): ...

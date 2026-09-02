@@ -116,7 +116,14 @@ class TFTPSession(object):
         # verifies if the resolved path starts with the contents of the
         # base path in case it does not it's a security issue and a proper
         # exception must be raised indicating the issue
-        is_sub = path == base_path or path.startswith(os.path.join(base_path, ""))
+        base_path_r = base_path
+        path_r = path
+        if not self.owner.follow_links:
+            base_path_r = os.path.realpath(base_path_r)
+            path_r = os.path.realpath(path)
+        is_sub = path_r == base_path_r or path_r.startswith(
+            os.path.join(base_path_r, "")
+        )
         if not is_sub:
             raise netius.SecurityError("Invalid path")
 
@@ -231,9 +238,10 @@ class TFTPServer(netius.DatagramServer):
 
     ALLOWED_OPERATIONS = (netius.common.RRQ_TFTP, netius.common.ACK_TFTP)
 
-    def __init__(self, base_path="", *args, **kwargs):
+    def __init__(self, base_path="", follow_links=False, *args, **kwargs):
         netius.DatagramServer.__init__(self, *args, **kwargs)
         self.base_path = base_path
+        self.follow_links = follow_links
         self.sessions = dict()
 
     def serve(self, port=69, *args, **kwargs):
@@ -259,6 +267,10 @@ class TFTPServer(netius.DatagramServer):
         netius.DatagramServer.on_serve(self)
         if self.env:
             self.base_path = self.get_env("BASE_PATH", self.base_path)
+        if self.env:
+            self.follow_links = self.get_env(
+                "FOLLOW_LINKS", self.follow_links, cast=bool
+            )
         self.info("Starting TFTP server ...")
         self.info(
             "Defining '%s' as the root of the file server ..." % (self.base_path or ".")

@@ -55,6 +55,7 @@ class FTPConnectionTest(unittest.TestCase):
         self.connection.owner = self.server
         self.connection.cwd = "/"
         self.connection.mode = "ascii"
+        self.connection.follow_links = False
         self.sent = []
         self.connection.send_ftp = lambda code, message="", **kwargs: self.sent.append(
             (code, message)
@@ -140,6 +141,7 @@ class FTPConnectionPathTest(unittest.TestCase):
         self.connection.base_path = os.path.abspath(self.base)
         self.connection.cwd = "/"
         self.connection.mode = "ascii"
+        self.connection.follow_links = False
         self.connection.data_server = None
         self.connection.remaining = None
         self.sent = []
@@ -503,6 +505,55 @@ class FTPConnectionPathTest(unittest.TestCase):
             )
         finally:
             shutil.rmtree(os.path.join(parent, sibling))
+
+    def test__get_path_link(self):
+        outside = tempfile.mkdtemp()
+        secret = os.path.join(outside, "secret.txt")
+        file = open(secret, "wb")
+        try:
+            file.write(b"secret")
+        finally:
+            file.close()
+        self._link(secret, os.path.join(self.base, "link.txt"))
+
+        try:
+            # a link that sits under the root but points out of it is a way
+            # around the containment, so the target of it is what counts
+            self.assertRaises(
+                netius.SecurityError, self.connection._get_path, "link.txt"
+            )
+
+            # the operator may have published through the link on purpose, in
+            # which case the service is told to follow it
+            self.connection.follow_links = True
+            self.assertEqual(
+                self.connection._get_path("link.txt"),
+                os.path.join(self.connection.base_path, "link.txt"),
+            )
+        finally:
+            self.connection.follow_links = False
+            shutil.rmtree(outside)
+
+    def test__get_path_link_inside(self):
+        self._store("file.txt", b"contents")
+        self._link(
+            os.path.join(self.base, "file.txt"), os.path.join(self.base, "link.txt")
+        )
+
+        # a link whose target stays under the root leads nowhere it should not,
+        # so it resolves as the file that it names
+        self.assertEqual(
+            self.connection._get_path("link.txt"),
+            os.path.join(self.connection.base_path, "link.txt"),
+        )
+
+    def _link(self, source, target):
+        # the creation of a link is reserved to a privileged user under
+        # some systems, in which case the case has nothing to run
+        try:
+            os.symlink(source, target)
+        except (AttributeError, NotImplementedError, OSError):
+            self.skipTest("Skipping test: symbolic links unavailable")
 
     def _store(self, name, contents):
         path = os.path.join(self.base, name)

@@ -19,6 +19,7 @@ class FileServer(HTTP2Server):
     list_engine: str
     cors: bool
     cache: int
+    follow_links: bool
 
     def __init__(
         self,
@@ -30,6 +31,7 @@ class FileServer(HTTP2Server):
         list_engine: str = ...,
         cors: bool = ...,
         cache: int = ...,
+        follow_links: bool = ...,
         *args,
         **kwargs
     ): ...
