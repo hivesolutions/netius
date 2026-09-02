@@ -48,15 +48,17 @@ class SOCKSConnectionTest(unittest.TestCase):
 
     def setUp(self):
         unittest.TestCase.setUp(self)
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
         self.loop = netius.Base(level=logging.CRITICAL)
 
-        # the poll is opened by hand as the loop is never started, and the
-        # opening of a connection registers the socket of it in the poll
-        self.loop.poll.open()
+        # the poll is stood in for, as the opening of a connection registers
+        # the socket of it in one and the loop is never started
+        self.loop.poll = mock.MagicMock()
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
-        self.loop.poll.close()
         self.loop.close()
 
     def test_open(self):
@@ -71,9 +73,6 @@ class SOCKSConnectionTest(unittest.TestCase):
             connection.socket.close()
 
     def test_close(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
         connection = self._make_connection()
         parser = connection.parser
 
@@ -85,9 +84,6 @@ class SOCKSConnectionTest(unittest.TestCase):
         self.assertEqual(destroy.called, True)
 
     def test_send_response(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
         connection = self._make_connection()
         try:
             with mock.patch.object(connection, "send") as send:
@@ -105,9 +101,6 @@ class SOCKSConnectionTest(unittest.TestCase):
             connection.socket.close()
 
     def test_send_response_extra(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
         connection = self._make_connection()
         try:
             connection.parser.version = 0x05
@@ -132,9 +125,6 @@ class SOCKSConnectionTest(unittest.TestCase):
             connection.socket.close()
 
     def test_send_auth(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
         connection = self._make_connection()
         try:
             connection.parser.version = 0x05
@@ -154,9 +144,6 @@ class SOCKSConnectionTest(unittest.TestCase):
             connection.socket.close()
 
     def test_get_version(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
         connection = self._make_connection()
         try:
             connection.parser.version = 0x05
@@ -173,9 +160,6 @@ class SOCKSConnectionTest(unittest.TestCase):
             connection.socket.close()
 
     def test_on_data(self):
-        if mock == None:
-            self.skipTest("Skipping test: mock unavailable")
-
         connection = self._make_connection()
         try:
             owner = mock.MagicMock()
