@@ -564,6 +564,163 @@ class StreamClientTest(unittest.TestCase):
 
         self.assertEqual(self.client.free_map, {})
 
+    def test_validate_c(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_probed()
+
+        with mock.patch.object(
+            connection,
+            "recv",
+            side_effect=[b"data", socket.error(errno.EWOULDBLOCK, "error")],
+        ):
+            with mock.patch.object(connection, "send"):
+                result = self.client.validate_c(connection)
+
+        # a connection that still answers is a usable one, the error that says
+        # there is nothing more to read being the way out of the probing
+        self.assertEqual(result, True)
+        self.assertEqual(connection.status, conn.OPEN)
+
+    def test_validate_c_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_probed(error=errno.ECONNRESET)
+
+        with mock.patch.object(connection, "recv") as recv:
+            result = self.client.validate_c(connection)
+
+        # a socket that carries an error of its own is not usable, and it is
+        # not even probed for data
+        self.assertEqual(result, False)
+        self.assertEqual(recv.called, False)
+
+    def test_validate_c_closed(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_probed()
+
+        with mock.patch.object(connection, "recv", return_value=b""):
+            result = self.client.validate_c(connection)
+
+        # a peer that closed the connection while it sat in the pool leaves an
+        # empty read behind, and the connection is dropped for it
+        self.assertEqual(result, False)
+        self.assertEqual(connection.status, conn.CLOSED)
+        self.assertEqual(connection.close_reason, netius.REASON_ERROR)
+
+    def test_validate_c_pending(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # an error that merely says that there is nothing to read leaves the
+        # connection as it is, under either of the two layers
+        for error in (
+            ssl.SSLError(ssl.SSL_ERROR_WANT_READ),
+            socket.error(errno.EAGAIN, "error"),
+        ):
+            connection = self._make_probed()
+
+            with mock.patch.object(connection, "recv", side_effect=error):
+                result = self.client.validate_c(connection)
+
+            self.assertEqual(result, True)
+            self.assertEqual(connection.status, conn.OPEN)
+
+    def test_validate_c_broken(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # one that says the connection is gone drops it, whichever of the two
+        # layers reported it
+        for error in (
+            ssl.SSLError(ssl.SSL_ERROR_SSL),
+            socket.error(errno.ECONNRESET, "error"),
+        ):
+            connection = self._make_probed()
+
+            with mock.patch.object(connection, "recv", side_effect=error):
+                result = self.client.validate_c(connection)
+
+            self.assertEqual(result, False)
+            self.assertEqual(connection.status, conn.CLOSED)
+
+        # with the closing turned off the connection is only reported as
+        # unusable, the caller being the one that decides what to do with it
+        connection = self._make_probed()
+
+        with mock.patch.object(
+            connection, "recv", side_effect=socket.error(errno.ECONNRESET, "error")
+        ):
+            result = self.client.validate_c(connection, close=False)
+
+        self.assertEqual(result, False)
+        self.assertEqual(connection.status, conn.OPEN)
+
+    def test_connect(self):
+        connection = self.client.connect("host", 80, ensure_loop=False, env=False)
+
+        # the connection is built but not yet established, so it waits in the
+        # queue of the pending ones until the loop reaches it
+        self.assertEqual(connection.address, ("host", 80))
+        self.assertEqual(connection in self.client.pendings, True)
+
+        # the socket of it never blocks and is told to keep itself alive, the
+        # delaying of the small writes being off as well
+        self.assertEqual(connection.socket.gettimeout(), 0.0)
+        self.assertNotEqual(
+            connection.socket.getsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE), 0
+        )
+        self.assertNotEqual(
+            connection.socket.getsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY), 0
+        )
+
+    def test_connect_invalid(self):
+        # a connection with no host or no port names no peer at all, so it is
+        # refused instead of a socket being built for it
+        self.assertRaises(
+            netius.NetiusError, self.client.connect, None, 80, ensure_loop=False
+        )
+        self.assertRaises(
+            netius.NetiusError, self.client.connect, "host", None, ensure_loop=False
+        )
+
+    def test_connect_unix(self):
+        if not hasattr(socket, "AF_UNIX"):
+            self.skipTest("Skipping test: Unix domain sockets unavailable")
+
+        connection = self.client.connect(
+            "unix", "/tmp/netius.sock", ensure_loop=False, env=False
+        )
+
+        # a peer named as of the domain of the machine is reached through a
+        # path, which takes the place of the pair of the host and the port
+        self.assertEqual(connection.socket.family, socket.AF_UNIX)
+        self.assertEqual(connection.address, "/tmp/netius.sock")
+
+    def test_connect_ssl(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        with mock.patch.object(
+            self.client, "_ssl_wrap", side_effect=lambda s, **kwargs: s
+        ) as ssl_wrap:
+            connection = self.client.connect(
+                "host", 443, ssl=True, ssl_verify=True, ensure_loop=False, env=False
+            )
+
+        # the wrapping happens as the client side of the exchange and the host
+        # travels with it, as it is the one the certificate is matched against
+        self.assertEqual(ssl_wrap.call_args[1]["server"], False)
+        self.assertEqual(ssl_wrap.call_args[1]["server_hostname"], "host")
+
+        # the host is kept in the connection as well, so that the verification
+        # may be run once the handshake is done
+        self.assertEqual(connection.ssl_host, "host")
+
     def test_acquire(self):
         connection = self._make_connection()
 
@@ -877,6 +1034,15 @@ class StreamClientTest(unittest.TestCase):
         connection.status = conn.OPEN
         self.client.connections.append(connection)
         self.client.connections_m[_socket] = connection
+        return connection
+
+    def _make_probed(self, error=0):
+        # builds an open connection whose socket is a stand-in, so that the
+        # error it carries may be set (the reading of it cannot be replaced
+        # on a real socket, being a read only method)
+        connection = self._make_connection()
+        connection.socket = mock.MagicMock()
+        connection.socket.getsockopt.return_value = error
         return connection
 
     def _close_connections(self):
