@@ -108,7 +108,18 @@ class TFTPSession(object):
         name = self.name
         if not allow_absolute:
             name = name.lstrip("/")
-        path = os.path.join(self.owner.base_path, name)
+        base_path = os.path.abspath(self.owner.base_path)
+        path = os.path.join(base_path, name)
+        path = os.path.abspath(path)
+        path = os.path.normpath(path)
+
+        # verifies if the resolved path starts with the contents of the
+        # base path in case it does not it's a security issue and a proper
+        # exception must be raised indicating the issue
+        is_sub = path == base_path or path.startswith(os.path.join(base_path, ""))
+        if not is_sub:
+            raise netius.SecurityError("Invalid path")
+
         self.file = open(path, "rb")
         return self.file
 

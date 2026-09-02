@@ -214,6 +214,38 @@ class TFTPSessionTest(unittest.TestCase):
         # used to leave the name unbound and raise
         self.assertEqual(file.read(), b"contents")
 
+    def test__get_file_escape(self):
+        outside = os.path.join(os.path.dirname(self.base), "outside.txt")
+        file = open(outside, "wb")
+        try:
+            file.write(b"secret")
+        finally:
+            file.close()
+
+        session = self._make_session("../outside.txt")
+
+        try:
+            # the name of a read request arrives from the wire, so one that
+            # walks out of the root must be refused rather than served, or a
+            # peer would read any file of the machine
+            self.assertRaises(netius.SecurityError, session._get_file)
+        finally:
+            os.remove(outside)
+
+    def test__get_file_sibling(self):
+        parent = os.path.dirname(self.base)
+        sibling = os.path.basename(self.base) + "-backup"
+        os.makedirs(os.path.join(parent, sibling))
+
+        session = self._make_session("../%s/secret.txt" % sibling)
+
+        try:
+            # a directory whose name only starts like the root of the service
+            # is not under it, so reaching into it must be refused as well
+            self.assertRaises(netius.SecurityError, session._get_file)
+        finally:
+            shutil.rmtree(os.path.join(parent, sibling))
+
     def _make_session(self, name):
         # builds a session of the service and keeps it, so that the file it
         # reads is released once the case is over

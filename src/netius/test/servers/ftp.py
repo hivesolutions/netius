@@ -488,6 +488,22 @@ class FTPConnectionPathTest(unittest.TestCase):
             netius.SecurityError, self.connection._get_path, "../../../../etc/passwd"
         )
 
+    def test__get_path_sibling(self):
+        parent = os.path.dirname(self.connection.base_path)
+        sibling = os.path.basename(self.connection.base_path) + "-backup"
+        os.makedirs(os.path.join(parent, sibling))
+
+        try:
+            # a directory whose name only starts like the root of the service
+            # is not under it, so reaching into it must be refused as well
+            self.assertRaises(
+                netius.SecurityError,
+                self.connection._get_path,
+                "../%s/secret.txt" % sibling,
+            )
+        finally:
+            shutil.rmtree(os.path.join(parent, sibling))
+
     def _store(self, name, contents):
         path = os.path.join(self.base, name)
         file = open(path, "wb")

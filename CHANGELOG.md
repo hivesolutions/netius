@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * A header that is set by its position now replaces the one that is there
 * A string that carries no null byte is now given back whole instead of raising
 * A TFTP file that is served under an absolute name no longer fails to open
+* A TFTP peer can no longer reach a file outside the root that is served
 * An environment value that is unset can now be forced into a file, instead of raising
 * An FTP peer can no longer reach a file outside the root that is served
 * The allowed addresses of a service are now honoured, instead of every peer being refused
