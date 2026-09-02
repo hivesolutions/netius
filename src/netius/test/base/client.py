@@ -28,9 +28,12 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import ssl
+import errno
 import socket
 import logging
 import unittest
+import threading
 
 import netius
 
@@ -117,6 +120,144 @@ class DatagramClientTest(unittest.TestCase):
         unittest.TestCase.tearDown(self)
         self.client.socket.close()
         self.client.close()
+
+    def test_on_read(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        received = []
+        self.client.socket = mock.MagicMock()
+        self.client.socket.recvfrom.side_effect = [
+            (b"hello", ("1.2.3.4", 1234)),
+            socket.error(errno.EWOULDBLOCK, "error"),
+        ]
+
+        with mock.patch.object(
+            self.client, "on_data", lambda a, d: received.append((a, d))
+        ):
+            self.client.on_read(self.client.socket)
+
+        # the reading goes on until the queue of the kernel is empty, so that
+        # a single wake up of the poll takes every datagram that arrived
+        self.assertEqual(received, [(("1.2.3.4", 1234), b"hello")])
+
+    def test_on_read_foreign(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        _socket = mock.MagicMock()
+        callback = mock.MagicMock()
+        self.client.callbacks_m[_socket] = [callback]
+        try:
+            # a socket that is not the one of the client still notifies the
+            # callbacks registered for it, and nothing else is done for it
+            self.client.on_read(_socket)
+
+            self.assertEqual(callback.call_args[0], ("read", _socket))
+            self.assertEqual(_socket.recvfrom.called, False)
+        finally:
+            del self.client.callbacks_m[_socket]
+
+    def test_on_read_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # an error that is expected is reported quietly, one that is part of
+        # the retrying is ignored altogether, and any other one is reported as
+        # the exception that it is
+        for error, expected, exception in (
+            (ssl.SSLError(ssl.SSL_ERROR_EOF), True, False),
+            (ssl.SSLError(ssl.SSL_ERROR_WANT_READ), False, False),
+            (ssl.SSLError(ssl.SSL_ERROR_SSL), False, True),
+            (socket.error(errno.ECONNRESET, "error"), True, False),
+            (socket.error(errno.EAGAIN, "error"), False, False),
+            (socket.error(errno.EBADF, "error"), False, True),
+            (ValueError("broken"), False, True),
+        ):
+            self.client.socket = mock.MagicMock()
+            self.client.socket.recvfrom.side_effect = error
+
+            with mock.patch.object(self.client, "on_expected") as on_expected:
+                with mock.patch.object(self.client, "on_exception") as on_exception:
+                    self.client.on_read(self.client.socket)
+
+            self.assertEqual(on_expected.called, expected)
+            self.assertEqual(on_exception.called, exception)
+
+        self.client.socket = mock.MagicMock()
+        self.client.socket.recvfrom.side_effect = KeyboardInterrupt()
+
+        self.assertRaises(KeyboardInterrupt, self.client.on_read, self.client.socket)
+
+    def test_on_write(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.client.socket = mock.MagicMock()
+
+        with mock.patch.object(self.client, "_send") as _send:
+            self.client.on_write(self.client.socket)
+
+        # the becoming writable of the socket is what drains the queue of the
+        # datagrams that are waiting to be sent
+        self.assertEqual(_send.call_args[0][0], self.client.socket)
+
+        _socket = mock.MagicMock()
+
+        with mock.patch.object(self.client, "_send") as _send:
+            self.client.on_write(_socket)
+
+        # a socket that is not the one of the client is not the one that the
+        # queue belongs to, so nothing is drained for it
+        self.assertEqual(_send.called, False)
+
+    def test_on_write_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # the sending classifies the failures exactly as the reading does,
+        # which is what keeps the two sides of the socket consistent
+        for error, expected, exception in (
+            (ssl.SSLError(ssl.SSL_ERROR_ZERO_RETURN), True, False),
+            (ssl.SSLError(ssl.SSL_ERROR_WANT_WRITE), False, False),
+            (socket.error(errno.EPIPE, "error"), True, False),
+            (socket.error(errno.EAGAIN, "error"), False, False),
+            (socket.error(errno.EBADF, "error"), False, True),
+            (ValueError("broken"), False, True),
+        ):
+            self.client.socket = mock.MagicMock()
+
+            with mock.patch.object(self.client, "_send", side_effect=error):
+                with mock.patch.object(self.client, "on_expected") as on_expected:
+                    with mock.patch.object(self.client, "on_exception") as on_exception:
+                        self.client.on_write(self.client.socket)
+
+            self.assertEqual(on_expected.called, expected)
+            self.assertEqual(on_exception.called, exception)
+
+        self.client.socket = mock.MagicMock()
+
+        with mock.patch.object(self.client, "_send", side_effect=SystemExit()):
+            self.assertRaises(SystemExit, self.client.on_write, self.client.socket)
+
+    def test_on_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        _socket = mock.MagicMock()
+        callback = mock.MagicMock()
+        self.client.callbacks_m[_socket] = [callback]
+        try:
+            # a datagram socket carries no connection of its own, so the
+            # notifying of the callbacks is the whole of the handling
+            self.client.on_error(_socket)
+
+            self.assertEqual(callback.call_args[0], ("error", _socket))
+        finally:
+            del self.client.callbacks_m[_socket]
+
+        self.client.socket = mock.MagicMock()
+        self.assertEqual(self.client.on_error(self.client.socket), None)
 
     def test_keep_gc(self):
         # the garbage collection re-schedules itself so that it keeps being
@@ -214,6 +355,62 @@ class DatagramClientTest(unittest.TestCase):
         # an identifier that matches no request must yield an invalid value
         # instead of raising, as a response may be an unsolicited one
         self.assertEqual(self.client.get_request(-1), None)
+
+    def test_ensure_socket(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # the socket that the setup built is released, so that the building
+        # of one is the operation under test
+        self.client.socket.close()
+        self.client.socket = None
+
+        with mock.patch.object(self.client, "sub_all") as sub_all:
+            self.client.ensure_socket()
+
+        # the socket of a client never blocks and may reach every host of the
+        # network, and it is registered in the poll once built
+        self.assertEqual(self.client.socket.gettimeout(), 0.0)
+        self.assertNotEqual(
+            self.client.socket.getsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST), 0
+        )
+        self.assertEqual(sub_all.call_args[0][0], self.client.socket)
+
+        _socket = self.client.socket
+
+        with mock.patch.object(self.client, "sub_all") as sub_all:
+            self.client.ensure_socket()
+
+        # asking for it a second time is a no operation, a single socket being
+        # the one that serves the whole of the client
+        self.assertEqual(self.client.socket, _socket)
+        self.assertEqual(sub_all.called, False)
+
+    def test_ensure_write(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.client.socket = mock.MagicMock()
+        self.client.tid = threading.current_thread().ident
+
+        with mock.patch.object(self.client, "sub_write") as sub_write:
+            self.client.ensure_write()
+
+        # a request that comes from the thread of the loop registers for the
+        # writing right away, as there is no race to be avoided
+        self.assertEqual(sub_write.call_args[0][0], self.client.socket)
+
+        self.client.tid = -1
+
+        with mock.patch.object(self.client, "sub_write") as sub_write:
+            with mock.patch.object(self.client, "delay") as delay:
+                self.client.ensure_write()
+
+        # one that comes from another thread is delayed into the loop instead,
+        # as the poll may only be changed from the thread that owns it
+        self.assertEqual(sub_write.called, False)
+        self.assertEqual(delay.call_args[0][0], self.client.ensure_write)
+        self.assertEqual(delay.call_args[1]["safe"], True)
 
     def test_remove_write(self):
         if mock == None:
@@ -376,6 +573,199 @@ class StreamClientTest(unittest.TestCase):
 
         self.assertEqual(len(self.client._delayed), 1)
 
+    def test_on_read(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        received = []
+        connection.bind("data", lambda _connection, data: received.append(data))
+
+        with mock.patch.object(connection, "recv", side_effect=[b"hello", b""]):
+            self.client.on_read(connection.socket)
+
+        # every chunk that comes off the socket is handed over until the peer
+        # closes it, which is what an empty read stands for
+        self.assertEqual(received, [b"hello"])
+        self.assertEqual(connection.status, conn.CLOSED)
+        self.assertEqual(connection.close_reason, netius.REASON_CLIENT_EOF)
+
+    def test_on_read_callbacks(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        _socket = mock.MagicMock()
+        callback = mock.MagicMock()
+        self.client.callbacks_m[_socket] = [callback]
+        try:
+            # a socket that names no connection still notifies the callbacks
+            # registered for it, as they are what a raw reader relies on
+            self.client.on_read(_socket)
+
+            self.assertEqual(callback.call_args[0], ("read", _socket))
+        finally:
+            del self.client.callbacks_m[_socket]
+
+    def test_on_read_closed(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # a connection that is no longer open, or one whose reading was turned
+        # off, is left alone instead of being read from
+        for attribute, value in (("status", conn.CLOSED), ("renable", False)):
+            connection = self._make_connection()
+            setattr(connection, attribute, value)
+
+            with mock.patch.object(connection, "recv") as recv:
+                self.client.on_read(connection.socket)
+
+            self.assertEqual(recv.called, False)
+
+    def test_on_read_connecting(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        connection.connecting = True
+
+        with mock.patch.object(connection, "recv", side_effect=[b""]):
+            with mock.patch.object(self.client, "_connectf") as connectf:
+                self.client.on_read(connection.socket)
+
+        # a connection that is still being established is finished before
+        # anything is read from it, as the reading depends on it
+        self.assertEqual(connectf.call_args[0][0], connection)
+
+    def test_on_read_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # an error that is expected drops the connection quietly, one that is
+        # part of the retrying is ignored altogether, and any other one is
+        # reported as the exception that it is
+        for error, expected, exception in (
+            (ssl.SSLError(ssl.SSL_ERROR_EOF), True, False),
+            (ssl.SSLError(ssl.SSL_ERROR_WANT_READ), False, False),
+            (ssl.SSLError(ssl.SSL_ERROR_SSL), False, True),
+            (socket.error(errno.ECONNRESET, "error"), True, False),
+            (socket.error(errno.EWOULDBLOCK, "error"), False, False),
+            (socket.error(errno.EBADF, "error"), False, True),
+            (ValueError("broken"), False, True),
+        ):
+            connection = self._make_connection()
+
+            with mock.patch.object(connection, "recv", side_effect=error):
+                with mock.patch.object(self.client, "on_expected") as on_expected:
+                    with mock.patch.object(self.client, "on_exception") as on_exception:
+                        self.client.on_read(connection.socket)
+
+            self.assertEqual(on_expected.called, expected)
+            self.assertEqual(on_exception.called, exception)
+
+        connection = self._make_connection()
+
+        with mock.patch.object(connection, "recv", side_effect=KeyboardInterrupt()):
+            self.assertRaises(KeyboardInterrupt, self.client.on_read, connection.socket)
+
+    def test_on_write(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+
+        with mock.patch.object(connection, "_send") as _send:
+            self.client.on_write(connection.socket)
+
+        # a socket that became writable flushes whatever the connection still
+        # holds in its buffer
+        self.assertEqual(_send.called, True)
+
+        connection = self._make_connection()
+        connection.status = conn.CLOSED
+
+        with mock.patch.object(connection, "_send") as _send:
+            self.client.on_write(connection.socket)
+
+        # one that is no longer open has nothing to flush, the buffer of it
+        # having been dropped with the closing
+        self.assertEqual(_send.called, False)
+
+    def test_on_write_connecting(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        connection.connecting = True
+
+        with mock.patch.object(connection, "_send"):
+            with mock.patch.object(self.client, "_connectf") as connectf:
+                self.client.on_write(connection.socket)
+
+        # the becoming writable of a socket is what says that a connection was
+        # established, so it is finished before anything is sent
+        self.assertEqual(connectf.call_args[0][0], connection)
+
+    def test_on_write_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        # the sending classifies the failures exactly as the reading does,
+        # which is what keeps the two sides of a connection consistent
+        for error, expected, exception in (
+            (ssl.SSLError(ssl.SSL_ERROR_ZERO_RETURN), True, False),
+            (ssl.SSLError(ssl.SSL_ERROR_WANT_WRITE), False, False),
+            (socket.error(errno.EPIPE, "error"), True, False),
+            (socket.error(errno.EAGAIN, "error"), False, False),
+            (socket.error(errno.EBADF, "error"), False, True),
+            (ValueError("broken"), False, True),
+        ):
+            connection = self._make_connection()
+
+            with mock.patch.object(connection, "_send", side_effect=error):
+                with mock.patch.object(self.client, "on_expected") as on_expected:
+                    with mock.patch.object(self.client, "on_exception") as on_exception:
+                        self.client.on_write(connection.socket)
+
+            self.assertEqual(on_expected.called, expected)
+            self.assertEqual(on_exception.called, exception)
+
+        connection = self._make_connection()
+
+        with mock.patch.object(connection, "_send", side_effect=SystemExit()):
+            self.assertRaises(SystemExit, self.client.on_write, connection.socket)
+
+    def test_on_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        _socket = mock.MagicMock()
+        callback = mock.MagicMock()
+        self.client.callbacks_m[_socket] = [callback]
+        try:
+            self.client.on_error(_socket)
+
+            self.assertEqual(callback.call_args[0], ("error", _socket))
+        finally:
+            del self.client.callbacks_m[_socket]
+
+        connection = self._make_connection()
+
+        self.client.on_error(connection.socket)
+
+        # a connection whose socket is in error is dropped, the reason naming
+        # it so that the diagnostics may tell it apart
+        self.assertEqual(connection.status, conn.CLOSED)
+        self.assertEqual(connection.close_reason, netius.REASON_ERROR)
+
+        connection = self._make_connection()
+        connection.status = conn.CLOSED
+
+        # one that is already closed is left alone, instead of being closed a
+        # second time
+        self.client.on_error(connection.socket)
+
+        self.assertEqual(connection.close_reason, None)
+
     def test_on_exception(self):
         connection = self._make_connection()
         self.client.on_exception(netius.NetiusError("boom"), connection)
@@ -395,6 +785,68 @@ class StreamClientTest(unittest.TestCase):
         self.assertEqual(connection.status, conn.CLOSED)
         self.assertEqual(connection.close_reason, netius.REASON_ERROR)
         self.assertEqual(connection.close_error, "broken pipe")
+
+    def test_on_connect(self):
+        connection = self._make_connection()
+        connection.connecting = True
+
+        self.client.on_connect(connection)
+
+        # the establishment of a connection marks it as connected, which is
+        # what releases the operations that were waiting on it
+        self.assertEqual(connection.connecting, False)
+
+    def test_on_connect_pooled(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        connection.connecting = True
+        connection.tuple = ("host", 80, False, None, None)
+
+        with mock.patch.object(self.client, "on_acquire") as on_acquire:
+            self.client.on_connect(connection)
+
+        # a connection that belongs to the pool is acquired as soon as it is
+        # established, as the request that asked for it is waiting on it
+        self.assertEqual(on_acquire.call_args[0][0], connection)
+
+    def test_on_ssl(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        connection.connecting = True
+
+        with mock.patch.object(connection, "ssl_verify_host") as verify_host:
+            with mock.patch.object(
+                connection, "ssl_verify_fingerprint"
+            ) as verify_fingerprint:
+                with mock.patch.object(self.client, "on_connect") as on_connect:
+                    self.client.on_ssl(connection)
+
+        # the peer is verified as soon as the handshake is done, before the
+        # connection is handed over to whatever asked for it
+        self.assertEqual(verify_host.called, True)
+        self.assertEqual(verify_fingerprint.called, True)
+        self.assertEqual(on_connect.call_args[0][0], connection)
+
+    def test_on_ssl_upgrading(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        connection.connecting = False
+        connection.upgrading = True
+
+        with mock.patch.object(connection, "ssl_verify_host"):
+            with mock.patch.object(connection, "ssl_verify_fingerprint"):
+                with mock.patch.object(self.client, "on_upgrade") as on_upgrade:
+                    self.client.on_ssl(connection)
+
+        # a connection that was already established and became secure is an
+        # upgraded one, and not a newly connected one
+        self.assertEqual(on_upgrade.call_args[0][0], connection)
 
     def test_on_acquire(self):
         connection = self._make_connection()
