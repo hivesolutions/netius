@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * The connections of a proxy can now be listed before it is started, instead of failing
 * The keep alive tuning of a connection now reaches the socket, instead of being dropped
 * The service catalogue of a Consul proxy is now read under Python 3.5, instead of being dropped
+* The SOCKS server can now be built and served, instead of failing on creation - [#123](https://github.com/hivesolutions/netius/issues/123)
 * The test of primality no longer takes a base that shares a factor for a prime one
 
 ## [1.63.1] - 2026-08-31
