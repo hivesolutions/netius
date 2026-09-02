@@ -121,6 +121,196 @@ class BaseConnectionTest(unittest.TestCase):
         self.assertEqual(connection.status, conn.CLOSED)
         self.assertEqual(connection.close_reason, netius.REASON_TIMEOUT)
 
+    def test_upgrade(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        _socket = connection.socket
+        upgraded = mock.MagicMock()
+
+        with mock.patch.object(self.loop, "_ssl_upgrade", return_value=upgraded):
+            with mock.patch.object(self.loop, "unsub_all") as unsub_all:
+                with mock.patch.object(self.loop, "sub_read") as sub_read:
+                    with mock.patch.object(self.loop, "sub_error"):
+                        with mock.patch.object(
+                            connection, "add_starter"
+                        ) as add_starter:
+                            with mock.patch.object(connection, "run_starter"):
+                                connection.upgrade(server=False)
+
+        # the connection becomes a secure one and the socket of it is the
+        # wrapped one, the old one no longer naming it in the loop
+        self.assertEqual(connection.ssl, True)
+        self.assertEqual(connection.upgrading, True)
+        self.assertEqual(connection.socket, upgraded)
+        self.assertEqual(unsub_all.call_args[0][0], _socket)
+        self.assertEqual(sub_read.call_args[0][0], upgraded)
+
+        # the new socket is the one that names the connection, so that the
+        # events of the poll may still be routed to it
+        self.assertEqual(self.loop.connections_m[upgraded], connection)
+        self.assertEqual(_socket in self.loop.connections_m, False)
+
+        # the handshake has to run before the connection may be used, so it
+        # is registered as the starter of it
+        self.assertEqual(add_starter.call_args[0][0], self.loop._ssl_handshake)
+
+        _socket.close()
+
+    def test_upgrade_secure(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        connection.ssl = True
+
+        with mock.patch.object(self.loop, "_ssl_upgrade") as ssl_upgrade:
+            connection.upgrade()
+
+        # a connection that is already secure has nothing to be upgraded, so
+        # the wrapping of it is not run a second time
+        self.assertEqual(ssl_upgrade.called, False)
+
+    def test_enable_read(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+        connection.renable = False
+
+        with mock.patch.object(self.loop, "sub_read") as sub_read:
+            connection.enable_read()
+
+        # the reading is turned back on and the poll is told about it, as it
+        # is the one that stopped reporting the socket
+        self.assertEqual(connection.renable, True)
+        self.assertEqual(sub_read.call_args[0][0], connection.socket)
+
+        with mock.patch.object(self.loop, "sub_read") as sub_read:
+            connection.enable_read()
+
+        # one that is already reading has nothing to be turned on, so the
+        # poll is left alone
+        self.assertEqual(sub_read.called, False)
+
+        connection = self._make_connection()
+        connection.renable = False
+        connection.status = conn.CLOSED
+
+        with mock.patch.object(self.loop, "sub_read") as sub_read:
+            connection.enable_read()
+
+        # a connection that is no longer open is never resumed, as the socket
+        # of it is gone
+        self.assertEqual(sub_read.called, False)
+
+    def test_disable_read(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+
+        with mock.patch.object(self.loop, "unsub_read") as unsub_read:
+            connection.disable_read()
+
+        # the reading is turned off and the poll stops reporting the socket,
+        # which is what the throttling of a connection relies on
+        self.assertEqual(connection.renable, False)
+        self.assertEqual(unsub_read.call_args[0][0], connection.socket)
+
+        with mock.patch.object(self.loop, "unsub_read") as unsub_read:
+            connection.disable_read()
+
+        self.assertEqual(unsub_read.called, False)
+
+        connection = self._make_connection()
+        connection.status = conn.CLOSED
+
+        with mock.patch.object(self.loop, "unsub_read") as unsub_read:
+            connection.disable_read()
+
+        self.assertEqual(unsub_read.called, False)
+
+    def test_log_dict(self):
+        connection = self._make_connection()
+        info = connection.log_dict()
+
+        # the address travels as a string in the description meant for the
+        # log, as the pair that names it is not printable as it is
+        self.assertEqual(info["address"], str(connection.address))
+        self.assertEqual(info["id"], connection.id)
+
+    def test_ssl_dump_certificate(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+
+        with mock.patch.object(connection, "ssl_certificate") as ssl_certificate:
+            connection.ssl_dump_certificate()
+
+        # with no dumping asked for the certificate of the peer is not even
+        # read, as there is nothing to be written with it
+        self.assertEqual(ssl_certificate.called, False)
+
+        with mock.patch.object(conn.tls, "dump_certificate") as dump_certificate:
+            with mock.patch.object(connection, "ssl_certificate", return_value="cert"):
+                connection.ssl_dump_certificate(dump=True)
+
+        # once it is asked for both of the forms of the certificate are read
+        # and handed over to the dumping
+        self.assertEqual(dump_certificate.call_args[0][0], "cert")
+
+    def test_ssl_protocol(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+
+        # a socket that knows nothing of the negotiation names no protocol,
+        # which is the case of a plain one
+        self.assertEqual(connection.ssl_alpn_protocol(), None)
+        self.assertEqual(connection.ssl_npn_protocol(), None)
+        self.assertEqual(connection.ssl_protocol(), None)
+
+        connection.socket = mock.MagicMock()
+        connection.socket.selected_alpn_protocol.return_value = "h2"
+        connection.socket.selected_npn_protocol.return_value = None
+
+        # the one that was negotiated is the one reported, whichever of the
+        # two negotiations settled it
+        self.assertEqual(connection.ssl_alpn_protocol(), "h2")
+        self.assertEqual(connection.ssl_protocol(), "h2")
+
+        connection.socket = None
+
+        # a connection with no socket at all names no protocol either, and
+        # asking for it must not raise
+        self.assertEqual(connection.ssl_alpn_protocol(), None)
+        self.assertEqual(connection.ssl_npn_protocol(), None)
+
+    def test_logging(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        connection = self._make_connection()
+
+        # every level is delegated to the owner of the connection, carrying
+        # the context that describes it
+        for name in ("trace", "debug", "info", "warning", "error", "critical"):
+            with mock.patch.object(self.loop, name) as method:
+                getattr(connection, name)("message")
+
+            self.assertEqual(method.call_args[0][0], "message")
+
+        connection.owner = None
+
+        # one that no longer belongs to a loop has nowhere to log to, so the
+        # message is dropped instead of raising
+        for name in ("trace", "debug", "info", "warning", "error", "critical"):
+            self.assertEqual(getattr(connection, name)("message"), None)
+
     def test_info_dict(self):
         connection = self._make_connection()
         info = connection.info_dict()
