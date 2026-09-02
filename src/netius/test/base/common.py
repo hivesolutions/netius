@@ -39,6 +39,7 @@ import unittest
 import collections
 
 import netius
+import netius.pool
 
 from netius.base import conn
 from netius.base import common
@@ -652,6 +653,181 @@ class BaseTest(unittest.TestCase):
         self.assertEqual(
             common.AbstractBase._DIAG_CLOSED.maxlen, common.DIAG_CLOSED_MAX
         )
+
+    def test_block(self):
+        loop = netius.Base()
+        try:
+            # the running of the loop from inside of it is only allowed where
+            # it was asked for, as it is a way of hanging the process
+            self.assertRaises(netius.RuntimeError, loop.block)
+        finally:
+            loop.close()
+
+    def test_block_allowed(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            loop.allow_block = True
+            loop._running = True
+
+            with mock.patch.object(loop, "loop") as _loop:
+                loop.block()
+
+            # the state of the running is restored once the blocking is over,
+            # so that the loop that owns it is not left thinking it stopped
+            self.assertEqual(_loop.called, True)
+            self.assertEqual(loop._running, True)
+        finally:
+            loop.allow_block = False
+            loop._running = False
+            loop.close()
+
+    def test_tstart(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            with mock.patch.object(netius.pool, "TaskPool") as TaskPool:
+                with mock.patch.object(loop, "pregister") as pregister:
+                    loop.tstart()
+
+                    # the pool is started and registered in the poll, so that
+                    # the completing of a task wakes the loop up
+                    self.assertEqual(loop.tpool.start.called, True)
+                    self.assertEqual(pregister.call_args[0][0], loop.tpool)
+
+                    tpool = loop.tpool
+                    loop.tstart()
+
+                    # asking for it a second time is a no operation, a single
+                    # pool being the one that serves the whole of the loop
+                    self.assertEqual(loop.tpool, tpool)
+                    self.assertEqual(TaskPool.call_count, 1)
+
+            with mock.patch.object(loop, "punregister") as punregister:
+                loop.tstop()
+
+            # the stopping unregisters it before stopping it, so that no event
+            # of it reaches a poll that no longer expects one
+            self.assertEqual(punregister.call_args[0][0], tpool)
+            self.assertEqual(tpool.stop.called, True)
+        finally:
+            loop.tpool = None
+            loop.close()
+
+    def test_tstop_missing(self):
+        loop = netius.Base()
+        try:
+            # a loop that never started a pool has none to be stopped, and
+            # asking for it must not raise
+            self.assertEqual(loop.tstop(), None)
+        finally:
+            loop.close()
+
+    def test_texecute(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            callable = lambda: None
+
+            with mock.patch.object(netius.pool, "TaskPool"):
+                with mock.patch.object(loop, "pregister"):
+                    loop.texecute(callable, args=[1], kwargs=dict(key="value"))
+
+                # the pool is started on demand, so that a loop that runs no
+                # task at all never pays for the threads of one
+                self.assertEqual(loop.tpool.execute.call_args[0][0], callable)
+                self.assertEqual(loop.tpool.execute.call_args[1]["args"], [1])
+        finally:
+            loop.tpool = None
+            loop.close()
+
+    def test_files(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            # a loop with no pool of files has no event to deliver, and asking
+            # for them must not raise
+            self.assertEqual(loop.files(), None)
+
+            callback = mock.MagicMock()
+            loop.fpool = mock.MagicMock()
+            loop.fpool.pop_all.return_value = [
+                ("read", "data", callback),
+                ("read", "other", None),
+            ]
+
+            loop.files()
+
+            # every event that names a callback has it run with the values of
+            # the event, the ones that name none being dropped
+            self.assertEqual(callback.call_args[0], ("data",))
+            self.assertEqual(callback.call_count, 1)
+        finally:
+            loop.fpool = None
+            loop.close()
+
+    def test_fstart(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            with mock.patch.object(netius.pool, "FilePool") as FilePool:
+                with mock.patch.object(loop, "pregister") as pregister:
+                    loop.fstart()
+
+                    self.assertEqual(loop.fpool.start.called, True)
+                    self.assertEqual(pregister.call_args[0][0], loop.fpool)
+
+                    fpool = loop.fpool
+                    loop.fstart()
+
+                    self.assertEqual(loop.fpool, fpool)
+                    self.assertEqual(FilePool.call_count, 1)
+
+            with mock.patch.object(loop, "punregister"):
+                loop.fstop()
+
+            self.assertEqual(fpool.stop.called, True)
+        finally:
+            loop.fpool = None
+            loop.close()
+
+    def test_fstop_missing(self):
+        loop = netius.Base()
+        try:
+            self.assertEqual(loop.fstop(), None)
+        finally:
+            loop.close()
+
+    def test_fopen(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            # every operation over a file is delegated to the pool of them,
+            # which is started on demand as the one of the tasks is
+            for name in ("open", "close", "read", "write"):
+                loop.fpool = None
+
+                with mock.patch.object(netius.pool, "FilePool"):
+                    with mock.patch.object(loop, "pregister"):
+                        result = getattr(loop, "f" + name)("path")
+
+                self.assertEqual(getattr(loop.fpool, name).call_args[0][0], "path")
+                self.assertEqual(result, getattr(loop.fpool, name).return_value)
+        finally:
+            loop.fpool = None
+            loop.close()
 
     def test_socket_tcp(self):
         loop = netius.Base()
