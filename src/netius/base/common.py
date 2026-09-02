@@ -4549,25 +4549,25 @@ class AbstractBase(observer.Observable):
         if count == None:
             count = self.keepalive_count
         is_inet = _socket.family in (socket.AF_INET, socket.AF_INET6)
-        if is_inet and hasattr(_socket, "TCP_KEEPIDLE"):
+        if is_inet and hasattr(socket, "TCP_KEEPIDLE"):
             _socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPIDLE,  # @UndefinedVariable pylint: disable=E1101
                 timeout,
             )
-        if is_inet and hasattr(_socket, "TCP_KEEPINTVL"):
+        if is_inet and hasattr(socket, "TCP_KEEPINTVL"):
             _socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPINTVL,  # @UndefinedVariable pylint: disable=E1101
                 interval,
             )
-        if is_inet and hasattr(_socket, "TCP_KEEPCNT"):
+        if is_inet and hasattr(socket, "TCP_KEEPCNT"):
             _socket.setsockopt(
                 socket.IPPROTO_TCP,
                 socket.TCP_KEEPCNT,  # @UndefinedVariable pylint: disable=E1101
                 count,
             )
-        if hasattr(_socket, "SO_REUSEPORT"):
+        if is_inet and hasattr(socket, "SO_REUSEPORT"):
             _socket.setsockopt(
                 socket.SOL_SOCKET,
                 socket.SO_REUSEPORT,  # @UndefinedVariable pylint: disable=E1101

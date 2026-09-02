@@ -31,6 +31,7 @@ __license__ = "Apache License, Version 2.0"
 import os
 import ssl
 import sys
+import errno
 import socket
 import datetime
 import unittest
@@ -651,6 +652,106 @@ class BaseTest(unittest.TestCase):
             common.AbstractBase._DIAG_CLOSED.maxlen, common.DIAG_CLOSED_MAX
         )
 
+    def test_socket_tcp(self):
+        loop = netius.Base()
+        try:
+            _socket = loop.socket_tcp(receive_buffer=32768, send_buffer=32768)
+            try:
+                # the socket of a service never blocks, as every operation of
+                # it is driven by the poll instead of by the call itself
+                self.assertEqual(_socket.gettimeout(), 0.0)
+                self.assertEqual(_socket.family, socket.AF_INET)
+
+                # the address is reusable so that a restart does not have to
+                # wait out the lingering of the previous socket
+                self.assertNotEqual(
+                    _socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR), 0
+                )
+                self.assertNotEqual(
+                    _socket.getsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE), 0
+                )
+
+                # the delaying of the small writes is off, as a protocol that
+                # answers in small messages would otherwise be held back
+                self.assertNotEqual(
+                    _socket.getsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY), 0
+                )
+
+                # the sizes that were asked for reach the buffers, the kernel
+                # being free to round them up
+                self.assertGreaterEqual(
+                    _socket.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF), 32768
+                )
+                self.assertGreaterEqual(
+                    _socket.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF), 32768
+                )
+            finally:
+                _socket.close()
+        finally:
+            loop.close()
+
+    def test_socket_tcp_unix(self):
+        if not hasattr(socket, "AF_UNIX"):
+            self.skipTest("Skipping test: Unix domain sockets unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket = loop.socket_tcp(family=socket.AF_UNIX)
+            try:
+                # a socket of the domain of the machine has no notion of the
+                # options of TCP, so none of them is set on it
+                self.assertEqual(_socket.family, socket.AF_UNIX)
+                self.assertNotEqual(
+                    _socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR), 0
+                )
+            finally:
+                _socket.close()
+        finally:
+            loop.close()
+
+    def test_socket_tcp_ssl(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            with mock.patch.object(loop, "_ssl_wrap") as ssl_wrap:
+                loop.socket_tcp(ssl=True, ca_file="net.ca", ssl_verify=True)
+
+            # a secure service wraps its socket before anything is set on it,
+            # and it does so as the server side of the exchange
+            self.assertEqual(ssl_wrap.call_args[1]["server"], True)
+            self.assertEqual(ssl_wrap.call_args[1]["ca_file"], "net.ca")
+            self.assertEqual(ssl_wrap.call_args[1]["ssl_verify"], True)
+        finally:
+            loop.close()
+
+    def test_socket_udp(self):
+        loop = netius.Base()
+        try:
+            _socket = loop.socket_udp()
+            try:
+                self.assertEqual(_socket.gettimeout(), 0.0)
+
+                # the flag of the non blocking mode leaks into the type of the
+                # socket under the older runtimes, so it is masked out of the
+                # verification of it
+                type_v = _socket.type & ~getattr(socket, "SOCK_NONBLOCK", 0)
+                self.assertEqual(type_v, socket.SOCK_DGRAM)
+
+                # a datagram service may be asked to reach every host of the
+                # network, which is what the broadcasting allows for
+                self.assertNotEqual(
+                    _socket.getsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST), 0
+                )
+                self.assertNotEqual(
+                    _socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR), 0
+                )
+            finally:
+                _socket.close()
+        finally:
+            loop.close()
+
     def test_on_connection_d(self):
         loop = netius.Base()
         buffer = common.AbstractBase._DIAG_CLOSED
@@ -674,6 +775,481 @@ class BaseTest(unittest.TestCase):
         finally:
             common.AbstractBase._DIAG_INSTANCE = instance
             buffer.clear()
+            loop.close()
+
+    def test_on_read(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket, connection = self._make_readable(loop)
+            connection.recv.side_effect = [b"hello", b""]
+
+            loop.on_read(_socket)
+
+            # every chunk that comes off the socket is handed over until the
+            # peer closes it, which is what an empty read stands for
+            self.assertEqual(connection.set_data.call_args_list[0][0][0], b"hello")
+            self.assertEqual(
+                connection.close.call_args[1]["reason"], netius.REASON_CLIENT_EOF
+            )
+        finally:
+            loop.close()
+
+    def test_on_read_callbacks(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket = mock.MagicMock()
+            callback = mock.MagicMock()
+            loop.callbacks_m[_socket] = [callback]
+
+            # a socket that names no connection still notifies the callbacks
+            # registered for it, as they are what a raw reader relies on
+            loop.on_read(_socket)
+
+            self.assertEqual(callback.call_args[0], ("read", _socket))
+        finally:
+            loop.callbacks_m.pop(_socket, None)
+            loop.close()
+
+    def test_on_read_closed(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            # a connection that is no longer open, or one whose reading was
+            # turned off, is left alone instead of being read from
+            for attribute, value in (
+                ("status", netius.CLOSED),
+                ("renable", False),
+            ):
+                _socket, connection = self._make_readable(loop)
+                setattr(connection, attribute, value)
+
+                loop.on_read(_socket)
+
+                self.assertEqual(connection.recv.called, False)
+        finally:
+            loop.close()
+
+    def test_on_read_connecting(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket, connection = self._make_readable(loop)
+            connection.connecting = True
+            connection.recv.side_effect = [b""]
+
+            with mock.patch.object(loop, "_connectf") as connectf:
+                loop.on_read(_socket)
+
+            # a connection that is still being established is finished before
+            # anything is read from it, as the reading depends on it
+            self.assertEqual(connectf.call_args[0][0], connection)
+        finally:
+            loop.close()
+
+    def test_on_read_pending(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket, connection = self._make_readable(loop)
+            connection.run_starter.return_value = True
+
+            loop.on_read(_socket)
+
+            # with a starter still running in the connection nothing is read,
+            # as it has to complete before the payload may be handled
+            self.assertEqual(connection.recv.called, False)
+        finally:
+            loop.close()
+
+    def test_on_read_interrupted(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            # the loop stops reading as soon as the connection is no longer in
+            # a state that allows it, so that a close taken in the middle of
+            # the reading is not overrun by the chunk that follows it
+            def close(*args, **kwargs):
+                connection.status = netius.CLOSED
+
+            _socket, connection = self._make_readable(loop)
+            connection.recv.side_effect = [b"first", b"second"]
+            connection.set_data.side_effect = close
+
+            loop.on_read(_socket)
+
+            self.assertEqual(connection.recv.call_count, 1)
+
+            def disable(*args, **kwargs):
+                connection.renable = False
+
+            _socket, connection = self._make_readable(loop)
+            connection.recv.side_effect = [b"first", b"second"]
+            connection.set_data.side_effect = disable
+
+            loop.on_read(_socket)
+
+            self.assertEqual(connection.recv.call_count, 1)
+
+            def replace(*args, **kwargs):
+                connection.socket = mock.MagicMock()
+
+            _socket, connection = self._make_readable(loop)
+            connection.recv.side_effect = [b"first", b"second"]
+            connection.set_data.side_effect = replace
+
+            loop.on_read(_socket)
+
+            self.assertEqual(connection.recv.call_count, 1)
+        finally:
+            loop.close()
+
+    def test_on_read_ssl_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            # an error that is expected drops the connection quietly, one that
+            # is part of the retrying is ignored altogether, and any other one
+            # is reported as the exception that it is
+            for error, expected, exception in (
+                (ssl.SSLError(ssl.SSL_ERROR_EOF), True, False),
+                (ssl.SSLError(ssl.SSL_ERROR_WANT_READ), False, False),
+                (ssl.SSLError(ssl.SSL_ERROR_SSL), False, True),
+            ):
+                _socket, connection = self._make_readable(loop)
+                connection.recv.side_effect = error
+
+                with mock.patch.object(loop, "on_expected") as on_expected:
+                    with mock.patch.object(loop, "on_exception") as on_exception:
+                        loop.on_read(_socket)
+
+                self.assertEqual(on_expected.called, expected)
+                self.assertEqual(on_exception.called, exception)
+        finally:
+            loop.close()
+
+    def test_on_read_ssl_reason(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            # the reason of the error is what tells a peer that spoke the wrong
+            # protocol from a proper failure, and it is read from the attribute
+            # when the runtime maps it
+            error = ssl.SSLError(ssl.SSL_ERROR_SSL)
+            error.reason = "WRONG_VERSION_NUMBER"
+
+            _socket, connection = self._make_readable(loop)
+            connection.recv.side_effect = error
+
+            with mock.patch.object(loop, "on_expected") as on_expected:
+                loop.on_read(_socket)
+
+            self.assertEqual(on_expected.called, True)
+
+            # and from the text of it when the runtime does not, which is the
+            # fallback that keeps the behaviour the same across them
+            error = ssl.SSLError(
+                ssl.SSL_ERROR_SSL,
+                "[SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1006)",
+            )
+
+            _socket, connection = self._make_readable(loop)
+            connection.recv.side_effect = error
+
+            with mock.patch.object(loop, "on_expected") as on_expected:
+                loop.on_read(_socket)
+
+            self.assertEqual(on_expected.called, True)
+        finally:
+            loop.close()
+
+    def test_on_read_socket_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            # the errors of the socket are classified in the same three ways,
+            # the ones that merely say that there is nothing to read being the
+            # ones that must not reach the caller at all
+            for value, expected, exception in (
+                (errno.ECONNRESET, True, False),
+                (errno.EWOULDBLOCK, False, False),
+                (errno.EBADF, False, True),
+            ):
+                _socket, connection = self._make_readable(loop)
+                connection.recv.side_effect = socket.error(value, "error")
+
+                with mock.patch.object(loop, "on_expected") as on_expected:
+                    with mock.patch.object(loop, "on_exception") as on_exception:
+                        loop.on_read(_socket)
+
+                self.assertEqual(on_expected.called, expected)
+                self.assertEqual(on_exception.called, exception)
+        finally:
+            loop.close()
+
+    def test_on_read_exception(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket, connection = self._make_readable(loop)
+            connection.recv.side_effect = ValueError("broken")
+
+            with mock.patch.object(loop, "on_exception") as on_exception:
+                loop.on_read(_socket)
+
+            # any other failure is caught and reported, as letting it out would
+            # take the whole of the loop down with the connection
+            self.assertEqual(on_exception.call_args[0][1], connection)
+
+            # the ones that ask for the process to end are the exception to
+            # that, as they must not be swallowed by the loop
+            _socket, connection = self._make_readable(loop)
+            connection.recv.side_effect = KeyboardInterrupt()
+
+            self.assertRaises(KeyboardInterrupt, loop.on_read, _socket)
+        finally:
+            loop.close()
+
+    def test_on_write(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket, connection = self._make_readable(loop)
+
+            loop.on_write(_socket)
+
+            # a socket that became writable flushes whatever the connection
+            # still holds in its buffer
+            self.assertEqual(connection._send.called, True)
+        finally:
+            loop.close()
+
+    def test_on_write_callbacks(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket = mock.MagicMock()
+            callback = mock.MagicMock()
+            loop.callbacks_m[_socket] = [callback]
+
+            loop.on_write(_socket)
+
+            self.assertEqual(callback.call_args[0], ("write", _socket))
+        finally:
+            loop.callbacks_m.pop(_socket, None)
+            loop.close()
+
+    def test_on_write_closed(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket, connection = self._make_readable(loop)
+            connection.status = netius.CLOSED
+
+            # a connection that is no longer open has nothing to flush, the
+            # buffer of it having been dropped with the closing
+            loop.on_write(_socket)
+
+            self.assertEqual(connection._send.called, False)
+        finally:
+            loop.close()
+
+    def test_on_write_connecting(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket, connection = self._make_readable(loop)
+            connection.connecting = True
+
+            with mock.patch.object(loop, "_connectf") as connectf:
+                loop.on_write(_socket)
+
+            # the becoming writable of a socket is what says that a connection
+            # was established, so it is finished before anything is sent
+            self.assertEqual(connectf.call_args[0][0], connection)
+        finally:
+            loop.close()
+
+    def test_on_write_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            # the sending classifies the failures exactly as the reading does,
+            # which is what keeps the two sides of a connection consistent
+            for error, expected, exception in (
+                (ssl.SSLError(ssl.SSL_ERROR_ZERO_RETURN), True, False),
+                (ssl.SSLError(ssl.SSL_ERROR_WANT_WRITE), False, False),
+                (socket.error(errno.EPIPE, "error"), True, False),
+                (socket.error(errno.EAGAIN, "error"), False, False),
+                (socket.error(errno.EBADF, "error"), False, True),
+                (ValueError("broken"), False, True),
+            ):
+                _socket, connection = self._make_readable(loop)
+                connection._send.side_effect = error
+
+                with mock.patch.object(loop, "on_expected") as on_expected:
+                    with mock.patch.object(loop, "on_exception") as on_exception:
+                        loop.on_write(_socket)
+
+                self.assertEqual(on_expected.called, expected)
+                self.assertEqual(on_exception.called, exception)
+
+            _socket, connection = self._make_readable(loop)
+            connection._send.side_effect = SystemExit()
+
+            self.assertRaises(SystemExit, loop.on_write, _socket)
+        finally:
+            loop.close()
+
+    def test_on_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket = mock.MagicMock()
+            callback = mock.MagicMock()
+            loop.callbacks_m[_socket] = [callback]
+
+            # a socket that names no connection still notifies the callbacks
+            # registered for it, and nothing else is done for it
+            loop.on_error(_socket)
+
+            self.assertEqual(callback.call_args[0], ("error", _socket))
+
+            _socket, connection = self._make_readable(loop)
+
+            loop.on_error(_socket)
+
+            # a connection whose socket is in error is dropped, the reason
+            # naming it so that the diagnostics may tell it apart
+            self.assertEqual(
+                connection.close.call_args[1]["reason"], netius.REASON_ERROR
+            )
+
+            _socket, connection = self._make_readable(loop)
+            connection.status = netius.CLOSED
+
+            # one that is already closed is left alone, instead of being
+            # closed a second time
+            loop.on_error(_socket)
+
+            self.assertEqual(connection.close.called, False)
+        finally:
+            loop.callbacks_m.clear()
+            loop.close()
+
+    def test_on_read_s(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            service = mock.MagicMock()
+            _socket = mock.MagicMock()
+            first, second = mock.MagicMock(), mock.MagicMock()
+            _socket.accept.side_effect = [
+                (first, ("1.2.3.4", 1234)),
+                (second, ("5.6.7.8", 5678)),
+                socket.error(errno.EWOULDBLOCK, "error"),
+            ]
+
+            loop.on_read_s(_socket, service)
+
+            # the accepting goes on until the queue of the kernel is empty,
+            # so that a single wake up of the poll takes every connection
+            self.assertEqual(service.on_socket_c.call_count, 2)
+            self.assertEqual(service.on_socket_c.call_args_list[0][0][0], first)
+        finally:
+            loop.close()
+
+    def test_on_read_s_refused(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            service = mock.MagicMock()
+            service.on_socket_c.side_effect = ValueError("broken")
+            _socket = mock.MagicMock()
+            socket_c = mock.MagicMock()
+            _socket.accept.side_effect = [(socket_c, ("1.2.3.4", 1234))]
+
+            with mock.patch.object(loop, "on_exception_s") as on_exception_s:
+                loop.on_read_s(_socket, service)
+
+            # a socket that the service refused is closed rather than leaked,
+            # and the failure is still reported as the exception that it is
+            self.assertEqual(socket_c.close.called, True)
+            self.assertEqual(on_exception_s.called, True)
+        finally:
+            loop.close()
+
+    def test_on_read_s_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            # the accepting classifies the failures as the reading does, with
+            # no connection to be dropped as none was established
+            for error, expected, exception in (
+                (ssl.SSLError(ssl.SSL_ERROR_EOF), True, False),
+                (ssl.SSLError(ssl.SSL_ERROR_WANT_READ), False, False),
+                (ssl.SSLError(ssl.SSL_ERROR_SSL), False, True),
+                (socket.error(errno.ECONNABORTED, "error"), True, False),
+                (socket.error(errno.EAGAIN, "error"), False, False),
+                (socket.error(errno.EBADF, "error"), False, True),
+                (ValueError("broken"), False, True),
+            ):
+                service = mock.MagicMock()
+                _socket = mock.MagicMock()
+                _socket.accept.side_effect = error
+
+                with mock.patch.object(loop, "on_expected_s") as on_expected_s:
+                    with mock.patch.object(loop, "on_exception_s") as on_exception_s:
+                        loop.on_read_s(_socket, service)
+
+                self.assertEqual(on_expected_s.called, expected)
+                self.assertEqual(on_exception_s.called, exception)
+
+            service = mock.MagicMock()
+            _socket = mock.MagicMock()
+            _socket.accept.side_effect = KeyboardInterrupt()
+
+            self.assertRaises(KeyboardInterrupt, loop.on_read_s, _socket, service)
+        finally:
             loop.close()
 
     def test_record_closed(self):
@@ -775,6 +1351,187 @@ class BaseTest(unittest.TestCase):
             self.assertEqual([info["id"] for info in closed], [third.id, second.id])
         finally:
             common.AbstractBase._DIAG_CLOSED = original
+            loop.close()
+
+    def test__connect(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            connection = self._make_connecting()
+
+            with mock.patch.object(loop, "_connectf") as connectf:
+                loop._connect(connection)
+
+            # the connection is opened before the reaching of the peer, and
+            # the establishment is finished as soon as that one returns
+            self.assertEqual(connection.open.call_args[1]["connect"], True)
+            self.assertEqual(
+                connection.socket.connect.call_args[0][0], connection.address
+            )
+            self.assertEqual(connectf.call_args[0][0], connection)
+        finally:
+            loop.close()
+
+    def test__connect_closed(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            connection = self._make_connecting()
+            connection.status = netius.CLOSED
+
+            # a connection that was closed while it waited for its turn is
+            # left alone, instead of a socket being reached for it
+            loop._connect(connection)
+
+            self.assertEqual(connection.open.called, False)
+        finally:
+            loop.close()
+
+    def test__connect_pending(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            # an error that merely says that the establishment is under way
+            # leaves the connection open, the poll being the one that says
+            # when it has finished
+            for error in (
+                ssl.SSLError(ssl.SSL_ERROR_WANT_WRITE),
+                socket.error(errno.EINPROGRESS, "error"),
+                socket.error(errno.EWOULDBLOCK, "error"),
+            ):
+                connection = self._make_connecting()
+                connection.socket.connect.side_effect = error
+
+                with mock.patch.object(loop, "_connectf") as connectf:
+                    loop._connect(connection)
+
+                self.assertEqual(connection.close.called, False)
+                self.assertEqual(connectf.called, False)
+        finally:
+            loop.close()
+
+    def test__connect_error(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            # one that says that the peer cannot be reached drops the
+            # connection, naming the reason so that the caller may tell it
+            # apart from a closing of its own
+            for error in (
+                ssl.SSLError(ssl.SSL_ERROR_SSL),
+                socket.error(errno.ECONNREFUSED, "error"),
+            ):
+                connection = self._make_connecting()
+                connection.socket.connect.side_effect = error
+
+                loop._connect(connection)
+
+                self.assertEqual(
+                    connection.close.call_args[1]["reason"], netius.REASON_ERROR
+                )
+        finally:
+            loop.close()
+
+    def test__connect_exception(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        try:
+            connection = self._make_connecting()
+            connection.socket.connect.side_effect = ValueError("broken")
+
+            # a failure that is none of the expected ones drops the connection
+            # and still reaches the caller, as it names a defect and not a
+            # state of the network
+            self.assertRaises(ValueError, loop._connect, connection)
+            self.assertEqual(
+                connection.close.call_args[1]["reason"], netius.REASON_ERROR
+            )
+
+            connection = self._make_connecting()
+            connection.socket.connect.side_effect = KeyboardInterrupt()
+
+            self.assertRaises(KeyboardInterrupt, loop._connect, connection)
+            self.assertEqual(connection.close.called, False)
+        finally:
+            loop.close()
+
+    def test__socket_keepalive(self):
+        loop = netius.Base()
+        try:
+            _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                loop._socket_keepalive(_socket, timeout=120, interval=12, count=5)
+
+                # the tuning of the keeping alive is the one that was asked
+                # for, as the defaults of the kernel are counted in hours
+                for name, expected in (
+                    ("TCP_KEEPIDLE", 120),
+                    ("TCP_KEEPINTVL", 12),
+                    ("TCP_KEEPCNT", 5),
+                ):
+                    option = getattr(socket, name, None)
+                    if option == None:
+                        continue
+                    self.assertEqual(
+                        _socket.getsockopt(socket.IPPROTO_TCP, option), expected
+                    )
+
+                # the port is reusable so that more than one process may
+                # accept on it, which is what a pre-forked service asks for
+                if hasattr(socket, "SO_REUSEPORT"):
+                    self.assertNotEqual(
+                        _socket.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT), 0
+                    )
+            finally:
+                _socket.close()
+        finally:
+            loop.close()
+
+    def test__socket_keepalive_defaults(self):
+        loop = netius.Base()
+        try:
+            _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                loop._socket_keepalive(_socket)
+
+                # with nothing asked for the values of the infra-structure are
+                # the ones that reach the socket
+                option = getattr(socket, "TCP_KEEPIDLE", None)
+                if not option == None:
+                    self.assertEqual(
+                        _socket.getsockopt(socket.IPPROTO_TCP, option),
+                        loop.keepalive_timeout,
+                    )
+            finally:
+                _socket.close()
+        finally:
+            loop.close()
+
+    def test__socket_keepalive_unix(self):
+        if not hasattr(socket, "AF_UNIX"):
+            self.skipTest("Skipping test: Unix domain sockets unavailable")
+
+        loop = netius.Base()
+        try:
+            _socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+                # none of the options belongs to a socket of the domain of the
+                # machine, so asking for them must be skipped rather than left
+                # to the kernel to reject
+                loop._socket_keepalive(_socket)
+            finally:
+                _socket.close()
+        finally:
             loop.close()
 
     def test__ssl_init(self):
@@ -1434,6 +2191,29 @@ class BaseTest(unittest.TestCase):
             )
         finally:
             loop.close()
+
+    def _make_connecting(self):
+        # builds a connection stand-in in the state that the establishment of
+        # a connection to the peer requires
+        connection = mock.MagicMock()
+        connection.status = netius.PENDING
+        connection.address = ("1.2.3.4", 1234)
+        connection.ssl = False
+        return connection
+
+    def _make_readable(self, loop):
+        # builds a connection stand-in registered in the loop, in the state
+        # that the handlers of the poll require to operate on it
+        _socket = mock.MagicMock()
+        connection = mock.MagicMock()
+        connection.socket = _socket
+        connection.status = netius.OPEN
+        connection.renable = True
+        connection.connecting = False
+        connection.run_starter.return_value = False
+        connection.recv.return_value = b""
+        loop.connections_m[_socket] = connection
+        return _socket, connection
 
     def _make_connection(self, loop, diag=False):
         # builds a closed connection registered in the loop, so that it may
