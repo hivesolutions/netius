@@ -1151,13 +1151,7 @@ class DiagConnection(BaseConnection):
         import netius.common
 
         ip, _port = address
-        # the module is reached at this point and not at the top of this one
-        # as the common package closes an import cycle with the base one, and
-        # the name of it under the package is shadowed by the module of the
-        # base package that carries the same name
-        from netius.common import geo
-
-        return geo.GeoResolver.resolve(ip)
+        return netius.common.GeoResolver.resolve(ip)
 
 
 is_diag = config.conf("DIAG", False, cast=bool)

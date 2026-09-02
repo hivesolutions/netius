@@ -1012,17 +1012,13 @@ class StreamServer(Server):
         connection.set_data(data)
 
     def on_socket_c(self, socket_c, address):
+        import netius.common
+
         # verifies if the current address (host value) is present in
         # the currently defined allowed list and in case that's not
         # the case raises an exception indicating the issue
         host = address[0] if address else ""
-        # the module is reached at this point and not at the top of this one
-        # as the common package closes an import cycle with the base one, and
-        # the name of it under the package is shadowed by the module of the
-        # base package that carries the same name
-        from netius.common import util
-
-        result = util.assert_ip4(host, self.allowed)
+        result = netius.common.assert_ip4(host, self.allowed)
         if not result:
             raise errors.NetiusError("Address '%s' not present in allowed list" % host)
 
