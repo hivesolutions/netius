@@ -19,6 +19,7 @@ class FileServer(HTTP2Server):
     list_engine: str
     cors: bool
     cache: int
+    follow_links: bool
 
     def __init__(
         self,
@@ -30,6 +31,7 @@ class FileServer(HTTP2Server):
         list_engine: str = ...,
         cors: bool = ...,
         cache: int = ...,
+        follow_links: bool = ...,
         *args,
         **kwargs
     ): ...
@@ -106,3 +108,4 @@ class FileServer(HTTP2Server):
     def _resolve(self, path: str) -> str: ...
     def _build_regex(self): ...
     def _resolve_regex(self, path: str) -> tuple[str, bool]: ...
+    def _is_sub(self, path: str) -> bool: ...

@@ -16,6 +16,7 @@ class FTPConnection(Connection):
     base_path: str
     host: str
     mode: str
+    follow_links: bool
     data_server: FTPDataServer | None
     remaining: str | None
     cwd: str
@@ -23,7 +24,13 @@ class FTPConnection(Connection):
     password: str
 
     def __init__(
-        self, base_path: str = ..., host: str = ..., mode: str = ..., *args, **kwargs
+        self,
+        base_path: str = ...,
+        host: str = ...,
+        mode: str = ...,
+        follow_links: bool = ...,
+        *args,
+        **kwargs
     ): ...
     def open(self, *args, **kwargs): ...
     def close(self, *args, **kwargs): ...
@@ -119,8 +126,16 @@ class FTPDataServer(StreamServer):
 class FTPServer(ContainerServer):
     base_path: str
     auth_s: str
+    follow_links: bool
 
-    def __init__(self, base_path: str = ..., auth_s: str = ..., *args, **kwargs): ...
+    def __init__(
+        self,
+        base_path: str = ...,
+        auth_s: str = ...,
+        follow_links: bool = ...,
+        *args,
+        **kwargs
+    ): ...
     def serve(  # type: ignore[override]
         self, host: str = ..., port: int = ..., *args, **kwargs
     ): ...

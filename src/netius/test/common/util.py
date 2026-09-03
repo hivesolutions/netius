@@ -28,6 +28,9 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import os
+import shutil
+import tempfile
 import unittest
 
 import netius.common
@@ -166,6 +169,152 @@ class UtilTest(unittest.TestCase):
         # value that the runtime gives for it
         self.assertEqual(netius.legacy.is_string(result), True)
         self.assertEqual(len(result) > 0, True)
+
+    def test_is_sub_path(self):
+        base = os.path.abspath(os.path.join(os.sep, "srv", "ftp"))
+
+        # the base path itself and anything below it are contained, the
+        # separator being what tells a child apart from a sibling whose
+        # name only starts like the base path
+        self.assertEqual(netius.common.is_sub_path(base, base), True)
+        self.assertEqual(
+            netius.common.is_sub_path(base, os.path.join(base, "file.txt")), True
+        )
+        self.assertEqual(
+            netius.common.is_sub_path(base, os.path.join(base, "sub", "file.txt")),
+            True,
+        )
+        self.assertEqual(netius.common.is_sub_path(base, os.path.dirname(base)), False)
+        self.assertEqual(netius.common.is_sub_path(base, base + "-backup"), False)
+        self.assertEqual(
+            netius.common.is_sub_path(base, os.path.join(base + "-backup", "file.txt")),
+            False,
+        )
+        self.assertEqual(
+            netius.common.is_sub_path(base, os.path.join(os.sep, "etc", "passwd")),
+            False,
+        )
+
+        # the root of the file system contains every path there is
+        root = os.path.abspath(os.sep)
+        self.assertEqual(
+            netius.common.is_sub_path(root, os.path.join(root, "etc", "passwd")),
+            True,
+        )
+
+    def test_is_sub_path_missing(self):
+        base = tempfile.mkdtemp()
+
+        try:
+            # a path that is not there yet (the one of a file that is about
+            # to be written) is judged by its name alone, as there is no
+            # link in it to be resolved
+            self.assertEqual(
+                netius.common.is_sub_path(base, os.path.join(base, "new.txt")), True
+            )
+            self.assertEqual(
+                netius.common.is_sub_path(
+                    base, os.path.join(base, "missing", "new.txt")
+                ),
+                True,
+            )
+        finally:
+            shutil.rmtree(base)
+
+    def test_is_sub_path_link(self):
+        base = tempfile.mkdtemp()
+        outside = tempfile.mkdtemp()
+
+        try:
+            self._store(os.path.join(outside, "secret.txt"))
+            self._store(os.path.join(base, "file.txt"))
+            os.makedirs(os.path.join(base, "sub"))
+            self._link(
+                os.path.join(outside, "secret.txt"), os.path.join(base, "link.txt")
+            )
+            self._link(os.path.join(base, "file.txt"), os.path.join(base, "inside.txt"))
+            self._link(outside, os.path.join(base, "sub", "link"))
+            self._link(os.pardir, os.path.join(base, "sub", "up"))
+
+            # a link is judged by its target, so one that leads out of the
+            # base path is not contained while one that stays under it is
+            self.assertEqual(
+                netius.common.is_sub_path(base, os.path.join(base, "link.txt")),
+                False,
+            )
+            self.assertEqual(
+                netius.common.is_sub_path(base, os.path.join(base, "inside.txt")),
+                True,
+            )
+
+            # the link may sit anywhere below the base path, what follows
+            # it in the path being reached through its target
+            self.assertEqual(
+                netius.common.is_sub_path(base, os.path.join(base, "sub", "link")),
+                False,
+            )
+            self.assertEqual(
+                netius.common.is_sub_path(
+                    base, os.path.join(base, "sub", "link", "secret.txt")
+                ),
+                False,
+            )
+
+            # a link that climbs and yet lands under the base path leads
+            # nowhere it should not, so what is reached through it counts
+            self.assertEqual(
+                netius.common.is_sub_path(
+                    base, os.path.join(base, "sub", "up", "file.txt")
+                ),
+                True,
+            )
+            self.assertEqual(
+                netius.common.is_sub_path(
+                    base, os.path.join(base, "sub", "up", "link.txt")
+                ),
+                False,
+            )
+
+            # the operator may publish through a link on purpose, in which
+            # case the name under the base path is enough
+            self.assertEqual(
+                netius.common.is_sub_path(
+                    base, os.path.join(base, "link.txt"), follow_links=True
+                ),
+                True,
+            )
+        finally:
+            shutil.rmtree(base)
+            shutil.rmtree(outside)
+
+    def test_is_sub_path_base_link(self):
+        target = tempfile.mkdtemp()
+        outside = tempfile.mkdtemp()
+        base = target + "-link"
+
+        try:
+            self._link(target, base)
+            self._store(os.path.join(target, "file.txt"))
+            self._store(os.path.join(outside, "secret.txt"))
+            self._link(
+                os.path.join(outside, "secret.txt"), os.path.join(target, "link.txt")
+            )
+
+            # a base path that is itself reached through a link resolves the
+            # same way on both sides, so what sits under it is contained
+            # while a link out of it is still refused
+            self.assertEqual(netius.common.is_sub_path(base, base), True)
+            self.assertEqual(
+                netius.common.is_sub_path(base, os.path.join(base, "file.txt")), True
+            )
+            self.assertEqual(
+                netius.common.is_sub_path(base, os.path.join(base, "link.txt")),
+                False,
+            )
+        finally:
+            os.remove(base)
+            shutil.rmtree(target)
+            shutil.rmtree(outside)
 
     def test_size_round_unit(self):
         result = netius.common.size_round_unit(209715200, space=True)
@@ -308,3 +457,18 @@ class UtilTest(unittest.TestCase):
                 (1 == 1, 1 == 2), exception=netius.NetiusError
             ),
         )
+
+    def _link(self, source, target):
+        # the creation of a link is reserved to a privileged user under
+        # some systems, in which case the case has nothing to run
+        try:
+            os.symlink(source, target)
+        except (AttributeError, NotImplementedError, OSError):
+            self.skipTest("Skipping test: symbolic links unavailable")
+
+    def _store(self, path, contents=b"contents"):
+        file = open(path, "wb")
+        try:
+            file.write(contents)
+        finally:
+            file.close()

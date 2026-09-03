@@ -96,12 +96,19 @@ is able to reach a method of the connection """
 class FTPConnection(netius.Connection):
 
     def __init__(
-        self, base_path="", host="ftp.localhost", mode="ascii", *args, **kwargs
+        self,
+        base_path="",
+        host="ftp.localhost",
+        mode="ascii",
+        follow_links=False,
+        *args,
+        **kwargs
     ):
         netius.Connection.__init__(self, *args, **kwargs)
         self.parser = None
         self.base_path = os.path.abspath(base_path)
         self.host = host
+        self.follow_links = follow_links
         self.mode = mode
         self.data_server = None
         self.remaining = None
@@ -214,16 +221,13 @@ class FTPConnection(netius.Connection):
 
     def flush_retr(self):
         self.send_ftp(150, "file sending")
-        full_path = self._get_path(self.file_name)
-        self.bytes_p = os.path.getsize(full_path)
-        self.file = open(full_path, "rb")
+        self.bytes_p = os.path.getsize(self.file_path)
+        self.file = open(self.file_path, "rb")
         self._file_send(self)
 
     def flush_stor(self):
         self.send_ftp(150, "file receiving")
-
-        full_path = self._get_path(self.file_name)
-        self.file = open(full_path, "wb")
+        self.file = open(self.file_path, "wb")
 
     def on_flush_list(self, connection):
         self._data_close()
@@ -258,9 +262,14 @@ class FTPConnection(netius.Connection):
 
         # retrieves the reference to the method that is going to be called
         # for the handling of the current line from the current instance and
-        # then calls it with the provided message
+        # then calls it with the provided message, note that a path that is
+        # refused is reported back as a failed command instead of being
+        # raised, as dropping the connection for it would be too much
         method = getattr(self, method_n)
-        method(message)
+        try:
+            method(message)
+        except netius.SecurityError:
+            self.not_ok()
 
     def on_user(self, message):
         self.username = message
@@ -387,13 +396,18 @@ class FTPConnection(netius.Connection):
         self.data_server.flush_ftp()
 
     def on_retr(self, message):
+        # resolves the path of the file at the command itself, so that a
+        # path that is refused is answered as a failed command before the
+        # transfer is announced, note that the flushing of the transfer may
+        # only run once the data connection is accepted, at which point the
+        # refusal would have no command left to be reported against
+        self.file_path = self._get_path(extra=message)
         self.remaining = "retr"
-        self.file_name = message
         self.data_server.flush_ftp()
 
     def on_stor(self, message):
+        self.file_path = self._get_path(extra=message)
         self.remaining = "stor"
-        self.file_name = message
         self.data_server.flush_ftp()
 
     def _file_send(self, connection):
@@ -497,8 +511,8 @@ class FTPConnection(netius.Connection):
         # verifies if the resolved path starts with the contents of the
         # base path in case it does not it's a security issue and a proper
         # exception must be raised indicating the issue
-        is_sub = relative_path == self.base_path or relative_path.startswith(
-            os.path.join(self.base_path, "")
+        is_sub = netius.common.is_sub_path(
+            self.base_path, relative_path, follow_links=self.follow_links
         )
         if not is_sub:
             raise netius.SecurityError("Invalid path")
@@ -559,10 +573,13 @@ class FTPServer(netius.ContainerServer):
     :see: http://tools.ietf.org/html/rfc959
     """
 
-    def __init__(self, base_path="", auth_s="dummy", *args, **kwargs):
+    def __init__(
+        self, base_path="", auth_s="dummy", follow_links=False, *args, **kwargs
+    ):
         netius.ContainerServer.__init__(self, *args, **kwargs)
         self.base_path = base_path
         self.auth_s = auth_s
+        self.follow_links = follow_links
 
     def serve(self, host="ftp.localhost", port=21, *args, **kwargs):
         netius.ContainerServer.serve(self, port=port, *args, **kwargs)
@@ -584,6 +601,10 @@ class FTPServer(netius.ContainerServer):
             self.host = self.get_env("FTP_HOST", self.host)
         if self.env:
             self.auth_s = self.get_env("FTP_AUTH", self.auth_s)
+        if self.env:
+            self.follow_links = self.get_env(
+                "FOLLOW_LINKS", self.follow_links, cast=bool
+            )
         self.auth = self.get_auth(self.auth_s)
         self.info(
             "Starting FTP server on '%s' using '%s' ..." % (self.host, self.auth_s)
@@ -600,6 +621,7 @@ class FTPServer(netius.ContainerServer):
             ssl=ssl,
             base_path=self.base_path,
             host=self.host,
+            follow_links=self.follow_links,
         )
 
     def on_line_ftp(self, connection, code, message):

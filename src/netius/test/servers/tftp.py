@@ -246,6 +246,54 @@ class TFTPSessionTest(unittest.TestCase):
         finally:
             shutil.rmtree(os.path.join(parent, sibling))
 
+    def test__get_file_link(self):
+        outside = tempfile.mkdtemp()
+        session = None
+
+        try:
+            secret = os.path.join(outside, "secret.txt")
+            file = open(secret, "wb")
+            try:
+                file.write(b"secret")
+            finally:
+                file.close()
+            self._link(secret, os.path.join(self.base, "link.txt"))
+
+            session = self._make_session("link.txt")
+            # a link that sits under the root but points out of it is a way
+            # around the containment, so the target of it is what counts
+            self.assertRaises(netius.SecurityError, session._get_file)
+
+            # the operator may have published through the link on purpose, in
+            # which case the service is told to follow it
+            self.server.follow_links = True
+            self.assertEqual(session._get_file().read(), b"secret")
+        finally:
+            self.server.follow_links = False
+            if session:
+                session.close()
+            shutil.rmtree(outside)
+
+    def test__get_file_link_inside(self):
+        self._store("file.txt", b"contents")
+        self._link(
+            os.path.join(self.base, "file.txt"), os.path.join(self.base, "link.txt")
+        )
+
+        session = self._make_session("link.txt")
+
+        # a link whose target stays under the root leads nowhere it should not,
+        # so it is served as the file that it names
+        self.assertEqual(session._get_file().read(), b"contents")
+
+    def _link(self, source, target):
+        # the creation of a link is reserved to a privileged user under
+        # some systems, in which case the case has nothing to run
+        try:
+            os.symlink(source, target)
+        except (AttributeError, NotImplementedError, OSError):
+            self.skipTest("Skipping test: symbolic links unavailable")
+
     def _make_session(self, name):
         # builds a session of the service and keeps it, so that the file it
         # reads is released once the case is over
@@ -455,16 +503,25 @@ class TFTPServerTest(unittest.TestCase):
         self.assertEqual(struct.unpack("!H", data[:2])[0], netius.common.ERROR_TFTP)
 
     def test_on_serve(self):
+        values = dict(BASE_PATH="/other", FOLLOW_LINKS=True)
+
         with mock.patch.object(
-            self.server, "get_env", return_value="/other"
+            self.server,
+            "get_env",
+            side_effect=lambda name, default, **kwargs: values.get(name, default),
         ) as get_env:
             self.server.env = True
             self.server.on_serve()
 
-        # with an environment to read from, the root of the file service is
-        # the one that it names
-        self.assertEqual(get_env.call_args[0][0], "BASE_PATH")
+        # with an environment to read from, both the root of the file service
+        # and whether a link is followed out of it are the ones that it names
+        names = [call[0][0] for call in get_env.call_args_list]
+        self.assertEqual("BASE_PATH" in names, True)
+        self.assertEqual("FOLLOW_LINKS" in names, True)
         self.assertEqual(self.server.base_path, "/other")
+        self.assertEqual(self.server.follow_links, True)
+
+        self.server.follow_links = False
 
         self.server.env = False
         self.server.base_path = self.base

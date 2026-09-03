@@ -55,6 +55,7 @@ class FTPConnectionTest(unittest.TestCase):
         self.connection.owner = self.server
         self.connection.cwd = "/"
         self.connection.mode = "ascii"
+        self.connection.follow_links = False
         self.sent = []
         self.connection.send_ftp = lambda code, message="", **kwargs: self.sent.append(
             (code, message)
@@ -140,6 +141,7 @@ class FTPConnectionPathTest(unittest.TestCase):
         self.connection.base_path = os.path.abspath(self.base)
         self.connection.cwd = "/"
         self.connection.mode = "ascii"
+        self.connection.follow_links = False
         self.connection.data_server = None
         self.connection.remaining = None
         self.sent = []
@@ -229,6 +231,34 @@ class FTPConnectionPathTest(unittest.TestCase):
             self.assertEqual(file.read(), b"contents")
         finally:
             file.close()
+
+    def test_on_line_refused(self):
+        self.connection.on_line("CWD", "..")
+
+        # a path that walks out of the root is a command that failed rather
+        # than a reason to drop the connection of the peer, which is what an
+        # ordinary client asks for when it walks up from the root
+        self.assertEqual(self.sent[-1], (500, "not ok"))
+        self.assertEqual(self.connection.cwd, "/")
+
+    def test_on_line_refused_retr(self):
+        self.connection.data_server = mock.MagicMock()
+
+        self.connection.on_line("RETR", "../secret.txt")
+
+        # a transfer whose path walks out of the root is refused at the
+        # command itself, before it is announced and before anything is left
+        # over for the data connection, which may only be accepted later on
+        # and would then have no command left to report the refusal against
+        self.assertEqual(self.sent, [(500, "not ok")])
+        self.assertEqual(self.connection.remaining, None)
+        self.assertEqual(self.connection.data_server.flush_ftp.called, False)
+
+        self.connection.on_line("STOR", "../secret.txt")
+
+        self.assertEqual(self.sent[-1], (500, "not ok"))
+        self.assertEqual(self.connection.remaining, None)
+        self.assertEqual(self.connection.data_server.flush_ftp.called, False)
 
     def test_on_syst(self):
         self.connection.on_syst("")
@@ -403,18 +433,42 @@ class FTPConnectionPathTest(unittest.TestCase):
 
         self.connection.on_retr("file.txt")
 
-        # the same holds for a file that is read, the name of it being kept
-        # for the flushing that follows
+        # the same holds for a file that is read, the path of it being
+        # resolved at the command and kept for the flushing that follows
         self.assertEqual(self.connection.remaining, "retr")
-        self.assertEqual(self.connection.file_name, "file.txt")
+        self.assertEqual(
+            self.connection.file_path,
+            os.path.join(self.connection.base_path, "file.txt"),
+        )
 
         self.connection.on_stor("other.txt")
 
         self.assertEqual(self.connection.remaining, "stor")
-        self.assertEqual(self.connection.file_name, "other.txt")
+        self.assertEqual(
+            self.connection.file_path,
+            os.path.join(self.connection.base_path, "other.txt"),
+        )
+
+    def test_flush_retr(self):
+        self._store("file.txt", b"contents")
+        self.connection.data_server = mock.MagicMock()
+        self.connection.file_path = os.path.join(self.base, "file.txt")
+
+        self.connection.flush_retr()
+        try:
+            # the file whose path was resolved at the command is the one that
+            # is opened and sent over the data connection, the peer being told
+            # that the transfer starts
+            self.assertEqual(self.sent[-1][0], 150)
+            self.assertEqual(self.connection.file.closed, False)
+            self.assertEqual(
+                self.connection.data_server.send_ftp.call_args[0][0], b"contents"
+            )
+        finally:
+            self.connection.file.close()
 
     def test_flush_stor(self):
-        self.connection.file_name = "file.txt"
+        self.connection.file_path = os.path.join(self.base, "file.txt")
 
         self.connection.flush_stor()
         try:
@@ -503,6 +557,56 @@ class FTPConnectionPathTest(unittest.TestCase):
             )
         finally:
             shutil.rmtree(os.path.join(parent, sibling))
+
+    def test__get_path_link(self):
+        outside = tempfile.mkdtemp()
+
+        try:
+            secret = os.path.join(outside, "secret.txt")
+            file = open(secret, "wb")
+            try:
+                file.write(b"secret")
+            finally:
+                file.close()
+            self._link(secret, os.path.join(self.base, "link.txt"))
+
+            # a link that sits under the root but points out of it is a way
+            # around the containment, so the target of it is what counts
+            self.assertRaises(
+                netius.SecurityError, self.connection._get_path, "link.txt"
+            )
+
+            # the operator may have published through the link on purpose, in
+            # which case the service is told to follow it
+            self.connection.follow_links = True
+            self.assertEqual(
+                self.connection._get_path("link.txt"),
+                os.path.join(self.connection.base_path, "link.txt"),
+            )
+        finally:
+            self.connection.follow_links = False
+            shutil.rmtree(outside)
+
+    def test__get_path_link_inside(self):
+        self._store("file.txt", b"contents")
+        self._link(
+            os.path.join(self.base, "file.txt"), os.path.join(self.base, "link.txt")
+        )
+
+        # a link whose target stays under the root leads nowhere it should not,
+        # so it resolves as the file that it names
+        self.assertEqual(
+            self.connection._get_path("link.txt"),
+            os.path.join(self.connection.base_path, "link.txt"),
+        )
+
+    def _link(self, source, target):
+        # the creation of a link is reserved to a privileged user under
+        # some systems, in which case the case has nothing to run
+        try:
+            os.symlink(source, target)
+        except (AttributeError, NotImplementedError, OSError):
+            self.skipTest("Skipping test: symbolic links unavailable")
 
     def _store(self, name, contents):
         path = os.path.join(self.base, name)

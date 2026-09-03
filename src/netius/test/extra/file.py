@@ -79,6 +79,7 @@ class FileServerTest(unittest.TestCase):
             self.assertEqual(server.list_engine, "base")
             self.assertEqual(server.cors, False)
             self.assertEqual(server.cache, 0)
+            self.assertEqual(server.follow_links, False)
         finally:
             server.cleanup()
 
@@ -92,6 +93,7 @@ class FileServerTest(unittest.TestCase):
             list_engine="apache",
             cors=True,
             cache=60,
+            follow_links=True,
         )
 
         try:
@@ -103,6 +105,7 @@ class FileServerTest(unittest.TestCase):
             self.assertEqual(server.list_engine, "apache")
             self.assertEqual(server.cors, True)
             self.assertEqual(server.cache, 60)
+            self.assertEqual(server.follow_links, True)
         finally:
             server.cleanup()
 
@@ -359,6 +362,7 @@ class FileServerTest(unittest.TestCase):
             LIST_ENGINE="apache",
             CORS=True,
             CACHE=60,
+            FOLLOW_LINKS=True,
         )
 
         try:
@@ -376,6 +380,7 @@ class FileServerTest(unittest.TestCase):
             self.assertEqual(server.list_engine, "apache")
             self.assertEqual(server.cors, True)
             self.assertEqual(server.cache, 60)
+            self.assertEqual(server.follow_links, True)
         finally:
             server.cleanup()
 
@@ -445,6 +450,78 @@ class FileServerTest(unittest.TestCase):
         # a path that climbs out of the base path may never be served, the
         # security error is reported as an internal server error instead
         self.assertEqual(connection.send_response.call_args[1]["code"], 500)
+
+    def test_on_data_http_sibling(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        parent = os.path.dirname(self.base_path)
+        sibling = os.path.basename(self.base_path) + "-backup"
+        os.mkdir(os.path.join(parent, sibling))
+        self._write(os.path.join(parent, sibling, "secret.txt"), b"secret")
+
+        connection = self._make_connection()
+
+        try:
+            self.server.on_data_http(
+                connection, self._make_parser("/../%s/secret.txt" % sibling)
+            )
+
+            # a directory whose name only starts like the base path is not
+            # under it, so reaching into it may never be served either
+            self.assertEqual(connection.send_response.call_args[1]["code"], 500)
+        finally:
+            shutil.rmtree(os.path.join(parent, sibling))
+
+    def test_on_data_http_link(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        outside = tempfile.mkdtemp()
+
+        try:
+            self._write(os.path.join(outside, "secret.txt"), b"secret")
+            self._link(
+                os.path.join(outside, "secret.txt"),
+                os.path.join(self.base_path, "link.txt"),
+            )
+
+            connection = self._make_connection()
+
+            self.server.on_data_http(connection, self._make_parser("/link.txt"))
+
+            # a link that sits under the base path but points out of it is a
+            # way around the containment, so the target of it is what counts
+            self.assertEqual(connection.send_response.call_args[1]["code"], 500)
+
+            # the operator may have published through the link on purpose, in
+            # which case the server is told to follow it
+            self.server.follow_links = True
+            connection = self._make_connection()
+            self.server.on_data_http(connection, self._make_parser("/link.txt"))
+
+            self.assertEqual(connection.send_response.call_args[1]["code"], 200)
+        finally:
+            self.server.follow_links = False
+            self._close_files()
+            shutil.rmtree(outside)
+
+    def test_on_data_http_link_inside(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self._link(self.hello_path, os.path.join(self.base_path, "link.txt"))
+
+        connection = self._make_connection()
+
+        self.server.on_data_http(connection, self._make_parser("/link.txt"))
+
+        # a link whose target stays under the base path leads nowhere it
+        # should not, so it is served as the file that it names
+        self.assertEqual(connection.send_response.call_args[1]["code"], 200)
+        self.assertEqual(
+            connection.send_response.call_args[1]["headers"]["content-length"], "11"
+        )
 
     def test_on_data_http_queue(self):
         if mock == None:
@@ -523,6 +600,62 @@ class FileServerTest(unittest.TestCase):
         self.assertEqual(connection.send_response.call_args[1]["code"], 200)
         self.assertEqual(
             connection.send_response.call_args[1]["headers"]["content-length"], "12"
+        )
+
+    def test_on_dir_file_index_link(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        outside = tempfile.mkdtemp()
+
+        try:
+            self._write(os.path.join(outside, "secret.html"), b"<p>secret</p>")
+            self._link(
+                os.path.join(outside, "secret.html"),
+                os.path.join(self.base_path, "sub", "index.html"),
+            )
+            self.server.index_files = ["index.html"]
+
+            connection = self._make_connection()
+
+            self.server.on_data_http(connection, self._make_parser("/sub/"))
+
+            # the index file is the one that is opened, so one that is a link
+            # out of the base path is refused as the directory itself would be
+            self.assertEqual(connection.send_response.call_args[1]["code"], 500)
+
+            # the operator may have published through the link on purpose, in
+            # which case the server is told to follow it
+            self.server.follow_links = True
+            connection = self._make_connection()
+            self.server.on_data_http(connection, self._make_parser("/sub/"))
+
+            self.assertEqual(connection.send_response.call_args[1]["code"], 200)
+            self.assertEqual(
+                connection.send_response.call_args[1]["headers"]["content-length"],
+                "13",
+            )
+        finally:
+            self.server.follow_links = False
+            self._close_files()
+            shutil.rmtree(outside)
+
+    def test_on_dir_file_index_link_inside(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self._link(self.hello_path, os.path.join(self.base_path, "sub", "index.html"))
+        self.server.index_files = ["index.html"]
+
+        connection = self._make_connection()
+
+        self.server.on_data_http(connection, self._make_parser("/sub/"))
+
+        # an index file that links to a file under the base path leads nowhere
+        # it should not, so it is served as the file that it names
+        self.assertEqual(connection.send_response.call_args[1]["code"], 200)
+        self.assertEqual(
+            connection.send_response.call_args[1]["headers"]["content-length"], "11"
         )
 
     def test_on_dir_file_no_list(self):
@@ -867,6 +1000,41 @@ class FileServerTest(unittest.TestCase):
             self.server._resolve_regex("assets/logo.png"), ("assets/logo.png", False)
         )
 
+    def test_is_sub(self):
+        # the base path itself and anything under it are contained, while
+        # the parent and a sibling whose name only starts like it are not
+        self.assertEqual(self.server._is_sub(self.server.base_path), True)
+        self.assertEqual(self.server._is_sub(self.hello_path), True)
+        self.assertEqual(
+            self.server._is_sub(os.path.dirname(self.server.base_path)), False
+        )
+        self.assertEqual(self.server._is_sub(self.server.base_path + "-backup"), False)
+
+    def test_is_sub_link(self):
+        outside = tempfile.mkdtemp()
+
+        try:
+            self._write(os.path.join(outside, "secret.txt"), b"secret")
+            self._link(
+                os.path.join(outside, "secret.txt"),
+                os.path.join(self.base_path, "link.txt"),
+            )
+
+            # a link is judged by the target of it, unless the server is told
+            # to follow it, in which case the name under the base path is enough
+            self.assertEqual(
+                self.server._is_sub(os.path.join(self.base_path, "link.txt")), False
+            )
+
+            self.server.follow_links = True
+
+            self.assertEqual(
+                self.server._is_sub(os.path.join(self.base_path, "link.txt")), True
+            )
+        finally:
+            self.server.follow_links = False
+            shutil.rmtree(outside)
+
     def _make_items(self):
         return [
             dict(
@@ -898,6 +1066,14 @@ class FileServerTest(unittest.TestCase):
                 type="application/octet-stream",
             ),
         ]
+
+    def _link(self, source, target):
+        # the creation of a link is reserved to a privileged user under
+        # some systems, in which case the case has nothing to run
+        try:
+            os.symlink(source, target)
+        except (AttributeError, NotImplementedError, OSError):
+            self.skipTest("Skipping test: symbolic links unavailable")
 
     def _make_connection(self):
         connection = mock.MagicMock()

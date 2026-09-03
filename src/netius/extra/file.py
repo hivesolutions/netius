@@ -88,6 +88,7 @@ class FileServer(netius.servers.HTTP2Server):
         list_engine="base",
         cors=False,
         cache=0,
+        follow_links=False,
         *args,
         **kwargs
     ):
@@ -100,6 +101,7 @@ class FileServer(netius.servers.HTTP2Server):
         self.list_engine = list_engine
         self.cors = cors
         self.cache = cache
+        self.follow_links = follow_links
 
     @classmethod
     def _sorter_build(cls, name=None):
@@ -497,6 +499,10 @@ class FileServer(netius.servers.HTTP2Server):
             self.cors = self.get_env("CORS", self.cors, cast=bool)
         if self.env:
             self.cache = self.get_env("CACHE", self.cache, cast=int)
+        if self.env:
+            self.follow_links = self.get_env(
+                "FOLLOW_LINKS", self.follow_links, cast=bool
+            )
         self._build_regex()
         self.base_path = os.path.abspath(self.base_path)
         self.cache_d = datetime.timedelta(seconds=self.cache)
@@ -547,7 +553,7 @@ class FileServer(netius.servers.HTTP2Server):
             # verifies if the provided path starts with the contents of the
             # base path in case it does not it's a security issue and a proper
             # exception must be raised indicating the issue
-            is_sub = path_f.startswith(self.base_path)
+            is_sub = self._is_sub(path_f)
             if not is_sub:
                 raise netius.SecurityError("Invalid path")
 
@@ -595,6 +601,13 @@ class FileServer(netius.servers.HTTP2Server):
             index_path = os.path.join(path, index_file)
             if not os.path.exists(index_path):
                 continue
+
+            # verifies that the index file is itself under the base path, as
+            # it's the one that is going to be opened and it may be a link
+            # whose target lies outside of it (security issue)
+            is_sub = self._is_sub(index_path)
+            if not is_sub:
+                raise netius.SecurityError("Invalid path")
             return self.on_normal_file(connection, parser, index_path)
 
         if not self.list_dirs:
@@ -836,6 +849,11 @@ class FileServer(netius.servers.HTTP2Server):
                 continue
             return (value, True)
         return (path, False)
+
+    def _is_sub(self, path):
+        return netius.common.is_sub_path(
+            self.base_path, path, follow_links=self.follow_links
+        )
 
 
 if __name__ == "__main__":

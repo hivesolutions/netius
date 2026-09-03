@@ -38,6 +38,7 @@ __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
 import os
+import stat
 import math
 import socket
 import collections
@@ -65,6 +66,11 @@ DEFAULT_PLACES = 3
 """ The default number of places (digits) that are going
 to be used for the string representation in the round
 based conversion of size units to be performed """
+
+FILE_ATTRIBUTE_REPARSE_POINT = 0x400
+""" The attribute that marks a file as a reparse point under
+Windows, the kind of a junction, which the mode of the file does
+not report as a link and yet leads somewhere else in the system """
 
 _HOST = None
 """ The globally cached value for the current hostname,
@@ -295,6 +301,64 @@ def hostname():
     """
 
     return socket.gethostname()
+
+
+def is_sub_path(base_path, path, follow_links=False):
+    """
+    Verifies if the provided path is contained by the base path,
+    meaning that it's either the base path itself or that it sits
+    below it, both of the paths are expected to be absolute and
+    normalized (no relative components).
+
+    Unless links are meant to be followed a link that sits below
+    the base path is resolved, so that one whose target lies outside
+    of it is not taken as contained, what sits above the base path
+    is never resolved as it's the same for both of the paths.
+
+    :type base_path: String
+    :param base_path: The path of the root that is expected to
+    contain the path that is going to be verified.
+    :type path: String
+    :param path: The path that is going to be verified for the
+    containment under the base path.
+    :type follow_links: bool
+    :param follow_links: If a link that sits below the base path
+    should be taken by its name rather than by its target.
+    :rtype: bool
+    :return: If the path is contained by the base path.
+    """
+
+    is_sub = path == base_path or path.startswith(os.path.join(base_path, ""))
+    if not is_sub or follow_links:
+        return is_sub
+
+    # walks the components of the path that sit below the base path
+    # looking for a link, in case none is found the path leads to the
+    # same place as the one it names and nothing else is to be verified,
+    # note that a component that is not there (or cannot be read) has
+    # nothing left to be resolved and so the walk ends at it
+    current = base_path
+    for name in path[len(base_path) :].split(os.sep):
+        if not name:
+            continue
+        current = os.path.join(current, name)
+        try:
+            mode = os.lstat(current)
+        except OSError:
+            return True
+        attributes = getattr(mode, "st_file_attributes", 0)
+        is_link = stat.S_ISLNK(mode.st_mode)
+        is_link |= bool(attributes & FILE_ATTRIBUTE_REPARSE_POINT)
+        if is_link:
+            break
+    else:
+        return True
+
+    # a link was found below the base path, so both of the paths are
+    # resolved and the containment is verified against their targets
+    base_path_r = os.path.realpath(base_path)
+    path_r = os.path.realpath(path)
+    return path_r == base_path_r or path_r.startswith(os.path.join(base_path_r, ""))
 
 
 def size_round_unit(
