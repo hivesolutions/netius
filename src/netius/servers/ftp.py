@@ -221,16 +221,13 @@ class FTPConnection(netius.Connection):
 
     def flush_retr(self):
         self.send_ftp(150, "file sending")
-        full_path = self._get_path(self.file_name)
-        self.bytes_p = os.path.getsize(full_path)
-        self.file = open(full_path, "rb")
+        self.bytes_p = os.path.getsize(self.file_path)
+        self.file = open(self.file_path, "rb")
         self._file_send(self)
 
     def flush_stor(self):
         self.send_ftp(150, "file receiving")
-
-        full_path = self._get_path(self.file_name)
-        self.file = open(full_path, "wb")
+        self.file = open(self.file_path, "wb")
 
     def on_flush_list(self, connection):
         self._data_close()
@@ -399,13 +396,18 @@ class FTPConnection(netius.Connection):
         self.data_server.flush_ftp()
 
     def on_retr(self, message):
+        # resolves the path of the file at the command itself, so that a
+        # path that is refused is answered as a failed command before the
+        # transfer is announced, note that the flushing of the transfer may
+        # only run once the data connection is accepted, at which point the
+        # refusal would have no command left to be reported against
+        self.file_path = self._get_path(extra=message)
         self.remaining = "retr"
-        self.file_name = message
         self.data_server.flush_ftp()
 
     def on_stor(self, message):
+        self.file_path = self._get_path(extra=message)
         self.remaining = "stor"
-        self.file_name = message
         self.data_server.flush_ftp()
 
     def _file_send(self, connection):
