@@ -500,7 +500,7 @@ class FileServerTest(unittest.TestCase):
             connection = self._make_connection()
             self.server.on_data_http(connection, self._make_parser("/link.txt"))
 
-            self.assertNotEqual(connection.send_response.call_args[1]["code"], 500)
+            self.assertEqual(connection.send_response.call_args[1]["code"], 200)
         finally:
             self.server.follow_links = False
             self._close_files()
@@ -518,7 +518,10 @@ class FileServerTest(unittest.TestCase):
 
         # a link whose target stays under the base path leads nowhere it
         # should not, so it is served as the file that it names
-        self.assertNotEqual(connection.send_response.call_args[1]["code"], 500)
+        self.assertEqual(connection.send_response.call_args[1]["code"], 200)
+        self.assertEqual(
+            connection.send_response.call_args[1]["headers"]["content-length"], "11"
+        )
 
     def test_on_data_http_queue(self):
         if mock == None:
@@ -597,6 +600,62 @@ class FileServerTest(unittest.TestCase):
         self.assertEqual(connection.send_response.call_args[1]["code"], 200)
         self.assertEqual(
             connection.send_response.call_args[1]["headers"]["content-length"], "12"
+        )
+
+    def test_on_dir_file_index_link(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        outside = tempfile.mkdtemp()
+
+        try:
+            self._write(os.path.join(outside, "secret.html"), b"<p>secret</p>")
+            self._link(
+                os.path.join(outside, "secret.html"),
+                os.path.join(self.base_path, "sub", "index.html"),
+            )
+            self.server.index_files = ["index.html"]
+
+            connection = self._make_connection()
+
+            self.server.on_data_http(connection, self._make_parser("/sub/"))
+
+            # the index file is the one that is opened, so one that is a link
+            # out of the base path is refused as the directory itself would be
+            self.assertEqual(connection.send_response.call_args[1]["code"], 500)
+
+            # the operator may have published through the link on purpose, in
+            # which case the server is told to follow it
+            self.server.follow_links = True
+            connection = self._make_connection()
+            self.server.on_data_http(connection, self._make_parser("/sub/"))
+
+            self.assertEqual(connection.send_response.call_args[1]["code"], 200)
+            self.assertEqual(
+                connection.send_response.call_args[1]["headers"]["content-length"],
+                "13",
+            )
+        finally:
+            self.server.follow_links = False
+            self._close_files()
+            shutil.rmtree(outside)
+
+    def test_on_dir_file_index_link_inside(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self._link(self.hello_path, os.path.join(self.base_path, "sub", "index.html"))
+        self.server.index_files = ["index.html"]
+
+        connection = self._make_connection()
+
+        self.server.on_data_http(connection, self._make_parser("/sub/"))
+
+        # an index file that links to a file under the base path leads nowhere
+        # it should not, so it is served as the file that it names
+        self.assertEqual(connection.send_response.call_args[1]["code"], 200)
+        self.assertEqual(
+            connection.send_response.call_args[1]["headers"]["content-length"], "11"
         )
 
     def test_on_dir_file_no_list(self):
@@ -940,6 +999,41 @@ class FileServerTest(unittest.TestCase):
         self.assertEqual(
             self.server._resolve_regex("assets/logo.png"), ("assets/logo.png", False)
         )
+
+    def test_is_sub(self):
+        # the base path itself and anything under it are contained, while
+        # the parent and a sibling whose name only starts like it are not
+        self.assertEqual(self.server._is_sub(self.server.base_path), True)
+        self.assertEqual(self.server._is_sub(self.hello_path), True)
+        self.assertEqual(
+            self.server._is_sub(os.path.dirname(self.server.base_path)), False
+        )
+        self.assertEqual(self.server._is_sub(self.server.base_path + "-backup"), False)
+
+    def test_is_sub_link(self):
+        outside = tempfile.mkdtemp()
+
+        try:
+            self._write(os.path.join(outside, "secret.txt"), b"secret")
+            self._link(
+                os.path.join(outside, "secret.txt"),
+                os.path.join(self.base_path, "link.txt"),
+            )
+
+            # a link is judged by the target of it, unless the server is told
+            # to follow it, in which case the name under the base path is enough
+            self.assertEqual(
+                self.server._is_sub(os.path.join(self.base_path, "link.txt")), False
+            )
+
+            self.server.follow_links = True
+
+            self.assertEqual(
+                self.server._is_sub(os.path.join(self.base_path, "link.txt")), True
+            )
+        finally:
+            self.server.follow_links = False
+            shutil.rmtree(outside)
 
     def _make_items(self):
         return [

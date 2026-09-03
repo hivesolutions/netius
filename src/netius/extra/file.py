@@ -553,14 +553,7 @@ class FileServer(netius.servers.HTTP2Server):
             # verifies if the provided path starts with the contents of the
             # base path in case it does not it's a security issue and a proper
             # exception must be raised indicating the issue
-            base_path_r = self.base_path
-            path_r = path_f
-            if not self.follow_links:
-                base_path_r = os.path.realpath(base_path_r)
-                path_r = os.path.realpath(path_f)
-            is_sub = path_r == base_path_r or path_r.startswith(
-                os.path.join(base_path_r, "")
-            )
+            is_sub = self._is_sub(path_f)
             if not is_sub:
                 raise netius.SecurityError("Invalid path")
 
@@ -608,6 +601,13 @@ class FileServer(netius.servers.HTTP2Server):
             index_path = os.path.join(path, index_file)
             if not os.path.exists(index_path):
                 continue
+
+            # verifies that the index file is itself under the base path, as
+            # it's the one that is going to be opened and it may be a link
+            # whose target lies outside of it (security issue)
+            is_sub = self._is_sub(index_path)
+            if not is_sub:
+                raise netius.SecurityError("Invalid path")
             return self.on_normal_file(connection, parser, index_path)
 
         if not self.list_dirs:
@@ -849,6 +849,17 @@ class FileServer(netius.servers.HTTP2Server):
                 continue
             return (value, True)
         return (path, False)
+
+    def _is_sub(self, path):
+        # resolves both the base path and the provided path, unless a link
+        # is meant to be followed, so that a link under the base path whose
+        # target lies outside of it is not taken as being under it, note that
+        # the base path is also resolved as it may be reached through a link
+        base_path = self.base_path
+        if not self.follow_links:
+            base_path = os.path.realpath(base_path)
+            path = os.path.realpath(path)
+        return path == base_path or path.startswith(os.path.join(base_path, ""))
 
 
 if __name__ == "__main__":
