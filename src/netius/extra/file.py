@@ -851,15 +851,9 @@ class FileServer(netius.servers.HTTP2Server):
         return (path, False)
 
     def _is_sub(self, path):
-        # resolves both the base path and the provided path, unless a link
-        # is meant to be followed, so that a link under the base path whose
-        # target lies outside of it is not taken as being under it, note that
-        # the base path is also resolved as it may be reached through a link
-        base_path = self.base_path
-        if not self.follow_links:
-            base_path = os.path.realpath(base_path)
-            path = os.path.realpath(path)
-        return path == base_path or path.startswith(os.path.join(base_path, ""))
+        return netius.common.is_sub_path(
+            self.base_path, path, follow_links=self.follow_links
+        )
 
 
 if __name__ == "__main__":

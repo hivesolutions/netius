@@ -511,13 +511,8 @@ class FTPConnection(netius.Connection):
         # verifies if the resolved path starts with the contents of the
         # base path in case it does not it's a security issue and a proper
         # exception must be raised indicating the issue
-        base_path_r = self.base_path
-        relative_path_r = relative_path
-        if not self.follow_links:
-            base_path_r = os.path.realpath(base_path_r)
-            relative_path_r = os.path.realpath(relative_path)
-        is_sub = relative_path_r == base_path_r or relative_path_r.startswith(
-            os.path.join(base_path_r, "")
+        is_sub = netius.common.is_sub_path(
+            self.base_path, relative_path, follow_links=self.follow_links
         )
         if not is_sub:
             raise netius.SecurityError("Invalid path")

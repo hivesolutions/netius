@@ -200,6 +200,7 @@ from .util import (
     random_integer,
     host,
     hostname,
+    is_sub_path,
     size_round_unit,
     verify,
     verify_equal,
