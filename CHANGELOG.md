@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.64.0] - 2026-09-13
+
+### Added
+
 * Support for trusting the forwarding headers of the proxies that sit in a given network, such as the client address
 
 ### Changed
