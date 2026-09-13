@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* Support for trusting the forwarding headers of the proxies that sit in a given network, such as the client address
 
 ### Changed
 
@@ -18,7 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * A configuration file is now read under Python 3.5, instead of failing on it
+* A forwarding header that is repeated or empty no longer breaks the client address passed on by the reverse proxy
 * A header that is set by its position now replaces the one that is there
+* A network written with the address of an interface in it now matches every address of the network
 * A string that carries no null byte is now given back whole instead of raising
 * A TFTP file that is served under an absolute name no longer fails to open
 * A TFTP peer can no longer reach a file outside the root that is served

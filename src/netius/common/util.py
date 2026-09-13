@@ -137,7 +137,7 @@ def in_subnet_ip4(address, subnet):
     subnet, length = subnet.split("/", 1)
     size_i = 32 - int(length)
     address_a = ip4_to_addr(address)
-    subnet_a = ip4_to_addr(subnet)
+    subnet_a = ip4_to_addr(subnet) >> size_i << size_i
     limit_a = subnet_a + pow(2, size_i)
     in_subnet = (address_a & subnet_a) == subnet_a
     in_subnet &= address_a < limit_a

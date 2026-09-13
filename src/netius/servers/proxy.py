@@ -68,6 +68,12 @@ means of the CONNECT method, restricting the usage of the proxy as a
 relay towards an arbitrary service, set it to an empty sequence so
 that the restriction is removed (not recommended) """
 
+TRUST_NETWORKS = ()
+""" The sequence of addresses and networks (in CIDR notation) of the
+peers that are considered trustable, meaning that the forwarding
+information they provide (eg: X-Real-IP) is taken as reliable, this
+is meant for the other proxies that sit in front of this one """
+
 PORT_REGEX = re.compile(r"^[0-9]+$")
 """ Regular expression to be used in the validation of the port of the
 target of a tunnel, only the ASCII digits are considered valid ones as
@@ -197,6 +203,7 @@ class ProxyServer(http2.HTTP2Server):
         dynamic=True,
         throttle=True,
         trust_origin=False,
+        trust_networks=TRUST_NETWORKS,
         max_pending=MAX_PENDING,
         compress_forward_accept=False,
         compress_buffer=True,
@@ -215,6 +222,7 @@ class ProxyServer(http2.HTTP2Server):
         self.dynamic = dynamic
         self.throttle = throttle
         self.trust_origin = trust_origin
+        self.trust_networks = trust_networks
         self.max_pending = max_pending
         self.min_pending = int(max_pending * MIN_RATIO)
         self.compress_forward_accept = compress_forward_accept
@@ -452,6 +460,35 @@ class ProxyServer(http2.HTTP2Server):
         tokens = [value.strip() for value in connection.lower().split(",")]
         return "upgrade" in tokens and upgrade.lower() == "websocket"
 
+    def is_trusted(self, connection):
+        """
+        Determines if the peer of the provided connection is trustable,
+        meaning that the forwarding information it provides (eg: the
+        X-Real-IP and X-Forwarded-For headers) may be taken as reliable.
+
+        A peer is trustable when every origin is trusted or when its
+        address is one of the trusted networks, note that under the
+        PROXY protocol the address is the one reported by the front-end.
+
+        :type connection: Connection
+        :param connection: The connection (or stream) whose peer is going
+        to be verified for trust.
+        :rtype: bool
+        :return: If the peer of the connection is considered trustable.
+        """
+
+        if self.trust_origin:
+            return True
+        if not self.trust_networks:
+            return False
+
+        # only an IPv4 address is able to be matched against the trusted
+        # networks, any other address (eg: IPv6) is never trusted
+        address = connection.address[0]
+        if not netius.common.is_ip4(address):
+            return False
+        return netius.common.assert_ip4(address, self.trust_networks, default=False)
+
     def on_data(self, connection, data):
         netius.StreamServer.on_data(self, connection, data)
 
@@ -546,8 +583,17 @@ class ProxyServer(http2.HTTP2Server):
                 "CONNECT_PORTS", self.connect_ports, cast=list
             )
         self.connect_ports = tuple(int(port) for port in self.connect_ports)
+        if self.env:
+            self.trust_networks = self.get_env(
+                "TRUST_NETWORKS", self.trust_networks, cast=list
+            )
         if self.trust_origin:
             self.info('Origin is considered "trustable" by proxy')
+        elif self.trust_networks:
+            self.info(
+                'Networks %s are considered "trustable" by proxy',
+                ", ".join(self.trust_networks),
+            )
 
     def on_data_http(self, connection, parser):
         http2.HTTP2Server.on_data_http(self, connection, parser)

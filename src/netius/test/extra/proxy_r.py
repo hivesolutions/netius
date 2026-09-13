@@ -787,6 +787,9 @@ class ReverseProxyServerTest(unittest.TestCase):
     def test_trust_origin_config(self):
         self.assertFalse(self.server.trust_origin)
 
+    def test_trust_networks_config(self):
+        self.assertEqual(self.server.trust_networks, ())
+
     def test_http_client_event_relay(self):
         events_received = []
         client = self.server.http_client
@@ -1415,6 +1418,140 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertEqual(captured_headers.get("x-real-ip"), "192.168.1.100")
         self.assertEqual(captured_headers.get("x-client-ip"), "192.168.1.100")
 
+    def test_x_forwarded_headers_trusted_network(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.server.trust_networks = ("172.17.0.0/16",)
+
+        frontend = self._make_frontend()
+        frontend.address = ("172.17.0.5", 54321)
+        request_parser = self._make_forwarded_parser()
+        backend = self._make_backend()
+
+        captured_headers = {}
+
+        def capture_method(method, url, **kwargs):
+            captured_headers.update(kwargs.get("headers", {}))
+            return (None, backend)
+
+        with mock.patch.object(
+            self.server.http_client, "method", side_effect=capture_method
+        ):
+            self.server.on_headers(frontend, request_parser)
+
+        # a peer from a trusted network is another proxy, so the address of
+        # the client that it reports is the one that is passed on, together
+        # with the protocol, the port and the standard forwarded header
+        self.assertEqual(captured_headers.get("x-real-ip"), "203.0.113.7")
+        self.assertEqual(captured_headers.get("x-client-ip"), "203.0.113.7")
+        self.assertEqual(captured_headers.get("x-forwarded-for"), "203.0.113.7")
+        self.assertEqual(captured_headers.get("x-forwarded-proto"), "https")
+        self.assertEqual(captured_headers.get("x-forwarded-port"), "443")
+        self.assertEqual(captured_headers.get("forwarded"), "for=203.0.113.7")
+
+    def test_x_forwarded_headers_trusted_repeated(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.server.trust_networks = ("172.17.0.0/16",)
+
+        frontend = self._make_frontend()
+        frontend.address = ("172.17.0.5", 54321)
+        request_parser = self._make_request_parser(host="host.com")
+        request_parser.headers = {
+            "host": "host.com",
+            "x-forwarded-for": ["203.0.113.7", "172.17.0.1"],
+            "x-forwarded-proto": ["http", "https"],
+            "x-forwarded-port": ["80", "443"],
+        }
+        backend = self._make_backend()
+
+        captured_headers = {}
+
+        def capture_method(method, url, **kwargs):
+            captured_headers.update(kwargs.get("headers", {}))
+            return (None, backend)
+
+        with mock.patch.object(
+            self.server.http_client, "method", side_effect=capture_method
+        ):
+            self.server.on_headers(frontend, request_parser)
+
+        # a repeated header is stored as a sequence of values by the parser,
+        # the forwarded for ones are joined (the first being the client) and
+        # for the others the last definition is the one that prevails
+        self.assertEqual(captured_headers.get("x-real-ip"), "203.0.113.7")
+        self.assertEqual(captured_headers.get("x-forwarded-for"), "203.0.113.7")
+        self.assertEqual(captured_headers.get("x-forwarded-proto"), "https")
+        self.assertEqual(captured_headers.get("x-forwarded-port"), "443")
+
+    def test_x_forwarded_headers_trusted_empty(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.server.trust_networks = ("172.17.0.0/16",)
+
+        frontend = self._make_frontend()
+        frontend.address = ("172.17.0.5", 54321)
+        request_parser = self._make_request_parser(host="host.com")
+        request_parser.headers = {
+            "host": "host.com",
+            "x-real-ip": "",
+            "x-forwarded-proto": "",
+            "x-forwarded-port": "",
+        }
+        backend = self._make_backend()
+
+        captured_headers = {}
+
+        def capture_method(method, url, **kwargs):
+            captured_headers.update(kwargs.get("headers", {}))
+            return (None, backend)
+
+        with mock.patch.object(
+            self.server.http_client, "method", side_effect=capture_method
+        ):
+            self.server.on_headers(frontend, request_parser)
+
+        # a trusted peer that provides empty forwarding information is taken
+        # as the client itself, instead of an empty client being passed on
+        self.assertEqual(captured_headers.get("x-real-ip"), "172.17.0.5")
+        self.assertEqual(captured_headers.get("x-forwarded-for"), "172.17.0.5")
+        self.assertEqual(captured_headers.get("x-forwarded-proto"), "http")
+        self.assertEqual(captured_headers.get("x-forwarded-port"), "80")
+
+    def test_x_forwarded_headers_untrusted_network(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        self.server.trust_networks = ("172.17.0.0/16",)
+
+        frontend = self._make_frontend()
+        frontend.address = ("198.51.100.20", 54321)
+        request_parser = self._make_forwarded_parser()
+        backend = self._make_backend()
+
+        captured_headers = {}
+
+        def capture_method(method, url, **kwargs):
+            captured_headers.update(kwargs.get("headers", {}))
+            return (None, backend)
+
+        with mock.patch.object(
+            self.server.http_client, "method", side_effect=capture_method
+        ):
+            self.server.on_headers(frontend, request_parser)
+
+        # a peer outside the trusted networks may be spoofing the headers,
+        # so they are replaced by what the proxy itself sees of the peer
+        self.assertEqual(captured_headers.get("x-real-ip"), "198.51.100.20")
+        self.assertEqual(captured_headers.get("x-client-ip"), "198.51.100.20")
+        self.assertEqual(captured_headers.get("x-forwarded-for"), "198.51.100.20")
+        self.assertEqual(captured_headers.get("x-forwarded-proto"), "http")
+        self.assertEqual(captured_headers.get("x-forwarded-port"), "80")
+        self.assertEqual("forwarded" in captured_headers, False)
+
     def test_accept_encoding_auto(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -1520,6 +1657,18 @@ class ReverseProxyServerTest(unittest.TestCase):
         parser.path_s = path
         parser.version_s = "HTTP/1.1"
         parser.headers = {"host": host}
+        return parser
+
+    def _make_forwarded_parser(self, host="host.com"):
+        parser = self._make_request_parser(host=host)
+        parser.headers = {
+            "host": host,
+            "x-real-ip": "203.0.113.7",
+            "x-forwarded-for": "203.0.113.7, 172.17.0.1",
+            "x-forwarded-proto": "https",
+            "x-forwarded-port": "443",
+            "forwarded": "for=203.0.113.7",
+        }
         return parser
 
     def _make_upgrade_parser(self, host="host.com", path="/socket"):
