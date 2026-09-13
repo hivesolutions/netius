@@ -12,6 +12,7 @@ BUFFER_RATIO: float
 MIN_RATIO: float
 MAX_PENDING: int
 CONNECT_PORTS: tuple[int, ...]
+TRUST_NETWORKS: tuple[str, ...]
 PORT_REGEX: Pattern[str]
 HOP_HEADERS: tuple[str, ...]
 COMPRESS_TIMEOUT: float
@@ -29,6 +30,7 @@ class ProxyServer(HTTP2Server):
     dynamic: bool
     throttle: bool
     trust_origin: bool
+    trust_networks: Sequence[str]
     max_pending: int
     min_pending: int
     compress_forward_accept: bool
@@ -45,6 +47,7 @@ class ProxyServer(HTTP2Server):
         dynamic: bool = ...,
         throttle: bool = ...,
         trust_origin: bool = ...,
+        trust_networks: Sequence[str] = ...,
         max_pending: int = ...,
         compress_forward_accept: bool = ...,
         compress_buffer: bool = ...,
@@ -73,6 +76,7 @@ class ProxyServer(HTTP2Server):
     def reason_connection(self, _connection: Connection | Protocol, reason: str): ...
     def pair_connection(self, _connection: Connection | Protocol): ...
     def is_upgrade(self, parser: HTTPParser | HTTP2Stream) -> bool: ...
+    def is_trusted(self, connection: Connection | HTTP2Stream) -> bool: ...
     def on_data(self, connection: Connection, data: bytes): ...
     def on_connection_d(self, connection: Connection): ...
     def on_stream_d(self, stream: Stream): ...

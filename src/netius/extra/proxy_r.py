@@ -221,29 +221,35 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         host = self.alias.get(host_s, host)
         host = self.alias.get(host, host)
 
+        # determines if the peer of the connection is considered "trustable",
+        # either because every origin is trusted or because its address is part
+        # of the trusted networks (eg: another proxy in front of this one)
+        trusted = self.is_trusted(connection)
+
         # tries to discover the proper address representation of the current
         # connections, note that the forwarded for header is only used in case
-        # the current "origin" is considered "trustable"
+        # the current "origin" is considered "trustable" and that a repeated
+        # one is joined, as the first of its values is the client one
         address = connection.address[0]
-        if self.trust_origin:
-            address = headers.get("x-forwarded-for", address)
-            address = headers.get("x-client-ip", address)
-            address = headers.get("x-real-ip", address)
+        if trusted:
+            address = self._prx_header(headers, "x-forwarded-for", join=True) or address
+            address = self._prx_header(headers, "x-client-ip") or address
+            address = self._prx_header(headers, "x-real-ip") or address
             address = address.split(",", 1)[0].strip()
 
         # tries to retrieve the string based port version taking into account
         # the port of the server bind port and the host based port and falling
         # back to the forwarded port in case the  "origin" is considered "trustable"
         port = port_s or str(self.port)
-        if self.trust_origin:
-            port = headers.get("x-forwarded-port", port)
+        if trusted:
+            port = self._prx_header(headers, "x-forwarded-port") or port
 
         # tries to discover the protocol representation of the current
         # connections, note that the forwarded for header is only used in case
         # the current "origin" is considered "trustable"
         protocol = "https" if is_secure else "http"
-        if self.trust_origin:
-            protocol = headers.get("x-forwarded-proto", protocol)
+        if trusted:
+            protocol = self._prx_header(headers, "x-forwarded-proto") or protocol
 
         # constructs the URL that is going to be used by the rule engine and any
         # other internal resolution process as the canonical URL of the request
@@ -431,7 +437,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # a client supplied forwarded header may only be taken into account
         # in case the origin is considered a trustable one, otherwise it's
         # removed so that the back-end is not misled by a spoofed value
-        if not self.trust_origin and "forwarded" in headers:
+        if not trusted and "forwarded" in headers:
             del headers["forwarded"]
 
         # updates the various headers that are related with the reverse

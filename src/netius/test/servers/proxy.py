@@ -282,6 +282,51 @@ class ProxyServerTest(unittest.TestCase):
         parser = Parser(headers={})
         self.assertEqual(self.server.is_upgrade(parser), False)
 
+    def test_is_trusted(self):
+        Connection = collections.namedtuple("Connection", "address")
+
+        # with no trusted network and no trusted origin no peer is trusted,
+        # not even the ones that sit in a private network
+        self.assertEqual(self.server.is_trusted(Connection(("172.17.0.5", 80))), False)
+
+        self.server.trust_networks = ("172.17.0.0/16", "10.0.0.1")
+
+        # a peer is trusted when its address is part of one of the networks
+        # or when it matches one of the plain addresses exactly
+        self.assertEqual(self.server.is_trusted(Connection(("172.17.0.5", 80))), True)
+        self.assertEqual(
+            self.server.is_trusted(Connection(("172.17.255.255", 80))), True
+        )
+        self.assertEqual(self.server.is_trusted(Connection(("10.0.0.1", 80))), True)
+        self.assertEqual(self.server.is_trusted(Connection(("172.18.0.5", 80))), False)
+        self.assertEqual(self.server.is_trusted(Connection(("172.16.0.5", 80))), False)
+        self.assertEqual(self.server.is_trusted(Connection(("10.0.0.2", 80))), False)
+
+        # an address that is not a valid IPv4 one is never matched against
+        # the networks, instead of failing on it
+        self.assertEqual(self.server.is_trusted(Connection(("::1", 80))), False)
+        self.assertEqual(
+            self.server.is_trusted(Connection(("::ffff:172.17.0.5", 80))), False
+        )
+        self.assertEqual(
+            self.server.is_trusted(Connection(("172.17.0.256", 80))), False
+        )
+
+        self.server.trust_networks = ("172.17.0.1/16",)
+
+        # a network may be written as the address of the interface that sits
+        # in it, which must still trust every peer of the network
+        self.assertEqual(self.server.is_trusted(Connection(("172.17.0.1", 80))), True)
+        self.assertEqual(self.server.is_trusted(Connection(("172.17.0.2", 80))), True)
+        self.assertEqual(self.server.is_trusted(Connection(("172.18.0.2", 80))), False)
+
+        self.server.trust_networks = ()
+        self.server.trust_origin = True
+
+        # trusting every origin trusts every peer whatever its address
+        self.assertEqual(self.server.is_trusted(Connection(("8.8.8.8", 80))), True)
+        self.assertEqual(self.server.is_trusted(Connection(("::1", 80))), True)
+
     def test_tunnel(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -751,6 +796,34 @@ class ProxyServerTest(unittest.TestCase):
         self.assertEqual(stream.tunnel_c, None)
         self.assertEqual(stream.proxy_c, None)
         self.assertEqual(stream.encoding_b, None)
+
+    def test_on_serve(self):
+        server = netius.servers.ProxyServer(trust_networks=["172.17.0.0/16"])
+        server.env = False
+
+        try:
+            with netius.conf_override("TRUST_NETWORKS", "10.0.0.0/8"):
+                server.on_serve()
+
+            # with no environment to read from, the networks are the ones
+            # that were given on the creation of the server
+            self.assertEqual(server.trust_networks, ["172.17.0.0/16"])
+        finally:
+            server.cleanup()
+
+    def test_on_serve_env(self):
+        server = netius.servers.ProxyServer()
+        server.env = True
+
+        try:
+            with netius.conf_override("TRUST_NETWORKS", "172.17.0.0/16;10.0.0.1"):
+                server.on_serve()
+
+            # the environment is able to set the networks, naming them as the
+            # semicolon separated list that a variable holds
+            self.assertEqual(server.trust_networks, ["172.17.0.0/16", "10.0.0.1"])
+        finally:
+            server.cleanup()
 
     def test_on_headers(self):
         if mock == None:

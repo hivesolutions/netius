@@ -103,6 +103,24 @@ class UtilTest(unittest.TestCase):
         result = netius.common.in_subnet_ip4("127.0.0.1", "128.0.0.0/24")
         self.assertEqual(result, False)
 
+    def test_in_subnet_ip4_host(self):
+        # a subnet written with the host part of its address set (eg: the
+        # address of an interface) must still match every address in it
+        result = netius.common.in_subnet_ip4("172.17.5.2", "172.17.0.1/16")
+        self.assertEqual(result, True)
+
+        result = netius.common.in_subnet_ip4("172.17.5.3", "172.17.0.1/16")
+        self.assertEqual(result, True)
+
+        result = netius.common.in_subnet_ip4("172.17.0.0", "172.17.0.1/16")
+        self.assertEqual(result, True)
+
+        result = netius.common.in_subnet_ip4("172.18.0.1", "172.17.0.1/16")
+        self.assertEqual(result, False)
+
+        result = netius.common.in_subnet_ip4("172.16.255.255", "172.17.0.1/16")
+        self.assertEqual(result, False)
+
     def test_addr_to_ip4(self):
         result = netius.common.addr_to_ip4(2130706433)
         self.assertEqual(result, "127.0.0.1")
