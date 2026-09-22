@@ -478,7 +478,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             part = part.strip()
             if not part:
                 continue
-            if ";" not in part:
+            if not ";" in part:
                 continue
             pattern, auth_spec = part.split(";", 1)
             pattern = pattern.strip()
@@ -504,7 +504,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
     def _resolve_redirect(self, value):
         if not value:
             return None
-        if ";" not in value:
+        if not ";" in value:
             return str(value)
         parts = value.split(";", 1)
         host = parts[0].strip()
@@ -527,7 +527,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             part = part.strip()
             if not part:
                 continue
-            if ";" not in part:
+            if not ";" in part:
                 continue
             pattern, target = part.split(";", 1)
             pattern = pattern.strip()
@@ -552,7 +552,7 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
             part = part.strip()
             if not part:
                 continue
-            if ";" not in part:
+            if not ";" in part:
                 continue
             pattern, target = part.split(";", 1)
             pattern = pattern.strip()

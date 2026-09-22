@@ -171,7 +171,7 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.server._build_hosts(entries)
 
         self.assertEqual(self.server.hosts.get("app.local"), "http://10.0.0.1:8080")
-        self.assertTrue("myapp" not in self.server.hosts)
+        self.assertTrue(not "myapp" in self.server.hosts)
 
     def test_build_hosts_custom_name(self):
         entries = [
@@ -185,7 +185,7 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.server._build_hosts(entries)
 
         self.assertEqual(self.server.hosts.get("webapp"), "http://10.0.0.1:8080")
-        self.assertTrue("myapp" not in self.server.hosts)
+        self.assertTrue(not "myapp" in self.server.hosts)
 
     def test_build_hosts_cleanup(self):
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
@@ -197,7 +197,7 @@ class ConsulProxyServerTest(unittest.TestCase):
         # consul, the host entry should be properly cleaned up
         self.server._build_hosts([])
 
-        self.assertTrue("myapp" not in self.server.hosts)
+        self.assertTrue(not "myapp" in self.server.hosts)
 
     def test_build_hosts_empty(self):
         self.server._build_hosts([])
@@ -207,7 +207,7 @@ class ConsulProxyServerTest(unittest.TestCase):
     def test_build_hosts_no_healthy(self):
         self.server._build_hosts([])
 
-        self.assertTrue("myapp" not in self.server.hosts)
+        self.assertTrue(not "myapp" in self.server.hosts)
 
     def test_build_suffixes(self):
         server = netius.extra.ConsulProxyServer(
@@ -267,8 +267,8 @@ class ConsulProxyServerTest(unittest.TestCase):
         # the suffix alias should be properly cleaned up
         server._build_consul([])
 
-        self.assertTrue("myapp" not in server.hosts)
-        self.assertTrue("myapp.example.com" not in server.alias)
+        self.assertTrue(not "myapp" in server.hosts)
+        self.assertTrue(not "myapp.example.com" in server.alias)
         server.cleanup()
 
     def test_consul_fetch(self):
@@ -1088,7 +1088,7 @@ class ConsulProxyServerTest(unittest.TestCase):
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
         self.server._build_hosts(entries)
 
-        self.assertTrue("myapp" not in self.server.auth)
+        self.assertTrue(not "myapp" in self.server.auth)
 
     def test_apply_tags_error_url(self):
         tags = ["proxy.enable=true", "proxy.error-url=http://errors.local/50x"]
@@ -1102,7 +1102,7 @@ class ConsulProxyServerTest(unittest.TestCase):
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
         self.server._build_hosts(entries)
 
-        self.assertTrue("myapp" not in self.server.error_urls)
+        self.assertTrue(not "myapp" in self.server.error_urls)
 
     def test_apply_tags_redirect(self):
         tags = ["proxy.enable=true", "proxy.redirect=other.host.com"]
@@ -1116,7 +1116,7 @@ class ConsulProxyServerTest(unittest.TestCase):
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
         self.server._build_hosts(entries)
 
-        self.assertTrue("myapp" not in self.server.redirect)
+        self.assertTrue(not "myapp" in self.server.redirect)
 
     def test_apply_tags_redirect_custom_name(self):
         tags = [
@@ -1128,7 +1128,7 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.server._build_hosts(entries)
 
         self.assertEqual(self.server.redirect.get("webapp"), "other.host.com")
-        self.assertTrue("myapp" not in self.server.redirect)
+        self.assertTrue(not "myapp" in self.server.redirect)
 
     def test_apply_tags_redirect_with_alias(self):
         tags = [
@@ -1177,7 +1177,7 @@ class ConsulProxyServerTest(unittest.TestCase):
         # consul, the redirect entry should be properly cleaned up
         self.server._build_hosts([])
 
-        self.assertTrue("myapp" not in self.server.redirect)
+        self.assertTrue(not "myapp" in self.server.redirect)
 
     def test_apply_tags_redirect_with_alias_cleanup(self):
         tags = [
@@ -1197,9 +1197,9 @@ class ConsulProxyServerTest(unittest.TestCase):
         # should be properly cleaned up
         self.server._build_consul([])
 
-        self.assertTrue("myapp" not in self.server.redirect)
-        self.assertTrue("api" not in self.server.redirect)
-        self.assertTrue("api-v2" not in self.server.redirect)
+        self.assertTrue(not "myapp" in self.server.redirect)
+        self.assertTrue(not "api" in self.server.redirect)
+        self.assertTrue(not "api-v2" in self.server.redirect)
 
     def test_apply_tags_redirect_with_alias_suffixes_cleanup(self):
         server = netius.extra.ConsulProxyServer(
@@ -1226,10 +1226,10 @@ class ConsulProxyServerTest(unittest.TestCase):
         # should be properly cleaned up
         server._build_consul([])
 
-        self.assertTrue("myapp" not in server.redirect)
-        self.assertTrue("api" not in server.redirect)
-        self.assertTrue("myapp.example.com" not in server.redirect)
-        self.assertTrue("api.example.com" not in server.redirect)
+        self.assertTrue(not "myapp" in server.redirect)
+        self.assertTrue(not "api" in server.redirect)
+        self.assertTrue(not "myapp.example.com" in server.redirect)
+        self.assertTrue(not "api.example.com" in server.redirect)
         server.cleanup()
 
     def test_apply_tags_redirect_tuple(self):
@@ -1264,7 +1264,7 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.server._build_hosts(entries)
 
         self.assertEqual(self.server.redirect.get("webapp"), ("webapp", "https"))
-        self.assertTrue("myapp" not in self.server.redirect)
+        self.assertTrue(not "myapp" in self.server.redirect)
 
     def test_apply_tags_alias(self):
         tags = ["proxy.enable=true", "proxy.alias=api,api-v2"]
@@ -1315,8 +1315,8 @@ class ConsulProxyServerTest(unittest.TestCase):
         # consul, alias entries should be properly cleaned up
         self.server._build_consul([])
 
-        self.assertTrue("api" not in self.server.alias)
-        self.assertTrue("api-v2" not in self.server.alias)
+        self.assertTrue(not "api" in self.server.alias)
+        self.assertTrue(not "api-v2" in self.server.alias)
 
     def test_apply_tags_alias_survives_suffixes(self):
         server = netius.extra.ConsulProxyServer(
@@ -1380,9 +1380,9 @@ class ConsulProxyServerTest(unittest.TestCase):
         # the tag alias and its suffix expansion should be cleaned up
         server._build_consul([])
 
-        self.assertTrue("api" not in server.alias)
-        self.assertTrue("api.example.com" not in server.alias)
-        self.assertTrue("myapp.example.com" not in server.alias)
+        self.assertTrue(not "api" in server.alias)
+        self.assertTrue(not "api.example.com" in server.alias)
+        self.assertTrue(not "myapp.example.com" in server.alias)
         server.cleanup()
 
     def test_apply_tags_combined(self):
@@ -1483,10 +1483,10 @@ class ConsulProxyServerTest(unittest.TestCase):
         # consul, all entries should be properly cleaned up
         self.server._build_hosts([])
 
-        self.assertTrue("myapp" not in self.server.hosts)
-        self.assertTrue("myapp" not in self.server.auth)
-        self.assertTrue("myapp" not in self.server.error_urls)
-        self.assertTrue("myapp" not in self.server.redirect)
+        self.assertTrue(not "myapp" in self.server.hosts)
+        self.assertTrue(not "myapp" in self.server.auth)
+        self.assertTrue(not "myapp" in self.server.error_urls)
+        self.assertTrue(not "myapp" in self.server.redirect)
 
     def test_apply_tags_auth_regex(self):
         tags = [
