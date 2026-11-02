@@ -228,6 +228,39 @@ class UtilTest(unittest.TestCase):
         # whole of the difference that the flag makes
         self.assertEqual(netius.common.size_round_unit(2048), "2KB")
 
+    def test_size_round_unit_boundary(self):
+        # a value just below the minimum of its unit that the rounding
+        # raises to the minimum is presented in the next unit, as the
+        # minimum itself would be, instead of in its own one
+        result = netius.common.size_round_unit(1048575)
+        self.assertEqual(result, "1MB")
+
+        result = netius.common.size_round_unit(1073741823)
+        self.assertEqual(result, "1GB")
+
+        result = netius.common.size_round_unit(1023.6)
+        self.assertEqual(result, "1KB")
+
+        # a value that the rounding keeps below the minimum stays in its
+        # own unit, as the ones that need no rounding at all
+        result = netius.common.size_round_unit(1048063)
+        self.assertEqual(result, "1023KB")
+
+        result = netius.common.size_round_unit(1023)
+        self.assertEqual(result, "1023B")
+
+    def test_size_round_unit_largest(self):
+        # the largest of the units is the last one that may be used, so
+        # a value beyond it is presented in it instead of failing
+        result = netius.common.size_round_unit(1024**8)
+        self.assertEqual(result, "1YB")
+
+        result = netius.common.size_round_unit(1024**9)
+        self.assertEqual(result, "1024YB")
+
+        result = netius.common.size_round_unit(1024**9, simplified=True)
+        self.assertEqual(result, "1024Y")
+
     def test_verify(self):
         result = netius.common.verify(1 == 1)
         self.assertEqual(result, None)

@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* Sizes just below a unit that round up to it are presented in the next unit, eg: 1MB instead of 1024KB - [#129](https://github.com/hivesolutions/netius/issues/129)
+* Sizes beyond the largest unit are presented in it instead of failing - [#129](https://github.com/hivesolutions/netius/issues/129)
 
 ## [1.64.0] - 2026-09-13
 
