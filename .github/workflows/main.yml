@@ -18,8 +18,7 @@ jobs:
           "3.12",
           "3.13",
           "3.14",
-          latest,
-          rc
+          latest
         ]
     runs-on: ubuntu-latest
     container: python:${{ matrix.python-version }}
