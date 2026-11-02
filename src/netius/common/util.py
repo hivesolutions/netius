@@ -345,9 +345,11 @@ def size_round_unit(
     """
 
     # in case the current size value is acceptable (less than
-    # the minimum) this is the final iteration and the final
-    # string representation is going to be created
-    if size_value < minimum:
+    # the minimum) or there's no larger unit to represent it, this
+    # is the final iteration and the final string representation
+    # is going to be created
+    last = depth + 1 == len(SIZE_UNITS_LIST)
+    if size_value < minimum or last:
         # calculates the maximum size of the string that is going
         # to represent the base size value as the number of places
         # plus one (representing the decimal separator character)
@@ -358,18 +360,31 @@ def size_round_unit(
         # value, this may never be a negative number
         log_value = size_value and math.log10(size_value)
         digits = int(log_value) + 1
-        places = places - digits
-        places = places if places > 0 else 0
+        decimal_places = places - digits
+        decimal_places = decimal_places if decimal_places > 0 else 0
+
+        # rounds the size value and in case the rounding raises it
+        # to the minimum (eg: 1023.9KB to 1024KB) represents it in
+        # the next unit instead (eg: 1MB), as a larger value would
+        rounded_value = round(size_value, decimal_places)
+        if rounded_value >= minimum and not last:
+            return size_round_unit(
+                float(size_value) / SIZE_UNIT_COEFFICIENT,
+                minimum=minimum,
+                places=places,
+                reduce=reduce,
+                space=space,
+                justify=justify,
+                simplified=simplified,
+                depth=depth + 1,
+            )
 
         # creates the proper format string that is going to
         # be used in the creation of the proper float value
-        # according to the calculated number of places
-        format = "%%.%df" % places
-
-        # rounds the size value, then converts the rounded
-        # size value into a string based representation
-        size_value = round(size_value, places)
-        size_value_s = format % size_value
+        # according to the calculated number of places, then
+        # converts the rounded size value into a string
+        format = "%%.%df" % decimal_places
+        size_value_s = format % rounded_value
 
         # forces the reduce flag when the depth is zero, meaning
         # that an integer value will never be decimal, this is
