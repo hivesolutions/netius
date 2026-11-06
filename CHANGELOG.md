@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* A page named in the environment for a host that Consul manages is now kept across the polls, instead of being dropped from the second one onwards
 * An error page whose URL carries a quote or an ampersand is now framed as it was named, instead of the attribute ending early or the query string being read as a character reference
 * The message of an up-stream error no longer reaches the end user when an error page is framed, as it may name internal addresses - [#136](https://github.com/hivesolutions/netius/issues/136)
 
