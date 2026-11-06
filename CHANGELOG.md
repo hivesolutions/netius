@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.65.0] - 2026-11-06
+
+### Added
+
 * A page of its own for a host that is not served, so that it no longer shares the page of a service that is down - [#132](https://github.com/hivesolutions/netius/issues/132)
 * The custom error page is now read from the environment by every reverse proxy, and not only by the one that discovers its back-ends through Docker - [#132](https://github.com/hivesolutions/netius/issues/132)
 
