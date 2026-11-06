@@ -199,6 +199,78 @@ class ConsulProxyServerTest(unittest.TestCase):
 
         self.assertTrue(not "myapp" in self.server.hosts)
 
+    def test_build_hosts_environment(self):
+        self.server.env = True
+
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
+
+        with netius.conf_override("MYAPP_ERROR_URL", "http://errors.local/50x"):
+            with netius.conf_override("MYAPP_NOT_FOUND_URL", "http://errors.local/404"):
+                with netius.conf_override(
+                    "MYAPP_UNAUTHORIZED_URL", "http://errors.local/401"
+                ):
+                    self.server._build_error_urls()
+                    self.server._build_not_found_urls()
+                    self.server._build_unauthorized_urls()
+
+                    self.server._build_hosts(entries)
+                    self.server._build_hosts(entries)
+
+        # the cleanup of a rebuild drops the entries of the consul managed
+        # hosts, so the ones named in the environment have to be applied
+        # again or they would only last until the second poll
+        self.assertEqual(self.server.error_urls.get("myapp"), "http://errors.local/50x")
+        self.assertEqual(
+            self.server.not_found_urls.get("myapp"), "http://errors.local/404"
+        )
+        self.assertEqual(
+            self.server.unauthorized_urls.get("myapp"), "http://errors.local/401"
+        )
+
+    def test_build_hosts_environment_tag(self):
+        self.server.env = True
+
+        plain = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
+        tagged = [
+            (
+                "myapp",
+                "myapp",
+                ["http://10.0.0.1:8080"],
+                ["proxy.enable=true", "proxy.unauthorized-url=http://errors.local/tag"],
+            )
+        ]
+
+        with netius.conf_override("MYAPP_UNAUTHORIZED_URL", "http://errors.local/401"):
+            self.server._build_unauthorized_urls()
+
+            self.server._build_hosts(tagged)
+
+            # the environment is applied before the tags, so a service that
+            # carries one of its own still has it honoured
+            self.assertEqual(
+                self.server.unauthorized_urls.get("myapp"), "http://errors.local/tag"
+            )
+
+            self.server._build_hosts(plain)
+
+            # and once the tag is gone from the catalog the value named in
+            # the environment is the one that answers again
+            self.assertEqual(
+                self.server.unauthorized_urls.get("myapp"), "http://errors.local/401"
+            )
+
+    def test_build_hosts_environment_unset(self):
+        self.server.env = False
+
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]
+
+        with netius.conf_override("MYAPP_UNAUTHORIZED_URL", "http://errors.local/401"):
+            self.server._build_hosts(entries)
+
+        # with the environment turned off nothing is read from it, so that a
+        # server configured by hand is never overridden by a rebuild
+        self.assertTrue(not "myapp" in self.server.unauthorized_urls)
+
     def test_build_hosts_empty(self):
         self.server._build_hosts([])
 

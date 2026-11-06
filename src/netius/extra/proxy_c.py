@@ -179,6 +179,16 @@ class ConsulProxyServer(proxy_r.ReverseProxyServer):
         self._consul_redirect_regex = []
         self._consul_regex = []
 
+        # re-applies the pages named in the environment, as the cleanup above
+        # also removed the ones of a host that consul happens to manage, the
+        # tags are applied after this so that they still take precedence
+        if self.env:
+            self._build_error_urls()
+        if self.env:
+            self._build_not_found_urls()
+        if self.env:
+            self._build_unauthorized_urls()
+
         # iterates over the fetched entries registering each one
         # in the hosts map and applying per-service configuration
         for service, domain, urls, tags in entries:
