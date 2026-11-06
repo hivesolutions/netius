@@ -549,7 +549,8 @@ class HTTPServerTest(unittest.TestCase):
         # the context of the response is encoded onto the framed URL, so
         # that the page behind it may present the cause to the visitor
         self.assertEqual(
-            b'<iframe src="http://host.com/error?code=404&reason=Not+Found">' in data,
+            b'<iframe src="http://host.com/error?code=404&amp;reason=Not+Found">'
+            in data,
             True,
         )
 
@@ -637,6 +638,17 @@ class HTTPServerTest(unittest.TestCase):
             b'src="http://host.com/error%22onload=%22alert(1)"' in data, True
         )
         self.assertEqual(b'error"onload' in data, False)
+
+    def test_build_iframe_reference(self):
+        data = netius.servers.HTTPServer.build_iframe(
+            "Not Found", "http://host.com/error?a=1&copy;=2"
+        )
+
+        # an ampersand opens a character reference in an attribute, so the
+        # browser would read the query string as `a=1\u00a9=2` unless it is
+        # escaped, which would frame a URL other than the configured one
+        self.assertEqual(b'src="http://host.com/error?a=1&amp;copy;=2"' in data, True)
+        self.assertEqual(b"?a=1&copy;=2" in data, False)
 
     def test__build_url(self):
         build_url = netius.servers.HTTPServer._build_url

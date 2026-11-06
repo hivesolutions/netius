@@ -1275,7 +1275,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         # the status stays the one of the real outcome
         self.assertEqual(call_kwargs["code"], 404)
         self.assertEqual(
-            b'<iframe src="http://host.com/down?code=404&reason=No+proxy+endpoint+found"></iframe>'
+            b'<iframe src="http://host.com/down?code=404&amp;reason=No+proxy+endpoint+found"></iframe>'
             in call_kwargs["data"],
             True,
         )
@@ -1302,7 +1302,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         # matches what has really happened to the request
         self.assertEqual(call_kwargs["code"], 404)
         self.assertEqual(
-            b'<iframe src="http://host.com/not-found?code=404&reason=No+proxy+endpoint+found"></iframe>'
+            b'<iframe src="http://host.com/not-found?code=404&amp;reason=No+proxy+endpoint+found"></iframe>'
             in call_kwargs["data"],
             True,
         )
@@ -1326,7 +1326,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         # the entry of the host is more specific than the default one, so it
         # is the one that has to be picked
         self.assertEqual(
-            b'<iframe src="http://unknown.com/not-found?code=404&reason=No+proxy+endpoint+found"></iframe>'
+            b'<iframe src="http://unknown.com/not-found?code=404&amp;reason=No+proxy+endpoint+found"></iframe>'
             in call_kwargs["data"],
             True,
         )
@@ -1373,7 +1373,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         # may still be used for every one of the responses
         self.assertEqual(call_kwargs["code"], 401)
         self.assertEqual(
-            b'<iframe src="http://host.com/down?code=401&reason=Not+authorized"></iframe>'
+            b'<iframe src="http://host.com/down?code=401&amp;reason=Not+authorized"></iframe>'
             in call_kwargs["data"],
             True,
         )
@@ -1404,7 +1404,7 @@ class ReverseProxyServerTest(unittest.TestCase):
             call_kwargs["headers"]["wWW-authenticate"], 'Basic realm="default"'
         )
         self.assertEqual(
-            b'<iframe src="http://host.com/unauthorized?code=401&reason=Not+authorized"></iframe>'
+            b'<iframe src="http://host.com/unauthorized?code=401&amp;reason=Not+authorized"></iframe>'
             in call_kwargs["data"],
             True,
         )
@@ -1428,7 +1428,7 @@ class ReverseProxyServerTest(unittest.TestCase):
 
         # the entry of the host is more specific than the default one
         self.assertEqual(
-            b'<iframe src="http://host.com/private?code=401&reason=Not+authorized"></iframe>'
+            b'<iframe src="http://host.com/private?code=401&amp;reason=Not+authorized"></iframe>'
             in call_kwargs["data"],
             True,
         )
@@ -1689,7 +1689,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         # so the value may only be cleared after it has been built
         self.assertEqual(call_kwargs["code"], 403)
         self.assertEqual(
-            b'<iframe src="http://host.com/down?code=403&reason=Forbidden"></iframe>'
+            b'<iframe src="http://host.com/down?code=403&amp;reason=Forbidden"></iframe>'
             in call_kwargs["data"],
             True,
         )
@@ -1758,7 +1758,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         # same way the forbidden response already does
         self.assertEqual(call_kwargs["code"], 500)
         self.assertEqual(
-            b'<iframe src="http://host.com/down?code=500&reason=Internal+Error"></iframe>'
+            b'<iframe src="http://host.com/down?code=500&amp;reason=Internal+Error"></iframe>'
             in call_kwargs["data"],
             True,
         )
