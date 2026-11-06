@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+*
+
+### Changed
+
+*
+
+### Fixed
+
+*
+
+## [1.66.0] - 2026-11-06
+
+### Added
+
 * A page of its own for a request that is refused for lack of credentials, named by `<NAME>_UNAUTHORIZED_URL` or by the `proxy.unauthorized-url` tag - [#134](https://github.com/hivesolutions/netius/issues/134)
 * Review of every pull request by Claude - [#138](https://github.com/hivesolutions/netius/issues/138)
 * The status code and the reason are handed to the error page as query parameters, so that it may present the cause of the response - [#136](https://github.com/hivesolutions/netius/issues/136)
