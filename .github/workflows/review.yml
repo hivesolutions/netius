@@ -1,0 +1,109 @@
+name: Review Workflow
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+      - reopened
+
+concurrency:
+  group: review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL || 'opus' }}
+  CLAUDE_EFFORT: ${{ vars.CLAUDE_EFFORT || 'max' }}
+
+jobs:
+  review:
+    name: Review with Claude
+    timeout-minutes: 30
+    if: |
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.type != 'Bot' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, ubuntu, latest]
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+      actions: read
+
+    steps:
+      - name: Cleanup the hosted runner
+        uses: joamag/cleanup-hosted@master
+
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Review pull request
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+          use_sticky_comment: true
+
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request. Its branch is already checked out in the
+            working directory, and AGENTS.md holds the conventions of the
+            repository, which the review follows.
+
+            Netius is a network library published to PyPI, so the code runs
+            inside an event loop, parses input that arrives from the network and
+            is imported by callers outside this repository.
+
+            Look for, in this order:
+
+            1. Bugs and regressions: wrong behaviour, unhandled errors and edge
+               cases, connections and sockets left open or left in an
+               inconsistent state, blocking calls reached from the event loop,
+               buffers and parsers that mishandle a partial, empty or malformed
+               message, and anything a test should have caught.
+            2. The public interface: netius is a published package, so a
+               signature that gains an argument before the existing ones, a
+               renamed or reordered parameter, a changed default and a removed
+               name all break the callers that already use them, note that the
+               agents are extended from the outside, so a protected method is
+               part of that surface as well.
+            3. The rules of AGENTS.md the change may break: code that runs on
+               Python 2.7 and on Python 3.14 alike, no annotations in the `.py`
+               files (they belong in the `.pyi` stub beside the module, which
+               mirrors it in source order, writes defaults as `...` and omits
+               the return of `None`), the black formatting, the CRLF line
+               endings of the files kept as they are, the module docstring that
+               opens with the dotted name of the module, `not item in list` and
+               `item == None`, the commenting style of the project, and the
+               version of `setup.py` not bumped.
+            4. Tests: the new and changed code covered by tests written like the
+               existing ones, placed in `src/netius/test` mirroring the module
+               they cover, ordered as the implementation is, and exercising the
+               error paths rather than the happy one alone.
+            5. The documents the change should update: the unreleased section of
+               the changelog, and the pages under `doc/` that describe what
+               changed.
+            6. Security: the parsers and the limits that guard them against a
+               hostile peer, the TLS handling, the paths a file service is
+               allowed to serve, resource exhaustion, and data reaching someone
+               it should not.
+
+            Verify every finding against the code before reporting it, reading the
+            files around the diff and not the diff alone, and say how sure you
+            are. Leave out what black settles, praise and restatements of what
+            the change does: a short review of real findings is worth more than a
+            long one.
+
+            Report each finding as an inline comment on the line it is about,
+            saying what is wrong, why it matters and how to fix it, and use a
+            top-level comment for the summary: the findings by severity, or that
+            none was found.
+
+          claude_args: |
+            --model ${{ env.CLAUDE_MODEL }}
+            --effort ${{ env.CLAUDE_EFFORT }}
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
