@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* A page of its own for a host that is not served, so that it no longer shares the page of a service that is down - [#132](https://github.com/hivesolutions/netius/issues/132)
+* The custom error page is now read from the environment by every reverse proxy, and not only by the one that discovers its back-ends through Docker - [#132](https://github.com/hivesolutions/netius/issues/132)
 
 ### Changed
 
@@ -17,8 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* A style sheet named for an error page is now part of the page, instead of being dropped - [#132](https://github.com/hivesolutions/netius/issues/132)
 * Sizes just below a unit that round up to it are presented in the next unit, eg: 1MB instead of 1024KB - [#129](https://github.com/hivesolutions/netius/issues/129)
 * Sizes beyond the largest unit are presented in it instead of failing - [#129](https://github.com/hivesolutions/netius/issues/129)
+* The configured error page is now served for a host with no back-end and for an up-stream error, instead of only for a back-end that closes before replying - [#132](https://github.com/hivesolutions/netius/issues/132)
+* The error page of a back-end that closes before replying is now served, instead of being cleared before the response that uses it is built - [#132](https://github.com/hivesolutions/netius/issues/132)
+* The maps of a reverse proxy are no longer shared between instances, so that a registration done on one no longer shows up on another - [#132](https://github.com/hivesolutions/netius/issues/132)
 
 ## [1.64.0] - 2026-09-13
 

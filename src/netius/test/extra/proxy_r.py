@@ -117,6 +117,67 @@ class ReverseProxyServerTest(unittest.TestCase):
         finally:
             server.cleanup()
 
+    def test__build_error_urls(self):
+        with netius.conf_override("DEFAULT_ERROR_URL", "http://host.com/down"):
+            self.server.error_urls = {}
+            self.server._build_error_urls()
+
+        # the default name is the key that the host resolution falls back to,
+        # so that a single variable covers every one of the served hosts
+        self.assertEqual(
+            self.server.error_urls[netius.extra.proxy_r.DEFAULT_NAME],
+            "http://host.com/down",
+        )
+
+    def test__build_error_urls_dashed(self):
+        with netius.conf_override("MY_APP_ERROR_URL", "http://host.com/down"):
+            self.server.error_urls = {}
+            self.server._build_error_urls()
+
+        # the name of the variable is registered both as it is and with the
+        # underscores turned into dashes, as a host may be named either way
+        self.assertEqual(self.server.error_urls["my_app"], "http://host.com/down")
+        self.assertEqual(self.server.error_urls["my-app"], "http://host.com/down")
+
+    def test__build_error_urls_unset(self):
+        self.server.error_urls = {}
+        self.server._build_error_urls()
+
+        # with no variable set nothing is registered, so that the plain page
+        # stays the one that is served
+        self.assertEqual(self.server.error_urls, {})
+
+    def test__build_not_found_urls(self):
+        with netius.conf_override("DEFAULT_NOT_FOUND_URL", "http://host.com/not-found"):
+            self.server.not_found_urls = {}
+            self.server._build_not_found_urls()
+
+        self.assertEqual(
+            self.server.not_found_urls[netius.extra.proxy_r.DEFAULT_NAME],
+            "http://host.com/not-found",
+        )
+
+    def test__build_not_found_urls_dashed(self):
+        with netius.conf_override("MY_APP_NOT_FOUND_URL", "http://host.com/not-found"):
+            self.server.not_found_urls = {}
+            self.server._build_not_found_urls()
+
+        self.assertEqual(
+            self.server.not_found_urls["my_app"], "http://host.com/not-found"
+        )
+        self.assertEqual(
+            self.server.not_found_urls["my-app"], "http://host.com/not-found"
+        )
+
+    def test__build_not_found_urls_error_url(self):
+        with netius.conf_override("DEFAULT_ERROR_URL", "http://host.com/down"):
+            self.server.not_found_urls = {}
+            self.server._build_not_found_urls()
+
+        # the error URL variable ends with a different suffix, so it must not
+        # be taken as a not found one (the fall back is done at resolution)
+        self.assertEqual(self.server.not_found_urls, {})
+
     def test__echo(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -127,6 +188,7 @@ class ReverseProxyServerTest(unittest.TestCase):
             alias=dict(alias="first"),
             redirect=dict(old="new"),
             error_urls=dict(first="http://first/error"),
+            not_found_urls=dict(first="http://first/not-found"),
         )
 
         try:
@@ -145,6 +207,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertEqual(("alias", "first") in pairs, True)
         self.assertEqual(("old", "new") in pairs, True)
         self.assertEqual(("first", "http://first/error") in pairs, True)
+        self.assertEqual(("first", "http://first/not-found") in pairs, True)
 
         # the hosts are dumped in order, so that the same configuration
         # always reads the same way whatever the order of the map
@@ -270,6 +333,44 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertEqual(server.sts, 86400)
 
         server.cleanup()
+
+    def test_config_isolated(self):
+        first = netius.extra.ReverseProxyServer()
+        second = netius.extra.ReverseProxyServer()
+
+        try:
+            # the maps may not be shared between instances, otherwise the
+            # empty defaults of the constructor would be mutated in place
+            self.assertEqual(first.error_urls is second.error_urls, False)
+            self.assertEqual(first.not_found_urls is second.not_found_urls, False)
+            self.assertEqual(first.hosts is second.hosts, False)
+            self.assertEqual(first.alias is second.alias, False)
+            self.assertEqual(first.auth is second.auth, False)
+            self.assertEqual(first.redirect is second.redirect, False)
+
+            first.error_urls["default"] = "http://host.com/down"
+            first.hosts["host.com"] = "http://localhost"
+
+            # a registration done on one of the servers may not be visible
+            # from another one, nor from one built afterwards
+            self.assertEqual(second.error_urls, {})
+            self.assertEqual(second.hosts, {})
+            self.assertEqual(netius.extra.ReverseProxyServer().error_urls, {})
+        finally:
+            first.cleanup()
+            second.cleanup()
+
+    def test_config_hosts_sequence(self):
+        server = netius.extra.ReverseProxyServer(
+            hosts=[("host.com", "http://localhost")]
+        )
+
+        try:
+            # a map handed as a sequence of pairs is still turned into the
+            # map that the host resolution expects
+            self.assertEqual(server.hosts, {"host.com": "http://localhost"})
+        finally:
+            server.cleanup()
 
     def test_conn_map_empty(self):
         self.assertIsInstance(self.server.conn_map, dict)
@@ -885,6 +986,37 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertIsNone(prefix)
         self.assertIsNone(state)
 
+    def test_on_serve_env(self):
+        self.server.env = True
+
+        with netius.conf_override("DEFAULT_ERROR_URL", "http://host.com/down"):
+            with netius.conf_override(
+                "DEFAULT_NOT_FOUND_URL", "http://host.com/not-found"
+            ):
+                self.server.on_serve()
+
+        # the pages are registered on serve, so that every back-end and not
+        # only the Docker one reads the very same variables
+        self.assertEqual(
+            self.server.error_urls[netius.extra.proxy_r.DEFAULT_NAME],
+            "http://host.com/down",
+        )
+        self.assertEqual(
+            self.server.not_found_urls[netius.extra.proxy_r.DEFAULT_NAME],
+            "http://host.com/not-found",
+        )
+
+    def test_on_serve_env_unset(self):
+        self.server.env = False
+
+        with netius.conf_override("DEFAULT_ERROR_URL", "http://host.com/down"):
+            self.server.on_serve()
+
+        # with the environment turned off nothing is read from it, so that a
+        # server configured by hand is never overridden
+        self.assertEqual(self.server.error_urls, {})
+        self.assertEqual(self.server.not_found_urls, {})
+
     def test_on_headers_routes_to_backend(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -1061,6 +1193,85 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertEqual(frontend.send_response.call_count, 1)
         call_kwargs = frontend.send_response.call_args
         self.assertEqual(call_kwargs[1]["code"], 404)
+
+        # with no page configured the plain text one is the one served, so
+        # that nothing is framed that has not been asked for
+        self.assertEqual(
+            b"<h1>No proxy endpoint found</h1>" in call_kwargs[1]["data"], True
+        )
+        self.assertEqual(b"<iframe" in call_kwargs[1]["data"], False)
+
+    def test_on_headers_no_match_error_url(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        request_parser = self._make_request_parser(host="unknown.com")
+
+        self.server.error_urls[netius.extra.proxy_r.DEFAULT_NAME] = (
+            "http://host.com/down"
+        )
+
+        self.server.on_headers(frontend, request_parser)
+
+        call_kwargs = frontend.send_response.call_args[1]
+
+        # with no not found page of its own the error one is framed, while
+        # the status stays the one of the real outcome
+        self.assertEqual(call_kwargs["code"], 404)
+        self.assertEqual(
+            b'<iframe src="http://host.com/down"></iframe>' in call_kwargs["data"], True
+        )
+
+    def test_on_headers_no_match_not_found_url(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        request_parser = self._make_request_parser(host="unknown.com")
+
+        self.server.error_urls[netius.extra.proxy_r.DEFAULT_NAME] = (
+            "http://host.com/down"
+        )
+        self.server.not_found_urls[netius.extra.proxy_r.DEFAULT_NAME] = (
+            "http://host.com/not-found"
+        )
+
+        self.server.on_headers(frontend, request_parser)
+
+        call_kwargs = frontend.send_response.call_args[1]
+
+        # the not found page wins over the error one, so that the message
+        # matches what has really happened to the request
+        self.assertEqual(call_kwargs["code"], 404)
+        self.assertEqual(
+            b'<iframe src="http://host.com/not-found"></iframe>' in call_kwargs["data"],
+            True,
+        )
+
+    def test_on_headers_no_match_not_found_url_host(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        request_parser = self._make_request_parser(host="unknown.com")
+
+        self.server.not_found_urls[netius.extra.proxy_r.DEFAULT_NAME] = (
+            "http://host.com/not-found"
+        )
+        self.server.not_found_urls["unknown.com"] = "http://unknown.com/not-found"
+
+        self.server.on_headers(frontend, request_parser)
+
+        call_kwargs = frontend.send_response.call_args[1]
+
+        # the entry of the host is more specific than the default one, so it
+        # is the one that has to be picked
+        self.assertEqual(
+            b'<iframe src="http://unknown.com/not-found"></iframe>'
+            in call_kwargs["data"],
+            True,
+        )
 
     def test_on_headers_redirect(self):
         if mock == None:
@@ -1282,6 +1493,27 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertNotIn(backend, self.server.conn_map)
         self.assertEqual(self.server.busy_conn, 0)
 
+    def test_prx_close_while_waiting_error_url(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        backend = self._make_backend()
+        backend.waiting = True
+        backend.error_url = "http://host.com/down"
+        self.server.conn_map[backend] = frontend
+
+        self.server._on_prx_close(self.server.http_client, backend)
+
+        call_kwargs = frontend.send_response.call_args[1]
+
+        # the error page of the connection is the one framed by the response,
+        # so the value may only be cleared after it has been built
+        self.assertEqual(call_kwargs["code"], 403)
+        self.assertEqual(
+            b'<iframe src="http://host.com/down"></iframe>' in call_kwargs["data"], True
+        )
+
     def test_prx_close_after_response(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -1321,6 +1553,33 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertEqual(frontend.send_response.call_count, 1)
         call_kwargs = frontend.send_response.call_args[1]
         self.assertEqual(call_kwargs["code"], 500)
+
+        # with no error page configured the message of the exception is the
+        # one that reaches the client, as the only description of the problem
+        self.assertEqual(b"<h1>connection timeout</h1>" in call_kwargs["data"], True)
+
+    def test_prx_error_error_url(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        backend = self._make_backend()
+        backend.waiting = True
+        backend.error_url = "http://host.com/down"
+        self.server.conn_map[backend] = frontend
+
+        self.server._on_prx_error(
+            self.server.http_client, backend, Exception("connection timeout")
+        )
+
+        call_kwargs = frontend.send_response.call_args[1]
+
+        # the up-stream error frames the error page of the connection, in the
+        # same way the forbidden response already does
+        self.assertEqual(call_kwargs["code"], 500)
+        self.assertEqual(
+            b'<iframe src="http://host.com/down"></iframe>' in call_kwargs["data"], True
+        )
 
     def test_full_request_response_flow(self):
         if mock == None:

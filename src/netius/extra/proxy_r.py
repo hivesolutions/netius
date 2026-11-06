@@ -95,6 +95,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         redirect={},
         redirect_regex={},
         error_urls={},
+        not_found_urls={},
         forward=None,
         strategy="robin",
         reuse=True,
@@ -115,8 +116,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             auth_regex = netius.legacy.items(auth_regex)
         if isinstance(redirect_regex, dict):
             redirect_regex = netius.legacy.items(redirect_regex)
-        if not isinstance(hosts, dict):
-            hosts = dict(hosts)
+        # the host based maps are copied so that the empty defaults of the
+        # constructor are not shared by (and mutated across) the instances
+        hosts = dict(hosts)
+        alias = dict(alias)
+        auth = dict(auth)
+        redirect = dict(redirect)
+        error_urls = dict(error_urls)
+        not_found_urls = dict(not_found_urls)
         self.load_config(
             path=config,
             regex=regex,
@@ -127,6 +134,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             redirect=redirect,
             redirect_regex=redirect_regex,
             error_urls=error_urls,
+            not_found_urls=not_found_urls,
             forward=forward,
             strategy=strategy,
             reuse=reuse,
@@ -184,6 +192,10 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             self.x_forwarded_proto = self.get_env(
                 "X_FORWARDED_PROTO", self.x_forwarded_proto
             )
+        if self.env:
+            self._build_error_urls()
+        if self.env:
+            self._build_not_found_urls()
         if self.sts:
             self.info("Strict transport security set to %d seconds", self.sts)
         if self.resolve:
@@ -335,13 +347,29 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if not self.reuse or not reusable:
             prefix, state = self.rules(url, parser, url_o=url_o)
 
+        # tries to use all the possible strategies to retrieve the best possible
+        # error URL for the current connection associated host, this is may be used
+        # when a connection error occurs in the underlying back-end connection
+        error_url = self.error_urls.get(DEFAULT_NAME, None)
+        error_url = self.error_urls.get(host, error_url)
+        error_url = self.error_urls.get(host_s, error_url)
+        error_url = self.error_urls.get(host_o, error_url)
+
+        # runs the equivalent resolution for the not found URL, defaulting to
+        # the error one, so that a single page may still be used for both the
+        # missing endpoint and the back-end error scenarios
+        not_found_url = self.not_found_urls.get(DEFAULT_NAME, error_url)
+        not_found_url = self.not_found_urls.get(host, not_found_url)
+        not_found_url = self.not_found_urls.get(host_s, not_found_url)
+        not_found_url = self.not_found_urls.get(host_o, not_found_url)
+
         # in case no prefix is defined at this stage there's no matching
         # against the currently defined rules and so an error must be raised
         # and propagated to the client connection (end user notification)
         if not prefix:
             self.debug("No proxy endpoint found")
             return connection.send_response(
-                data=cls.build_text("No proxy endpoint found"),
+                data=cls.build_data("No proxy endpoint found", url=not_found_url),
                 headers=dict(connection="close"),
                 version=version_s,
                 code=404,
@@ -390,14 +418,6 @@ class ReverseProxyServer(netius.servers.ProxyServer):
                     apply=True,
                     callback=self._prx_close,
                 )
-
-        # tries to use all the possible strategies to retrieve the best possible
-        # error URL for the current connection associated host, this is may be used
-        # when a connection error occurs in the underlying back-end connection
-        error_url = self.error_urls.get(DEFAULT_NAME, None)
-        error_url = self.error_urls.get(host, error_url)
-        error_url = self.error_urls.get(host_s, error_url)
-        error_url = self.error_urls.get(host_o, error_url)
 
         # runs the acquire operation for the current state, this should
         # update the current scheduling algorithm internal structures so
@@ -833,9 +853,11 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         if state:
             self.releaser(state)
             _connection.state = None
+        netius.servers.ProxyServer._on_prx_close(self, client, _connection)
+        # the error URL is only unset after the parent call, as the response
+        # that is built there is the one that frames the error page
         if error_url:
             _connection.error_url = None
-        netius.servers.ProxyServer._on_prx_close(self, client, _connection)
 
     def _upgrade(self, connection, parser, prefix, path, headers, state=None):
         # the raw tunnel does not take part in the busy based balancing
@@ -966,12 +988,29 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             return result, match
         return default, None
 
+    def _build_error_urls(self):
+        linked = netius.conf_suffix("_ERROR_URL")
+        for name, error_url in netius.legacy.iteritems(linked):
+            base = name[:-10].lower()
+            base_dash = base.replace("_", "-")
+            self.error_urls[base] = error_url
+            self.error_urls[base_dash] = error_url
+
+    def _build_not_found_urls(self):
+        linked = netius.conf_suffix("_NOT_FOUND_URL")
+        for name, not_found_url in netius.legacy.iteritems(linked):
+            base = name[:-14].lower()
+            base_dash = base.replace("_", "-")
+            self.not_found_urls[base] = not_found_url
+            self.not_found_urls[base_dash] = not_found_url
+
     def _echo(self, sort=True):
         self._echo_regex(sort=sort)
         self._echo_hosts(sort=sort)
         self._echo_alias(sort=sort)
         self._echo_redirect(sort=sort)
         self._echo_error_urls(sort=sort)
+        self._echo_not_found_urls(sort=sort)
 
     def _echo_regex(self, sort=True):
         self.info("Regex registration information")
@@ -1009,6 +1048,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         self.info("Error URLs registration information")
         for key in keys:
             self.info("%s => %s", key, self.error_urls[key])
+
+    def _echo_not_found_urls(self, sort=True):
+        keys = netius.legacy.keys(self.not_found_urls)
+        if sort:
+            keys.sort()
+        self.info("Not found URLs registration information")
+        for key in keys:
+            self.info("%s => %s", key, self.not_found_urls[key])
 
 
 if __name__ == "__main__":

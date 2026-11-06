@@ -1104,6 +1104,35 @@ class ConsulProxyServerTest(unittest.TestCase):
 
         self.assertTrue(not "myapp" in self.server.error_urls)
 
+    def test_apply_tags_not_found_url(self):
+        tags = ["proxy.enable=true", "proxy.not-found-url=http://errors.local/404"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(
+            self.server.not_found_urls.get("myapp"), "http://errors.local/404"
+        )
+
+    def test_apply_tags_not_found_url_empty(self):
+        tags = ["proxy.enable=true", "proxy.not-found-url="]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertTrue(not "myapp" in self.server.not_found_urls)
+
+    def test_apply_tags_not_found_url_cleanup(self):
+        tags = ["proxy.enable=true", "proxy.not-found-url=http://errors.local/404"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertTrue("myapp" in self.server.not_found_urls)
+
+        self.server._build_hosts([])
+
+        # a service that is gone from the catalog may not keep its page
+        # registered, otherwise the entry would leak across poll cycles
+        self.assertTrue(not "myapp" in self.server.not_found_urls)
+
     def test_apply_tags_redirect(self):
         tags = ["proxy.enable=true", "proxy.redirect=other.host.com"]
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
@@ -1816,6 +1845,33 @@ class ConsulProxyServerTest(unittest.TestCase):
             instances, address="10.99.0.1", ports={8080, 9090}
         )
         self.assertEqual(result, ["http://10.99.0.1:8080", "http://10.99.0.1:9090"])
+
+    def test__debug_state(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        tags = [
+            "proxy.enable=true",
+            "proxy.error-url=http://errors.local/50x",
+            "proxy.not-found-url=http://errors.local/404",
+        ]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        with mock.patch.object(self.server, "debug") as debug:
+            self.server._debug_state()
+
+        # gathers the pairs of the registration lines that were dumped,
+        # leaving out the headers that carry no value of their own
+        pairs = [
+            tuple(call[0][1:]) for call in debug.call_args_list if len(call[0]) == 3
+        ]
+
+        # every one of the registrations is named by the dump, so that the
+        # running configuration may be read from the log alone
+        self.assertEqual(("myapp", "http://10.0.0.1:8080") in pairs, True)
+        self.assertEqual(("myapp", "http://errors.local/50x") in pairs, True)
+        self.assertEqual(("myapp", "http://errors.local/404") in pairs, True)
 
     def test_host_rules(self):
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]

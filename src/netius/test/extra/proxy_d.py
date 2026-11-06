@@ -272,6 +272,21 @@ class DockerProxyServerTest(unittest.TestCase):
         self.assertEqual(server.error_urls["netius_d"], "http://netius.com/error")
         self.assertEqual(server.error_urls["netius-d"], "http://netius.com/error")
 
+    def test__build_not_found_urls(self):
+        server = self._make_server()
+
+        self._conf(NETIUS_D_NOT_FOUND_URL="http://netius.com/not-found")
+
+        server.not_found_urls = {}
+        server._build_not_found_urls()
+
+        self.assertEqual(
+            server.not_found_urls["netius_d"], "http://netius.com/not-found"
+        )
+        self.assertEqual(
+            server.not_found_urls["netius-d"], "http://netius.com/not-found"
+        )
+
     def test__build_redirect_ssl(self):
         server = self._make_server()
 

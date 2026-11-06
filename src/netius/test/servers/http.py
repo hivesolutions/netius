@@ -502,6 +502,86 @@ class HTTPServerTest(unittest.TestCase):
         finally:
             server.cleanup()
 
+    def test_build_data(self):
+        data = netius.servers.HTTPServer.build_data("Not Found")
+
+        # with no URL named the plain text page is built, carrying the
+        # message as the heading of the body
+        self.assertEqual(b"<h1>Not Found</h1>" in data, True)
+        self.assertEqual(b"<iframe" in data, False)
+
+        data = netius.servers.HTTPServer.build_data(
+            "Not Found", url="http://host.com/error"
+        )
+
+        # with a URL named the message is only kept as the title and the
+        # body becomes the frame of the remote page
+        self.assertEqual(b'<iframe src="http://host.com/error"></iframe>' in data, True)
+        self.assertEqual(b"<title>Not Found</title>" in data, True)
+        self.assertEqual(b"<h1>Not Found</h1>" in data, False)
+
+    def test_build_data_style_urls(self):
+        data = netius.servers.HTTPServer.build_data(
+            "Not Found", style_urls=["http://host.com/base.css"]
+        )
+
+        # the style URLs have to reach the text builder, otherwise a caller
+        # that names them gets a page with no style sheet of its own
+        self.assertEqual(b'href="http://host.com/base.css"' in data, True)
+
+        data = netius.servers.HTTPServer.build_data(
+            "Not Found",
+            url="http://host.com/error",
+            style_urls=["http://host.com/base.css"],
+        )
+
+        # the same holds for the frame based page, as both of the builders
+        # that are delegated to support the argument
+        self.assertEqual(b'href="http://host.com/base.css"' in data, True)
+
+    def test_build_text(self):
+        data = netius.servers.HTTPServer.build_text("Not Found", encode=False)
+
+        # the base style is part of the page by default, so that it reads
+        # the same way with no other resource being served
+        self.assertEqual("<h1>Not Found</h1>" in data, True)
+        self.assertEqual("<style>" in data, True)
+
+        data = netius.servers.HTTPServer.build_text(
+            "Not Found",
+            style=False,
+            style_urls=["http://host.com/base.css"],
+            encode=False,
+        )
+
+        # with the style turned off neither the base style nor the style
+        # URLs are named by the page
+        self.assertEqual("<style>" in data, False)
+        self.assertEqual("http://host.com/base.css" in data, False)
+
+    def test_build_text_trace(self):
+        try:
+            raise netius.NetiusError("Problem in handler")
+        except netius.NetiusError:
+            data = netius.servers.HTTPServer.build_text(
+                "Internal Error", trace=True, encode=False
+            )
+
+        # the trace of the exception that is being handled is part of the
+        # page, so that the cause may be read from the response alone
+        self.assertEqual('<div class="traceback">' in data, True)
+        self.assertEqual("NetiusError" in data, True)
+
+    def test_build_iframe(self):
+        data = netius.servers.HTTPServer.build_iframe(
+            "Not Found", "http://host.com/error", encode=False
+        )
+
+        # the remote page is framed and the message is not written into the
+        # body, as the framed page is the one that reports it
+        self.assertEqual('<iframe src="http://host.com/error"></iframe>' in data, True)
+        self.assertEqual("<h1>Not Found</h1>" in data, False)
+
     def test_on_data(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")

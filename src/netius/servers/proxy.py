@@ -1417,7 +1417,14 @@ class ProxyServer(http2.HTTP2Server):
         connection.close_error = error_m
         if _connection.waiting:
             connection.send_response(
-                data=cls.build_text(error_m),
+                data=cls.build_data(
+                    error_m,
+                    url=(
+                        _connection.error_url
+                        if hasattr(_connection, "error_url")
+                        else None
+                    ),
+                ),
                 headers=dict(connection="close"),
                 code=500,
                 code_s="Internal Error",
