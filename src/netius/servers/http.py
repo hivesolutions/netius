@@ -942,11 +942,21 @@ class HTTPServer(netius.StreamServer):
     ):
         if url:
             return cls.build_iframe(
-                text, url, style=style, encode=encode, encoding=encoding
+                text,
+                url,
+                style=style,
+                style_urls=style_urls,
+                encode=encode,
+                encoding=encoding,
             )
         else:
             return cls.build_text(
-                text, trace=trace, style=style, encode=encode, encoding=encoding
+                text,
+                trace=trace,
+                style=style,
+                style_urls=style_urls,
+                encode=encode,
+                encoding=encoding,
             )
 
     @classmethod
