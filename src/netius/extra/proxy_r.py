@@ -379,9 +379,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         # against the currently defined rules and so an error must be raised
         # and propagated to the client connection (end user notification)
         if not prefix:
-            self.debug("No proxy endpoint found")
+            message = "No proxy endpoint found"
+            self.debug(message)
             return connection.send_response(
-                data=cls.build_data("No proxy endpoint found", url=not_found_url),
+                data=cls.build_data(
+                    message,
+                    url=not_found_url,
+                    params=dict(code=404, reason=message),
+                ),
                 headers=dict(connection="close"),
                 version=version_s,
                 code=404,
@@ -417,9 +422,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             # of the authentication methods was successful) sends the invalid
             # response to the client meaning that the current request is invalid
             if not result:
-                self.debug("Not authorized")
+                message = "Not authorized"
+                self.debug(message)
                 return connection.send_response(
-                    data=cls.build_data("Not authorized", url=unauthorized_url),
+                    data=cls.build_data(
+                        message,
+                        url=unauthorized_url,
+                        params=dict(code=401, reason=message),
+                    ),
                     headers={
                         "connection": "close",
                         "wWW-authenticate": 'Basic realm="default"',

@@ -934,6 +934,7 @@ class HTTPServer(netius.StreamServer):
         cls,
         text,
         url=None,
+        params=None,
         trace=False,
         style=True,
         style_urls=[],
@@ -944,6 +945,7 @@ class HTTPServer(netius.StreamServer):
             return cls.build_iframe(
                 text,
                 url,
+                params=params,
                 style=style,
                 style_urls=style_urls,
                 encode=encode,
@@ -972,12 +974,50 @@ class HTTPServer(netius.StreamServer):
 
     @classmethod
     def build_iframe(
-        cls, text, url, style=True, style_urls=[], encode=True, encoding="utf-8"
+        cls,
+        text,
+        url,
+        params=None,
+        style=True,
+        style_urls=[],
+        encode=True,
+        encoding="utf-8",
     ):
-        data = "".join(cls._gen_iframe(text, url, style=style, style_urls=style_urls))
+        data = "".join(
+            cls._gen_iframe(
+                text, url, params=params, style=style, style_urls=style_urls
+            )
+        )
         if encode:
             data = netius.legacy.bytes(data, encoding=encoding, force=True)
         return data
+
+    @classmethod
+    def _build_url(cls, url, params=None):
+        """
+        Encodes the provided parameters onto the URL, so that the page
+        that is referenced by it may be handed the context of the
+        response that is framing it (eg: the status code).
+
+        Any query string that the URL already carries is preserved and
+        the parameters are sorted, so that the same context always
+        builds the very same URL.
+
+        :type url: String
+        :param url: The base URL onto which the parameters are encoded.
+        :type params: Dictionary
+        :param params: The parameters to be encoded onto the URL, in
+        case it's unset or empty the URL is returned unchanged.
+        :rtype: String
+        :return: The URL with the parameters encoded onto it.
+        """
+
+        if not params:
+            return url
+        items = netius.legacy.items(params)
+        items.sort(key=lambda item: item[0])
+        separator = "&" if "?" in url else "?"
+        return url + separator + netius.legacy.urlencode(items)
 
     @classmethod
     def _gen_text(cls, text, trace=False, style=True, style_urls=[]):
@@ -1003,12 +1043,12 @@ class HTTPServer(netius.StreamServer):
             yield value
 
     @classmethod
-    def _gen_iframe(cls, text, url, style=True, style_urls=[]):
+    def _gen_iframe(cls, text, url, params=None, style=True, style_urls=[]):
         for value in cls._gen_header(text, style=style, style_urls=style_urls):
             yield value
 
         yield "<body>"
-        yield '<iframe src="%s"></iframe>' % url
+        yield '<iframe src="%s"></iframe>' % cls._build_url(url, params=params)
         yield "</body>"
 
         for value in cls._gen_footer():

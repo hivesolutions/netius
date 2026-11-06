@@ -539,6 +539,29 @@ class HTTPServerTest(unittest.TestCase):
         # that are delegated to support the argument
         self.assertEqual(b'href="http://host.com/base.css"' in data, True)
 
+    def test_build_data_params(self):
+        data = netius.servers.HTTPServer.build_data(
+            "Not Found",
+            url="http://host.com/error",
+            params=dict(code=404, reason="Not Found"),
+        )
+
+        # the context of the response is encoded onto the framed URL, so
+        # that the page behind it may present the cause to the visitor
+        self.assertEqual(
+            b'<iframe src="http://host.com/error?code=404&reason=Not+Found">' in data,
+            True,
+        )
+
+        data = netius.servers.HTTPServer.build_data(
+            "Not Found", params=dict(code=404, reason="Not Found")
+        )
+
+        # with no URL named there is nothing to frame, so the parameters
+        # have nowhere to go and the plain page is built as before
+        self.assertEqual(b"<h1>Not Found</h1>" in data, True)
+        self.assertEqual(b"code=404" in data, False)
+
     def test_build_text(self):
         data = netius.servers.HTTPServer.build_text("Not Found", encode=False)
 
@@ -581,6 +604,53 @@ class HTTPServerTest(unittest.TestCase):
         # body, as the framed page is the one that reports it
         self.assertEqual('<iframe src="http://host.com/error"></iframe>' in data, True)
         self.assertEqual("<h1>Not Found</h1>" in data, False)
+
+    def test__build_url(self):
+        build_url = netius.servers.HTTPServer._build_url
+
+        # with no parameters the URL is handed back untouched, so that a
+        # caller that names none is never given a trailing separator
+        self.assertEqual(build_url("http://host.com/error"), "http://host.com/error")
+        self.assertEqual(
+            build_url("http://host.com/error", params={}), "http://host.com/error"
+        )
+
+        # the parameters are sorted, so that the same context always builds
+        # the very same URL and may be cached by it
+        self.assertEqual(
+            build_url("http://host.com/error", params=dict(reason="Down", code=500)),
+            "http://host.com/error?code=500&reason=Down",
+        )
+
+    def test__build_url_query(self):
+        build_url = netius.servers.HTTPServer._build_url
+
+        # a URL that already carries a query string keeps it, with the
+        # parameters appended to it instead of replacing it
+        self.assertEqual(
+            build_url("http://host.com/error?v=2", params=dict(code=404)),
+            "http://host.com/error?v=2&code=404",
+        )
+
+        # a URL that ends in the separator is also an URL with a query
+        # string, so the parameters are appended to it as well
+        self.assertEqual(
+            build_url("http://host.com/error?", params=dict(code=404)),
+            "http://host.com/error?&code=404",
+        )
+
+    def test__build_url_encoding(self):
+        build_url = netius.servers.HTTPServer._build_url
+
+        # the values are encoded, so that a reason carrying spaces or any
+        # reserved character cannot break out of the attribute it sits in
+        self.assertEqual(
+            build_url(
+                "http://host.com/error",
+                params=dict(reason='No proxy endpoint found "&" <b>'),
+            ),
+            "http://host.com/error?reason=No+proxy+endpoint+found+%22%26%22+%3Cb%3E",
+        )
 
     def test_on_data(self):
         if mock == None:

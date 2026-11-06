@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * A page of its own for a request that is refused for lack of credentials, so that it no longer shares the page of a service that is down - [#134](https://github.com/hivesolutions/netius/issues/134)
+* The status code and the reason are handed to the error page as query parameters, so that it may present the cause of the response - [#136](https://github.com/hivesolutions/netius/issues/136)
 
 ### Changed
 
@@ -17,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-*
+* The message of an up-stream error no longer reaches the end user when an error page is framed, as it may name internal addresses - [#136](https://github.com/hivesolutions/netius/issues/136)
 
 ## [1.65.0] - 2026-11-06
 

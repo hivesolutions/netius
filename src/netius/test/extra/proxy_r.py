@@ -1275,7 +1275,9 @@ class ReverseProxyServerTest(unittest.TestCase):
         # the status stays the one of the real outcome
         self.assertEqual(call_kwargs["code"], 404)
         self.assertEqual(
-            b'<iframe src="http://host.com/down"></iframe>' in call_kwargs["data"], True
+            b'<iframe src="http://host.com/down?code=404&reason=No+proxy+endpoint+found"></iframe>'
+            in call_kwargs["data"],
+            True,
         )
 
     def test_on_headers_no_match_not_found_url(self):
@@ -1300,7 +1302,8 @@ class ReverseProxyServerTest(unittest.TestCase):
         # matches what has really happened to the request
         self.assertEqual(call_kwargs["code"], 404)
         self.assertEqual(
-            b'<iframe src="http://host.com/not-found"></iframe>' in call_kwargs["data"],
+            b'<iframe src="http://host.com/not-found?code=404&reason=No+proxy+endpoint+found"></iframe>'
+            in call_kwargs["data"],
             True,
         )
 
@@ -1323,7 +1326,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         # the entry of the host is more specific than the default one, so it
         # is the one that has to be picked
         self.assertEqual(
-            b'<iframe src="http://unknown.com/not-found"></iframe>'
+            b'<iframe src="http://unknown.com/not-found?code=404&reason=No+proxy+endpoint+found"></iframe>'
             in call_kwargs["data"],
             True,
         )
@@ -1370,7 +1373,9 @@ class ReverseProxyServerTest(unittest.TestCase):
         # may still be used for every one of the responses
         self.assertEqual(call_kwargs["code"], 401)
         self.assertEqual(
-            b'<iframe src="http://host.com/down"></iframe>' in call_kwargs["data"], True
+            b'<iframe src="http://host.com/down?code=401&reason=Not+authorized"></iframe>'
+            in call_kwargs["data"],
+            True,
         )
 
     def test_on_headers_unauthorized_url(self):
@@ -1399,7 +1404,7 @@ class ReverseProxyServerTest(unittest.TestCase):
             call_kwargs["headers"]["wWW-authenticate"], 'Basic realm="default"'
         )
         self.assertEqual(
-            b'<iframe src="http://host.com/unauthorized"></iframe>'
+            b'<iframe src="http://host.com/unauthorized?code=401&reason=Not+authorized"></iframe>'
             in call_kwargs["data"],
             True,
         )
@@ -1423,7 +1428,8 @@ class ReverseProxyServerTest(unittest.TestCase):
 
         # the entry of the host is more specific than the default one
         self.assertEqual(
-            b'<iframe src="http://host.com/private"></iframe>' in call_kwargs["data"],
+            b'<iframe src="http://host.com/private?code=401&reason=Not+authorized"></iframe>'
+            in call_kwargs["data"],
             True,
         )
 
@@ -1683,7 +1689,9 @@ class ReverseProxyServerTest(unittest.TestCase):
         # so the value may only be cleared after it has been built
         self.assertEqual(call_kwargs["code"], 403)
         self.assertEqual(
-            b'<iframe src="http://host.com/down"></iframe>' in call_kwargs["data"], True
+            b'<iframe src="http://host.com/down?code=403&reason=Forbidden"></iframe>'
+            in call_kwargs["data"],
+            True,
         )
 
     def test_prx_close_after_response(self):
@@ -1750,8 +1758,55 @@ class ReverseProxyServerTest(unittest.TestCase):
         # same way the forbidden response already does
         self.assertEqual(call_kwargs["code"], 500)
         self.assertEqual(
-            b'<iframe src="http://host.com/down"></iframe>' in call_kwargs["data"], True
+            b'<iframe src="http://host.com/down?code=500&reason=Internal+Error"></iframe>'
+            in call_kwargs["data"],
+            True,
         )
+
+    def test_prx_error_message_not_leaked(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        backend = self._make_backend()
+        backend.waiting = True
+        backend.error_url = "http://host.com/down"
+        self.server.conn_map[backend] = frontend
+
+        self.server._on_prx_error(
+            self.server.http_client,
+            backend,
+            Exception("connect to 10.0.0.1:8080 refused"),
+        )
+
+        data = frontend.send_response.call_args[1]["data"]
+
+        # the message of the back-end exception names an internal address, so
+        # neither the URL of the page nor the title of it may carry it
+        self.assertEqual(b"10.0.0.1" in data, False)
+        self.assertEqual(b"<title>Internal Error</title>" in data, True)
+        self.assertEqual(b"reason=Internal+Error" in data, True)
+
+    def test_prx_error_message_kept_unframed(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        backend = self._make_backend()
+        backend.waiting = True
+        self.server.conn_map[backend] = frontend
+
+        self.server._on_prx_error(
+            self.server.http_client,
+            backend,
+            Exception("connect to 10.0.0.1:8080 refused"),
+        )
+
+        data = frontend.send_response.call_args[1]["data"]
+
+        # with no page framed nothing else reports the cause, so the message
+        # is still the one that describes the failure
+        self.assertEqual(b"<h1>connect to 10.0.0.1:8080 refused</h1>" in data, True)
 
     def test_full_request_response_flow(self):
         if mock == None:

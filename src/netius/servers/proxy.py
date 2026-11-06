@@ -1358,6 +1358,7 @@ class ProxyServer(http2.HTTP2Server):
                         if hasattr(_connection, "error_url")
                         else None
                     ),
+                    params=dict(code=403, reason="Forbidden"),
                 ),
                 headers=dict(connection="close"),
                 code=403,
@@ -1416,14 +1417,18 @@ class ProxyServer(http2.HTTP2Server):
         connection.close_reason = netius.REASON_UPSTREAM_ERROR
         connection.close_error = error_m
         if _connection.waiting:
+            error_url = (
+                _connection.error_url if hasattr(_connection, "error_url") else None
+            )
             connection.send_response(
+                # neither the reason handed to the page nor the title of it
+                # carry the error message, as that is the text of the back-end
+                # exception and may name internal addresses, the message is
+                # only kept when no page is framed (nothing else reports it)
                 data=cls.build_data(
-                    error_m,
-                    url=(
-                        _connection.error_url
-                        if hasattr(_connection, "error_url")
-                        else None
-                    ),
+                    "Internal Error" if error_url else error_m,
+                    url=error_url,
+                    params=dict(code=500, reason="Internal Error"),
                 ),
                 headers=dict(connection="close"),
                 code=500,

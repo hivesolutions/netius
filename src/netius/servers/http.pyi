@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from socket import socket as Socket
-from typing import Any, BinaryIO, Callable, Iterator, Sequence
+from typing import Any, BinaryIO, Callable, Iterator, Mapping, Sequence
 
 from netius import Auth, Connection, ParserError, StreamServer
 from netius.common import HTTP2Parser, HTTP2Stream, HTTPParser
@@ -222,6 +222,7 @@ class HTTPServer(StreamServer):
         cls,
         text: str,
         url: str | None = ...,
+        params: Mapping[str, Any] | None = ...,
         trace: bool = ...,
         style: bool = ...,
         style_urls: Sequence[str] = ...,
@@ -243,11 +244,14 @@ class HTTPServer(StreamServer):
         cls,
         text: str,
         url: str,
+        params: Mapping[str, Any] | None = ...,
         style: bool = ...,
         style_urls: Sequence[str] = ...,
         encode: bool = ...,
         encoding: str = ...,
     ) -> str | bytes: ...
+    @classmethod
+    def _build_url(cls, url: str, params: Mapping[str, Any] | None = ...) -> str: ...
     @classmethod
     def _gen_text(
         cls,
@@ -258,7 +262,12 @@ class HTTPServer(StreamServer):
     ) -> Iterator[str]: ...
     @classmethod
     def _gen_iframe(
-        cls, text: str, url: str, style: bool = ..., style_urls: Sequence[str] = ...
+        cls,
+        text: str,
+        url: str,
+        params: Mapping[str, Any] | None = ...,
+        style: bool = ...,
+        style_urls: Sequence[str] = ...,
     ) -> Iterator[str]: ...
     @classmethod
     def _gen_header(
