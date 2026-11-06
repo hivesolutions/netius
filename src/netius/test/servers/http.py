@@ -625,6 +625,19 @@ class HTTPServerTest(unittest.TestCase):
         self.assertEqual(b"<style>" in data, False)
         self.assertEqual(b'<iframe src="http://host.com/error"></iframe>' in data, True)
 
+    def test_build_iframe_quote(self):
+        data = netius.servers.HTTPServer.build_iframe(
+            "Not Found", 'http://host.com/error"onload="alert(1)'
+        )
+
+        # the URL sits in a double quoted attribute, so a quote in it may
+        # never reach the markup as it is, the attribute would end early
+        # and the page that is framed would not be the configured one
+        self.assertEqual(
+            b'src="http://host.com/error%22onload=%22alert(1)"' in data, True
+        )
+        self.assertEqual(b'error"onload' in data, False)
+
     def test__build_url(self):
         build_url = netius.servers.HTTPServer._build_url
 

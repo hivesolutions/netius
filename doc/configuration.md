@@ -171,7 +171,9 @@ Services may also use the following Consul tags to control routing behavior:
 | **proxy.name=\<name\>**        | Overrides the subdomain name used for host-based routing instead of the service/job name (eg: `proxy.name=webapp` routes `webapp` instead of the service name). |
 | **proxy.domain=\<domain\>**    | Alias for `proxy.name` with lower priority, overrides the domain name used for routing.                                                                         |
 | **proxy.password=\<secret\>**  | Sets password protection for the service using simple authentication, requires a valid password to access the proxied service.                                  |
-| **proxy.error-url=\<url\>**    | Configures a custom error page URL to redirect users when the proxied service returns an error response.                                                        |
+| **proxy.error-url=\<url\>**    | Configures the page framed when the service is registered but refused the connection or failed to answer.                                                       |
+| **proxy.not-found-url=\<url\>** | Configures the page framed when no service is registered for the requested host, falls back to `proxy.error-url` when unset.                                   |
+| **proxy.unauthorized-url=\<url\>** | Configures the page framed when the request carries no valid credentials, falls back to `proxy.error-url` when unset, note that the page has to be reachable without the credentials. |
 | **proxy.address=\<address\>**  | Overrides the instance address used when building backend URLs, bypassing the default Consul service/node address resolution.                                   |
 | **proxy.protocol=\<scheme\>**  | Selects the upstream scheme used when building backend URLs, accepts `http` or `https`, defaults to `http` when unset or invalid.                               |
 | **proxy.port=\<ports\>**       | Comma-separated list of allowed ports or port ranges for the service (eg: `proxy.port=8080,9090` or `proxy.port=8080-8085,9090`).                               |
@@ -180,6 +182,18 @@ Services may also use the following Consul tags to control routing behavior:
 | **proxy.auth-regex=\<rules\>** | Comma-separated regex auth rules as `<pattern>;<type>` with types `none`, `password`, `simple:<user>:<pass>`, `address:<ip+cidr>`, `\|` for OR.                 |
 | **proxy.regex=\<rules\>**      | Comma-separated regex routing rules as `<pattern>;<target>`, matched before the host rules, `{0}` is the first capture group, patterns may not contain commas.  |
 | **proxy.redirect-ssl=true**    | Enables automatic HTTP to HTTPS redirection for the service, all HTTP requests are redirected to the equivalent HTTPS URL.                                      |
+
+##### Error Pages
+
+The pages named by the tags above (and by the equivalent `<NAME>_ERROR_URL`, `<NAME>_NOT_FOUND_URL` and `<NAME>_UNAUTHORIZED_URL` configuration values, where `DEFAULT` is the name that covers every host) are framed in place of the plain body of the response, and the status code and the reason are appended to their URL as the `code` and `reason` query parameters, so that a page may report the cause of the response it is framing:
+
+```html
+<iframe src="//cdn.example.com/down?code=500&reason=Internal+Error"></iframe>
+```
+
+A query string the configured URL already carries is kept and a fragment stays at the end of it. The reason of an up-stream error is the status phrase and never the message of the back-end exception, which may name internal addresses.
+
+The page of the not authorized response has a caveat of its own: the browser loads it after the credentials have been refused, so it has to be reachable **without** them. A page served by the protected service itself, or by any host the same authentication covers, answers the framed request with another `401` and the user is prompted again instead of being shown the page.
 
 #### DNS Client
 

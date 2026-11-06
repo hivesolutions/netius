@@ -9,13 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* A page of its own for a request that is refused for lack of credentials, so that it no longer shares the page of a service that is down - [#134](https://github.com/hivesolutions/netius/issues/134)
+* A page of its own for a request that is refused for lack of credentials, named by `<NAME>_UNAUTHORIZED_URL` or by the `proxy.unauthorized-url` tag - [#134](https://github.com/hivesolutions/netius/issues/134)
 * Review of every pull request by Claude - [#138](https://github.com/hivesolutions/netius/issues/138)
 * The status code and the reason are handed to the error page as query parameters, so that it may present the cause of the response - [#136](https://github.com/hivesolutions/netius/issues/136)
 
 ### Changed
 
-*
+* A request that is refused for lack of credentials frames the configured error page when no page of its own is named, where it answered with the plain body before - [#134](https://github.com/hivesolutions/netius/issues/134)
 
 ### Fixed
 

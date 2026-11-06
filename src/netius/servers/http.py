@@ -1051,7 +1051,10 @@ class HTTPServer(netius.StreamServer):
             yield value
 
         yield "<body>"
-        yield '<iframe src="%s"></iframe>' % cls._build_url(url, params=params)
+        # the URL is placed in a double quoted attribute, so a quote in it
+        # would end the attribute early and change the page that is framed
+        url = cls._build_url(url, params=params).replace('"', "%22")
+        yield '<iframe src="%s"></iframe>' % url
         yield "</body>"
 
         for value in cls._gen_footer():
