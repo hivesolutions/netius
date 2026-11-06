@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* An error page whose URL carries a quote or an ampersand is now framed as it was named, instead of the attribute ending early or the query string being read as a character reference
 * The message of an up-stream error no longer reaches the end user when an error page is framed, as it may name internal addresses - [#136](https://github.com/hivesolutions/netius/issues/136)
 
 ## [1.65.0] - 2026-11-06

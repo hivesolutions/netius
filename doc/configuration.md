@@ -188,8 +188,10 @@ Services may also use the following Consul tags to control routing behavior:
 The pages named by the tags above (and by the equivalent `<NAME>_ERROR_URL`, `<NAME>_NOT_FOUND_URL` and `<NAME>_UNAUTHORIZED_URL` configuration values, where `DEFAULT` is the name that covers every host) are framed in place of the plain body of the response, and the status code and the reason are appended to their URL as the `code` and `reason` query parameters, so that a page may report the cause of the response it is framing:
 
 ```html
-<iframe src="//cdn.example.com/down?code=500&reason=Internal+Error"></iframe>
+<iframe src="//cdn.example.com/down?code=500&amp;reason=Internal+Error"></iframe>
 ```
+
+The ampersand is escaped because the URL sits in an attribute, so the request the browser makes is `//cdn.example.com/down?code=500&reason=Internal+Error` and the page reads `code` and `reason` from its query string as usual.
 
 A query string the configured URL already carries is kept and a fragment stays at the end of it. The reason of an up-stream error is the status phrase and never the message of the back-end exception, which may name internal addresses.
 
