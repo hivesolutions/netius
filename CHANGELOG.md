@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* A page of its own for a request that is refused for lack of credentials, so that it no longer shares the page of a service that is down - [#134](https://github.com/hivesolutions/netius/issues/134)
 
 ### Changed
 

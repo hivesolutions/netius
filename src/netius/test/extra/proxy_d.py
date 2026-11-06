@@ -287,6 +287,21 @@ class DockerProxyServerTest(unittest.TestCase):
             server.not_found_urls["netius-d"], "http://netius.com/not-found"
         )
 
+    def test__build_unauthorized_urls(self):
+        server = self._make_server()
+
+        self._conf(NETIUS_D_UNAUTHORIZED_URL="http://netius.com/unauthorized")
+
+        server.unauthorized_urls = {}
+        server._build_unauthorized_urls()
+
+        self.assertEqual(
+            server.unauthorized_urls["netius_d"], "http://netius.com/unauthorized"
+        )
+        self.assertEqual(
+            server.unauthorized_urls["netius-d"], "http://netius.com/unauthorized"
+        )
+
     def test__build_redirect_ssl(self):
         server = self._make_server()
 

@@ -1133,6 +1133,35 @@ class ConsulProxyServerTest(unittest.TestCase):
         # registered, otherwise the entry would leak across poll cycles
         self.assertTrue(not "myapp" in self.server.not_found_urls)
 
+    def test_apply_tags_unauthorized_url(self):
+        tags = ["proxy.enable=true", "proxy.unauthorized-url=http://errors.local/401"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertEqual(
+            self.server.unauthorized_urls.get("myapp"), "http://errors.local/401"
+        )
+
+    def test_apply_tags_unauthorized_url_empty(self):
+        tags = ["proxy.enable=true", "proxy.unauthorized-url="]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertTrue(not "myapp" in self.server.unauthorized_urls)
+
+    def test_apply_tags_unauthorized_url_cleanup(self):
+        tags = ["proxy.enable=true", "proxy.unauthorized-url=http://errors.local/401"]
+        entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
+        self.server._build_hosts(entries)
+
+        self.assertTrue("myapp" in self.server.unauthorized_urls)
+
+        self.server._build_hosts([])
+
+        # a service that is gone from the catalog may not keep its page
+        # registered, otherwise the entry would leak across poll cycles
+        self.assertTrue(not "myapp" in self.server.unauthorized_urls)
+
     def test_apply_tags_redirect(self):
         tags = ["proxy.enable=true", "proxy.redirect=other.host.com"]
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
@@ -1854,6 +1883,7 @@ class ConsulProxyServerTest(unittest.TestCase):
             "proxy.enable=true",
             "proxy.error-url=http://errors.local/50x",
             "proxy.not-found-url=http://errors.local/404",
+            "proxy.unauthorized-url=http://errors.local/401",
         ]
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], tags)]
         self.server._build_hosts(entries)
@@ -1872,6 +1902,7 @@ class ConsulProxyServerTest(unittest.TestCase):
         self.assertEqual(("myapp", "http://10.0.0.1:8080") in pairs, True)
         self.assertEqual(("myapp", "http://errors.local/50x") in pairs, True)
         self.assertEqual(("myapp", "http://errors.local/404") in pairs, True)
+        self.assertEqual(("myapp", "http://errors.local/401") in pairs, True)
 
     def test_host_rules(self):
         entries = [("myapp", "myapp", ["http://10.0.0.1:8080"], ["proxy.enable=true"])]

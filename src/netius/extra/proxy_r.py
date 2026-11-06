@@ -96,6 +96,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         redirect_regex={},
         error_urls={},
         not_found_urls={},
+        unauthorized_urls={},
         forward=None,
         strategy="robin",
         reuse=True,
@@ -124,6 +125,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         redirect = dict(redirect)
         error_urls = dict(error_urls)
         not_found_urls = dict(not_found_urls)
+        unauthorized_urls = dict(unauthorized_urls)
         self.load_config(
             path=config,
             regex=regex,
@@ -135,6 +137,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             redirect_regex=redirect_regex,
             error_urls=error_urls,
             not_found_urls=not_found_urls,
+            unauthorized_urls=unauthorized_urls,
             forward=forward,
             strategy=strategy,
             reuse=reuse,
@@ -196,6 +199,8 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             self._build_error_urls()
         if self.env:
             self._build_not_found_urls()
+        if self.env:
+            self._build_unauthorized_urls()
         if self.sts:
             self.info("Strict transport security set to %d seconds", self.sts)
         if self.resolve:
@@ -363,6 +368,13 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         not_found_url = self.not_found_urls.get(host_s, not_found_url)
         not_found_url = self.not_found_urls.get(host_o, not_found_url)
 
+        # and the equivalent one for the not authorized URL, which also falls
+        # back to the error one so that a single page may cover every response
+        unauthorized_url = self.unauthorized_urls.get(DEFAULT_NAME, error_url)
+        unauthorized_url = self.unauthorized_urls.get(host, unauthorized_url)
+        unauthorized_url = self.unauthorized_urls.get(host_s, unauthorized_url)
+        unauthorized_url = self.unauthorized_urls.get(host_o, unauthorized_url)
+
         # in case no prefix is defined at this stage there's no matching
         # against the currently defined rules and so an error must be raised
         # and propagated to the client connection (end user notification)
@@ -407,7 +419,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             if not result:
                 self.debug("Not authorized")
                 return connection.send_response(
-                    data=cls.build_text("Not authorized"),
+                    data=cls.build_data("Not authorized", url=unauthorized_url),
                     headers={
                         "connection": "close",
                         "wWW-authenticate": 'Basic realm="default"',
@@ -1004,6 +1016,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
             self.not_found_urls[base] = not_found_url
             self.not_found_urls[base_dash] = not_found_url
 
+    def _build_unauthorized_urls(self):
+        linked = netius.conf_suffix("_UNAUTHORIZED_URL")
+        for name, unauthorized_url in netius.legacy.iteritems(linked):
+            base = name[:-17].lower()
+            base_dash = base.replace("_", "-")
+            self.unauthorized_urls[base] = unauthorized_url
+            self.unauthorized_urls[base_dash] = unauthorized_url
+
     def _echo(self, sort=True):
         self._echo_regex(sort=sort)
         self._echo_hosts(sort=sort)
@@ -1011,6 +1031,7 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         self._echo_redirect(sort=sort)
         self._echo_error_urls(sort=sort)
         self._echo_not_found_urls(sort=sort)
+        self._echo_unauthorized_urls(sort=sort)
 
     def _echo_regex(self, sort=True):
         self.info("Regex registration information")
@@ -1056,6 +1077,14 @@ class ReverseProxyServer(netius.servers.ProxyServer):
         self.info("Not found URLs registration information")
         for key in keys:
             self.info("%s => %s", key, self.not_found_urls[key])
+
+    def _echo_unauthorized_urls(self, sort=True):
+        keys = netius.legacy.keys(self.unauthorized_urls)
+        if sort:
+            keys.sort()
+        self.info("Not authorized URLs registration information")
+        for key in keys:
+            self.info("%s => %s", key, self.unauthorized_urls[key])
 
 
 if __name__ == "__main__":
