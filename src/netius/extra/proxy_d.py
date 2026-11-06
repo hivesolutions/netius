@@ -81,6 +81,7 @@ class DockerProxyServer(proxy_r.ReverseProxyServer):
         self._build_redirect()
         self._build_error_urls()
         self._build_not_found_urls()
+        self._build_unauthorized_urls()
         self._build_redirect_ssl()
 
     def _build_regex(self, token="$", sort=True):

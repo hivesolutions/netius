@@ -178,6 +178,44 @@ class ReverseProxyServerTest(unittest.TestCase):
         # be taken as a not found one (the fall back is done at resolution)
         self.assertEqual(self.server.not_found_urls, {})
 
+    def test__build_unauthorized_urls(self):
+        with netius.conf_override(
+            "DEFAULT_UNAUTHORIZED_URL", "http://host.com/unauthorized"
+        ):
+            self.server.unauthorized_urls = {}
+            self.server._build_unauthorized_urls()
+
+        self.assertEqual(
+            self.server.unauthorized_urls[netius.extra.proxy_r.DEFAULT_NAME],
+            "http://host.com/unauthorized",
+        )
+
+    def test__build_unauthorized_urls_dashed(self):
+        with netius.conf_override(
+            "MY_APP_UNAUTHORIZED_URL", "http://host.com/unauthorized"
+        ):
+            self.server.unauthorized_urls = {}
+            self.server._build_unauthorized_urls()
+
+        self.assertEqual(
+            self.server.unauthorized_urls["my_app"], "http://host.com/unauthorized"
+        )
+        self.assertEqual(
+            self.server.unauthorized_urls["my-app"], "http://host.com/unauthorized"
+        )
+
+    def test__build_unauthorized_urls_other_suffixes(self):
+        with netius.conf_override("DEFAULT_ERROR_URL", "http://host.com/down"):
+            with netius.conf_override(
+                "DEFAULT_NOT_FOUND_URL", "http://host.com/not-found"
+            ):
+                self.server.unauthorized_urls = {}
+                self.server._build_unauthorized_urls()
+
+        # the three suffixes are distinct, so neither of the other variables
+        # may be taken as a not authorized one
+        self.assertEqual(self.server.unauthorized_urls, {})
+
     def test__echo(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
@@ -189,6 +227,7 @@ class ReverseProxyServerTest(unittest.TestCase):
             redirect=dict(old="new"),
             error_urls=dict(first="http://first/error"),
             not_found_urls=dict(first="http://first/not-found"),
+            unauthorized_urls=dict(first="http://first/unauthorized"),
         )
 
         try:
@@ -208,6 +247,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         self.assertEqual(("old", "new") in pairs, True)
         self.assertEqual(("first", "http://first/error") in pairs, True)
         self.assertEqual(("first", "http://first/not-found") in pairs, True)
+        self.assertEqual(("first", "http://first/unauthorized") in pairs, True)
 
         # the hosts are dumped in order, so that the same configuration
         # always reads the same way whatever the order of the map
@@ -343,6 +383,7 @@ class ReverseProxyServerTest(unittest.TestCase):
             # empty defaults of the constructor would be mutated in place
             self.assertEqual(first.error_urls is second.error_urls, False)
             self.assertEqual(first.not_found_urls is second.not_found_urls, False)
+            self.assertEqual(first.unauthorized_urls is second.unauthorized_urls, False)
             self.assertEqual(first.hosts is second.hosts, False)
             self.assertEqual(first.alias is second.alias, False)
             self.assertEqual(first.auth is second.auth, False)
@@ -1006,6 +1047,19 @@ class ReverseProxyServerTest(unittest.TestCase):
             "http://host.com/not-found",
         )
 
+    def test_on_serve_env_unauthorized(self):
+        self.server.env = True
+
+        with netius.conf_override(
+            "DEFAULT_UNAUTHORIZED_URL", "http://host.com/unauthorized"
+        ):
+            self.server.on_serve()
+
+        self.assertEqual(
+            self.server.unauthorized_urls[netius.extra.proxy_r.DEFAULT_NAME],
+            "http://host.com/unauthorized",
+        )
+
     def test_on_serve_env_unset(self):
         self.server.env = False
 
@@ -1016,6 +1070,7 @@ class ReverseProxyServerTest(unittest.TestCase):
         # server configured by hand is never overridden
         self.assertEqual(self.server.error_urls, {})
         self.assertEqual(self.server.not_found_urls, {})
+        self.assertEqual(self.server.unauthorized_urls, {})
 
     def test_on_headers_routes_to_backend(self):
         if mock == None:
@@ -1272,6 +1327,123 @@ class ReverseProxyServerTest(unittest.TestCase):
             in call_kwargs["data"],
             True,
         )
+
+    def test_on_headers_unauthorized_sends_401(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        request_parser = self._make_request_parser()
+
+        self.server.auth["host.com"] = netius.DenyAuth()
+
+        self.server.on_headers(frontend, request_parser)
+
+        call_kwargs = frontend.send_response.call_args[1]
+
+        # the challenge still reaches the user agent, and with no page named
+        # the plain body is the one that is served
+        self.assertEqual(call_kwargs["code"], 401)
+        self.assertEqual(
+            call_kwargs["headers"]["wWW-authenticate"], 'Basic realm="default"'
+        )
+        self.assertEqual(b"<h1>Not authorized</h1>" in call_kwargs["data"], True)
+        self.assertEqual(b"<iframe" in call_kwargs["data"], False)
+
+    def test_on_headers_unauthorized_error_url(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        request_parser = self._make_request_parser()
+
+        self.server.auth["host.com"] = netius.DenyAuth()
+        self.server.error_urls[netius.extra.proxy_r.DEFAULT_NAME] = (
+            "http://host.com/down"
+        )
+
+        self.server.on_headers(frontend, request_parser)
+
+        call_kwargs = frontend.send_response.call_args[1]
+
+        # with no page of its own the error one is framed, as a single page
+        # may still be used for every one of the responses
+        self.assertEqual(call_kwargs["code"], 401)
+        self.assertEqual(
+            b'<iframe src="http://host.com/down"></iframe>' in call_kwargs["data"], True
+        )
+
+    def test_on_headers_unauthorized_url(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        request_parser = self._make_request_parser()
+
+        self.server.auth["host.com"] = netius.DenyAuth()
+        self.server.error_urls[netius.extra.proxy_r.DEFAULT_NAME] = (
+            "http://host.com/down"
+        )
+        self.server.unauthorized_urls[netius.extra.proxy_r.DEFAULT_NAME] = (
+            "http://host.com/unauthorized"
+        )
+
+        self.server.on_headers(frontend, request_parser)
+
+        call_kwargs = frontend.send_response.call_args[1]
+
+        # the not authorized page wins over the error one, and the challenge
+        # header is kept so that the credentials may still be asked for
+        self.assertEqual(call_kwargs["code"], 401)
+        self.assertEqual(
+            call_kwargs["headers"]["wWW-authenticate"], 'Basic realm="default"'
+        )
+        self.assertEqual(
+            b'<iframe src="http://host.com/unauthorized"></iframe>'
+            in call_kwargs["data"],
+            True,
+        )
+
+    def test_on_headers_unauthorized_url_host(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        request_parser = self._make_request_parser()
+
+        self.server.auth["host.com"] = netius.DenyAuth()
+        self.server.unauthorized_urls[netius.extra.proxy_r.DEFAULT_NAME] = (
+            "http://host.com/unauthorized"
+        )
+        self.server.unauthorized_urls["host.com"] = "http://host.com/private"
+
+        self.server.on_headers(frontend, request_parser)
+
+        call_kwargs = frontend.send_response.call_args[1]
+
+        # the entry of the host is more specific than the default one
+        self.assertEqual(
+            b'<iframe src="http://host.com/private"></iframe>' in call_kwargs["data"],
+            True,
+        )
+
+    def test_on_headers_authorized_reaches_backend(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        frontend = self._make_frontend()
+        request_parser = self._make_request_parser()
+
+        self.server.auth["host.com"] = netius.AllowAuth()
+        self.server.unauthorized_urls[netius.extra.proxy_r.DEFAULT_NAME] = (
+            "http://host.com/unauthorized"
+        )
+
+        self.server.on_headers(frontend, request_parser)
+
+        # an accepted authentication may never answer with a page, the request
+        # has to reach the back-end as it would with no authentication at all
+        self.assertEqual(frontend.send_response.call_count, 0)
 
     def test_on_headers_redirect(self):
         if mock == None:
