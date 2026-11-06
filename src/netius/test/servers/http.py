@@ -562,6 +562,16 @@ class HTTPServerTest(unittest.TestCase):
         self.assertEqual(b"<h1>Not Found</h1>" in data, True)
         self.assertEqual(b"code=404" in data, False)
 
+    def test_build_data_positional(self):
+        try:
+            raise netius.NetiusError("Problem in handler")
+        except netius.NetiusError:
+            data = netius.servers.HTTPServer.build_data("Internal Error", None, True)
+
+        # the third argument of the builder is still the trace flag, so a
+        # call that names the options by position keeps its behaviour
+        self.assertEqual(b'<div class="traceback">' in data, True)
+
     def test_build_text(self):
         data = netius.servers.HTTPServer.build_text("Not Found", encode=False)
 
@@ -605,6 +615,16 @@ class HTTPServerTest(unittest.TestCase):
         self.assertEqual('<iframe src="http://host.com/error"></iframe>' in data, True)
         self.assertEqual("<h1>Not Found</h1>" in data, False)
 
+    def test_build_iframe_positional(self):
+        data = netius.servers.HTTPServer.build_iframe(
+            "Not Found", "http://host.com/error", False
+        )
+
+        # the third argument of the builder is still the style flag, so a
+        # call that names the options by position keeps its behaviour
+        self.assertEqual(b"<style>" in data, False)
+        self.assertEqual(b'<iframe src="http://host.com/error"></iframe>' in data, True)
+
     def test__build_url(self):
         build_url = netius.servers.HTTPServer._build_url
 
@@ -637,6 +657,30 @@ class HTTPServerTest(unittest.TestCase):
         self.assertEqual(
             build_url("http://host.com/error?", params=dict(code=404)),
             "http://host.com/error?&code=404",
+        )
+
+    def test__build_url_fragment(self):
+        build_url = netius.servers.HTTPServer._build_url
+
+        # the parameters belong to the query and not to the fragment, so a
+        # URL that carries one keeps it at the end
+        self.assertEqual(
+            build_url("http://host.com/error#details", params=dict(code=404)),
+            "http://host.com/error?code=404#details",
+        )
+
+        # the same holds when a query string is already there, the fragment
+        # is still the last part of the URL
+        self.assertEqual(
+            build_url("http://host.com/error?v=2#details", params=dict(code=404)),
+            "http://host.com/error?v=2&code=404#details",
+        )
+
+        # a URL that ends in the fragment separator carries an empty one,
+        # which may not turn into a stray separator before the query
+        self.assertEqual(
+            build_url("http://host.com/error#", params=dict(code=404)),
+            "http://host.com/error?code=404#",
         )
 
     def test__build_url_encoding(self):

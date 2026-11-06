@@ -222,12 +222,12 @@ class HTTPServer(StreamServer):
         cls,
         text: str,
         url: str | None = ...,
-        params: Mapping[str, Any] | None = ...,
         trace: bool = ...,
         style: bool = ...,
         style_urls: Sequence[str] = ...,
         encode: bool = ...,
         encoding: str = ...,
+        params: Mapping[str, Any] | None = ...,
     ) -> str | bytes: ...
     @classmethod
     def build_text(
@@ -244,11 +244,11 @@ class HTTPServer(StreamServer):
         cls,
         text: str,
         url: str,
-        params: Mapping[str, Any] | None = ...,
         style: bool = ...,
         style_urls: Sequence[str] = ...,
         encode: bool = ...,
         encoding: str = ...,
+        params: Mapping[str, Any] | None = ...,
     ) -> str | bytes: ...
     @classmethod
     def _build_url(cls, url: str, params: Mapping[str, Any] | None = ...) -> str: ...
@@ -265,9 +265,9 @@ class HTTPServer(StreamServer):
         cls,
         text: str,
         url: str,
-        params: Mapping[str, Any] | None = ...,
         style: bool = ...,
         style_urls: Sequence[str] = ...,
+        params: Mapping[str, Any] | None = ...,
     ) -> Iterator[str]: ...
     @classmethod
     def _gen_header(

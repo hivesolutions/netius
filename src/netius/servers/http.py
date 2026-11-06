@@ -934,22 +934,22 @@ class HTTPServer(netius.StreamServer):
         cls,
         text,
         url=None,
-        params=None,
         trace=False,
         style=True,
         style_urls=[],
         encode=True,
         encoding="utf-8",
+        params=None,
     ):
         if url:
             return cls.build_iframe(
                 text,
                 url,
-                params=params,
                 style=style,
                 style_urls=style_urls,
                 encode=encode,
                 encoding=encoding,
+                params=params,
             )
         else:
             return cls.build_text(
@@ -977,15 +977,15 @@ class HTTPServer(netius.StreamServer):
         cls,
         text,
         url,
-        params=None,
         style=True,
         style_urls=[],
         encode=True,
         encoding="utf-8",
+        params=None,
     ):
         data = "".join(
             cls._gen_iframe(
-                text, url, params=params, style=style, style_urls=style_urls
+                text, url, style=style, style_urls=style_urls, params=params
             )
         )
         if encode:
@@ -1001,7 +1001,8 @@ class HTTPServer(netius.StreamServer):
 
         Any query string that the URL already carries is preserved and
         the parameters are sorted, so that the same context always
-        builds the very same URL.
+        builds the very same URL, a fragment is kept at the end of it
+        as the parameters belong to the query and not to the fragment.
 
         :type url: String
         :param url: The base URL onto which the parameters are encoded.
@@ -1016,8 +1017,10 @@ class HTTPServer(netius.StreamServer):
             return url
         items = netius.legacy.items(params)
         items.sort(key=lambda item: item[0])
-        separator = "&" if "?" in url else "?"
-        return url + separator + netius.legacy.urlencode(items)
+        base, anchor, fragment = url.partition("#")
+        separator = "&" if "?" in base else "?"
+        base += separator + netius.legacy.urlencode(items)
+        return base + anchor + fragment
 
     @classmethod
     def _gen_text(cls, text, trace=False, style=True, style_urls=[]):
@@ -1043,7 +1046,7 @@ class HTTPServer(netius.StreamServer):
             yield value
 
     @classmethod
-    def _gen_iframe(cls, text, url, params=None, style=True, style_urls=[]):
+    def _gen_iframe(cls, text, url, style=True, style_urls=[], params=None):
         for value in cls._gen_header(text, style=style, style_urls=style_urls):
             yield value
 
