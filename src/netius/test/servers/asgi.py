@@ -953,9 +953,56 @@ class ASGIServerTest(unittest.TestCase):
 
         server._send_start(connection, dict(status=200, headers=[]))
 
-        # a response with no length announced for it may only be kept alive
-        # in case a chunked encoding is being used to frame it
+        # a response with no length announced for it is framed with the chunked
+        # encoding for an HTTP/1.1 client, so that the end of its payload does
+        # not require the closing of the connection (kept alive)
+        self.assertEqual(connection.current, netius.common.CHUNKED_ENCODING)
+        self.assertEqual(connection.parser.keep_alive, True)
+        self.assertIn(b"Transfer-Encoding: chunked\r\n", self._data(connection))
+
+        connection.data = []
+        server._send_body(connection, dict(body=b"Hello", more_body=False))
+
+        # the payload is sent as a chunk followed by the last (empty) one
+        self.assertEqual(self._data(connection), b"5\r\nHello\r\n0\r\n\r\n")
+
+        server = self._make_server()
+        connection = self._make_connection(server)
+        connection.parse(b"GET / HTTP/1.0\r\nHost: netius.hive.pt\r\n\r\n")
+
+        server._send_start(connection, dict(status=200, headers=[]))
+
+        # an HTTP/1.0 client knows no chunked encoding, so such a response may
+        # only be sent as it is, with the end of it marked by the closing
+        self.assertEqual(connection.current, netius.common.PLAIN_ENCODING)
         self.assertEqual(connection.parser.keep_alive, False)
+
+        server = self._make_server()
+        connection = self._make_connection(server)
+        connection.parse(b"HEAD / HTTP/1.1\r\nHost: netius.hive.pt\r\n\r\n")
+
+        server._send_start(connection, dict(status=200, headers=[]))
+
+        # the response to a HEAD request carries no payload to be framed, so
+        # the chunked encoding is never used for it
+        self.assertEqual(connection.current, netius.common.PLAIN_ENCODING)
+
+    def test__send_start_close(self):
+        server = self._make_server()
+        connection = self._make_connection(
+            server, encoding=netius.common.CHUNKED_ENCODING
+        )
+        connection.parse(
+            b"GET / HTTP/1.1\r\nHost: netius.hive.pt\r\nConnection: close\r\n\r\n"
+        )
+
+        server._send_start(connection, dict(status=200, headers=[]))
+
+        # the closing of the connection requested by the client is honoured,
+        # as the chunked encoding makes keeping it alive possible but never
+        # requires it (the connection used to be kept alive regardless)
+        self.assertEqual(connection.parser.keep_alive, False)
+        self.assertIn(b"Connection: close\r\n", self._data(connection))
 
     def test__send_body(self):
         server = self._make_server()

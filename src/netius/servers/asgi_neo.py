@@ -663,6 +663,21 @@ class ASGIServer(http2.HTTP2Server):
         if content_range:
             connection.set_uncompressed()
 
+        # in case the response does not announce its length and the connection
+        # is not using a transfer encoding, the chunked one is used for an
+        # HTTP/1.1 client, so that the end of the payload is framed without the
+        # closing of the connection (keeping it alive), note that a response
+        # without payload and an HTTP/2 stream (own framing) never require it
+        is_head = parser.method and parser.method.upper() == "HEAD"
+        if (
+            length == -1
+            and connection.is_plain()
+            and parser.version == netius.common.HTTP_11
+            and status_c >= 200
+            and not is_head
+        ):
+            connection.set_chunked()
+
         # verifies if the current connection is using a chunked based
         # stream as this will affect some of the decisions that are
         # going to be taken as part of response header creation
@@ -672,15 +687,15 @@ class ASGIServer(http2.HTTP2Server):
         # of the content length in case it does not unsets the keep
         # alive setting in the parser because the keep alive setting
         # requires the content length to be defined or the target
-        # encoding type to be chunked
+        # encoding type to be chunked, note that the setting is never
+        # set as the client may have requested the connection closing
         has_length = not length == -1
         if not has_length:
-            parser.keep_alive = is_chunked
+            parser.keep_alive = parser.keep_alive and is_chunked
 
         # determines if the response may carry a payload, as neither a HEAD
         # request nor some of the status codes allow one, for such situations
         # the payload produced by the application is discarded
-        is_head = parser.method and parser.method.upper() == "HEAD"
         connection.empty = is_head or status_c < 200 or status_c in http.EMPTY_CODES
 
         # an informational or a no content response may never announce a
