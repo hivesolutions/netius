@@ -1,7 +1,8 @@
-from asyncio import AbstractEventLoop
+from asyncio import AbstractEventLoop, Handle
+from socket import socket
 from typing import Any, Callable, Coroutine, Mapping, Sequence
 
-from netius import Connection
+from netius import Base, Connection, Poll
 from netius.common import HTTP2Parser, HTTP2Stream, HTTPParser
 from netius.servers import HTTP2Server, HTTPConnection
 
@@ -32,8 +33,13 @@ class ASGIServer(HTTP2Server):
     max_pending: int
     lifespan: bool
     asyncio: bool
+    uvloop: bool
     loop_asyncio: AbstractEventLoop | None
     pumping: bool
+    driving: bool
+    tick_h: Handle | None
+    tick_t: float | None
+    tick_e: BaseException | None
     legacy_app: bool
     lifespan_t: Any
     lifespan_v: str | None
@@ -49,15 +55,27 @@ class ASGIServer(HTTP2Server):
         max_pending: int = ...,
         lifespan: bool = ...,
         asyncio: bool | None = ...,
+        uvloop: bool | None = ...,
         *args,
         **kwargs
     ): ...
     def cleanup(self): ...
     def ticks(self): ...
+    def build_poll(self) -> Poll: ...
+    def loop(self): ...
+    def delay(
+        self,
+        callable: Callable[[], Any],
+        timeout: float | None = ...,
+        immediately: bool = ...,
+        verify: bool = ...,
+        safe: bool = ...,
+    ) -> tuple[float, int, Callable[[], Any], int, list[bool]] | None: ...
     def on_connection_c(self, connection: Connection): ...
     def on_connection_d(self, connection: Connection): ...
     def on_serve(self): ...
     def on_stop(self): ...
+    def on_child(self, pipe: Callable[[str], Any] | None = ...): ...
     def on_data(self, connection: Connection, data: bytes): ...
     def on_data_http(
         self,
@@ -151,6 +169,18 @@ class ASGIServer(HTTP2Server):
     def _is_ready(self, loop: AbstractEventLoop) -> bool: ...
     def _running_loop(self, asyncio: Any) -> AbstractEventLoop | None: ...
     def _set_running_loop(self, asyncio: Any, loop: AbstractEventLoop | None): ...
+    def _ready(
+        self,
+        owner: Base | None,
+        reads: Sequence[socket],
+        writes: Sequence[socket],
+        errors: Sequence[socket],
+    ): ...
+    def _tick(self): ...
+    def _stop(self, exception: BaseException): ...
+    def _schedule(self, timeout: float): ...
+    def _timeout(self) -> float: ...
+    def _is_driven(self) -> bool: ...
     def _call_app(
         self,
         scope: Mapping[str, Any],
