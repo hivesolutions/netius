@@ -1269,7 +1269,25 @@ class AsyncioPollTest(unittest.TestCase):
 
     def _run(self, timeout=1.0):
         # runs the loop until the callback stops it, bounded by a timeout
-        # so that a missing report is not able to block the test forever
+        # so that a missing report is not able to block the test forever,
+        # with the running loop of asyncio unset in the meantime, as the one
+        # set by the compatibility layer may be left by a previous test
+        asyncio = netius.get_asyncio()
+        running = self._running_loop(asyncio)
+        self._set_running_loop(asyncio, None)
         handle = self.loop.call_later(timeout, self.loop.stop)
-        self.loop.run_forever()
-        handle.cancel()
+        try:
+            self.loop.run_forever()
+        finally:
+            handle.cancel()
+            self._set_running_loop(asyncio, running)
+
+    def _running_loop(self, asyncio):
+        if not hasattr(asyncio, "_get_running_loop"):
+            return None
+        return asyncio._get_running_loop()
+
+    def _set_running_loop(self, asyncio, loop):
+        if not hasattr(asyncio, "_set_running_loop"):
+            return
+        asyncio._set_running_loop(loop)
