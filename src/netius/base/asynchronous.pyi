@@ -6,6 +6,7 @@ from netius.base.async_neo import (
     coroutine_return as coroutine_return,
     ensure_generator as ensure_generator,
     get_asyncio as get_asyncio,
+    get_uvloop as get_uvloop,
     is_coroutine as is_coroutine,
     is_coroutine_native as is_coroutine_native,
     is_coroutine_object as is_coroutine_object,
