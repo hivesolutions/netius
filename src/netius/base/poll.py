@@ -27,6 +27,8 @@ error events and concrete back-ends selected by platform availability:
 EpollPoll, KqueuePoll, PollPoll and the portable SelectPoll fallback.
 Each back-end maps ready sockets to their owners and reports edge or
 level triggering, normalizing the differences between the mechanisms.
+The AsyncioPoll is never selected by availability, it hands the watching
+of the sockets to an asyncio event loop (eg: the one of the ASGI server).
 """
 
 __author__ = "João Magalhães <joamag@hive.pt>"
@@ -683,3 +685,62 @@ class SelectPoll(Poll):
             return
         self.error_l.remove(socket)
         del self.error_o[socket]
+
+
+class AsyncioPoll(Poll):
+    """
+    Poll implementation whose sockets are watched by an asyncio
+    event loop, instead of being polled by the netius one, so that
+    a single event loop drives both netius and the applications
+    that run on top of asyncio.
+
+    The readiness of a socket is handed to the callback, together
+    with the owner of the socket, as soon as the asyncio loop
+    notices it, note that the triggering is a level based one.
+    """
+
+    def __init__(self, loop=None, callback=None, *args, **kwargs):
+        Poll.__init__(self, *args, **kwargs)
+        self.loop = loop
+        self.callback = callback
+
+    def close(self):
+        if not self._open:
+            return
+        for socket in list(self.read_o):
+            self.unsub_read(socket)
+        for socket in list(self.write_o):
+            self.unsub_write(socket)
+        Poll.close(self)
+
+    def sub_read(self, socket, owner=None):
+        if socket in self.read_o:
+            return
+        self.read_o[socket] = owner
+        self.loop.add_reader(socket.fileno(), self._read, socket)
+
+    def sub_write(self, socket, owner=None):
+        if socket in self.write_o:
+            return
+        self.write_o[socket] = owner
+        self.loop.add_writer(socket.fileno(), self._write, socket)
+
+    def unsub_read(self, socket):
+        if not socket in self.read_o:
+            return
+        self.loop.remove_reader(socket.fileno())
+        del self.read_o[socket]
+
+    def unsub_write(self, socket):
+        if not socket in self.write_o:
+            return
+        self.loop.remove_writer(socket.fileno())
+        del self.write_o[socket]
+
+    def _read(self, socket):
+        owner = self.read_o.get(socket, None)
+        self.callback(owner, [socket], [], [])
+
+    def _write(self, socket):
+        owner = self.write_o.get(socket, None)
+        self.callback(owner, [], [socket], [])

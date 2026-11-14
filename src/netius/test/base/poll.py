@@ -33,6 +33,8 @@ import select
 import unittest
 import collections
 
+import netius
+
 from netius.base import poll
 
 
@@ -1091,3 +1093,183 @@ class SelectPollTest(unittest.TestCase):
                 _socket.close()
         finally:
             instance.close()
+
+
+class AsyncioPollTest(unittest.TestCase):
+
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        asyncio = netius.get_asyncio()
+        if asyncio == None:
+            self.skipTest("Skipping test: asyncio unavailable")
+
+        # the selector based loop is the one able to watch sockets under
+        # every platform (the proactor based one is not), so it's the one
+        # explicitly used for the verification of the poll
+        self.loop = asyncio.SelectorEventLoop()
+        self.events = []
+
+    def tearDown(self):
+        unittest.TestCase.tearDown(self)
+        self.loop.close()
+
+    def test_name(self):
+        self.assertEqual(poll.AsyncioPoll.name(), "asyncio")
+
+    def test_close(self):
+        instance = self._make_poll()
+        instance.open()
+        _socket, other = socket.socketpair()
+        try:
+            instance.sub_read(_socket)
+            instance.sub_write(_socket)
+            instance.close()
+
+            # the closing of the poll drops every subscription from the loop
+            # as well, so that the sockets are no longer watched by it
+            self.assertEqual(instance.is_open(), False)
+            self.assertEqual(instance.is_empty(), True)
+            self.assertEqual(self.loop.remove_reader(_socket.fileno()), False)
+            self.assertEqual(self.loop.remove_writer(_socket.fileno()), False)
+
+            # closing an already closed poll must be a no operation
+            instance.close()
+        finally:
+            _socket.close()
+            other.close()
+
+    def test_poll(self):
+        instance = self._make_poll()
+
+        # the sockets are watched by the asyncio loop and not polled, so a
+        # poll operation never has any ready socket to be reported
+        self.assertEqual(instance.poll(), ([], [], []))
+
+    def test_is_edge(self):
+        # the asyncio loop reports a socket for as long as it's ready, so
+        # the triggering is a level based one
+        self.assertEqual(poll.AsyncioPoll().is_edge(), False)
+
+    def test_sub_read(self):
+        instance = self._make_poll()
+        instance.open()
+        _socket, other = socket.socketpair()
+        try:
+            instance.sub_read(_socket, owner=self)
+            instance.sub_read(_socket)
+
+            # subscribing it a second time is a no operation, keeping both
+            # the owner and the single registration in the loop
+            self.assertEqual(instance.read_o[_socket], self)
+            self.assertEqual(instance.is_empty(), False)
+
+            other.send(b"data")
+            self._run()
+
+            # the readiness of the socket reaches the callback together with
+            # its owner as soon as the loop notices it
+            self.assertEqual(self.events, [(self, [_socket], [], [])])
+        finally:
+            instance.close()
+            _socket.close()
+            other.close()
+
+    def test_sub_write(self):
+        instance = self._make_poll()
+        instance.open()
+        _socket, other = socket.socketpair()
+        try:
+            instance.sub_write(_socket, owner=self)
+            instance.sub_write(_socket)
+
+            self.assertEqual(instance.write_o[_socket], self)
+
+            self._run()
+
+            # a socket with room in its sending buffer is writable, which is
+            # reported right away through the callback
+            self.assertEqual(self.events, [(self, [], [_socket], [])])
+        finally:
+            instance.close()
+            _socket.close()
+            other.close()
+
+    def test_unsub_read(self):
+        instance = self._make_poll()
+        instance.open()
+        _socket, other = socket.socketpair()
+        try:
+            instance.sub_read(_socket)
+            instance.unsub_read(_socket)
+
+            other.send(b"data")
+            self._run(timeout=0.05)
+
+            # once dropped the socket is no longer watched by the loop, so
+            # its readiness never reaches the callback
+            self.assertEqual(_socket in instance.read_o, False)
+            self.assertEqual(self.events, [])
+
+            # a socket that was never subscribed has nothing to be dropped
+            # and asking for it must not raise
+            self.assertEqual(instance.unsub_read(_socket), None)
+        finally:
+            instance.close()
+            _socket.close()
+            other.close()
+
+    def test_unsub_write(self):
+        instance = self._make_poll()
+        instance.open()
+        _socket, other = socket.socketpair()
+        try:
+            instance.sub_write(_socket)
+            instance.unsub_write(_socket)
+
+            self._run(timeout=0.05)
+
+            self.assertEqual(_socket in instance.write_o, False)
+            self.assertEqual(self.events, [])
+            self.assertEqual(instance.unsub_write(_socket), None)
+        finally:
+            instance.close()
+            _socket.close()
+            other.close()
+
+    def test__read(self):
+        instance = self._make_poll()
+        _socket = socket.socket()
+        try:
+            instance._read(_socket)
+
+            # a socket without a known owner is still reported, leaving the
+            # resolution of it to the callback (unset owner)
+            self.assertEqual(self.events, [(None, [_socket], [], [])])
+        finally:
+            _socket.close()
+
+    def test__write(self):
+        instance = self._make_poll()
+        _socket = socket.socket()
+        try:
+            instance._write(_socket)
+
+            self.assertEqual(self.events, [(None, [], [_socket], [])])
+        finally:
+            _socket.close()
+
+    def _make_poll(self):
+        return poll.AsyncioPoll(loop=self.loop, callback=self._callback)
+
+    def _callback(self, owner, reads, writes, errors):
+        # records the readiness that has been reported and stops the loop
+        # so that the test is able to verify it right away
+        self.events.append((owner, reads, writes, errors))
+        self.loop.stop()
+
+    def _run(self, timeout=1.0):
+        # runs the loop until the callback stops it, bounded by a timeout
+        # so that a missing report is not able to block the test forever
+        handle = self.loop.call_later(timeout, self.loop.stop)
+        self.loop.run_forever()
+        handle.cancel()

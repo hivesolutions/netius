@@ -166,7 +166,7 @@ from .log import (
 )
 from .mixin import ConnectionCompat
 from .observer import Observable
-from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
+from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll, AsyncioPoll
 from .protocol import Protocol, DatagramProtocol, StreamProtocol
 from .request import Request, Response
 from .server import Server, DatagramServer, StreamServer
