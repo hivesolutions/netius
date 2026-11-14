@@ -33,6 +33,7 @@ import ssl
 import sys
 import errno
 import socket
+import logging
 import tempfile
 import datetime
 import unittest
@@ -1778,6 +1779,44 @@ class BaseTest(unittest.TestCase):
             self.assertRaises(
                 KeyboardInterrupt, loop.exec_safe, mock.MagicMock(), interrupt
             )
+        finally:
+            loop.close()
+
+    def test_log(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        loop = netius.Base()
+        logger = logging.getLogger("netius.test.log")
+        logger.setLevel(logging.WARNING)
+        loop.logger = logger
+        try:
+            with mock.patch.object(loop, "add_log_ctx") as add_log_ctx:
+                with mock.patch.object(logger, "log") as log:
+                    loop.log("message", level=logging.DEBUG)
+                    loop.log("message")
+
+            # a message below the level of the logger (the default level of
+            # a message included) is dropped before its context is built, as
+            # it's never going to be emitted
+            self.assertEqual(add_log_ctx.called, False)
+            self.assertEqual(log.called, False)
+
+            with mock.patch.object(loop, "add_log_ctx") as add_log_ctx:
+                with mock.patch.object(logger, "log") as log:
+                    loop.log("message", level=logging.ERROR)
+
+            # while a message at (or above) the level of the logger is built
+            # with its context and handed to the logger as usual
+            self.assertEqual(add_log_ctx.called, True)
+            self.assertEqual(log.call_args[0][0], logging.ERROR)
+            self.assertEqual(log.call_args[0][1], "message")
+
+            loop.logger = None
+
+            # without a logger there's nowhere to emit the message to, which
+            # must not be considered an error
+            self.assertEqual(loop.log("message", level=logging.ERROR), None)
         finally:
             loop.close()
 

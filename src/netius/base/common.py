@@ -3873,6 +3873,14 @@ class AbstractBase(observer.Observable):
     def log(self, *args, **kwargs):
         if self._logging:
             return
+
+        # in case the logger is not enabled for the level of the message
+        # returns immediately, avoiding the building of the context for a
+        # message that is never going to be emitted (a costly operation)
+        level = kwargs.get("level", logging.INFO)
+        if self.logger and not self.logger.isEnabledFor(level):
+            return
+
         self._logging = True
         try:
             self.add_log_ctx(kwargs, self.log_ctx)
