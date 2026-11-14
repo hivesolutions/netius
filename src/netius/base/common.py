@@ -5421,10 +5421,12 @@ def new_loop_main(factory=None, env=True, _compat=None, **kwargs):
     return compat_loop(instance) if _compat else instance
 
 
-def new_loop_asyncio(**kwargs):
+def new_loop_asyncio(uvloop=False, **kwargs):
     asyncio = asynchronous.get_asyncio()
     if not asyncio:
         return None
+    if uvloop and asynchronous.get_uvloop():
+        return asynchronous.get_uvloop().new_event_loop()
     return asyncio.new_event_loop()
 
 

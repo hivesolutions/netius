@@ -472,6 +472,24 @@ def is_asyncio():
     return asyncio and asynchronous.is_asynclib()
 
 
+def is_uvloop():
+    """
+    Checks if the uvloop implementation of the asyncio event
+    loop (faster than the default one) is the one to be used
+    for the asyncio event loops created under the current runtime.
+
+    The uvloop implementation is used whenever it's installed,
+    unless it has been explicitly disabled by configuration.
+
+    :rtype: bool
+    :return: If the uvloop event loop implementation is enabled
+    and proper library support available.
+    """
+
+    uvloop = config.conf("UVLOOP", True, cast=bool)
+    return uvloop and not asynchronous.get_uvloop() == None
+
+
 def run(coro):
     from . import common
 

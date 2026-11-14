@@ -2797,6 +2797,54 @@ class BaseTest(unittest.TestCase):
         return connection
 
 
+class NewLoopAsyncioTest(unittest.TestCase):
+
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        if netius.get_asyncio() == None:
+            self.skipTest("Skipping test: asyncio unavailable")
+
+    def test_new_loop_asyncio(self):
+        asyncio = netius.get_asyncio()
+        loop = netius.new_loop_asyncio()
+        try:
+            # by default a new loop of the standard implementation is created,
+            # owned by the caller and so neither running nor closed
+            self.assertEqual(isinstance(loop, asyncio.BaseEventLoop), True)
+            self.assertEqual(loop.is_running(), False)
+            self.assertEqual(loop.is_closed(), False)
+        finally:
+            loop.close()
+
+    def test_new_loop_asyncio_uvloop(self):
+        uvloop = netius.get_uvloop()
+        if uvloop == None:
+            self.skipTest("Skipping test: uvloop unavailable")
+
+        loop = netius.new_loop_asyncio(uvloop=True)
+        try:
+            # once requested the uvloop implementation is the one used for
+            # the new loop, as it's installed under the current runtime
+            self.assertEqual(isinstance(loop, uvloop.Loop), True)
+        finally:
+            loop.close()
+
+    def test_new_loop_asyncio_unavailable(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        asyncio = netius.get_asyncio()
+
+        # a request for the uvloop implementation under a runtime that does
+        # not have it falls back into the standard one, instead of failing
+        with mock.patch.object(asynchronous, "get_uvloop", return_value=None):
+            loop = netius.new_loop_asyncio(uvloop=True)
+        try:
+            self.assertEqual(isinstance(loop, asyncio.BaseEventLoop), True)
+        finally:
+            loop.close()
+
+
 class _MockContext(object):
     """
     Stand in for an SSL context that keeps the values that are set

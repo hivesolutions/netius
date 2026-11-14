@@ -318,6 +318,10 @@ def get_asyncio():
     return None
 
 
+def get_uvloop():
+    return None
+
+
 def is_coroutine(callable):
     if hasattr(callable, "_is_coroutine"):
         return True
