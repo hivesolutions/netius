@@ -102,6 +102,12 @@ for the application to acknowledge either the startup or the shutdown
 of the lifespan protocol, once this value is reached the server moves
 on, avoiding an application from blocking the process forever """
 
+CANCEL_TIMEOUT = 5.0
+""" The maximum amount of time (in seconds) that the server waits
+for the pending tasks of the applications to handle their cancellation
+once the server is cleaned up, before the loop that runs them is closed,
+avoiding a task that ignores the cancellation from blocking the process """
+
 LIFESPAN_INTERVAL = 0.001
 """ The amount of time (in seconds) that separates two iterations of
 the event loop while waiting for the acknowledgment of a lifespan
@@ -198,9 +204,11 @@ class ASGIServer(http2.HTTP2Server):
         http2.HTTP2Server.cleanup(self)
 
         # closes the event loop that drives the applications as it's no
-        # longer going to be used (avoids leaking of resources)
+        # longer going to be used (avoids leaking of resources), once the
+        # tasks of the applications that are still pending are cancelled
         if not self.loop_asyncio:
             return
+        self._cancel_tasks()
         self.loop_asyncio.close()
         self.loop_asyncio = None
 
@@ -248,6 +256,12 @@ class ASGIServer(http2.HTTP2Server):
             self._schedule(0.0)
             self.loop_asyncio.run_forever()
         finally:
+            # cancels the tick that may still be scheduled, as it's not meant
+            # to be run by a later (pumped) execution of the loop
+            if self.tick_h:
+                self.tick_h.cancel()
+            self.tick_h = None
+            self.tick_t = None
             self.driving = False
             self._set_running_loop(asyncio, running)
 
@@ -1376,7 +1390,13 @@ class ASGIServer(http2.HTTP2Server):
             return
 
         # the handling of the sockets may produce work to be run in the next
-        # tick (as the netius loop would do), so it's run right away
+        # tick (as the netius loop would do), so it's run right away, note
+        # that a tick is only scheduled while the loop drives the server, as
+        # the sockets are already watched while the loop is pumped (eg: the
+        # start up of the lifespan) and a tick would then stop the loop, for
+        # some loops (uvloop) only in its next execution (the main one)
+        if not self.driving:
+            return
         self._schedule(0.0)
 
     def _tick(self):
@@ -1453,6 +1473,39 @@ class ASGIServer(http2.HTTP2Server):
         if proactor and isinstance(self.loop_asyncio, proactor):
             return False
         return True
+
+    def _cancel_tasks(self, timeout=CANCEL_TIMEOUT):
+        """
+        Cancels the tasks of the applications that are still pending
+        and runs the loop until they handle the cancellation, so that
+        none of them is destroyed while pending once the loop is closed
+        (the equivalent of what asyncio does at the end of a run).
+
+        :type timeout: float
+        :param timeout: The maximum amount of time (in seconds) to wait
+        for the tasks to handle their cancellation.
+        """
+
+        # retrieves the tasks of the loop that are still pending, using the
+        # module level function and falling back to the class method of the
+        # task for the older interpreters, returning in case there's none
+        asyncio = netius.get_asyncio()
+        all_tasks = getattr(asyncio, "all_tasks", None) or asyncio.Task.all_tasks
+        tasks = [task for task in all_tasks(self.loop_asyncio) if not task.done()]
+        if not tasks:
+            return
+
+        for task in tasks:
+            task.cancel()
+
+        # runs the loop until the tasks handle their cancellation, bounded by
+        # the timeout, with the running loop of asyncio unset in the meantime
+        running = self._running_loop(asyncio)
+        self._set_running_loop(asyncio, None)
+        try:
+            self.loop_asyncio.run_until_complete(asyncio.wait(tasks, timeout=timeout))
+        finally:
+            self._set_running_loop(asyncio, running)
 
     def _call_app(self, scope, receive, send):
         # in case the application complies with the legacy (double callable)

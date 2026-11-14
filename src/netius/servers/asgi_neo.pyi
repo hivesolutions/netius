@@ -14,6 +14,7 @@ MAX_PENDING: int
 BUFFER_SIZE: int
 PUMP_LIMIT: int
 LIFESPAN_TIMEOUT: float
+CANCEL_TIMEOUT: float
 LIFESPAN_INTERVAL: float
 CONTINUATION_OPCODE: int
 TEXT_OPCODE: int
@@ -181,6 +182,7 @@ class ASGIServer(HTTP2Server):
     def _schedule(self, timeout: float): ...
     def _timeout(self) -> float: ...
     def _is_driven(self) -> bool: ...
+    def _cancel_tasks(self, timeout: float = ...): ...
     def _call_app(
         self,
         scope: Mapping[str, Any],

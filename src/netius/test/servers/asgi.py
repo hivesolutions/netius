@@ -140,6 +140,7 @@ class ASGIServerTest(unittest.TestCase):
     def test_cleanup(self):
         server = self._make_server(asyncio=True)
         loop = server.loop_asyncio
+        task = loop.create_task(netius.get_asyncio().sleep(10.0))
 
         server.cleanup()
 
@@ -147,6 +148,10 @@ class ASGIServerTest(unittest.TestCase):
         # it must be closed together with it (avoids leaking of resources)
         self.assertEqual(loop.is_closed(), True)
         self.assertEqual(server.loop_asyncio, None)
+
+        # the tasks of the applications that were still pending are cancelled
+        # before, so that none of them is destroyed while pending
+        self.assertEqual(task.cancelled(), True)
 
     def test_build_poll(self):
         server = self._make_server()
@@ -205,6 +210,7 @@ class ASGIServerTest(unittest.TestCase):
         # once stopped the loop no longer drives the server, leaving no tick
         # scheduled behind that could be run by a later execution of it
         self.assertEqual(server.driving, False)
+        self.assertEqual(server.tick_h, None)
         self.assertEqual(server.tick_e, None)
 
     def test_loop_uvloop(self):
@@ -1682,6 +1688,17 @@ class ASGIServerTest(unittest.TestCase):
 
         server._ready(owner, [_socket], [], [])
 
+        # the sockets are watched before the loop drives the server (eg: while
+        # it's pumped for the lifespan), they're handled but no tick is ever
+        # scheduled, as a tick would stop the loop that is being pumped
+        owner.reads.assert_called_once_with([_socket])
+        self.assertEqual(server.tick_h, None)
+
+        server.driving = True
+        owner = mock.MagicMock()
+
+        server._ready(owner, [_socket], [], [])
+
         # the sockets are handled by their owner as in the netius loop, with
         # the tick that follows the handling being scheduled right away
         owner.reads.assert_called_once_with([_socket])
@@ -1851,6 +1868,28 @@ class ASGIServerTest(unittest.TestCase):
         asyncio.ProactorEventLoop = type(server.loop_asyncio)
         with mock.patch.object(netius, "get_asyncio", return_value=asyncio):
             self.assertEqual(server._is_driven(), False)
+
+    def test__cancel_tasks(self):
+        server = self._make_server(asyncio=True, uvloop=False)
+        asyncio = netius.get_asyncio()
+
+        # without pending tasks there's nothing to be cancelled and the loop
+        # is left untouched (not run), ready to be used afterwards
+        self.assertEqual(server._cancel_tasks(), None)
+        self.assertEqual(server.loop_asyncio.is_closed(), False)
+
+        done = server.loop_asyncio.create_task(asyncio.sleep(0.0))
+        server._pump()
+        pending = server.loop_asyncio.create_task(asyncio.sleep(10.0))
+
+        server._cancel_tasks()
+
+        # the pending task is cancelled and the loop is run until it handles
+        # the cancellation, while the task that is already done is kept
+        self.assertEqual(pending.done(), True)
+        self.assertEqual(pending.cancelled(), True)
+        self.assertEqual(done.done(), True)
+        self.assertEqual(done.cancelled(), False)
 
     def test__call_app(self):
         server = self._make_server(app=self._app_legacy)
