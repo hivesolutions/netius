@@ -254,6 +254,35 @@ class ASGIServerTest(unittest.TestCase):
         self.assertEqual(server.driving, False)
         self.assertEqual(server.tick_e, None)
 
+    def test_loop_socket_exception(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = self._make_server(asyncio=True, uvloop=False, poll_timeout=0.2)
+        if not server._is_driven():
+            self.skipTest("Skipping test: loop unable to watch sockets")
+
+        server.build_poll().open()
+        server._running = True
+        owner = mock.MagicMock()
+        owner.reads.side_effect = netius.StopError("Socket stop")
+        server.loop_asyncio.call_later(0.05, server._ready, owner, [object()], [], [])
+
+        # an exception raised by the handling of a socket stops the loop while
+        # the next tick is still scheduled (at the timeout of the poll), which
+        # is then cancelled together with the loop no longer driving the server
+        self.assertRaises(netius.StopError, server.loop)
+        self.assertEqual(server.driving, False)
+        self.assertEqual(server.tick_h, None)
+
+        # a later execution of the loop (eg: the shutdown of the lifespan) runs
+        # past the target of the cancelled tick without running it, as the tick
+        # would otherwise pump the loop that is already running, stopping it
+        server.loop_asyncio.call_later(0.4, server.loop_asyncio.stop)
+        self._drive(server)
+        self.assertEqual(server.tick_h, None)
+        self.assertEqual(server.tick_e, None)
+
     def test_loop_native(self):
         if mock == None:
             self.skipTest("Skipping test: mock unavailable")
