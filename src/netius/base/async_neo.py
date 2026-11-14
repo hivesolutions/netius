@@ -50,6 +50,11 @@ try:
 except ImportError:
     asyncio = None
 
+try:
+    import uvloop
+except ImportError:
+    uvloop = None
+
 
 class Future(async_old.Future):
     """
@@ -212,6 +217,10 @@ def ensure_generator(value):
 
 def get_asyncio():
     return asyncio
+
+
+def get_uvloop():
+    return uvloop
 
 
 def is_coroutine(callable):

@@ -467,6 +467,11 @@ class AsyncOldTest(unittest.TestCase):
         # asyncio, so there's never a module to be given back
         self.assertEqual(async_old.get_asyncio(), None)
 
+    def test_get_uvloop(self):
+        # without asyncio there's no implementation of its event loop to
+        # be used either, so there's never a module to be given back
+        self.assertEqual(async_old.get_uvloop(), None)
+
     def test_is_coroutine(self):
         self.assertEqual(async_old.is_coroutine(self._callable), False)
 
@@ -680,6 +685,16 @@ class AsyncNeoTest(unittest.TestCase):
         # the neo implementation targets the interpreters that carry
         # asyncio, so the module is the one that is given back
         self.assertEqual(self.async_neo.get_asyncio(), asyncio)
+
+    def test_get_uvloop(self):
+        try:
+            import uvloop
+        except ImportError:
+            uvloop = None
+
+        # the uvloop module is an optional dependency, so it's the one given
+        # back whenever it's installed and an unset value otherwise
+        self.assertEqual(self.async_neo.get_uvloop(), uvloop)
 
     def test_is_coroutine(self):
         self.assertEqual(self.async_neo.is_coroutine(self._values), False)

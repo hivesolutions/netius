@@ -485,3 +485,44 @@ class CompatLoopTest(unittest.TestCase):
         future = self.compat.create_future()
         self.loop.delay(lambda: future.set_result(None), immediately=True)
         yield future
+
+
+class IsUvloopTest(unittest.TestCase):
+
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        self.uvloop = netius.conf("UVLOOP", None)
+
+    def tearDown(self):
+        unittest.TestCase.tearDown(self)
+        if self.uvloop == None:
+            netius.conf_r("UVLOOP")
+        else:
+            netius.conf_s("UVLOOP", self.uvloop)
+
+    def test_is_uvloop(self):
+        netius.conf_r("UVLOOP")
+        uvloop = asynchronous.get_uvloop()
+
+        # the uvloop implementation is used by default, as long as it's
+        # installed under the current runtime (optional dependency)
+        self.assertEqual(compat.is_uvloop(), not uvloop == None)
+
+    def test_is_uvloop_disabled(self):
+        netius.conf_s("UVLOOP", "0")
+
+        # the configuration is able to disable the uvloop implementation
+        # even when it's installed, as the values come as strings from the
+        # environment the cast of them must be respected
+        self.assertEqual(compat.is_uvloop(), False)
+
+    def test_is_uvloop_unavailable(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        netius.conf_s("UVLOOP", "1")
+
+        # a runtime without the library can not use it, no matter what the
+        # configuration requests (the default loop is used instead)
+        with mock.patch.object(asynchronous, "get_uvloop", return_value=None):
+            self.assertEqual(compat.is_uvloop(), False)

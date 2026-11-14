@@ -28,17 +28,34 @@ __copyright__ = "Copyright (c) 2008-2024 Hive Solutions Lda."
 __license__ = "Apache License, Version 2.0"
 """ The license for the module """
 
+import time
+import socket
 import struct
 import importlib
+import threading
 import unittest
 
 import netius
 import netius.common
 import netius.servers
 
+try:
+    import unittest.mock as mock
+except ImportError:
+    mock = None
+
 REQUEST = b"GET /hello?name=world HTTP/1.1\r\nHost: netius.hive.pt\r\n\r\n"
 """ The raw contents of a simple request to be used as the
 base one for the majority of the tests """
+
+REQUEST_CLOSE = (
+    b"GET /hello?name=world HTTP/1.1\r\n"
+    b"Host: netius.hive.pt\r\n"
+    b"Connection: close\r\n\r\n"
+)
+""" The raw contents of the simple request asking the server to close
+the connection once the response is sent, so that it may be read
+until the end of the connection """
 
 REQUEST_WS = (
     b"GET /ws HTTP/1.1\r\n"
@@ -78,13 +95,21 @@ class ASGIServerTest(unittest.TestCase):
         self.assertEqual(server.compressed_limit, netius.servers.asgi.COMPRESSED_LIMIT)
         self.assertEqual(server.lifespan, True)
         self.assertEqual(server.asyncio, False)
+        self.assertEqual(server.uvloop, netius.is_uvloop())
         self.assertEqual(server.loop_asyncio, None)
+        self.assertEqual(server.driving, False)
+        self.assertEqual(server.tick_h, None)
+        self.assertEqual(server.tick_e, None)
         self.assertEqual(server.legacy_app, False)
         self.assertEqual(server.lifespan_t, None)
 
     def test_init_values(self):
         server = self._make_server(
-            mount="/api", compressed_limit=1024, lifespan=False, asyncio=True
+            mount="/api",
+            compressed_limit=1024,
+            lifespan=False,
+            asyncio=True,
+            uvloop=False,
         )
 
         self.assertEqual(server.mount, "/api")
@@ -92,11 +117,30 @@ class ASGIServerTest(unittest.TestCase):
         self.assertEqual(server.compressed_limit, 1024)
         self.assertEqual(server.lifespan, False)
         self.assertEqual(server.asyncio, True)
+        self.assertEqual(server.uvloop, False)
         self.assertNotEqual(server.loop_asyncio, None)
+
+        # without the uvloop implementation the loop that drives the
+        # applications is one of the standard (asyncio) implementation
+        asyncio = netius.get_asyncio()
+        self.assertEqual(isinstance(server.loop_asyncio, asyncio.BaseEventLoop), True)
+
+    def test_init_uvloop(self):
+        uvloop = netius.get_uvloop()
+        if uvloop == None:
+            self.skipTest("Skipping test: uvloop unavailable")
+
+        server = self._make_server(asyncio=True, uvloop=True)
+
+        # once requested (the default whenever it's installed) the loop that
+        # drives the applications is one of the uvloop implementation
+        self.assertEqual(server.uvloop, True)
+        self.assertEqual(isinstance(server.loop_asyncio, uvloop.Loop), True)
 
     def test_cleanup(self):
         server = self._make_server(asyncio=True)
         loop = server.loop_asyncio
+        task = loop.create_task(netius.get_asyncio().sleep(10.0))
 
         server.cleanup()
 
@@ -104,6 +148,182 @@ class ASGIServerTest(unittest.TestCase):
         # it must be closed together with it (avoids leaking of resources)
         self.assertEqual(loop.is_closed(), True)
         self.assertEqual(server.loop_asyncio, None)
+
+        # the tasks of the applications that were still pending are cancelled
+        # before, so that none of them is destroyed while pending
+        self.assertEqual(task.cancelled(), True)
+
+    def test_build_poll(self):
+        server = self._make_server()
+
+        # under the native mode the netius event loop is the main one, so
+        # the polling mechanism is the one selected by availability
+        self.assertEqual(isinstance(server.build_poll(), netius.AsyncioPoll), False)
+
+        server = self._make_server(asyncio=True, uvloop=False)
+        if not server._is_driven():
+            self.skipTest("Skipping test: loop unable to watch sockets")
+
+        poll = server.build_poll()
+
+        # under the asyncio mode the sockets of the server are watched by the
+        # loop that drives the applications, reporting them to the server
+        self.assertEqual(isinstance(poll, netius.AsyncioPoll), True)
+        self.assertEqual(poll.loop, server.loop_asyncio)
+        self.assertEqual(poll.callback, server._ready)
+        self.assertEqual(server.poll, poll)
+        self.assertEqual(server.poll_c, netius.AsyncioPoll)
+
+        # building it once again must give back the very same poll, as its
+        # subscriptions would otherwise be lost
+        self.assertEqual(server.build_poll(), poll)
+
+    def test_loop(self):
+        server = self._make_server(
+            app=netius.servers.asgi.hello_app,
+            asyncio=True,
+            uvloop=False,
+            poll_timeout=1.0,
+            env=False,
+        )
+        if not server._is_driven():
+            self.skipTest("Skipping test: loop unable to watch sockets")
+
+        thread = self._start(server)
+        try:
+            data = self._request(server)
+
+            # the complete request cycle is run through real sockets watched
+            # by the loop that drives the applications (single event loop)
+            self.assertIn(b"HTTP/1.1 200 OK\r\n", data)
+            self.assertIn(b"Hello World", data)
+            self.assertEqual(isinstance(server.poll, netius.AsyncioPoll), True)
+
+            # both the delayed calls of the server and the timers of the loop
+            # are run at their target, instead of being bound by the (long)
+            # timeout of the poll as when the loop was pumped by the server
+            self.assertLess(self._delay(server), 0.5)
+            self.assertLess(self._timer(server), 0.5)
+        finally:
+            self._halt(server, thread)
+
+        # once stopped the loop no longer drives the server, leaving no tick
+        # scheduled behind that could be run by a later execution of it
+        self.assertEqual(server.driving, False)
+        self.assertEqual(server.tick_h, None)
+        self.assertEqual(server.tick_e, None)
+
+    def test_loop_uvloop(self):
+        if netius.get_uvloop() == None:
+            self.skipTest("Skipping test: uvloop unavailable")
+
+        server = self._make_server(
+            app=netius.servers.asgi.hello_app,
+            asyncio=True,
+            uvloop=True,
+            poll_timeout=1.0,
+            env=False,
+        )
+        thread = self._start(server)
+        try:
+            data = self._request(server)
+
+            # the uvloop implementation drives the server in the same way, as
+            # it's restricted to the public interface of the asyncio loop
+            self.assertIn(b"HTTP/1.1 200 OK\r\n", data)
+            self.assertIn(b"Hello World", data)
+            self.assertLess(self._delay(server), 0.5)
+            self.assertLess(self._timer(server), 0.5)
+        finally:
+            self._halt(server, thread)
+
+    def test_loop_exception(self):
+        server = self._make_server(asyncio=True, uvloop=False)
+        server.build_poll().open()
+        server._running = True
+
+        def stopper():
+            raise netius.StopError("Delayed stop")
+
+        server.delay(stopper)
+
+        # an exception raised by the server while driven by the loop stops
+        # it and is raised once the loop is no longer running, so that it's
+        # handled as if raised by the netius event loop
+        self.assertRaises(netius.StopError, server.loop)
+        self.assertEqual(server.driving, False)
+        self.assertEqual(server.tick_e, None)
+
+    def test_loop_socket_exception(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = self._make_server(asyncio=True, uvloop=False, poll_timeout=0.2)
+        if not server._is_driven():
+            self.skipTest("Skipping test: loop unable to watch sockets")
+
+        server.build_poll().open()
+        server._running = True
+        owner = mock.MagicMock()
+        owner.reads.side_effect = netius.StopError("Socket stop")
+        server.loop_asyncio.call_later(0.05, server._ready, owner, [object()], [], [])
+
+        # an exception raised by the handling of a socket stops the loop while
+        # the next tick is still scheduled (at the timeout of the poll), which
+        # is then cancelled together with the loop no longer driving the server
+        self.assertRaises(netius.StopError, server.loop)
+        self.assertEqual(server.driving, False)
+        self.assertEqual(server.tick_h, None)
+
+        # a later execution of the loop (eg: the shutdown of the lifespan) runs
+        # past the target of the cancelled tick without running it, as the tick
+        # would otherwise pump the loop that is already running, stopping it
+        server.loop_asyncio.call_later(0.4, server.loop_asyncio.stop)
+        self._drive(server)
+        self.assertEqual(server.tick_h, None)
+        self.assertEqual(server.tick_e, None)
+
+    def test_loop_native(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = self._make_server()
+
+        # under the native mode the netius event loop is the one that is run,
+        # with the loop of the applications never being involved
+        with mock.patch.object(netius.servers.http2.HTTP2Server, "loop") as loop:
+            server.loop()
+
+        self.assertEqual(loop.called, True)
+        self.assertEqual(server.driving, False)
+
+    def test_delay(self):
+        server = self._make_server(asyncio=True, uvloop=False)
+
+        server.delay(lambda: None, timeout=10.0)
+
+        # without the loop driving the server there's no tick of it to be
+        # scheduled, as the netius loop runs the delayed calls by itself
+        self.assertEqual(server.tick_h, None)
+
+        server.driving = True
+        try:
+            server.delay(lambda: None, timeout=10.0)
+
+            # while driven the next tick is brought forward to the target of
+            # the delayed call, bounded by the timeout of the poll
+            self.assertNotEqual(server.tick_h, None)
+            self.assertAlmostEqual(
+                server.tick_t - server.loop_asyncio.time(), server.poll_timeout, 1
+            )
+
+            server.delay(lambda: None)
+
+            # an immediate delayed call requires the tick to be run right away
+            self.assertLessEqual(server.tick_t, server.loop_asyncio.time())
+        finally:
+            server.driving = False
+            server.tick_h.cancel()
 
     def test_on_connection_c(self):
         server = self._make_server(max_pending=1024)
@@ -163,6 +383,33 @@ class ASGIServerTest(unittest.TestCase):
         # and the task released, as the server is no longer running
         self.assertEqual(server.lifespan_v, "lifespan.shutdown.complete")
         self.assertEqual(server.lifespan_t, None)
+
+    def test_on_child(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = self._make_server(asyncio=True, uvloop=False)
+        loop = server.loop_asyncio
+
+        # the operations of the base server for a child (eg: signals) are not
+        # meant to be applied to the process running the tests
+        with mock.patch.object(netius.servers.http2.HTTP2Server, "on_child"):
+            server.on_child()
+
+        # the loop inherited from the parent can not be shared by the forked
+        # processes, so it's closed and replaced by a new one of the child
+        self.assertEqual(loop.is_closed(), True)
+        self.assertNotEqual(server.loop_asyncio, loop)
+        self.assertEqual(server.loop_asyncio.is_closed(), False)
+
+        server = self._make_server()
+
+        # under the native mode there's no loop of the applications and so
+        # nothing to be replaced for the child
+        with mock.patch.object(netius.servers.http2.HTTP2Server, "on_child"):
+            server.on_child()
+
+        self.assertEqual(server.loop_asyncio, None)
 
     def test_on_data(self):
         server = self._make_server()
@@ -747,9 +994,69 @@ class ASGIServerTest(unittest.TestCase):
 
         server._send_start(connection, dict(status=200, headers=[]))
 
-        # a response with no length announced for it may only be kept alive
-        # in case a chunked encoding is being used to frame it
+        # a response with no length announced for it is framed with the chunked
+        # encoding for an HTTP/1.1 client, so that the end of its payload does
+        # not require the closing of the connection (kept alive)
+        self.assertEqual(connection.current, netius.common.CHUNKED_ENCODING)
+        self.assertEqual(connection.parser.keep_alive, True)
+        self.assertIn(b"Transfer-Encoding: chunked\r\n", self._data(connection))
+
+        connection.data = []
+        server._send_body(connection, dict(body=b"Hello", more_body=False))
+
+        # the payload is sent as a chunk followed by the last (empty) one
+        self.assertEqual(self._data(connection), b"5\r\nHello\r\n0\r\n\r\n")
+
+        server = self._make_server()
+        connection = self._make_connection(server)
+        connection.parse(b"GET / HTTP/1.0\r\nHost: netius.hive.pt\r\n\r\n")
+
+        server._send_start(connection, dict(status=200, headers=[]))
+
+        # an HTTP/1.0 client knows no chunked encoding, so such a response may
+        # only be sent as it is, with the end of it marked by the closing
+        self.assertEqual(connection.current, netius.common.PLAIN_ENCODING)
         self.assertEqual(connection.parser.keep_alive, False)
+
+        server = self._make_server()
+        connection = self._make_connection(server)
+        connection.parse(b"HEAD / HTTP/1.1\r\nHost: netius.hive.pt\r\n\r\n")
+
+        server._send_start(connection, dict(status=200, headers=[]))
+
+        # the response to a HEAD request carries no payload to be framed, so
+        # the chunked encoding is never used for it
+        self.assertEqual(connection.current, netius.common.PLAIN_ENCODING)
+
+        server = self._make_server()
+        connection = self._make_connection(server)
+        connection.parse(REQUEST)
+
+        server._send_start(connection, dict(status=204, headers=[]))
+
+        # neither for a response that may not carry a payload (no content), as
+        # it ends with its headers and the last chunk would be read by the client
+        # as the start of the next response, with the connection kept alive
+        self.assertEqual(connection.current, netius.common.PLAIN_ENCODING)
+        self.assertEqual(connection.parser.keep_alive, True)
+        self.assertEqual(b"Transfer-Encoding" in self._data(connection), False)
+
+    def test__send_start_close(self):
+        server = self._make_server()
+        connection = self._make_connection(
+            server, encoding=netius.common.CHUNKED_ENCODING
+        )
+        connection.parse(
+            b"GET / HTTP/1.1\r\nHost: netius.hive.pt\r\nConnection: close\r\n\r\n"
+        )
+
+        server._send_start(connection, dict(status=200, headers=[]))
+
+        # the closing of the connection requested by the client is honoured,
+        # as the chunked encoding makes keeping it alive possible but never
+        # requires it (the connection used to be kept alive regardless)
+        self.assertEqual(connection.parser.keep_alive, False)
+        self.assertIn(b"Connection: close\r\n", self._data(connection))
 
     def test__send_body(self):
         server = self._make_server()
@@ -1360,8 +1667,17 @@ class ASGIServerTest(unittest.TestCase):
         server._pump()
 
         server.pumping = False
+        server.driving = True
         state = []
         server.loop_asyncio.call_soon(lambda: state.append(True))
+
+        # while the loop drives the server the work of the applications is
+        # run by it, so there's nothing to be pumped (no operation)
+        server._pump()
+
+        self.assertEqual(state, [])
+
+        server.driving = False
 
         server._pump()
 
@@ -1384,7 +1700,10 @@ class ASGIServerTest(unittest.TestCase):
         self.assertEqual(len(state), 2)
 
     def test__is_ready(self):
-        server = self._make_server(asyncio=True)
+        # the callbacks that are ready to be executed are exposed by the
+        # standard implementation of the loop (not by the uvloop one), so
+        # it's the one explicitly used for the verification
+        server = self._make_server(asyncio=True, uvloop=False)
 
         self.assertEqual(server._is_ready(server.loop_asyncio), False)
 
@@ -1400,6 +1719,230 @@ class ASGIServerTest(unittest.TestCase):
         # must be handled gracefully (no compatibility layer)
         self.assertEqual(server._running_loop(object()), None)
         server._set_running_loop(object(), None)
+
+    def test__ready(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = self._make_server(asyncio=True, uvloop=False)
+        owner = mock.MagicMock()
+        _socket = object()
+
+        server._ready(owner, [_socket], [], [])
+
+        # the sockets are watched before the loop drives the server (eg: while
+        # it's pumped for the lifespan), they're handled but no tick is ever
+        # scheduled, as a tick would stop the loop that is being pumped
+        owner.reads.assert_called_once_with([_socket])
+        self.assertEqual(server.tick_h, None)
+
+        server.driving = True
+        owner = mock.MagicMock()
+
+        server._ready(owner, [_socket], [], [])
+
+        # the sockets are handled by their owner as in the netius loop, with
+        # the tick that follows the handling being scheduled right away
+        owner.reads.assert_called_once_with([_socket])
+        owner.writes.assert_called_once_with([])
+        owner.errors.assert_called_once_with([])
+        self.assertLessEqual(server.tick_t, server.loop_asyncio.time())
+
+        # a socket without a known owner belongs to the server itself
+        with mock.patch.object(server, "writes") as writes:
+            server._ready(None, [], [_socket], [])
+
+        writes.assert_called_once_with([_socket])
+
+    def test__ready_exception(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = self._make_server(asyncio=True, uvloop=False)
+        owner = mock.MagicMock()
+        owner.reads.side_effect = netius.StopError("Stop")
+
+        server._ready(owner, [object()], [], [])
+
+        # the exception of the handling stops the loop instead of reaching it
+        # (it would be swallowed), so that it's raised by the loop afterwards
+        self.assertEqual(isinstance(server.tick_e, netius.StopError), True)
+        self.assertEqual(server.tick_h, None)
+
+    def test__tick(self):
+        server = self._make_server(asyncio=True, uvloop=False)
+        server._running = True
+        state = []
+        server.delay(lambda: state.append(True))
+        server.delay(lambda: None, timeout=10.0)
+
+        server._tick()
+
+        # the tick runs the pending delayed calls and schedules the next one
+        # for the target of the delayed call that is still pending
+        self.assertEqual(state, [True])
+        self.assertNotEqual(server.tick_h, None)
+        self.assertGreater(server.tick_t, server.loop_asyncio.time())
+        server.tick_h.cancel()
+
+    def test__tick_stopped(self):
+        server = self._make_server(asyncio=True, uvloop=False)
+        server._running = False
+        server.driving = True
+        state = []
+        server.loop_asyncio.call_soon(lambda: state.append(True))
+
+        server.loop_asyncio.call_soon(server._tick)
+        self._drive(server)
+
+        # a server that is no longer running stops the loop that drives it,
+        # leaving no further tick scheduled
+        self.assertEqual(state, [True])
+        self.assertEqual(server.tick_h, None)
+        self.assertEqual(server.loop_asyncio.is_running(), False)
+
+    def test__tick_exception(self):
+        server = self._make_server(asyncio=True, uvloop=False)
+        server._running = True
+
+        def stopper():
+            raise netius.StopError("Delayed stop")
+
+        server.delay(stopper)
+        server._tick()
+
+        # the exceptions that control the life cycle of the server are kept
+        # to be raised by the loop, instead of a new tick being scheduled
+        self.assertEqual(isinstance(server.tick_e, netius.StopError), True)
+        self.assertEqual(server.tick_h, None)
+
+    def test__stop(self):
+        server = self._make_server(asyncio=True, uvloop=False)
+        exception = netius.StopError("Stop")
+        state = []
+        server.loop_asyncio.call_soon(lambda: server._stop(exception))
+        server.loop_asyncio.call_soon(lambda: state.append(True))
+
+        self._drive(server)
+
+        # the loop is stopped at the end of the current iteration, with the
+        # exception being kept for the loop operation to raise it
+        self.assertEqual(server.tick_e, exception)
+        self.assertEqual(state, [True])
+
+    def test__schedule(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
+        server = self._make_server(asyncio=True, uvloop=False)
+        loop = server.loop_asyncio
+
+        with mock.patch.object(server, "_tick") as tick:
+            server._schedule(0.1)
+            handle = server.tick_h
+
+            # a timed tick is scheduled at the target of it in the loop
+            self.assertGreater(server.tick_t, loop.time())
+            self.assertLessEqual(server.tick_t, loop.time() + 0.1)
+
+            # a later tick never replaces the one that is already scheduled, so
+            # that a single tick is kept scheduled at any given time
+            server._schedule(0.2)
+
+            self.assertEqual(server.tick_h, handle)
+
+            server._schedule(0.0)
+
+            # an earlier tick always prevails, cancelling the scheduled one, with
+            # an immediate tick being scheduled to run in the next iteration
+            self.assertNotEqual(server.tick_h, handle)
+            self.assertLessEqual(server.tick_t, loop.time())
+
+            # running the loop past the target of the cancelled tick runs only
+            # the immediate one, as a single tick is kept scheduled
+            loop.call_later(0.3, loop.stop)
+            self._drive(server)
+
+        self.assertEqual(tick.call_count, 1)
+
+    def test__timeout(self):
+        server = self._make_server(asyncio=True, uvloop=False)
+
+        # without any pending work the server ticks with the timeout of the
+        # poll, as the netius loop would do
+        self.assertEqual(server._timeout(), server.poll_timeout)
+
+        server.delay(lambda: None, timeout=0.1)
+
+        # the target of a delayed call brings the tick forward
+        self.assertLessEqual(server._timeout(), 0.1)
+        self.assertGreater(server._timeout(), 0.0)
+
+        server.delay(lambda: None)
+
+        # while an immediate one requires the tick to be run right away
+        self.assertEqual(server._timeout(), 0.0)
+
+        server = self._make_server(asyncio=True, uvloop=False)
+        server.delay(lambda: None, timeout=-1.0)
+
+        # a delayed call that is overdue is never scheduled in the past
+        self.assertEqual(server._timeout(), 0.0)
+
+        server = self._make_server(asyncio=True, uvloop=False)
+        server.notify("event")
+
+        # the pending notifications are handled by the tick as well
+        self.assertEqual(server._timeout(), 0.0)
+
+    def test__is_driven(self):
+        server = self._make_server()
+
+        # under the native mode there's no loop of the applications to be
+        # driving the server (the netius loop is the main one)
+        self.assertEqual(server._is_driven(), False)
+
+        server = self._make_server(asyncio=True, uvloop=False)
+        asyncio = netius.get_asyncio()
+        proactor = getattr(asyncio, "ProactorEventLoop", None)
+        is_proactor = proactor and isinstance(server.loop_asyncio, proactor)
+
+        # under the asyncio mode the loop drives the server whenever it's able
+        # to watch its sockets, which is not the case for the proactor based
+        # loop, the default one under Windows
+        self.assertEqual(server._is_driven(), not is_proactor)
+
+        if mock == None:
+            return
+
+        # a loop that is not able to watch the sockets (the proactor based
+        # one) is never driving the server, which is pumped by it instead
+        asyncio = mock.MagicMock()
+        asyncio.ProactorEventLoop = type(server.loop_asyncio)
+        with mock.patch.object(netius, "get_asyncio", return_value=asyncio):
+            self.assertEqual(server._is_driven(), False)
+
+    def test__cancel_tasks(self):
+        server = self._make_server(asyncio=True, uvloop=False)
+        asyncio = netius.get_asyncio()
+
+        # without pending tasks there's nothing to be cancelled and the loop
+        # is left untouched (not run), ready to be used afterwards
+        self.assertEqual(server._cancel_tasks(), None)
+        self.assertEqual(server.loop_asyncio.is_closed(), False)
+
+        done = server.loop_asyncio.create_task(asyncio.sleep(0.0))
+        server._pump()
+        pending = server.loop_asyncio.create_task(asyncio.sleep(10.0))
+
+        server._cancel_tasks()
+
+        # the pending task is cancelled and the loop is run until it handles
+        # the cancellation, while the task that is already done is kept
+        self.assertEqual(pending.done(), True)
+        self.assertEqual(pending.cancelled(), True)
+        self.assertEqual(done.done(), True)
+        self.assertEqual(done.cancelled(), False)
 
     def test__call_app(self):
         server = self._make_server(app=self._app_legacy)
@@ -1728,6 +2271,64 @@ class ASGIServerTest(unittest.TestCase):
         # server, so that the applications are able to make progress
         for _index in range(count):
             server.ticks()
+
+    def _drive(self, server):
+        # runs the loop of the applications until it's stopped, with the
+        # running loop of asyncio unset (as set by the compatibility layer)
+        asyncio = netius.get_asyncio()
+        running = server._running_loop(asyncio)
+        server._set_running_loop(asyncio, None)
+        try:
+            server.loop_asyncio.run_forever()
+        finally:
+            server._set_running_loop(asyncio, running)
+
+    def _start(self, server):
+        # binds the server to an available port of the loopback interface
+        # and runs its main loop in a background thread (real sockets)
+        server.serve(host="127.0.0.1", port=0, start=False)
+        thread = threading.Thread(target=server.start, daemon=True)
+        thread.start()
+        return thread
+
+    def _halt(self, server, thread):
+        server.stop()
+        thread.join(timeout=5)
+
+    def _request(self, server, request=REQUEST_CLOSE):
+        # sends the request through a real connection to the server, reading
+        # the response until the server closes the connection
+        _socket = socket.create_connection(("127.0.0.1", server.port), timeout=5)
+        try:
+            _socket.sendall(request)
+            chunks = []
+            while True:
+                data = _socket.recv(4096)
+                if not data:
+                    break
+                chunks.append(data)
+            return b"".join(chunks)
+        finally:
+            _socket.close()
+
+    def _delay(self, server, timeout=0.05):
+        # measures the time it takes for a delayed call of the server to run,
+        # requested from another thread as an application would do
+        event = threading.Event()
+        initial = time.time()
+        server.delay_s(event.set, timeout=timeout)
+        self.assertEqual(event.wait(timeout=5), True)
+        return time.time() - initial
+
+    def _timer(self, server, timeout=0.05):
+        # measures the time it takes for a timer of the loop that drives the
+        # applications to run, scheduled from another thread
+        event = threading.Event()
+        loop = server.loop_asyncio
+        initial = time.time()
+        loop.call_soon_threadsafe(loop.call_later, timeout, event.set)
+        self.assertEqual(event.wait(timeout=5), True)
+        return time.time() - initial
 
     def _resolve(self, coroutine):
         # drives the provided coroutine object until its completion,

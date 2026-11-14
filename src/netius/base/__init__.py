@@ -60,6 +60,7 @@ from .asynchronous import (
     async_test,
     ensure_generator,
     get_asyncio,
+    get_uvloop,
     is_coroutine,
     is_coroutine_object,
     is_coroutine_native,
@@ -109,6 +110,7 @@ from .compat import (
     CompatLoop,
     is_compat,
     is_asyncio,
+    is_uvloop,
     run,
     build_datagram,
     connect_stream,
@@ -164,7 +166,7 @@ from .log import (
 )
 from .mixin import ConnectionCompat
 from .observer import Observable
-from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll
+from .poll import Poll, EpollPoll, KqueuePoll, PollPoll, SelectPoll, AsyncioPoll
 from .protocol import Protocol, DatagramProtocol, StreamProtocol
 from .request import Request, Response
 from .server import Server, DatagramServer, StreamServer

@@ -29,6 +29,10 @@ response ones back to the client through the send one. Handles the HTTP,
 the WebSocket and the lifespan scopes and adapts the legacy (double
 callable) applications into the current calling convention.
 
+Under the asyncio mode the loop that drives the applications drives the
+server as well (when able to watch its sockets), so that a single event
+loop runs both of them, using the uvloop implementation when installed.
+
 This module uses syntax that is only available under the newer interpreters
 so it must never be imported directly, the netius.servers.asgi module takes
 care of such verification.
@@ -98,6 +102,12 @@ for the application to acknowledge either the startup or the shutdown
 of the lifespan protocol, once this value is reached the server moves
 on, avoiding an application from blocking the process forever """
 
+CANCEL_TIMEOUT = 5.0
+""" The maximum amount of time (in seconds) that the server waits
+for the pending tasks of the applications to handle their cancellation
+once the server is cleaned up, before the loop that runs them is closed,
+avoiding a task that ignores the cancellation from blocking the process """
+
 LIFESPAN_INTERVAL = 0.001
 """ The amount of time (in seconds) that separates two iterations of
 the event loop while waiting for the acknowledgment of a lifespan
@@ -162,6 +172,7 @@ class ASGIServer(http2.HTTP2Server):
         max_pending=MAX_PENDING,
         lifespan=True,
         asyncio=None,
+        uvloop=None,
         *args,
         **kwargs
     ):
@@ -173,8 +184,15 @@ class ASGIServer(http2.HTTP2Server):
         self.max_pending = max_pending
         self.lifespan = lifespan
         self.asyncio = netius.is_asyncio() if asyncio == None else asyncio
-        self.loop_asyncio = netius.new_loop_asyncio() if self.asyncio else None
+        self.uvloop = netius.is_uvloop() if uvloop == None else uvloop
+        self.loop_asyncio = (
+            netius.new_loop_asyncio(uvloop=self.uvloop) if self.asyncio else None
+        )
         self.pumping = False
+        self.driving = False
+        self.tick_h = None
+        self.tick_t = None
+        self.tick_e = None
         self.legacy_app = self._is_legacy(app)
         self.lifespan_t = None
         self.lifespan_v = None
@@ -186,9 +204,11 @@ class ASGIServer(http2.HTTP2Server):
         http2.HTTP2Server.cleanup(self)
 
         # closes the event loop that drives the applications as it's no
-        # longer going to be used (avoids leaking of resources)
+        # longer going to be used (avoids leaking of resources), once the
+        # tasks of the applications that are still pending are cancelled
         if not self.loop_asyncio:
             return
+        self._cancel_tasks()
         self.loop_asyncio.close()
         self.loop_asyncio = None
 
@@ -199,6 +219,78 @@ class ASGIServer(http2.HTTP2Server):
         # so that both the timers and the callbacks scheduled by them are
         # able to make progress while the server is running
         self._pump()
+
+    def build_poll(self):
+        # in case the loop that drives the applications is not able to
+        # drive the server the default polling mechanism is used
+        if not self._is_driven():
+            return http2.HTTP2Server.build_poll(self)
+
+        # otherwise the sockets of the server are watched by that same loop,
+        # so that a single event loop runs both the server and applications
+        if isinstance(self.poll, netius.AsyncioPoll):
+            return self.poll
+        self.poll_c = netius.AsyncioPoll
+        self.poll = netius.AsyncioPoll(loop=self.loop_asyncio, callback=self._ready)
+        return self.poll
+
+    def loop(self):
+        # in case the loop that drives the applications is not able to
+        # drive the server the netius event loop is the main one
+        if not self._is_driven():
+            return http2.HTTP2Server.loop(self)
+
+        # retrieves the reference to the asyncio module and saves the loop
+        # that it considers to be the running one, as the running of the
+        # loop of the applications requires it to be unset
+        asyncio = netius.get_asyncio()
+        running = self._running_loop(asyncio)
+        self._set_running_loop(asyncio, None)
+
+        self.driving = True
+
+        try:
+            # runs the loop of the applications as the main loop of the
+            # server, with the ticks of the server scheduled as callbacks
+            # of it, from the first one onwards (no pumping required)
+            self._schedule(0.0)
+            self.loop_asyncio.run_forever()
+        finally:
+            # cancels the tick that may still be scheduled, as it's not meant
+            # to be run by a later (pumped) execution of the loop
+            if self.tick_h:
+                self.tick_h.cancel()
+            self.tick_h = None
+            self.tick_t = None
+            self.driving = False
+            self._set_running_loop(asyncio, running)
+
+        # in case an exception has stopped the loop it's raised again, so that
+        # it's handled by the server as if raised by the netius event loop
+        if self.tick_e:
+            exception = self.tick_e
+            self.tick_e = None
+            raise exception
+
+    def delay(
+        self, callable, timeout=None, immediately=False, verify=False, safe=False
+    ):
+        result = http2.HTTP2Server.delay(
+            self,
+            callable,
+            timeout=timeout,
+            immediately=immediately,
+            verify=verify,
+            safe=safe,
+        )
+
+        # while the loop of the applications drives the server the next tick
+        # is brought forward to the target of the new delayed call, as there's
+        # no polling timeout that would otherwise bound the waiting for it
+        if self.driving:
+            self._schedule(self._timeout())
+
+        return result
 
     def on_connection_c(self, connection):
         http2.HTTP2Server.on_connection_c(self, connection)
@@ -242,6 +334,17 @@ class ASGIServer(http2.HTTP2Server):
     def on_stop(self):
         self._stop_lifespan()
         http2.HTTP2Server.on_stop(self)
+
+    def on_child(self, pipe=None):
+        http2.HTTP2Server.on_child(self, pipe=pipe)
+
+        # the loop that drives the applications (and its selector) can not
+        # be shared by the forked processes, so every child closes the one
+        # inherited from the parent and creates a new one of its own
+        if not self.loop_asyncio:
+            return
+        self.loop_asyncio.close()
+        self.loop_asyncio = netius.new_loop_asyncio(uvloop=self.uvloop)
 
     def on_data(self, connection, data):
         # in case the connection has already been upgraded the data is no
@@ -574,6 +677,21 @@ class ASGIServer(http2.HTTP2Server):
         if content_range:
             connection.set_uncompressed()
 
+        # in case the response does not announce its length and the connection
+        # is not using a transfer encoding, the chunked one is used for an
+        # HTTP/1.1 client, so that the end of the payload is framed without the
+        # closing of the connection (keeping it alive), note that a response
+        # without payload and an HTTP/2 stream (own framing) never require it
+        is_head = parser.method and parser.method.upper() == "HEAD"
+        if (
+            length == -1
+            and connection.is_plain()
+            and parser.version == netius.common.HTTP_11
+            and status_c >= 200
+            and not is_head
+        ):
+            connection.set_chunked()
+
         # verifies if the current connection is using a chunked based
         # stream as this will affect some of the decisions that are
         # going to be taken as part of response header creation
@@ -583,15 +701,15 @@ class ASGIServer(http2.HTTP2Server):
         # of the content length in case it does not unsets the keep
         # alive setting in the parser because the keep alive setting
         # requires the content length to be defined or the target
-        # encoding type to be chunked
+        # encoding type to be chunked, note that the setting is never
+        # set as the client may have requested the connection closing
         has_length = not length == -1
         if not has_length:
-            parser.keep_alive = is_chunked
+            parser.keep_alive = parser.keep_alive and is_chunked
 
         # determines if the response may carry a payload, as neither a HEAD
         # request nor some of the status codes allow one, for such situations
         # the payload produced by the application is discarded
-        is_head = parser.method and parser.method.upper() == "HEAD"
         connection.empty = is_head or status_c < 200 or status_c in http.EMPTY_CODES
 
         # an informational or a no content response may never announce a
@@ -1208,6 +1326,11 @@ class ASGIServer(http2.HTTP2Server):
         if self.pumping:
             return
 
+        # in case the loop is the one driving the server the pending work of
+        # the applications is run by it, so there's nothing to be pumped
+        if self.driving:
+            return
+
         # retrieves the reference to both the asyncio module and the loop
         # that drives the applications (the one to be pumped)
         asyncio = netius.get_asyncio()
@@ -1252,6 +1375,137 @@ class ASGIServer(http2.HTTP2Server):
         if not hasattr(asyncio, "_set_running_loop"):
             return
         asyncio._set_running_loop(loop)
+
+    def _ready(self, owner, reads, writes, errors):
+        # the sockets reported by the poll belong to the provided owner (the
+        # server itself by default) and are handled as in the netius loop,
+        # with any exception stopping the loop to be raised by it afterwards
+        owner = owner or self
+        try:
+            owner.reads(reads)
+            owner.writes(writes)
+            owner.errors(errors)
+        except BaseException as exception:
+            self._stop(exception)
+            return
+
+        # the handling of the sockets may produce work to be run in the next
+        # tick (as the netius loop would do), so it's run right away, note
+        # that a tick is only scheduled while the loop drives the server, as
+        # the sockets are already watched while the loop is pumped (eg: the
+        # start up of the lifespan) and a tick would then stop the loop, for
+        # some loops (uvloop) only in its next execution (the main one)
+        if not self.driving:
+            return
+        self._schedule(0.0)
+
+    def _tick(self):
+        self.tick_h = None
+        self.tick_t = None
+
+        # runs the tick operation of the server, the equivalent of the one of
+        # an iteration of the netius loop, any exception stops the loop
+        try:
+            self.ticks()
+        except BaseException as exception:
+            self._stop(exception)
+            return
+
+        # in case the server is no longer running the loop is stopped, otherwise
+        # the next tick is scheduled for the next delayed call of the server
+        if not self._running:
+            self.loop_asyncio.stop()
+            return
+        self._schedule(self._timeout())
+
+    def _stop(self, exception):
+        # stops the loop keeping the exception that caused it, so that it's
+        # raised once the loop is no longer running (outside of a callback)
+        self.tick_e = exception
+        self.loop_asyncio.stop()
+
+    def _schedule(self, timeout):
+        # schedules the next tick of the server after the provided timeout, a
+        # single tick is kept scheduled and an earlier one always prevails
+        loop = self.loop_asyncio
+        target = loop.time() + timeout
+        if self.tick_h:
+            if self.tick_t <= target:
+                return
+            self.tick_h.cancel()
+        self.tick_t = target
+        if timeout > 0.0:
+            self.tick_h = loop.call_at(target, self._tick)
+        else:
+            self.tick_h = loop.call_soon(self._tick)
+
+    def _timeout(self):
+        """
+        Computes the amount of time (in seconds) until the next tick
+        of the server is required, the equivalent of the timeout of
+        the poll operation of the netius loop.
+
+        :rtype: float
+        :return: The amount of time until the next tick, zero for the
+        pending work and the timeout of the poll at most.
+        """
+
+        # the pending notifications and the delayed calls that are pending
+        # to be merged require an immediate tick to be handled
+        if self._delayed_n or self._notified:
+            return 0.0
+
+        # without delayed calls the server ticks with the timeout of the poll,
+        # otherwise at the target of the first of them (immediate ones due)
+        if not self._delayed:
+            return self.poll_timeout
+        target = self._delayed[0][0]
+        return min(max(target - time.time(), 0.0), self.poll_timeout)
+
+    def _is_driven(self):
+        # the loop that drives the applications is only able to drive the
+        # server under the asyncio mode and when able to watch the sockets
+        # of it, which is not the case for the proactor based loop
+        if not self.asyncio:
+            return False
+        asyncio = netius.get_asyncio()
+        proactor = getattr(asyncio, "ProactorEventLoop", None)
+        if proactor and isinstance(self.loop_asyncio, proactor):
+            return False
+        return True
+
+    def _cancel_tasks(self, timeout=CANCEL_TIMEOUT):
+        """
+        Cancels the tasks of the applications that are still pending
+        and runs the loop until they handle the cancellation, so that
+        none of them is destroyed while pending once the loop is closed
+        (the equivalent of what asyncio does at the end of a run).
+
+        :type timeout: float
+        :param timeout: The maximum amount of time (in seconds) to wait
+        for the tasks to handle their cancellation.
+        """
+
+        # retrieves the tasks of the loop that are still pending, using the
+        # module level function and falling back to the class method of the
+        # task for the older interpreters, returning in case there's none
+        asyncio = netius.get_asyncio()
+        all_tasks = getattr(asyncio, "all_tasks", None) or asyncio.Task.all_tasks
+        tasks = [task for task in all_tasks(self.loop_asyncio) if not task.done()]
+        if not tasks:
+            return
+
+        for task in tasks:
+            task.cancel()
+
+        # runs the loop until the tasks handle their cancellation, bounded by
+        # the timeout, with the running loop of asyncio unset in the meantime
+        running = self._running_loop(asyncio)
+        self._set_running_loop(asyncio, None)
+        try:
+            self.loop_asyncio.run_until_complete(asyncio.wait(tasks, timeout=timeout))
+        finally:
+            self._set_running_loop(asyncio, running)
 
     def _call_app(self, scope, receive, send):
         # in case the application complies with the legacy (double callable)
