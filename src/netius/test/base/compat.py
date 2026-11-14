@@ -489,11 +489,19 @@ class CompatLoopTest(unittest.TestCase):
 
 class IsUvloopTest(unittest.TestCase):
 
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        self.uvloop = netius.conf("UVLOOP", None)
+
     def tearDown(self):
         unittest.TestCase.tearDown(self)
-        netius.conf_r("UVLOOP")
+        if self.uvloop == None:
+            netius.conf_r("UVLOOP")
+        else:
+            netius.conf_s("UVLOOP", self.uvloop)
 
     def test_is_uvloop(self):
+        netius.conf_r("UVLOOP")
         uvloop = asynchronous.get_uvloop()
 
         # the uvloop implementation is used by default, as long as it's
