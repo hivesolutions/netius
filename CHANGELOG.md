@@ -9,15 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-*
+* The faster uvloop event loop for the ASGI server whenever it's installed, unless disabled by configuration - [#452](https://github.com/hivesolutions/omni/issues/452)
+* A polling mechanism that hands the watching of the sockets to an asyncio event loop - [#452](https://github.com/hivesolutions/omni/issues/452)
 
 ### Changed
 
-*
+* The ASGI server under the asyncio mode runs on the event loop of its applications, so their timers run on time and an idle server uses no processor - [#452](https://github.com/hivesolutions/omni/issues/452)
+* The ASGI responses without a length keep the connection alive for HTTP/1.1 clients - [#452](https://github.com/hivesolutions/omni/issues/452)
+* The messages below the level of the logger are discarded before any of their context is built - [#452](https://github.com/hivesolutions/omni/issues/452)
 
 ### Fixed
 
-*
+* The closing of the connection requested by a client is honoured even when the response is chunked - [#452](https://github.com/hivesolutions/omni/issues/452)
+* The event loop of the ASGI applications is no longer shared by the forked processes - [#452](https://github.com/hivesolutions/omni/issues/452)
 
 ## [1.66.0] - 2026-11-06
 
