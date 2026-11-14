@@ -156,6 +156,9 @@ class ASGIServerTest(unittest.TestCase):
         self.assertEqual(isinstance(server.build_poll(), netius.AsyncioPoll), False)
 
         server = self._make_server(asyncio=True, uvloop=False)
+        if not server._is_driven():
+            self.skipTest("Skipping test: loop unable to watch sockets")
+
         poll = server.build_poll()
 
         # under the asyncio mode the sockets of the server are watched by the
@@ -178,6 +181,9 @@ class ASGIServerTest(unittest.TestCase):
             poll_timeout=1.0,
             env=False,
         )
+        if not server._is_driven():
+            self.skipTest("Skipping test: loop unable to watch sockets")
+
         thread = self._start(server)
         try:
             data = self._request(server)
@@ -1827,8 +1833,14 @@ class ASGIServerTest(unittest.TestCase):
         self.assertEqual(server._is_driven(), False)
 
         server = self._make_server(asyncio=True, uvloop=False)
+        asyncio = netius.get_asyncio()
+        proactor = getattr(asyncio, "ProactorEventLoop", None)
+        is_proactor = proactor and isinstance(server.loop_asyncio, proactor)
 
-        self.assertEqual(server._is_driven(), True)
+        # under the asyncio mode the loop drives the server whenever it's able
+        # to watch its sockets, which is not the case for the proactor based
+        # loop, the default one under Windows
+        self.assertEqual(server._is_driven(), not is_proactor)
 
         if mock == None:
             return
