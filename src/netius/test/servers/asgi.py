@@ -1028,6 +1028,19 @@ class ASGIServerTest(unittest.TestCase):
         # the chunked encoding is never used for it
         self.assertEqual(connection.current, netius.common.PLAIN_ENCODING)
 
+        server = self._make_server()
+        connection = self._make_connection(server)
+        connection.parse(REQUEST)
+
+        server._send_start(connection, dict(status=204, headers=[]))
+
+        # neither for a response that may not carry a payload (no content), as
+        # it ends with its headers and the last chunk would be read by the client
+        # as the start of the next response, with the connection kept alive
+        self.assertEqual(connection.current, netius.common.PLAIN_ENCODING)
+        self.assertEqual(connection.parser.keep_alive, True)
+        self.assertEqual(b"Transfer-Encoding" in self._data(connection), False)
+
     def test__send_start_close(self):
         server = self._make_server()
         connection = self._make_connection(
