@@ -1818,28 +1818,39 @@ class ASGIServerTest(unittest.TestCase):
         self.assertEqual(state, [True])
 
     def test__schedule(self):
+        if mock == None:
+            self.skipTest("Skipping test: mock unavailable")
+
         server = self._make_server(asyncio=True, uvloop=False)
+        loop = server.loop_asyncio
 
-        server._schedule(10.0)
-        handle = server.tick_h
+        with mock.patch.object(server, "_tick") as tick:
+            server._schedule(0.1)
+            handle = server.tick_h
 
-        # a timed tick is scheduled at the target of it in the loop
-        self.assertAlmostEqual(handle.when(), server.tick_t, 3)
+            # a timed tick is scheduled at the target of it in the loop
+            self.assertGreater(server.tick_t, loop.time())
+            self.assertLessEqual(server.tick_t, loop.time() + 0.1)
 
-        # a later tick never replaces the one that is already scheduled, so
-        # that a single tick is kept scheduled at any given time
-        server._schedule(20.0)
+            # a later tick never replaces the one that is already scheduled, so
+            # that a single tick is kept scheduled at any given time
+            server._schedule(0.2)
 
-        self.assertEqual(server.tick_h, handle)
+            self.assertEqual(server.tick_h, handle)
 
-        server._schedule(0.0)
+            server._schedule(0.0)
 
-        # an earlier tick always prevails, cancelling the scheduled one, with
-        # an immediate tick being scheduled to run in the next iteration
-        self.assertNotEqual(server.tick_h, handle)
-        self.assertEqual(handle.cancelled(), True)
-        self.assertLessEqual(server.tick_t, server.loop_asyncio.time())
-        server.tick_h.cancel()
+            # an earlier tick always prevails, cancelling the scheduled one, with
+            # an immediate tick being scheduled to run in the next iteration
+            self.assertNotEqual(server.tick_h, handle)
+            self.assertLessEqual(server.tick_t, loop.time())
+
+            # running the loop past the target of the cancelled tick runs only
+            # the immediate one, as a single tick is kept scheduled
+            loop.call_later(0.3, loop.stop)
+            self._drive(server)
+
+        self.assertEqual(tick.call_count, 1)
 
     def test__timeout(self):
         server = self._make_server(asyncio=True, uvloop=False)
